@@ -24,21 +24,27 @@ function setCategory(c) {
 }
 function renderProducts() {
   const q=document.getElementById("searchInput").value.toLowerCase().trim();
-  const list=products.filter(p=>p.status==="Show" && (activeCategory==="Semua"||p.category===activeCategory) && (p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q)));
+  const sort=document.getElementById("sortSelect").value;
+  let list=products.filter(p=>p.status==="Show" && (activeCategory==="Semua"||p.category===activeCategory) && (p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q)||p.seller.toLowerCase().includes(q)));
+  if(sort==="priceAsc") list.sort((a,b)=>currentPrice(a)-currentPrice(b));
+  if(sort==="priceDesc") list.sort((a,b)=>currentPrice(b)-currentPrice(a));
+  if(sort==="name") list.sort((a,b)=>a.name.localeCompare(b.name,"id"));
   document.getElementById("resultInfo").textContent=`${list.length} produk`;
   document.getElementById("productGrid").innerHTML=list.length?list.map(p=>`
     <article class="product">
-      <div class="product-img"><img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🛍️'"></div>
+      <div class="product-img"><img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🛍️'">
+        ${p.sale?'<span class="sale-badge">PROMO</span>':''}
+      </div>
       <div class="product-body">
         <h3>${p.name}</h3>
         <div class="price">${priceHTML(p)}</div>
-        <small>${p.unit}</small>
+        <small>${p.unit}</small><small class="seller">👤 ${p.seller}</small>
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
           <button class="btn primary" onclick="addToCart(${p.id})">+ Keranjang</button>
         </div>
       </div>
-    </article>`).join(""):"<p>Produk tidak ditemukan.</p>";
+    </article>`).join(""):`<div class="empty-state"><b>😔 Produk tidak ditemukan</b>Coba kata kunci atau kategori lain.</div>`;
 }
 function showProduct(id) {
   const p=products.find(x=>x.id===id);
@@ -62,7 +68,7 @@ function showProduct(id) {
 function addToCart(id) {
   const p=products.find(x=>x.id===id); if(!p||p.status!=="Show")return;
   const item=cart.find(x=>x.id===id); if(item)item.qty++; else cart.push({id,qty:1});
-  saveCart();updateCartCount();renderCart();
+  saveCart();updateCartCount();renderCart();showToast(`${p.name} ditambahkan ke keranjang`);
 }
 function changeQty(id,d) {
   const item=cart.find(x=>x.id===id);if(!item)return;
@@ -73,8 +79,9 @@ function cartData() {return cart.map(i=>({...products.find(p=>p.id===i.id),qty:i
 function renderCart() {
   const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),shipping=items.length?SHIPPING_COST:0;
   document.getElementById("cartItems").innerHTML=items.length?items.map(p=>`
-    <div class="cart-row"><div><b>${p.name}</b><br><span>${rupiah(currentPrice(p))} × ${p.qty}</span></div>
-    <div class="qty"><button onclick="changeQty(${p.id},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.id},1)">+</button></div></div>`).join(""):"<p>Keranjang masih kosong.</p>";
+    <div class="cart-row"><div><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div></div>
+    <div class="qty"><button onclick="changeQty(${p.id},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.id},1)">+</button></div></div>`).join(""):`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
+  document.getElementById("cartItemLabel").textContent=`${cart.reduce((s,i)=>s+i.qty,0)} item`;
   document.getElementById("cartSubtotal").textContent=rupiah(subtotal);
   document.getElementById("cartShipping").textContent=rupiah(shipping);
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
@@ -90,6 +97,9 @@ document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if
 document.getElementById("cartBtn").onclick=()=>{renderCart();openModal("cartModal")};
 document.getElementById("checkoutBtn").onclick=()=>{if(cart.length){closeModal("cartModal");openModal("checkoutModal")}};
 document.getElementById("searchInput").addEventListener("input",renderProducts);
+document.getElementById("sortSelect").addEventListener("change",renderProducts);
+document.getElementById("clearSearch").addEventListener("click",()=>{document.getElementById("searchInput").value="";renderProducts();document.getElementById("searchInput").focus()});
+function showToast(message){const t=document.getElementById("toast");t.textContent=message;t.classList.add("show");clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove("show"),1800)}
 document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
 document.getElementById("checkoutForm").addEventListener("submit",e=>{
   e.preventDefault();if(!cart.length)return;

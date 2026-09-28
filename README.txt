@@ -1,17 +1,22 @@
-KALENSARI STORE V4
+KALENSARI STORE V5
 
-Peningkatan dari V3:
-- Hero/banner pembuka yang lebih profesional.
-- Tombol Belanja Sekarang dan Chat WhatsApp.
-- Bagian keunggulan toko.
-- Judul katalog yang lebih jelas.
+Fitur V5:
+- Tampilan toko online lebih modern dan responsif.
+- Pencarian produk berdasarkan nama, kategori, dan penjual.
+- Filter kategori Makanan / Minuman.
+- Urutkan harga rendah/tinggi dan nama A-Z.
+- Badge promo untuk produk diskon.
+- Keranjang dengan tambah/kurang jumlah dan total otomatis.
+- Checkout nama, nomor WhatsApp, alamat, catatan, dan pembayaran.
+- Pesanan dikirim langsung ke WhatsApp.
+- Keranjang tersimpan di browser (localStorage).
 - Tombol WhatsApp mengambang.
-- Tetap mempertahankan katalog produk, keranjang, checkout, dan WhatsApp V3.
-- Responsif untuk desktop dan HP.
 
-Pemasangan:
-1. Buka repository GitHub Kalensari-store2.
-2. Upload/timpa index.html, style.css, dan script.js.
-3. Commit perubahan.
-4. Tunggu GitHub Pages selesai deployment.
-5. Refresh dengan Ctrl+F5.
+Cara update GitHub Pages:
+1. Buka repositori Kalensari-store2.
+2. Klik Tambahkan file > Unggah file.
+3. Upload index.html, style.css, script.js.
+4. Pilih Komit perubahan.
+5. Tunggu beberapa saat lalu buka halaman GitHub Pages.
+
+Catatan: nomor WhatsApp toko berada di bagian atas script.js pada WHATSAPP_NUMBER.
