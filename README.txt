@@ -1,13 +1,17 @@
-KALENSARI STORE V3
-Perbaikan utama:
-- Memisahkan foto dan teks produk agar tidak bertumpuk.
-- Foto produk memakai object-fit: cover.
-- Kartu produk tetap responsif untuk desktop dan HP.
-- Fitur produk, keranjang, checkout, dan WhatsApp dari V2 dipertahankan.
+KALENSARI STORE V4
 
-UPLOAD KE GITHUB:
-1. Buka repository Kalensari-store2.
-2. Ganti index.html, style.css, dan script.js dengan tiga file di ZIP ini.
+Peningkatan dari V3:
+- Hero/banner pembuka yang lebih profesional.
+- Tombol Belanja Sekarang dan Chat WhatsApp.
+- Bagian keunggulan toko.
+- Judul katalog yang lebih jelas.
+- Tombol WhatsApp mengambang.
+- Tetap mempertahankan katalog produk, keranjang, checkout, dan WhatsApp V3.
+- Responsif untuk desktop dan HP.
+
+Pemasangan:
+1. Buka repository GitHub Kalensari-store2.
+2. Upload/timpa index.html, style.css, dan script.js.
 3. Commit perubahan.
 4. Tunggu GitHub Pages selesai deployment.
-5. Tekan Ctrl+F5 pada halaman website untuk memuat CSS terbaru.
+5. Refresh dengan Ctrl+F5.

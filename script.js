@@ -100,3 +100,6 @@ document.getElementById("checkoutForm").addEventListener("submit",e=>{
 });
 document.getElementById("year").textContent=new Date().getFullYear();
 renderCategories();renderProducts();updateCartCount();renderCart();
+
+document.getElementById("waHero")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin bertanya tentang produk.")}`);
+document.getElementById("waFloat")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin memesan.")}`);
