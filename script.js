@@ -5,7 +5,53 @@ const DEFAULT_PRODUCTS = [{"id":1,"name":"Lotek Bongko","price":12000,"sale":800
 
 const ADMIN_PIN = "1234";
 let products = JSON.parse(localStorage.getItem("kalensari_products") || "null") || DEFAULT_PRODUCTS.map(p=>({...p}));
+let cloudReady = false;
 const saveProducts = () => localStorage.setItem("kalensari_products", JSON.stringify(products));
+
+const cloudHeaders = () => ({
+  apikey: CLOUD_CONFIG.supabaseAnonKey,
+  Authorization: `Bearer ${CLOUD_CONFIG.supabaseAnonKey}`,
+  "Content-Type": "application/json",
+  Prefer: "return=representation"
+});
+async function cloudFetch(path, options={}) {
+  if(!CLOUD_CONFIG?.enabled) throw new Error("cloud-disabled");
+  const r=await fetch(`${CLOUD_CONFIG.supabaseUrl}/rest/v1/${path}`, {
+    ...options, headers:{...cloudHeaders(), ...(options.headers||{})}
+  });
+  if(!r.ok) throw new Error(await r.text());
+  const text=await r.text(); return text?JSON.parse(text):[];
+}
+async function loadCloudProducts(){
+  if(!CLOUD_CONFIG?.enabled) return false;
+  try {
+    const data=await cloudFetch("products?select=*&order=id.asc");
+    if(Array.isArray(data) && data.length){ products=data.map(p=>({...p})); saveProducts(); cloudReady=true; return true; }
+    if(Array.isArray(data) && !data.length){
+      await cloudFetch("products",{method:"POST",body:JSON.stringify(DEFAULT_PRODUCTS)});
+      products=DEFAULT_PRODUCTS.map(p=>({...p})); saveProducts(); cloudReady=true; return true;
+    }
+  } catch(e){ console.warn("Supabase products:",e); }
+  return false;
+}
+async function syncCloudProducts(){
+  if(!CLOUD_CONFIG?.enabled) return;
+  try {
+    await cloudFetch("products?select=id",{method:"DELETE"});
+    await cloudFetch("products",{method:"POST",body:JSON.stringify(products)});
+    cloudReady=true; updateCloudStatus("☁️ Tersinkron online");
+  } catch(e){ console.warn(e); updateCloudStatus("⚠️ Gagal sinkron. Data lokal tetap tersimpan."); }
+}
+function updateCloudStatus(text){const el=document.getElementById("cloudStatus");if(el)el.textContent=text;}
+async function saveCloudOrder(payload){
+  if(!CLOUD_CONFIG?.enabled) return false;
+  try { await cloudFetch("orders",{method:"POST",body:JSON.stringify(payload)}); return true; } catch(e){ console.warn("Supabase orders:",e); return false; }
+}
+async function loadCloudOrders(){
+  if(!CLOUD_CONFIG?.enabled) return [];
+  try { return await cloudFetch("orders?select=*&order=created_at.desc&limit=30"); } catch(e){ return []; }
+}
+
 
 
 let cart = JSON.parse(localStorage.getItem("kalensari_cart") || "[]");
@@ -111,10 +157,14 @@ document.getElementById("checkoutForm").addEventListener("submit",e=>{
   const f=new FormData(e.target),items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
   const detail=items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
   const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(SHIPPING_COST)}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${f.get("phone")}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
+  saveCloudOrder({
+    customer_name:String(f.get("name")||""), customer_phone:String(f.get("phone")||""), address:String(f.get("address")||""), note:String(f.get("note")||""), payment:String(f.get("payment")||""), items, subtotal, shipping:SHIPPING_COST, total, status:"baru"
+  });
   window.open(waLink(msg),"_blank");
 });
 document.getElementById("year").textContent=new Date().getFullYear();
 renderCategories();renderProducts();updateCartCount();renderCart();
+(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); if(ok){renderCategories();renderProducts();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
 
 // ===== ADMIN DASHBOARD V6 =====
 let adminLoggedIn = false;
@@ -150,21 +200,33 @@ function editAdminProduct(i){
 }
 function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function saveAdminProduct(i){
-  const p=products[i]; p.name=document.getElementById(`e-name-${i}`).value.trim(); p.category=document.getElementById(`e-cat-${i}`).value; p.price=Number(document.getElementById(`e-price-${i}`).value)||0; const sale=Number(document.getElementById(`e-sale-${i}`).value); p.sale=sale>0?sale:null; p.seller=document.getElementById(`e-seller-${i}`).value.trim(); p.unit=document.getElementById(`e-unit-${i}`).value.trim(); p.image=document.getElementById(`e-image-${i}`).value.trim(); saveProducts(); renderProducts(); renderCategories(); renderAdminProducts(); showToast("Produk berhasil diperbarui");
+  const p=products[i]; p.name=document.getElementById(`e-name-${i}`).value.trim(); p.category=document.getElementById(`e-cat-${i}`).value; p.price=Number(document.getElementById(`e-price-${i}`).value)||0; const sale=Number(document.getElementById(`e-sale-${i}`).value); p.sale=sale>0?sale:null; p.seller=document.getElementById(`e-seller-${i}`).value.trim(); p.unit=document.getElementById(`e-unit-${i}`).value.trim(); p.image=document.getElementById(`e-image-${i}`).value.trim(); saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); showToast("Produk berhasil diperbarui");
 }
 function addAdminProduct(){
   const id=products.length?Math.max(...products.map(p=>p.id))+1:1;
   products.unshift({id,name:"Produk Baru",price:10000,sale:null,category:"Makanan",unit:"1 porsi",seller:"Warga Kalensari",status:"Show",image:""});
-  saveProducts(); renderProducts(); renderCategories(); renderAdminProducts(); editAdminProduct(0); showToast("Produk baru ditambahkan");
+  saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); editAdminProduct(0); showToast("Produk baru ditambahkan");
 }
-function toggleAdminProduct(i){products[i].status=products[i].status==='Show'?'Out of Stock':'Show';saveProducts();renderProducts();renderAdminProducts();}
-function deleteAdminProduct(i){if(!confirm(`Hapus ${products[i].name}?`))return;products.splice(i,1);saveProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dihapus");}
+function toggleAdminProduct(i){products[i].status=products[i].status==='Show'?'Out of Stock':'Show';saveProducts();syncCloudProducts();renderProducts();renderAdminProducts();}
+function deleteAdminProduct(i){if(!confirm(`Hapus ${products[i].name}?`))return;products.splice(i,1);saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dihapus");}
 document.getElementById("menuBtn").onclick=openAdmin;
 document.getElementById("adminLoginBtn").onclick=()=>{if(document.getElementById("adminPin").value===ADMIN_PIN){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil")}else showToast("PIN admin salah")};
 document.getElementById("addProductBtn").onclick=addAdminProduct;
 document.getElementById("exportBtn").onclick=()=>{const blob=new Blob([JSON.stringify(products,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kalensari-products.json";a.click();URL.revokeObjectURL(a.href)};
-document.getElementById("importFile").onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!Array.isArray(data))throw Error();products=data.map((p,i)=>({...p,id:Number(p.id)||i+1}));saveProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk berhasil diimpor")}catch{showToast("File produk tidak valid")}};r.readAsText(file)};
-document.getElementById("resetProductsBtn").onclick=()=>{if(!confirm("Kembalikan 25 produk bawaan?"))return;products=DEFAULT_PRODUCTS.map(p=>({...p}));saveProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dikembalikan ke bawaan")};
+document.getElementById("importFile").onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!Array.isArray(data))throw Error();products=data.map((p,i)=>({...p,id:Number(p.id)||i+1}));saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk berhasil diimpor")}catch{showToast("File produk tidak valid")}};r.readAsText(file)};
+document.getElementById("resetProductsBtn").onclick=()=>{if(!confirm("Kembalikan 25 produk bawaan?"))return;products=DEFAULT_PRODUCTS.map(p=>({...p}));saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dikembalikan ke bawaan")};
+
+
+async function renderAdminOrders(){
+  const box=document.getElementById("adminOrderList"); if(!box)return;
+  if(!CLOUD_CONFIG?.enabled){box.innerHTML='<div class="empty-state">☁️ Aktifkan database online untuk melihat pesanan dari semua perangkat.</div>';return;}
+  box.innerHTML='<div class="empty-state">Memuat pesanan...</div>';
+  const rows=await loadCloudOrders();
+  box.innerHTML=rows.length?rows.map(o=>`<div class="admin-order"><b>${esc(o.customer_name||"Pelanggan")}</b><span>${esc(o.customer_phone||"")}</span><small>${new Date(o.created_at).toLocaleString("id-ID")}</small><strong>${rupiah(o.total||0)}</strong><p>${(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")}</p><a class="btn outline" target="_blank" href="${waLink(`Halo ${o.customer_name||"Pelanggan"}, terkait pesanan KALENSARI STORE.`)}">💬 WhatsApp</a></div>`).join(""):'<div class="empty-state">Belum ada pesanan online.</div>';
+}
+
+document.getElementById("refreshOrdersBtn")?.addEventListener("click",renderAdminOrders);
+const __openAdmin=openAdmin; openAdmin=function(){__openAdmin(); if(adminLoggedIn)renderAdminOrders();};
 
 document.getElementById("waHero")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin bertanya tentang produk.")}`);
 document.getElementById("waFloat")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin memesan.")}`);
