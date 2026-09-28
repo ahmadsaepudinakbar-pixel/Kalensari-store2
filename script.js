@@ -1,7 +1,7 @@
 // ===== KALENSARI STORE =====
 // GANTI nomor WhatsApp di bawah dengan nomor WhatsApp toko Anda.
 // Format: kode negara tanpa +, contoh 6281234567890
-const WHATSAPP_NUMBER = "6281234567890";
+const WHATSAPP_NUMBER = "6282114541041";
 const SHIPPING_COST = 10000;
 
 const products = [
