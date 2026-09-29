@@ -277,26 +277,27 @@ if(document.readyState === "loading"){
 }
 
 
-// ===== FLOATING PRODUCT SEARCH - FIX: PANEL ADA SETELAH SCRIPT =====
+// ===== FLOATING PRODUCT SEARCH =====
 function initFloatingProductSearch(){
   const searchFloat = document.getElementById("searchFloat");
   const quickSearchPanel = document.getElementById("quickSearchPanel");
   const quickSearchInput = document.getElementById("quickSearchInput");
   const quickSearchClear = document.getElementById("quickSearchClear");
   const quickSearchResult = document.getElementById("quickSearchResult");
-  if(!searchFloat || !quickSearchPanel || !quickSearchInput) return;
+  const mainSearch = document.getElementById("searchInput");
 
-  function setQuickSearchOpen(open){
-    quickSearchPanel.classList.toggle("show", open);
-    quickSearchPanel.setAttribute("aria-hidden", open ? "false" : "true");
-    searchFloat.classList.toggle("active", open);
-    searchFloat.setAttribute("aria-expanded", open ? "true" : "false");
-    if(open){
-      const mainValue = document.getElementById("searchInput")?.value || "";
-      quickSearchInput.value = mainValue;
-      updateQuickSearchResult();
-      setTimeout(()=>{ quickSearchInput.focus(); quickSearchInput.select(); }, 50);
-    }
+  if(!searchFloat || !quickSearchPanel || !quickSearchInput) return;
+  if(searchFloat.dataset.searchReady === "1") return;
+  searchFloat.dataset.searchReady = "1";
+
+  function getMatches(query){
+    const q = String(query || "").trim().toLowerCase();
+    if(!q) return products.filter(p => p.status === "Show");
+    return products.filter(p => {
+      if(p.status !== "Show") return false;
+      return [p.name, p.category, p.seller]
+        .some(v => String(v || "").toLowerCase().includes(q));
+    });
   }
 
   function updateQuickSearchResult(){
@@ -305,43 +306,76 @@ function initFloatingProductSearch(){
       quickSearchResult.textContent = "Ketik nama produk untuk mencari.";
       return;
     }
-    const q = query.toLowerCase();
-    const matches = products.filter(p =>
-      p.status === "Show" && (
-        String(p.name||"").toLowerCase().includes(q) ||
-        String(p.category||"").toLowerCase().includes(q) ||
-        String(p.seller||"").toLowerCase().includes(q)
-      )
-    );
+    const matches = getMatches(query);
     quickSearchResult.textContent = matches.length
       ? `${matches.length} produk ditemukan untuk “${query}”.`
       : `Produk “${query}” tidak ditemukan.`;
   }
 
+  function syncToMainSearch(){
+    if(!mainSearch) return;
+    mainSearch.value = quickSearchInput.value;
+    // event input menjaga semua mekanisme pencarian utama tetap sinkron
+    mainSearch.dispatchEvent(new Event("input", {bubbles:true}));
+  }
+
   function applyQuickSearch(){
-    const value = quickSearchInput.value.trim();
-    const mainSearch = document.getElementById("searchInput");
-    if(mainSearch){
-      mainSearch.value = value;
-      renderProducts();
-    }
+    syncToMainSearch();
+    renderProducts();
     const productsSection = document.getElementById("products");
-    if(productsSection) productsSection.scrollIntoView({behavior:"smooth", block:"start"});
+    if(productsSection){
+      productsSection.scrollIntoView({behavior:"smooth", block:"start"});
+    }
     updateQuickSearchResult();
+  }
+
+  function openQuickSearch(){
+    quickSearchPanel.classList.add("show");
+    quickSearchPanel.setAttribute("aria-hidden", "false");
+    searchFloat.classList.add("active");
+    searchFloat.setAttribute("aria-expanded", "true");
+
+    if(mainSearch && mainSearch.value !== quickSearchInput.value){
+      quickSearchInput.value = mainSearch.value;
+    }
+    updateQuickSearchResult();
+
+    // Fokus langsung dari aksi klik agar keyboard HP terbuka otomatis.
+    try{
+      quickSearchInput.focus({preventScroll:true});
+      quickSearchInput.select();
+    }catch(e){
+      quickSearchInput.focus();
+    }
+
+    // Fallback untuk browser yang baru mengizinkan focus setelah event selesai.
+    setTimeout(() => {
+      if(quickSearchPanel.classList.contains("show")){
+        quickSearchInput.focus({preventScroll:true});
+      }
+    }, 80);
+  }
+
+  function closeQuickSearch(){
+    quickSearchPanel.classList.remove("show");
+    quickSearchPanel.setAttribute("aria-hidden", "true");
+    searchFloat.classList.remove("active");
+    searchFloat.setAttribute("aria-expanded", "false");
   }
 
   searchFloat.addEventListener("click", function(e){
     e.preventDefault();
     e.stopPropagation();
-    setQuickSearchOpen(!quickSearchPanel.classList.contains("show"));
+    if(quickSearchPanel.classList.contains("show")){
+      closeQuickSearch();
+    }else{
+      openQuickSearch();
+    }
   });
 
   quickSearchInput.addEventListener("input", function(){
-    const mainSearch = document.getElementById("searchInput");
-    if(mainSearch){
-      mainSearch.value = quickSearchInput.value;
-      renderProducts();
-    }
+    syncToMainSearch();
+    renderProducts();
     updateQuickSearchResult();
   });
 
@@ -349,36 +383,32 @@ function initFloatingProductSearch(){
     if(e.key === "Enter"){
       e.preventDefault();
       applyQuickSearch();
-    }else if(e.key === "Escape"){
-      setQuickSearchOpen(false);
+      return;
+    }
+    if(e.key === "Escape"){
+      e.preventDefault();
+      closeQuickSearch();
     }
   });
 
-  if(quickSearchClear){
-    quickSearchClear.addEventListener("click", function(e){
-      e.preventDefault();
-      quickSearchInput.value = "";
-      const mainSearch = document.getElementById("searchInput");
-      if(mainSearch){
-        mainSearch.value = "";
-        renderProducts();
-      }
-      updateQuickSearchResult();
-      quickSearchInput.focus();
-    });
-  }
+  quickSearchClear?.addEventListener("click", function(e){
+    e.preventDefault();
+    e.stopPropagation();
+    quickSearchInput.value = "";
+    syncToMainSearch();
+    renderProducts();
+    updateQuickSearchResult();
+    quickSearchInput.focus({preventScroll:true});
+  });
 
   document.addEventListener("click", function(e){
-    if(quickSearchPanel.classList.contains("show") &&
-       !quickSearchPanel.contains(e.target) &&
-       !searchFloat.contains(e.target)){
-      setQuickSearchOpen(false);
+    if(!quickSearchPanel.classList.contains("show")) return;
+    if(!quickSearchPanel.contains(e.target) && !searchFloat.contains(e.target)){
+      closeQuickSearch();
     }
   });
 }
 
-// PENTING: panel pencarian berada setelah tag script di index.html.
-// Karena itu listener wajib dipasang setelah DOM selesai dibuat.
 if(document.readyState === "loading"){
   document.addEventListener("DOMContentLoaded", initFloatingProductSearch);
 }else{
