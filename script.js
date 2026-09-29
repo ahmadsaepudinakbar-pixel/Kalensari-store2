@@ -277,23 +277,87 @@ if(document.readyState === "loading"){
 }
 
 
-// ===== FLOATING PRODUCT SEARCH =====
+// ===== FLOATING PRODUCT SEARCH - BENAR-BENAR BISA MENCARI =====
 const searchFloat = document.getElementById("searchFloat");
-if (searchFloat) {
-  searchFloat.addEventListener("click", () => {
-    const productsSection = document.getElementById("products");
-    const searchInput = document.getElementById("searchInput");
-    if (productsSection) {
-      productsSection.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    setTimeout(() => {
-      if (searchInput) {
-        searchInput.focus();
-        searchInput.select();
-      }
-    }, 450);
+const quickSearchPanel = document.getElementById("quickSearchPanel");
+const quickSearchInput = document.getElementById("quickSearchInput");
+const quickSearchClear = document.getElementById("quickSearchClear");
+const quickSearchResult = document.getElementById("quickSearchResult");
+
+function setQuickSearchOpen(open){
+  if(!quickSearchPanel || !searchFloat) return;
+  quickSearchPanel.classList.toggle("show", open);
+  quickSearchPanel.setAttribute("aria-hidden", open ? "false" : "true");
+  searchFloat.classList.toggle("active", open);
+  searchFloat.setAttribute("aria-expanded", open ? "true" : "false");
+  if(open && quickSearchInput){
+    const mainValue = document.getElementById("searchInput")?.value || "";
+    quickSearchInput.value = mainValue;
+    setTimeout(()=>{ quickSearchInput.focus(); quickSearchInput.select(); }, 80);
+    updateQuickSearchResult();
+  }
+}
+
+function updateQuickSearchResult(){
+  if(!quickSearchInput || !quickSearchResult) return;
+  const query = quickSearchInput.value.trim();
+  if(!query){
+    quickSearchResult.textContent = "Ketik nama produk untuk mencari.";
+    return;
+  }
+  const q = query.toLowerCase();
+  const matches = products.filter(p =>
+    String(p.name||"").toLowerCase().includes(q) ||
+    String(p.category||"").toLowerCase().includes(q) ||
+    String(p.seller||"").toLowerCase().includes(q)
+  );
+  quickSearchResult.textContent = matches.length
+    ? `${matches.length} produk ditemukan untuk “${query}”.`
+    : `Produk “${query}” tidak ditemukan.`;
+}
+
+function runQuickSearch(){
+  if(!quickSearchInput) return;
+  const value = quickSearchInput.value.trim();
+  const mainSearch = document.getElementById("searchInput");
+  if(mainSearch){
+    mainSearch.value = value;
+    renderProducts();
+  }
+  const productsSection = document.getElementById("products");
+  if(productsSection) productsSection.scrollIntoView({behavior:"smooth",block:"start"});
+  updateQuickSearchResult();
+}
+
+if(searchFloat){
+  searchFloat.addEventListener("click",()=>setQuickSearchOpen(!quickSearchPanel?.classList.contains("show")));
+}
+if(quickSearchInput){
+  quickSearchInput.addEventListener("input",()=>{
+    const mainSearch=document.getElementById("searchInput");
+    if(mainSearch){mainSearch.value=quickSearchInput.value;renderProducts();}
+    updateQuickSearchResult();
+  });
+  quickSearchInput.addEventListener("keydown",e=>{
+    if(e.key==="Enter"){e.preventDefault();runQuickSearch();}
+    if(e.key==="Escape")setQuickSearchOpen(false);
   });
 }
+if(quickSearchClear){
+  quickSearchClear.addEventListener("click",()=>{
+    if(quickSearchInput)quickSearchInput.value="";
+    const mainSearch=document.getElementById("searchInput");
+    if(mainSearch){mainSearch.value="";renderProducts();}
+    updateQuickSearchResult();
+    quickSearchInput?.focus();
+  });
+}
+document.addEventListener("click",e=>{
+  if(!quickSearchPanel || !searchFloat) return;
+  if(quickSearchPanel.classList.contains("show") && !quickSearchPanel.contains(e.target) && !searchFloat.contains(e.target)){
+    setQuickSearchOpen(false);
+  }
+});
 
 // ===== ADMIN DASHBOARD V6 =====
 let adminLoggedIn = false;
