@@ -160,7 +160,7 @@ document.getElementById("sortSelect").addEventListener("change",renderProducts);
 document.getElementById("clearSearch").addEventListener("click",()=>{document.getElementById("searchInput").value="";renderProducts();document.getElementById("searchInput").focus()});
 function showToast(message){const t=document.getElementById("toast");t.textContent=message;t.classList.add("show");clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove("show"),1800)}
 document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
-document.getElementById("checkoutForm").addEventListener("submit",e=>{
+document.getElementById("checkoutForm").addEventListener("submit", async e=>{
   e.preventDefault();
 if(!cart.length)return;
   const f=new FormData(e.target),items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
