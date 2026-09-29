@@ -161,11 +161,12 @@ document.getElementById("clearSearch").addEventListener("click",()=>{document.ge
 function showToast(message){const t=document.getElementById("toast");t.textContent=message;t.classList.add("show");clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove("show"),1800)}
 document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
 document.getElementById("checkoutForm").addEventListener("submit",e=>{
-  e.preventDefault();if(!cart.length)return;
+  e.preventDefault();
+if(!cart.length)return;
   const f=new FormData(e.target),items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
   const detail=items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
   const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(SHIPPING_COST)}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${f.get("phone")}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
-  saveCloudOrder({
+  await saveCloudOrder({
     customer_name:String(f.get("name")||""), customer_phone:String(f.get("phone")||""), address:String(f.get("address")||""), note:String(f.get("note")||""), payment:String(f.get("payment")||""), items, subtotal, shipping:SHIPPING_COST, total, status:"baru"
   });
   window.open(waLink(msg),"_blank");
