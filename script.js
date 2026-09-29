@@ -249,7 +249,7 @@ function getProductImage(imagePath) {
     return imagePath;
   }
 
-  return `${KONFIGURASI_CLOUD.supabaseUrl}/storage/v1/object/public/products/${imagePath
+return `${CLOUD_CONFIG.supabaseUrl}/storage/v1/object/public/products/${imagePath
     .split("/")
     .map(encodeURIComponent)
     .join("/")}`;
