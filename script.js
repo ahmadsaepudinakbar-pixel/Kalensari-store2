@@ -14,7 +14,7 @@ const cloudHeaders = () => ({
   "Content-Type": "application/json",
   Prefer: "return=representation"
 });
-async function cloudFetch(path, options={}) {
+async function cloudFetch(jalur, pilihan={}) {
   if(!CLOUD_CONFIG?.enabled) throw new Error("cloud-disabled");
   const r=await fetch(`${CLOUD_CONFIG.supabaseUrl}/rest/v1/${path}`, {
     ...options, headers:{...cloudHeaders(), ...(options.headers||{})}
@@ -83,7 +83,7 @@ function renderProducts() {
   document.getElementById("resultInfo").textContent=`${list.length} produk`;
   document.getElementById("productGrid").innerHTML=list.length?list.map(p=>`
     <article class="product">
-      <div class="product-img"><img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🛍️'">
+      <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🛍️'">
         ${p.sale?'<span class="sale-badge">PROMO</span>':''}
       </div>
       <div class="product-body">
@@ -102,7 +102,7 @@ function showProduct(id) {
   const sold=p.status!=="Show";
   document.getElementById("productDetail").innerHTML=`
     <div class="detail">
-      <div class="detail-img"><img src="${p.image}" alt="${p.name}" onerror="this.style.display='none'"></div>
+      <div class="detail-img"><img src="${getProductImage(p.image)}" alt="${p.name}" onerror="this.style.display='none'"></div>
       <div>
         <p class="eyebrow">${p.category} • ${p.seller}</p>
         <h2>${p.name}</h2>
@@ -230,3 +230,18 @@ const __openAdmin=openAdmin; openAdmin=function(){__openAdmin(); if(adminLoggedI
 
 document.getElementById("waHero")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin bertanya tentang produk.")}`);
 document.getElementById("waFloat")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin memesan.")}`);
+function getProductImage(imagePath) {
+  if (!imagePath) return "";
+
+  if (
+    imagePath.startsWith("http://") ||
+    imagePath.startsWith("https://")
+  ) {
+    return imagePath;
+  }
+
+  return `${KONFIGURASI_CLOUD.supabaseUrl}/storage/v1/object/public/products/${imagePath
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
+}
