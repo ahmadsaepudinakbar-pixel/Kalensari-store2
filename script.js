@@ -82,8 +82,8 @@ function renderProducts() {
   if(sort==="name") list.sort((a,b)=>a.name.localeCompare(b.name,"id"));
   document.getElementById("resultInfo").textContent=`${list.length} produk`;
   document.getElementById("productGrid").innerHTML=list.length?list.map(p=>`
-    <article class="product">
-      <div class="product-img"><img src="${getProductImage(<img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🛍️'">
+   <article class="product">
+  <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
         ${p.sale?'<span class="sale-badge">PROMO</span>':''}
       </div>
       <div class="product-body">
