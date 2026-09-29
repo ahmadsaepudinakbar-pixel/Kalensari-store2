@@ -2,6 +2,6 @@
 // Isi setelah membuat project Supabase. Jangan masukkan service_role key di sini.
 const CLOUD_CONFIG = {
   enabled: false,
-  supabaseUrl: "mochsxsxxwaibtfpudoz",
-  supabaseAnonKey: "sb_publishable_9M1gzo3mE9YYpFrIExrCrA_stGdgkK9"
+  supabaseUrl: "https://PROJECT-ID.supabase.co",
+  supabaseAnonKey: "PASTE_ANON_PUBLIC_KEY_DI_SINI"
 };
