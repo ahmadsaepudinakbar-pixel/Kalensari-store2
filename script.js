@@ -7,7 +7,51 @@ const CLOUD_CONFIG = window.CLOUD_CONFIG || { enabled:false, supabaseUrl:"", sup
 const DEFAULT_PRODUCTS = [{"id":1,"name":"Lotek Bongko","price":12000,"sale":8000,"category":"Makanan","unit":"1 porsi","seller":"Teh Ida","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/o-fvve-chatgpt%20image%20sep%2028%2C%202026%2C%2005_14_09%20am.png?versionId=sSlnWC5X3v6SfdE8SJ7kfFpkAAtYEG66"},{"id":2,"name":"Bakso Sapi Biasa","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/pf0do4-chatgpt%20image%20sep%2028%2C%202026%2C%2006_23_05%20am.png?versionId=LvDf81yvhC2OIgUPloRKlaBbRFi.9BuH"},{"id":3,"name":"MIe ayam Pedas","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"H. Diman, Mang Edo, Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/0qg0at-chatgpt%20image%20sep%2028%2C%202026%2C%2002_03_31%20pm.png?versionId=EH1aAjwRvQd3dMY93ItbAgINe5lzjnTw"},{"id":4,"name":"MIe ayam Biasa","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"H. Diman, Mang Edo, Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/m5q9je-chatgpt%20image%20sep%2028%2C%202026%2C%2002_02_42%20pm.png?versionId=Lci_mH9SOmBpD2nCjBV_Z_o_XXpxpW8v"},{"id":5,"name":"Bakso Tulang","price":25000,"sale":18000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Out of Stock","image":"https://cdn.store.link/products/kalensaristore80353/agx1iw-chatgpt%20image%20sep%2028%2C%202026%2C%2006_29_33%20am.png?versionId=1n1pJ2ilQgM4jrhR5X_0LEG9mB.lTmg8"},{"id":6,"name":"Bakso Telur","price":12000,"sale":10000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/8a69b3-chatgpt%20image%20sep%2028%2C%202026%2C%2006_34_03%20am.png?versionId=m_nc2BhsK7d4LdKAPdxnMAiRHAV.Q2qB"},{"id":7,"name":"Bakso Urat","price":18000,"sale":15000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/obbajp-chatgpt%20image%20sep%2028%2C%202026%2C%2006_36_33%20am.png?versionId=h_Evc0EcQtdz4PFbFk8aZey0jgRRXZ.p"},{"id":8,"name":"Jus Alpukat","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/3x8j0a-chatgpt%20image%20sep%2028%2C%202026%2C%2006_52_41%20am.png?versionId=eKLzC7y3fgCWrkTSAdcaLHEyEYAdZMsh"},{"id":9,"name":"Jus Buah Naga","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/p8vus5-chatgpt%20image%20sep%2028%2C%202026%2C%2007_22_02%20am.png?versionId=e6H7dwvYmMOZrI86QKN98dyVxHcc8V0M"},{"id":10,"name":"Jus Tomat","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/o4d1bt-chatgpt%20image%20sep%2028%2C%202026%2C%2007_20_47%20am.png?versionId=IbXRZdg2vp6bCuXJPch5YT7FgQZXXcRM"},{"id":11,"name":"Jus Mangga","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/lqk2sp-chatgpt%20image%20sep%2028%2C%202026%2C%2007_22_59%20am.png?versionId=FADsI7qbgepPpQt7XVGl901Q_3cKHFQW"},{"id":12,"name":"Es teh Manis","price":3000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/abqncl-hops-3260267377.webp?versionId=P4DG3eGis6QyEzh9ZFQm3CBF8p9DEJwx"},{"id":13,"name":"Es teh Matcha Late","price":6000,"sale":null,"category":"Minuman","unit":"1 cup besar Rasa Greentea","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/c9c6rx-images%20%281%29.jpg?versionId=K0P2vQjt8SpfWctljxkmCkUO_8AfkYf2"},{"id":14,"name":"Es teh Matcha Premium","price":15000,"sale":12000,"category":"Minuman","unit":"1 cup besar Rasa Greentea","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/bkv3a5-images.jpg?versionId=jKTeHTYDtwRD2qs6CWqYs9ZM2EBZ9emC"},{"id":15,"name":"Nasi Kebuli","price":25000,"sale":20000,"category":"Makanan","unit":"1 porsi","seller":"Teh iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/u4fafx-chatgpt%20image%20sep%2028%2C%202026%2C%2002_14_04%20pm.png?versionId=DHZD_c9LScH15.An7XpzcTJMrjDf0AJk"},{"id":16,"name":"Nasi Goreng","price":13000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Kang Diki Sueb","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/h38vn8-chatgpt%20image%20sep%2028%2C%202026%2C%2002_11_47%20pm.png?versionId=Q1UfoJozDqlb8kaNfjJqp6nKv74i_B3F"},{"id":17,"name":"Pecel Lele","price":15000,"sale":null,"category":"Makanan","unit":"Pecel Lele","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ota8dn-chatgpt%20image%20sep%2028%2C%202026%2C%2002_25_58%20pm.png?versionId=JUVeTbSTZiWtp5heJSYA9RlF7OmxzgOE"},{"id":18,"name":"Pecel Lele + Nasi","price":20000,"sale":null,"category":"Makanan","unit":"Pecel Lele + Nasi","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ota8dn-chatgpt%20image%20sep%2028%2C%202026%2C%2002_25_58%20pm.png?versionId=JUVeTbSTZiWtp5heJSYA9RlF7OmxzgOE"},{"id":19,"name":"Pecel Ayam","price":20000,"sale":null,"category":"Makanan","unit":"Pecel Ayam","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/s1j6xi-chatgpt%20image%20sep%2028%2C%202026%2C%2002_24_40%20pm.png?versionId=daNVkTOKSqZw_EU5ERJdtgZb57aN5VWx"},{"id":20,"name":"Pecel Ayam + Nasi","price":25000,"sale":null,"category":"Makanan","unit":"Pecel Ayam + Nasi","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/s1j6xi-chatgpt%20image%20sep%2028%2C%202026%2C%2002_24_40%20pm.png?versionId=daNVkTOKSqZw_EU5ERJdtgZb57aN5VWx"},{"id":21,"name":"Fried Chiken","price":10000,"sale":null,"category":"Makanan","unit":"Ayam Goreng Tepung","seller":"Warga Kalensari","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/q38c2x-chatgpt%20image%20sep%2028%2C%202026%2C%2002_23_43%20pm.png?versionId=RR2yA7Iutiz2jXiFwJNUzApiqzE7ItsL"},{"id":22,"name":"Soto Ayam","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Sate Madura","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/4io072-chatgpt%20image%20sep%2028%2C%202026%2C%2002_22_28%20pm.png?versionId=48IdG9bl9fPErJcNUzMeAPrvhzOOe_qr"},{"id":23,"name":"Sate Ayam","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Sate Madura","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ewpn71-chatgpt%20image%20sep%2028%2C%202026%2C%2002_18_51%20pm.png?versionId=X09ZJ.tPJyqr_LhYnZRngTpDFKIVqz0b"},{"id":24,"name":"Nasi Ayam Katsu","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Teh Iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ievcoz-chatgpt%20image%20sep%2028%2C%202026%2C%2002_17_10%20pm.png?versionId=buhfyErVz0r0y_eaESh2AooKeylFdopS"},{"id":25,"name":"Spageti","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Teh Iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/d62zqy-aa1408ce-c67d-4d63-aa67-12ec89b3c905.png?versionId=chUteSwuPamgkCgB_ORU_hnugVoqj8dW"}];
 
 const ADMIN_PIN = "1234";
-let products = JSON.parse(localStorage.getItem("kalensari_products") || "null") || DEFAULT_PRODUCTS.map(p=>({...p}));
+
+/* =====================================================
+   PENYIMPANAN AMAN
+   Mencegah website blank jika localStorage rusak,
+   kosong, atau berisi data lama yang tidak lengkap.
+   ===================================================== */
+function readStorageJSON(key, fallback){
+  try{
+    const raw = localStorage.getItem(key);
+    if(raw === null || raw === "") return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed ?? fallback;
+  }catch(err){
+    console.warn("Data lokal tidak valid:", key, err);
+    try{ localStorage.removeItem(key); }catch(_){}
+    return fallback;
+  }
+}
+
+function normalizeProduct(p, index){
+  return {
+    id: Number(p?.id) || (index + 1),
+    name: String(p?.name || "Produk"),
+    price: Number(p?.price) || 0,
+    sale: Number(p?.sale) > 0 ? Number(p.sale) : null,
+    category: String(p?.category || "Makanan"),
+    unit: String(p?.unit || "1 porsi"),
+    seller: String(p?.seller || "Warga Kalensari"),
+    status: p?.status === "Out of Stock" ? "Out of Stock" : "Show",
+    image: String(p?.image || "")
+  };
+}
+
+function getDefaultProducts(){
+  return DEFAULT_PRODUCTS.map(normalizeProduct);
+}
+
+let products = readStorageJSON("kalensari_products", null);
+if(!Array.isArray(products) || products.length === 0){
+  products = getDefaultProducts();
+  localStorage.setItem("kalensari_products", JSON.stringify(products));
+}else{
+  products = products.map(normalizeProduct);
+}
+
 let cloudReady = false;
 const saveProducts = () => localStorage.setItem("kalensari_products", JSON.stringify(products));
 
@@ -57,7 +101,8 @@ async function loadCloudOrders(){
 
 
 
-let cart = JSON.parse(localStorage.getItem("kalensari_cart") || "[]");
+let cart = readStorageJSON("kalensari_cart", []);
+if(!Array.isArray(cart)) cart = [];
 let activeCategory = "Semua";
 
 const rupiah = n => "Rp" + new Intl.NumberFormat("id-ID").format(n);
@@ -69,8 +114,11 @@ function priceHTML(p) {
   return p.sale ? `<span class="old-price">${rupiah(p.price)}</span>${rupiah(p.sale)}` : rupiah(p.price);
 }
 function renderCategories() {
-  const cats=["Semua",...new Set(products.map(p=>p.category))];
-  document.getElementById("categories").innerHTML=cats.map(c=>`<button class="cat ${c===activeCategory?"active":""}" onclick="setCategory('${c}')">${c}</button>`).join("");
+  const categoryEl = document.getElementById("categories");
+  if(!categoryEl) return;
+  const cats=["Semua",...new Set(products.map(p=>String(p.category || "Makanan")))];
+  if(!cats.includes(activeCategory)) activeCategory="Semua";
+  categoryEl.innerHTML=cats.map(c=>`<button class="cat ${c===activeCategory?"active":""}" onclick="setCategory('${String(c).replace(/'/g,"\\'")}')">${c}</button>`).join("");
 }
 function setCategory(c) {
   activeCategory=c; renderCategories(); renderProducts();
@@ -81,12 +129,22 @@ function renderProducts() {
   const sortEl=document.getElementById("sortSelect");
   const q=searchEl ? searchEl.value.toLowerCase().trim() : "";
   const sort=sortEl ? sortEl.value : "";
-  let list=products.filter(p=>p.status==="Show" && (activeCategory==="Semua"||p.category===activeCategory) && (p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q)||p.seller.toLowerCase().includes(q)));
-  if(sort==="priceAsc") list.sort((a,b)=>currentPrice(a)-currentPrice(b));
-  if(sort==="priceDesc") list.sort((a,b)=>currentPrice(b)-currentPrice(a));
-  if(sort==="name") list.sort((a,b)=>a.name.localeCompare(b.name,"id"));
-  document.getElementById("resultInfo").textContent=`${list.length} produk`;
-  document.getElementById("productGrid").innerHTML=list.length?list.map(p=>`
+  let list=products.filter(p=>{
+    const name=String(p.name || "").toLowerCase();
+    const category=String(p.category || "").toLowerCase();
+    const seller=String(p.seller || "").toLowerCase();
+    return p.status==="Show" &&
+      (activeCategory==="Semua" || p.category===activeCategory) &&
+      (name.includes(q) || category.includes(q) || seller.includes(q));
+  });
+  if(sort==="priceAsc" || sort==="price-low") list.sort((a,b)=>currentPrice(a)-currentPrice(b));
+  if(sort==="priceDesc" || sort==="price-high") list.sort((a,b)=>currentPrice(b)-currentPrice(a));
+  if(sort==="name") list.sort((a,b)=>String(a.name).localeCompare(String(b.name),"id"));
+  const resultEl=document.getElementById("resultInfo");
+  const gridEl=document.getElementById("productGrid");
+  if(!gridEl) return;
+  if(resultEl) resultEl.textContent=`${list.length} produk`;
+  gridEl.innerHTML=list.length?list.map(p=>`
    <article class="product">
   <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
         ${p.sale?'<span class="sale-badge">PROMO</span>':''}
@@ -170,9 +228,53 @@ document.getElementById("checkoutForm").addEventListener("submit",e=>{
   });
   window.open(waLink(msg),"_blank");
 });
-document.getElementById("year").textContent=new Date().getFullYear();
-renderCategories();renderProducts();updateCartCount();renderCart();
-(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); if(ok){renderCategories();renderProducts();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
+function initKalensariStore(){
+  try{
+    const yearEl=document.getElementById("year");
+    if(yearEl) yearEl.textContent=new Date().getFullYear();
+
+    renderCategories();
+    renderProducts();
+    updateCartCount();
+    renderCart();
+
+    if(CLOUD_CONFIG?.enabled){
+      updateCloudStatus("☁️ Menghubungkan ke database...");
+      loadCloudProducts().then(ok=>{
+        if(ok){
+          renderCategories();
+          renderProducts();
+          updateCloudStatus("☁️ Produk tersinkron online");
+        }else{
+          updateCloudStatus("⚠️ Cloud belum tersambung. Data lokal tetap digunakan.");
+        }
+      }).catch(err=>{
+        console.warn("Cloud init:",err);
+        updateCloudStatus("⚠️ Cloud tidak tersambung. Data lokal tetap digunakan.");
+      });
+    }
+  }catch(err){
+    console.error("KALENSARI STORE gagal memuat:",err);
+    // Jika data lama membuat halaman error, pulihkan otomatis ke produk bawaan.
+    products=getDefaultProducts();
+    saveProducts();
+    try{
+      renderCategories();
+      renderProducts();
+      updateCartCount();
+      renderCart();
+      showToast("Produk berhasil dipulihkan");
+    }catch(recoveryError){
+      console.error("Recovery gagal:",recoveryError);
+    }
+  }
+}
+
+if(document.readyState === "loading"){
+  document.addEventListener("DOMContentLoaded", initKalensariStore);
+}else{
+  initKalensariStore();
+}
 
 
 // ===== FLOATING PRODUCT SEARCH =====
