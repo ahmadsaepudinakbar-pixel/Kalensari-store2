@@ -1,50 +1,172 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalensari Store - Search Component (KS2 V9)</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#7a3e20">
+  <meta name="description" content="KALENSARI STORE - Desa Kuliner Kalensari">
+  <title>KALENSARI STORE</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="card">
-        <h2>Kalensari Store</h2>
-        <p>Cari produk makanan atau minuman pilihan Anda.</p>
-        
-        <div class="input-group">
-            <input type="text" id="search-input" placeholder="Cari makanan..." autocomplete="off">
-            <button id="actionBtn" class="icon-btn" aria-label="Aksi Pencarian">
-                <!-- Search Icon (Default) -->
-                <svg id="searchIcon" class="icon active" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                </svg>
-                <!-- Clear (X) Icon -->
-                <svg id="clearIcon" class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </button>
-        </div>
-    </div>
+  <div class="top-strip">🛍️ KALENSARI STORE • Belanja makanan & minuman dari warga Kalensari</div>
 
-    <!-- Product Grid Placeholder for Testing -->
-    <div class="product-section" style="margin-top: 30px; display: grid; gap: 15px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">
-        <div class="product-card" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
-            <h3>Nasi Goreng Special</h3>
-            <p style="color: #888;">Makanan</p>
-        </div>
-        <div class="product-card" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
-            <h3>Mie Ayam Bakso</h3>
-            <p style="color: #888;">Makanan</p>
-        </div>
-        <div class="product-card" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
-            <h3>Es Teh Manis</h3>
-            <p style="color: #888;">Minuman</p>
-        </div>
+  <header class="header">
+    <div class="container nav">
+      <button class="icon-btn" id="menuBtn" aria-label="Admin">⚙️</button>
+      <a class="brand" href="#home">KALENSARI <span>STORE</span></a>
+      <button class="cart-btn" id="cartBtn" aria-label="Buka keranjang">🛒 <b id="cartCount">0</b></button>
     </div>
+  </header>
 
-    <script src="config.js"></script>
-    <script src="script.js"></script>
+  <main>
+    <section id="home" class="desa-kuliner-hero container">
+      <div class="desa-hero-content">
+        <span class="desa-badge">🌾 KALENSARI STORE • DESA KULINER</span>
+        <h1>Nikmati kuliner lezat <strong>dari Desa Kalensari</strong></h1>
+        <p>Makanan tradisional, jajanan khas, minuman segar, dan aneka produk lokal pilihan warga Kalensari.</p>
+        <div class="desa-hero-actions">
+          <a class="btn desa-btn-primary" href="#products">🛍️ Belanja Sekarang</a>
+          <a class="btn desa-btn-outline" id="waHero" target="_blank" rel="noopener">💬 Chat WhatsApp</a>
+        </div>
+        <div class="desa-hero-info">
+          <span>🌿 Produk warga desa</span>
+          <span>🍜 Kuliner pilihan</span>
+          <span>💚 Belanja langsung</span>
+        </div>
+      </div>
+
+      <div class="desa-food-display" aria-label="Desa Kuliner">
+        <div class="desa-sign">
+          <div>👨‍🍳</div>
+          <strong>Desa<br>Kuliner</strong>
+          <small>Rasa Tradisional,<br>Selalu di Hati</small>
+        </div>
+        <div class="desa-food food-1">🍜</div>
+        <div class="desa-food food-2">🥤</div>
+        <div class="desa-food food-3">🍲</div>
+        <div class="desa-food food-4">🍗</div>
+      </div>
+    </section>
+
+    <section class="container section category-section">
+      <div class="section-title">
+        <div><span class="eyebrow">PILIHAN MENU</span><h2>Kategori</h2></div>
+        <span id="resultInfo"></span>
+      </div>
+      <div id="categories" class="categories"></div>
+    </section>
+
+    <section id="products" class="container section products-section">
+      <div class="section-title">
+        <div><span class="eyebrow">KALENSARI STORE</span><h2>Produk Kami</h2></div>
+        <div class="shop-toolbar">
+          <div class="search-box">
+            <span>🔎</span>
+            <input id="searchInput" type="search" placeholder="Cari makanan atau minuman...">
+            <button id="clearSearch" type="button" aria-label="Hapus pencarian">×</button>
+          </div>
+          <select id="sortSelect" aria-label="Urutkan produk">
+            <option value="default">Urutan</option>
+            <option value="name">Nama A-Z</option>
+            <option value="price-low">Harga termurah</option>
+            <option value="price-high">Harga termahal</option>
+          </select>
+        </div>
+      </div>
+      <div id="productGrid" class="product-grid"></div>
+    </section>
+
+    <section class="wa-banner">
+      <div class="container wa-inner">
+        <div><h2>Butuh bantuan?</h2><p>Chat langsung dengan KALENSARI STORE untuk bertanya tentang produk atau pesanan.</p></div>
+        <a id="waGeneral" class="btn light" target="_blank" rel="noopener">💬 WhatsApp</a>
+      </div>
+    </section>
+  </main>
+
+  <div id="productModal" class="modal" aria-hidden="true">
+    <div class="modal-box">
+      <button class="close" data-close="productModal" aria-label="Tutup">×</button>
+      <div id="productDetail"></div>
+    </div>
+  </div>
+
+  <div id="cartModal" class="modal" aria-hidden="true">
+    <div class="modal-box cart-modal-box">
+      <button class="close" data-close="cartModal" aria-label="Tutup">×</button>
+      <div class="modal-heading"><div><span class="eyebrow">PESANAN ANDA</span><h2>🛒 Keranjang</h2></div><span id="cartItemLabel" class="pill">0 item</span></div>
+      <div id="cartItems"></div>
+      <div class="summary">
+        <div><span>Subtotal</span><b id="cartSubtotal">Rp0</b></div>
+        <div><span>Ongkir</span><b id="cartShipping">Rp0</b></div>
+        <div class="total"><span>Total</span><b id="cartTotal">Rp0</b></div>
+      </div>
+      <button class="btn primary full" id="checkoutBtn">Lanjut Checkout →</button>
+    </div>
+  </div>
+
+  <div id="checkoutModal" class="modal" aria-hidden="true">
+    <div class="modal-box">
+      <button class="close" data-close="checkoutModal" aria-label="Tutup">×</button>
+      <div class="modal-heading"><div><span class="eyebrow">LANGKAH TERAKHIR</span><h2>Checkout</h2></div></div>
+      <div class="checkout-note">Pesanan akan disiapkan setelah detail pesanan dikirim melalui WhatsApp.</div>
+      <form id="checkoutForm">
+        <label>Nama Lengkap<input name="name" required placeholder="Nama Anda"></label>
+        <label>No. WhatsApp<input name="phone" required inputmode="tel" placeholder="08xxxxxxxxxx"></label>
+        <label>Alamat Pengiriman<textarea name="address" required placeholder="Alamat lengkap pengiriman"></textarea></label>
+        <label>Catatan<textarea name="note" placeholder="Contoh: sambal dipisah (opsional)"></textarea></label>
+        <label>Metode Pembayaran
+          <select name="payment"><option>Transfer Bank</option><option>QRIS</option><option>COD (jika tersedia)</option></select>
+        </label>
+        <div class="checkout-total"><span>Total</span><b id="checkoutTotal">Rp0</b></div>
+        <button class="btn primary full" type="submit">💬 Kirim Pesanan ke WhatsApp</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="adminModal" class="modal" aria-hidden="true">
+    <div class="modal-box admin-box">
+      <button class="close" data-close="adminModal" aria-label="Tutup">×</button>
+      <div class="modal-heading"><div><span class="eyebrow">KALENSARI STORE</span><h2>⚙️ Dashboard Admin</h2></div></div>
+      <div id="adminLogin">
+        <div class="checkout-note"><b>Area pengelola toko.</b><br>Masukkan PIN untuk membuka pengaturan produk.</div>
+        <label>PIN Admin<input id="adminPin" type="password" inputmode="numeric" placeholder="Masukkan PIN" maxlength="8"></label>
+        <button class="btn primary full" id="adminLoginBtn">🔐 Masuk Admin</button>
+        <p class="admin-hint">PIN awal: <b>1234</b>. Ganti PIN di file <code>script.js</code>.</p>
+      </div>
+      <div id="adminPanel" hidden>
+        <div class="admin-note" id="cloudStatus">💾 Mode lokal. Produk tersimpan di browser perangkat ini.</div>
+        <div class="admin-toolbar">
+          <button class="btn primary" id="addProductBtn">＋ Tambah Produk</button>
+          <button class="btn outline" id="exportBtn">⬇️ Export Produk</button>
+          <label class="import-btn">⬆️ Import Produk<input id="importFile" type="file" accept="application/json" hidden></label>
+          <button class="btn outline" id="resetProductsBtn">↺ Reset</button>
+        </div>
+        <div id="adminProductList" class="admin-product-list"></div>
+        <div class="admin-orders">
+          <div class="modal-heading"><div><span class="eyebrow">PESANAN</span><h3>📋 Pesanan Terbaru</h3></div><button class="btn outline" id="refreshOrdersBtn">↻ Refresh</button></div>
+          <div id="adminOrderList" class="admin-order-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <footer><div class="container"><b>KALENSARI STORE</b><p>Belanja makanan & minuman warga Desa Kalensari</p><small>© <span id="year"></span> KALENSARI STORE</small></div></footer>
+
+  <div id="quickSearchPanel" class="quick-search-panel" aria-hidden="true">
+    <div class="quick-search-title">🔎 Cari produk</div>
+    <div class="quick-search-row">
+      <input id="quickSearchInput" type="search" placeholder="Ketik nama produk..." autocomplete="off">
+      <button id="quickSearchClear" type="button" aria-label="Hapus pencarian">×</button>
+    </div>
+    <div id="quickSearchResult" class="quick-search-result">Ketik nama produk untuk mencari.</div>
+  </div>
+  <button id="searchFloat" class="search-float" type="button" aria-label="Cari produk" aria-expanded="false">🔎<span>Cari Produk</span></button>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+
 </body>
 </html>
