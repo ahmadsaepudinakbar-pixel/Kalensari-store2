@@ -1,232 +1,365 @@
-// KALENSARI STORE
-const WHATSAPP_NUMBER = "6282114541041";
-const SHIPPING_COST = 0;
-const DEFAULT_PRODUCTS = [{"id":1,"name":"Lotek Bongko","price":12000,"sale":8000,"category":"Makanan","unit":"1 porsi","seller":"Teh Ida","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/o-fvve-chatgpt%20image%20sep%2028%2C%202026%2C%2005_14_09%20am.png?versionId=sSlnWC5X3v6SfdE8SJ7kfFpkAAtYEG66"},{"id":2,"name":"Bakso Sapi Biasa","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/pf0do4-chatgpt%20image%20sep%2028%2C%202026%2C%2006_23_05%20am.png?versionId=LvDf81yvhC2OIgUPloRKlaBbRFi.9BuH"},{"id":3,"name":"MIe ayam Pedas","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"H. Diman, Mang Edo, Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/0qg0at-chatgpt%20image%20sep%2028%2C%202026%2C%2002_03_31%20pm.png?versionId=EH1aAjwRvQd3dMY93ItbAgINe5lzjnTw"},{"id":4,"name":"MIe ayam Biasa","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"H. Diman, Mang Edo, Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/m5q9je-chatgpt%20image%20sep%2028%2C%202026%2C%2002_02_42%20pm.png?versionId=Lci_mH9SOmBpD2nCjBV_Z_o_XXpxpW8v"},{"id":5,"name":"Bakso Tulang","price":25000,"sale":18000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Out of Stock","image":"https://cdn.store.link/products/kalensaristore80353/agx1iw-chatgpt%20image%20sep%2028%2C%202026%2C%2006_29_33%20am.png?versionId=1n1pJ2ilQgM4jrhR5X_0LEG9mB.lTmg8"},{"id":6,"name":"Bakso Telur","price":12000,"sale":10000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/8a69b3-chatgpt%20image%20sep%2028%2C%202026%2C%2006_34_03%20am.png?versionId=m_nc2BhsK7d4LdKAPdxnMAiRHAV.Q2qB"},{"id":7,"name":"Bakso Urat","price":18000,"sale":15000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/obbajp-chatgpt%20image%20sep%2028%2C%202026%2C%2006_36_33%20am.png?versionId=h_Evc0EcQtdz4PFbFk8aZey0jgRRXZ.p"},{"id":8,"name":"Jus Alpukat","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/3x8j0a-chatgpt%20image%20sep%2028%2C%202026%2C%2006_52_41%20am.png?versionId=eKLzC7y3fgCWrkTSAdcaLHEyEYAdZMsh"},{"id":9,"name":"Jus Buah Naga","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/p8vus5-chatgpt%20image%20sep%2028%2C%202026%2C%2007_22_02%20am.png?versionId=e6H7dwvYmMOZrI86QKN98dyVxHcc8V0M"},{"id":10,"name":"Jus Tomat","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/o4d1bt-chatgpt%20image%20sep%2028%2C%202026%2C%2007_20_47%20am.png?versionId=IbXRZdg2vp6bCuXJPch5YT7FgQZXXcRM"},{"id":11,"name":"Jus Mangga","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/lqk2sp-chatgpt%20image%20sep%2028%2C%202026%2C%2007_22_59%20am.png?versionId=FADsI7qbgepPpQt7XVGl901Q_3cKHFQW"},{"id":12,"name":"Es teh Manis","price":3000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/abqncl-hops-3260267377.webp?versionId=P4DG3eGis6QyEzh9ZFQm3CBF8p9DEJwx"},{"id":13,"name":"Es teh Matcha Late","price":6000,"sale":null,"category":"Minuman","unit":"1 cup besar Rasa Greentea","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/c9c6rx-images%20%281%29.jpg?versionId=K0P2vQjt8SpfWctljxkmCkUO_8AfkYf2"},{"id":14,"name":"Es teh Matcha Premium","price":15000,"sale":12000,"category":"Minuman","unit":"1 cup besar Rasa Greentea","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/bkv3a5-images.jpg?versionId=jKTeHTYDtwRD2qs6CWqYs9ZM2EBZ9emC"},{"id":15,"name":"Nasi Kebuli","price":25000,"sale":20000,"category":"Makanan","unit":"1 porsi","seller":"Teh iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/u4fafx-chatgpt%20image%20sep%2028%2C%202026%2C%2002_14_04%20pm.png?versionId=DHZD_c9LScH15.An7XpzcTJMrjDf0AJk"},{"id":16,"name":"Nasi Goreng","price":13000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Kang Diki Sueb","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/h38vn8-chatgpt%20image%20sep%2028%2C%202026%2C%2002_11_47%20pm.png?versionId=Q1UfoJozDqlb8kaNfjJqp6nKv74i_B3F"},{"id":17,"name":"Pecel Lele","price":15000,"sale":null,"category":"Makanan","unit":"Pecel Lele","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ota8dn-chatgpt%20image%20sep%2028%2C%202026%2C%2002_25_58%20pm.png?versionId=JUVeTbSTZiWtp5heJSYA9RlF7OmxzgOE"},{"id":18,"name":"Pecel Lele + Nasi","price":20000,"sale":null,"category":"Makanan","unit":"Pecel Lele + Nasi","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ota8dn-chatgpt%20image%20sep%2028%2C%202026%2C%2002_25_58%20pm.png?versionId=JUVeTbSTZiWtp5heJSYA9RlF7OmxzgOE"},{"id":19,"name":"Pecel Ayam","price":20000,"sale":null,"category":"Makanan","unit":"Pecel Ayam","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/s1j6xi-chatgpt%20image%20sep%2028%2C%202026%2C%2002_24_40%20pm.png?versionId=daNVkTOKSqZw_EU5ERJdtgZb57aN5VWx"},{"id":20,"name":"Pecel Ayam + Nasi","price":25000,"sale":null,"category":"Makanan","unit":"Pecel Ayam + Nasi","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/s1j6xi-chatgpt%20image%20sep%2028%2C%202026%2C%2002_24_40%20pm.png?versionId=daNVkTOKSqZw_EU5ERJdtgZb57aN5VWx"},{"id":21,"name":"Fried Chiken","price":10000,"sale":null,"category":"Makanan","unit":"Ayam Goreng Tepung","seller":"Warga Kalensari","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/q38c2x-chatgpt%20image%20sep%2028%2C%202026%2C%2002_23_43%20pm.png?versionId=RR2yA7Iutiz2jXiFwJNUzApiqzE7ItsL"},{"id":22,"name":"Soto Ayam","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Sate Madura","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/4io072-chatgpt%20image%20sep%2028%2C%202026%2C%2002_22_28%20pm.png?versionId=48IdG9bl9fPErJcNUzMeAPrvhzOOe_qr"},{"id":23,"name":"Sate Ayam","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Sate Madura","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ewpn71-chatgpt%20image%20sep%2028%2C%202026%2C%2002_18_51%20pm.png?versionId=X09ZJ.tPJyqr_LhYnZRngTpDFKIVqz0b"},{"id":24,"name":"Nasi Ayam Katsu","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Teh Iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ievcoz-chatgpt%20image%20sep%2028%2C%202026%2C%2002_17_10%20pm.png?versionId=buhfyErVz0r0y_eaESh2AooKeylFdopS"},{"id":25,"name":"Spageti","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Teh Iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/d62zqy-aa1408ce-c67d-4d63-aa67-12ec89b3c905.png?versionId=chUteSwuPamgkCgB_ORU_hnugVoqj8dW"}];
+/* KALENSARI STORE - FINAL V8
+   Tidak bergantung pada library eksternal.
+   Produk tampil langsung dari localStorage; admin dapat menambah/edit/import/export.
+*/
+(() => {
+  "use strict";
 
-const ADMIN_PIN = "1507";
-let products = JSON.parse(localStorage.getItem("kalensari_products") || "null") || DEFAULT_PRODUCTS.map(p=>({...p}));
-let cloudReady = false;
-const saveProducts = () => localStorage.setItem("kalensari_products", JSON.stringify(products));
+  const ADMIN_PIN = "1234";
+  const STORE_KEY = "kalensari_products_v8";
+  const CART_KEY = "kalensari_cart_v8";
+  const ORDER_KEY = "kalensari_orders_v8";
+  const CATEGORY_KEY = "kalensari_category_v8";
 
-const cloudHeaders = () => ({
-  apikey: CLOUD_CONFIG.supabaseAnonKey,
-  Authorization: `Bearer ${CLOUD_CONFIG.supabaseAnonKey}`,
-  "Content-Type": "application/json",
-  Prefer: "return=representation"
-});
-async function cloudFetch(path, options={}) {
-  if(!CLOUD_CONFIG?.enabled) throw new Error("cloud-disabled");
-  const r=await fetch(`${CLOUD_CONFIG.supabaseUrl}/rest/v1/${path}`, {
-    ...options, headers:{...cloudHeaders(), ...(options.headers||{})}
-  });
-  if(!r.ok) throw new Error(await r.text());
-  const text=await r.text(); return text?JSON.parse(text):[];
-}
-async function loadCloudProducts(){
-  if(!CLOUD_CONFIG?.enabled) return false;
-  try {
-    const data=await cloudFetch("products?select=*&order=id.asc");
-    if(Array.isArray(data) && data.length){ products=data.map(p=>({...p})); saveProducts(); cloudReady=true; return true; }
-    if(Array.isArray(data) && !data.length){
-      await cloudFetch("products",{method:"POST",body:JSON.stringify(DEFAULT_PRODUCTS)});
-      products=DEFAULT_PRODUCTS.map(p=>({...p})); saveProducts(); cloudReady=true; return true;
+  // Ganti nomor ini dengan nomor WhatsApp toko jika diperlukan.
+  const WHATSAPP_NUMBER = "6280000000000";
+
+  const defaultProducts = [
+    {id:"bakso-sapi",name:"Bakso Sapi",category:"Makanan",price:15000,stock:20,seller:"Warga Desa Kalensari",description:"Bakso sapi gurih dan hangat, cocok dinikmati kapan saja.",emoji:"🍜",image:""},
+    {id:"bakso-tulang",name:"Bakso Tulang",category:"Makanan",price:18000,stock:20,seller:"Warga Desa Kalensari",description:"Bakso dengan kuah gurih dan tulang yang nikmat.",emoji:"🍲",image:""},
+    {id:"bakso-telur",name:"Bakso Telur",category:"Makanan",price:17000,stock:20,seller:"Warga Desa Kalensari",description:"Bakso telur dengan kuah hangat dan gurih.",emoji:"🍜",image:""},
+    {id:"bakso-urat",name:"Bakso Urat",category:"Makanan",price:18000,stock:20,seller:"Warga Desa Kalensari",description:"Bakso urat dengan tekstur kenyal dan rasa gurih.",emoji:"🍜",image:""},
+    {id:"lotek-bongko",name:"Lotek Bongko",category:"Makanan",price:12000,stock:20,seller:"Warga Desa Kalensari",description:"Kuliner khas desa dengan cita rasa tradisional.",emoji:"🥗",image:""},
+    {id:"bolu-pandan-almond",name:"Bolu Pandan Almond",category:"Kue",price:25000,stock:20,seller:"Warga Desa Kalensari",description:"Bolu pandan lembut dengan taburan almond.",emoji:"🍰",image:""},
+    {id:"bolu-swiss-roll",name:"Bolu Swiss Roll",category:"Kue",price:25000,stock:20,seller:"Warga Desa Kalensari",description:"Bolu gulung lembut dengan rasa manis yang pas.",emoji:"🍰",image:""},
+    {id:"donat-coklat",name:"Donat Coklat",category:"Kue",price:8000,stock:20,seller:"Warga Desa Kalensari",description:"Donat lembut dengan topping coklat.",emoji:"🍩",image:""},
+    {id:"jus-alpukat",name:"Jus Alpukat",category:"Minuman",price:10000,stock:20,seller:"Warga Desa Kalensari",description:"Jus alpukat segar dan creamy.",emoji:"🥑",image:""},
+    {id:"jus-tomat",name:"Jus Tomat",category:"Minuman",price:9000,stock:20,seller:"Warga Desa Kalensari",description:"Jus tomat segar.",emoji:"🍅",image:""},
+    {id:"jus-buah-naga",name:"Jus Buah Naga",category:"Minuman",price:10000,stock:20,seller:"Warga Desa Kalensari",description:"Jus buah naga segar.",emoji:"🍹",image:""},
+    {id:"jus-mangga",name:"Jus Mangga",category:"Minuman",price:10000,stock:20,seller:"Warga Desa Kalensari",description:"Jus mangga manis dan segar.",emoji:"🥭",image:""},
+    {id:"es-teh-desa",name:"Es Teh DESA",category:"Minuman",price:5000,stock:30,seller:"Warga Desa Kalensari",description:"Es teh segar dalam cup besar.",emoji:"🥤",image:""}
+  ];
+
+  let products = loadProducts();
+  let cart = loadJSON(CART_KEY, []);
+  let activeCategory = "Semua";
+  let searchTerm = "";
+  let sortMode = "default";
+
+  const $ = id => document.getElementById(id);
+  const rupiah = n => "Rp" + Number(n || 0).toLocaleString("id-ID");
+  const escapeHTML = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[c]));
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+  function loadJSON(key, fallback) {
+    try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; }
+    catch { return fallback; }
+  }
+
+  function loadProducts() {
+    const saved = loadJSON(STORE_KEY, null);
+    if (Array.isArray(saved) && saved.length) return saved;
+    localStorage.setItem(STORE_KEY, JSON.stringify(defaultProducts));
+    return structuredClone(defaultProducts);
+  }
+
+  function saveProducts() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(products));
+  }
+
+  function saveCart() {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  }
+
+  function showToast(message) {
+    const t = $("toast");
+    if (!t) return;
+    t.textContent = message;
+    t.classList.add("show");
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  function openModal(id) {
+    const el = $(id);
+    if (!el) return;
+    el.classList.add("show");
+    el.setAttribute("aria-hidden","false");
+  }
+
+  function closeModal(id) {
+    const el = $(id);
+    if (!el) return;
+    el.classList.remove("show");
+    el.setAttribute("aria-hidden","true");
+  }
+
+  function setWhatsAppLinks() {
+    const msg = encodeURIComponent("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
+    ["waHero","waGeneral","waFloat"].forEach(id => {
+      const el = $(id);
+      if (el) el.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
+    });
+  }
+
+  function renderCategories() {
+    const box = $("categories");
+    if (!box) return;
+    const cats = ["Semua", ...new Set(products.map(p => p.category || "Lainnya"))];
+    box.innerHTML = cats.map(cat =>
+      `<button class="cat ${cat === activeCategory ? "active" : ""}" data-category="${escapeHTML(cat)}">${escapeHTML(cat)}</button>`
+    ).join("");
+    box.querySelectorAll(".cat").forEach(btn => {
+      btn.addEventListener("click", () => {
+        activeCategory = btn.dataset.category;
+        renderCategories();
+        renderProducts();
+      });
+    });
+  }
+
+  function filteredProducts() {
+    let list = products.filter(p => {
+      const categoryOK = activeCategory === "Semua" || (p.category || "Lainnya") === activeCategory;
+      const q = searchTerm.toLowerCase();
+      const text = `${p.name} ${p.category} ${p.description} ${p.seller}`.toLowerCase();
+      return categoryOK && (!q || text.includes(q));
+    });
+    if (sortMode === "name") list.sort((a,b) => a.name.localeCompare(b.name));
+    if (sortMode === "price-low") list.sort((a,b) => Number(a.price)-Number(b.price));
+    if (sortMode === "price-high") list.sort((a,b) => Number(b.price)-Number(a.price));
+    return list;
+  }
+
+  function productImage(p, large=false) {
+    if (p.image) return `<img src="${escapeHTML(p.image)}" alt="${escapeHTML(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'"><div class="product-placeholder" style="display:none">${escapeHTML(p.emoji || "🍽️")}</div>`;
+    return `<div class="product-placeholder">${escapeHTML(p.emoji || "🍽️")}</div>`;
+  }
+
+  function renderProducts() {
+    const grid = $("productGrid");
+    if (!grid) return;
+    const list = filteredProducts();
+    $("resultInfo").textContent = `${list.length} produk`;
+    if (!list.length) {
+      grid.innerHTML = `<div class="empty-state"><b>Produk tidak ditemukan</b><span>Coba pilih kategori lain atau hapus pencarian.</span></div>`;
+      return;
     }
-  } catch(e){ console.warn("Supabase products:",e); }
-  return false;
-}
-async function syncCloudProducts(){
-  if(!CLOUD_CONFIG?.enabled) return;
-  try {
-    await cloudFetch("products?select=id",{method:"DELETE"});
-    await cloudFetch("products",{method:"POST",body:JSON.stringify(products)});
-    cloudReady=true; updateCloudStatus("☁️ Tersinkron online");
-  } catch(e){ console.warn(e); updateCloudStatus("⚠️ Gagal sinkron. Data lokal tetap tersimpan."); }
-}
-function updateCloudStatus(text){const el=document.getElementById("cloudStatus");if(el)el.textContent=text;}
-async function saveCloudOrder(payload){
-  if(!CLOUD_CONFIG?.enabled) return false;
-  try { await cloudFetch("orders",{method:"POST",body:JSON.stringify(payload)}); return true; } catch(e){ console.warn("Supabase orders:",e); return false; }
-}
-async function loadCloudOrders(){
-  if(!CLOUD_CONFIG?.enabled) return [];
-  try { return await cloudFetch("orders?select=*&order=created_at.desc&limit=30"); } catch(e){ return []; }
-}
-
-
-
-let cart = JSON.parse(localStorage.getItem("kalensari_cart") || "[]");
-let activeCategory = "Semua";
-
-const rupiah = n => "Rp" + new Intl.NumberFormat("id-ID").format(n);
-const saveCart = () => localStorage.setItem("kalensari_cart", JSON.stringify(cart));
-const waLink = message => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-const currentPrice = p => p.sale || p.price;
-
-function priceHTML(p) {
-  return p.sale ? `<span class="old-price">${rupiah(p.price)}</span>${rupiah(p.sale)}` : rupiah(p.price);
-}
-function renderCategories() {
-  const cats=["Semua",...new Set(products.map(p=>p.category))];
-  document.getElementById("categories").innerHTML=cats.map(c=>`<button class="cat ${c===activeCategory?"active":""}" onclick="setCategory('${c}')">${c}</button>`).join("");
-}
-function setCategory(c) {
-  activeCategory=c; renderCategories(); renderProducts();
-  document.getElementById("products").scrollIntoView({behavior:"smooth"});
-}
-function renderProducts() {
-  const q=document.getElementById("searchInput").value.toLowerCase().trim();
-  const sort=document.getElementById("sortSelect").value;
-  let list=products.filter(p=>p.status==="Show" && (activeCategory==="Semua"||p.category===activeCategory) && (p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q)||p.seller.toLowerCase().includes(q)));
-  if(sort==="priceAsc") list.sort((a,b)=>currentPrice(a)-currentPrice(b));
-  if(sort==="priceDesc") list.sort((a,b)=>currentPrice(b)-currentPrice(a));
-  if(sort==="name") list.sort((a,b)=>a.name.localeCompare(b.name,"id"));
-  document.getElementById("resultInfo").textContent=`${list.length} produk`;
-  document.getElementById("productGrid").innerHTML=list.length?list.map(p=>`
-    <article class="product">
-      <div class="product-img"><img src="${p.image}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🛍️'">
-        ${p.sale?'<span class="sale-badge">PROMO</span>':''}
-      </div>
-      <div class="product-body">
-        <h3>${p.name}</h3>
-        <div class="price">${priceHTML(p)}</div>
-        <small>${p.unit}</small><small class="seller">👤 ${p.seller}</small>
-        <div class="product-actions">
-          <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
-          <button class="btn primary" onclick="addToCart(${p.id})">+ Keranjang</button>
+    grid.innerHTML = list.map(p => {
+      const stock = Number(p.stock ?? 0);
+      return `<article class="product">
+        <div class="product-img">
+          ${p.sale ? `<span class="sale-badge">PROMO</span>` : ""}
+          <span class="stock-badge ${stock <= 0 ? "off" : ""}">${stock > 0 ? "Tersedia" : "Habis"}</span>
+          ${productImage(p)}
         </div>
-      </div>
-    </article>`).join(""):`<div class="empty-state"><b>😔 Produk tidak ditemukan</b>Coba kata kunci atau kategori lain.</div>`;
-}
-function showProduct(id) {
-  const p=products.find(x=>x.id===id);
-  const sold=p.status!=="Show";
-  document.getElementById("productDetail").innerHTML=`
-    <div class="detail">
-      <div class="detail-img"><img src="${p.image}" alt="${p.name}" onerror="this.style.display='none'"></div>
+        <div class="product-body">
+          <h3>${escapeHTML(p.name)}</h3>
+          <div class="price">${rupiah(p.price)}</div>
+          <small>${escapeHTML(p.description || "Produk pilihan warga Kalensari.")}</small>
+          <small class="seller">👤 ${escapeHTML(p.seller || "Warga Desa Kalensari")}</small>
+          <div class="product-actions">
+            <button class="btn outline" data-detail="${escapeHTML(p.id)}">Detail</button>
+            <button class="btn primary" data-add="${escapeHTML(p.id)}" ${stock <= 0 ? "disabled" : ""}>+ Keranjang</button>
+          </div>
+        </div>
+      </article>`;
+    }).join("");
+
+    grid.querySelectorAll("[data-add]").forEach(b => b.addEventListener("click", () => addToCart(b.dataset.add)));
+    grid.querySelectorAll("[data-detail]").forEach(b => b.addEventListener("click", () => showDetail(b.dataset.detail)));
+  }
+
+  function showDetail(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    $("productDetail").innerHTML = `<div class="detail">
+      <div class="detail-img">${productImage(p, true)}</div>
       <div>
-        <p class="eyebrow">${p.category} • ${p.seller}</p>
-        <h2>${p.name}</h2>
-        <div class="price">${priceHTML(p)}</div>
-        <p>Satuan: ${p.unit}</p>
-        <p>${sold?"Stok habis.":"Produk tersedia untuk dipesan."}</p>
-        <button class="btn primary full" ${sold?"disabled":""} onclick="addToCart(${p.id});closeModal('productModal')">🛒 Tambah ke Keranjang</button>
-        <br><br>
-        <a class="btn outline full" target="_blank" href="${waLink(`Halo KALENSARI STORE, saya ingin membeli ${p.name} (${rupiah(currentPrice(p))}).`)}">💬 Beli via WhatsApp</a>
+        <span class="pill">${escapeHTML(p.category || "Lainnya")}</span>
+        <h2>${escapeHTML(p.name)}</h2>
+        <div class="price">${rupiah(p.price)}</div>
+        <p>${escapeHTML(p.description || "")}</p>
+        <p class="seller">👤 ${escapeHTML(p.seller || "Warga Desa Kalensari")}</p>
+        <p><b>Stok:</b> ${Number(p.stock ?? 0)}</p>
+        <button class="btn primary full" ${Number(p.stock ?? 0) <= 0 ? "disabled" : ""} id="detailAdd">🛒 Tambah ke Keranjang</button>
       </div>
     </div>`;
-  openModal("productModal");
-}
-function addToCart(id) {
-  const p=products.find(x=>x.id===id); if(!p||p.status!=="Show")return;
-  const item=cart.find(x=>x.id===id); if(item)item.qty++; else cart.push({id,qty:1});
-  saveCart();updateCartCount();renderCart();showToast(`${p.name} ditambahkan ke keranjang`);
-}
-function changeQty(id,d) {
-  const item=cart.find(x=>x.id===id);if(!item)return;
-  item.qty+=d;if(item.qty<=0)cart=cart.filter(x=>x.id!==id);
-  saveCart();updateCartCount();renderCart();
-}
-function cartData() {return cart.map(i=>({...products.find(p=>p.id===i.id),qty:i.qty})).filter(x=>x.id);}
-function renderCart() {
-  const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),shipping=items.length?SHIPPING_COST:0;
-  document.getElementById("cartItems").innerHTML=items.length?items.map(p=>`
-    <div class="cart-row"><div><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div></div>
-    <div class="qty"><button onclick="changeQty(${p.id},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.id},1)">+</button></div></div>`).join(""):`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
-  document.getElementById("cartItemLabel").textContent=`${cart.reduce((s,i)=>s+i.qty,0)} item`;
-  document.getElementById("cartSubtotal").textContent=rupiah(subtotal);
-  document.getElementById("cartShipping").textContent=rupiah(shipping);
-  document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
-  document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
-  document.getElementById("checkoutBtn").disabled=!items.length;
-}
-function updateCartCount() {document.getElementById("cartCount").textContent=cart.reduce((s,i)=>s+i.qty,0);}
-function openModal(id) {document.getElementById(id).classList.add("show")}
-function closeModal(id) {document.getElementById(id).classList.remove("show")}
+    $("detailAdd").addEventListener("click", () => { addToCart(id); closeModal("productModal"); });
+    openModal("productModal");
+  }
 
-document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
-document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("show")}));
-document.getElementById("cartBtn").onclick=()=>{renderCart();openModal("cartModal")};
-document.getElementById("checkoutBtn").onclick=()=>{if(cart.length){closeModal("cartModal");openModal("checkoutModal")}};
-document.getElementById("searchInput").addEventListener("input",renderProducts);
-document.getElementById("sortSelect").addEventListener("change",renderProducts);
-document.getElementById("clearSearch").addEventListener("click",()=>{document.getElementById("searchInput").value="";renderProducts();document.getElementById("searchInput").focus()});
-function showToast(message){const t=document.getElementById("toast");t.textContent=message;t.classList.add("show");clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove("show"),1800)}
-document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
-document.getElementById("checkoutForm").addEventListener("submit",e=>{
-  e.preventDefault();if(!cart.length)return;
-  const f=new FormData(e.target),items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
-  const detail=items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
-  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(SHIPPING_COST)}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${f.get("phone")}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
-  saveCloudOrder({
-    customer_name:String(f.get("name")||""), customer_phone:String(f.get("phone")||""), address:String(f.get("address")||""), note:String(f.get("note")||""), payment:String(f.get("payment")||""), items, subtotal, shipping:SHIPPING_COST, total, status:"baru"
-  });
-  window.open(waLink(msg),"_blank");
-});
-document.getElementById("year").textContent=new Date().getFullYear();
-renderCategories();renderProducts();updateCartCount();renderCart();
-(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); if(ok){renderCategories();renderProducts();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
+  function addToCart(id) {
+    const p = products.find(x => x.id === id);
+    if (!p || Number(p.stock ?? 0) <= 0) return showToast("Produk sedang habis.");
+    const item = cart.find(x => x.id === id);
+    if (item) item.qty = Math.min(item.qty + 1, Number(p.stock));
+    else cart.push({id, qty:1});
+    saveCart();
+    renderCart();
+    showToast(`${p.name} masuk keranjang.`);
+  }
 
-// ===== ADMIN DASHBOARD V6 =====
-let adminLoggedIn = false;
-function openAdmin(){
-  document.getElementById("adminPin").value="";
-  document.getElementById("adminLogin").hidden=adminLoggedIn;
-  document.getElementById("adminPanel").hidden=!adminLoggedIn;
-  if(adminLoggedIn) renderAdminProducts();
-  openModal("adminModal");
-}
-function renderAdminProducts(){
-  const box=document.getElementById("adminProductList");
-  box.innerHTML=products.map((p,i)=>`
-    <div class="admin-product">
-      <img src="${p.image||''}" alt="${p.name}" onerror="this.style.display='none'">
-      <div class="admin-product-info"><h4>${p.name} <span class="admin-status ${p.status!=="Show"?'off':''}">${p.status}</span></h4><small>${p.category} • ${rupiah(currentPrice(p))} • ${p.seller}</small></div>
-      <div class="admin-product-actions"><button class="btn outline" onclick="editAdminProduct(${i})">✏️ Edit</button><button class="btn outline" onclick="toggleAdminProduct(${i})">${p.status==='Show'?'⏸️ Sembunyikan':'▶️ Tampilkan'}</button><button class="btn outline" onclick="deleteAdminProduct(${i})">🗑️ Hapus</button></div>
-      <div id="edit-${i}" class="admin-edit" hidden></div>
+  function cartItems() {
+    return cart.map(i => {
+      const p = products.find(x => x.id === i.id);
+      return p ? { ...p, qty:i.qty } : null;
+    }).filter(Boolean);
+  }
+
+  function cartTotal() {
+    return cartItems().reduce((sum,p) => sum + Number(p.price)*p.qty, 0);
+  }
+
+  function renderCart() {
+    const items = cartItems();
+    const count = items.reduce((s,p) => s+p.qty, 0);
+    $("cartCount").textContent = count;
+    $("cartItemLabel").textContent = `${count} item`;
+    $("cartSubtotal").textContent = rupiah(cartTotal());
+    $("cartShipping").textContent = "Rp0";
+    $("cartTotal").textContent = rupiah(cartTotal());
+    $("checkoutTotal").textContent = rupiah(cartTotal());
+
+    $("cartItems").innerHTML = items.length ? items.map(p =>
+      `<div class="cart-row">
+        <div><div class="cart-name">${escapeHTML(p.name)}</div><div class="cart-price">${rupiah(p.price)} × ${p.qty}</div></div>
+        <div class="qty">
+          <button data-minus="${p.id}">−</button><b>${p.qty}</b><button data-plus="${p.id}">+</button>
+          <button data-remove="${p.id}" title="Hapus">×</button>
+        </div>
+      </div>`).join("") : `<div class="empty-state"><b>Keranjang masih kosong</b><span>Pilih makanan atau minuman untuk mulai belanja.</span></div>`;
+
+    $("cartItems").querySelectorAll("[data-minus]").forEach(b => b.onclick = () => changeQty(b.dataset.minus,-1));
+    $("cartItems").querySelectorAll("[data-plus]").forEach(b => b.onclick = () => changeQty(b.dataset.plus,1));
+    $("cartItems").querySelectorAll("[data-remove]").forEach(b => b.onclick = () => removeCart(b.dataset.remove));
+  }
+
+  function changeQty(id, delta) {
+    const item = cart.find(x => x.id === id);
+    const p = products.find(x => x.id === id);
+    if (!item || !p) return;
+    item.qty += delta;
+    if (item.qty <= 0) cart = cart.filter(x => x.id !== id);
+    else item.qty = Math.min(item.qty, Number(p.stock));
+    saveCart(); renderCart();
+  }
+
+  function removeCart(id) {
+    cart = cart.filter(x => x.id !== id);
+    saveCart(); renderCart();
+  }
+
+  function renderAdmin() {
+    const box = $("adminProductList");
+    if (!box) return;
+    box.innerHTML = products.map(p => `<div class="admin-product">
+      <div>${p.image ? `<img src="${escapeHTML(p.image)}" alt="">` : `<div style="width:72px;height:72px;border-radius:10px;background:#f3e3d6;display:grid;place-items:center;font-size:35px">${escapeHTML(p.emoji || "🍽️")}</div>`}</div>
+      <div class="admin-product-info"><h4>${escapeHTML(p.name)}</h4><small>${escapeHTML(p.category)} • ${rupiah(p.price)} • stok ${p.stock}</small></div>
+      <div class="admin-product-actions"><button class="btn outline" data-edit="${p.id}">Edit</button><button class="btn outline" data-delete="${p.id}">Hapus</button></div>
     </div>`).join("");
-}
-function editAdminProduct(i){
-  const p=products[i], box=document.getElementById(`edit-${i}`);
-  box.hidden=false;
-  box.innerHTML=`
-    <label>Nama<input id="e-name-${i}" value="${esc(p.name)}"></label>
-    <label>Kategori<select id="e-cat-${i}"><option ${p.category==='Makanan'?'selected':''}>Makanan</option><option ${p.category==='Minuman'?'selected':''}>Minuman</option></select></label>
-    <label>Harga<input id="e-price-${i}" type="number" value="${p.price}"></label>
-    <label>Harga Promo<input id="e-sale-${i}" type="number" value="${p.sale||''}" placeholder="Kosongkan jika tidak promo"></label>
-    <label>Penjual<input id="e-seller-${i}" value="${esc(p.seller)}"></label>
-    <label>Satuan<input id="e-unit-${i}" value="${esc(p.unit)}"></label>
-    <label class="wide">URL Foto<input id="e-image-${i}" value="${esc(p.image||'')}"></label>
-    <div class="admin-edit-actions"><button class="btn primary" onclick="saveAdminProduct(${i})">💾 Simpan</button><button class="btn outline" onclick="renderAdminProducts()">Batal</button></div>`;
-}
-function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function saveAdminProduct(i){
-  const p=products[i]; p.name=document.getElementById(`e-name-${i}`).value.trim(); p.category=document.getElementById(`e-cat-${i}`).value; p.price=Number(document.getElementById(`e-price-${i}`).value)||0; const sale=Number(document.getElementById(`e-sale-${i}`).value); p.sale=sale>0?sale:null; p.seller=document.getElementById(`e-seller-${i}`).value.trim(); p.unit=document.getElementById(`e-unit-${i}`).value.trim(); p.image=document.getElementById(`e-image-${i}`).value.trim(); saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); showToast("Produk berhasil diperbarui");
-}
-function addAdminProduct(){
-  const id=products.length?Math.max(...products.map(p=>p.id))+1:1;
-  products.unshift({id,name:"Produk Baru",price:10000,sale:null,category:"Makanan",unit:"1 porsi",seller:"Warga Kalensari",status:"Show",image:""});
-  saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); editAdminProduct(0); showToast("Produk baru ditambahkan");
-}
-function toggleAdminProduct(i){products[i].status=products[i].status==='Show'?'Out of Stock':'Show';saveProducts();syncCloudProducts();renderProducts();renderAdminProducts();}
-function deleteAdminProduct(i){if(!confirm(`Hapus ${products[i].name}?`))return;products.splice(i,1);saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dihapus");}
-document.getElementById("menuBtn").onclick=openAdmin;
-document.getElementById("adminLoginBtn").onclick=()=>{if(document.getElementById("adminPin").value===ADMIN_PIN){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil")}else showToast("PIN admin salah")};
-document.getElementById("addProductBtn").onclick=addAdminProduct;
-document.getElementById("exportBtn").onclick=()=>{const blob=new Blob([JSON.stringify(products,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kalensari-products.json";a.click();URL.revokeObjectURL(a.href)};
-document.getElementById("importFile").onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!Array.isArray(data))throw Error();products=data.map((p,i)=>({...p,id:Number(p.id)||i+1}));saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk berhasil diimpor")}catch{showToast("File produk tidak valid")}};r.readAsText(file)};
-document.getElementById("resetProductsBtn").onclick=()=>{if(!confirm("Kembalikan 25 produk bawaan?"))return;products=DEFAULT_PRODUCTS.map(p=>({...p}));saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dikembalikan ke bawaan")};
+    box.querySelectorAll("[data-delete]").forEach(b => b.onclick = () => {
+      if (confirm("Hapus produk ini?")) { products = products.filter(p => p.id !== b.dataset.delete); saveProducts(); renderAll(); renderAdmin(); }
+    });
+    box.querySelectorAll("[data-edit]").forEach(b => editProduct(b.dataset.edit));
+  }
 
+  function editProduct(id) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    const name = prompt("Nama produk:", p.name); if (name === null) return;
+    const price = prompt("Harga:", p.price); if (price === null) return;
+    const stock = prompt("Stok:", p.stock); if (stock === null) return;
+    const category = prompt("Kategori:", p.category); if (category === null) return;
+    const image = prompt("URL gambar (kosongkan jika tidak ada):", p.image || ""); 
+    p.name = name.trim() || p.name;
+    p.price = Number(price) || p.price;
+    p.stock = Math.max(0, Number(stock) || 0);
+    p.category = category.trim() || p.category;
+    p.image = image === null ? p.image : image.trim();
+    saveProducts(); renderAll(); renderAdmin(); showToast("Produk diperbarui.");
+  }
 
-async function renderAdminOrders(){
-  const box=document.getElementById("adminOrderList"); if(!box)return;
-  if(!CLOUD_CONFIG?.enabled){box.innerHTML='<div class="empty-state">☁️ Aktifkan database online untuk melihat pesanan dari semua perangkat.</div>';return;}
-  box.innerHTML='<div class="empty-state">Memuat pesanan...</div>';
-  const rows=await loadCloudOrders();
-  box.innerHTML=rows.length?rows.map(o=>`<div class="admin-order"><b>${esc(o.customer_name||"Pelanggan")}</b><span>${esc(o.customer_phone||"")}</span><small>${new Date(o.created_at).toLocaleString("id-ID")}</small><strong>${rupiah(o.total||0)}</strong><p>${(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")}</p><a class="btn outline" target="_blank" href="${waLink(`Halo ${o.customer_name||"Pelanggan"}, terkait pesanan KALENSARI STORE.`)}">💬 WhatsApp</a></div>`).join(""):'<div class="empty-state">Belum ada pesanan online.</div>';
-}
+  function addProduct() {
+    const name = prompt("Nama produk:"); if (!name) return;
+    const price = prompt("Harga:", "10000"); if (price === null) return;
+    const category = prompt("Kategori:", "Makanan"); if (!category) return;
+    const emoji = prompt("Emoji gambar:", "🍽️") || "🍽️";
+    const image = prompt("URL gambar (opsional):", "") || "";
+    const description = prompt("Deskripsi:", "Produk pilihan warga Kalensari.") || "";
+    const stock = prompt("Stok:", "20");
+    products.push({id:uid(),name:name.trim(),price:Number(price)||0,category:category.trim(),emoji,image,description,stock:Math.max(0,Number(stock)||0),seller:"Warga Desa Kalensari"});
+    saveProducts(); renderAll(); renderAdmin(); showToast("Produk ditambahkan.");
+  }
 
-document.getElementById("refreshOrdersBtn")?.addEventListener("click",renderAdminOrders);
-const __openAdmin=openAdmin; openAdmin=function(){__openAdmin(); if(adminLoggedIn)renderAdminOrders();};
+  function exportProducts() {
+    const blob = new Blob([JSON.stringify(products,null,2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "produk-kalensari-store.json"; a.click();
+    URL.revokeObjectURL(a.href);
+  }
 
-document.getElementById("waHero")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin bertanya tentang produk.")}`);
-document.getElementById("waFloat")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin memesan.")}`);
+  function importProducts(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data) || !data.length) throw new Error();
+        products = data; saveProducts(); renderAll(); renderAdmin(); showToast("Produk berhasil diimport.");
+      } catch { alert("File produk tidak valid."); }
+    };
+    reader.readAsText(file);
+  }
+
+  function renderOrders() {
+    const orders = loadJSON(ORDER_KEY, []);
+    const box = $("adminOrderList");
+    if (!box) return;
+    box.innerHTML = orders.length ? orders.slice().reverse().map(o =>
+      `<div class="admin-order"><strong>${escapeHTML(o.name)}</strong><span>${escapeHTML(o.phone)} • ${escapeHTML(o.payment)}</span><p>${escapeHTML(o.items)}</p><b>${rupiah(o.total)}</b><small>${escapeHTML(o.date)}</small></div>`
+    ).join("") : `<div class="empty-state"><b>Belum ada pesanan</b></div>`;
+  }
+
+  function renderAll() {
+    renderCategories();
+    renderProducts();
+    renderCart();
+    setWhatsAppLinks();
+  }
+
+  function initEvents() {
+    $("cartBtn").onclick = () => { renderCart(); openModal("cartModal"); };
+    $("menuBtn").onclick = () => openModal("adminModal");
+    $("checkoutBtn").onclick = () => {
+      if (!cartItems().length) return showToast("Keranjang masih kosong.");
+      closeModal("cartModal"); openModal("checkoutModal"); renderCart();
+    };
+    $("searchInput").oninput = e => { searchTerm=e.target.value.trim(); renderProducts(); };
+    $("sortSelect").onchange = e => { sortMode=e.target.value; renderProducts(); };
+    $("clearSearch").onclick = () => { $("searchInput").value=""; searchTerm=""; renderProducts(); };
+
+    document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => closeModal(b.dataset.close));
+    document.querySelectorAll(".modal").forEach(m => m.addEventListener("click", e => { if (e.target === m) closeModal(m.id); }));
+
+    $("checkoutForm").onsubmit = e => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const items = cartItems().map(p => `${p.name} x${p.qty}`).join(", ");
+      const total = cartTotal();
+      const order = {name:fd.get("name"),phone:fd.get("phone"),address:fd.get("address"),note:fd.get("note"),payment:fd.get("payment"),items,total,date:new Date().toLocaleString("id-ID")};
+      const orders = loadJSON(ORDER_KEY, []); orders.push(order); localStorage.setItem(ORDER_KEY, JSON.stringify(orders));
+      const text = `Halo KALENSARI STORE,%0A%0APesanan:%0A${encodeURIComponent(items)}%0A%0ATotal: ${encodeURIComponent(rupiah(total))}%0ANama: ${encodeURIComponent(order.name)}%0ANo. WA: ${encodeURIComponent(order.phone)}%0AAlamat: ${encodeURIComponent(order.address)}%0APembayaran: ${encodeURIComponent(order.payment)}%0ACatatan: ${encodeURIComponent(order.note || "-")}`;
+      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank");
+      cart=[]; saveCart(); e.target.reset(); closeModal("checkoutModal"); renderCart(); showToast("Pesanan disiapkan untuk WhatsApp.");
+    };
+
+    $("adminLoginBtn").onclick = () => {
+      if ($("adminPin").value === ADMIN_PIN) {
+        $("adminLogin").hidden=true; $("adminPanel").hidden=false; renderAdmin(); renderOrders();
+      } else showToast("PIN admin salah.");
+    };
+    $("addProductBtn").onclick = addProduct;
+    $("exportBtn").onclick = exportProducts;
+    $("importFile").onchange = e => { if(e.target.files[0]) importProducts(e.target.files[0]); e.target.value=""; };
+    $("resetProductsBtn").onclick = () => {
+      if (confirm("Kembalikan produk ke daftar bawaan?")) { products=structuredClone(defaultProducts); saveProducts(); renderAll(); renderAdmin(); }
+    };
+    $("refreshOrdersBtn").onclick = renderOrders;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    $("year").textContent = new Date().getFullYear();
+    initEvents();
+    renderAll();
+  });
+})();
