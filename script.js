@@ -272,8 +272,45 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   showToast(`Pesanan ${orderCode} dibuat`);
   renderMyOrders();
 });
+
+// Migrasi kode pesanan lama ke format pendek KS + 4 angka.
+// Contoh: KS2026093007104862 -> KS4512
+function migrateOldOrderCodes(){
+  const orders = readStorageJSON("kalensari_orders", []);
+  if (!Array.isArray(orders) || !orders.length) return;
+
+  const used = new Set();
+  let changed = false;
+
+  function newShortCode(){
+    for(let attempt=0; attempt<100; attempt++){
+      const code = "KS" + String(Math.floor(Math.random()*10000)).padStart(4,"0");
+      if(!used.has(code)) return code;
+    }
+    return "KS" + String(Date.now()%10000).padStart(4,"0");
+  }
+
+  orders.forEach(order=>{
+    const code = String(order?.order_code || "");
+    // Pertahankan kode yang sudah benar: KS + tepat 4 angka.
+    if(/^KS\d{4}$/.test(code) && !used.has(code)){
+      used.add(code);
+      return;
+    }
+    const shortCode = newShortCode();
+    order.order_code = shortCode;
+    used.add(shortCode);
+    changed = true;
+  });
+
+  if(changed){
+    localStorage.setItem("kalensari_orders", JSON.stringify(orders.slice(0,30)));
+  }
+}
+
 function initKalensariStore(){
   try{
+    migrateOldOrderCodes();
     const yearEl=document.getElementById("year");
     if(yearEl) yearEl.textContent=new Date().getFullYear();
 
