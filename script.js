@@ -211,7 +211,18 @@ document.getElementById("clearCartBtn").onclick=()=>{
   showToast("🗑️ Keranjang berhasil dikosongkan");
 };
 document.getElementById("checkoutBtn").onclick=()=>{if(cart.length){closeModal("cartModal");openModal("checkoutModal")}};
-document.getElementById("searchInput").addEventListener("input",renderProducts);
+// Pencarian produk tidak boleh terisi otomatis dari nomor WhatsApp/autofill pelanggan.
+const productSearchInput=document.getElementById("searchInput");
+if(productSearchInput){
+  productSearchInput.setAttribute("autocomplete","off");
+  productSearchInput.setAttribute("autocorrect","off");
+  productSearchInput.setAttribute("autocapitalize","none");
+  productSearchInput.setAttribute("spellcheck","false");
+  if(/^\+?62\d{8,14}$/.test(String(productSearchInput.value||"").replace(/[\s-]/g,"")) || /^0\d{9,14}$/.test(String(productSearchInput.value||"").replace(/[\s-]/g,""))){
+    productSearchInput.value="";
+  }
+}
+productSearchInput?.addEventListener("input",renderProducts);
 document.getElementById("sortSelect").addEventListener("change",renderProducts);
 document.getElementById("clearSearch").addEventListener("click",()=>{document.getElementById("searchInput").value="";renderProducts();document.getElementById("searchInput").focus()});
 function showToast(message){const t=document.getElementById("toast");t.textContent=message;t.classList.add("show");clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove("show"),1800)}
