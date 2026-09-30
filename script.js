@@ -1,6 +1,6 @@
 // KALENSARI STORE
-const WHATSAPP_NUMBER = "6282114541041";
-const SHIPPING_COST = 5000;
+const WHATSAPP_NUMBER = "6281234567890";
+const SHIPPING_COST = 0;
 
 // Aman jika config.js tidak ada
 const CLOUD_CONFIG = window.CLOUD_CONFIG || { enabled:false, supabaseUrl:"", supabaseAnonKey:"" };
@@ -246,7 +246,20 @@ document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ing
 document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   e.preventDefault(); if(!cart.length)return;
   const f=new FormData(e.target),items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
-  const orderCode="KS"+new Date().toISOString().replace(/\D/g,"").slice(0,14)+Math.floor(Math.random()*90+10);
+  // Nomor pesanan singkat: KS + 4 digit (contoh KS4512).
+  // Cek riwayat lokal agar sebisa mungkin tidak terjadi nomor yang sama.
+  const localOrdersForCode = readStorageJSON("kalensari_orders", []);
+  let orderCode = "";
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const code = "KS" + String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+    if (!localOrdersForCode.some(o => o && o.order_code === code)) {
+      orderCode = code;
+      break;
+    }
+  }
+  if (!orderCode) {
+    orderCode = "KS" + String(Date.now() % 10000).padStart(4, "0");
+  }
   const detail=items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
   const order={order_code:orderCode,customer_name:String(f.get("name")||""),customer_phone:String(f.get("phone")||""),address:String(f.get("address")||""),note:String(f.get("note")||""),payment:String(f.get("payment")||""),items,subtotal,shipping:SHIPPING_COST,total,status:"baru",created_at:new Date().toISOString()};
   const localOrders=readStorageJSON("kalensari_orders",[]);

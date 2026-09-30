@@ -34,7 +34,7 @@ KALENSARI STORE V8
 
 
 KALENSARI STORE V9
-- Nomor pesanan otomatis (KS...)
+- Nomor pesanan singkat otomatis: KS + 4 digit (contoh KS4512)
 - Riwayat pesanan pelanggan di perangkat
 - Status pesanan: Menunggu, Diproses, Dikirim, Selesai, Dibatalkan
 - Admin dapat mengubah status pesanan jika Supabase aktif
