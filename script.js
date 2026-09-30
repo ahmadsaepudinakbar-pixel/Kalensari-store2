@@ -451,7 +451,8 @@ function renderCart() {
   document.getElementById("cartShipping").textContent=rupiah(shipping);
   {const row=document.getElementById("cartShipping").parentElement;let bd=document.getElementById("cartShipBreakdown");
    if(!bd){bd=document.createElement("div");bd.id="cartShipBreakdown";bd.className="ship-breakdown";row.insertAdjacentElement("afterend",bd);}
-   bd.innerHTML=ships.length?ships.map(x=>`<div><span>🏪 ${esc(x.name)}</span><b>${rupiah(x.fee)}</b></div>`).join(""):"";}
+   bd.hidden=!ships.length;
+   bd.innerHTML=ships.length?`<div class="ship-head">Rincian ongkir · ${ships.length} toko</div>${ships.map(x=>`<div class="ship-row"><span>🏪 ${esc(x.name)}</span><b>${x.fee>0?rupiah(x.fee):"Gratis"}</b></div>`).join("")}<p class="ship-note">ℹ️ Ongkir dihitung <b>per toko</b>, bukan per produk. Belanja dari ${ships.length>1?`${ships.length} toko berarti ongkir dikenakan ${ships.length} kali`:"1 toko berarti 1 kali ongkir"}; beberapa produk dari toko yang sama hanya kena satu ongkir.</p>`:"";}
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutBtn").disabled=!items.length;
@@ -523,7 +524,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const orderCode=makeOrderCode();
   const createdAt=new Date().toISOString();
   const detail=items.map(p=>`- ${p.name} (Toko: ${p.seller}) x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
-  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(shipping)}${ships.length?"\n"+ships.map(x=>`  • ${x.name}: ${rupiah(x.fee)}`).join("\n"):""}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${phone}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
+  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(shipping)}${ships.length?"\n"+ships.map(x=>`  • ${x.name}: ${rupiah(x.fee)}`).join("\n")+"\n  (ongkir dihitung per toko)":""}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${phone}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
   const payload={order_code:orderCode,created_at:createdAt,customer_name:String(f.get("name")||""),customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address:String(f.get("address")||""),note:String(f.get("note")||""),payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu"};
 
   // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi pesanan.
