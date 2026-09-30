@@ -405,3 +405,138 @@ function getProductImage(imagePath) {
     .map(encodeURIComponent)
     .join("/")}`;
 }
+
+/* =========================================================
+   KALENSARI STORE v10.6 - FIX PENCARIAN CEPAT
+   Tombol "Cari Produk" pojok kanan bawah sekarang aktif.
+   ========================================================= */
+(function initKalensariQuickSearch(){
+  function setup(){
+    const floatBtn = document.getElementById('searchFloat');
+    const panel = document.getElementById('quickSearchPanel');
+    const input = document.getElementById('quickSearchInput');
+    const clearBtn = document.getElementById('quickSearchClear');
+    const result = document.getElementById('quickSearchResult');
+    const mainInput = document.getElementById('searchInput');
+
+    if(!floatBtn || !panel || !input || !result) return false;
+    if(floatBtn.dataset.kalensariSearchReady === '1') return true;
+    floatBtn.dataset.kalensariSearchReady = '1';
+
+    const clean = value => String(value ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+    const normalize = value => String(value || '').toLowerCase().trim();
+
+    function openPanel(){
+      panel.classList.add('show');
+      panel.setAttribute('aria-hidden','false');
+      floatBtn.setAttribute('aria-expanded','true');
+      floatBtn.classList.add('active');
+      input.focus();
+    }
+
+    function closePanel(){
+      panel.classList.remove('show');
+      panel.setAttribute('aria-hidden','true');
+      floatBtn.setAttribute('aria-expanded','false');
+      floatBtn.classList.remove('active');
+      input.value='';
+      result.innerHTML='Ketik nama produk untuk mencari.';
+    }
+
+    function getMatches(keyword){
+      const q=normalize(keyword);
+      const source=(typeof products!=='undefined' && Array.isArray(products)) ? products : [];
+      if(!q) return [];
+      return source.filter(p=>p && p.status==='Show').filter(p=>{
+        const text=[p.name,p.category,p.seller].map(normalize).join(' ');
+        return text.includes(q);
+      }).slice(0,8);
+    }
+
+    function renderQuickResults(keyword){
+      const q=normalize(keyword);
+      if(!q){
+        result.innerHTML='Ketik nama produk untuk mencari.';
+        return;
+      }
+
+      const matches=getMatches(q);
+      if(!matches.length){
+        result.innerHTML=`<div class="quick-search-empty">Produk <b>“${clean(keyword)}”</b> tidak ditemukan.</div>`;
+        return;
+      }
+
+      result.innerHTML=matches.map(p=>`
+        <button type="button" class="quick-search-item" data-product-id="${Number(p.id)}">
+          <span class="quick-search-item-name">${clean(p.name)}</span>
+          <span class="quick-search-item-price">${typeof currentPrice==='function' && typeof rupiah==='function' ? rupiah(currentPrice(p)) : ''}</span>
+        </button>
+      `).join('');
+    }
+
+    floatBtn.addEventListener('click',e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      panel.classList.contains('show') ? closePanel() : openPanel();
+    });
+
+    input.addEventListener('input',()=>renderQuickResults(input.value));
+
+    input.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){
+        e.preventDefault();
+        closePanel();
+      } else if(e.key==='Enter'){
+        const first=result.querySelector('[data-product-id]');
+        if(first) first.click();
+      }
+    });
+
+    result.addEventListener('click',e=>{
+      const item=e.target.closest('[data-product-id]');
+      if(!item) return;
+      const id=Number(item.dataset.productId);
+      const source=(typeof products!=='undefined' && Array.isArray(products)) ? products : [];
+      const product=source.find(p=>Number(p.id)===id);
+
+      if(product && mainInput){
+        mainInput.value=product.name;
+        if(typeof renderProducts==='function') renderProducts();
+        setTimeout(()=>{
+          const card=Array.from(document.querySelectorAll('#productGrid .product')).find(el=>
+            el.querySelector('h3')?.textContent.trim()===product.name
+          );
+          if(card){
+            card.scrollIntoView({behavior:'smooth',block:'center'});
+            card.style.outline='3px solid rgba(122,62,32,.35)';
+            setTimeout(()=>{card.style.outline='';},1800);
+          } else {
+            document.getElementById('products')?.scrollIntoView({behavior:'smooth',block:'start'});
+          }
+        },50);
+      }
+      closePanel();
+    });
+
+    clearBtn?.addEventListener('click',e=>{
+      e.preventDefault();
+      input.value='';
+      renderQuickResults('');
+      input.focus();
+    });
+
+    document.addEventListener('click',e=>{
+      if(!panel.contains(e.target) && !floatBtn.contains(e.target)) closePanel();
+    });
+
+    return true;
+  }
+
+  if(!setup()){
+    document.addEventListener('DOMContentLoaded',setup,{once:true});
+    window.addEventListener('load',setup,{once:true});
+  }
+})();
