@@ -151,20 +151,28 @@ function renderProducts() {
       </div>
     </article>`).join(""):`<div class="empty-state"><b>😔 Produk tidak ditemukan</b>Coba kata kunci atau kategori lain.</div>`;
 }
-// Jumlah (pcs) yang dipilih pelanggan di popup Detail produk.
-let detailQty=1;
-function detailWALink(p) {
-  return waLink(`Halo KALENSARI STORE, saya ingin membeli ${p.name} sebanyak ${detailQty} (${rupiah(currentPrice(p))} x ${detailQty} = ${rupiah(currentPrice(p)*detailQty)}).`);
-}
+// Pilihan jumlah (pcs) dan nama toko/penjual di popup Detail produk.
+let detailQty=1, detailSeller="", detailSellers=[];
+const sellerList = p => String(p.seller||"").split(",").map(x=>x.trim()).filter(Boolean);
 function changeDetailQty(id,d) {
-  const p=products.find(x=>x.id===id);if(!p)return;
   detailQty=Math.max(1,Math.min(99,detailQty+d));
   document.getElementById("detailQtyValue").textContent=detailQty;
-  document.getElementById("detailWA")?.setAttribute("href",detailWALink(p));
+}
+function selectDetailSeller(i) {
+  detailSeller=detailSellers[i]||"";
+  document.querySelectorAll("#sellerPicker .seller-chip").forEach((el,n)=>el.classList.toggle("active",n===i));
+  document.getElementById("sellerPicker")?.classList.remove("need");
+}
+function addDetailToCart(id) {
+  if(!detailSeller){
+    document.getElementById("sellerPicker")?.classList.add("need");
+    showToast("Pilih nama toko dulu");return;
+  }
+  addToCart(id,detailQty,detailSeller);closeModal("productModal");
 }
 function showProduct(id) {
   const p=products.find(x=>x.id===id);
-  detailQty=1;
+  detailQty=1;detailSellers=sellerList(p);detailSeller=detailSellers.length===1?detailSellers[0]:"";
   const sold=p.status!=="Show";
   document.getElementById("productDetail").innerHTML=`
     <div class="detail">
@@ -175,40 +183,45 @@ function showProduct(id) {
         <div class="price">${priceHTML(p)}</div>
         <p>Satuan: ${p.unit}</p>
         <p>${sold?"Stok habis.":"Produk tersedia untuk dipesan."}</p>
-        ${sold?"":`<div class="detail-qty"><span>Jumlah</span><div class="qty"><button type="button" onclick="changeDetailQty(${p.id},-1)" aria-label="Kurangi jumlah">−</button><b id="detailQtyValue">1</b><button type="button" onclick="changeDetailQty(${p.id},1)" aria-label="Tambah jumlah">+</button></div></div>`}
-        <button class="btn primary full" ${sold?"disabled":""} onclick="addToCart(${p.id},detailQty);closeModal('productModal')">🛒 Tambah ke Keranjang</button>
-        <br><br>
-        <a id="detailWA" class="btn outline full" target="_blank" href="${detailWALink(p)}">💬 Beli via WhatsApp</a>
+        ${sold?"":`<div class="seller-pick"><span class="seller-pick-title">Pilih Toko</span><div id="sellerPicker" class="seller-picker">${detailSellers.map((n,i)=>`<button type="button" class="seller-chip${detailSeller===n?" active":""}" onclick="selectDetailSeller(${i})">🏪 ${esc(n)}</button>`).join("")}</div></div>
+        <div class="detail-qty"><span>Jumlah</span><div class="qty"><button type="button" onclick="changeDetailQty(${p.id},-1)" aria-label="Kurangi jumlah">−</button><b id="detailQtyValue">1</b><button type="button" onclick="changeDetailQty(${p.id},1)" aria-label="Tambah jumlah">+</button></div></div>`}
+        <button class="btn primary full" ${sold?"disabled":""} onclick="addDetailToCart(${p.id})">🛒 Tambah ke Keranjang</button>
       </div>
     </div>`;
   openModal("productModal");
 }
-function addToCart(id,qty=1) {
+function addToCart(id,qty=1,seller) {
   const p=products.find(x=>x.id===id); if(!p||p.status!=="Show")return;
+  if(seller===undefined){
+    // Produk dengan lebih dari satu toko: minta pelanggan memilih toko di popup Detail.
+    const list=sellerList(p);
+    if(list.length>1){showProduct(id);showToast("Pilih nama toko dulu");return;}
+    seller=list[0]||p.seller||"";
+  }
   qty=Math.max(1,parseInt(qty)||1);
-  const item=cart.find(x=>x.id===id); if(item)item.qty+=qty; else cart.push({id,qty});
-  saveCart();updateCartCount();renderCart();showToast(`${qty>1?qty+"× ":""}${p.name} ditambahkan ke keranjang`);
+  const item=cart.find(x=>x.id===id&&(x.seller||"")===seller); if(item)item.qty+=qty; else cart.push({id,qty,seller});
+  saveCart();updateCartCount();renderCart();showToast(`${qty>1?qty+"× ":""}${p.name} (${seller}) ditambahkan ke keranjang`);
 }
-function changeQty(id,d) {
-  const item=cart.find(x=>x.id===id);if(!item)return;
-  item.qty+=d;if(item.qty<=0)cart=cart.filter(x=>x.id!==id);
+function changeQty(idx,d) {
+  const item=cart[idx];if(!item)return;
+  item.qty+=d;if(item.qty<=0)cart.splice(idx,1);
   saveCart();updateCartCount();renderCart();
 }
 // Hapus satu produk dari keranjang (tombol tong sampah di sebelah kanan produk).
-function removeFromCart(id) {
-  const item=cart.find(x=>x.id===id);if(!item)return;
-  const p=products.find(x=>x.id===id);
-  cart=cart.filter(x=>x.id!==id);
+function removeFromCart(idx) {
+  const item=cart[idx];if(!item)return;
+  const p=products.find(x=>x.id===item.id);
+  cart.splice(idx,1);
   saveCart();updateCartCount();renderCart();
   showToast(`🗑️ ${p?p.name:"Produk"} dihapus dari keranjang`);
 }
-function cartData() {return cart.map(i=>({...products.find(p=>p.id===i.id),qty:i.qty})).filter(x=>x.id);}
+function cartData() {return cart.map((i,idx)=>{const p=products.find(x=>x.id===i.id);return p?{...p,qty:i.qty,seller:i.seller||p.seller,idx}:null}).filter(Boolean);}
 function renderCart() {
   const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),shipping=items.length?SHIPPING_COST:0;
   document.getElementById("cartItems").innerHTML=items.length?items.map(p=>`
-    <div class="cart-row"><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div></div>
-    <div class="qty"><button onclick="changeQty(${p.id},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.id},1)">+</button></div>
-    <button class="cart-remove" type="button" title="Hapus produk" aria-label="Hapus ${p.name} dari keranjang" onclick="removeFromCart(${p.id})">🗑️</button></div>`).join(""):`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
+    <div class="cart-row"><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div><div class="cart-seller">🏪 ${esc(p.seller)}</div></div>
+    <div class="qty"><button onclick="changeQty(${p.idx},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.idx},1)">+</button></div>
+    <button class="cart-remove" type="button" title="Hapus produk" aria-label="Hapus ${p.name} dari keranjang" onclick="removeFromCart(${p.idx})">🗑️</button></div>`).join(""):`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
   document.getElementById("cartItemLabel").textContent=`${cart.reduce((s,i)=>s+i.qty,0)} item`;
   document.getElementById("cartSubtotal").textContent=rupiah(subtotal);
   document.getElementById("cartShipping").textContent=rupiah(shipping);
@@ -276,11 +289,11 @@ function showToast(message){const t=document.getElementById("toast");t.textConte
 document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
 document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!cart.length)return;
-  const f=new FormData(e.target),items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
+  const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
   const phone=String(f.get("phone")||"").trim();
   const orderCode=makeOrderCode();
   const createdAt=new Date().toISOString();
-  const detail=items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
+  const detail=items.map(p=>`- ${p.name} (Toko: ${p.seller}) x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
   const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(SHIPPING_COST)}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${phone}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
   const payload={order_code:orderCode,created_at:createdAt,customer_name:String(f.get("name")||""),customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address:String(f.get("address")||""),note:String(f.get("note")||""),payment:String(f.get("payment")||""),items,subtotal,shipping:SHIPPING_COST,total,status:"menunggu"};
 
@@ -374,7 +387,7 @@ function renderMyOrders(rows=getLocalOrders()){
     <div class="my-order-head"><div><b>${esc(o.order_code||"Pesanan")}</b><small>${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</small></div><span class="order-status ${o.status==='dibatalkan'?'status-dibatalkan':''}">${statusLabel(o.status)}</span></div>
     ${statusSteps(o.status)}
     <p><b>${esc(o.customer_name||"")}</b> • ${esc(o.customer_phone||"")}</p>
-    <p>${(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")}</p>
+    <p>${(o.items||[]).map(x=>`${esc(x.name)}${x.seller?` (${esc(x.seller)})`:""} ×${x.qty}`).join(" • ")}</p>
     <strong>${rupiah(o.total||0)}</strong>
     ${o.sync_error?`<div class="order-hint">⚠️ Belum tersinkron ke database: ${esc(o.sync_error)}</div>`:""}
     ${o.updated_at?`<div class="order-updated">Diperbarui: ${new Date(o.updated_at).toLocaleString("id-ID")}</div>`:""}
@@ -429,7 +442,7 @@ async function renderAdminOrders(){
     box.innerHTML=rows.length?rows.map(o=>`<div class="admin-order">
       <div class="admin-order-top"><b>${esc(o.order_code||"Pesanan")}</b><span class="order-status">${statusLabel(o.status)}</span></div>
       <small>${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</small><b>${esc(o.customer_name||"Pelanggan")}</b><span>📱 ${esc(o.customer_phone||"")}</span>
-      <p>${(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")}</p><strong>${rupiah(o.total||0)}</strong>
+      <p>${(o.items||[]).map(x=>`${esc(x.name)}${x.seller?` (${esc(x.seller)})`:""} ×${x.qty}`).join(" • ")}</p><strong>${rupiah(o.total||0)}</strong>
       <label>Status <select class="admin-order-status-select" onchange="changeOrderStatus('${esc(o.id)}',this.value)">${ORDER_STATUSES.map(s=>`<option value="${s}" ${(o.status==='baru'?"menunggu":o.status)===s?'selected':''}>${statusLabel(s)}</option>`).join("")}</select></label>
       <a class="btn outline" target="_blank" href="${waLink(`Halo ${o.customer_name||"Pelanggan"}, terkait pesanan ${o.order_code||"KALENSARI STORE"}.`)}">💬 WhatsApp</a>
     </div>`).join(""):'<div class="empty-state">Belum ada pesanan online.</div>';
