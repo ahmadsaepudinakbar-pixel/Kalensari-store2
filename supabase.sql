@@ -54,3 +54,12 @@ create policy "orders_public_update" on public.orders for update using (true) wi
 -- Jika tabel orders sudah ada dari V8, jalankan ini sekali:
 alter table public.orders add column if not exists order_code text;
 create unique index if not exists orders_order_code_idx on public.orders(order_code);
+
+
+-- V10: indeks untuk pengelolaan status pesanan
+create index if not exists orders_status_idx on public.orders(status);
+create index if not exists orders_created_at_idx on public.orders(created_at desc);
+
+-- Status yang digunakan aplikasi:
+-- baru = Menunggu, diproses = Diproses, dikirim = Dikirim,
+-- selesai = Selesai, dibatalkan = Dibatalkan

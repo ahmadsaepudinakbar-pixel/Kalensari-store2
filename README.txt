@@ -40,3 +40,20 @@ KALENSARI STORE V9
 - Admin dapat mengubah status pesanan jika Supabase aktif
 - Checkout WhatsApp menyertakan nomor pesanan
 - Jalankan bagian V9 pada supabase.sql jika database Supabase sudah pernah dibuat di V8.
+
+
+=== V10 - DASHBOARD STATUS PESANAN ===
+
+Fitur V10:
+1. Admin membuka ⚙️ Dashboard Admin dengan PIN 1234.
+2. Setelah login, bagian "Kelola Status Pesanan" menampilkan pesanan.
+3. Status dapat diubah: Menunggu, Diproses, Dikirim, Selesai, Dibatalkan.
+4. Jika Supabase BELUM aktif, status tetap bisa diuji dan tersimpan di browser perangkat admin.
+5. Jika Supabase aktif, perubahan status dikirim ke database online.
+6. Pelanggan membuka 📦 Pesanan Saya untuk melihat status terbaru.
+7. Tombol Refresh mengambil data terbaru.
+
+PENTING UNTUK STATUS ANTAR PERANGKAT:
+- Pastikan Supabase aktif dan config.js berisi supabaseUrl + supabaseAnonKey.
+- Jalankan supabase.sql di SQL Editor Supabase.
+- Untuk produksi, jangan gunakan PIN 1234; ganti ADMIN_PIN di script.js dan gunakan autentikasi admin yang lebih aman.

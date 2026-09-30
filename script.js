@@ -1,6 +1,6 @@
 // KALENSARI STORE
-const WHATSAPP_NUMBER = "6282114541041";
-const SHIPPING_COST = 6000;
+const WHATSAPP_NUMBER = "6281234567890";
+const SHIPPING_COST = 0;
 
 // Aman jika config.js tidak ada
 const CLOUD_CONFIG = window.CLOUD_CONFIG || { enabled:false, supabaseUrl:"", supabaseAnonKey:"" };
@@ -265,7 +265,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const localOrders=readStorageJSON("kalensari_orders",[]);
   localOrders.unshift(order);
   localStorage.setItem("kalensari_orders",JSON.stringify(localOrders.slice(0,30)));
-  saveCloudOrder(order);
+  await saveCloudOrder(order);
   const msg=`Halo KALENSARI STORE, saya ingin memesan.\n\nNo. Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(SHIPPING_COST)}\nTOTAL: ${rupiah(total)}\n\nNama: ${order.customer_name}\nNo. WhatsApp: ${order.customer_phone}\nAlamat: ${order.address}\nCatatan: ${order.note||"-"}\nPembayaran: ${order.payment}`;
   window.open(waLink(msg),"_blank");
   cart=[]; saveCart(); updateCartCount(); renderCart(); e.target.reset(); closeModal("checkoutModal");
@@ -441,28 +441,71 @@ document.addEventListener("click",e=>{
   }
 });
 
-// ===== PESANAN SAYA V9 =====
-function renderMyOrders(){
-  const box=document.getElementById("myOrderList"); if(!box)return;
-  const rows=readStorageJSON("kalensari_orders",[]);
-  const count=document.getElementById("myOrderCount"); if(count)count.textContent=`${rows.length} pesanan`;
-  box.innerHTML=rows.length?rows.map(o=>`<div class="my-order-card">
-    <div class="my-order-head"><b>📦 ${esc(o.order_code)}</b><span class="order-status status-${esc(o.status||"baru")}">${statusLabel(o.status||"baru")}</span></div>
-    <small>${new Date(o.created_at).toLocaleString("id-ID")}</small>
-    <p>${(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")}</p>
-    <strong>${rupiah(o.total||0)}</strong>
-  </div>`).join(""):'<div class="empty-state"><b>📦 Belum ada pesanan</b>Pesanan yang dibuat dari perangkat ini akan muncul di sini.</div>';
+// ===== PESANAN SAYA V10 =====
+function normalizeOrderStatus(status){
+  const allowed=["baru","diproses","dikirim","selesai","dibatalkan"];
+  return allowed.includes(String(status)) ? String(status) : "baru";
 }
-const myOrdersBtn=document.getElementById("myOrdersBtn");
-if(myOrdersBtn) myOrdersBtn.onclick=()=>{renderMyOrders();openModal("myOrdersModal")};
 
-// ===== ADMIN DASHBOARD V6 =====
+function getLocalOrders(){
+  const rows=readStorageJSON("kalensari_orders",[]);
+  return Array.isArray(rows) ? rows : [];
+}
+
+function saveLocalOrders(rows){
+  localStorage.setItem("kalensari_orders", JSON.stringify(rows.slice(0,30)));
+}
+
+function renderMyOrders(rowsOverride){
+  const box=document.getElementById("myOrderList"); if(!box)return;
+  const rows=Array.isArray(rowsOverride)?rowsOverride:getLocalOrders();
+  const count=document.getElementById("myOrderCount"); if(count)count.textContent=`${rows.length} pesanan`;
+  box.innerHTML=rows.length?rows.map(o=>{
+    const status=normalizeOrderStatus(o.status);
+    return `<div class="my-order-card">
+      <div class="my-order-head"><b>📦 ${esc(o.order_code||"-")}</b><span class="order-status status-${esc(status)}">${statusLabel(status)}</span></div>
+      <small>${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</small>
+      <p>${(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")}</p>
+      <strong>${rupiah(o.total||0)}</strong>
+      ${status==="selesai"?'<div class="order-hint success">✅ Pesanan selesai</div>':status==="dibatalkan"?'<div class="order-hint danger">❌ Pesanan dibatalkan</div>':'<div class="order-hint">🔄 Status akan diperbarui oleh admin.</div>'}
+    </div>`;
+  }).join(""):'<div class="empty-state"><b>📦 Belum ada pesanan</b>Pesanan yang dibuat dari perangkat ini akan muncul di sini.</div>';
+}
+
+async function refreshMyOrdersFromCloud(){
+  if(!CLOUD_CONFIG?.enabled) return;
+  const local=getLocalOrders();
+  if(!local.length) return;
+  try{
+    const cloudRows=await loadCloudOrders();
+    const byCode=new Map(cloudRows.map(o=>[String(o.order_code||""),o]));
+    let changed=false;
+    local.forEach(o=>{
+      const remote=byCode.get(String(o.order_code||""));
+      if(remote && normalizeOrderStatus(o.status)!==normalizeOrderStatus(remote.status)){
+        o.status=normalizeOrderStatus(remote.status);
+        changed=true;
+      }
+    });
+    if(changed) saveLocalOrders(local);
+    renderMyOrders(local);
+  }catch(e){console.warn("Refresh status pesanan:",e);}
+}
+
+const myOrdersBtn=document.getElementById("myOrdersBtn");
+if(myOrdersBtn) myOrdersBtn.onclick=async()=>{
+  renderMyOrders();
+  openModal("myOrdersModal");
+  await refreshMyOrdersFromCloud();
+};
+
+// ===== ADMIN DASHBOARD V10 =====
 let adminLoggedIn = false;
 function openAdmin(){
   document.getElementById("adminPin").value="";
   document.getElementById("adminLogin").hidden=adminLoggedIn;
   document.getElementById("adminPanel").hidden=!adminLoggedIn;
-  if(adminLoggedIn) renderAdminProducts();
+  if(adminLoggedIn){ renderAdminProducts(); renderAdminOrders(); }
   openModal("adminModal");
 }
 function renderAdminProducts(){
@@ -507,36 +550,94 @@ document.getElementById("importFile").onchange=e=>{const file=e.target.files[0];
 document.getElementById("resetProductsBtn").onclick=()=>{if(!confirm("Kembalikan 25 produk bawaan?"))return;products=DEFAULT_PRODUCTS.map(p=>({...p}));saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dikembalikan ke bawaan")};
 
 
+function updateAdminOrderStats(rows){
+  const counts={baru:0,diproses:0,dikirim:0,selesai:0};
+  (rows||[]).forEach(o=>{
+    const s=normalizeOrderStatus(o.status);
+    if(Object.prototype.hasOwnProperty.call(counts,s)) counts[s]++;
+  });
+  const map={baru:"statMenunggu",diproses:"statDiproses",dikirim:"statDikirim",selesai:"statSelesai"};
+  Object.entries(map).forEach(([s,id])=>{const el=document.getElementById(id);if(el)el.textContent=counts[s];});
+}
+
+function mergeCloudOrdersWithLocal(cloudRows){
+  const local=getLocalOrders();
+  const localByCode=new Map(local.map(o=>[String(o.order_code||""),o]));
+  (cloudRows||[]).forEach(remote=>{
+    const code=String(remote.order_code||"");
+    if(!code)return;
+    const old=localByCode.get(code);
+    if(old){ old.status=normalizeOrderStatus(remote.status); }
+    else { local.push({...remote,status:normalizeOrderStatus(remote.status)}); }
+  });
+  saveLocalOrders(local);
+  return local;
+}
+
+async function getAdminOrders(){
+  if(CLOUD_CONFIG?.enabled){
+    const cloudRows=await loadCloudOrders();
+    return mergeCloudOrdersWithLocal(cloudRows);
+  }
+  return getLocalOrders();
+}
+
 async function renderAdminOrders(){
   const box=document.getElementById("adminOrderList"); if(!box)return;
-  if(!CLOUD_CONFIG?.enabled){box.innerHTML='<div class="empty-state">☁️ Aktifkan database online untuk mengelola status pesanan dari semua perangkat.</div>';return;}
-  box.innerHTML='<div class="empty-state">Memuat pesanan...</div>';
-  const rows=await loadCloudOrders();
-  box.innerHTML=rows.length?rows.map(o=>{
-    const status=o.status||"baru";
+  box.innerHTML='<div class="empty-state">⏳ Memuat pesanan...</div>';
+  const rows=await getAdminOrders();
+  updateAdminOrderStats(rows);
+  if(!rows.length){
+    box.innerHTML='<div class="empty-state"><b>📋 Belum ada pesanan</b><br>Pesanan pelanggan akan muncul di sini setelah checkout.</div>';
+    return;
+  }
+  box.innerHTML=rows.map(o=>{
+    const status=normalizeOrderStatus(o.status);
+    const code=String(o.order_code||"");
     return `<div class="admin-order">
-      <b>📦 ${esc(o.order_code||("ORDER-"+o.id))}</b>
-      <span>${esc(o.customer_name||"Pelanggan")} • ${esc(o.customer_phone||"")}</span>
-      <small>${new Date(o.created_at).toLocaleString("id-ID")}</small>
-      <strong>${rupiah(o.total||0)}</strong>
+      <div class="admin-order-top"><b>📦 ${esc(code||"-")}</b><span class="order-status status-${esc(status)}">${statusLabel(status)}</span></div>
+      <span>👤 ${esc(o.customer_name||"Pelanggan")} • ${esc(o.customer_phone||"")}</span>
+      <small>🕒 ${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</small>
+      <strong>💰 ${rupiah(o.total||0)}</strong>
       <p>${(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")}</p>
-      <label>Status Pesanan<select onchange="changeOrderStatus('${esc(o.order_code||"")}',this.value)">
-        ${["baru","diproses","dikirim","selesai","dibatalkan"].map(s=>`<option value="${s}" ${status===s?'selected':''}>${statusLabel(s)}</option>`).join("")}
-      </select></label>
-      <a class="btn outline" target="_blank" href="${waLink(`Halo ${o.customer_name||"Pelanggan"}, terkait pesanan ${o.order_code||""} KALENSARI STORE.`)}">💬 WhatsApp</a>
+      <label>Status Pesanan
+        <select data-order-code="${esc(code)}" class="admin-order-status-select">
+          ${["baru","diproses","dikirim","selesai","dibatalkan"].map(s=>`<option value="${s}" ${status===s?'selected':''}>${statusLabel(s)}</option>`).join("")}
+        </select>
+      </label>
+      <a class="btn outline" target="_blank" rel="noopener" href="${waLink(`Halo ${o.customer_name||"Pelanggan"}, terkait pesanan ${code} KALENSARI STORE.`)}">💬 WhatsApp</a>
     </div>`;
-  }).join(""):'<div class="empty-state">Belum ada pesanan online.</div>';
+  }).join("");
+
+  box.querySelectorAll(".admin-order-status-select").forEach(select=>{
+    select.addEventListener("change",()=>changeOrderStatus(select.dataset.orderCode,select.value));
+  });
 }
-function statusLabel(s){return ({baru:"Menunggu",diproses:"Diproses",dikirim:"Dikirim",selesai:"Selesai",dibatalkan:"Dibatalkan"}[s]||s);}
+
+function statusLabel(s){
+  return ({baru:"Menunggu",diproses:"Diproses",dikirim:"Dikirim",selesai:"Selesai",dibatalkan:"Dibatalkan"}[normalizeOrderStatus(s)]||"Menunggu");
+}
+
 async function changeOrderStatus(orderCode,status){
   if(!orderCode)return;
-  const ok=await updateCloudOrderStatus(orderCode,status);
-  if(ok){showToast(`Status ${orderCode}: ${statusLabel(status)}`); renderAdminOrders();}
-  else showToast("Gagal mengubah status pesanan");
+  status=normalizeOrderStatus(status);
+  const rows=getLocalOrders();
+  const localOrder=rows.find(o=>String(o.order_code||"")===String(orderCode));
+  if(localOrder){ localOrder.status=status; saveLocalOrders(rows); }
+  else { showToast("Pesanan tidak ditemukan di perangkat ini"); return; }
+
+  let cloudOK=true;
+  if(CLOUD_CONFIG?.enabled){ cloudOK=await updateCloudOrderStatus(orderCode,status); }
+  if(!cloudOK){
+    showToast(`Status lokal ${orderCode} menjadi ${statusLabel(status)}; cloud gagal diperbarui`);
+  }else{
+    showToast(`Status ${orderCode}: ${statusLabel(status)}`);
+  }
+  renderMyOrders(rows);
+  renderAdminOrders();
 }
 
 document.getElementById("refreshOrdersBtn")?.addEventListener("click",renderAdminOrders);
-const __openAdmin=openAdmin; openAdmin=function(){__openAdmin(); if(adminLoggedIn)renderAdminOrders();};
 
 document.getElementById("waHero")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin bertanya tentang produk.")}`);
 document.getElementById("waFloat")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin memesan.")}`);
