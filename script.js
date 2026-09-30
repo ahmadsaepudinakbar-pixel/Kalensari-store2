@@ -1,8 +1,8 @@
 // KALENSARI STORE
-const WHATSAPP_NUMBER = "6282114541041";
+let WHATSAPP_NUMBER = "6281234567890"; // nomor bawaan; bisa diubah dari Admin > Ongkir
 const DEFAULT_PRODUCTS = [{"id":1,"name":"Lotek Bongko","price":12000,"sale":8000,"category":"Makanan","unit":"1 porsi","seller":"Teh Ida","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/o-fvve-chatgpt%20image%20sep%2028%2C%202026%2C%2005_14_09%20am.png?versionId=sSlnWC5X3v6SfdE8SJ7kfFpkAAtYEG66"},{"id":2,"name":"Bakso Sapi Biasa","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/pf0do4-chatgpt%20image%20sep%2028%2C%202026%2C%2006_23_05%20am.png?versionId=LvDf81yvhC2OIgUPloRKlaBbRFi.9BuH"},{"id":3,"name":"MIe ayam Pedas","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"H. Diman, Mang Edo, Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/0qg0at-chatgpt%20image%20sep%2028%2C%202026%2C%2002_03_31%20pm.png?versionId=EH1aAjwRvQd3dMY93ItbAgINe5lzjnTw"},{"id":4,"name":"MIe ayam Biasa","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"H. Diman, Mang Edo, Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/m5q9je-chatgpt%20image%20sep%2028%2C%202026%2C%2002_02_42%20pm.png?versionId=Lci_mH9SOmBpD2nCjBV_Z_o_XXpxpW8v"},{"id":5,"name":"Bakso Tulang","price":25000,"sale":18000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Out of Stock","image":"https://cdn.store.link/products/kalensaristore80353/agx1iw-chatgpt%20image%20sep%2028%2C%202026%2C%2006_29_33%20am.png?versionId=1n1pJ2ilQgM4jrhR5X_0LEG9mB.lTmg8"},{"id":6,"name":"Bakso Telur","price":12000,"sale":10000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/8a69b3-chatgpt%20image%20sep%2028%2C%202026%2C%2006_34_03%20am.png?versionId=m_nc2BhsK7d4LdKAPdxnMAiRHAV.Q2qB"},{"id":7,"name":"Bakso Urat","price":18000,"sale":15000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/obbajp-chatgpt%20image%20sep%2028%2C%202026%2C%2006_36_33%20am.png?versionId=h_Evc0EcQtdz4PFbFk8aZey0jgRRXZ.p"},{"id":8,"name":"Jus Alpukat","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/3x8j0a-chatgpt%20image%20sep%2028%2C%202026%2C%2006_52_41%20am.png?versionId=eKLzC7y3fgCWrkTSAdcaLHEyEYAdZMsh"},{"id":9,"name":"Jus Buah Naga","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/p8vus5-chatgpt%20image%20sep%2028%2C%202026%2C%2007_22_02%20am.png?versionId=e6H7dwvYmMOZrI86QKN98dyVxHcc8V0M"},{"id":10,"name":"Jus Tomat","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/o4d1bt-chatgpt%20image%20sep%2028%2C%202026%2C%2007_20_47%20am.png?versionId=IbXRZdg2vp6bCuXJPch5YT7FgQZXXcRM"},{"id":11,"name":"Jus Mangga","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/lqk2sp-chatgpt%20image%20sep%2028%2C%202026%2C%2007_22_59%20am.png?versionId=FADsI7qbgepPpQt7XVGl901Q_3cKHFQW"},{"id":12,"name":"Es teh Manis","price":3000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/abqncl-hops-3260267377.webp?versionId=P4DG3eGis6QyEzh9ZFQm3CBF8p9DEJwx"},{"id":13,"name":"Es teh Matcha Late","price":6000,"sale":null,"category":"Minuman","unit":"1 cup besar Rasa Greentea","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/c9c6rx-images%20%281%29.jpg?versionId=K0P2vQjt8SpfWctljxkmCkUO_8AfkYf2"},{"id":14,"name":"Es teh Matcha Premium","price":15000,"sale":12000,"category":"Minuman","unit":"1 cup besar Rasa Greentea","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/bkv3a5-images.jpg?versionId=jKTeHTYDtwRD2qs6CWqYs9ZM2EBZ9emC"},{"id":15,"name":"Nasi Kebuli","price":25000,"sale":20000,"category":"Makanan","unit":"1 porsi","seller":"Teh iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/u4fafx-chatgpt%20image%20sep%2028%2C%202026%2C%2002_14_04%20pm.png?versionId=DHZD_c9LScH15.An7XpzcTJMrjDf0AJk"},{"id":16,"name":"Nasi Goreng","price":13000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Kang Diki Sueb","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/h38vn8-chatgpt%20image%20sep%2028%2C%202026%2C%2002_11_47%20pm.png?versionId=Q1UfoJozDqlb8kaNfjJqp6nKv74i_B3F"},{"id":17,"product_group":"Pecel Lele","variant":"Lauk saja","name":"Pecel Lele","price":15000,"sale":null,"category":"Makanan","unit":"Pecel Lele","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ota8dn-chatgpt%20image%20sep%2028%2C%202026%2C%2002_25_58%20pm.png?versionId=JUVeTbSTZiWtp5heJSYA9RlF7OmxzgOE"},{"id":18,"product_group":"Pecel Lele","variant":"+ Nasi","name":"Pecel Lele + Nasi","price":20000,"sale":null,"category":"Makanan","unit":"Pecel Lele + Nasi","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ota8dn-chatgpt%20image%20sep%2028%2C%202026%2C%2002_25_58%20pm.png?versionId=JUVeTbSTZiWtp5heJSYA9RlF7OmxzgOE"},{"id":19,"product_group":"Pecel Ayam","variant":"Lauk saja","name":"Pecel Ayam","price":20000,"sale":null,"category":"Makanan","unit":"Pecel Ayam","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/s1j6xi-chatgpt%20image%20sep%2028%2C%202026%2C%2002_24_40%20pm.png?versionId=daNVkTOKSqZw_EU5ERJdtgZb57aN5VWx"},{"id":20,"product_group":"Pecel Ayam","variant":"+ Nasi","name":"Pecel Ayam + Nasi","price":25000,"sale":null,"category":"Makanan","unit":"Pecel Ayam + Nasi","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/s1j6xi-chatgpt%20image%20sep%2028%2C%202026%2C%2002_24_40%20pm.png?versionId=daNVkTOKSqZw_EU5ERJdtgZb57aN5VWx"},{"id":21,"name":"Fried Chiken","price":10000,"sale":null,"category":"Makanan","unit":"Ayam Goreng Tepung","seller":"Warga Kalensari","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/q38c2x-chatgpt%20image%20sep%2028%2C%202026%2C%2002_23_43%20pm.png?versionId=RR2yA7Iutiz2jXiFwJNUzApiqzE7ItsL"},{"id":22,"name":"Soto Ayam","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Sate Madura","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/4io072-chatgpt%20image%20sep%2028%2C%202026%2C%2002_22_28%20pm.png?versionId=48IdG9bl9fPErJcNUzMeAPrvhzOOe_qr"},{"id":23,"name":"Sate Ayam","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Sate Madura","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ewpn71-chatgpt%20image%20sep%2028%2C%202026%2C%2002_18_51%20pm.png?versionId=X09ZJ.tPJyqr_LhYnZRngTpDFKIVqz0b"},{"id":24,"name":"Nasi Ayam Katsu","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Teh Iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ievcoz-chatgpt%20image%20sep%2028%2C%202026%2C%2002_17_10%20pm.png?versionId=buhfyErVz0r0y_eaESh2AooKeylFdopS"},{"id":25,"name":"Spageti","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Teh Iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/d62zqy-aa1408ce-c67d-4d63-aa67-12ec89b3c905.png?versionId=chUteSwuPamgkCgB_ORU_hnugVoqj8dW"}];
 
-const ADMIN_PIN = "150794";
+const ADMIN_PIN = "1234";
 let products = JSON.parse(localStorage.getItem("kalensari_products") || "null") || DEFAULT_PRODUCTS.map(p=>({...p}));
 let cloudReady = false;
 const ORDER_STATUSES = ["menunggu","diproses","dikirim","selesai","dibatalkan"];
@@ -164,6 +164,7 @@ let closedSellers=readLS("kalensari_closed_sellers",{});
 let removedCategories=readLS("kalensari_removed_categories",[]);
 // Ongkir per toko: {__default: tarif standar, "nama toko (huruf kecil)": tarif khusus toko itu}
 let shippingFees=readLS("kalensari_shipping_fees",{});
+{const saved=normalizePhone(readLS("kalensari_wa_number",""));if(saved.length>=9)WHATSAPP_NUMBER=saved;}
 const BASE_CATEGORIES=["Makanan","Minuman"];
 const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])].filter(c=>!removedCategories.includes(c)||products.some(p=>p.category===c));
 const sellerKey=n=>String(n||"").trim().toLowerCase();
@@ -181,6 +182,7 @@ async function loadCloudSettings(){
     (Array.isArray(rows)?rows:[]).forEach(r=>{
       if(r.key==="categories"&&Array.isArray(r.value)){customCategories=r.value;localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));}
       if(r.key==="removed_categories"&&Array.isArray(r.value)){removedCategories=r.value;localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));}
+      if(r.key==="whatsapp_number"&&typeof r.value==="string"){const n=normalizePhone(r.value);if(n.length>=9&&n.length<=15){WHATSAPP_NUMBER=n;localStorage.setItem("kalensari_wa_number",JSON.stringify(n));applyWaLinks();}}
       if(r.key==="shipping_fees"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){shippingFees=r.value;localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
     });
@@ -192,9 +194,10 @@ async function saveStoreSettings(){
   localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));
   localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));
   localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));
+  localStorage.setItem("kalensari_wa_number",JSON.stringify(WHATSAPP_NUMBER));
   if(!CLOUD_CONFIG?.enabled)return false;
   try{
-    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"removed_categories",value:removedCategories},{key:"shipping_fees",value:shippingFees},{key:"closed_sellers",value:closedSellers}])});
+    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"removed_categories",value:removedCategories},{key:"shipping_fees",value:shippingFees},{key:"whatsapp_number",value:WHATSAPP_NUMBER},{key:"closed_sellers",value:closedSellers}])});
     return true;
   }catch(e){
     console.error("Simpan pengaturan toko gagal:",e);
@@ -705,6 +708,13 @@ const __openAdmin=openAdmin; openAdmin=function(){__openAdmin();};
 
 document.getElementById("waHero")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin bertanya tentang produk.")}`);
 document.getElementById("waFloat")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin memesan.")}`);
+// Perbarui semua tautan WhatsApp statis setelah nomor diubah / dimuat dari database.
+function applyWaLinks(){
+  const q=t=>`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t)}`;
+  const g=document.getElementById("waGeneral");if(g)g.href=q("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
+  document.getElementById("waHero")?.setAttribute("href",q("Halo KALENSARI STORE, saya ingin bertanya tentang produk."));
+  document.getElementById("waFloat")?.setAttribute("href",q("Halo KALENSARI STORE, saya ingin memesan."));
+}
 function getProductImage(imagePath) {
   if (!imagePath) return "";
 
@@ -868,8 +878,8 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
   const exp=document.getElementById("exportBtn"), list=document.getElementById("adminProductList");
   if(!exp||!list)return;
   const mk=(id,text)=>{const b=document.createElement("button");b.type="button";b.id=id;b.className=exp.className;b.textContent=text;return b;};
-  const bCat=mk("manageCatBtn","+ Kategori"), bSel=mk("manageSellerBtn","🏪 Penjual");
-  exp.insertAdjacentElement("afterend",bSel); exp.insertAdjacentElement("afterend",bCat);
+  const bCat=mk("manageCatBtn","+ Kategori"), bSel=mk("manageSellerBtn","🏪 Penjual"), bShip=mk("manageShipBtn","🚚 Ongkir");
+  exp.insertAdjacentElement("afterend",bShip); exp.insertAdjacentElement("afterend",bSel); exp.insertAdjacentElement("afterend",bCat);
   const panel=document.createElement("div"); panel.id="adminExtra"; panel.className="admin-extra"; panel.hidden=true;
   list.parentNode.insertBefore(panel,list);
   let mode="", selectedCat="";
@@ -881,7 +891,7 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
   }
   function render(){
     panel.hidden=!mode;
-    bCat.classList.toggle("active",mode==="cat"); bSel.classList.toggle("active",mode==="seller");
+    bCat.classList.toggle("active",mode==="cat"); bSel.classList.toggle("active",mode==="seller"); bShip.classList.toggle("active",mode==="ship");
     if(mode==="cat"){
       panel.innerHTML=`<div class="extra-head"><h4>🏷️ Kategori</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
         <div class="extra-row"><input id="newCatInput" maxlength="30" placeholder="Nama kategori baru, mis. Jajanan"><button type="button" class="btn primary" data-act="addcat">Tambah</button></div>
@@ -891,12 +901,18 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
       const rows=sellerRows();
       panel.innerHTML=`<div class="extra-head"><h4>🏪 Status Penjual</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
         <p class="admin-hint">Jika penjual ditandai <b>Tutup</b>, semua produknya tidak bisa dipesan sampai dibuka lagi.</p>
+        <div class="seller-status-list">${rows.map(r=>{const c=sellerClosed(r.name);return `<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><div class="seg"><button type="button" class="${c?"":"on-open"}" data-act="open" data-name="${esc(r.name)}">Buka</button><button type="button" class="${c?"on-closed":""}" data-act="close-seller" data-name="${esc(r.name)}">Tutup</button></div></div>`;}).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>`;
+    } else if(mode==="ship"){
+      const rows=sellerRows();
+      panel.innerHTML=`<div class="extra-head"><h4>🚚 Ongkir & WhatsApp</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
+        <div class="fee-default"><label>💬 Nomor WhatsApp toko<span class="wa-row"><input id="waInput" type="tel" inputmode="tel" maxlength="20" placeholder="08123456789" value="${esc(WHATSAPP_NUMBER)}"><button type="button" class="btn primary" data-act="savewa">Simpan</button></span></label><small>Semua tombol WhatsApp dan pesanan checkout dikirim ke nomor ini. Boleh ditulis 08… atau 62… (otomatis diubah ke format 62…).</small></div>
         <div class="fee-default"><label>🚚 Ongkir standar per toko (Rp)<input type="number" inputmode="numeric" min="0" step="500" data-act="fee-default" value="${Number(shippingFees.__default)||0}"></label><small>Dipakai untuk toko yang tarifnya dikosongkan. Pembeli dari 2 toko = 2 × ongkir.</small></div>
-        <div class="seller-status-list">${rows.map(r=>{const c=sellerClosed(r.name);return `<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><label class="fee-field">Ongkir<input type="number" inputmode="numeric" min="0" step="500" data-act="fee" data-name="${esc(r.name)}" placeholder="${shippingFeeFor("")}" value="${shippingFees[sellerKey(r.name)]??""}"></label><div class="seg"><button type="button" class="${c?"":"on-open"}" data-act="open" data-name="${esc(r.name)}">Buka</button><button type="button" class="${c?"on-closed":""}" data-act="close-seller" data-name="${esc(r.name)}">Tutup</button></div></div>`;}).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>`;
+        <div class="seller-status-list">${rows.map(r=>`<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><label class="fee-field">Ongkir Rp<input type="number" inputmode="numeric" min="0" step="500" data-act="fee" data-name="${esc(r.name)}" placeholder="${shippingFeeFor("")}" value="${shippingFees[sellerKey(r.name)]??""}"></label></div>`).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>
+        <p class="admin-hint">Kolom ongkir toko yang dikosongkan memakai tarif standar. Isi <b>0</b> untuk toko yang gratis ongkir.</p>`;
     } else panel.innerHTML="";
   }
   const toggle=m=>{mode=mode===m?"":m;selectedCat="";render();if(mode==="cat")document.getElementById("newCatInput")?.focus();};
-  bCat.onclick=()=>toggle("cat"); bSel.onclick=()=>toggle("seller");
+  bCat.onclick=()=>toggle("cat"); bSel.onclick=()=>toggle("seller"); bShip.onclick=()=>toggle("ship");
   async function persist(msg){
     const ok=await saveStoreSettings();
     showToast(ok||!CLOUD_CONFIG?.enabled?msg:msg+" (belum tersimpan online)");
@@ -906,6 +922,12 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
     const t=e.target.closest("[data-act]");if(!t)return;
     const act=t.dataset.act, name=t.dataset.name;
     if(act==="close"){mode="";selectedCat="";render();return;}
+    if(act==="savewa"){
+      const inp=document.getElementById("waInput"),n=normalizePhone(inp.value);
+      if(n.length<9||n.length>15){showToast("Nomor WhatsApp tidak valid");inp.focus();return;}
+      WHATSAPP_NUMBER=n;inp.value=n;applyWaLinks();
+      await persist(`Nomor WhatsApp diubah ke ${n}`);return;
+    }
     if(act==="selcat"){selectedCat=selectedCat===name?"":name;render();return;}
     if(act==="addcat"){
       const inp=document.getElementById("newCatInput"), v=inp.value.replace(/\s+/g," ").trim();
@@ -939,5 +961,6 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
     renderCart();
     await persist(act==="fee-default"?`Ongkir standar ${rupiah(n)} per toko`:`Ongkir ${t.dataset.name}: ${raw===""?"pakai tarif standar":rupiah(n)}`);
   });
-  panel.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="newCatInput"){e.preventDefault();panel.querySelector('[data-act="addcat"]').click();}});
+  panel.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="newCatInput"){e.preventDefault();panel.querySelector('[data-act="addcat"]').click();}
+    if(e.key==="Enter"&&e.target.id==="waInput"){e.preventDefault();panel.querySelector('[data-act="savewa"]').click();}});
 })();
