@@ -192,9 +192,24 @@ async function saveStoreSettings(){
     return false;
   }
 }
-const closedCartItems=()=>cartData().filter(p=>!isInHours(p)||allSellersClosed(p));
+// Status produk: "Show" = tampil, "Sold Out" = stok habis (tampil tapi tidak bisa dibeli), selain itu (mis. "Hidden" / "Out of Stock" lama) = disembunyikan.
+const isSoldOut=p=>p&&p.status==="Sold Out";
+const isVisible=p=>p&&(p.status==="Show"||p.status==="Sold Out");
+const statusKind=p=>p.status==="Show"?"show":p.status==="Sold Out"?"sold":"hidden";
+async function refreshProductStatus(){
+  if(!CLOUD_CONFIG?.enabled)return false;
+  try{
+    const rows=await cloudFetch("products?select=id,status");
+    const m=new Map((Array.isArray(rows)?rows:[]).map(r=>[Number(r.id),r.status]));
+    let changed=false;
+    products.forEach(p=>{const st=m.get(Number(p.id));if(st&&st!==p.status){p.status=st;changed=true;}});
+    if(changed){saveProducts();renderProducts();renderCart();}
+    return true;
+  }catch(e){console.error("Refresh status produk:",e);return false;}
+}
+const closedCartItems=()=>cartData().filter(p=>p.status!=="Show"||!isInHours(p)||allSellersClosed(p));
 function alertClosedItems(list){
-  alert("Produk berikut sedang tidak bisa dipesan:\n\n"+list.map(p=>allSellersClosed(p)?`- ${p.name} (penjual ${p.seller} sedang tutup)`:`- ${p.name} (jam ${hoursText(p)})`).join("\n")+"\n\nHapus dari keranjang atau pesan lagi saat tersedia.");
+  alert("Produk berikut sedang tidak bisa dipesan:\n\n"+list.map(p=>p.status!=="Show"?`- ${p.name} (stok habis)`:allSellersClosed(p)?`- ${p.name} (penjual ${p.seller} sedang tutup)`:`- ${p.name} (jam ${hoursText(p)})`).join("\n")+"\n\nHapus dari keranjang atau pesan lagi saat tersedia.");
 }
 
 function renderCategories() {
@@ -209,11 +224,11 @@ function setCategory(c) {
 const groupName=p=>String(p.product_group||"").trim();
 const variantLabel=p=>String(p.variant||"").trim()||p.name;
 function singleCardHTML(p) {
-  const builder=parseToppings(p).length>0, tLimit=Number(p.topping_limit)||0, sClosed=allSellersClosed(p);
+  const builder=parseToppings(p).length>0, tLimit=Number(p.topping_limit)||0, sClosed=allSellersClosed(p), soldOut=isSoldOut(p);
   return `
-   <article class="product">
+   <article class="product${soldOut?" soldout":""}">
   <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
-        ${p.sale?'<span class="sale-badge">PROMO</span>':''}
+        ${soldOut?'<span class="soldout-badge">STOK HABIS</span>':p.sale?'<span class="sale-badge">PROMO</span>':''}
       </div>
       <div class="product-body">
         <h3>${p.name}</h3>
@@ -222,7 +237,7 @@ function singleCardHTML(p) {
         ${sClosed?'<small class="hours closed">🔒 Penjual sedang tutup</small>':""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
-          ${builder?`<button class="btn primary" ${isInHours(p)&&!sClosed?"":"disabled"} onclick="showProduct(${p.id})">Pilih Topping</button>`:`<button class="btn primary" ${isInHours(p)&&!sClosed?"":"disabled"} onclick="addToCart(${p.id})">+ Keranjang</button>`}
+          ${builder?`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="showProduct(${p.id})">${soldOut?"Stok Habis":"Pilih Topping"}</button>`:`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="addToCart(${p.id})">${soldOut?"Stok Habis":"+ Keranjang"}</button>`}
         </div>
       </div>
     </article>`;
@@ -231,9 +246,9 @@ function groupCardHTML(u) {
   const v=u.variants, first=v[0], prices=v.map(currentPrice), min=Math.min(...prices), max=Math.max(...prices);
   const sellers=[...new Set(v.flatMap(sellerList))].join(", ");
   return `
-   <article class="product">
+   <article class="product${v.every(isSoldOut)?" soldout":""}">
   <div class="product-img"><img src="${getProductImage(first.image)}" alt="${esc(u.group)}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
-        ${v.some(x=>x.sale)?'<span class="sale-badge">PROMO</span>':''}
+        ${v.every(isSoldOut)?'<span class="soldout-badge">STOK HABIS</span>':v.some(x=>x.sale)?'<span class="sale-badge">PROMO</span>':''}
       </div>
       <div class="product-body">
         <h3>${esc(u.group)}</h3>
@@ -249,7 +264,7 @@ function groupCardHTML(u) {
 function renderProducts() {
   const q=document.getElementById("searchInput").value.toLowerCase().trim();
   const sort=document.getElementById("sortSelect").value;
-  let list=products.filter(p=>p.status==="Show" && (activeCategory==="Semua"||p.category===activeCategory) && (p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q)||p.seller.toLowerCase().includes(q)||groupName(p).toLowerCase().includes(q)));
+  let list=products.filter(p=>isVisible(p) && (activeCategory==="Semua"||p.category===activeCategory) && (p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q)||p.seller.toLowerCase().includes(q)||groupName(p).toLowerCase().includes(q)));
   if(sort==="priceAsc" || sort==="price-low") list.sort((a,b)=>currentPrice(a)-currentPrice(b));
   if(sort==="priceDesc" || sort==="price-high") list.sort((a,b)=>currentPrice(b)-currentPrice(a));
   if(sort==="name") list.sort((a,b)=>a.name.localeCompare(b.name,"id"));
@@ -334,7 +349,7 @@ function showProduct(id) {
   detailProduct=p;detailToppings={};
   detailQty=1;detailSellers=openSellerList(p);detailSeller=detailSellers.length===1?detailSellers[0]:"";
   const gname=groupName(p);
-  const variants=gname?products.filter(x=>x.status==="Show"&&groupName(x).toLowerCase()===gname.toLowerCase()):[];
+  const variants=gname?products.filter(x=>isVisible(x)&&groupName(x).toLowerCase()===gname.toLowerCase()):[];
   const isGroup=variants.length>1;
   const tops=parseToppings(p), isBuilder=tops.length>0, tLimit=Number(p.topping_limit)||0;
   const sold=p.status!=="Show", closedNow=!sold&&!isInHours(p), sellerShut=!sold&&allSellersClosed(p), unavailable=sold||closedNow||sellerShut;
@@ -344,7 +359,7 @@ function showProduct(id) {
       <div>
         <p class="eyebrow">${p.category} • ${p.seller}</p>
         <h2>${isGroup?esc(gname):p.name}</h2>
-        ${isGroup?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker">${variants.map(v=>`<button type="button" class="variant-chip${v.id===p.id?" active":""}" onclick="showProduct(${v.id})"><b>${esc(variantLabel(v))}</b><small>${rupiah(currentPrice(v))}</small></button>`).join("")}</div></div>`:""}
+        ${isGroup?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker">${variants.map(v=>`<button type="button" class="variant-chip${v.id===p.id?" active":""}" onclick="showProduct(${v.id})"><b>${esc(variantLabel(v))}</b><small>${isSoldOut(v)?"Habis":rupiah(currentPrice(v))}</small></button>`).join("")}</div></div>`:""}
         <div class="price">${isBuilder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <p>Satuan: ${p.unit}</p>
         <p>${sold?"Stok habis.":sellerShut?"Penjual sedang tutup, produk belum bisa dipesan.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
@@ -359,7 +374,7 @@ function showProduct(id) {
   if(isBuilder)updateToppingSummary();
 }
 function addToCart(id,qty=1,seller,custom) {
-  const p=products.find(x=>x.id===id); if(!p||p.status!=="Show")return;
+  const p=products.find(x=>x.id===id); if(!p||p.status!=="Show"){if(p&&isSoldOut(p))showToast(`${p.name} sedang habis`);return;}
   if(!isInHours(p)){showToast(`${p.name} tersedia pukul ${hoursText(p)}`);return;}
   if(allSellersClosed(p)){showToast("Penjual sedang tutup");return;}
   if(seller&&sellerClosed(seller)){showToast(`${seller} sedang tutup`);return;}
@@ -476,7 +491,7 @@ function showToast(message){const t=document.getElementById("toast");t.textConte
 document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
 document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!cart.length)return;
-  await loadCloudSettings();
+  await Promise.all([loadCloudSettings(),refreshProductStatus()]);
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
   const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
   const phone=String(f.get("phone")||"").trim();
@@ -526,8 +541,8 @@ function renderAdminProducts(){
   box.innerHTML=products.map((p,i)=>`
     <div class="admin-product">
       <img src="${p.image||''}" alt="${p.name}" onerror="this.style.display='none'">
-      <div class="admin-product-info"><h4>${p.name} <span class="admin-status ${p.status!=="Show"?'off':''}">${p.status}</span></h4><small>${p.category} • ${rupiah(currentPrice(p))} • ${p.seller}${hasHours(p)?` • 🕒 ${hoursText(p)}`:""}${groupName(p)?` • 🧩 ${esc(groupName(p))} › ${esc(variantLabel(p))}`:""}${parseToppings(p).length?` • 🍲 ${parseToppings(p).length} topping${p.topping_limit?` (maks ${rupiah(p.topping_limit)})`:""}`:""}</small></div>
-      <div class="admin-product-actions"><button class="btn outline" onclick="editAdminProduct(${i})">✏️ Edit</button><button class="btn outline" onclick="toggleAdminProduct(${i})">${p.status==='Show'?'⏸️ Sembunyikan':'▶️ Tampilkan'}</button><button class="btn outline" onclick="deleteAdminProduct(${i})">🗑️ Hapus</button></div>
+      <div class="admin-product-info"><h4>${p.name} <span class="admin-status ${statusKind(p)==="hidden"?'off':statusKind(p)==="sold"?'sold':''}">${({show:"Tampil",sold:"Stok habis",hidden:"Disembunyikan"})[statusKind(p)]}</span></h4><small>${p.category} • ${rupiah(currentPrice(p))} • ${p.seller}${hasHours(p)?` • 🕒 ${hoursText(p)}`:""}${groupName(p)?` • 🧩 ${esc(groupName(p))} › ${esc(variantLabel(p))}`:""}${parseToppings(p).length?` • 🍲 ${parseToppings(p).length} topping${p.topping_limit?` (maks ${rupiah(p.topping_limit)})`:""}`:""}</small></div>
+      <div class="admin-product-actions"><button class="btn outline" onclick="editAdminProduct(${i})">✏️ Edit</button><span class="seg status-seg" role="group" aria-label="Status produk">${[["show","Tampilkan","Show"],["sold","Stok Habis","Sold Out"],["hidden","Sembunyikan","Hidden"]].map(([k,l,v])=>`<button type="button" class="${statusKind(p)===k?"on-"+k:""}" onclick="setProductStatus(${i},'${v}')">${l}</button>`).join("")}</span><button class="btn outline" onclick="deleteAdminProduct(${i})">🗑️ Hapus</button></div>
       <div id="edit-${i}" class="admin-edit" hidden></div>
     </div>`).join("");
 }
@@ -570,7 +585,7 @@ function addAdminProduct(){
   products.unshift({id,name:"Produk Baru",price:10000,sale:null,category:"Makanan",unit:"1 porsi",seller:"Warga Kalensari",status:"Show",image:""});
   saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); editAdminProduct(0); showToast("Produk baru ditambahkan");
 }
-function toggleAdminProduct(i){products[i].status=products[i].status==='Show'?'Out of Stock':'Show';saveProducts();syncCloudProducts();renderProducts();renderAdminProducts();}
+function setProductStatus(i,status){if(!products[i]||products[i].status===status)return;products[i].status=status;saveProducts();syncCloudProducts();renderProducts();renderCategories();renderCart();renderAdminProducts();showToast(({"Show":"Produk ditampilkan","Sold Out":"Produk ditandai stok habis","Hidden":"Produk disembunyikan"})[status]);}
 function deleteAdminProduct(i){if(!confirm(`Hapus ${products[i].name}?`))return;products.splice(i,1);saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dihapus");}
 document.getElementById("menuBtn").onclick=openAdmin;
 document.getElementById("adminLoginBtn").onclick=()=>{if(document.getElementById("adminPin").value===ADMIN_PIN){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil")}else showToast("PIN admin salah")};
