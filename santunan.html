@@ -55,6 +55,8 @@ footer{padding:26px 0;text-align:center}
 const C={
  fin:'1-Hb348czC7N2NBvwM-BZmaTOSzdsDUZO9Nr_aX3qSYo', // Sheet keuangan
  don:'1wN1ISCdPu5dbRbQjLeWvLYwGjZlk7AhzkZ6q7Tpcay0', // Sheet donatur bulanan
+ finCol:3,         // kolom Januari di Sheet keuangan (A=0, B=1, C=2, D=3)
+ saldoAwal:3223000, // dipakai jika sel saldo awal (A3) tidak terbaca
  wa:'',   // nomor WhatsApp konfirmasi, contoh 6281234567890
  rek:[]   // contoh: [{bank:'BRI',no:'1234567890',an:'Nama Pengurus'}]
 };
@@ -68,8 +70,17 @@ const rp=n=>(n<0?'-':'')+'Rp'+Math.abs(n).toLocaleString('id-ID');
 const cell=(r,i)=>String((r&&r[i])||'').trim();
 const sum=a=>a.reduce((x,y)=>x+y,0);
 function csv(t){const r=[];let row=[],c='',q=false;for(let i=0;i<t.length;i++){const h=t[i];if(q){if(h=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=h}else if(h=='"')q=true;else if(h==','){row.push(c);c='' }else if(h=='\n'){row.push(c);r.push(row);row=[];c=''}else if(h!='\r')c+=h}row.push(c);r.push(row);return r}
-async function get(id,sh){const r=await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&headers=0&sheet=${encodeURIComponent(sh)}`);if(!r.ok)throw new Error(r.status);return csv(await r.text())}
-const fail=(el,m)=>{$(el).innerHTML=`<div class="err">${m||'Data belum bisa dimuat. Pastikan Google Sheet dibagikan dengan akses "Siapa saja yang memiliki link" (Pelihat), lalu muat ulang.'}</div>`};
+const gurl=(id,sh,f)=>`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=${f}&headers=0&sheet=${encodeURIComponent(sh)}`;
+// Cadangan tanpa CORS: muat sebagai <script> (JSONP)
+function jsonp(id,sh){return new Promise((res,rej)=>{const cb='__gv'+Math.random().toString(36).slice(2),s=document.createElement('script'),done=()=>{s.remove();delete window[cb]};
+ window[cb]=x=>{done();if(!x||x.status!=='ok'||!x.table)return rej(new Error((x&&x.errors&&x.errors[0]&&x.errors[0].detailed_message)||'Sheet tidak bisa dibaca'));
+  res(x.table.rows.map(r=>(r.c||[]).map(c=>c?(c.f!=null?String(c.f):c.v==null?'':String(c.v)):'')))};
+ s.onerror=()=>{done();rej(new Error('Tidak bisa terhubung ke Google Sheets'))};
+ s.src=gurl(id,sh,'out:json;responseHandler:'+cb);document.head.appendChild(s)})}
+async function get(id,sh){
+ try{const r=await fetch(gurl(id,sh,'out:csv'));if(!r.ok)throw new Error(r.status);const t=await r.text();if(/^\s*</.test(t))throw new Error('html');return csv(t)}
+ catch(e){return jsonp(id,sh)}}
+const fail=(el,m,e)=>{$(el).innerHTML=`<div class="err">${m||'Data belum bisa dimuat. Pastikan Google Sheet dibagikan dengan akses "Siapa saja yang memiliki link" (Pelihat), lalu muat ulang.'}${e?`<br><small>Detail: ${esc(e.message||e)}</small>`:''}</div>`};
 
 /* Donasi */
 (function(){const r=C.rek.map(x=>`<div class="box"><b>${esc(x.bank)}</b>${esc(x.no)}<br><span class="mut">a.n. ${esc(x.an)}</span></div>`).join('');
@@ -80,15 +91,20 @@ $('#rek').innerHTML=(r?`<div class="grid">${r}</div>`:'<p class="mut">Nomor reke
 let lm=0;
 async function loadFin(){
  const R=await get(C.fin,'Sheet1');
- const mi=R.findIndex(r=>r.some(x=>x.trim().toLowerCase()=='januari'));
- const j=R[mi].findIndex(x=>x.trim().toLowerCase()=='januari');
- const pem=[],out={yatim:[],duafa:[],lain:[]};
- for(let m=0;m<12;m++){pem.push(num(R[mi+1][j+m]));for(const k in out)out[k].push(0)}
- const pe=R.findIndex((r,i)=>i>mi+1&&cell(r,2).toLowerCase()=='pengeluaran');
+ const pe=R.findIndex(r=>cell(r,2).toLowerCase()=='pengeluaran');
+ if(pe<0)throw new Error('baris "pengeluaran" tidak ditemukan di Sheet keuangan');
  let t=R.findIndex((r,i)=>i>pe&&cell(r,2).toLowerCase().startsWith('total'));if(t<0)t=R.length;
+ // Google sering mengosongkan teks di kolom angka, jadi tulisan "Januari" bisa hilang: pakai C.finCol sebagai cadangan
+ let j=C.finCol;
+ R.slice(0,pe).some(r=>{const k=r.findIndex(x=>x.trim().toLowerCase()=='januari');if(k>=0){j=k;return true}});
+ let pi=-1,best=0;
+ for(let i=0;i<pe;i++){let n=0;for(let m=0;m<12;m++)if(num(R[i][j+m])>0)n++;if(n>best){best=n;pi=i}}
+ if(pi<0)throw new Error('baris pemasukan tidak ditemukan');
+ const pem=[],out={yatim:[],duafa:[],lain:[]};
+ for(let m=0;m<12;m++){pem.push(num(R[pi][j+m]));for(const k in out)out[k].push(0)}
  let cat='lain';
  for(let i=pe+1;i<t;i++){const l=cell(R[i],2).toLowerCase();if(l)cat=l.includes('yatim')?'yatim':l.includes('duafa')?'duafa':'lain';for(let m=0;m<12;m++)out[cat][m]+=num(R[i][j+m])}
- const saldo=num(R[mi+1][0]);
+ const saldo=num(R[pi][0])||C.saldoAwal;
  pem.forEach((v,i)=>{if(v>0)lm=i});
  const keluar=m=>out.yatim[m]+out.duafa[m]+out.lain[m];
  let kas=saldo;for(let m=0;m<=lm;m++)kas+=pem[m]-keluar(m);
@@ -109,6 +125,7 @@ const cache={};
 async function loadMon(m){
  if(cache[m])return cache[m];
  const R=await get(C.don,TAB[m]);
+ if(m>0&&JSON.stringify(R)===JSON.stringify(await get(C.don,TAB[0])))throw new Error(`tab "${TAB[m]}" tidak ditemukan di Sheet donatur`);
  const find=k=>R.findIndex(r=>cell(r,2).toLowerCase().includes(k));
  const sec=(h,f)=>{const a=[];if(h<0)return a;let i=h+1;while(i<h+5&&!/^\d+$/.test(cell(R[i],1)))i++;for(;i<R.length&&/^\d+$/.test(cell(R[i],1));i++)if(cell(R[i],2))a.push(f(R[i]));return a};
  const hf=find('santunan duafa');
@@ -128,7 +145,7 @@ async function showMon(m){
   <div class="box">Donatur<b>${d.don.length} donatur</b>${rp(sum(d.don.map(x=>x.v)))}</div></div>
   ${d.lain.length?`<details><summary>Pengeluaran lainnya (${rp(sum(d.lain.map(x=>x.v)))})</summary><ul>${d.lain.map(x=>`<li>${esc(x.n)}: ${rp(x.v)}</li>`).join('')}</ul></details>`:''}
   ${d.don.length?`<details><summary>Daftar donatur ${MON[m]}</summary><ul>${d.don.map(x=>`<li>${esc(x.n)}: ${rp(x.v)}</li>`).join('')}</ul></details>`:''}`;
- }catch(e){fail('#detail',`Data bulan ${MON[m]} belum bisa dimuat. Pastikan nama tab di Sheet sama dengan daftar TAB di file ini.`)}}
+ }catch(e){fail('#detail',`Data bulan ${MON[m]} belum bisa dimuat. Pastikan nama tab di Sheet sama dengan daftar TAB di file ini.`,e)}}
 function initSan(){
  $('#san').innerHTML=`<label>Bulan: <select id="sel">${MON.slice(0,lm+1).map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></label><div id="detail"></div>`;
  $('#sel').value=lm;$('#sel').onchange=e=>showMon(+e.target.value);showMon(lm)}
@@ -149,6 +166,10 @@ async function loadDoc(){
   return `<figure><a href="${esc(u)}" target="_blank" rel="noopener">Buka video</a>${cap}</figure>`}).join('')+'</div>';
  document.querySelectorAll('.play').forEach(b=>b.onclick=()=>{b.outerHTML=`<iframe class="m" allow="autoplay;encrypted-media" allowfullscreen src="${b.dataset.v}"></iframe>`})}
 
-loadFin().then(initSan).catch(()=>{fail('#fin');fail('#san');$('#kas').textContent='-'});
+(async()=>{
+ try{await loadFin()}catch(e){fail('#fin',null,e);$('#kas').textContent='-';$('#kasnote').textContent='';
+  lm=Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jakarta',month:'numeric'}).format(new Date()))-1} // tanpa data keuangan: pakai bulan berjalan
+ initSan();
+})();
 loadDoc();
 </script></body></html>
