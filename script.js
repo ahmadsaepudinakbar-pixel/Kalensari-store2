@@ -314,25 +314,42 @@ function renderMyOrders(rows=getLocalOrders()){
 }
 async function refreshMyOrders(){
   const note=document.getElementById("myOrderSyncNote");
-  const local=getLocalOrders(); renderMyOrders(local);
-  // Jika perangkat ini belum pernah menyimpan nomor customer, gunakan
-  // nomor dari pesanan lokal terakhir sebagai identitas sinkronisasi.
+  const local=getLocalOrders();
+  renderMyOrders(local);
   let phone=normalizePhone(localStorage.getItem("kalensari_customer_phone")||"");
+  // Coba mengambil nomor dari pesanan lokal lama.
   if(!phone && local.length){
     const last=local.find(o=>o.customer_phone||o.customer_phone_normalized);
     phone=normalizePhone(last?.customer_phone_normalized||last?.customer_phone||"");
     if(phone) localStorage.setItem("kalensari_customer_phone",phone);
   }
-  if(!CLOUD_CONFIG?.enabled){ if(note){note.textContent="📱 Menampilkan pesanan di perangkat ini.";note.className="order-sync-note offline";} return; }
-  if(!phone){ if(note){note.textContent="🔎 Belum ada nomor WhatsApp tersimpan di perangkat ini.";note.className="order-sync-note offline";} return; }
+  const input=document.getElementById("customerOrderPhone");
+  const identity=document.getElementById("customerOrderIdentity");
+  if(input && phone && !input.value) input.value=phone;
+  if(!CLOUD_CONFIG?.enabled){
+    if(identity) identity.hidden=true;
+    if(note){note.textContent="📱 Menampilkan pesanan di perangkat ini.";note.className="order-sync-note offline";}
+    return;
+  }
+  if(!phone){
+    if(identity) identity.hidden=false;
+    if(note){note.textContent="🔎 Masukkan nomor WhatsApp yang dipakai saat checkout agar Pesanan Saya sama di HP dan komputer.";note.className="order-sync-note offline";}
+    return;
+  }
+  if(identity) identity.hidden=true;
   try {
     const remote=await loadMyCloudOrders(phone);
-    const map=new Map(local.map(o=>[o.order_code,o]));
-    remote.forEach(o=>map.set(o.order_code||o.id,{...map.get(o.order_code)||{},...o,sync_error:null}));
-    const rows=[...map.values()].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0)); saveLocalOrders(rows); renderMyOrders(rows);
-    if(note){note.textContent="☁️ Pesanan tersinkron dari database online.";note.className="order-sync-note cloud";}
-  } catch(e){ if(note){note.textContent=`⚠️ Database belum bisa dibaca: ${String(e.message||e).slice(0,120)}`;note.className="order-sync-note offline";} }
+    const map=new Map(local.map(o=>[o.order_code||o.id,o]));
+    remote.forEach(o=>map.set(o.order_code||o.id,{...map.get(o.order_code||o.id),...o,sync_error:null}));
+    const rows=[...map.values()].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+    saveLocalOrders(rows);
+    renderMyOrders(rows);
+    if(note){note.textContent=remote.length?`☁️ ${remote.length} pesanan tersinkron dari database online.`:"☁️ Belum ada pesanan online untuk nomor ini.";note.className="order-sync-note cloud";}
+  } catch(e){
+    if(note){note.textContent=`⚠️ Database belum bisa dibaca: ${String(e.message||e).slice(0,140)}`;note.className="order-sync-note offline";}
+  }
 }
+
 async function renderAdminOrders(){
   const box=document.getElementById("adminOrderList"); if(!box)return;
   if(!CLOUD_CONFIG?.enabled){box.innerHTML='<div class="empty-state">☁️ Aktifkan database online untuk mengelola pesanan.</div>';return;}
@@ -359,6 +376,14 @@ async function changeOrderStatus(id,status){
 }
 document.getElementById("myOrdersBtn")?.addEventListener("click",()=>{renderMyOrders();openModal("myOrdersModal");refreshMyOrders();});
 document.getElementById("refreshMyOrdersBtn")?.addEventListener("click",refreshMyOrders);
+document.getElementById("saveCustomerPhoneBtn")?.addEventListener("click",()=>{
+  const input=document.getElementById("customerOrderPhone");
+  const phone=normalizePhone(input?.value||"");
+  if(!phone || phone.length<10){ alert("Masukkan nomor WhatsApp yang benar. Contoh: 082114541041"); return; }
+  localStorage.setItem("kalensari_customer_phone",phone);
+  refreshMyOrders();
+});
+
 document.getElementById("manageOrdersBtn")?.addEventListener("click",()=>{closeModal("adminModal");openModal("adminOrdersModal");renderAdminOrders();});
 document.getElementById("refreshOrdersBtn")?.addEventListener("click",renderAdminOrders);
 const __openAdmin=openAdmin; openAdmin=function(){__openAdmin();};
