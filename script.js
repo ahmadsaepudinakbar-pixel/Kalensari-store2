@@ -200,6 +200,16 @@ function closeModal(id) {document.getElementById(id).classList.remove("show")}
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("show")}));
 document.getElementById("cartBtn").onclick=()=>{renderCart();openModal("cartModal")};
+// Tombol Kosongkan Keranjang: hapus seluruh isi keranjang dan simpan ke localStorage.
+document.getElementById("clearCartBtn").onclick=()=>{
+  if(!cart.length){showToast("🛒 Keranjang sudah kosong");return;}
+  if(!confirm("Kosongkan semua isi keranjang?")) return;
+  cart=[];
+  saveCart();
+  updateCartCount();
+  renderCart();
+  showToast("🗑️ Keranjang berhasil dikosongkan");
+};
 document.getElementById("checkoutBtn").onclick=()=>{if(cart.length){closeModal("cartModal");openModal("checkoutModal")}};
 document.getElementById("searchInput").addEventListener("input",renderProducts);
 document.getElementById("sortSelect").addEventListener("change",renderProducts);
