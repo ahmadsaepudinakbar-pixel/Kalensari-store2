@@ -42,10 +42,17 @@ async function loadCloudProducts(){
     } else {
       // Gabungkan produk cloud dengan 25 produk bawaan agar produk yang hilang kembali muncul.
       // Data yang sudah diedit di cloud tetap diprioritaskan.
-      const byId=new Map(DEFAULT_PRODUCTS.map(p=>[Number(p.id),{...p}]));
-      cloudRows.forEach(p=>byId.set(Number(p.id),{...byId.get(Number(p.id)),...p}));
-      products=[...byId.values()].sort((a,b)=>Number(a.id)-Number(b.id));
-      if(products.length>cloudRows.length) await syncCloudProducts();
+      // Jangan sinkronisasi ulang/hapus-upload saat halaman dibuka.
+      // Ini membuat website lebih cepat dan mencegah produk hilang jika request cloud gagal.
+      // Jika cloud masih kurang dari katalog bawaan, gabungkan data cloud ke 25 produk bawaan
+      // hanya di memori/browser. Setelah tabel Supabase dipulihkan, data cloud menjadi sumber utama.
+      if(cloudRows.length < DEFAULT_PRODUCTS.length){
+        const byId=new Map(DEFAULT_PRODUCTS.map(p=>[Number(p.id),{...p}]));
+        cloudRows.forEach(p=>byId.set(Number(p.id),{...byId.get(Number(p.id)),...p}));
+        products=[...byId.values()].sort((a,b)=>Number(a.id)-Number(b.id));
+      } else {
+        products=cloudRows.map(p=>({...p})).sort((a,b)=>Number(a.id)-Number(b.id));
+      }
     }
     saveProducts(); cloudReady=true; return true;
   } catch(e){
@@ -57,8 +64,13 @@ async function loadCloudProducts(){
 async function syncCloudProducts(){
   if(!CLOUD_CONFIG?.enabled) return false;
   try {
-    await cloudFetch("products?select=id",{method:"DELETE"});
-    await cloudFetch("products",{method:"POST",body:JSON.stringify(products)});
+    // UPSERT: tidak lagi DELETE semua produk sebelum upload.
+    // Perubahan admin jadi lebih cepat dan aman jika koneksi terputus di tengah jalan.
+    await cloudFetch("products",{
+      method:"POST",
+      headers:{Prefer:"resolution=merge-duplicates,return=representation"},
+      body:JSON.stringify(products)
+    });
     cloudReady=true; updateCloudStatus("☁️ Produk tersinkron online"); return true;
   } catch(e){ console.error("Sinkron produk gagal:",e); updateCloudStatus("⚠️ Gagal sinkron produk. Data lokal tetap tersimpan."); return false; }
 }
@@ -137,7 +149,7 @@ function renderProducts() {
   document.getElementById("resultInfo").textContent=`${list.length} produk`;
   document.getElementById("productGrid").innerHTML=list.length?list.map(p=>`
    <article class="product">
-  <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
+  <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" decoding="async" fetchpriority="low" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
         ${p.sale?'<span class="sale-badge">PROMO</span>':''}
       </div>
       <div class="product-body">
@@ -329,7 +341,17 @@ function addAdminProduct(){
   saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); editAdminProduct(0); showToast("Produk baru ditambahkan");
 }
 function toggleAdminProduct(i){products[i].status=products[i].status==='Show'?'Out of Stock':'Show';saveProducts();syncCloudProducts();renderProducts();renderAdminProducts();}
-function deleteAdminProduct(i){if(!confirm(`Hapus ${products[i].name}?`))return;products.splice(i,1);saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dihapus");}
+async function deleteAdminProduct(i){
+  if(!confirm(`Hapus ${products[i].name}?`))return;
+  const removed=products[i];
+  products.splice(i,1);
+  saveProducts(); renderProducts(); renderCategories(); renderAdminProducts();
+  if(CLOUD_CONFIG?.enabled && removed?.id!=null){
+    try{ await cloudFetch(`products?id=eq.${encodeURIComponent(removed.id)}`,{method:"DELETE"}); updateCloudStatus("☁️ Produk tersinkron online"); }
+    catch(e){ console.error("Hapus produk online gagal:",e); updateCloudStatus("⚠️ Gagal menghapus produk online. Data lokal tetap tersimpan."); }
+  }
+  showToast("Produk dihapus");
+}
 document.getElementById("menuBtn").onclick=openAdmin;
 document.getElementById("adminLoginBtn").onclick=()=>{if(document.getElementById("adminPin").value===ADMIN_PIN){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil")}else showToast("PIN admin salah")};
 document.getElementById("addProductBtn").onclick=addAdminProduct;
