@@ -162,8 +162,9 @@ const hoursText=p=>hasHours(p)?`${fmtTime(p.open_time)} – ${fmtTime(p.close_ti
 const readLS=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||"null");return v??d;}catch{return d;}};
 let customCategories=readLS("kalensari_categories",[]);
 let closedSellers=readLS("kalensari_closed_sellers",{});
+let removedCategories=readLS("kalensari_removed_categories",[]);
 const BASE_CATEGORIES=["Makanan","Minuman"];
-const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])];
+const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])].filter(c=>!removedCategories.includes(c)||products.some(p=>p.category===c));
 const sellerKey=n=>String(n||"").trim().toLowerCase();
 const sellerClosed=n=>!!closedSellers[sellerKey(n)];
 const openSellerList=p=>sellerList(p).filter(n=>!sellerClosed(n));
@@ -174,6 +175,7 @@ async function loadCloudSettings(){
     const rows=await cloudFetch("store_settings?select=*");
     (Array.isArray(rows)?rows:[]).forEach(r=>{
       if(r.key==="categories"&&Array.isArray(r.value)){customCategories=r.value;localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));}
+      if(r.key==="removed_categories"&&Array.isArray(r.value)){removedCategories=r.value;localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
     });
     return true;
@@ -182,9 +184,10 @@ async function loadCloudSettings(){
 async function saveStoreSettings(){
   localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));
   localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));
+  localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));
   if(!CLOUD_CONFIG?.enabled)return false;
   try{
-    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"closed_sellers",value:closedSellers}])});
+    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"removed_categories",value:removedCategories},{key:"closed_sellers",value:closedSellers}])});
     return true;
   }catch(e){
     console.error("Simpan pengaturan toko gagal:",e);
@@ -859,7 +862,7 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
   exp.insertAdjacentElement("afterend",bSel); exp.insertAdjacentElement("afterend",bCat);
   const panel=document.createElement("div"); panel.id="adminExtra"; panel.className="admin-extra"; panel.hidden=true;
   list.parentNode.insertBefore(panel,list);
-  let mode="";
+  let mode="", selectedCat="";
   const usedBy=c=>products.filter(p=>p.category===c).length;
   function sellerRows(){
     const map=new Map();
@@ -872,8 +875,8 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
     if(mode==="cat"){
       panel.innerHTML=`<div class="extra-head"><h4>🏷️ Kategori</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
         <div class="extra-row"><input id="newCatInput" maxlength="30" placeholder="Nama kategori baru, mis. Jajanan"><button type="button" class="btn primary" data-act="addcat">Tambah</button></div>
-        <div class="extra-chips">${allCategories().map(c=>{const custom=customCategories.includes(c);return `<span class="extra-chip${custom?" custom":""}">${esc(c)}${custom?`<button type="button" data-act="delcat" data-name="${esc(c)}" aria-label="Hapus kategori ${esc(c)}">✕</button>`:""}</span>`;}).join("")}</div>
-        <p class="admin-hint">Kategori baru langsung muncul di pilihan Kategori saat Edit produk. Kategori baru tampil di halaman pembeli setelah ada produk di dalamnya.</p>`;
+        <div class="extra-cat-area"><div class="extra-chips">${allCategories().map(c=>`<button type="button" class="extra-chip${c===selectedCat?" selected":""}" data-act="selcat" data-name="${esc(c)}" aria-pressed="${c===selectedCat}">${esc(c)}</button>`).join("")}</div><button type="button" class="btn extra-del" data-act="delcat" ${selectedCat?"":"disabled"} title="${selectedCat?`Hapus kategori ${esc(selectedCat)}`:"Klik salah satu kategori dulu"}">Hapus</button></div>
+        <p class="admin-hint">Klik nama kategori lalu tekan <b>Hapus</b> untuk menghapusnya (hanya bisa jika tidak ada produk di dalamnya). Kategori baru langsung muncul di pilihan Kategori saat Edit produk. Kategori baru tampil di halaman pembeli setelah ada produk di dalamnya.</p>`;
     } else if(mode==="seller"){
       const rows=sellerRows();
       panel.innerHTML=`<div class="extra-head"><h4>🏪 Status Penjual</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
@@ -881,7 +884,7 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
         <div class="seller-status-list">${rows.map(r=>{const c=sellerClosed(r.name);return `<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><div class="seg"><button type="button" class="${c?"":"on-open"}" data-act="open" data-name="${esc(r.name)}">Buka</button><button type="button" class="${c?"on-closed":""}" data-act="close-seller" data-name="${esc(r.name)}">Tutup</button></div></div>`;}).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>`;
     } else panel.innerHTML="";
   }
-  const toggle=m=>{mode=mode===m?"":m;render();if(mode==="cat")document.getElementById("newCatInput")?.focus();};
+  const toggle=m=>{mode=mode===m?"":m;selectedCat="";render();if(mode==="cat")document.getElementById("newCatInput")?.focus();};
   bCat.onclick=()=>toggle("cat"); bSel.onclick=()=>toggle("seller");
   async function persist(msg){
     const ok=await saveStoreSettings();
@@ -891,19 +894,26 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
   panel.addEventListener("click",async e=>{
     const t=e.target.closest("[data-act]");if(!t)return;
     const act=t.dataset.act, name=t.dataset.name;
-    if(act==="close"){mode="";render();return;}
+    if(act==="close"){mode="";selectedCat="";render();return;}
+    if(act==="selcat"){selectedCat=selectedCat===name?"":name;render();return;}
     if(act==="addcat"){
       const inp=document.getElementById("newCatInput"), v=inp.value.replace(/\s+/g," ").trim();
       if(!v){showToast("Isi nama kategori dulu");return;}
       if(allCategories().some(c=>c.toLowerCase()===v.toLowerCase())){showToast("Kategori itu sudah ada");return;}
-      customCategories.push(v); render();
+      customCategories.push(v); removedCategories=removedCategories.filter(c=>c!==v); selectedCat=""; render();
       document.querySelectorAll('select[id^="e-cat-"]').forEach(sel=>{if(![...sel.options].some(o=>o.value===v))sel.add(new Option(v,v));});
       await persist(`Kategori "${v}" ditambahkan`);return;
     }
     if(act==="delcat"){
+      const name=selectedCat;
+      if(!name){showToast("Klik salah satu kategori dulu");return;}
       if(usedBy(name)){alert(`Kategori "${name}" masih dipakai ${usedBy(name)} produk. Pindahkan produknya dulu.`);return;}
       if(!confirm(`Hapus kategori "${name}"?`))return;
-      customCategories=customCategories.filter(c=>c!==name); render(); await persist("Kategori dihapus");return;
+      customCategories=customCategories.filter(c=>c!==name);
+      if(!removedCategories.includes(name))removedCategories.push(name);
+      selectedCat=""; render();
+      document.querySelectorAll('select[id^="e-cat-"]').forEach(sel=>{[...sel.options].forEach(o=>{if(o.value===name&&!o.selected)o.remove();});});
+      await persist(`Kategori "${name}" dihapus`);return;
     }
     if(act==="open"){delete closedSellers[sellerKey(name)];render();afterSellerChange();await persist(`${name} dibuka`);return;}
     if(act==="close-seller"){closedSellers[sellerKey(name)]=true;render();afterSellerChange();await persist(`${name} ditutup, produknya tidak bisa dipesan`);return;}
