@@ -1,6 +1,6 @@
 // KALENSARI STORE
-const WHATSAPP_NUMBER = "6281234567890";
-const SHIPPING_COST = 0;
+const WHATSAPP_NUMBER = "6282114541041";
+const SHIPPING_COST = 6000;
 
 // Aman jika config.js tidak ada
 const CLOUD_CONFIG = window.CLOUD_CONFIG || { enabled:false, supabaseUrl:"", supabaseAnonKey:"" };
