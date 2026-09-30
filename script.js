@@ -56,20 +56,31 @@ async function loadCloudProducts(){
 }
 async function syncCloudProducts(){
   if(!CLOUD_CONFIG?.enabled) return false;
+  // Sinkron aman: simpan/perbarui dulu (upsert), baru hapus produk yang sudah dihapus admin.
+  // Tidak lagi "hapus semua lalu isi ulang", jadi kalau gagal di tengah jalan data online tidak kosong.
+  const upsert={method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"}};
   try {
-    await cloudFetch("products?select=id",{method:"DELETE"});
     const rows=products.map(p=>({...p,open_time:p.open_time??null,close_time:p.close_time??null}));
+    let hoursSaved=true;
     try {
-      await cloudFetch("products",{method:"POST",body:JSON.stringify(rows)});
+      await cloudFetch("products?on_conflict=id",{...upsert,body:JSON.stringify(rows)});
     } catch(err) {
       // Kolom jam belum dibuat di Supabase: simpan produk tanpa jam agar sinkron lain tidak rusak.
       if(!/open_time|close_time/.test(String(err.message||err))) throw err;
-      await cloudFetch("products",{method:"POST",body:JSON.stringify(rows.map(({open_time,close_time,...r})=>r))});
-      updateCloudStatus("⚠️ Jam tersedia belum tersimpan online. Jalankan supabase-jam-produk.sql di Supabase.");
-      return true;
+      hoursSaved=false;
+      await cloudFetch("products?on_conflict=id",{...upsert,body:JSON.stringify(rows.map(({open_time,close_time,...r})=>r))});
     }
-    cloudReady=true; updateCloudStatus("☁️ Produk tersinkron online"); return true;
-  } catch(e){ console.error("Sinkron produk gagal:",e); updateCloudStatus("⚠️ Gagal sinkron produk. Data lokal tetap tersimpan."); return false; }
+    const ids=products.map(p=>Number(p.id)).filter(Number.isFinite);
+    const filter=ids.length?`id=not.in.(${ids.join(",")})`:"id=not.is.null";
+    await cloudFetch(`products?${filter}`,{method:"DELETE"});
+    cloudReady=true;
+    updateCloudStatus(hoursSaved?"☁️ Produk tersinkron online":"⚠️ Jam tersedia belum tersimpan online. Jalankan supabase-jam-produk.sql di Supabase.");
+    return true;
+  } catch(e){
+    console.error("Sinkron produk gagal:",e);
+    updateCloudStatus(`⚠️ Gagal sinkron produk. Data lokal tetap tersimpan. Detail: ${String(e.message||e).slice(0,160)}`);
+    return false;
+  }
 }
 function updateCloudStatus(text){const el=document.getElementById("cloudStatus");if(el)el.textContent=text;}
 
