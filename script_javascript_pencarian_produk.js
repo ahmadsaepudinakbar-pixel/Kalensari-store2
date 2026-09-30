@@ -106,7 +106,82 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   // ==========================================
-  // 5. FIX TOMBOL X
+  // 5. TAMBAHKAN TOMBOL X PADA MESIN PENCARIAN
+  // ==========================================
+  function addSearchCloseButton() {
+    if (!mainSearchInput) return;
+
+    // Jangan membuat tombol X lebih dari satu.
+    if (document.getElementById("kalensari-search-close")) return;
+
+    const wrapper =
+      mainSearchInput.parentElement || mainSearchInput.closest("div");
+
+    if (!wrapper) return;
+
+    // Pastikan wrapper menjadi acuan posisi tombol.
+    const computed = window.getComputedStyle(wrapper);
+    if (computed.position === "static") {
+      wrapper.style.position = "relative";
+    }
+
+    const closeBtn = document.createElement("button");
+    closeBtn.id = "kalensari-search-close";
+    closeBtn.type = "button";
+    closeBtn.innerHTML = "×";
+    closeBtn.setAttribute("aria-label", "Tutup pencarian");
+    closeBtn.setAttribute("title", "Tutup pencarian");
+
+    closeBtn.style.cssText = `
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 42px;
+      height: 42px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: #777;
+      font-size: 30px;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    `;
+
+    closeBtn.addEventListener("mouseenter", () => {
+      closeBtn.style.background = "#f2f2f2";
+      closeBtn.style.color = "#333";
+    });
+
+    closeBtn.addEventListener("mouseleave", () => {
+      closeBtn.style.background = "transparent";
+      closeBtn.style.color = "#777";
+    });
+
+    closeBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      resetSearchToPassive();
+    });
+
+    wrapper.appendChild(closeBtn);
+
+    // Beri ruang kanan agar teks tidak bertabrakan dengan X.
+    mainSearchInput.style.paddingRight = "55px";
+  }
+
+  // Buat tombol X setelah halaman siap.
+  addSearchCloseButton();
+
+  // ==========================================
+  // 6. FIX TOMBOL X
+  // ==========================================
+
   // ==========================================
   function getSearchPanel() {
     if (!mainSearchInput) return null;
