@@ -31,3 +31,12 @@ KALENSARI STORE V8
 - Kosongkan seluruh keranjang.
 - Checkout WhatsApp tetap tersedia.
 - Tombol X pencarian cepat menutup panel dan mengembalikan kondisi pasif.
+
+
+KALENSARI STORE V9
+- Nomor pesanan otomatis (KS...)
+- Riwayat pesanan pelanggan di perangkat
+- Status pesanan: Menunggu, Diproses, Dikirim, Selesai, Dibatalkan
+- Admin dapat mengubah status pesanan jika Supabase aktif
+- Checkout WhatsApp menyertakan nomor pesanan
+- Jalankan bagian V9 pada supabase.sql jika database Supabase sudah pernah dibuat di V8.
