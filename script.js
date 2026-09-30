@@ -151,8 +151,20 @@ function renderProducts() {
       </div>
     </article>`).join(""):`<div class="empty-state"><b>😔 Produk tidak ditemukan</b>Coba kata kunci atau kategori lain.</div>`;
 }
+// Jumlah (pcs) yang dipilih pelanggan di popup Detail produk.
+let detailQty=1;
+function detailWALink(p) {
+  return waLink(`Halo KALENSARI STORE, saya ingin membeli ${p.name} sebanyak ${detailQty} (${rupiah(currentPrice(p))} x ${detailQty} = ${rupiah(currentPrice(p)*detailQty)}).`);
+}
+function changeDetailQty(id,d) {
+  const p=products.find(x=>x.id===id);if(!p)return;
+  detailQty=Math.max(1,Math.min(99,detailQty+d));
+  document.getElementById("detailQtyValue").textContent=detailQty;
+  document.getElementById("detailWA")?.setAttribute("href",detailWALink(p));
+}
 function showProduct(id) {
   const p=products.find(x=>x.id===id);
+  detailQty=1;
   const sold=p.status!=="Show";
   document.getElementById("productDetail").innerHTML=`
     <div class="detail">
@@ -163,17 +175,19 @@ function showProduct(id) {
         <div class="price">${priceHTML(p)}</div>
         <p>Satuan: ${p.unit}</p>
         <p>${sold?"Stok habis.":"Produk tersedia untuk dipesan."}</p>
-        <button class="btn primary full" ${sold?"disabled":""} onclick="addToCart(${p.id});closeModal('productModal')">🛒 Tambah ke Keranjang</button>
+        ${sold?"":`<div class="detail-qty"><span>Jumlah</span><div class="qty"><button type="button" onclick="changeDetailQty(${p.id},-1)" aria-label="Kurangi jumlah">−</button><b id="detailQtyValue">1</b><button type="button" onclick="changeDetailQty(${p.id},1)" aria-label="Tambah jumlah">+</button></div></div>`}
+        <button class="btn primary full" ${sold?"disabled":""} onclick="addToCart(${p.id},detailQty);closeModal('productModal')">🛒 Tambah ke Keranjang</button>
         <br><br>
-        <a class="btn outline full" target="_blank" href="${waLink(`Halo KALENSARI STORE, saya ingin membeli ${p.name} (${rupiah(currentPrice(p))}).`)}">💬 Beli via WhatsApp</a>
+        <a id="detailWA" class="btn outline full" target="_blank" href="${detailWALink(p)}">💬 Beli via WhatsApp</a>
       </div>
     </div>`;
   openModal("productModal");
 }
-function addToCart(id) {
+function addToCart(id,qty=1) {
   const p=products.find(x=>x.id===id); if(!p||p.status!=="Show")return;
-  const item=cart.find(x=>x.id===id); if(item)item.qty++; else cart.push({id,qty:1});
-  saveCart();updateCartCount();renderCart();showToast(`${p.name} ditambahkan ke keranjang`);
+  qty=Math.max(1,parseInt(qty)||1);
+  const item=cart.find(x=>x.id===id); if(item)item.qty+=qty; else cart.push({id,qty});
+  saveCart();updateCartCount();renderCart();showToast(`${qty>1?qty+"× ":""}${p.name} ditambahkan ke keranjang`);
 }
 function changeQty(id,d) {
   const item=cart.find(x=>x.id===id);if(!item)return;
