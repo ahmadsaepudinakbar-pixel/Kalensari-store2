@@ -572,9 +572,8 @@ function getProductImage(imagePath) {
 
     clearBtn?.addEventListener('click',e=>{
       e.preventDefault();
-      input.value='';
-      renderQuickResults('');
-      input.focus();
+      e.stopPropagation();
+      closePanel();
     });
 
     document.addEventListener('click',e=>{
