@@ -73,3 +73,5 @@ Edit config.js dan isi supabaseUrl + supabaseAnonKey dari project Supabase Anda,
 
 
 V10.2: Dashboard Admin diurutkan: statistik status -> Kelola Status Pesanan -> daftar pesanan -> Tambah/Export/Import Produk -> Daftar Produk.
+
+V10.5: sinkronisasi Pesanan Saya lintas HP/komputer menggunakan nomor WhatsApp yang dinormalisasi.

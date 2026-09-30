@@ -77,12 +77,24 @@ async function loadCloudOrders(){
 }
 async function loadMyCloudOrders(phone){
   if(!CLOUD_CONFIG?.enabled || !phone) return [];
-  const candidates=[String(phone).trim(), normalizePhone(phone)].filter(Boolean);
+  const raw=String(phone).trim();
+  const normalized=normalizePhone(raw);
+  const candidates=[raw,normalized].filter(Boolean);
   const all=[];
+  // Utamakan kolom nomor yang sudah dinormalisasi agar HP/komputer
+  // tetap menemukan pesanan walaupun satu perangkat menyimpan 08xx
+  // dan perangkat lain memakai 62xx.
+  if(normalized){
+    try{
+      const q=encodeURIComponent(normalized);
+      const rows=await cloudFetch(`orders?select=*&customer_phone_normalized=eq.${q}&order=created_at.desc&limit=100`);
+      if(Array.isArray(rows)) all.push(...rows);
+    }catch(e){ /* fallback ke nomor lama */ }
+  }
   for(const value of [...new Set(candidates)]){
     try{
       const q=encodeURIComponent(value);
-      const rows=await cloudFetch(`orders?select=*&customer_phone=eq.${q}&order=created_at.desc&limit=50`);
+      const rows=await cloudFetch(`orders?select=*&customer_phone=eq.${q}&order=created_at.desc&limit=100`);
       if(Array.isArray(rows)) all.push(...rows);
     }catch(e){ /* coba format nomor berikutnya */ }
   }
@@ -202,7 +214,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const createdAt=new Date().toISOString();
   const detail=items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
   const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(SHIPPING_COST)}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${phone}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
-  const payload={order_code:orderCode,created_at:createdAt,customer_name:String(f.get("name")||""),customer_phone:phone,address:String(f.get("address")||""),note:String(f.get("note")||""),payment:String(f.get("payment")||""),items,subtotal,shipping:SHIPPING_COST,total,status:"menunggu"};
+  const payload={order_code:orderCode,created_at:createdAt,customer_name:String(f.get("name")||""),customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address:String(f.get("address")||""),note:String(f.get("note")||""),payment:String(f.get("payment")||""),items,subtotal,shipping:SHIPPING_COST,total,status:"menunggu"};
 
   // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi pesanan.
   const local=getLocalOrders(); local.unshift({...payload,id:`local-${Date.now()}`}); saveLocalOrders(local);
@@ -303,7 +315,14 @@ function renderMyOrders(rows=getLocalOrders()){
 async function refreshMyOrders(){
   const note=document.getElementById("myOrderSyncNote");
   const local=getLocalOrders(); renderMyOrders(local);
-  const phone=normalizePhone(localStorage.getItem("kalensari_customer_phone")||"");
+  // Jika perangkat ini belum pernah menyimpan nomor customer, gunakan
+  // nomor dari pesanan lokal terakhir sebagai identitas sinkronisasi.
+  let phone=normalizePhone(localStorage.getItem("kalensari_customer_phone")||"");
+  if(!phone && local.length){
+    const last=local.find(o=>o.customer_phone||o.customer_phone_normalized);
+    phone=normalizePhone(last?.customer_phone_normalized||last?.customer_phone||"");
+    if(phone) localStorage.setItem("kalensari_customer_phone",phone);
+  }
   if(!CLOUD_CONFIG?.enabled){ if(note){note.textContent="📱 Menampilkan pesanan di perangkat ini.";note.className="order-sync-note offline";} return; }
   if(!phone){ if(note){note.textContent="🔎 Belum ada nomor WhatsApp tersimpan di perangkat ini.";note.className="order-sync-note offline";} return; }
   try {

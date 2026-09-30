@@ -1,40 +1,34 @@
--- KALENSARI STORE - sinkron status pesanan HP <-> komputer
--- Jalankan sekali di Supabase > SQL Editor.
+-- KALENSARI STORE v10.5
+-- Sinkronisasi Pesanan Saya HP <-> komputer berdasarkan nomor WhatsApp.
+-- Jalankan SEKALI di Supabase > SQL Editor.
 
--- Pastikan tabel orders boleh dibaca oleh website.
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname='public' AND tablename='orders' AND policyname='orders_public_select'
-  ) THEN
-    CREATE POLICY orders_public_select
-      ON public.orders FOR SELECT
-      TO anon, authenticated
-      USING (true);
-  END IF;
-END $$;
-
--- IZINKAN website memperbarui status pesanan.
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname='public' AND tablename='orders' AND policyname='orders_public_update'
-  ) THEN
-    CREATE POLICY orders_public_update
-      ON public.orders FOR UPDATE
-      TO anon, authenticated
-      USING (true)
-      WITH CHECK (true);
-  END IF;
-END $$;
-
--- Pastikan kolom status tersedia.
 ALTER TABLE public.orders
-  ADD COLUMN IF NOT EXISTS status text DEFAULT 'menunggu';
+  ADD COLUMN IF NOT EXISTS customer_phone_normalized text;
 
--- Pesanan lama yang masih memakai status "baru" dianggap Menunggu.
+-- Normalisasi pesanan lama: 08xxxxxxxxxx -> 628xxxxxxxxxx.
 UPDATE public.orders
-SET status='menunggu'
-WHERE status IS NULL OR lower(status)='baru';
+SET customer_phone_normalized = CASE
+  WHEN regexp_replace(COALESCE(customer_phone,''), '[^0-9]', '', 'g') LIKE '0%'
+    THEN '62' || substring(regexp_replace(COALESCE(customer_phone,''), '[^0-9]', '', 'g') FROM 2)
+  ELSE regexp_replace(COALESCE(customer_phone,''), '[^0-9]', '', 'g')
+END
+WHERE customer_phone_normalized IS NULL OR customer_phone_normalized = '';
+
+CREATE INDEX IF NOT EXISTS orders_customer_phone_normalized_idx
+ON public.orders (customer_phone_normalized);
+
+-- Website perlu membaca pesanan customer dan memperbarui status dari admin.
+DROP POLICY IF EXISTS orders_public_select ON public.orders;
+CREATE POLICY orders_public_select
+  ON public.orders FOR SELECT
+  TO anon, authenticated
+  USING (true);
+
+DROP POLICY IF EXISTS orders_public_update ON public.orders;
+CREATE POLICY orders_public_update
+  ON public.orders FOR UPDATE
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+
+GRANT SELECT, INSERT, UPDATE ON public.orders TO anon, authenticated;
