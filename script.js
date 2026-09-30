@@ -179,7 +179,27 @@ const shippingFeeFor=n=>{const v=shippingFees[sellerKey(n)],d=Number(shippingFee
 // Satu tarif untuk tiap toko yang ada di keranjang (beberapa produk dari toko yang sama = satu ongkir).
 const shippingBreakdown=items=>{const m=new Map();items.forEach(p=>{const k=sellerKey(p.seller);if(!m.has(k))m.set(k,{name:String(p.seller||"Toko").trim(),fee:shippingFeeFor(p.seller)});});return[...m.values()];};
 const shippingTotal=items=>shippingBreakdown(items).reduce((t,x)=>t+x.fee,0);
-const sellerClosed=n=>!!closedSellers[sellerKey(n)];
+// ===== JADWAL BUKA/TUTUP OTOMATIS PENJUAL (jam buka, jam tutup, hari libur; waktu WIB) =====
+// sellerSchedule: {"nama penjual (huruf kecil)": {o:"08:00", c:"17:00", off:[0..6 libur tiap pekan, 0=Minggu], h:["2026-10-17" tanggal libur khusus]}}
+let sellerSchedule=readLS("kalensari_seller_schedule",{});
+const DAY_NAMES=["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+const fmtDate=d=>{const[y,m,dd]=String(d).split("-");return`${dd}/${m}/${y}`;};
+const dayOfWeek=d=>new Date(d+"T00:00:00Z").getUTCDay();
+const shiftDay=(d,n)=>{const t=new Date(d+"T00:00:00Z");t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10);};
+const wibDate=()=>new Intl.DateTimeFormat("en-CA",{timeZone:STORE_TIME_ZONE,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+const dayIsOff=(s,d)=>(s.off||[]).includes(dayOfWeek(d))||(s.h||[]).includes(d);
+function scheduleState(n){
+  const s=sellerSchedule[sellerKey(n)];if(!s)return{open:true,why:""};
+  const d=wibDate(),m=nowMinutesWIB(),o=timeToMin(s.o),c=timeToMin(s.c),hasT=o!==null&&c!==null&&o!==c;
+  let open;
+  if(!hasT)open=!dayIsOff(s,d);
+  else if(o<c)open=!dayIsOff(s,d)&&m>=o&&m<c;
+  else open=(m>=o&&!dayIsOff(s,d))||(m<c&&!dayIsOff(s,shiftDay(d,-1))); // jam lewat tengah malam
+  if(open)return{open:true,why:""};
+  return{open:false,why:dayIsOff(s,d)?"Libur hari ini":`Buka ${fmtTime(s.o)}–${fmtTime(s.c)} WIB`};
+}
+const sellerClosed=n=>!!closedSellers[sellerKey(n)]||!scheduleState(n).open;
+const sellerWhy=p=>{const n=sellerList(p).find(sellerClosed);if(!n)return"";return closedSellers[sellerKey(n)]?"Penjual sedang tutup":"Penjual sedang tutup • "+scheduleState(n).why;};
 const openSellerList=p=>sellerList(p).filter(n=>!sellerClosed(n));
 const allSellersClosed=p=>{const l=sellerList(p);return l.length>0&&l.every(sellerClosed);};
 async function loadCloudSettings(){
@@ -192,6 +212,7 @@ async function loadCloudSettings(){
       if(r.key==="whatsapp_number"&&typeof r.value==="string"){const n=normalizePhone(r.value);if(n.length>=9&&n.length<=15){WHATSAPP_NUMBER=n;localStorage.setItem("kalensari_wa_number",JSON.stringify(n));applyWaLinks();}}
       if(r.key==="admin_pin_hash"&&typeof r.value==="string"&&/^[0-9a-f]{64}$/.test(r.value)){adminPinHash=r.value;localStorage.setItem("kalensari_admin_pin_hash",JSON.stringify(adminPinHash));}
       if(r.key==="shipping_fees"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){shippingFees=r.value;localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));}
+      if(r.key==="seller_schedule"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){sellerSchedule=r.value;localStorage.setItem("kalensari_seller_schedule",JSON.stringify(sellerSchedule));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
     });
     return true;
@@ -200,13 +221,14 @@ async function loadCloudSettings(){
 async function saveStoreSettings(){
   localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));
   localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));
+  localStorage.setItem("kalensari_seller_schedule",JSON.stringify(sellerSchedule));
   localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));
   localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));
   localStorage.setItem("kalensari_wa_number",JSON.stringify(WHATSAPP_NUMBER));
   if(adminPinHash)localStorage.setItem("kalensari_admin_pin_hash",JSON.stringify(adminPinHash));
   if(!CLOUD_CONFIG?.enabled)return false;
   try{
-    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"removed_categories",value:removedCategories},{key:"shipping_fees",value:shippingFees},{key:"whatsapp_number",value:WHATSAPP_NUMBER},...(adminPinHash?[{key:"admin_pin_hash",value:adminPinHash}]:[]),{key:"closed_sellers",value:closedSellers}])});
+    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"removed_categories",value:removedCategories},{key:"shipping_fees",value:shippingFees},{key:"whatsapp_number",value:WHATSAPP_NUMBER},...(adminPinHash?[{key:"admin_pin_hash",value:adminPinHash}]:[]),{key:"closed_sellers",value:closedSellers},{key:"seller_schedule",value:sellerSchedule}])});
     return true;
   }catch(e){
     console.error("Simpan pengaturan toko gagal:",e);
@@ -256,7 +278,7 @@ function singleCardHTML(p) {
         <h3>${p.name}</h3>
         <div class="price">${builder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <small>${p.unit}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
-        ${sClosed?'<small class="hours closed">🔒 Penjual sedang tutup</small>':""}
+        ${sClosed?`<small class="hours closed">🔒 ${esc(sellerWhy(p))}</small>`:""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
           ${builder?`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="showProduct(${p.id})">${soldOut?"Stok Habis":"Pilih Topping"}</button>`:`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="addToCart(${p.id})">${soldOut?"Stok Habis":"+ Keranjang"}</button>`}
@@ -275,7 +297,7 @@ function groupCardHTML(u) {
       <div class="product-body">
         <h3>${esc(u.group)}</h3>
         <div class="price">${min===max?rupiah(min):`Mulai ${rupiah(min)}`}</div>
-        <small>${v.length} pilihan varian</small><small class="seller">👤 ${esc(sellers)}</small>${v.every(x=>allSellersClosed(x))?'<small class="hours closed">🔒 Penjual sedang tutup</small>':""}
+        <small>${v.length} pilihan varian</small><small class="seller">👤 ${esc(sellers)}</small>${v.every(x=>allSellersClosed(x))?`<small class="hours closed">🔒 ${esc(sellerWhy(v[0]))}</small>`:""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${first.id})">Detail</button>
           <button class="btn primary" onclick="showProduct(${first.id})">Pilih Varian</button>
@@ -384,7 +406,7 @@ function showProduct(id) {
         ${isGroup?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker">${variants.map(v=>`<button type="button" class="variant-chip${v.id===p.id?" active":""}" onclick="showProduct(${v.id})"><b>${esc(variantLabel(v))}</b><small>${isSoldOut(v)?"Habis":rupiah(currentPrice(v))}</small></button>`).join("")}</div></div>`:""}
         <div class="price">${isBuilder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <p>Satuan: ${p.unit}</p>
-        <p>${sold?"Stok habis.":sellerShut?"Penjual sedang tutup, produk belum bisa dipesan.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
+        <p>${sold?"Stok habis.":sellerShut?sellerWhy(p)+", produk belum bisa dipesan.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
         ${hasHours(p)?`<p class="hours-line${closedNow?" closed":""}">🕒 Tersedia setiap hari pukul ${hoursText(p)}</p>`:""}
         ${unavailable?"":`<div class="seller-pick"><span class="seller-pick-title">Pilih Toko</span><div id="sellerPicker" class="seller-picker">${detailSellers.map((n,i)=>`<button type="button" class="seller-chip${detailSeller===n?" active":""}" onclick="selectDetailSeller(${i})">🏪 ${esc(n)}</button>`).join("")}</div></div>
         ${isBuilder?`<div class="topping-box"><span class="seller-pick-title">Pilih Topping${tLimit?` <small>(total maks ${rupiah(tLimit)} per porsi)</small>`:""}</span><div class="topping-list">${tops.map((t,i)=>`<div class="topping-row">${t.img?`<img class="topping-img" src="${esc(t.img)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">`:""}<div class="topping-info"><b>${esc(t.name)}</b><small>${rupiah(t.price)}</small></div><div class="qty"><button type="button" onclick="changeTopping(${i},-1)" aria-label="Kurangi ${esc(t.name)}">−</button><b id="tq-${i}">0</b><button type="button" onclick="changeTopping(${i},1)" aria-label="Tambah ${esc(t.name)}">+</button></div></div>`).join("")}</div><div id="toppingTotal" class="topping-total"></div></div>`:""}
@@ -897,7 +919,7 @@ function getProductImage(imagePath) {
 })();
 
 // Perbarui status jam tersedia di daftar produk setiap 1 menit.
-setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
+setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length) renderProducts(); },60000);
 
 
 // ===== ADMIN: + Kategori & Penjual (buka/tutup) =====
@@ -909,7 +931,9 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
   exp.insertAdjacentElement("afterend",bShip); exp.insertAdjacentElement("afterend",bSel); exp.insertAdjacentElement("afterend",bCat);
   const panel=document.createElement("div"); panel.id="adminExtra"; panel.className="admin-extra"; panel.hidden=true;
   list.parentNode.insertBefore(panel,list);
-  let mode="", selectedCat="";
+  let mode="", selectedCat=""; const schedOpen=new Set();
+  const schEdit=n=>{const k=sellerKey(n);const s=sellerSchedule[k]||(sellerSchedule[k]={o:"",c:"",off:[],h:[]});s.off=s.off||[];s.h=s.h||[];return s;};
+  const schClean=n=>{const k=sellerKey(n),s=sellerSchedule[k];if(s&&!s.o&&!s.c&&!(s.off||[]).length&&!(s.h||[]).length)delete sellerSchedule[k];};
   const usedBy=c=>products.filter(p=>p.category===c).length;
   function sellerRows(){
     const map=new Map();
@@ -927,8 +951,17 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
     } else if(mode==="seller"){
       const rows=sellerRows();
       panel.innerHTML=`<div class="extra-head"><h4>🏪 Status Penjual</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
-        <p class="admin-hint">Jika penjual ditandai <b>Tutup</b>, semua produknya tidak bisa dipesan sampai dibuka lagi.</p>
-        <div class="seller-status-list">${rows.map(r=>{const c=sellerClosed(r.name);return `<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><div class="seg"><button type="button" class="${c?"":"on-open"}" data-act="open" data-name="${esc(r.name)}">Buka</button><button type="button" class="${c?"on-closed":""}" data-act="close-seller" data-name="${esc(r.name)}">Tutup</button></div></div>`;}).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>`;
+        <p class="admin-hint"><b>Tutup</b> = tutup paksa sampai dibuka lagi. <b>Buka</b> = mengikuti jadwal otomatis (jika jadwal diisi). Isi jam buka, jam tutup, dan hari libur di <b>🕒 Jadwal otomatis</b> tiap penjual (waktu WIB).</p>
+        <div class="seller-status-list">${rows.map((r,i)=>{const m=!!closedSellers[sellerKey(r.name)],eff=sellerClosed(r.name),k=sellerKey(r.name),sc=sellerSchedule[k]||{},off=sc.off||[],hs=sc.h||[],nm=esc(r.name);
+          const sum=[sc.o&&sc.c?`${fmtTime(sc.o)}–${fmtTime(sc.c)}`:"",off.length?"libur "+[1,2,3,4,5,6,0].filter(d=>off.includes(d)).map(d=>DAY_NAMES[d]).join(","):"",hs.length?hs.length+" tgl libur":""].filter(Boolean).join(" • ");
+          return `<div class="seller-status-row"><div><b>${nm}</b><small>${r.count} produk • ${eff?"🔒 Tutup sekarang":"🟢 Buka sekarang"}</small></div><div class="seg"><button type="button" class="${m?"":"on-open"}" data-act="open" data-name="${nm}">Buka</button><button type="button" class="${m?"on-closed":""}" data-act="close-seller" data-name="${nm}">Tutup</button></div>
+          <details class="sched"${schedOpen.has(k)?" open":""}><summary>🕒 Jadwal otomatis${sum?" — "+esc(sum):" (belum diatur)"}</summary>
+            <div class="sched-grid"><label>Jam buka<input type="time" data-act="sch-o" data-name="${nm}" value="${esc(sc.o||"")}"></label><label>Jam tutup<input type="time" data-act="sch-c" data-name="${nm}" value="${esc(sc.c||"")}"></label></div>
+            <div class="sched-days"><span>Libur tiap pekan:</span>${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" data-act="sch-day" data-d="${d}" data-name="${nm}"${off.includes(d)?" checked":""}>${DAY_NAMES[d]}</label>`).join("")}</div>
+            <div class="sched-h"><span>Libur tanggal tertentu:</span><input type="date" aria-label="Tanggal libur"><button type="button" class="btn outline small" data-act="sch-addh" data-name="${nm}">+ Tambah</button></div>
+            ${hs.length?`<div class="extra-chips">${hs.map(d=>`<button type="button" class="extra-chip" data-act="sch-delh" data-name="${nm}" data-date="${d}" title="Hapus libur">${fmtDate(d)} ✕</button>`).join("")}</div>`:""}
+            <small class="sched-note">Kosongkan jam buka/tutup jika hanya ingin mengatur hari libur. Jam dipakai bersama hari libur.</small>
+          </details></div>`;}).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>`;
     } else if(mode==="ship"){
       const rows=sellerRows();
       panel.innerHTML=`<div class="extra-head"><h4>🚚 Ongkir & WhatsApp</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
@@ -986,12 +1019,31 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
       document.querySelectorAll('select[id^="e-cat-"]').forEach(sel=>{[...sel.options].forEach(o=>{if(o.value===name&&!o.selected)o.remove();});});
       await persist(`Kategori "${name}" dihapus`);return;
     }
+    if(act==="sch-addh"){
+      const v=t.closest(".sched").querySelector('input[type="date"]').value;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(v)){showToast("Pilih tanggal libur dulu");return;}
+      const s=schEdit(name);if(!s.h.includes(v))s.h.push(v);s.h.sort();schedOpen.add(sellerKey(name));render();afterSellerChange();
+      await persist(`Libur ${name} ${fmtDate(v)} ditambahkan`);return;
+    }
+    if(act==="sch-delh"){
+      const s=schEdit(name);s.h=s.h.filter(x=>x!==t.dataset.date);schClean(name);schedOpen.add(sellerKey(name));render();afterSellerChange();
+      await persist(`Libur ${name} ${fmtDate(t.dataset.date)} dihapus`);return;
+    }
     if(act==="open"){delete closedSellers[sellerKey(name)];render();afterSellerChange();await persist(`${name} dibuka`);return;}
     if(act==="close-seller"){closedSellers[sellerKey(name)]=true;render();afterSellerChange();await persist(`${name} ditutup, produknya tidak bisa dipesan`);return;}
   });
   panel.addEventListener("change",async e=>{
     const t=e.target.closest("[data-act]");if(!t)return;
-    const act=t.dataset.act;if(act!=="fee"&&act!=="fee-default")return;
+    const act=t.dataset.act;
+    if(act==="sch-o"||act==="sch-c"||act==="sch-day"){
+      const n=t.dataset.name,s=schEdit(n);
+      if(act==="sch-o")s.o=t.value;else if(act==="sch-c")s.c=t.value;
+      else{const d=Number(t.dataset.d);s.off=s.off.filter(x=>x!==d);if(t.checked)s.off.push(d);}
+      const half=(s.o&&!s.c)||(!s.o&&s.c);
+      schClean(n);schedOpen.add(sellerKey(n));render();afterSellerChange();
+      await persist(half?"Isi jam buka DAN jam tutup agar jam berlaku":`Jadwal ${n} disimpan`);return;
+    }
+    if(act!=="fee"&&act!=="fee-default")return;
     const raw=String(t.value).trim(),n=Math.max(0,Math.round(Number(raw)||0));
     if(act==="fee-default"){shippingFees.__default=n;t.value=n;}
     else{const k=sellerKey(t.dataset.name);if(raw==="")delete shippingFees[k];else{shippingFees[k]=n;t.value=n;}}
