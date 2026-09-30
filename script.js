@@ -602,6 +602,11 @@ function addAdminProduct(){
 function toggleAdminProduct(i){products[i].status=products[i].status==='Show'?'Out of Stock':'Show';saveProducts();syncCloudProducts();renderProducts();renderAdminProducts();}
 function deleteAdminProduct(i){if(!confirm(`Hapus ${products[i].name}?`))return;products.splice(i,1);saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dihapus");}
 document.getElementById("menuBtn").onclick=openAdmin;
+document.getElementById("manageOrdersBtn")?.addEventListener("click",()=>{
+  if(!adminLoggedIn){ showToast("Silakan masuk Admin terlebih dahulu"); return; }
+  openModal("adminOrdersModal");
+  renderAdminOrders();
+});
 document.getElementById("adminLoginBtn").onclick=()=>{if(document.getElementById("adminPin").value===ADMIN_PIN){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil")}else showToast("PIN admin salah")};
 document.getElementById("addProductBtn").onclick=addAdminProduct;
 document.getElementById("exportBtn").onclick=()=>{const blob=new Blob([JSON.stringify(products,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kalensari-products.json";a.click();URL.revokeObjectURL(a.href)};
