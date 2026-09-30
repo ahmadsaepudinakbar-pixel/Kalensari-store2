@@ -22,3 +22,12 @@ CATATAN KEAMANAN:
 - Jangan pernah memasukkan service_role key ke website.
 - V7 menggunakan anon/public key + RLS pada database.
 - PIN admin di JavaScript bukan mekanisme keamanan server. Untuk toko yang sudah ramai, langkah berikutnya adalah Supabase Auth untuk login admin yang benar-benar aman.
+
+
+KALENSARI STORE V8
+- Keranjang belanja tetap tersimpan di browser.
+- Tombol tambah/kurang jumlah produk.
+- Hapus satu produk dari keranjang.
+- Kosongkan seluruh keranjang.
+- Checkout WhatsApp tetap tersedia.
+- Tombol X pencarian cepat menutup panel dan mengembalikan kondisi pasif.

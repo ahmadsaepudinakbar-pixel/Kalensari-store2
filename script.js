@@ -189,12 +189,28 @@ function changeQty(id,d) {
   item.qty+=d;if(item.qty<=0)cart=cart.filter(x=>x.id!==id);
   saveCart();updateCartCount();renderCart();
 }
+function removeFromCart(id) {
+  cart = cart.filter(x => x.id !== id);
+  saveCart();
+  updateCartCount();
+  renderCart();
+  showToast("Produk dihapus dari keranjang");
+}
+function clearCart() {
+  if (!cart.length) return;
+  if (!confirm("Kosongkan semua isi keranjang?")) return;
+  cart = [];
+  saveCart();
+  updateCartCount();
+  renderCart();
+  showToast("Keranjang dikosongkan");
+}
 function cartData() {return cart.map(i=>({...products.find(p=>p.id===i.id),qty:i.qty})).filter(x=>x.id);}
 function renderCart() {
   const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),shipping=items.length?SHIPPING_COST:0;
   document.getElementById("cartItems").innerHTML=items.length?items.map(p=>`
-    <div class="cart-row"><div><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div></div>
-    <div class="qty"><button onclick="changeQty(${p.id},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.id},1)">+</button></div></div>`).join(""):`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
+    <div class="cart-row"><div class="cart-product-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div></div>
+    <div class="cart-row-actions"><div class="qty"><button onclick="changeQty(${p.id},-1)" aria-label="Kurangi">−</button><b>${p.qty}</b><button onclick="changeQty(${p.id},1)" aria-label="Tambah">+</button></div><button class="cart-remove" onclick="removeFromCart(${p.id})" aria-label="Hapus ${p.name}" title="Hapus">🗑️</button></div></div>`).join(""):`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
   document.getElementById("cartItemLabel").textContent=`${cart.reduce((s,i)=>s+i.qty,0)} item`;
   document.getElementById("cartSubtotal").textContent=rupiah(subtotal);
   document.getElementById("cartShipping").textContent=rupiah(shipping);
@@ -209,6 +225,8 @@ function closeModal(id) {document.getElementById(id).classList.remove("show")}
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("show")}));
 document.getElementById("cartBtn").onclick=()=>{renderCart();openModal("cartModal")};
+const clearCartBtn=document.getElementById("clearCartBtn");
+if(clearCartBtn) clearCartBtn.onclick=clearCart;
 document.getElementById("checkoutBtn").onclick=()=>{if(cart.length){closeModal("cartModal");openModal("checkoutModal")}};
 const searchInput = document.getElementById("searchInput");
 const sortSelect = document.getElementById("sortSelect");
@@ -349,7 +367,8 @@ if(quickSearchClear){
     const mainSearch=document.getElementById("searchInput");
     if(mainSearch){mainSearch.value="";renderProducts();}
     updateQuickSearchResult();
-    quickSearchInput?.focus();
+    // Tombol X mengembalikan mesin pencarian ke kondisi pasif.
+    setQuickSearchOpen(false);
   });
 }
 document.addEventListener("click",e=>{
