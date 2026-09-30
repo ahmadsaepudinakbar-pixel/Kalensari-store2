@@ -214,15 +214,39 @@ document.getElementById("checkoutBtn").onclick=()=>{if(cart.length){closeModal("
 // Pencarian produk tidak boleh terisi otomatis dari nomor WhatsApp/autofill pelanggan.
 const productSearchInput=document.getElementById("searchInput");
 if(productSearchInput){
-  productSearchInput.setAttribute("autocomplete","off");
+  // Pencarian produk TIDAK BOLEH diisi browser/autofill dari nomor WhatsApp.
+  productSearchInput.setAttribute("autocomplete","new-password");
   productSearchInput.setAttribute("autocorrect","off");
   productSearchInput.setAttribute("autocapitalize","none");
   productSearchInput.setAttribute("spellcheck","false");
-  if(/^\+?62\d{8,14}$/.test(String(productSearchInput.value||"").replace(/[\s-]/g,"")) || /^0\d{9,14}$/.test(String(productSearchInput.value||"").replace(/[\s-]/g,""))){
+  productSearchInput.readOnly=true;
+
+  const resetProductSearch=()=>{
     productSearchInput.value="";
-  }
+    productSearchInput.readOnly=true;
+    renderProducts();
+  };
+
+  // Aktif hanya setelah pengguna benar-benar memilih/mengetik kolom pencarian.
+  const activateProductSearch=()=>{
+    productSearchInput.readOnly=false;
+    if(/^(?:\+?62|0)\d{8,14}$/.test(String(productSearchInput.value||"").replace(/[\s-]/g,""))){
+      productSearchInput.value="";
+    }
+  };
+  productSearchInput.addEventListener("pointerdown",activateProductSearch,{once:true});
+  productSearchInput.addEventListener("focus",activateProductSearch);
+  productSearchInput.addEventListener("input",renderProducts);
+
+  // Chrome dapat melakukan autofill beberapa saat setelah halaman selesai dimuat.
+  // Paksa kolom pencarian tetap kosong saat refresh / kembali ke halaman.
+  resetProductSearch();
+  setTimeout(resetProductSearch,100);
+  setTimeout(resetProductSearch,500);
+  setTimeout(resetProductSearch,1200);
+  window.addEventListener("pageshow",resetProductSearch);
 }
-productSearchInput?.addEventListener("input",renderProducts);
+
 document.getElementById("sortSelect").addEventListener("change",renderProducts);
 document.getElementById("clearSearch").addEventListener("click",()=>{document.getElementById("searchInput").value="";renderProducts();document.getElementById("searchInput").focus()});
 function showToast(message){const t=document.getElementById("toast");t.textContent=message;t.classList.add("show");clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove("show"),1800)}
@@ -441,6 +465,8 @@ function getProductImage(imagePath) {
     const mainInput = document.getElementById('searchInput');
 
     if(!floatBtn || !panel || !input || !result) return false;
+    input.readOnly=true;
+    input.value='';
     if(floatBtn.dataset.kalensariSearchReady === '1') return true;
     floatBtn.dataset.kalensariSearchReady = '1';
 
@@ -455,6 +481,8 @@ function getProductImage(imagePath) {
       panel.setAttribute('aria-hidden','false');
       floatBtn.setAttribute('aria-expanded','true');
       floatBtn.classList.add('active');
+      input.readOnly=false;
+      input.value='';
       input.focus();
     }
 
