@@ -234,10 +234,11 @@ function renderProducts() {
 // Topping disimpan di produk sebagai teks, satu baris = "Nama | Harga". Batas belanja per porsi = topping_limit.
 function parseToppings(p) {
   return String(p.toppings||"").split(/\r?\n/).map(l=>{
-    const m=/^(.+?)\s*[|=]\s*(?:rp\.?\s*)?([\d.,]+)\s*$/i.exec(l.trim());
+    const m=/^(.+?)\s*[|=]\s*(?:rp\.?\s*)?([\d.,]+)\s*(?:\|\s*(\S+))?\s*$/i.exec(l.trim());
     if(!m)return null;
     const price=Number(m[2].replace(/[.,]/g,""));
-    return m[1].trim()&&Number.isFinite(price)?{name:m[1].trim(),price}:null;
+    const img=/^https?:\/\//i.test(m[3]||"")?m[3]:"";
+    return m[1].trim()&&Number.isFinite(price)?{name:m[1].trim(),price,img}:null;
   }).filter(Boolean);
 }
 let detailProduct=null, detailToppings={};
@@ -314,7 +315,7 @@ function showProduct(id) {
         <p>${sold?"Stok habis.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
         ${hasHours(p)?`<p class="hours-line${closedNow?" closed":""}">🕒 Tersedia setiap hari pukul ${hoursText(p)}</p>`:""}
         ${unavailable?"":`<div class="seller-pick"><span class="seller-pick-title">Pilih Toko</span><div id="sellerPicker" class="seller-picker">${detailSellers.map((n,i)=>`<button type="button" class="seller-chip${detailSeller===n?" active":""}" onclick="selectDetailSeller(${i})">🏪 ${esc(n)}</button>`).join("")}</div></div>
-        ${isBuilder?`<div class="topping-box"><span class="seller-pick-title">Pilih Topping${tLimit?` <small>(total maks ${rupiah(tLimit)} per porsi)</small>`:""}</span><div class="topping-list">${tops.map((t,i)=>`<div class="topping-row"><div class="topping-info"><b>${esc(t.name)}</b><small>${rupiah(t.price)}</small></div><div class="qty"><button type="button" onclick="changeTopping(${i},-1)" aria-label="Kurangi ${esc(t.name)}">−</button><b id="tq-${i}">0</b><button type="button" onclick="changeTopping(${i},1)" aria-label="Tambah ${esc(t.name)}">+</button></div></div>`).join("")}</div><div id="toppingTotal" class="topping-total"></div></div>`:""}
+        ${isBuilder?`<div class="topping-box"><span class="seller-pick-title">Pilih Topping${tLimit?` <small>(total maks ${rupiah(tLimit)} per porsi)</small>`:""}</span><div class="topping-list">${tops.map((t,i)=>`<div class="topping-row">${t.img?`<img class="topping-img" src="${esc(t.img)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">`:""}<div class="topping-info"><b>${esc(t.name)}</b><small>${rupiah(t.price)}</small></div><div class="qty"><button type="button" onclick="changeTopping(${i},-1)" aria-label="Kurangi ${esc(t.name)}">−</button><b id="tq-${i}">0</b><button type="button" onclick="changeTopping(${i},1)" aria-label="Tambah ${esc(t.name)}">+</button></div></div>`).join("")}</div><div id="toppingTotal" class="topping-total"></div></div>`:""}
         <div class="detail-qty"><span>Jumlah</span><div class="qty"><button type="button" onclick="changeDetailQty(${p.id},-1)" aria-label="Kurangi jumlah">−</button><b id="detailQtyValue">1</b><button type="button" onclick="changeDetailQty(${p.id},1)" aria-label="Tambah jumlah">+</button></div></div>`}
         <button id="detailAddBtn" class="btn primary full" ${unavailable?"disabled":""} onclick="addDetailToCart(${p.id})">🛒 Tambah ke Keranjang</button>
       </div>
@@ -505,9 +506,9 @@ function editAdminProduct(i){
     <label>Nama Grup (opsional)<input id="e-group-${i}" value="${esc(p.product_group||'')}" placeholder="mis. Pecel Lele"></label>
     <label>Nama Varian (opsional)<input id="e-variant-${i}" value="${esc(p.variant||'')}" placeholder="mis. Lauk saja / + Nasi"></label>
     <p class="wide admin-hint">🧩 Produk dengan Nama Grup yang sama digabung jadi 1 kartu dengan pilihan varian. Kosongkan jika tidak ingin digabung.</p>
-    <label class="wide">Topping Prasmanan (opsional)<textarea id="e-toppings-${i}" rows="6" placeholder="Bakso | 1000&#10;Sosis | 1500&#10;Ceker | 2000">${esc(p.toppings||'')}</textarea></label>
+    <label class="wide">Topping Prasmanan (opsional)<textarea id="e-toppings-${i}" rows="6" placeholder="Bakso | 1000 | https://link-foto.jpg&#10;Sosis | 1500&#10;Ceker | 2000">${esc(p.toppings||'')}</textarea></label>
     <label>Batas belanja per porsi (Rp)<input id="e-tlimit-${i}" type="number" value="${p.topping_limit||''}" placeholder="mis. 10000"></label>
-    <p class="wide admin-hint">🍲 Satu baris = satu topping, format: Nama | Harga. Jika diisi, produk ini jadi menu racik (prasmanan) dan kolom Harga di atas menjadi harga dasar (isi 0 bila tidak ada). Kosongkan jika bukan menu prasmanan.</p>
+    <p class="wide admin-hint">🍲 Satu baris = satu topping, format: Nama | Harga | URL Foto (foto boleh dikosongkan). Jika diisi, produk ini jadi menu racik (prasmanan) dan kolom Harga di atas menjadi harga dasar (isi 0 bila tidak ada). Kosongkan jika bukan menu prasmanan.</p>
     <label>Tersedia dari jam<input id="e-open-${i}" type="time" value="${esc(p.open_time||'')}"></label>
     <label>Sampai jam<input id="e-close-${i}" type="time" value="${esc(p.close_time||'')}"></label>
     <p class="wide admin-hint">🕒 Waktu WIB. Kosongkan kedua kolom jika produk tersedia sepanjang hari. Di luar jam ini pelanggan tidak bisa memesan.</p>
