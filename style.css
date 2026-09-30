@@ -603,6 +603,7 @@
 .extra-close{border:0;background:transparent;font-size:18px;cursor:pointer;color:#7a3e20}
 .extra-row{display:flex;gap:8px;margin:8px 0}.extra-row input{flex:1;min-width:0}
 .extra-chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.extra-cat-area{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.extra-cat-area .extra-chips{flex:1;min-width:0}
 .extra-chip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #eadfd8;border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px}
 .extra-chip.custom{border-color:#7a3e20;color:#7a3e20}
 .extra-chip button{border:0;background:transparent;cursor:pointer;color:#b3261e;font-size:12px;padding:0}
@@ -615,25 +616,48 @@
 
 /* v11.10 status produk: tampil / stok habis / sembunyikan */
 .soldout-badge{position:absolute;top:10px;left:10px;background:#b3261e;color:#fff;font-size:11px;font-weight:800;letter-spacing:.3px;padding:5px 9px;border-radius:999px;z-index:2}
-.product.soldout .product-img img{filter:grayscale(1);opacity:.55}
-.product.soldout h3{color:#777}
+/* stok habis: foto & nama tetap berwarna; penandanya hanya badge "STOK HABIS" dan tombol nonaktif */
+
 .product .btn[disabled]{opacity:.6;cursor:not-allowed}
 .status-seg button{padding:9px 12px!important;font-size:12px!important}
 .status-seg button.on-show{background:#2e7d32;color:#fff}
 .status-seg button.on-sold{background:#d9822b;color:#fff}
 .status-seg button.on-hidden{background:#666;color:#fff}
 .admin-status.sold{background:#fdecd6;color:#a4530a}
+.extra-chip{cursor:pointer;font-family:inherit;color:inherit}
+.extra-chip.selected{background:#7a3e20;border-color:#7a3e20;color:#fff}
+.extra-del{flex:none;margin-top:10px;border:1px solid #b3261e;background:#fff;color:#b3261e;font-weight:800;border-radius:8px;padding:6px 14px;cursor:pointer}
+.extra-del:hover:not(:disabled){background:#b3261e;color:#fff}
+.extra-del:disabled{opacity:.4;cursor:not-allowed}
+.fee-default{display:grid;gap:4px;background:#fff;border:1px dashed #d9c8bc;border-radius:12px;padding:10px 12px;margin:8px 0}
+.fee-default label{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:700}
+.fee-default input{width:110px}.fee-default small{color:#777}
+.fee-field{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#7a3e20;margin-left:auto}
+.fee-field input{width:84px;padding:6px 8px}
+.seller-status-row{flex-wrap:wrap}
+.wa-row{display:flex;gap:8px;align-items:center}.wa-row input{width:170px}
+@media(max-width:560px){.fee-default label{flex-wrap:wrap}.wa-row{width:100%}.wa-row input{flex:1;width:auto;min-width:0}}
+/* Panel Ongkir & WhatsApp: tema biru (#004080) */
+.admin-extra.blue{background:#004080;border-color:#004080}
+.admin-extra.blue .extra-head h4,.admin-extra.blue .extra-close{color:#fff}
+.admin-extra.blue>.admin-hint{color:#cfe0f5}
+.admin-extra.blue .fee-default,.admin-extra.blue .seller-status-row{border:1px solid #cfe0f5;border-style:solid;color:#2d2d2d}
+#manageShipBtn.active{background:#004080;border-color:#004080;color:#fff}
+.pin-card{gap:8px}
+.pin-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center}
+.pin-grid input{min-width:0}
+@media(max-width:700px){.pin-grid{grid-template-columns:1fr}}
+/* Rincian ongkir per toko di keranjang (selector diperkuat karena .summary div{display:flex} di atas) */
+.summary .ship-breakdown{display:block;margin:2px 0 8px;padding:10px 12px;background:#fff8f2;border:1px solid #f0dfd1;border-radius:12px}
+.summary .ship-breakdown[hidden]{display:none}
+.summary .ship-breakdown .ship-head{display:block;padding:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#7a3e20}
+.summary .ship-breakdown .ship-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:3px 0;font-size:13px;color:#555}
+.summary .ship-breakdown .ship-row span{min-width:0;overflow-wrap:anywhere}
+.summary .ship-breakdown .ship-row b{flex:none;white-space:nowrap;color:#2e201a;font-weight:700}
+.summary .ship-breakdown .ship-note{margin:8px 0 0;padding-top:8px;border-top:1px dashed #e6d3c4;font-size:12px;line-height:1.5;color:#6c5548}
+.summary .ship-breakdown .ship-note b{color:#7a3e20}
+/* Tombol hero "Penyedia Jasa" (cyan) */
+.hero-actions .hero-jasa{background:#22d3ee;border:1px solid #06b6d4;color:#053b44}
+.hero-actions .hero-jasa:hover{background:#06b6d4;color:#fff}
 
-/* v11.11 jam toko */
-.store-banner{padding:8px 14px;text-align:center;font-size:13px;font-weight:700}
-.store-banner.open{background:#e8f5e9;color:#1b5e20}
-.store-banner.closed{background:#fdecea;color:#b3261e}
-.hours-switch{display:flex;align-items:center;gap:8px;font-weight:700;margin:6px 0 10px}
-.hours-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.hours-grid label{display:grid;gap:4px;font-size:13px;font-weight:700}
-.hours-sub{font-weight:800;margin:14px 0 6px;font-size:13px;color:#7a3e20}
-.day-picks{display:flex;flex-wrap:wrap;gap:6px}
-.day-pick{cursor:pointer}.day-pick input{position:absolute;opacity:0;pointer-events:none}
-.day-pick span{display:inline-block;padding:7px 12px;border:1px solid #d9c8bc;border-radius:999px;background:#fff;font-size:13px;font-weight:700}
-.day-pick input:checked+span{background:#b3261e;color:#fff;border-color:#b3261e}
-.admin-extra .btn.primary[data-act="savehours"]{margin-top:10px}
+.hero-actions{gap:8px}.hero-actions .btn{padding:13px 16px}

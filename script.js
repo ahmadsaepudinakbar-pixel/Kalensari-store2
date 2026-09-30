@@ -1,6 +1,5 @@
 // KALENSARI STORE
-const WHATSAPP_NUMBER = "6281234567890";
-const SHIPPING_COST = 0;
+let WHATSAPP_NUMBER = "6281234567890"; // nomor bawaan; bisa diubah dari Admin > Ongkir
 const DEFAULT_PRODUCTS = [{"id":1,"name":"Lotek Bongko","price":12000,"sale":8000,"category":"Makanan","unit":"1 porsi","seller":"Teh Ida","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/o-fvve-chatgpt%20image%20sep%2028%2C%202026%2C%2005_14_09%20am.png?versionId=sSlnWC5X3v6SfdE8SJ7kfFpkAAtYEG66"},{"id":2,"name":"Bakso Sapi Biasa","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/pf0do4-chatgpt%20image%20sep%2028%2C%202026%2C%2006_23_05%20am.png?versionId=LvDf81yvhC2OIgUPloRKlaBbRFi.9BuH"},{"id":3,"name":"MIe ayam Pedas","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"H. Diman, Mang Edo, Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/0qg0at-chatgpt%20image%20sep%2028%2C%202026%2C%2002_03_31%20pm.png?versionId=EH1aAjwRvQd3dMY93ItbAgINe5lzjnTw"},{"id":4,"name":"MIe ayam Biasa","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"H. Diman, Mang Edo, Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/m5q9je-chatgpt%20image%20sep%2028%2C%202026%2C%2002_02_42%20pm.png?versionId=Lci_mH9SOmBpD2nCjBV_Z_o_XXpxpW8v"},{"id":5,"name":"Bakso Tulang","price":25000,"sale":18000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Out of Stock","image":"https://cdn.store.link/products/kalensaristore80353/agx1iw-chatgpt%20image%20sep%2028%2C%202026%2C%2006_29_33%20am.png?versionId=1n1pJ2ilQgM4jrhR5X_0LEG9mB.lTmg8"},{"id":6,"name":"Bakso Telur","price":12000,"sale":10000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/8a69b3-chatgpt%20image%20sep%2028%2C%202026%2C%2006_34_03%20am.png?versionId=m_nc2BhsK7d4LdKAPdxnMAiRHAV.Q2qB"},{"id":7,"name":"Bakso Urat","price":18000,"sale":15000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/obbajp-chatgpt%20image%20sep%2028%2C%202026%2C%2006_36_33%20am.png?versionId=h_Evc0EcQtdz4PFbFk8aZey0jgRRXZ.p"},{"id":8,"name":"Jus Alpukat","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/3x8j0a-chatgpt%20image%20sep%2028%2C%202026%2C%2006_52_41%20am.png?versionId=eKLzC7y3fgCWrkTSAdcaLHEyEYAdZMsh"},{"id":9,"name":"Jus Buah Naga","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/p8vus5-chatgpt%20image%20sep%2028%2C%202026%2C%2007_22_02%20am.png?versionId=e6H7dwvYmMOZrI86QKN98dyVxHcc8V0M"},{"id":10,"name":"Jus Tomat","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/o4d1bt-chatgpt%20image%20sep%2028%2C%202026%2C%2007_20_47%20am.png?versionId=IbXRZdg2vp6bCuXJPch5YT7FgQZXXcRM"},{"id":11,"name":"Jus Mangga","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/lqk2sp-chatgpt%20image%20sep%2028%2C%202026%2C%2007_22_59%20am.png?versionId=FADsI7qbgepPpQt7XVGl901Q_3cKHFQW"},{"id":12,"name":"Es teh Manis","price":3000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/abqncl-hops-3260267377.webp?versionId=P4DG3eGis6QyEzh9ZFQm3CBF8p9DEJwx"},{"id":13,"name":"Es teh Matcha Late","price":6000,"sale":null,"category":"Minuman","unit":"1 cup besar Rasa Greentea","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/c9c6rx-images%20%281%29.jpg?versionId=K0P2vQjt8SpfWctljxkmCkUO_8AfkYf2"},{"id":14,"name":"Es teh Matcha Premium","price":15000,"sale":12000,"category":"Minuman","unit":"1 cup besar Rasa Greentea","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/bkv3a5-images.jpg?versionId=jKTeHTYDtwRD2qs6CWqYs9ZM2EBZ9emC"},{"id":15,"name":"Nasi Kebuli","price":25000,"sale":20000,"category":"Makanan","unit":"1 porsi","seller":"Teh iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/u4fafx-chatgpt%20image%20sep%2028%2C%202026%2C%2002_14_04%20pm.png?versionId=DHZD_c9LScH15.An7XpzcTJMrjDf0AJk"},{"id":16,"name":"Nasi Goreng","price":13000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Kang Diki Sueb","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/h38vn8-chatgpt%20image%20sep%2028%2C%202026%2C%2002_11_47%20pm.png?versionId=Q1UfoJozDqlb8kaNfjJqp6nKv74i_B3F"},{"id":17,"product_group":"Pecel Lele","variant":"Lauk saja","name":"Pecel Lele","price":15000,"sale":null,"category":"Makanan","unit":"Pecel Lele","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ota8dn-chatgpt%20image%20sep%2028%2C%202026%2C%2002_25_58%20pm.png?versionId=JUVeTbSTZiWtp5heJSYA9RlF7OmxzgOE"},{"id":18,"product_group":"Pecel Lele","variant":"+ Nasi","name":"Pecel Lele + Nasi","price":20000,"sale":null,"category":"Makanan","unit":"Pecel Lele + Nasi","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ota8dn-chatgpt%20image%20sep%2028%2C%202026%2C%2002_25_58%20pm.png?versionId=JUVeTbSTZiWtp5heJSYA9RlF7OmxzgOE"},{"id":19,"product_group":"Pecel Ayam","variant":"Lauk saja","name":"Pecel Ayam","price":20000,"sale":null,"category":"Makanan","unit":"Pecel Ayam","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/s1j6xi-chatgpt%20image%20sep%2028%2C%202026%2C%2002_24_40%20pm.png?versionId=daNVkTOKSqZw_EU5ERJdtgZb57aN5VWx"},{"id":20,"product_group":"Pecel Ayam","variant":"+ Nasi","name":"Pecel Ayam + Nasi","price":25000,"sale":null,"category":"Makanan","unit":"Pecel Ayam + Nasi","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/s1j6xi-chatgpt%20image%20sep%2028%2C%202026%2C%2002_24_40%20pm.png?versionId=daNVkTOKSqZw_EU5ERJdtgZb57aN5VWx"},{"id":21,"name":"Fried Chiken","price":10000,"sale":null,"category":"Makanan","unit":"Ayam Goreng Tepung","seller":"Warga Kalensari","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/q38c2x-chatgpt%20image%20sep%2028%2C%202026%2C%2002_23_43%20pm.png?versionId=RR2yA7Iutiz2jXiFwJNUzApiqzE7ItsL"},{"id":22,"name":"Soto Ayam","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Sate Madura","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/4io072-chatgpt%20image%20sep%2028%2C%202026%2C%2002_22_28%20pm.png?versionId=48IdG9bl9fPErJcNUzMeAPrvhzOOe_qr"},{"id":23,"name":"Sate Ayam","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Sate Madura","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ewpn71-chatgpt%20image%20sep%2028%2C%202026%2C%2002_18_51%20pm.png?versionId=X09ZJ.tPJyqr_LhYnZRngTpDFKIVqz0b"},{"id":24,"name":"Nasi Ayam Katsu","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Teh Iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ievcoz-chatgpt%20image%20sep%2028%2C%202026%2C%2002_17_10%20pm.png?versionId=buhfyErVz0r0y_eaESh2AooKeylFdopS"},{"id":25,"name":"Spageti","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Teh Iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/d62zqy-aa1408ce-c67d-4d63-aa67-12ec89b3c905.png?versionId=chUteSwuPamgkCgB_ORU_hnugVoqj8dW"}];
 
 const ADMIN_PIN = "1234";
@@ -150,58 +149,36 @@ function nowMinutesWIB(){
 }
 const timeToMin=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||""));return m?Number(m[1])*60+Number(m[2]):null};
 const hasHours=p=>timeToMin(p.open_time)!==null&&timeToMin(p.close_time)!==null;
-function inOwnHours(p){
+function isInHours(p){
   if(!hasHours(p))return true; // tanpa jam = tersedia sepanjang hari
   const o=timeToMin(p.open_time),c=timeToMin(p.close_time),n=nowMinutesWIB();
   if(o===c)return true;
   return o<c?(n>=o&&n<c):(n>=o||n<c); // mendukung jam lewat tengah malam, mis. 18.00 - 02.00
 }
-// ===== JAM TOKO: jam buka, jam tutup, hari libur (semua produk mengikuti jam toko) =====
-const DEFAULT_STORE_HOURS={enabled:false,open:"08:00",close:"21:00",offDays:[],holidays:[]};
-const DAY_NAMES=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-function normStoreHours(v){
-  const h=Object.assign({},DEFAULT_STORE_HOURS,v&&typeof v==="object"?v:{});
-  h.offDays=Array.isArray(h.offDays)?h.offDays.map(Number).filter(n=>n>=0&&n<=6):[];
-  h.holidays=(Array.isArray(h.holidays)?h.holidays:[]).filter(x=>x&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)).map(x=>({date:x.date,note:String(x.note||"")}));
-  h.enabled=!!h.enabled;
-  return h;
-}
-let storeHours=(()=>{try{return normStoreHours(JSON.parse(localStorage.getItem("kalensari_store_hours")||"null"));}catch{return normStoreHours(null);}})();
-const wibDate=()=>new Intl.DateTimeFormat("en-CA",{timeZone:STORE_TIME_ZONE,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-const dateDow=ds=>new Date(ds+"T00:00:00Z").getUTCDay();
-const addDays=(ds,n)=>{const d=new Date(ds+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
-const holidayOn=ds=>storeHours.holidays.find(h=>h.date===ds);
-const dayOff=ds=>!!holidayOn(ds)||storeHours.offDays.includes(dateDow(ds));
-const fmtDateID=ds=>{const [y,m,d]=ds.split("-");return `${d}/${m}/${y}`;};
-function storeStatus(){
-  const H=storeHours;
-  if(!H.enabled)return {open:true};
-  const o=timeToMin(H.open),c=timeToMin(H.close),date=wibDate(),min=nowMinutesWIB();
-  const always=o===null||c===null||o===c, overnight=!always&&c<o;
-  const inTime=always?true:(o<c?(min>=o&&min<c):(min>=o||min<c));
-  const bizDate=(overnight&&min<c)?addDays(date,-1):date; // lewat tengah malam masih hitungan hari sebelumnya
-  const range=always?"":`${fmtTime(H.open)} – ${fmtTime(H.close)} WIB`;
-  if(inTime&&!dayOff(bizDate))return {open:true,range,message:range?`Toko buka • ${range}`:"Toko buka"};
-  let msg;
-  if(dayOff(date)){const h=holidayOn(date);msg=`Toko libur hari ini${h&&h.note?` (${h.note})`:""}.`;}
-  else msg=`Toko sedang tutup.${range?` Jam buka ${range}.`:""}`;
-  const at=o===null?"":` pukul ${fmtTime(H.open)}`;
-  let next="";
-  if(!dayOff(date)&&!always&&min<o)next=` Buka hari ini${at}.`;
-  else for(let k=1;k<=14;k++){const d=addDays(date,k);if(!dayOff(d)){next=` Buka lagi ${k===1?"besok":`${DAY_NAMES[dateDow(d)]}, ${fmtDateID(d).slice(0,5)}`}${at}.`;break;}}
-  return {open:false,range,message:msg+next};
-}
-const storeOpenNow=()=>storeStatus().open;
-const isInHours=p=>storeOpenNow()&&inOwnHours(p);
 const fmtTime=t=>String(t).slice(0,5).replace(":",".");
 const hoursText=p=>hasHours(p)?`${fmtTime(p.open_time)} – ${fmtTime(p.close_time)} WIB`:"";
 // ===== KATEGORI CUSTOM & STATUS BUKA/TUTUP PENJUAL (pengaturan toko) =====
 const readLS=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||"null");return v??d;}catch{return d;}};
 let customCategories=readLS("kalensari_categories",[]);
 let closedSellers=readLS("kalensari_closed_sellers",{});
+let removedCategories=readLS("kalensari_removed_categories",[]);
+// Ongkir per toko: {__default: tarif standar, "nama toko (huruf kecil)": tarif khusus toko itu}
+let shippingFees=readLS("kalensari_shipping_fees",{});
+// ===== KODE ADMIN =====
+// Kode admin bawaan = ADMIN_PIN. Setelah diganti dari Admin > Ongkir, yang disimpan hanya hash SHA-256 (bukan kode aslinya).
+const PIN_SALT="kalensari-admin:";
+let adminPinHash=String(readLS("kalensari_admin_pin_hash","")||"");
+const hashPin=async v=>{if(!(window.crypto&&crypto.subtle))throw Error("no-crypto");const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(PIN_SALT+v));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");};
+const checkAdminPin=async v=>{if(!adminPinHash)return v===ADMIN_PIN;try{return(await hashPin(v))===adminPinHash;}catch{return false;}};
+// ===== /KODE ADMIN =====
+{const saved=normalizePhone(readLS("kalensari_wa_number",""));if(saved.length>=9)WHATSAPP_NUMBER=saved;}
 const BASE_CATEGORIES=["Makanan","Minuman"];
-const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])];
+const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])].filter(c=>!removedCategories.includes(c)||products.some(p=>p.category===c));
 const sellerKey=n=>String(n||"").trim().toLowerCase();
+const shippingFeeFor=n=>{const v=shippingFees[sellerKey(n)],d=Number(shippingFees.__default)||0;return(v===undefined||v===null||v==="")?d:(Number(v)||0);};
+// Satu tarif untuk tiap toko yang ada di keranjang (beberapa produk dari toko yang sama = satu ongkir).
+const shippingBreakdown=items=>{const m=new Map();items.forEach(p=>{const k=sellerKey(p.seller);if(!m.has(k))m.set(k,{name:String(p.seller||"Toko").trim(),fee:shippingFeeFor(p.seller)});});return[...m.values()];};
+const shippingTotal=items=>shippingBreakdown(items).reduce((t,x)=>t+x.fee,0);
 const sellerClosed=n=>!!closedSellers[sellerKey(n)];
 const openSellerList=p=>sellerList(p).filter(n=>!sellerClosed(n));
 const allSellersClosed=p=>{const l=sellerList(p);return l.length>0&&l.every(sellerClosed);};
@@ -211,7 +188,10 @@ async function loadCloudSettings(){
     const rows=await cloudFetch("store_settings?select=*");
     (Array.isArray(rows)?rows:[]).forEach(r=>{
       if(r.key==="categories"&&Array.isArray(r.value)){customCategories=r.value;localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));}
-      if(r.key==="store_hours"&&r.value&&typeof r.value==="object"){storeHours=normStoreHours(r.value);localStorage.setItem("kalensari_store_hours",JSON.stringify(storeHours));}
+      if(r.key==="removed_categories"&&Array.isArray(r.value)){removedCategories=r.value;localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));}
+      if(r.key==="whatsapp_number"&&typeof r.value==="string"){const n=normalizePhone(r.value);if(n.length>=9&&n.length<=15){WHATSAPP_NUMBER=n;localStorage.setItem("kalensari_wa_number",JSON.stringify(n));applyWaLinks();}}
+      if(r.key==="admin_pin_hash"&&typeof r.value==="string"&&/^[0-9a-f]{64}$/.test(r.value)){adminPinHash=r.value;localStorage.setItem("kalensari_admin_pin_hash",JSON.stringify(adminPinHash));}
+      if(r.key==="shipping_fees"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){shippingFees=r.value;localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
     });
     return true;
@@ -220,10 +200,13 @@ async function loadCloudSettings(){
 async function saveStoreSettings(){
   localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));
   localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));
-  localStorage.setItem("kalensari_store_hours",JSON.stringify(storeHours));
+  localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));
+  localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));
+  localStorage.setItem("kalensari_wa_number",JSON.stringify(WHATSAPP_NUMBER));
+  if(adminPinHash)localStorage.setItem("kalensari_admin_pin_hash",JSON.stringify(adminPinHash));
   if(!CLOUD_CONFIG?.enabled)return false;
   try{
-    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"closed_sellers",value:closedSellers},{key:"store_hours",value:storeHours}])});
+    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"removed_categories",value:removedCategories},{key:"shipping_fees",value:shippingFees},{key:"whatsapp_number",value:WHATSAPP_NUMBER},...(adminPinHash?[{key:"admin_pin_hash",value:adminPinHash}]:[]),{key:"closed_sellers",value:closedSellers}])});
     return true;
   }catch(e){
     console.error("Simpan pengaturan toko gagal:",e);
@@ -248,7 +231,6 @@ async function refreshProductStatus(){
 }
 const closedCartItems=()=>cartData().filter(p=>p.status!=="Show"||!isInHours(p)||allSellersClosed(p));
 function alertClosedItems(list){
-  if(!storeOpenNow()){alert(storeStatus().message+"\n\nPesanan bisa dibuat saat toko buka.");return;}
   alert("Produk berikut sedang tidak bisa dipesan:\n\n"+list.map(p=>p.status!=="Show"?`- ${p.name} (stok habis)`:allSellersClosed(p)?`- ${p.name} (penjual ${p.seller} sedang tutup)`:`- ${p.name} (jam ${hoursText(p)})`).join("\n")+"\n\nHapus dari keranjang atau pesan lagi saat tersedia.");
 }
 
@@ -273,8 +255,8 @@ function singleCardHTML(p) {
       <div class="product-body">
         <h3>${p.name}</h3>
         <div class="price">${builder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
-        <small>${p.unit}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${inOwnHours(p)?"":" closed"}">🕒 ${hoursText(p)}${inOwnHours(p)?"":" • Belum tersedia"}</small>`:""}
-        ${!storeOpenNow()?'<small class="hours closed">🔒 Toko sedang tutup</small>':sClosed?'<small class="hours closed">🔒 Penjual sedang tutup</small>':""}
+        <small>${p.unit}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
+        ${sClosed?'<small class="hours closed">🔒 Penjual sedang tutup</small>':""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
           ${builder?`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="showProduct(${p.id})">${soldOut?"Stok Habis":"Pilih Topping"}</button>`:`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="addToCart(${p.id})">${soldOut?"Stok Habis":"+ Keranjang"}</button>`}
@@ -293,7 +275,7 @@ function groupCardHTML(u) {
       <div class="product-body">
         <h3>${esc(u.group)}</h3>
         <div class="price">${min===max?rupiah(min):`Mulai ${rupiah(min)}`}</div>
-        <small>${v.length} pilihan varian</small><small class="seller">👤 ${esc(sellers)}</small>${!storeOpenNow()?'<small class="hours closed">🔒 Toko sedang tutup</small>':v.every(x=>allSellersClosed(x))?'<small class="hours closed">🔒 Penjual sedang tutup</small>':""}
+        <small>${v.length} pilihan varian</small><small class="seller">👤 ${esc(sellers)}</small>${v.every(x=>allSellersClosed(x))?'<small class="hours closed">🔒 Penjual sedang tutup</small>':""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${first.id})">Detail</button>
           <button class="btn primary" onclick="showProduct(${first.id})">Pilih Varian</button>
@@ -392,7 +374,7 @@ function showProduct(id) {
   const variants=gname?products.filter(x=>isVisible(x)&&groupName(x).toLowerCase()===gname.toLowerCase()):[];
   const isGroup=variants.length>1;
   const tops=parseToppings(p), isBuilder=tops.length>0, tLimit=Number(p.topping_limit)||0;
-  const sold=p.status!=="Show", storeShut=!sold&&!storeOpenNow(), closedNow=!sold&&!storeShut&&!inOwnHours(p), sellerShut=!sold&&allSellersClosed(p), unavailable=sold||storeShut||closedNow||sellerShut;
+  const sold=p.status!=="Show", closedNow=!sold&&!isInHours(p), sellerShut=!sold&&allSellersClosed(p), unavailable=sold||closedNow||sellerShut;
   document.getElementById("productDetail").innerHTML=`
     <div class="detail">
       <div class="detail-img"><img src="${getProductImage(p.image)}" alt="${p.name}" onerror="this.style.display='none'"></div>
@@ -402,8 +384,8 @@ function showProduct(id) {
         ${isGroup?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker">${variants.map(v=>`<button type="button" class="variant-chip${v.id===p.id?" active":""}" onclick="showProduct(${v.id})"><b>${esc(variantLabel(v))}</b><small>${isSoldOut(v)?"Habis":rupiah(currentPrice(v))}</small></button>`).join("")}</div></div>`:""}
         <div class="price">${isBuilder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <p>Satuan: ${p.unit}</p>
-        <p>${sold?"Stok habis.":storeShut?storeStatus().message:sellerShut?"Penjual sedang tutup, produk belum bisa dipesan.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
-        ${hasHours(p)?`<p class="hours-line${!inOwnHours(p)?" closed":""}">🕒 Tersedia setiap hari pukul ${hoursText(p)}</p>`:""}${storeHours.enabled&&storeStatus().range?`<p class="hours-line${storeShut?" closed":""}">🏪 Jam toko ${storeStatus().range}</p>`:""}
+        <p>${sold?"Stok habis.":sellerShut?"Penjual sedang tutup, produk belum bisa dipesan.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
+        ${hasHours(p)?`<p class="hours-line${closedNow?" closed":""}">🕒 Tersedia setiap hari pukul ${hoursText(p)}</p>`:""}
         ${unavailable?"":`<div class="seller-pick"><span class="seller-pick-title">Pilih Toko</span><div id="sellerPicker" class="seller-picker">${detailSellers.map((n,i)=>`<button type="button" class="seller-chip${detailSeller===n?" active":""}" onclick="selectDetailSeller(${i})">🏪 ${esc(n)}</button>`).join("")}</div></div>
         ${isBuilder?`<div class="topping-box"><span class="seller-pick-title">Pilih Topping${tLimit?` <small>(total maks ${rupiah(tLimit)} per porsi)</small>`:""}</span><div class="topping-list">${tops.map((t,i)=>`<div class="topping-row">${t.img?`<img class="topping-img" src="${esc(t.img)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">`:""}<div class="topping-info"><b>${esc(t.name)}</b><small>${rupiah(t.price)}</small></div><div class="qty"><button type="button" onclick="changeTopping(${i},-1)" aria-label="Kurangi ${esc(t.name)}">−</button><b id="tq-${i}">0</b><button type="button" onclick="changeTopping(${i},1)" aria-label="Tambah ${esc(t.name)}">+</button></div></div>`).join("")}</div><div id="toppingTotal" class="topping-total"></div></div>`:""}
         <div class="detail-qty"><span>Jumlah</span><div class="qty"><button type="button" onclick="changeDetailQty(${p.id},-1)" aria-label="Kurangi jumlah">−</button><b id="detailQtyValue">1</b><button type="button" onclick="changeDetailQty(${p.id},1)" aria-label="Tambah jumlah">+</button></div></div>`}
@@ -415,8 +397,7 @@ function showProduct(id) {
 }
 function addToCart(id,qty=1,seller,custom) {
   const p=products.find(x=>x.id===id); if(!p||p.status!=="Show"){if(p&&isSoldOut(p))showToast(`${p.name} sedang habis`);return;}
-  if(!storeOpenNow()){showToast(storeStatus().message);return;}
-  if(!inOwnHours(p)){showToast(`${p.name} tersedia pukul ${hoursText(p)}`);return;}
+  if(!isInHours(p)){showToast(`${p.name} tersedia pukul ${hoursText(p)}`);return;}
   if(allSellersClosed(p)){showToast("Penjual sedang tutup");return;}
   if(seller&&sellerClosed(seller)){showToast(`${seller} sedang tutup`);return;}
   if(!custom&&parseToppings(p).length){showProduct(id);showToast("Pilih topping dulu");return;}
@@ -460,7 +441,7 @@ function cartData() {
   }).filter(Boolean);
 }
 function renderCart() {
-  const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),shipping=items.length?SHIPPING_COST:0;
+  const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),shipping=shippingTotal(items),ships=shippingBreakdown(items);
   document.getElementById("cartItems").innerHTML=items.length?items.map(p=>`
     <div class="cart-row"><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div><div class="cart-seller">🏪 ${esc(p.seller)}${allSellersClosed(p)?' • <b style="color:#b3261e">Tutup</b>':""}</div></div>
     <div class="qty"><button onclick="changeQty(${p.idx},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.idx},1)">+</button></div>
@@ -468,6 +449,10 @@ function renderCart() {
   document.getElementById("cartItemLabel").textContent=`${cart.reduce((s,i)=>s+i.qty,0)} item`;
   document.getElementById("cartSubtotal").textContent=rupiah(subtotal);
   document.getElementById("cartShipping").textContent=rupiah(shipping);
+  {const row=document.getElementById("cartShipping").parentElement;let bd=document.getElementById("cartShipBreakdown");
+   if(!bd){bd=document.createElement("div");bd.id="cartShipBreakdown";bd.className="ship-breakdown";row.insertAdjacentElement("afterend",bd);}
+   bd.hidden=!ships.length;
+   bd.innerHTML=ships.length?`<div class="ship-head">Rincian ongkir · ${ships.length} toko</div>${ships.map(x=>`<div class="ship-row"><span>🏪 ${esc(x.name)}</span><b>${x.fee>0?rupiah(x.fee):"Gratis"}</b></div>`).join("")}<p class="ship-note">ℹ️ Ongkir dihitung <b>per toko</b>, bukan per produk. Belanja dari ${ships.length>1?`${ships.length} toko berarti ongkir dikenakan ${ships.length} kali`:"1 toko berarti 1 kali ongkir"}; beberapa produk dari toko yang sama hanya kena satu ongkir.</p>`:"";}
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutBtn").disabled=!items.length;
@@ -534,13 +519,13 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!cart.length)return;
   await Promise.all([loadCloudSettings(),refreshProductStatus()]);
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
-  const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
+  const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),ships=shippingBreakdown(items),shipping=ships.reduce((t,x)=>t+x.fee,0),total=subtotal+shipping;
   const phone=String(f.get("phone")||"").trim();
   const orderCode=makeOrderCode();
   const createdAt=new Date().toISOString();
   const detail=items.map(p=>`- ${p.name} (Toko: ${p.seller}) x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
-  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(SHIPPING_COST)}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${phone}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
-  const payload={order_code:orderCode,created_at:createdAt,customer_name:String(f.get("name")||""),customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address:String(f.get("address")||""),note:String(f.get("note")||""),payment:String(f.get("payment")||""),items,subtotal,shipping:SHIPPING_COST,total,status:"menunggu"};
+  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(shipping)}${ships.length?"\n"+ships.map(x=>`  • ${x.name}: ${rupiah(x.fee)}`).join("\n")+"\n  (ongkir dihitung per toko)":""}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${phone}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
+  const payload={order_code:orderCode,created_at:createdAt,customer_name:String(f.get("name")||""),customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address:String(f.get("address")||""),note:String(f.get("note")||""),payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu"};
 
   // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi pesanan.
   const local=getLocalOrders(); local.unshift({...payload,id:`local-${Date.now()}`}); saveLocalOrders(local);
@@ -566,7 +551,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
 
 document.getElementById("year").textContent=new Date().getFullYear();
 renderCategories();renderProducts();updateCartCount();renderCart();
-(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); renderStoreBanner(); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
+(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
 
 // ===== ADMIN DASHBOARD V6 =====
 let adminLoggedIn = false;
@@ -629,7 +614,9 @@ function addAdminProduct(){
 function setProductStatus(i,status){if(!products[i]||products[i].status===status)return;products[i].status=status;saveProducts();syncCloudProducts();renderProducts();renderCategories();renderCart();renderAdminProducts();showToast(({"Show":"Produk ditampilkan","Sold Out":"Produk ditandai stok habis","Hidden":"Produk disembunyikan"})[status]);}
 function deleteAdminProduct(i){if(!confirm(`Hapus ${products[i].name}?`))return;products.splice(i,1);saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dihapus");}
 document.getElementById("menuBtn").onclick=openAdmin;
-document.getElementById("adminLoginBtn").onclick=()=>{if(document.getElementById("adminPin").value===ADMIN_PIN){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil")}else showToast("PIN admin salah")};
+document.getElementById("adminLoginBtn").onclick=async()=>{const v=document.getElementById("adminPin").value;try{await loadCloudSettings();}catch{}if(await checkAdminPin(v)){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil")}else showToast("Kode admin salah")};
+// Kolom kode admin: pastikan bisa menerima kode 4-12 karakter (tanpa batas panjang/pola bawaan HTML).
+{const pi=document.getElementById("adminPin");if(pi){pi.removeAttribute("maxlength");pi.removeAttribute("pattern");pi.type="password";pi.setAttribute("autocomplete","off");}}
 document.getElementById("addProductBtn").onclick=addAdminProduct;
 document.getElementById("exportBtn").onclick=()=>{const blob=new Blob([JSON.stringify(products,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kalensari-products.json";a.click();URL.revokeObjectURL(a.href)};
 document.getElementById("importFile").onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!Array.isArray(data))throw Error();products=data.map((p,i)=>({...p,id:Number(p.id)||i+1}));saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk berhasil diimpor")}catch{showToast("File produk tidak valid")}};r.readAsText(file)};
@@ -731,8 +718,28 @@ document.getElementById("manageOrdersBtn")?.addEventListener("click",()=>{closeM
 document.getElementById("refreshOrdersBtn")?.addEventListener("click",renderAdminOrders);
 const __openAdmin=openAdmin; openAdmin=function(){__openAdmin();};
 
-document.getElementById("waHero")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin bertanya tentang produk.")}`);
+setupHeroButtons();
 document.getElementById("waFloat")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin memesan.")}`);
+// Tombol hero: [Belanja Sekarang] [Info Santunan] [Penyedia Jasa]
+// "Info Santunan" menggantikan tombol Chat WhatsApp lama (#waHero); "Penyedia Jasa" disisipkan di sebelahnya.
+// Keduanya membuka WhatsApp ke nomor toko (Admin > Ongkir) dengan pesan yang sudah terisi.
+function setupHeroButtons(){
+  const info=document.getElementById("waHero");if(!info)return;
+  const wa=t=>`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t)}`;
+  info.textContent="Info Santunan";
+  info.setAttribute("href",wa("Halo KALENSARI STORE, saya ingin bertanya tentang info santunan."));
+  let jasa=document.getElementById("jasaHero");
+  if(!jasa){jasa=info.cloneNode(false);jasa.id="jasaHero";jasa.classList.add("hero-jasa");info.insertAdjacentElement("afterend",jasa);}
+  jasa.textContent="Penyedia Jasa";
+  jasa.setAttribute("href",wa("Halo KALENSARI STORE, saya ingin bertanya tentang penyedia jasa."));
+}
+// Perbarui semua tautan WhatsApp statis setelah nomor diubah / dimuat dari database.
+function applyWaLinks(){
+  const q=t=>`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t)}`;
+  const g=document.getElementById("waGeneral");if(g)g.href=q("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
+  setupHeroButtons();
+  document.getElementById("waFloat")?.setAttribute("href",q("Halo KALENSARI STORE, saya ingin memesan."));
+}
 function getProductImage(imagePath) {
   if (!imagePath) return "";
 
@@ -888,7 +895,7 @@ function getProductImage(imagePath) {
 })();
 
 // Perbarui status jam tersedia di daftar produk setiap 1 menit.
-setInterval(()=>{ if(storeHours.enabled||products.some(hasHours)){ renderStoreBanner(); renderProducts(); renderCart(); } },60000);
+setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
 
 
 // ===== ADMIN: + Kategori & Penjual (buka/tutup) =====
@@ -896,12 +903,11 @@ setInterval(()=>{ if(storeHours.enabled||products.some(hasHours)){ renderStoreBa
   const exp=document.getElementById("exportBtn"), list=document.getElementById("adminProductList");
   if(!exp||!list)return;
   const mk=(id,text)=>{const b=document.createElement("button");b.type="button";b.id=id;b.className=exp.className;b.textContent=text;return b;};
-  const bCat=mk("manageCatBtn","+ Kategori"), bSel=mk("manageSellerBtn","🏪 Penjual"), bHours=mk("manageHoursBtn","🕒 Jam Toko");
-  exp.insertAdjacentElement("afterend",bSel); exp.insertAdjacentElement("afterend",bCat); bSel.insertAdjacentElement("afterend",bHours);
-  let draft=null;
+  const bCat=mk("manageCatBtn","+ Kategori"), bSel=mk("manageSellerBtn","🏪 Penjual"), bShip=mk("manageShipBtn","🚚 Ongkir");
+  exp.insertAdjacentElement("afterend",bShip); exp.insertAdjacentElement("afterend",bSel); exp.insertAdjacentElement("afterend",bCat);
   const panel=document.createElement("div"); panel.id="adminExtra"; panel.className="admin-extra"; panel.hidden=true;
   list.parentNode.insertBefore(panel,list);
-  let mode="";
+  let mode="", selectedCat="";
   const usedBy=c=>products.filter(p=>p.category===c).length;
   function sellerRows(){
     const map=new Map();
@@ -909,42 +915,30 @@ setInterval(()=>{ if(storeHours.enabled||products.some(hasHours)){ renderStoreBa
     return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,"id"));
   }
   function render(){
-    panel.hidden=!mode;
-    bCat.classList.toggle("active",mode==="cat"); bSel.classList.toggle("active",mode==="seller"); bHours.classList.toggle("active",mode==="hours");
+    panel.hidden=!mode; panel.classList.toggle("blue",mode==="ship");
+    bCat.classList.toggle("active",mode==="cat"); bSel.classList.toggle("active",mode==="seller"); bShip.classList.toggle("active",mode==="ship");
     if(mode==="cat"){
       panel.innerHTML=`<div class="extra-head"><h4>🏷️ Kategori</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
         <div class="extra-row"><input id="newCatInput" maxlength="30" placeholder="Nama kategori baru, mis. Jajanan"><button type="button" class="btn primary" data-act="addcat">Tambah</button></div>
-        <div class="extra-chips">${allCategories().map(c=>{const custom=customCategories.includes(c);return `<span class="extra-chip${custom?" custom":""}">${esc(c)}${custom?`<button type="button" data-act="delcat" data-name="${esc(c)}" aria-label="Hapus kategori ${esc(c)}">✕</button>`:""}</span>`;}).join("")}</div>
-        <p class="admin-hint">Kategori baru langsung muncul di pilihan Kategori saat Edit produk. Kategori baru tampil di halaman pembeli setelah ada produk di dalamnya.</p>`;
+        <div class="extra-cat-area"><div class="extra-chips">${allCategories().map(c=>`<button type="button" class="extra-chip${c===selectedCat?" selected":""}" data-act="selcat" data-name="${esc(c)}" aria-pressed="${c===selectedCat}">${esc(c)}</button>`).join("")}</div><button type="button" class="btn extra-del" data-act="delcat" ${selectedCat?"":"disabled"} title="${selectedCat?`Hapus kategori ${esc(selectedCat)}`:"Klik salah satu kategori dulu"}">Hapus</button></div>
+        <p class="admin-hint">Klik nama kategori lalu tekan <b>Hapus</b> untuk menghapusnya (hanya bisa jika tidak ada produk di dalamnya). Kategori baru langsung muncul di pilihan Kategori saat Edit produk. Kategori baru tampil di halaman pembeli setelah ada produk di dalamnya.</p>`;
     } else if(mode==="seller"){
       const rows=sellerRows();
       panel.innerHTML=`<div class="extra-head"><h4>🏪 Status Penjual</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
         <p class="admin-hint">Jika penjual ditandai <b>Tutup</b>, semua produknya tidak bisa dipesan sampai dibuka lagi.</p>
         <div class="seller-status-list">${rows.map(r=>{const c=sellerClosed(r.name);return `<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><div class="seg"><button type="button" class="${c?"":"on-open"}" data-act="open" data-name="${esc(r.name)}">Buka</button><button type="button" class="${c?"on-closed":""}" data-act="close-seller" data-name="${esc(r.name)}">Tutup</button></div></div>`;}).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>`;
-    } else if(mode==="hours"){
-      const H=draft, st=storeStatus();
-      panel.innerHTML=`<div class="extra-head"><h4>🕒 Jam Toko</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
-        <label class="hours-switch"><input type="checkbox" id="sh-enabled" ${H.enabled?"checked":""}> Aktifkan jam buka &amp; hari libur toko</label>
-        <div class="hours-grid"><label>Jam buka<input type="time" id="sh-open" value="${esc(H.open)}"></label><label>Jam tutup<input type="time" id="sh-close" value="${esc(H.close)}"></label></div>
-        <div class="hours-sub">Libur tiap minggu</div>
-        <div class="day-picks">${[1,2,3,4,5,6,0].map(d=>`<label class="day-pick"><input type="checkbox" class="sh-day" value="${d}" ${H.offDays.includes(d)?"checked":""}><span>${DAY_NAMES[d]}</span></label>`).join("")}</div>
-        <div class="hours-sub">Libur tanggal tertentu</div>
-        <div class="extra-row"><input type="date" id="sh-hdate"><input id="sh-hnote" maxlength="40" placeholder="Keterangan (opsional)"><button type="button" class="btn outline" data-act="addhol">Tambah</button></div>
-        <div class="extra-chips">${H.holidays.map(h=>`<span class="extra-chip${h.date<wibDate()?"":" custom"}">${fmtDateID(h.date)}${h.note?` • ${esc(h.note)}`:""}<button type="button" data-act="delhol" data-date="${h.date}" aria-label="Hapus libur ${fmtDateID(h.date)}">✕</button></span>`).join("")||'<small class="admin-hint">Belum ada tanggal libur.</small>'}</div>
-        <button type="button" class="btn primary" data-act="savehours">Simpan Jam Toko</button>
-        <p class="admin-hint">Status toko sekarang: <b>${st.open?"BUKA":"TUTUP"}</b>${st.open?"":" — "+esc(st.message)}<br>Di luar jam buka atau saat libur, semua produk tidak bisa dipesan. Produk yang punya jam tersedia sendiri hanya bisa dipesan saat toko buka <i>dan</i> dalam jam produknya.</p>`;
+    } else if(mode==="ship"){
+      const rows=sellerRows();
+      panel.innerHTML=`<div class="extra-head"><h4>🚚 Ongkir & WhatsApp</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
+        <div class="fee-default"><label>💬 Nomor WhatsApp toko<span class="wa-row"><input id="waInput" type="tel" inputmode="tel" maxlength="20" placeholder="08123456789" value="${esc(WHATSAPP_NUMBER)}"><button type="button" class="btn primary" data-act="savewa">Simpan</button></span></label><small>Semua tombol WhatsApp dan pesanan checkout dikirim ke nomor ini. Boleh ditulis 08… atau 62… (otomatis diubah ke format 62…).</small></div>
+        <div class="fee-default pin-card"><b>🔐 Kode admin</b><div class="pin-grid"><input id="pinOld" type="password" autocomplete="off" placeholder="Kode lama"><input id="pinNew" type="password" autocomplete="new-password" maxlength="12" placeholder="Kode baru (4–12 karakter)"><input id="pinNew2" type="password" autocomplete="new-password" maxlength="12" placeholder="Ulangi kode baru"><button type="button" class="btn primary" data-act="savepin">Ganti Kode</button></div><small>Kode ini dipakai untuk membuka Dashboard Admin. Kode lama diminta dulu sebelum diganti. Kode bawaan: 1234 — segera ganti.</small></div>
+        <div class="fee-default"><label>🚚 Ongkir standar per toko (Rp)<input type="number" inputmode="numeric" min="0" step="500" data-act="fee-default" value="${Number(shippingFees.__default)||0}"></label><small>Dipakai untuk toko yang tarifnya dikosongkan. Pembeli dari 2 toko = 2 × ongkir.</small></div>
+        <div class="seller-status-list">${rows.map(r=>`<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><label class="fee-field">Ongkir Rp<input type="number" inputmode="numeric" min="0" step="500" data-act="fee" data-name="${esc(r.name)}" placeholder="${shippingFeeFor("")}" value="${shippingFees[sellerKey(r.name)]??""}"></label></div>`).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>
+        <p class="admin-hint">Kolom ongkir toko yang dikosongkan memakai tarif standar. Isi <b>0</b> untuk toko yang gratis ongkir.</p>`;
     } else panel.innerHTML="";
   }
-  const toggle=m=>{mode=mode===m?"":m;render();if(mode==="cat")document.getElementById("newCatInput")?.focus();};
-  bCat.onclick=()=>toggle("cat"); bSel.onclick=()=>toggle("seller");
-  bHours.onclick=()=>{if(mode!=="hours")draft=JSON.parse(JSON.stringify(storeHours));toggle("hours");};
-  function readForm(){
-    if(!draft||!document.getElementById("sh-enabled"))return;
-    draft.enabled=document.getElementById("sh-enabled").checked;
-    draft.open=document.getElementById("sh-open").value||draft.open;
-    draft.close=document.getElementById("sh-close").value||draft.close;
-    draft.offDays=[...panel.querySelectorAll(".sh-day:checked")].map(x=>Number(x.value));
-  }
+  const toggle=m=>{mode=mode===m?"":m;selectedCat="";render();if(mode==="cat")document.getElementById("newCatInput")?.focus();};
+  bCat.onclick=()=>toggle("cat"); bSel.onclick=()=>toggle("seller"); bShip.onclick=()=>toggle("ship");
   async function persist(msg){
     const ok=await saveStoreSettings();
     showToast(ok||!CLOUD_CONFIG?.enabled?msg:msg+" (belum tersimpan online)");
@@ -953,49 +947,57 @@ setInterval(()=>{ if(storeHours.enabled||products.some(hasHours)){ renderStoreBa
   panel.addEventListener("click",async e=>{
     const t=e.target.closest("[data-act]");if(!t)return;
     const act=t.dataset.act, name=t.dataset.name;
-    if(act==="close"){mode="";render();return;}
+    if(act==="close"){mode="";selectedCat="";render();return;}
+    if(act==="savewa"){
+      const inp=document.getElementById("waInput"),n=normalizePhone(inp.value);
+      if(n.length<9||n.length>15){showToast("Nomor WhatsApp tidak valid");inp.focus();return;}
+      WHATSAPP_NUMBER=n;inp.value=n;applyWaLinks();
+      await persist(`Nomor WhatsApp diubah ke ${n}`);return;
+    }
+    if(act==="savepin"){
+      const g=id=>document.getElementById(id),o=g("pinOld").value,n=g("pinNew").value,n2=g("pinNew2").value;
+      if(!(await checkAdminPin(o))){showToast("Kode admin lama salah");g("pinOld").focus();return;}
+      if(n.length<4||n.length>12){showToast("Kode baru harus 4–12 karakter");g("pinNew").focus();return;}
+      if(n!==n2){showToast("Kode baru dan ulangannya tidak sama");g("pinNew2").focus();return;}
+      if(n===o){showToast("Kode baru sama dengan kode lama");g("pinNew").focus();return;}
+      try{adminPinHash=await hashPin(n);}catch{showToast("Browser ini tidak mendukung penyimpanan kode aman");return;}
+      ["pinOld","pinNew","pinNew2"].forEach(id=>{g(id).value="";});
+      await persist("Kode admin berhasil diganti");return;
+    }
+    if(act==="selcat"){selectedCat=selectedCat===name?"":name;render();return;}
     if(act==="addcat"){
       const inp=document.getElementById("newCatInput"), v=inp.value.replace(/\s+/g," ").trim();
       if(!v){showToast("Isi nama kategori dulu");return;}
       if(allCategories().some(c=>c.toLowerCase()===v.toLowerCase())){showToast("Kategori itu sudah ada");return;}
-      customCategories.push(v); render();
+      customCategories.push(v); removedCategories=removedCategories.filter(c=>c!==v); selectedCat=""; render();
       document.querySelectorAll('select[id^="e-cat-"]').forEach(sel=>{if(![...sel.options].some(o=>o.value===v))sel.add(new Option(v,v));});
       await persist(`Kategori "${v}" ditambahkan`);return;
     }
     if(act==="delcat"){
+      const name=selectedCat;
+      if(!name){showToast("Klik salah satu kategori dulu");return;}
       if(usedBy(name)){alert(`Kategori "${name}" masih dipakai ${usedBy(name)} produk. Pindahkan produknya dulu.`);return;}
       if(!confirm(`Hapus kategori "${name}"?`))return;
-      customCategories=customCategories.filter(c=>c!==name); render(); await persist("Kategori dihapus");return;
-    }
-    if(act==="addhol"){
-      readForm();
-      const d=document.getElementById("sh-hdate").value, note=document.getElementById("sh-hnote").value.trim();
-      if(!d){showToast("Pilih tanggal liburnya dulu");return;}
-      if(draft.holidays.some(h=>h.date===d)){showToast("Tanggal itu sudah ada");return;}
-      draft.holidays.push({date:d,note}); draft.holidays.sort((a,b)=>a.date.localeCompare(b.date)); render(); return;
-    }
-    if(act==="delhol"){readForm();draft.holidays=draft.holidays.filter(h=>h.date!==t.dataset.date);render();return;}
-    if(act==="savehours"){
-      readForm();
-      if(draft.enabled&&(timeToMin(draft.open)===null||timeToMin(draft.close)===null)){showToast("Isi jam buka dan jam tutup dulu");return;}
-      storeHours=normStoreHours(draft); draft=JSON.parse(JSON.stringify(storeHours)); render(); refreshStoreUI();
-      await persist("Jam toko disimpan"); return;
+      customCategories=customCategories.filter(c=>c!==name);
+      if(!removedCategories.includes(name))removedCategories.push(name);
+      selectedCat=""; render();
+      document.querySelectorAll('select[id^="e-cat-"]').forEach(sel=>{[...sel.options].forEach(o=>{if(o.value===name&&!o.selected)o.remove();});});
+      await persist(`Kategori "${name}" dihapus`);return;
     }
     if(act==="open"){delete closedSellers[sellerKey(name)];render();afterSellerChange();await persist(`${name} dibuka`);return;}
     if(act==="close-seller"){closedSellers[sellerKey(name)]=true;render();afterSellerChange();await persist(`${name} ditutup, produknya tidak bisa dipesan`);return;}
   });
-  panel.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="newCatInput"){e.preventDefault();panel.querySelector('[data-act="addcat"]').click();}});
+  panel.addEventListener("change",async e=>{
+    const t=e.target.closest("[data-act]");if(!t)return;
+    const act=t.dataset.act;if(act!=="fee"&&act!=="fee-default")return;
+    const raw=String(t.value).trim(),n=Math.max(0,Math.round(Number(raw)||0));
+    if(act==="fee-default"){shippingFees.__default=n;t.value=n;}
+    else{const k=sellerKey(t.dataset.name);if(raw==="")delete shippingFees[k];else{shippingFees[k]=n;t.value=n;}}
+    if(act==="fee-default")panel.querySelectorAll('input[data-act="fee"]').forEach(i=>i.placeholder=n);
+    renderCart();
+    await persist(act==="fee-default"?`Ongkir standar ${rupiah(n)} per toko`:`Ongkir ${t.dataset.name}: ${raw===""?"pakai tarif standar":rupiah(n)}`);
+  });
+  panel.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="newCatInput"){e.preventDefault();panel.querySelector('[data-act="addcat"]').click();}
+    if(e.key==="Enter"&&["pinOld","pinNew","pinNew2"].includes(e.target.id)){e.preventDefault();panel.querySelector('[data-act="savepin"]').click();}
+    if(e.key==="Enter"&&e.target.id==="waInput"){e.preventDefault();panel.querySelector('[data-act="savewa"]').click();}});
 })();
-
-
-// ===== Banner status toko =====
-function renderStoreBanner(){
-  let b=document.getElementById("storeBanner");
-  if(!storeHours.enabled){if(b)b.remove();return;}
-  const st=storeStatus();
-  if(!b){b=document.createElement("div");b.id="storeBanner";document.body.insertBefore(b,document.body.firstChild);}
-  b.className="store-banner "+(st.open?"open":"closed");
-  b.textContent=(st.open?"🟢 ":"🔴 ")+st.message;
-}
-function refreshStoreUI(){renderStoreBanner();renderProducts();renderCart();}
-if(document.body)renderStoreBanner();
