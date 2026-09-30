@@ -1,6 +1,6 @@
 // KALENSARI STORE
-const WHATSAPP_NUMBER = "6282114541041";
-const SHIPPING_COST = 6000;
+const WHATSAPP_NUMBER = "6281234567890";
+const SHIPPING_COST = 0;
 const DEFAULT_PRODUCTS = [{"id":1,"name":"Lotek Bongko","price":12000,"sale":8000,"category":"Makanan","unit":"1 porsi","seller":"Teh Ida","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/o-fvve-chatgpt%20image%20sep%2028%2C%202026%2C%2005_14_09%20am.png?versionId=sSlnWC5X3v6SfdE8SJ7kfFpkAAtYEG66"},{"id":2,"name":"Bakso Sapi Biasa","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/pf0do4-chatgpt%20image%20sep%2028%2C%202026%2C%2006_23_05%20am.png?versionId=LvDf81yvhC2OIgUPloRKlaBbRFi.9BuH"},{"id":3,"name":"MIe ayam Pedas","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"H. Diman, Mang Edo, Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/0qg0at-chatgpt%20image%20sep%2028%2C%202026%2C%2002_03_31%20pm.png?versionId=EH1aAjwRvQd3dMY93ItbAgINe5lzjnTw"},{"id":4,"name":"MIe ayam Biasa","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"H. Diman, Mang Edo, Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/m5q9je-chatgpt%20image%20sep%2028%2C%202026%2C%2002_02_42%20pm.png?versionId=Lci_mH9SOmBpD2nCjBV_Z_o_XXpxpW8v"},{"id":5,"name":"Bakso Tulang","price":25000,"sale":18000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Out of Stock","image":"https://cdn.store.link/products/kalensaristore80353/agx1iw-chatgpt%20image%20sep%2028%2C%202026%2C%2006_29_33%20am.png?versionId=1n1pJ2ilQgM4jrhR5X_0LEG9mB.lTmg8"},{"id":6,"name":"Bakso Telur","price":12000,"sale":10000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/8a69b3-chatgpt%20image%20sep%2028%2C%202026%2C%2006_34_03%20am.png?versionId=m_nc2BhsK7d4LdKAPdxnMAiRHAV.Q2qB"},{"id":7,"name":"Bakso Urat","price":18000,"sale":15000,"category":"Makanan","unit":"1 porsi","seller":"Zyan Bakso","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/obbajp-chatgpt%20image%20sep%2028%2C%202026%2C%2006_36_33%20am.png?versionId=h_Evc0EcQtdz4PFbFk8aZey0jgRRXZ.p"},{"id":8,"name":"Jus Alpukat","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/3x8j0a-chatgpt%20image%20sep%2028%2C%202026%2C%2006_52_41%20am.png?versionId=eKLzC7y3fgCWrkTSAdcaLHEyEYAdZMsh"},{"id":9,"name":"Jus Buah Naga","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/p8vus5-chatgpt%20image%20sep%2028%2C%202026%2C%2007_22_02%20am.png?versionId=e6H7dwvYmMOZrI86QKN98dyVxHcc8V0M"},{"id":10,"name":"Jus Tomat","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/o4d1bt-chatgpt%20image%20sep%2028%2C%202026%2C%2007_20_47%20am.png?versionId=IbXRZdg2vp6bCuXJPch5YT7FgQZXXcRM"},{"id":11,"name":"Jus Mangga","price":10000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Teh Liya","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/lqk2sp-chatgpt%20image%20sep%2028%2C%202026%2C%2007_22_59%20am.png?versionId=FADsI7qbgepPpQt7XVGl901Q_3cKHFQW"},{"id":12,"name":"Es teh Manis","price":3000,"sale":null,"category":"Minuman","unit":"1 cup besar","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/abqncl-hops-3260267377.webp?versionId=P4DG3eGis6QyEzh9ZFQm3CBF8p9DEJwx"},{"id":13,"name":"Es teh Matcha Late","price":6000,"sale":null,"category":"Minuman","unit":"1 cup besar Rasa Greentea","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/c9c6rx-images%20%281%29.jpg?versionId=K0P2vQjt8SpfWctljxkmCkUO_8AfkYf2"},{"id":14,"name":"Es teh Matcha Premium","price":15000,"sale":12000,"category":"Minuman","unit":"1 cup besar Rasa Greentea","seller":"Tea DESA","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/bkv3a5-images.jpg?versionId=jKTeHTYDtwRD2qs6CWqYs9ZM2EBZ9emC"},{"id":15,"name":"Nasi Kebuli","price":25000,"sale":20000,"category":"Makanan","unit":"1 porsi","seller":"Teh iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/u4fafx-chatgpt%20image%20sep%2028%2C%202026%2C%2002_14_04%20pm.png?versionId=DHZD_c9LScH15.An7XpzcTJMrjDf0AJk"},{"id":16,"name":"Nasi Goreng","price":13000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Kang Diki Sueb","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/h38vn8-chatgpt%20image%20sep%2028%2C%202026%2C%2002_11_47%20pm.png?versionId=Q1UfoJozDqlb8kaNfjJqp6nKv74i_B3F"},{"id":17,"name":"Pecel Lele","price":15000,"sale":null,"category":"Makanan","unit":"Pecel Lele","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ota8dn-chatgpt%20image%20sep%2028%2C%202026%2C%2002_25_58%20pm.png?versionId=JUVeTbSTZiWtp5heJSYA9RlF7OmxzgOE"},{"id":18,"name":"Pecel Lele + Nasi","price":20000,"sale":null,"category":"Makanan","unit":"Pecel Lele + Nasi","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ota8dn-chatgpt%20image%20sep%2028%2C%202026%2C%2002_25_58%20pm.png?versionId=JUVeTbSTZiWtp5heJSYA9RlF7OmxzgOE"},{"id":19,"name":"Pecel Ayam","price":20000,"sale":null,"category":"Makanan","unit":"Pecel Ayam","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/s1j6xi-chatgpt%20image%20sep%2028%2C%202026%2C%2002_24_40%20pm.png?versionId=daNVkTOKSqZw_EU5ERJdtgZb57aN5VWx"},{"id":20,"name":"Pecel Ayam + Nasi","price":25000,"sale":null,"category":"Makanan","unit":"Pecel Ayam + Nasi","seller":"Mang Tardug","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/s1j6xi-chatgpt%20image%20sep%2028%2C%202026%2C%2002_24_40%20pm.png?versionId=daNVkTOKSqZw_EU5ERJdtgZb57aN5VWx"},{"id":21,"name":"Fried Chiken","price":10000,"sale":null,"category":"Makanan","unit":"Ayam Goreng Tepung","seller":"Warga Kalensari","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/q38c2x-chatgpt%20image%20sep%2028%2C%202026%2C%2002_23_43%20pm.png?versionId=RR2yA7Iutiz2jXiFwJNUzApiqzE7ItsL"},{"id":22,"name":"Soto Ayam","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Sate Madura","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/4io072-chatgpt%20image%20sep%2028%2C%202026%2C%2002_22_28%20pm.png?versionId=48IdG9bl9fPErJcNUzMeAPrvhzOOe_qr"},{"id":23,"name":"Sate Ayam","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Sate Madura","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ewpn71-chatgpt%20image%20sep%2028%2C%202026%2C%2002_18_51%20pm.png?versionId=X09ZJ.tPJyqr_LhYnZRngTpDFKIVqz0b"},{"id":24,"name":"Nasi Ayam Katsu","price":20000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Teh Iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/ievcoz-chatgpt%20image%20sep%2028%2C%202026%2C%2002_17_10%20pm.png?versionId=buhfyErVz0r0y_eaESh2AooKeylFdopS"},{"id":25,"name":"Spageti","price":10000,"sale":null,"category":"Makanan","unit":"1 porsi","seller":"Teh Iyoh","status":"Show","image":"https://cdn.store.link/products/kalensaristore80353/d62zqy-aa1408ce-c67d-4d63-aa67-12ec89b3c905.png?versionId=chUteSwuPamgkCgB_ORU_hnugVoqj8dW"}];
 
 const ADMIN_PIN = "1234";
@@ -43,62 +43,13 @@ async function syncCloudProducts(){
   } catch(e){ console.warn(e); updateCloudStatus("⚠️ Gagal sinkron. Data lokal tetap tersimpan."); }
 }
 function updateCloudStatus(text){const el=document.getElementById("cloudStatus");if(el)el.textContent=text;}
-// ===== SINKRON PESANAN HP <-> KOMPUTER =====
-// Supabase menjadi sumber data utama. localStorage hanya dipakai untuk cart/produk lokal.
-const ORDER_STATUS = {
-  baru: "menunggu",
-  menunggu: "menunggu",
-  diproses: "diproses",
-  dikirim: "dikirim",
-  selesai: "selesai"
-};
-const orderStatusLabel = status => {
-  const key = String(status || "menunggu").toLowerCase();
-  return ORDER_STATUS[key] || key;
-};
-const orderStatusText = status => ({
-  menunggu: "Menunggu",
-  diproses: "Diproses",
-  dikirim: "Dikirim",
-  selesai: "Selesai"
-}[orderStatusLabel(status)] || "Menunggu");
-
 async function saveCloudOrder(payload){
   if(!CLOUD_CONFIG?.enabled) return false;
-  try {
-    const clean = {...payload, status: orderStatusLabel(payload.status || "menunggu")};
-    await cloudFetch("orders",{method:"POST",body:JSON.stringify(clean)});
-    return true;
-  } catch(e){
-    console.warn("Supabase orders:",e);
-    return false;
-  }
+  try { await cloudFetch("orders",{method:"POST",body:JSON.stringify(payload)}); return true; } catch(e){ console.warn("Supabase orders:",e); return false; }
 }
-
 async function loadCloudOrders(){
   if(!CLOUD_CONFIG?.enabled) return [];
-  try {
-    return await cloudFetch("orders?select=*&order=created_at.desc&limit=100");
-  } catch(e){
-    console.warn("Supabase load orders:",e);
-    return [];
-  }
-}
-
-async function updateCloudOrderStatus(orderId, status){
-  if(!CLOUD_CONFIG?.enabled || orderId == null) return false;
-  try {
-    const cleanStatus = orderStatusLabel(status);
-    await cloudFetch(`orders?id=eq.${encodeURIComponent(orderId)}`,{
-      method:"PATCH",
-      headers:{"Prefer":"return=representation"},
-      body:JSON.stringify({status:cleanStatus})
-    });
-    return true;
-  } catch(e){
-    console.warn("Supabase update order:",e);
-    return false;
-  }
+  try { return await cloudFetch("orders?select=*&order=created_at.desc&limit=30"); } catch(e){ return []; }
 }
 
 
@@ -206,10 +157,23 @@ document.getElementById("checkoutForm").addEventListener("submit",e=>{
   const f=new FormData(e.target),items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
   const detail=items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
   const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(SHIPPING_COST)}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${f.get("phone")}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
+  // Simpan pesanan ke Supabase. Tidak mengganggu proses jika cloud sedang offline.
   saveCloudOrder({
-    customer_name:String(f.get("name")||""), customer_phone:String(f.get("phone")||""), address:String(f.get("address")||""), note:String(f.get("note")||""), payment:String(f.get("payment")||""), items, subtotal, shipping:SHIPPING_COST, total, status:"menunggu"
+    customer_name:String(f.get("name")||""), customer_phone:String(f.get("phone")||""), address:String(f.get("address")||""), note:String(f.get("note")||""), payment:String(f.get("payment")||""), items, subtotal, shipping:SHIPPING_COST, total, status:"baru"
   });
+
+  // Buka WhatsApp dengan detail pesanan.
   window.open(waLink(msg),"_blank");
+
+  // Setelah checkout berhasil dikirim, kosongkan keranjang perangkat ini.
+  // Ini juga menghapus data keranjang lama dari localStorage.
+  cart = [];
+  saveCart();
+  updateCartCount();
+  renderCart();
+  closeModal("checkoutModal");
+  showToast("Pesanan terkirim. Keranjang sudah dikosongkan.");
+  e.target.reset();
 });
 document.getElementById("year").textContent=new Date().getFullYear();
 renderCategories();renderProducts();updateCartCount();renderCart();
@@ -221,7 +185,7 @@ function openAdmin(){
   document.getElementById("adminPin").value="";
   document.getElementById("adminLogin").hidden=adminLoggedIn;
   document.getElementById("adminPanel").hidden=!adminLoggedIn;
-  if(adminLoggedIn) { renderAdminProducts(); renderAdminOrders(); }
+  if(adminLoggedIn) renderAdminProducts();
   openModal("adminModal");
 }
 function renderAdminProducts(){
@@ -259,7 +223,7 @@ function addAdminProduct(){
 function toggleAdminProduct(i){products[i].status=products[i].status==='Show'?'Out of Stock':'Show';saveProducts();syncCloudProducts();renderProducts();renderAdminProducts();}
 function deleteAdminProduct(i){if(!confirm(`Hapus ${products[i].name}?`))return;products.splice(i,1);saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dihapus");}
 document.getElementById("menuBtn").onclick=openAdmin;
-document.getElementById("adminLoginBtn").onclick=()=>{if(document.getElementById("adminPin").value===ADMIN_PIN){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();renderAdminOrders();showToast("Login admin berhasil")}else showToast("PIN admin salah")};
+document.getElementById("adminLoginBtn").onclick=()=>{if(document.getElementById("adminPin").value===ADMIN_PIN){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil")}else showToast("PIN admin salah")};
 document.getElementById("addProductBtn").onclick=addAdminProduct;
 document.getElementById("exportBtn").onclick=()=>{const blob=new Blob([JSON.stringify(products,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kalensari-products.json";a.click();URL.revokeObjectURL(a.href)};
 document.getElementById("importFile").onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!Array.isArray(data))throw Error();products=data.map((p,i)=>({...p,id:Number(p.id)||i+1}));saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk berhasil diimpor")}catch{showToast("File produk tidak valid")}};r.readAsText(file)};
@@ -267,86 +231,12 @@ document.getElementById("resetProductsBtn").onclick=()=>{if(!confirm("Kembalikan
 
 
 async function renderAdminOrders(){
-  const box=document.getElementById("adminOrderList");
-  if(!box)return;
-  if(!CLOUD_CONFIG?.enabled){
-    box.innerHTML='<div class="empty-state">☁️ Database online belum aktif. Periksa config.js.</div>';
-    return;
-  }
-
-  box.innerHTML='<div class="empty-state">☁️ Mengambil pesanan terbaru...</div>';
+  const box=document.getElementById("adminOrderList"); if(!box)return;
+  if(!CLOUD_CONFIG?.enabled){box.innerHTML='<div class="empty-state">☁️ Aktifkan database online untuk melihat pesanan dari semua perangkat.</div>';return;}
+  box.innerHTML='<div class="empty-state">Memuat pesanan...</div>';
   const rows=await loadCloudOrders();
-  if(!Array.isArray(rows)){
-    box.innerHTML='<div class="empty-state">⚠️ Pesanan gagal dimuat.</div>';
-    return;
-  }
-
-  const counts={menunggu:0,diproses:0,dikirim:0,selesai:0};
-  rows.forEach(o=>{ const st=orderStatusLabel(o.status); if(counts[st]!==undefined) counts[st]++; });
-
-  const summary=`
-    <div class="order-sync-summary" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0 14px;">
-      <div class="order-sync-card"><b>${counts.menunggu}</b><span>Menunggu</span></div>
-      <div class="order-sync-card"><b>${counts.diproses}</b><span>Diproses</span></div>
-      <div class="order-sync-card"><b>${counts.dikirim}</b><span>Dikirim</span></div>
-      <div class="order-sync-card"><b>${counts.selesai}</b><span>Selesai</span></div>
-    </div>`;
-
-  const cards=rows.length ? rows.map(o=>{
-    const st=orderStatusLabel(o.status);
-    const statusText=orderStatusText(st);
-    const items=Array.isArray(o.items)?o.items:[];
-    const orderId=o.id ?? o.order_id ?? o.kode ?? "";
-    return `<div class="admin-order" data-order-id="${esc(orderId)}">
-      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
-        <b>📦 ${esc(o.order_code || (orderId ? `KS${String(orderId).padStart(4,'0')}` : "Pesanan"))}</b>
-        <span class="admin-status">${statusText}</span>
-      </div>
-      <span>👤 ${esc(o.customer_name||"Pelanggan")} • ${esc(o.customer_phone||"")}</span>
-      <small>🕒 ${o.created_at ? new Date(o.created_at).toLocaleString("id-ID") : "-"}</small>
-      <strong>💰 ${rupiah(o.total||0)}</strong>
-      <p>${items.map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ") || "Tidak ada detail produk"}</p>
-      <label style="display:block;margin:8px 0 6px;"><b>Status Pesanan</b>
-        <select class="order-status-select" data-order-id="${esc(orderId)}" style="width:100%;margin-top:5px;">
-          <option value="menunggu" ${st==='menunggu'?'selected':''}>Menunggu</option>
-          <option value="diproses" ${st==='diproses'?'selected':''}>Diproses</option>
-          <option value="dikirim" ${st==='dikirim'?'selected':''}>Dikirim</option>
-          <option value="selesai" ${st==='selesai'?'selected':''}>Selesai</option>
-        </select>
-      </label>
-      <a class="btn outline" target="_blank" href="${waLink(`Halo ${o.customer_name||"Pelanggan"}, terkait pesanan KALENSARI STORE.`)}">💬 WhatsApp</a>
-    </div>`;
-  }).join("") : '<div class="empty-state">Belum ada pesanan online.</div>';
-
-  box.innerHTML=summary+cards;
-  box.querySelectorAll(".order-status-select").forEach(sel=>{
-    sel.addEventListener("change", async ()=>{
-      const orderId=sel.dataset.orderId;
-      const next=sel.value;
-      if(!orderId){ showToast("ID pesanan tidak ditemukan"); return; }
-      sel.disabled=true;
-      const ok=await updateCloudOrderStatus(orderId,next);
-      sel.disabled=false;
-      if(ok){
-        showToast(`Status pesanan diubah: ${orderStatusText(next)}`);
-        await renderAdminOrders();
-      }else{
-        showToast("Gagal menyimpan status. Jalankan SQL sinkronisasi Supabase.");
-        await renderAdminOrders();
-      }
-    });
-  });
+  box.innerHTML=rows.length?rows.map(o=>`<div class="admin-order"><b>${esc(o.customer_name||"Pelanggan")}</b><span>${esc(o.customer_phone||"")}</span><small>${new Date(o.created_at).toLocaleString("id-ID")}</small><strong>${rupiah(o.total||0)}</strong><p>${(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")}</p><a class="btn outline" target="_blank" href="${waLink(`Halo ${o.customer_name||"Pelanggan"}, terkait pesanan KALENSARI STORE.`)}">💬 WhatsApp</a></div>`).join(""):'<div class="empty-state">Belum ada pesanan online.</div>';
 }
-
-let orderSyncTimer=null;
-function startOrderAutoSync(){
-  if(orderSyncTimer) clearInterval(orderSyncTimer);
-  orderSyncTimer=setInterval(()=>{
-    if(adminLoggedIn && document.getElementById("adminModal")?.classList.contains("show")) renderAdminOrders();
-  },5000);
-}
-startOrderAutoSync();
-
 
 document.getElementById("refreshOrdersBtn")?.addEventListener("click",renderAdminOrders);
 const __openAdmin=openAdmin; openAdmin=function(){__openAdmin(); if(adminLoggedIn)renderAdminOrders();};
