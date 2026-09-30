@@ -722,16 +722,18 @@ setupHeroButtons();
 document.getElementById("waFloat")?.setAttribute("href", `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin memesan.")}`);
 // Tombol hero: [Belanja Sekarang] [Info Santunan] [Penyedia Jasa]
 // "Info Santunan" menggantikan tombol Chat WhatsApp lama (#waHero); "Penyedia Jasa" disisipkan di sebelahnya.
-// Keduanya membuka WhatsApp ke nomor toko (Admin > Ongkir) dengan pesan yang sudah terisi.
+// "Info Santunan" membuka halaman santunan.html (data dari Google Sheet); "Penyedia Jasa" membuka WhatsApp toko.
 function setupHeroButtons(){
   const info=document.getElementById("waHero");if(!info)return;
   const wa=t=>`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t)}`;
   info.textContent="Info Santunan";
-  info.setAttribute("href",wa("Halo KALENSARI STORE, saya ingin bertanya tentang info santunan."));
+  info.setAttribute("href","santunan.html");
+  info.removeAttribute("target");info.removeAttribute("rel");
   let jasa=document.getElementById("jasaHero");
   if(!jasa){jasa=info.cloneNode(false);jasa.id="jasaHero";jasa.classList.add("hero-jasa");info.insertAdjacentElement("afterend",jasa);}
   jasa.textContent="Penyedia Jasa";
   jasa.setAttribute("href",wa("Halo KALENSARI STORE, saya ingin bertanya tentang penyedia jasa."));
+  jasa.setAttribute("target","_blank");jasa.setAttribute("rel","noopener");
 }
 // Perbarui semua tautan WhatsApp statis setelah nomor diubah / dimuat dari database.
 function applyWaLinks(){

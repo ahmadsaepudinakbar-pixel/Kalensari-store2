@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Info Santunan - Kalensari</title>
+<style>
+:root{--br:#7a3e1d;--gr:#2a8a4a;--cr:#fffaf5;--ink:#2b1d14;--mut:#7a6a5e;--ln:#eadfd3}
+*{box-sizing:border-box}body{margin:0;font:16px/1.55 "Segoe UI",system-ui,sans-serif;background:var(--cr);color:var(--ink)}
+.w{max-width:960px;margin:0 auto;padding:0 18px}
+header{background:var(--br)}header .w{display:flex;justify-content:space-between;padding:12px 18px}
+header a{color:#fff;text-decoration:none;font-weight:600}
+h1,h2,.big{font-family:Georgia,serif;color:var(--br)}
+h1{font-size:clamp(28px,5vw,42px);line-height:1.15;margin:34px 0 6px}
+h2{font-size:26px;margin:0 0 14px}
+.big{font-size:clamp(40px,9vw,72px);font-weight:700;color:var(--gr);line-height:1;margin:14px 0 4px}
+section{padding:34px 0;border-top:1px solid var(--ln)}
+.mut{color:var(--mut);font-size:14px}
+.btn{display:inline-block;background:var(--gr);color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:600;border:0;font-size:15px;cursor:pointer}
+.btn:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--br);outline-offset:2px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.box{background:#fff;border:1px solid var(--ln);border-radius:12px;padding:16px}
+.box b{display:block;font:700 26px Georgia,serif;color:var(--br)}
+.chart{display:flex;gap:8px;align-items:flex-end;height:180px;padding:8px 0;border-bottom:2px solid var(--ln);overflow-x:auto}
+.col{flex:1;min-width:46px;text-align:center}.bars{height:150px;display:flex;gap:3px;align-items:flex-end;justify-content:center}
+.bars i{width:16px;border-radius:4px 4px 0 0;display:block}.in{background:var(--gr)}.ou{background:var(--br)}
+.lg span{display:inline-block;width:12px;height:12px;border-radius:3px;margin:0 4px 0 12px;vertical-align:-1px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px;margin-top:16px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--ln);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}
+.neg{color:#b3261e}select{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid var(--ln);margin-bottom:16px}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.gal figure{margin:0;background:#fff;border:1px solid var(--ln);border-radius:12px;overflow:hidden}
+.gal .m{aspect-ratio:4/3;background:#eee;display:block;width:100%;border:0;object-fit:cover;position:relative}
+.gal figcaption{padding:10px 12px;font-size:14px}
+.play{all:unset;cursor:pointer;display:block;position:relative;width:100%}.play:after{content:"\25B6";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:40px;text-shadow:0 2px 8px #000}
+details{margin-top:14px}summary{cursor:pointer;font-weight:600}
+li{margin:2px 0}.err{background:#fdecea;border:1px solid #f5c6c2;padding:12px;border-radius:10px}
+footer{padding:26px 0;text-align:center}
+</style></head><body>
+<header><div class="w"><a href="https://kalensari.web.id">&larr; Kalensari Store</a><span style="color:#fff">Info Santunan</span></div></header>
+<main class="w">
+<h1>Santunan anak yatim dan duafa Desa Kalensari</h1>
+<p class="mut">Semua data di halaman ini dibaca langsung dari catatan keuangan kami dan selalu sama dengan data terbaru.</p>
+<div class="mut" style="margin-top:22px">Uang kas saat ini</div>
+<div class="big" id="kas">...</div>
+<div class="mut" id="kasnote"></div>
+<p><a class="btn" href="#donasi">Donasi sekarang</a></p>
+
+<section id="donasi"><h2>Open donasi</h2><div id="rek"></div></section>
+<section><h2>Data keuangan 2026</h2><div id="fin">Memuat...</div></section>
+<section><h2>Data santunan</h2><div id="san">Memuat...</div></section>
+<section><h2>Dokumentasi</h2><div id="doc">Memuat...</div></section>
+</main>
+<footer class="mut">Sumber: Google Sheets pengurus. Nama penerima santunan tidak ditampilkan untuk menjaga privasi.</footer>
+
+<script>
+/* ===== ISI BAGIAN INI ===== */
+const C={
+ fin:'1-Hb348czC7N2NBvwM-BZmaTOSzdsDUZO9Nr_aX3qSYo', // Sheet keuangan
+ don:'1wN1ISCdPu5dbRbQjLeWvLYwGjZlk7AhzkZ6q7Tpcay0', // Sheet donatur bulanan
+ wa:'',   // nomor WhatsApp konfirmasi, contoh 6281234567890
+ rek:[]   // contoh: [{bank:'BRI',no:'1234567890',an:'Nama Pengurus'}]
+};
+const TAB=['Januari','Februari','Maret','Avril','mey','Juni','juli','Agustus','September','Oktober','November','Desember']; // nama tab persis di Sheet donatur
+/* ========================== */
+const MON=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=s=>{const n=String(s||'').replace(/[^\d-]/g,'');return n&&n!=='-'?parseInt(n,10):0};
+const rp=n=>(n<0?'-':'')+'Rp'+Math.abs(n).toLocaleString('id-ID');
+const cell=(r,i)=>String((r&&r[i])||'').trim();
+const sum=a=>a.reduce((x,y)=>x+y,0);
+function csv(t){const r=[];let row=[],c='',q=false;for(let i=0;i<t.length;i++){const h=t[i];if(q){if(h=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=h}else if(h=='"')q=true;else if(h==','){row.push(c);c='' }else if(h=='\n'){row.push(c);r.push(row);row=[];c=''}else if(h!='\r')c+=h}row.push(c);r.push(row);return r}
+async function get(id,sh){const r=await fetch(`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&headers=0&sheet=${encodeURIComponent(sh)}`);if(!r.ok)throw new Error(r.status);return csv(await r.text())}
+const fail=(el,m)=>{$(el).innerHTML=`<div class="err">${m||'Data belum bisa dimuat. Pastikan Google Sheet dibagikan dengan akses "Siapa saja yang memiliki link" (Pelihat), lalu muat ulang.'}</div>`};
+
+/* Donasi */
+(function(){const r=C.rek.map(x=>`<div class="box"><b>${esc(x.bank)}</b>${esc(x.no)}<br><span class="mut">a.n. ${esc(x.an)}</span></div>`).join('');
+$('#rek').innerHTML=(r?`<div class="grid">${r}</div>`:'<p class="mut">Nomor rekening akan segera ditampilkan.</p>')+
+ '<p>Setelah transfer, kirim bukti transfer agar donasi Anda dicatat.</p>'+(C.wa?`<a class="btn" href="https://wa.me/${C.wa}?text=${encodeURIComponent('Assalamualaikum, saya sudah donasi santunan. Berikut bukti transfernya.')}">Konfirmasi lewat WhatsApp</a>`:'')})();
+
+/* Keuangan */
+let lm=0;
+async function loadFin(){
+ const R=await get(C.fin,'Sheet1');
+ const mi=R.findIndex(r=>r.some(x=>x.trim().toLowerCase()=='januari'));
+ const j=R[mi].findIndex(x=>x.trim().toLowerCase()=='januari');
+ const pem=[],out={yatim:[],duafa:[],lain:[]};
+ for(let m=0;m<12;m++){pem.push(num(R[mi+1][j+m]));for(const k in out)out[k].push(0)}
+ const pe=R.findIndex((r,i)=>i>mi+1&&cell(r,2).toLowerCase()=='pengeluaran');
+ let t=R.findIndex((r,i)=>i>pe&&cell(r,2).toLowerCase().startsWith('total'));if(t<0)t=R.length;
+ let cat='lain';
+ for(let i=pe+1;i<t;i++){const l=cell(R[i],2).toLowerCase();if(l)cat=l.includes('yatim')?'yatim':l.includes('duafa')?'duafa':'lain';for(let m=0;m<12;m++)out[cat][m]+=num(R[i][j+m])}
+ const saldo=num(R[mi+1][0]);
+ pem.forEach((v,i)=>{if(v>0)lm=i});
+ const keluar=m=>out.yatim[m]+out.duafa[m]+out.lain[m];
+ let kas=saldo;for(let m=0;m<=lm;m++)kas+=pem[m]-keluar(m);
+ $('#kas').textContent=rp(kas);$('#kasnote').textContent=`Saldo awal tahun ${rp(saldo)}. Data sampai bulan ${MON[lm]}.`;
+ const mx=Math.max(...pem.slice(0,lm+1),...Array.from({length:lm+1},(_,m)=>keluar(m)),1);
+ let ch='',tb='';
+ for(let m=0;m<=lm;m++){const k=keluar(m),s=pem[m]-k;
+  ch+=`<div class="col"><div class="bars"><i class="in" style="height:${pem[m]/mx*100}%" title="Pemasukan ${rp(pem[m])}"></i><i class="ou" style="height:${k/mx*100}%" title="Pengeluaran ${rp(k)}"></i></div><span class="mut">${MON[m].slice(0,3)}</span></div>`;
+  tb+=`<tr><td>${MON[m]}</td><td>${rp(pem[m])}</td><td>${rp(out.yatim[m])}</td><td>${rp(out.duafa[m])}</td><td>${rp(out.lain[m])}</td><td class="${s<0?'neg':''}">${rp(s)}</td></tr>`}
+ const T=a=>rp(sum(a.slice(0,lm+1)));
+ $('#fin').innerHTML=`<div class="lg mut"><span class="in" style="background:var(--gr)"></span>Pemasukan<span style="background:var(--br)"></span>Pengeluaran</div><div class="chart" role="img" aria-label="Grafik pemasukan dan pengeluaran per bulan">${ch}</div>
+ <div class="tw"><table><tr><th>Bulan</th><th>Pemasukan</th><th>Anak yatim</th><th>Duafa</th><th>Lainnya</th><th>Selisih</th></tr>${tb}
+ <tr><th>Total</th><th>${T(pem)}</th><th>${T(out.yatim)}</th><th>${T(out.duafa)}</th><th>${T(out.lain)}</th><th>${rp(sum(pem.slice(0,lm+1))-sum(Array.from({length:lm+1},(_,m)=>keluar(m))))}</th></tr></table></div>`;
+}
+
+/* Santunan per bulan */
+const cache={};
+async function loadMon(m){
+ if(cache[m])return cache[m];
+ const R=await get(C.don,TAB[m]);
+ const find=k=>R.findIndex(r=>cell(r,2).toLowerCase().includes(k));
+ const sec=(h,f)=>{const a=[];if(h<0)return a;let i=h+1;while(i<h+5&&!/^\d+$/.test(cell(R[i],1)))i++;for(;i<R.length&&/^\d+$/.test(cell(R[i],1));i++)if(cell(R[i],2))a.push(f(R[i]));return a};
+ const hf=find('santunan duafa');
+ const tr=hf<0?-1:R.findIndex((r,i)=>i>hf&&/total.*beras/i.test(cell(r,2)));
+ return cache[m]={
+  don:sec(find('data donatur'),r=>({n:cell(r,2),v:num(r[4])*1000})),
+  yat:sec(find('santunan anak yatim'),r=>({v:num(r[4])*1000})),
+  duf:sec(hf,r=>({kg:num(r[5])})),dufV:tr>=0?num(R[tr][4]):0,
+  kgT:tr>=0?num((cell(R[tr],2).match(/(\d+)\s*kg/i)||[])[1]):0,
+  lain:sec(find('pengeluaran lain'),r=>({n:cell(r,2),v:num(r[4])*1000}))}}
+async function showMon(m){
+ $('#detail').innerHTML='Memuat...';
+ try{const d=await loadMon(m),yv=sum(d.yat.map(x=>x.v));
+  $('#detail').innerHTML=`<div class="grid">
+  <div class="box">Santunan anak yatim dan piatu<b>${d.yat.length} anak</b>${rp(yv)}${d.yat.length?` (${rp(yv/d.yat.length)} per anak)`:''}</div>
+  <div class="box">Santunan duafa<b>${d.duf.length?d.duf.length+' warga':(d.kgT||0)+' kg beras'}</b>${d.duf.length?(d.kgT||sum(d.duf.map(x=>x.kg)))+' kg beras, ':''}${rp(d.dufV)}</div>
+  <div class="box">Donatur<b>${d.don.length} donatur</b>${rp(sum(d.don.map(x=>x.v)))}</div></div>
+  ${d.lain.length?`<details><summary>Pengeluaran lainnya (${rp(sum(d.lain.map(x=>x.v)))})</summary><ul>${d.lain.map(x=>`<li>${esc(x.n)}: ${rp(x.v)}</li>`).join('')}</ul></details>`:''}
+  ${d.don.length?`<details><summary>Daftar donatur ${MON[m]}</summary><ul>${d.don.map(x=>`<li>${esc(x.n)}: ${rp(x.v)}</li>`).join('')}</ul></details>`:''}`;
+ }catch(e){fail('#detail',`Data bulan ${MON[m]} belum bisa dimuat. Pastikan nama tab di Sheet sama dengan daftar TAB di file ini.`)}}
+function initSan(){
+ $('#san').innerHTML=`<label>Bulan: <select id="sel">${MON.slice(0,lm+1).map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></label><div id="detail"></div>`;
+ $('#sel').value=lm;$('#sel').onchange=e=>showMon(+e.target.value);showMon(lm)}
+
+/* Dokumentasi: tab "Dokumentasi" dengan kolom Tanggal, Judul, Jenis (foto/video), Link */
+const drv=u=>(u.match(/\/d\/([\w-]+)/)||u.match(/[?&]id=([\w-]+)/)||[])[1];
+const yt=u=>(u.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/)||[])[1];
+async function loadDoc(){
+ let R;try{R=await get(C.don,'Dokumentasi')}catch(e){R=[]}
+ const items=R.filter(r=>/^(foto|video)$/i.test(cell(r,2))&&cell(r,3));
+ if(!items.length){$('#doc').innerHTML='<p class="mut">Foto dan video kegiatan akan segera ditampilkan.</p>';return}
+ $('#doc').innerHTML='<div class="gal">'+items.map((r,i)=>{
+  const u=cell(r,3),v=/video/i.test(cell(r,2)),cap=`<figcaption><b>${esc(cell(r,1))}</b><br><span class="mut">${esc(cell(r,0))}</span></figcaption>`;
+  if(!v){const d=drv(u);return `<figure><a href="${esc(u)}" target="_blank" rel="noopener"><img class="m" loading="lazy" alt="${esc(cell(r,1))}" src="${d?`https://drive.google.com/thumbnail?id=${d}&sz=w800`:esc(u)}"></a>${cap}</figure>`}
+  const y=yt(u),d=drv(u);
+  if(y)return `<figure><button class="play" data-v="https://www.youtube-nocookie.com/embed/${y}?autoplay=1" aria-label="Putar video"><img class="m" loading="lazy" alt="" src="https://i.ytimg.com/vi/${y}/hqdefault.jpg"></button>${cap}</figure>`;
+  if(d)return `<figure><iframe class="m" loading="lazy" allowfullscreen src="https://drive.google.com/file/d/${d}/preview"></iframe>${cap}</figure>`;
+  return `<figure><a href="${esc(u)}" target="_blank" rel="noopener">Buka video</a>${cap}</figure>`}).join('')+'</div>';
+ document.querySelectorAll('.play').forEach(b=>b.onclick=()=>{b.outerHTML=`<iframe class="m" allow="autoplay;encrypted-media" allowfullscreen src="${b.dataset.v}"></iframe>`})}
+
+loadFin().then(initSan).catch(()=>{fail('#fin');fail('#san');$('#kas').textContent='-'});
+loadDoc();
+</script></body></html>
