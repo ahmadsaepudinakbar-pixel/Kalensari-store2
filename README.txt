@@ -70,3 +70,6 @@ PENTING UNTUK STATUS ANTAR PERANGKAT:
 
 === AKTIVASI ANTAR PERANGKAT ===
 Edit config.js dan isi supabaseUrl + supabaseAnonKey dari project Supabase Anda, lalu jalankan supabase.sql terbaru di SQL Editor.
+
+
+V10.2: Dashboard Admin diurutkan: statistik status -> Kelola Status Pesanan -> daftar pesanan -> Tambah/Export/Import Produk -> Daftar Produk.
