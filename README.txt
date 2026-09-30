@@ -57,3 +57,16 @@ PENTING UNTUK STATUS ANTAR PERANGKAT:
 - Pastikan Supabase aktif dan config.js berisi supabaseUrl + supabaseAnonKey.
 - Jalankan supabase.sql di SQL Editor Supabase.
 - Untuk produksi, jangan gunakan PIN 1234; ganti ADMIN_PIN di script.js dan gunakan autentikasi admin yang lebih aman.
+
+
+=== V10.1 - SINKRON STATUS PESANAN ===
+- Pelanggan memiliki tombol "Perbarui" di Pesanan Saya.
+- Jika Supabase aktif, status diambil dari database online.
+- Saat modal Pesanan Saya terbuka, status online diperiksa otomatis setiap 10 detik.
+- Pesanan menampilkan alur Menunggu -> Diproses -> Dikirim -> Selesai.
+- Status Dibatalkan ditampilkan sebagai status khusus.
+- Admin memperbarui status dan waktu updated_at disimpan saat Supabase aktif.
+- Jika Supabase belum aktif, mode lokal tetap dapat digunakan untuk pengujian pada perangkat yang sama.
+
+=== AKTIVASI ANTAR PERANGKAT ===
+Edit config.js dan isi supabaseUrl + supabaseAnonKey dari project Supabase Anda, lalu jalankan supabase.sql terbaru di SQL Editor.

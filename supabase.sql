@@ -63,3 +63,8 @@ create index if not exists orders_created_at_idx on public.orders(created_at des
 -- Status yang digunakan aplikasi:
 -- baru = Menunggu, diproses = Diproses, dikirim = Dikirim,
 -- selesai = Selesai, dibatalkan = Dibatalkan
+
+
+-- V10.1: waktu perubahan status pesanan
+alter table public.orders add column if not exists updated_at timestamptz;
+create index if not exists orders_updated_at_idx on public.orders(updated_at desc);

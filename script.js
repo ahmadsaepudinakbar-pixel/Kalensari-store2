@@ -97,7 +97,7 @@ async function saveCloudOrder(payload){
 async function updateCloudOrderStatus(orderId, status){
   if(!CLOUD_CONFIG?.enabled || !orderId) return false;
   try {
-    await cloudFetch(`orders?order_code=eq.${encodeURIComponent(orderId)}`,{method:"PATCH",body:JSON.stringify({status})});
+    await cloudFetch(`orders?order_code=eq.${encodeURIComponent(orderId)}`,{method:"PATCH",body:JSON.stringify({status,updated_at:new Date().toISOString()})});
     return true;
   } catch(e){ console.warn("Supabase update order:",e); return false; }
 }
@@ -441,7 +441,7 @@ document.addEventListener("click",e=>{
   }
 });
 
-// ===== PESANAN SAYA V10 =====
+// ===== PESANAN SAYA V10.1 =====
 function normalizeOrderStatus(status){
   const allowed=["baru","diproses","dikirim","selesai","dibatalkan"];
   return allowed.includes(String(status)) ? String(status) : "baru";
@@ -456,48 +456,107 @@ function saveLocalOrders(rows){
   localStorage.setItem("kalensari_orders", JSON.stringify(rows.slice(0,30)));
 }
 
+function statusLabel(s){
+  return ({baru:"Menunggu",diproses:"Diproses",dikirim:"Dikirim",selesai:"Selesai",dibatalkan:"Dibatalkan"}[normalizeOrderStatus(s)]||"Menunggu");
+}
+
+function renderOrderTimeline(status){
+  status=normalizeOrderStatus(status);
+  if(status==="dibatalkan"){
+    return `<div class="order-timeline">
+      <div class="order-step cancelled"><div class="dot">×</div>Dibatalkan</div>
+    </div>`;
+  }
+  const steps=["baru","diproses","dikirim","selesai"];
+  const current=Math.max(0,steps.indexOf(status));
+  return `<div class="order-timeline">${steps.map((s,i)=>`
+    <div class="order-step ${i<current?'done':''} ${i===current?'current':''}">
+      <div class="dot">${i<current?'✓':i===current?'•':'○'}</div>${statusLabel(s)}
+    </div>`).join("")}</div>`;
+}
+
+function updateMyOrderSyncNote(){
+  const el=document.getElementById("myOrderSyncNote");
+  if(!el)return;
+  if(CLOUD_CONFIG?.enabled){
+    el.className="order-sync-note cloud";
+    el.textContent="☁️ Terhubung online. Tekan Perbarui untuk mengambil status terbaru dari admin.";
+  }else{
+    el.className="order-sync-note offline";
+    el.textContent="💾 Mode lokal. Untuk status antar HP/perangkat, aktifkan Supabase di config.js.";
+  }
+}
+
 function renderMyOrders(rowsOverride){
   const box=document.getElementById("myOrderList"); if(!box)return;
   const rows=Array.isArray(rowsOverride)?rowsOverride:getLocalOrders();
   const count=document.getElementById("myOrderCount"); if(count)count.textContent=`${rows.length} pesanan`;
+  updateMyOrderSyncNote();
   box.innerHTML=rows.length?rows.map(o=>{
     const status=normalizeOrderStatus(o.status);
     return `<div class="my-order-card">
       <div class="my-order-head"><b>📦 ${esc(o.order_code||"-")}</b><span class="order-status status-${esc(status)}">${statusLabel(status)}</span></div>
       <small>${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</small>
+      ${renderOrderTimeline(status)}
       <p>${(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")}</p>
       <strong>${rupiah(o.total||0)}</strong>
-      ${status==="selesai"?'<div class="order-hint success">✅ Pesanan selesai</div>':status==="dibatalkan"?'<div class="order-hint danger">❌ Pesanan dibatalkan</div>':'<div class="order-hint">🔄 Status akan diperbarui oleh admin.</div>'}
+      ${o.updated_at?`<div class="order-updated">Terakhir diperbarui: ${new Date(o.updated_at).toLocaleString("id-ID")}</div>`:""}
+      ${status==="selesai"?'<div class="order-hint success">✅ Pesanan selesai</div>':status==="dibatalkan"?'<div class="order-hint danger">❌ Pesanan dibatalkan</div>':'<div class="order-hint">🔄 Status dapat diperbarui oleh admin.</div>'}
     </div>`;
   }).join(""):'<div class="empty-state"><b>📦 Belum ada pesanan</b>Pesanan yang dibuat dari perangkat ini akan muncul di sini.</div>';
 }
 
 async function refreshMyOrdersFromCloud(){
-  if(!CLOUD_CONFIG?.enabled) return;
-  const local=getLocalOrders();
-  if(!local.length) return;
+  if(!CLOUD_CONFIG?.enabled){ renderMyOrders(); return; }
   try{
     const cloudRows=await loadCloudOrders();
-    const byCode=new Map(cloudRows.map(o=>[String(o.order_code||""),o]));
+    const local=getLocalOrders();
+    const byCode=new Map((cloudRows||[]).map(o=>[String(o.order_code||""),o]));
     let changed=false;
     local.forEach(o=>{
       const remote=byCode.get(String(o.order_code||""));
-      if(remote && normalizeOrderStatus(o.status)!==normalizeOrderStatus(remote.status)){
-        o.status=normalizeOrderStatus(remote.status);
-        changed=true;
+      if(remote){
+        const remoteStatus=normalizeOrderStatus(remote.status);
+        if(normalizeOrderStatus(o.status)!==remoteStatus){o.status=remoteStatus;changed=true;}
+        if(remote.updated_at && o.updated_at!==remote.updated_at){o.updated_at=remote.updated_at;changed=true;}
       }
     });
     if(changed) saveLocalOrders(local);
     renderMyOrders(local);
-  }catch(e){console.warn("Refresh status pesanan:",e);}
+    return true;
+  }catch(e){
+    console.warn("Refresh status pesanan:",e);
+    renderMyOrders();
+    return false;
+  }
 }
 
 const myOrdersBtn=document.getElementById("myOrdersBtn");
-if(myOrdersBtn) myOrdersBtn.onclick=async()=>{
+const refreshMyOrdersBtn=document.getElementById("refreshMyOrdersBtn");
+let myOrdersAutoRefreshTimer=null;
+async function openMyOrders(){
   renderMyOrders();
   openModal("myOrdersModal");
   await refreshMyOrdersFromCloud();
+  clearInterval(myOrdersAutoRefreshTimer);
+  if(CLOUD_CONFIG?.enabled){
+    myOrdersAutoRefreshTimer=setInterval(()=>{
+      const modal=document.getElementById("myOrdersModal");
+      if(modal?.classList.contains("show")) refreshMyOrdersFromCloud();
+    },10000);
+  }
+}
+if(myOrdersBtn) myOrdersBtn.onclick=openMyOrders;
+if(refreshMyOrdersBtn) refreshMyOrdersBtn.onclick=async()=>{
+  refreshMyOrdersBtn.disabled=true;
+  refreshMyOrdersBtn.textContent="⏳ Memuat...";
+  await refreshMyOrdersFromCloud();
+  refreshMyOrdersBtn.disabled=false;
+  refreshMyOrdersBtn.textContent="↻ Perbarui";
+  showToast(CLOUD_CONFIG?.enabled?"Status pesanan diperbarui":"Data pesanan diperbarui");
 };
+
+document.querySelectorAll('[data-close="myOrdersModal"]').forEach(btn=>btn.addEventListener("click",()=>clearInterval(myOrdersAutoRefreshTimer)));
 
 // ===== ADMIN DASHBOARD V10 =====
 let adminLoggedIn = false;
@@ -623,18 +682,26 @@ async function changeOrderStatus(orderCode,status){
   status=normalizeOrderStatus(status);
   const rows=getLocalOrders();
   const localOrder=rows.find(o=>String(o.order_code||"")===String(orderCode));
-  if(localOrder){ localOrder.status=status; saveLocalOrders(rows); }
-  else { showToast("Pesanan tidak ditemukan di perangkat ini"); return; }
+  if(!localOrder){ showToast("Pesanan tidak ditemukan di perangkat ini"); return; }
 
-  let cloudOK=true;
-  if(CLOUD_CONFIG?.enabled){ cloudOK=await updateCloudOrderStatus(orderCode,status); }
-  if(!cloudOK){
-    showToast(`Status lokal ${orderCode} menjadi ${statusLabel(status)}; cloud gagal diperbarui`);
+  // Perbarui lokal lebih dulu agar admin langsung melihat perubahan.
+  localOrder.status=status;
+  localOrder.updated_at=new Date().toISOString();
+  saveLocalOrders(rows);
+  renderMyOrders(rows);
+  renderAdminOrders();
+
+  if(CLOUD_CONFIG?.enabled){
+    const cloudOK=await updateCloudOrderStatus(orderCode,status);
+    if(cloudOK){
+      showToast(`Status ${orderCode}: ${statusLabel(status)} • tersimpan online`);
+      await refreshMyOrdersFromCloud();
+    }else{
+      showToast(`Status ${orderCode} berubah lokal, tetapi gagal tersimpan online`);
+    }
   }else{
     showToast(`Status ${orderCode}: ${statusLabel(status)}`);
   }
-  renderMyOrders(rows);
-  renderAdminOrders();
 }
 
 document.getElementById("refreshOrdersBtn")?.addEventListener("click",renderAdminOrders);
