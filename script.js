@@ -164,6 +164,13 @@ let closedSellers=readLS("kalensari_closed_sellers",{});
 let removedCategories=readLS("kalensari_removed_categories",[]);
 // Ongkir per toko: {__default: tarif standar, "nama toko (huruf kecil)": tarif khusus toko itu}
 let shippingFees=readLS("kalensari_shipping_fees",{});
+// ===== KODE ADMIN =====
+// Kode admin bawaan = ADMIN_PIN. Setelah diganti dari Admin > Ongkir, yang disimpan hanya hash SHA-256 (bukan kode aslinya).
+const PIN_SALT="kalensari-admin:";
+let adminPinHash=String(readLS("kalensari_admin_pin_hash","")||"");
+const hashPin=async v=>{if(!(window.crypto&&crypto.subtle))throw Error("no-crypto");const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(PIN_SALT+v));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");};
+const checkAdminPin=async v=>{if(!adminPinHash)return v===ADMIN_PIN;try{return(await hashPin(v))===adminPinHash;}catch{return false;}};
+// ===== /KODE ADMIN =====
 {const saved=normalizePhone(readLS("kalensari_wa_number",""));if(saved.length>=9)WHATSAPP_NUMBER=saved;}
 const BASE_CATEGORIES=["Makanan","Minuman"];
 const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])].filter(c=>!removedCategories.includes(c)||products.some(p=>p.category===c));
@@ -183,6 +190,7 @@ async function loadCloudSettings(){
       if(r.key==="categories"&&Array.isArray(r.value)){customCategories=r.value;localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));}
       if(r.key==="removed_categories"&&Array.isArray(r.value)){removedCategories=r.value;localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));}
       if(r.key==="whatsapp_number"&&typeof r.value==="string"){const n=normalizePhone(r.value);if(n.length>=9&&n.length<=15){WHATSAPP_NUMBER=n;localStorage.setItem("kalensari_wa_number",JSON.stringify(n));applyWaLinks();}}
+      if(r.key==="admin_pin_hash"&&typeof r.value==="string"&&/^[0-9a-f]{64}$/.test(r.value)){adminPinHash=r.value;localStorage.setItem("kalensari_admin_pin_hash",JSON.stringify(adminPinHash));}
       if(r.key==="shipping_fees"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){shippingFees=r.value;localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
     });
@@ -195,9 +203,10 @@ async function saveStoreSettings(){
   localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));
   localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));
   localStorage.setItem("kalensari_wa_number",JSON.stringify(WHATSAPP_NUMBER));
+  if(adminPinHash)localStorage.setItem("kalensari_admin_pin_hash",JSON.stringify(adminPinHash));
   if(!CLOUD_CONFIG?.enabled)return false;
   try{
-    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"removed_categories",value:removedCategories},{key:"shipping_fees",value:shippingFees},{key:"whatsapp_number",value:WHATSAPP_NUMBER},{key:"closed_sellers",value:closedSellers}])});
+    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"removed_categories",value:removedCategories},{key:"shipping_fees",value:shippingFees},{key:"whatsapp_number",value:WHATSAPP_NUMBER},...(adminPinHash?[{key:"admin_pin_hash",value:adminPinHash}]:[]),{key:"closed_sellers",value:closedSellers}])});
     return true;
   }catch(e){
     console.error("Simpan pengaturan toko gagal:",e);
@@ -604,7 +613,9 @@ function addAdminProduct(){
 function setProductStatus(i,status){if(!products[i]||products[i].status===status)return;products[i].status=status;saveProducts();syncCloudProducts();renderProducts();renderCategories();renderCart();renderAdminProducts();showToast(({"Show":"Produk ditampilkan","Sold Out":"Produk ditandai stok habis","Hidden":"Produk disembunyikan"})[status]);}
 function deleteAdminProduct(i){if(!confirm(`Hapus ${products[i].name}?`))return;products.splice(i,1);saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dihapus");}
 document.getElementById("menuBtn").onclick=openAdmin;
-document.getElementById("adminLoginBtn").onclick=()=>{if(document.getElementById("adminPin").value===ADMIN_PIN){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil")}else showToast("PIN admin salah")};
+document.getElementById("adminLoginBtn").onclick=async()=>{const v=document.getElementById("adminPin").value;try{await loadCloudSettings();}catch{}if(await checkAdminPin(v)){adminLoggedIn=true;document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil")}else showToast("Kode admin salah")};
+// Kolom kode admin: pastikan bisa menerima kode 4-12 karakter (tanpa batas panjang/pola bawaan HTML).
+{const pi=document.getElementById("adminPin");if(pi){pi.removeAttribute("maxlength");pi.removeAttribute("pattern");pi.type="password";pi.setAttribute("autocomplete","off");}}
 document.getElementById("addProductBtn").onclick=addAdminProduct;
 document.getElementById("exportBtn").onclick=()=>{const blob=new Blob([JSON.stringify(products,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="kalensari-products.json";a.click();URL.revokeObjectURL(a.href)};
 document.getElementById("importFile").onchange=e=>{const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const data=JSON.parse(r.result);if(!Array.isArray(data))throw Error();products=data.map((p,i)=>({...p,id:Number(p.id)||i+1}));saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk berhasil diimpor")}catch{showToast("File produk tidak valid")}};r.readAsText(file)};
@@ -890,7 +901,7 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
     return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,"id"));
   }
   function render(){
-    panel.hidden=!mode;
+    panel.hidden=!mode; panel.classList.toggle("blue",mode==="ship");
     bCat.classList.toggle("active",mode==="cat"); bSel.classList.toggle("active",mode==="seller"); bShip.classList.toggle("active",mode==="ship");
     if(mode==="cat"){
       panel.innerHTML=`<div class="extra-head"><h4>🏷️ Kategori</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
@@ -906,6 +917,7 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
       const rows=sellerRows();
       panel.innerHTML=`<div class="extra-head"><h4>🚚 Ongkir & WhatsApp</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
         <div class="fee-default"><label>💬 Nomor WhatsApp toko<span class="wa-row"><input id="waInput" type="tel" inputmode="tel" maxlength="20" placeholder="08123456789" value="${esc(WHATSAPP_NUMBER)}"><button type="button" class="btn primary" data-act="savewa">Simpan</button></span></label><small>Semua tombol WhatsApp dan pesanan checkout dikirim ke nomor ini. Boleh ditulis 08… atau 62… (otomatis diubah ke format 62…).</small></div>
+        <div class="fee-default pin-card"><b>🔐 Kode admin</b><div class="pin-grid"><input id="pinOld" type="password" autocomplete="off" placeholder="Kode lama"><input id="pinNew" type="password" autocomplete="new-password" maxlength="12" placeholder="Kode baru (4–12 karakter)"><input id="pinNew2" type="password" autocomplete="new-password" maxlength="12" placeholder="Ulangi kode baru"><button type="button" class="btn primary" data-act="savepin">Ganti Kode</button></div><small>Kode ini dipakai untuk membuka Dashboard Admin. Kode lama diminta dulu sebelum diganti. Kode bawaan: 1234 — segera ganti.</small></div>
         <div class="fee-default"><label>🚚 Ongkir standar per toko (Rp)<input type="number" inputmode="numeric" min="0" step="500" data-act="fee-default" value="${Number(shippingFees.__default)||0}"></label><small>Dipakai untuk toko yang tarifnya dikosongkan. Pembeli dari 2 toko = 2 × ongkir.</small></div>
         <div class="seller-status-list">${rows.map(r=>`<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><label class="fee-field">Ongkir Rp<input type="number" inputmode="numeric" min="0" step="500" data-act="fee" data-name="${esc(r.name)}" placeholder="${shippingFeeFor("")}" value="${shippingFees[sellerKey(r.name)]??""}"></label></div>`).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>
         <p class="admin-hint">Kolom ongkir toko yang dikosongkan memakai tarif standar. Isi <b>0</b> untuk toko yang gratis ongkir.</p>`;
@@ -927,6 +939,16 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
       if(n.length<9||n.length>15){showToast("Nomor WhatsApp tidak valid");inp.focus();return;}
       WHATSAPP_NUMBER=n;inp.value=n;applyWaLinks();
       await persist(`Nomor WhatsApp diubah ke ${n}`);return;
+    }
+    if(act==="savepin"){
+      const g=id=>document.getElementById(id),o=g("pinOld").value,n=g("pinNew").value,n2=g("pinNew2").value;
+      if(!(await checkAdminPin(o))){showToast("Kode admin lama salah");g("pinOld").focus();return;}
+      if(n.length<4||n.length>12){showToast("Kode baru harus 4–12 karakter");g("pinNew").focus();return;}
+      if(n!==n2){showToast("Kode baru dan ulangannya tidak sama");g("pinNew2").focus();return;}
+      if(n===o){showToast("Kode baru sama dengan kode lama");g("pinNew").focus();return;}
+      try{adminPinHash=await hashPin(n);}catch{showToast("Browser ini tidak mendukung penyimpanan kode aman");return;}
+      ["pinOld","pinNew","pinNew2"].forEach(id=>{g(id).value="";});
+      await persist("Kode admin berhasil diganti");return;
     }
     if(act==="selcat"){selectedCat=selectedCat===name?"":name;render();return;}
     if(act==="addcat"){
@@ -962,5 +984,6 @@ setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
     await persist(act==="fee-default"?`Ongkir standar ${rupiah(n)} per toko`:`Ongkir ${t.dataset.name}: ${raw===""?"pakai tarif standar":rupiah(n)}`);
   });
   panel.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="newCatInput"){e.preventDefault();panel.querySelector('[data-act="addcat"]').click();}
+    if(e.key==="Enter"&&["pinOld","pinNew","pinNew2"].includes(e.target.id)){e.preventDefault();panel.querySelector('[data-act="savepin"]').click();}
     if(e.key==="Enter"&&e.target.id==="waInput"){e.preventDefault();panel.querySelector('[data-act="savewa"]').click();}});
 })();
