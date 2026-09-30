@@ -58,24 +58,25 @@ async function syncCloudProducts(){
   if(!CLOUD_CONFIG?.enabled) return false;
   // Sinkron aman: simpan/perbarui dulu (upsert), baru hapus produk yang sudah dihapus admin.
   const upsert={method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"}};
+  const EXTRA=["open_time","close_time","product_group","variant","toppings","topping_limit"];
   try {
-    const rows=products.map(p=>({...p,open_time:p.open_time??null,close_time:p.close_time??null,product_group:p.product_group??null,variant:p.variant??null}));
-    // Jika kolom tambahan belum dibuat di Supabase, coba lagi tanpa kolom tersebut agar sinkron lain tidak rusak.
-    const levels=[[],["product_group","variant"],["product_group","variant","open_time","close_time"]];
-    let used=0;
-    for(let L=0;L<levels.length;L++){
-      const body=rows.map(r=>{const c={...r};levels[L].forEach(k=>delete c[k]);return c;});
-      try { await cloudFetch("products?on_conflict=id",{...upsert,body:JSON.stringify(body)}); used=L; break; }
+    const rows=products.map(p=>{const r={...p};EXTRA.forEach(k=>{r[k]=p[k]??null;});return r;});
+    // Jika ada kolom tambahan yang belum dibuat di Supabase, simpan tanpa kolom itu saja agar sinkron lain tidak rusak.
+    const missing=new Set();
+    for(let tries=0;tries<=EXTRA.length;tries++){
+      const body=rows.map(r=>{const c={...r};missing.forEach(k=>delete c[k]);return c;});
+      try { await cloudFetch("products?on_conflict=id",{...upsert,body:JSON.stringify(body)}); break; }
       catch(err) {
-        const msg=String(err.message||err);
-        if(L===levels.length-1||!/open_time|close_time|product_group|variant|schema cache|PGRST204/.test(msg)) throw err;
+        const m=/Could not find the '(\w+)' column/.exec(String(err.message||err));
+        if(!m||!EXTRA.includes(m[1])||missing.has(m[1])) throw err;
+        missing.add(m[1]);
       }
     }
     const ids=products.map(p=>Number(p.id)).filter(Number.isFinite);
     const filter=ids.length?`id=not.in.(${ids.join(",")})`:"id=not.is.null";
     await cloudFetch(`products?${filter}`,{method:"DELETE"});
     cloudReady=true;
-    updateCloudStatus(used===0?"☁️ Produk tersinkron online":used===1?"⚠️ Varian produk belum tersimpan online. Jalankan supabase-varian-produk.sql di Supabase.":"⚠️ Jam & varian belum tersimpan online. Jalankan supabase-jam-produk.sql dan supabase-varian-produk.sql di Supabase.");
+    updateCloudStatus(missing.size?`⚠️ Kolom belum ada di Supabase: ${[...missing].join(", ")}. Jalankan file SQL terkait (lihat CARA-UPDATE).`:"☁️ Produk tersinkron online");
     return true;
   } catch(e){
     console.error("Sinkron produk gagal:",e);
@@ -174,6 +175,7 @@ function setCategory(c) {
 const groupName=p=>String(p.product_group||"").trim();
 const variantLabel=p=>String(p.variant||"").trim()||p.name;
 function singleCardHTML(p) {
+  const builder=parseToppings(p).length>0, tLimit=Number(p.topping_limit)||0;
   return `
    <article class="product">
   <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
@@ -181,11 +183,11 @@ function singleCardHTML(p) {
       </div>
       <div class="product-body">
         <h3>${p.name}</h3>
-        <div class="price">${priceHTML(p)}</div>
+        <div class="price">${builder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <small>${p.unit}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
-          <button class="btn primary" ${isInHours(p)?"":"disabled"} onclick="addToCart(${p.id})">+ Keranjang</button>
+          ${builder?`<button class="btn primary" ${isInHours(p)?"":"disabled"} onclick="showProduct(${p.id})">Pilih Topping</button>`:`<button class="btn primary" ${isInHours(p)?"":"disabled"} onclick="addToCart(${p.id})">+ Keranjang</button>`}
         </div>
       </div>
     </article>`;
@@ -228,6 +230,44 @@ function renderProducts() {
   document.getElementById("resultInfo").textContent=`${units.length} produk`;
   document.getElementById("productGrid").innerHTML=units.length?units.map(u=>u.single?singleCardHTML(u.single):(u.variants.length>1?groupCardHTML(u):singleCardHTML(u.variants[0]))).join(""):`<div class="empty-state"><b>😔 Produk tidak ditemukan</b>Coba kata kunci atau kategori lain.</div>`;
 }
+// ===== MENU PRASMANAN / RACIK SENDIRI (mis. Seblak Prasmanan) =====
+// Topping disimpan di produk sebagai teks, satu baris = "Nama | Harga". Batas belanja per porsi = topping_limit.
+function parseToppings(p) {
+  return String(p.toppings||"").split(/\r?\n/).map(l=>{
+    const m=/^(.+?)\s*[|=]\s*(?:rp\.?\s*)?([\d.,]+)\s*$/i.exec(l.trim());
+    if(!m)return null;
+    const price=Number(m[2].replace(/[.,]/g,""));
+    return m[1].trim()&&Number.isFinite(price)?{name:m[1].trim(),price}:null;
+  }).filter(Boolean);
+}
+let detailProduct=null, detailToppings={};
+function toppingTotal(p) {
+  const tl=parseToppings(p);
+  return (Number(currentPrice(p))||0)+Object.entries(detailToppings).reduce((t,[i,q])=>t+(tl[i]?tl[i].price*q:0),0);
+}
+function updateToppingSummary() {
+  const p=detailProduct;if(!p)return;
+  const total=toppingTotal(p), limit=Number(p.topping_limit)||0;
+  const el=document.getElementById("toppingTotal");
+  if(el)el.innerHTML=`<span>Total per porsi</span><b>${rupiah(total)}${limit?` / ${rupiah(limit)}`:""}</b>${limit?`<small>Sisa ${rupiah(Math.max(0,limit-total))}</small>`:""}`;
+  const btn=document.getElementById("detailAddBtn");
+  if(btn)btn.textContent=`🛒 Tambah ke Keranjang • ${rupiah(total)}`;
+}
+function changeTopping(i,d) {
+  const p=detailProduct;if(!p||!parseToppings(p)[i])return;
+  const cur=detailToppings[i]||0, next=Math.max(0,Math.min(99,cur+d));
+  if(next===cur)return;
+  detailToppings[i]=next;
+  const limit=Number(p.topping_limit)||0;
+  if(d>0&&limit&&toppingTotal(p)>limit){
+    detailToppings[i]=cur;if(!cur)delete detailToppings[i];
+    showToast(`Melebihi batas ${rupiah(limit)} per porsi`);return;
+  }
+  if(!next)delete detailToppings[i];
+  document.getElementById(`tq-${i}`).textContent=next;
+  updateToppingSummary();
+}
+
 // Pilihan jumlah (pcs) dan nama toko/penjual di popup Detail produk.
 let detailQty=1, detailSeller="", detailSellers=[];
 const sellerList = p => String(p.seller||"").split(",").map(x=>x.trim()).filter(Boolean);
@@ -245,14 +285,22 @@ function addDetailToCart(id) {
     document.getElementById("sellerPicker")?.classList.add("need");
     showToast("Pilih nama toko dulu");return;
   }
-  addToCart(id,detailQty,detailSeller);closeModal("productModal");
+  const tl=detailProduct?parseToppings(detailProduct):[];
+  if(tl.length){
+    const chosen=Object.entries(detailToppings).filter(([,q])=>q>0).map(([i,q])=>[tl[i].name,tl[i].price,q]);
+    if(!chosen.length){showToast("Pilih minimal 1 topping");return;}
+    addToCart(id,detailQty,detailSeller,{t:chosen});
+  } else addToCart(id,detailQty,detailSeller);
+  closeModal("productModal");
 }
 function showProduct(id) {
   const p=products.find(x=>x.id===id);
+  detailProduct=p;detailToppings={};
   detailQty=1;detailSellers=sellerList(p);detailSeller=detailSellers.length===1?detailSellers[0]:"";
   const gname=groupName(p);
   const variants=gname?products.filter(x=>x.status==="Show"&&groupName(x).toLowerCase()===gname.toLowerCase()):[];
   const isGroup=variants.length>1;
+  const tops=parseToppings(p), isBuilder=tops.length>0, tLimit=Number(p.topping_limit)||0;
   const sold=p.status!=="Show", closedNow=!sold&&!isInHours(p), unavailable=sold||closedNow;
   document.getElementById("productDetail").innerHTML=`
     <div class="detail">
@@ -261,20 +309,23 @@ function showProduct(id) {
         <p class="eyebrow">${p.category} • ${p.seller}</p>
         <h2>${isGroup?esc(gname):p.name}</h2>
         ${isGroup?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker">${variants.map(v=>`<button type="button" class="variant-chip${v.id===p.id?" active":""}" onclick="showProduct(${v.id})"><b>${esc(variantLabel(v))}</b><small>${rupiah(currentPrice(v))}</small></button>`).join("")}</div></div>`:""}
-        <div class="price">${priceHTML(p)}</div>
+        <div class="price">${isBuilder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <p>Satuan: ${p.unit}</p>
         <p>${sold?"Stok habis.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
         ${hasHours(p)?`<p class="hours-line${closedNow?" closed":""}">🕒 Tersedia setiap hari pukul ${hoursText(p)}</p>`:""}
         ${unavailable?"":`<div class="seller-pick"><span class="seller-pick-title">Pilih Toko</span><div id="sellerPicker" class="seller-picker">${detailSellers.map((n,i)=>`<button type="button" class="seller-chip${detailSeller===n?" active":""}" onclick="selectDetailSeller(${i})">🏪 ${esc(n)}</button>`).join("")}</div></div>
+        ${isBuilder?`<div class="topping-box"><span class="seller-pick-title">Pilih Topping${tLimit?` <small>(total maks ${rupiah(tLimit)} per porsi)</small>`:""}</span><div class="topping-list">${tops.map((t,i)=>`<div class="topping-row"><div class="topping-info"><b>${esc(t.name)}</b><small>${rupiah(t.price)}</small></div><div class="qty"><button type="button" onclick="changeTopping(${i},-1)" aria-label="Kurangi ${esc(t.name)}">−</button><b id="tq-${i}">0</b><button type="button" onclick="changeTopping(${i},1)" aria-label="Tambah ${esc(t.name)}">+</button></div></div>`).join("")}</div><div id="toppingTotal" class="topping-total"></div></div>`:""}
         <div class="detail-qty"><span>Jumlah</span><div class="qty"><button type="button" onclick="changeDetailQty(${p.id},-1)" aria-label="Kurangi jumlah">−</button><b id="detailQtyValue">1</b><button type="button" onclick="changeDetailQty(${p.id},1)" aria-label="Tambah jumlah">+</button></div></div>`}
-        <button class="btn primary full" ${unavailable?"disabled":""} onclick="addDetailToCart(${p.id})">🛒 Tambah ke Keranjang</button>
+        <button id="detailAddBtn" class="btn primary full" ${unavailable?"disabled":""} onclick="addDetailToCart(${p.id})">🛒 Tambah ke Keranjang</button>
       </div>
     </div>`;
   openModal("productModal");
+  if(isBuilder)updateToppingSummary();
 }
-function addToCart(id,qty=1,seller) {
+function addToCart(id,qty=1,seller,custom) {
   const p=products.find(x=>x.id===id); if(!p||p.status!=="Show")return;
   if(!isInHours(p)){showToast(`${p.name} tersedia pukul ${hoursText(p)}`);return;}
+  if(!custom&&parseToppings(p).length){showProduct(id);showToast("Pilih topping dulu");return;}
   if(seller===undefined){
     // Produk dengan lebih dari satu toko: minta pelanggan memilih toko di popup Detail.
     const list=sellerList(p);
@@ -282,7 +333,8 @@ function addToCart(id,qty=1,seller) {
     seller=list[0]||p.seller||"";
   }
   qty=Math.max(1,parseInt(qty)||1);
-  const item=cart.find(x=>x.id===id&&(x.seller||"")===seller); if(item)item.qty+=qty; else cart.push({id,qty,seller});
+  const sig=custom?JSON.stringify(custom.t):"";
+  const item=cart.find(x=>x.id===id&&(x.seller||"")===seller&&(x.custom?JSON.stringify(x.custom.t):"")===sig); if(item)item.qty+=qty; else cart.push(custom?{id,qty,seller,custom}:{id,qty,seller});
   saveCart();updateCartCount();renderCart();showToast(`${qty>1?qty+"× ":""}${p.name} (${seller}) ditambahkan ke keranjang`);
 }
 function changeQty(idx,d) {
@@ -298,7 +350,21 @@ function removeFromCart(idx) {
   saveCart();updateCartCount();renderCart();
   showToast(`🗑️ ${p?p.name:"Produk"} dihapus dari keranjang`);
 }
-function cartData() {return cart.map((i,idx)=>{const p=products.find(x=>x.id===i.id);return p?{...p,qty:i.qty,seller:i.seller||p.seller,idx}:null}).filter(Boolean);}
+function cartData() {
+  return cart.map((i,idx)=>{
+    const p=products.find(x=>x.id===i.id);if(!p)return null;
+    const row={...p,qty:i.qty,seller:i.seller||p.seller,idx};
+    if(i.custom){
+      // Item racik sendiri: harga = harga dasar + topping (harga topping terbaru dari Admin), nama memuat daftar topping.
+      const tl=parseToppings(p);
+      const parts=i.custom.t.map(([n,pr,q])=>{const cur=tl.find(x=>x.name===n);return {n,pr:cur?cur.price:pr,q};});
+      row.name=`${p.name} (${parts.map(x=>x.q>1?`${x.n} x${x.q}`:x.n).join(", ")})`;
+      row.price=(Number(currentPrice(p))||0)+parts.reduce((t,x)=>t+x.pr*x.q,0);
+      row.sale=null;
+    }
+    return row;
+  }).filter(Boolean);
+}
 function renderCart() {
   const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),shipping=items.length?SHIPPING_COST:0;
   document.getElementById("cartItems").innerHTML=items.length?items.map(p=>`
@@ -421,7 +487,7 @@ function renderAdminProducts(){
   box.innerHTML=products.map((p,i)=>`
     <div class="admin-product">
       <img src="${p.image||''}" alt="${p.name}" onerror="this.style.display='none'">
-      <div class="admin-product-info"><h4>${p.name} <span class="admin-status ${p.status!=="Show"?'off':''}">${p.status}</span></h4><small>${p.category} • ${rupiah(currentPrice(p))} • ${p.seller}${hasHours(p)?` • 🕒 ${hoursText(p)}`:""}${groupName(p)?` • 🧩 ${esc(groupName(p))} › ${esc(variantLabel(p))}`:""}</small></div>
+      <div class="admin-product-info"><h4>${p.name} <span class="admin-status ${p.status!=="Show"?'off':''}">${p.status}</span></h4><small>${p.category} • ${rupiah(currentPrice(p))} • ${p.seller}${hasHours(p)?` • 🕒 ${hoursText(p)}`:""}${groupName(p)?` • 🧩 ${esc(groupName(p))} › ${esc(variantLabel(p))}`:""}${parseToppings(p).length?` • 🍲 ${parseToppings(p).length} topping${p.topping_limit?` (maks ${rupiah(p.topping_limit)})`:""}`:""}</small></div>
       <div class="admin-product-actions"><button class="btn outline" onclick="editAdminProduct(${i})">✏️ Edit</button><button class="btn outline" onclick="toggleAdminProduct(${i})">${p.status==='Show'?'⏸️ Sembunyikan':'▶️ Tampilkan'}</button><button class="btn outline" onclick="deleteAdminProduct(${i})">🗑️ Hapus</button></div>
       <div id="edit-${i}" class="admin-edit" hidden></div>
     </div>`).join("");
@@ -439,6 +505,9 @@ function editAdminProduct(i){
     <label>Nama Grup (opsional)<input id="e-group-${i}" value="${esc(p.product_group||'')}" placeholder="mis. Pecel Lele"></label>
     <label>Nama Varian (opsional)<input id="e-variant-${i}" value="${esc(p.variant||'')}" placeholder="mis. Lauk saja / + Nasi"></label>
     <p class="wide admin-hint">🧩 Produk dengan Nama Grup yang sama digabung jadi 1 kartu dengan pilihan varian. Kosongkan jika tidak ingin digabung.</p>
+    <label class="wide">Topping Prasmanan (opsional)<textarea id="e-toppings-${i}" rows="6" placeholder="Bakso | 1000&#10;Sosis | 1500&#10;Ceker | 2000">${esc(p.toppings||'')}</textarea></label>
+    <label>Batas belanja per porsi (Rp)<input id="e-tlimit-${i}" type="number" value="${p.topping_limit||''}" placeholder="mis. 10000"></label>
+    <p class="wide admin-hint">🍲 Satu baris = satu topping, format: Nama | Harga. Jika diisi, produk ini jadi menu racik (prasmanan) dan kolom Harga di atas menjadi harga dasar (isi 0 bila tidak ada). Kosongkan jika bukan menu prasmanan.</p>
     <label>Tersedia dari jam<input id="e-open-${i}" type="time" value="${esc(p.open_time||'')}"></label>
     <label>Sampai jam<input id="e-close-${i}" type="time" value="${esc(p.close_time||'')}"></label>
     <p class="wide admin-hint">🕒 Waktu WIB. Kosongkan kedua kolom jika produk tersedia sepanjang hari. Di luar jam ini pelanggan tidak bisa memesan.</p>
@@ -449,7 +518,13 @@ function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function saveAdminProduct(i){
   const openT=document.getElementById(`e-open-${i}`).value, closeT=document.getElementById(`e-close-${i}`).value;
   if(!!openT!==!!closeT){showToast("Isi jam mulai DAN jam selesai, atau kosongkan keduanya");return;}
-  const p=products[i]; p.open_time=openT||null; p.close_time=closeT||null; p.product_group=document.getElementById(`e-group-${i}`).value.trim()||null; p.variant=document.getElementById(`e-variant-${i}`).value.trim()||null; p.name=document.getElementById(`e-name-${i}`).value.trim(); p.category=document.getElementById(`e-cat-${i}`).value; p.price=Number(document.getElementById(`e-price-${i}`).value)||0; const sale=Number(document.getElementById(`e-sale-${i}`).value); p.sale=sale>0?sale:null; p.seller=document.getElementById(`e-seller-${i}`).value.trim(); p.unit=document.getElementById(`e-unit-${i}`).value.trim(); p.image=document.getElementById(`e-image-${i}`).value.trim(); saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); showToast("Produk berhasil diperbarui");
+  const tText=document.getElementById(`e-toppings-${i}`).value.trim();
+  if(tText){
+    const lines=tText.split(/\r?\n/).filter(l=>l.trim());
+    if(parseToppings({toppings:tText}).length<lines.length){showToast("Format topping salah. Gunakan satu baris: Nama | Harga");return;}
+  }
+  const tLim=Number(document.getElementById(`e-tlimit-${i}`).value);
+  const p=products[i]; p.toppings=tText||null; p.topping_limit=tLim>0?tLim:null; p.open_time=openT||null; p.close_time=closeT||null; p.product_group=document.getElementById(`e-group-${i}`).value.trim()||null; p.variant=document.getElementById(`e-variant-${i}`).value.trim()||null; p.name=document.getElementById(`e-name-${i}`).value.trim(); p.category=document.getElementById(`e-cat-${i}`).value; p.price=Number(document.getElementById(`e-price-${i}`).value)||0; const sale=Number(document.getElementById(`e-sale-${i}`).value); p.sale=sale>0?sale:null; p.seller=document.getElementById(`e-seller-${i}`).value.trim(); p.unit=document.getElementById(`e-unit-${i}`).value.trim(); p.image=document.getElementById(`e-image-${i}`).value.trim(); saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); showToast("Produk berhasil diperbarui");
 }
 function addAdminProduct(){
   const id=products.length?Math.max(...products.map(p=>p.id))+1:1;
