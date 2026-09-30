@@ -158,14 +158,48 @@ function isInHours(p){
 }
 const fmtTime=t=>String(t).slice(0,5).replace(":",".");
 const hoursText=p=>hasHours(p)?`${fmtTime(p.open_time)} – ${fmtTime(p.close_time)} WIB`:"";
-const closedCartItems=()=>cartData().filter(p=>!isInHours(p));
+// ===== KATEGORI CUSTOM & STATUS BUKA/TUTUP PENJUAL (pengaturan toko) =====
+const readLS=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||"null");return v??d;}catch{return d;}};
+let customCategories=readLS("kalensari_categories",[]);
+let closedSellers=readLS("kalensari_closed_sellers",{});
+const BASE_CATEGORIES=["Makanan","Minuman"];
+const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])];
+const sellerKey=n=>String(n||"").trim().toLowerCase();
+const sellerClosed=n=>!!closedSellers[sellerKey(n)];
+const openSellerList=p=>sellerList(p).filter(n=>!sellerClosed(n));
+const allSellersClosed=p=>{const l=sellerList(p);return l.length>0&&l.every(sellerClosed);};
+async function loadCloudSettings(){
+  if(!CLOUD_CONFIG?.enabled)return false;
+  try{
+    const rows=await cloudFetch("store_settings?select=*");
+    (Array.isArray(rows)?rows:[]).forEach(r=>{
+      if(r.key==="categories"&&Array.isArray(r.value)){customCategories=r.value;localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));}
+      if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
+    });
+    return true;
+  }catch(e){console.error("Supabase pengaturan toko:",e);return false;}
+}
+async function saveStoreSettings(){
+  localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));
+  localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));
+  if(!CLOUD_CONFIG?.enabled)return false;
+  try{
+    await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:"categories",value:customCategories},{key:"closed_sellers",value:closedSellers}])});
+    return true;
+  }catch(e){
+    console.error("Simpan pengaturan toko gagal:",e);
+    updateCloudStatus("⚠️ Pengaturan toko baru tersimpan di perangkat ini. Jalankan supabase-pengaturan-toko.sql di Supabase.");
+    return false;
+  }
+}
+const closedCartItems=()=>cartData().filter(p=>!isInHours(p)||allSellersClosed(p));
 function alertClosedItems(list){
-  alert("Produk berikut sedang di luar jam tersedia:\n\n"+list.map(p=>`- ${p.name} (jam ${hoursText(p)})`).join("\n")+"\n\nHapus dari keranjang atau pesan lagi saat jam tersedia.");
+  alert("Produk berikut sedang tidak bisa dipesan:\n\n"+list.map(p=>allSellersClosed(p)?`- ${p.name} (penjual ${p.seller} sedang tutup)`:`- ${p.name} (jam ${hoursText(p)})`).join("\n")+"\n\nHapus dari keranjang atau pesan lagi saat tersedia.");
 }
 
 function renderCategories() {
   const cats=["Semua",...new Set(products.map(p=>p.category))];
-  document.getElementById("categories").innerHTML=cats.map(c=>`<button class="cat ${c===activeCategory?"active":""}" onclick="setCategory('${c}')">${c}</button>`).join("");
+  document.getElementById("categories").innerHTML=cats.map(c=>`<button class="cat ${c===activeCategory?"active":""}" onclick="setCategory(${JSON.stringify(c).replace(/"/g,'&quot;')})">${esc(c)}</button>`).join("");
 }
 function setCategory(c) {
   activeCategory=c; renderCategories(); renderProducts();
@@ -175,7 +209,7 @@ function setCategory(c) {
 const groupName=p=>String(p.product_group||"").trim();
 const variantLabel=p=>String(p.variant||"").trim()||p.name;
 function singleCardHTML(p) {
-  const builder=parseToppings(p).length>0, tLimit=Number(p.topping_limit)||0;
+  const builder=parseToppings(p).length>0, tLimit=Number(p.topping_limit)||0, sClosed=allSellersClosed(p);
   return `
    <article class="product">
   <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
@@ -185,9 +219,10 @@ function singleCardHTML(p) {
         <h3>${p.name}</h3>
         <div class="price">${builder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <small>${p.unit}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
+        ${sClosed?'<small class="hours closed">🔒 Penjual sedang tutup</small>':""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
-          ${builder?`<button class="btn primary" ${isInHours(p)?"":"disabled"} onclick="showProduct(${p.id})">Pilih Topping</button>`:`<button class="btn primary" ${isInHours(p)?"":"disabled"} onclick="addToCart(${p.id})">+ Keranjang</button>`}
+          ${builder?`<button class="btn primary" ${isInHours(p)&&!sClosed?"":"disabled"} onclick="showProduct(${p.id})">Pilih Topping</button>`:`<button class="btn primary" ${isInHours(p)&&!sClosed?"":"disabled"} onclick="addToCart(${p.id})">+ Keranjang</button>`}
         </div>
       </div>
     </article>`;
@@ -203,7 +238,7 @@ function groupCardHTML(u) {
       <div class="product-body">
         <h3>${esc(u.group)}</h3>
         <div class="price">${min===max?rupiah(min):`Mulai ${rupiah(min)}`}</div>
-        <small>${v.length} pilihan varian</small><small class="seller">👤 ${esc(sellers)}</small>
+        <small>${v.length} pilihan varian</small><small class="seller">👤 ${esc(sellers)}</small>${v.every(x=>allSellersClosed(x))?'<small class="hours closed">🔒 Penjual sedang tutup</small>':""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${first.id})">Detail</button>
           <button class="btn primary" onclick="showProduct(${first.id})">Pilih Varian</button>
@@ -297,12 +332,12 @@ function addDetailToCart(id) {
 function showProduct(id) {
   const p=products.find(x=>x.id===id);
   detailProduct=p;detailToppings={};
-  detailQty=1;detailSellers=sellerList(p);detailSeller=detailSellers.length===1?detailSellers[0]:"";
+  detailQty=1;detailSellers=openSellerList(p);detailSeller=detailSellers.length===1?detailSellers[0]:"";
   const gname=groupName(p);
   const variants=gname?products.filter(x=>x.status==="Show"&&groupName(x).toLowerCase()===gname.toLowerCase()):[];
   const isGroup=variants.length>1;
   const tops=parseToppings(p), isBuilder=tops.length>0, tLimit=Number(p.topping_limit)||0;
-  const sold=p.status!=="Show", closedNow=!sold&&!isInHours(p), unavailable=sold||closedNow;
+  const sold=p.status!=="Show", closedNow=!sold&&!isInHours(p), sellerShut=!sold&&allSellersClosed(p), unavailable=sold||closedNow||sellerShut;
   document.getElementById("productDetail").innerHTML=`
     <div class="detail">
       <div class="detail-img"><img src="${getProductImage(p.image)}" alt="${p.name}" onerror="this.style.display='none'"></div>
@@ -312,7 +347,7 @@ function showProduct(id) {
         ${isGroup?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker">${variants.map(v=>`<button type="button" class="variant-chip${v.id===p.id?" active":""}" onclick="showProduct(${v.id})"><b>${esc(variantLabel(v))}</b><small>${rupiah(currentPrice(v))}</small></button>`).join("")}</div></div>`:""}
         <div class="price">${isBuilder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <p>Satuan: ${p.unit}</p>
-        <p>${sold?"Stok habis.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
+        <p>${sold?"Stok habis.":sellerShut?"Penjual sedang tutup, produk belum bisa dipesan.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
         ${hasHours(p)?`<p class="hours-line${closedNow?" closed":""}">🕒 Tersedia setiap hari pukul ${hoursText(p)}</p>`:""}
         ${unavailable?"":`<div class="seller-pick"><span class="seller-pick-title">Pilih Toko</span><div id="sellerPicker" class="seller-picker">${detailSellers.map((n,i)=>`<button type="button" class="seller-chip${detailSeller===n?" active":""}" onclick="selectDetailSeller(${i})">🏪 ${esc(n)}</button>`).join("")}</div></div>
         ${isBuilder?`<div class="topping-box"><span class="seller-pick-title">Pilih Topping${tLimit?` <small>(total maks ${rupiah(tLimit)} per porsi)</small>`:""}</span><div class="topping-list">${tops.map((t,i)=>`<div class="topping-row">${t.img?`<img class="topping-img" src="${esc(t.img)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">`:""}<div class="topping-info"><b>${esc(t.name)}</b><small>${rupiah(t.price)}</small></div><div class="qty"><button type="button" onclick="changeTopping(${i},-1)" aria-label="Kurangi ${esc(t.name)}">−</button><b id="tq-${i}">0</b><button type="button" onclick="changeTopping(${i},1)" aria-label="Tambah ${esc(t.name)}">+</button></div></div>`).join("")}</div><div id="toppingTotal" class="topping-total"></div></div>`:""}
@@ -326,10 +361,12 @@ function showProduct(id) {
 function addToCart(id,qty=1,seller,custom) {
   const p=products.find(x=>x.id===id); if(!p||p.status!=="Show")return;
   if(!isInHours(p)){showToast(`${p.name} tersedia pukul ${hoursText(p)}`);return;}
+  if(allSellersClosed(p)){showToast("Penjual sedang tutup");return;}
+  if(seller&&sellerClosed(seller)){showToast(`${seller} sedang tutup`);return;}
   if(!custom&&parseToppings(p).length){showProduct(id);showToast("Pilih topping dulu");return;}
   if(seller===undefined){
     // Produk dengan lebih dari satu toko: minta pelanggan memilih toko di popup Detail.
-    const list=sellerList(p);
+    const list=openSellerList(p);
     if(list.length>1){showProduct(id);showToast("Pilih nama toko dulu");return;}
     seller=list[0]||p.seller||"";
   }
@@ -369,7 +406,7 @@ function cartData() {
 function renderCart() {
   const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),shipping=items.length?SHIPPING_COST:0;
   document.getElementById("cartItems").innerHTML=items.length?items.map(p=>`
-    <div class="cart-row"><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div><div class="cart-seller">🏪 ${esc(p.seller)}</div></div>
+    <div class="cart-row"><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div><div class="cart-seller">🏪 ${esc(p.seller)}${allSellersClosed(p)?' • <b style="color:#b3261e">Tutup</b>':""}</div></div>
     <div class="qty"><button onclick="changeQty(${p.idx},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.idx},1)">+</button></div>
     <button class="cart-remove" type="button" title="Hapus produk" aria-label="Hapus ${p.name} dari keranjang" onclick="removeFromCart(${p.idx})">🗑️</button></div>`).join(""):`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
   document.getElementById("cartItemLabel").textContent=`${cart.reduce((s,i)=>s+i.qty,0)} item`;
@@ -439,6 +476,7 @@ function showToast(message){const t=document.getElementById("toast");t.textConte
 document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
 document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!cart.length)return;
+  await loadCloudSettings();
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
   const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
   const phone=String(f.get("phone")||"").trim();
@@ -472,7 +510,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
 
 document.getElementById("year").textContent=new Date().getFullYear();
 renderCategories();renderProducts();updateCartCount();renderCart();
-(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); if(ok){renderCategories();renderProducts();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
+(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
 
 // ===== ADMIN DASHBOARD V6 =====
 let adminLoggedIn = false;
@@ -498,7 +536,7 @@ function editAdminProduct(i){
   box.hidden=false;
   box.innerHTML=`
     <label>Nama<input id="e-name-${i}" value="${esc(p.name)}"></label>
-    <label>Kategori<select id="e-cat-${i}"><option ${p.category==='Makanan'?'selected':''}>Makanan</option><option ${p.category==='Minuman'?'selected':''}>Minuman</option></select></label>
+    <label>Kategori<select id="e-cat-${i}">${allCategories().map(c=>`<option value="${esc(c)}" ${p.category===c?'selected':''}>${esc(c)}</option>`).join("")}</select></label>
     <label>Harga<input id="e-price-${i}" type="number" value="${p.price}"></label>
     <label>Harga Promo<input id="e-sale-${i}" type="number" value="${p.sale||''}" placeholder="Kosongkan jika tidak promo"></label>
     <label>Penjual<input id="e-seller-${i}" value="${esc(p.seller)}"></label>
@@ -795,3 +833,65 @@ function getProductImage(imagePath) {
 
 // Perbarui status jam tersedia di daftar produk setiap 1 menit.
 setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
+
+
+// ===== ADMIN: + Kategori & Penjual (buka/tutup) =====
+(function(){
+  const exp=document.getElementById("exportBtn"), list=document.getElementById("adminProductList");
+  if(!exp||!list)return;
+  const mk=(id,text)=>{const b=document.createElement("button");b.type="button";b.id=id;b.className=exp.className;b.textContent=text;return b;};
+  const bCat=mk("manageCatBtn","+ Kategori"), bSel=mk("manageSellerBtn","🏪 Penjual");
+  exp.insertAdjacentElement("afterend",bSel); exp.insertAdjacentElement("afterend",bCat);
+  const panel=document.createElement("div"); panel.id="adminExtra"; panel.className="admin-extra"; panel.hidden=true;
+  list.parentNode.insertBefore(panel,list);
+  let mode="";
+  const usedBy=c=>products.filter(p=>p.category===c).length;
+  function sellerRows(){
+    const map=new Map();
+    products.forEach(p=>sellerList(p).forEach(n=>{const k=sellerKey(n);if(!map.has(k))map.set(k,{name:n,count:0});map.get(k).count++;}));
+    return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,"id"));
+  }
+  function render(){
+    panel.hidden=!mode;
+    bCat.classList.toggle("active",mode==="cat"); bSel.classList.toggle("active",mode==="seller");
+    if(mode==="cat"){
+      panel.innerHTML=`<div class="extra-head"><h4>🏷️ Kategori</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
+        <div class="extra-row"><input id="newCatInput" maxlength="30" placeholder="Nama kategori baru, mis. Jajanan"><button type="button" class="btn primary" data-act="addcat">Tambah</button></div>
+        <div class="extra-chips">${allCategories().map(c=>{const custom=customCategories.includes(c);return `<span class="extra-chip${custom?" custom":""}">${esc(c)}${custom?`<button type="button" data-act="delcat" data-name="${esc(c)}" aria-label="Hapus kategori ${esc(c)}">✕</button>`:""}</span>`;}).join("")}</div>
+        <p class="admin-hint">Kategori baru langsung muncul di pilihan Kategori saat Edit produk. Kategori baru tampil di halaman pembeli setelah ada produk di dalamnya.</p>`;
+    } else if(mode==="seller"){
+      const rows=sellerRows();
+      panel.innerHTML=`<div class="extra-head"><h4>🏪 Status Penjual</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
+        <p class="admin-hint">Jika penjual ditandai <b>Tutup</b>, semua produknya tidak bisa dipesan sampai dibuka lagi.</p>
+        <div class="seller-status-list">${rows.map(r=>{const c=sellerClosed(r.name);return `<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><div class="seg"><button type="button" class="${c?"":"on-open"}" data-act="open" data-name="${esc(r.name)}">Buka</button><button type="button" class="${c?"on-closed":""}" data-act="close-seller" data-name="${esc(r.name)}">Tutup</button></div></div>`;}).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>`;
+    } else panel.innerHTML="";
+  }
+  const toggle=m=>{mode=mode===m?"":m;render();if(mode==="cat")document.getElementById("newCatInput")?.focus();};
+  bCat.onclick=()=>toggle("cat"); bSel.onclick=()=>toggle("seller");
+  async function persist(msg){
+    const ok=await saveStoreSettings();
+    showToast(ok||!CLOUD_CONFIG?.enabled?msg:msg+" (belum tersimpan online)");
+  }
+  function afterSellerChange(){renderProducts();renderCart();renderAdminProducts();}
+  panel.addEventListener("click",async e=>{
+    const t=e.target.closest("[data-act]");if(!t)return;
+    const act=t.dataset.act, name=t.dataset.name;
+    if(act==="close"){mode="";render();return;}
+    if(act==="addcat"){
+      const inp=document.getElementById("newCatInput"), v=inp.value.replace(/\s+/g," ").trim();
+      if(!v){showToast("Isi nama kategori dulu");return;}
+      if(allCategories().some(c=>c.toLowerCase()===v.toLowerCase())){showToast("Kategori itu sudah ada");return;}
+      customCategories.push(v); render();
+      document.querySelectorAll('select[id^="e-cat-"]').forEach(sel=>{if(![...sel.options].some(o=>o.value===v))sel.add(new Option(v,v));});
+      await persist(`Kategori "${v}" ditambahkan`);return;
+    }
+    if(act==="delcat"){
+      if(usedBy(name)){alert(`Kategori "${name}" masih dipakai ${usedBy(name)} produk. Pindahkan produknya dulu.`);return;}
+      if(!confirm(`Hapus kategori "${name}"?`))return;
+      customCategories=customCategories.filter(c=>c!==name); render(); await persist("Kategori dihapus");return;
+    }
+    if(act==="open"){delete closedSellers[sellerKey(name)];render();afterSellerChange();await persist(`${name} dibuka`);return;}
+    if(act==="close-seller"){closedSellers[sellerKey(name)]=true;render();afterSellerChange();await persist(`${name} ditutup, produknya tidak bisa dipesan`);return;}
+  });
+  panel.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.id==="newCatInput"){e.preventDefault();panel.querySelector('[data-act="addcat"]').click();}});
+})();
