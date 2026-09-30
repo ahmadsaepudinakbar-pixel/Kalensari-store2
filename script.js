@@ -58,7 +58,16 @@ async function syncCloudProducts(){
   if(!CLOUD_CONFIG?.enabled) return false;
   try {
     await cloudFetch("products?select=id",{method:"DELETE"});
-    await cloudFetch("products",{method:"POST",body:JSON.stringify(products)});
+    const rows=products.map(p=>({...p,open_time:p.open_time??null,close_time:p.close_time??null}));
+    try {
+      await cloudFetch("products",{method:"POST",body:JSON.stringify(rows)});
+    } catch(err) {
+      // Kolom jam belum dibuat di Supabase: simpan produk tanpa jam agar sinkron lain tidak rusak.
+      if(!/open_time|close_time/.test(String(err.message||err))) throw err;
+      await cloudFetch("products",{method:"POST",body:JSON.stringify(rows.map(({open_time,close_time,...r})=>r))});
+      updateCloudStatus("⚠️ Jam tersedia belum tersimpan online. Jalankan supabase-jam-produk.sql di Supabase.");
+      return true;
+    }
     cloudReady=true; updateCloudStatus("☁️ Produk tersinkron online"); return true;
   } catch(e){ console.error("Sinkron produk gagal:",e); updateCloudStatus("⚠️ Gagal sinkron produk. Data lokal tetap tersimpan."); return false; }
 }
@@ -119,6 +128,28 @@ const currentPrice = p => p.sale || p.price;
 function priceHTML(p) {
   return p.sale ? `<span class="old-price">${rupiah(p.price)}</span>${rupiah(p.sale)}` : rupiah(p.price);
 }
+// ===== JAM TERSEDIA PRODUK (diatur dari Admin, waktu WIB) =====
+const STORE_TIME_ZONE="Asia/Jakarta";
+function nowMinutesWIB(){
+  const parts=new Intl.DateTimeFormat("en-GB",{timeZone:STORE_TIME_ZONE,hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date());
+  const h=Number(parts.find(x=>x.type==="hour").value)%24, m=Number(parts.find(x=>x.type==="minute").value);
+  return h*60+m;
+}
+const timeToMin=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||""));return m?Number(m[1])*60+Number(m[2]):null};
+const hasHours=p=>timeToMin(p.open_time)!==null&&timeToMin(p.close_time)!==null;
+function isInHours(p){
+  if(!hasHours(p))return true; // tanpa jam = tersedia sepanjang hari
+  const o=timeToMin(p.open_time),c=timeToMin(p.close_time),n=nowMinutesWIB();
+  if(o===c)return true;
+  return o<c?(n>=o&&n<c):(n>=o||n<c); // mendukung jam lewat tengah malam, mis. 18.00 - 02.00
+}
+const fmtTime=t=>String(t).slice(0,5).replace(":",".");
+const hoursText=p=>hasHours(p)?`${fmtTime(p.open_time)} – ${fmtTime(p.close_time)} WIB`:"";
+const closedCartItems=()=>cartData().filter(p=>!isInHours(p));
+function alertClosedItems(list){
+  alert("Produk berikut sedang di luar jam tersedia:\n\n"+list.map(p=>`- ${p.name} (jam ${hoursText(p)})`).join("\n")+"\n\nHapus dari keranjang atau pesan lagi saat jam tersedia.");
+}
+
 function renderCategories() {
   const cats=["Semua",...new Set(products.map(p=>p.category))];
   document.getElementById("categories").innerHTML=cats.map(c=>`<button class="cat ${c===activeCategory?"active":""}" onclick="setCategory('${c}')">${c}</button>`).join("");
@@ -143,10 +174,10 @@ function renderProducts() {
       <div class="product-body">
         <h3>${p.name}</h3>
         <div class="price">${priceHTML(p)}</div>
-        <small>${p.unit}</small><small class="seller">👤 ${p.seller}</small>
+        <small>${p.unit}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
-          <button class="btn primary" onclick="addToCart(${p.id})">+ Keranjang</button>
+          <button class="btn primary" ${isInHours(p)?"":"disabled"} onclick="addToCart(${p.id})">+ Keranjang</button>
         </div>
       </div>
     </article>`).join(""):`<div class="empty-state"><b>😔 Produk tidak ditemukan</b>Coba kata kunci atau kategori lain.</div>`;
@@ -173,7 +204,7 @@ function addDetailToCart(id) {
 function showProduct(id) {
   const p=products.find(x=>x.id===id);
   detailQty=1;detailSellers=sellerList(p);detailSeller=detailSellers.length===1?detailSellers[0]:"";
-  const sold=p.status!=="Show";
+  const sold=p.status!=="Show", closedNow=!sold&&!isInHours(p), unavailable=sold||closedNow;
   document.getElementById("productDetail").innerHTML=`
     <div class="detail">
       <div class="detail-img"><img src="${getProductImage(p.image)}" alt="${p.name}" onerror="this.style.display='none'"></div>
@@ -182,16 +213,18 @@ function showProduct(id) {
         <h2>${p.name}</h2>
         <div class="price">${priceHTML(p)}</div>
         <p>Satuan: ${p.unit}</p>
-        <p>${sold?"Stok habis.":"Produk tersedia untuk dipesan."}</p>
-        ${sold?"":`<div class="seller-pick"><span class="seller-pick-title">Pilih Toko</span><div id="sellerPicker" class="seller-picker">${detailSellers.map((n,i)=>`<button type="button" class="seller-chip${detailSeller===n?" active":""}" onclick="selectDetailSeller(${i})">🏪 ${esc(n)}</button>`).join("")}</div></div>
+        <p>${sold?"Stok habis.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
+        ${hasHours(p)?`<p class="hours-line${closedNow?" closed":""}">🕒 Tersedia setiap hari pukul ${hoursText(p)}</p>`:""}
+        ${unavailable?"":`<div class="seller-pick"><span class="seller-pick-title">Pilih Toko</span><div id="sellerPicker" class="seller-picker">${detailSellers.map((n,i)=>`<button type="button" class="seller-chip${detailSeller===n?" active":""}" onclick="selectDetailSeller(${i})">🏪 ${esc(n)}</button>`).join("")}</div></div>
         <div class="detail-qty"><span>Jumlah</span><div class="qty"><button type="button" onclick="changeDetailQty(${p.id},-1)" aria-label="Kurangi jumlah">−</button><b id="detailQtyValue">1</b><button type="button" onclick="changeDetailQty(${p.id},1)" aria-label="Tambah jumlah">+</button></div></div>`}
-        <button class="btn primary full" ${sold?"disabled":""} onclick="addDetailToCart(${p.id})">🛒 Tambah ke Keranjang</button>
+        <button class="btn primary full" ${unavailable?"disabled":""} onclick="addDetailToCart(${p.id})">🛒 Tambah ke Keranjang</button>
       </div>
     </div>`;
   openModal("productModal");
 }
 function addToCart(id,qty=1,seller) {
   const p=products.find(x=>x.id===id); if(!p||p.status!=="Show")return;
+  if(!isInHours(p)){showToast(`${p.name} tersedia pukul ${hoursText(p)}`);return;}
   if(seller===undefined){
     // Produk dengan lebih dari satu toko: minta pelanggan memilih toko di popup Detail.
     const list=sellerList(p);
@@ -246,7 +279,7 @@ document.getElementById("clearCartBtn").onclick=()=>{
   renderCart();
   showToast("🗑️ Keranjang berhasil dikosongkan");
 };
-document.getElementById("checkoutBtn").onclick=()=>{if(cart.length){closeModal("cartModal");openModal("checkoutModal")}};
+document.getElementById("checkoutBtn").onclick=()=>{const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}if(cart.length){closeModal("cartModal");openModal("checkoutModal")}};
 // Pencarian produk tidak boleh terisi otomatis dari nomor WhatsApp/autofill pelanggan.
 const productSearchInput=document.getElementById("searchInput");
 if(productSearchInput){
@@ -289,6 +322,7 @@ function showToast(message){const t=document.getElementById("toast");t.textConte
 document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
 document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!cart.length)return;
+  {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
   const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),total=subtotal+SHIPPING_COST;
   const phone=String(f.get("phone")||"").trim();
   const orderCode=makeOrderCode();
@@ -337,7 +371,7 @@ function renderAdminProducts(){
   box.innerHTML=products.map((p,i)=>`
     <div class="admin-product">
       <img src="${p.image||''}" alt="${p.name}" onerror="this.style.display='none'">
-      <div class="admin-product-info"><h4>${p.name} <span class="admin-status ${p.status!=="Show"?'off':''}">${p.status}</span></h4><small>${p.category} • ${rupiah(currentPrice(p))} • ${p.seller}</small></div>
+      <div class="admin-product-info"><h4>${p.name} <span class="admin-status ${p.status!=="Show"?'off':''}">${p.status}</span></h4><small>${p.category} • ${rupiah(currentPrice(p))} • ${p.seller}${hasHours(p)?` • 🕒 ${hoursText(p)}`:""}</small></div>
       <div class="admin-product-actions"><button class="btn outline" onclick="editAdminProduct(${i})">✏️ Edit</button><button class="btn outline" onclick="toggleAdminProduct(${i})">${p.status==='Show'?'⏸️ Sembunyikan':'▶️ Tampilkan'}</button><button class="btn outline" onclick="deleteAdminProduct(${i})">🗑️ Hapus</button></div>
       <div id="edit-${i}" class="admin-edit" hidden></div>
     </div>`).join("");
@@ -352,12 +386,17 @@ function editAdminProduct(i){
     <label>Harga Promo<input id="e-sale-${i}" type="number" value="${p.sale||''}" placeholder="Kosongkan jika tidak promo"></label>
     <label>Penjual<input id="e-seller-${i}" value="${esc(p.seller)}"></label>
     <label>Satuan<input id="e-unit-${i}" value="${esc(p.unit)}"></label>
+    <label>Tersedia dari jam<input id="e-open-${i}" type="time" value="${esc(p.open_time||'')}"></label>
+    <label>Sampai jam<input id="e-close-${i}" type="time" value="${esc(p.close_time||'')}"></label>
+    <p class="wide admin-hint">🕒 Waktu WIB. Kosongkan kedua kolom jika produk tersedia sepanjang hari. Di luar jam ini pelanggan tidak bisa memesan.</p>
     <label class="wide">URL Foto<input id="e-image-${i}" value="${esc(p.image||'')}"></label>
     <div class="admin-edit-actions"><button class="btn primary" onclick="saveAdminProduct(${i})">💾 Simpan</button><button class="btn outline" onclick="renderAdminProducts()">Batal</button></div>`;
 }
 function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function saveAdminProduct(i){
-  const p=products[i]; p.name=document.getElementById(`e-name-${i}`).value.trim(); p.category=document.getElementById(`e-cat-${i}`).value; p.price=Number(document.getElementById(`e-price-${i}`).value)||0; const sale=Number(document.getElementById(`e-sale-${i}`).value); p.sale=sale>0?sale:null; p.seller=document.getElementById(`e-seller-${i}`).value.trim(); p.unit=document.getElementById(`e-unit-${i}`).value.trim(); p.image=document.getElementById(`e-image-${i}`).value.trim(); saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); showToast("Produk berhasil diperbarui");
+  const openT=document.getElementById(`e-open-${i}`).value, closeT=document.getElementById(`e-close-${i}`).value;
+  if(!!openT!==!!closeT){showToast("Isi jam mulai DAN jam selesai, atau kosongkan keduanya");return;}
+  const p=products[i]; p.open_time=openT||null; p.close_time=closeT||null; p.name=document.getElementById(`e-name-${i}`).value.trim(); p.category=document.getElementById(`e-cat-${i}`).value; p.price=Number(document.getElementById(`e-price-${i}`).value)||0; const sale=Number(document.getElementById(`e-sale-${i}`).value); p.sale=sale>0?sale:null; p.seller=document.getElementById(`e-seller-${i}`).value.trim(); p.unit=document.getElementById(`e-unit-${i}`).value.trim(); p.image=document.getElementById(`e-image-${i}`).value.trim(); saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); showToast("Produk berhasil diperbarui");
 }
 function addAdminProduct(){
   const id=products.length?Math.max(...products.map(p=>p.id))+1:1;
@@ -624,3 +663,6 @@ function getProductImage(imagePath) {
     window.addEventListener('load',setup,{once:true});
   }
 })();
+
+// Perbarui status jam tersedia di daftar produk setiap 1 menit.
+setInterval(()=>{ if(products.some(hasHours)) renderProducts(); },60000);
