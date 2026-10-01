@@ -1,8 +1,8 @@
 /* Kalensari Store - service worker
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
-   (database/cloud, Google Maps, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v1";
+   (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
+const VERSION = "ks-v2";
 const CACHE = "kalensari-" + VERSION;
 const PRECACHE = [
   "./offline.html",
@@ -27,14 +27,16 @@ self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return; // biarkan cloud/Maps/WA lewat langsung
+  if (url.origin !== self.location.origin) return;      // biarkan cloud/Maps/Sheets/WA lewat langsung
+  if (req.headers.has("range")) return;                 // musik/video (potongan data) biarkan langsung
+  if (/\.(mp3|mp4|m4a|ogg|wav|webm)$/i.test(url.pathname)) return;
 
   e.respondWith(
     fetch(req)
       .then((res) => {
-        if (res && res.ok) {
+        if (res && res.status === 200 && res.type === "basic") {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
+          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
         }
         return res;
       })
