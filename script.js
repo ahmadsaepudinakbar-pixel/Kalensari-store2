@@ -757,8 +757,8 @@ function setupHeroButtons(){
   let jasa=document.getElementById("jasaHero");
   if(!jasa){jasa=info.cloneNode(false);jasa.id="jasaHero";jasa.classList.add("hero-jasa");info.insertAdjacentElement("afterend",jasa);}
   jasa.textContent="Penyedia Jasa";
-  jasa.setAttribute("href",wa("Halo KALENSARI STORE, saya ingin bertanya tentang penyedia jasa."));
-  jasa.setAttribute("target","_blank");jasa.setAttribute("rel","noopener");
+  jasa.setAttribute("href","jasa.html");
+  jasa.removeAttribute("target");jasa.removeAttribute("rel");
 }
 // Perbarui semua tautan WhatsApp statis setelah nomor diubah / dimuat dari database.
 function applyWaLinks(){
@@ -1097,12 +1097,11 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
 .ks-menu a:hover,.ks-menu button:hover,.ks-menu a:focus-visible,.ks-menu button:focus-visible{background:#f8edd3;outline:none}`;
   document.head.appendChild(st);
   const m=document.createElement("div");m.className="ks-menu";m.setAttribute("role","menu");
-  m.innerHTML=`<a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" id="ksMenuJasa" target="_blank" rel="noopener">🤝 Penyedia Jasa</a><button role="menuitem" type="button" id="ksMenuAdmin">⚙️ Admin</button>`;
+  m.innerHTML=`<a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" href="jasa.html">🤝 Penyedia Jasa</a><button role="menuitem" type="button" id="ksMenuAdmin">⚙️ Admin</button>`;
   document.body.appendChild(m);
-  const jasa=()=>`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin bertanya tentang penyedia jasa.")}`;
   const close=()=>{m.classList.remove("open");btn.setAttribute("aria-expanded","false");};
   const place=()=>{const r=btn.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.left=Math.max(8,Math.min(r.left,innerWidth-m.offsetWidth-8))+"px";};
-  btn.onclick=e=>{e.stopPropagation();const open=!m.classList.contains("open");if(open){m.querySelector("#ksMenuJasa").href=jasa();m.classList.add("open");place();}else m.classList.remove("open");btn.setAttribute("aria-expanded",String(open));};
+  btn.onclick=e=>{e.stopPropagation();const open=!m.classList.contains("open");if(open){m.classList.add("open");place();}else m.classList.remove("open");btn.setAttribute("aria-expanded",String(open));};
   m.querySelector("#ksMenuAdmin").onclick=()=>{close();openAdmin();};
   m.addEventListener("click",e=>{if(e.target.closest("a"))close();});
   document.addEventListener("click",e=>{if(!m.contains(e.target)&&e.target!==btn)close();});
