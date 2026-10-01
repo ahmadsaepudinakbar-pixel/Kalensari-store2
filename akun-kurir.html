@@ -141,7 +141,7 @@ $("btnDaftar").onclick = async () => {
     acc[wa] = {h:await hashPin(wa, pin), id};
     await setSetting(ROLE + "_accounts", acc);
     await upsertMember({id, nama, wa, kendaraan:$("rKend").value, wilayah:"", aktif:true, pending:true, updated:Date.now()});
-    localStorage.setItem(SESS, wa);
+    sessionStorage.setItem(SESS, wa);
     toast("Akun dibuat. Mengarahkan ke dashboard...");
     go();
   }catch(e){ toast(e.message || "Gagal mendaftar"); }
@@ -156,7 +156,7 @@ $("btnMasuk").onclick = async () => {
     const a = acc[wa];
     if(!a || a.h !== await hashPin(wa, pin)){ failTry(); return toast("Nomor atau PIN salah"); }
     LSset("kalensari_"+ROLE+"_try", {n:0,t:0});
-    localStorage.setItem(SESS, wa);
+    sessionStorage.setItem(SESS, wa);
     toast("Berhasil masuk...");
     go();
   }catch(e){ toast(e.message || "Gagal masuk"); }
@@ -165,7 +165,7 @@ $("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
 (() => {
   $("warn").hidden = cloudOn();
   if(location.hash === "#daftar") showTab(false);
-  if(localStorage.getItem(SESS)) location.replace("dashboard-" + ROLE + ".html");
+  if(sessionStorage.getItem(SESS)) location.replace("dashboard-" + ROLE + ".html");
 })();
 
 </script>

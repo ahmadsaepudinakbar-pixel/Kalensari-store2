@@ -182,10 +182,10 @@ let me = null; // data penyedia yang sedang masuk
 let foto = "";
 async function openDash(wa){
   const acc = (await getSetting("jasa_accounts", {})) || {};
-  const a = acc[wa]; if(!a){ localStorage.removeItem("kalensari_jasa_sess"); return; }
+  const a = acc[wa]; if(!a){ sessionStorage.removeItem("kalensari_jasa_sess"); return; }
   const list = (await getSetting("jasa_members", [])) || [];
   me = list.find(x => x.id === a.id);
-  if(!me){ localStorage.removeItem("kalensari_jasa_sess"); toast("Data jasa Anda tidak ditemukan. Hubungi admin."); return; }
+  if(!me){ sessionStorage.removeItem("kalensari_jasa_sess"); toast("Data jasa Anda tidak ditemukan. Hubungi admin."); return; }
   me.wa = wa; foto = me.foto || "";
   $("dash").hidden = false;
   $("dHalo").textContent = "Halo, " + me.nama;
@@ -246,7 +246,7 @@ $("pSimpan").onclick = async () => {
     $("pOld").value = $("pNew").value = ""; toast("PIN diganti");
   }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
 };
-$("btnKeluar").onclick = () => { localStorage.removeItem("kalensari_jasa_sess"); location.href = "akun-jasa.html"; };
+$("btnKeluar").onclick = () => { sessionStorage.removeItem("kalensari_jasa_sess"); location.href = "akun-jasa.html"; };
 
 
 function renderPrev(){
@@ -265,7 +265,7 @@ document.addEventListener("change",e=>{ if(e.target.closest("#dash")) renderPrev
 // ====== MULAI ======
 (async () => {
   $("warn").hidden = cloudOn();
-  const s = localStorage.getItem("kalensari_jasa_sess");
+  const s = sessionStorage.getItem("kalensari_jasa_sess");
   if(!s){ location.replace("akun-jasa.html"); return; }
   await loadKat();
   try{ await openDash(s); }catch(e){ toast(e.message || "Gagal memuat data"); }
