@@ -498,14 +498,14 @@ function setupCheckoutMaps(){
   box.innerHTML=`<b>📍 Lokasi pengantaran</b><div id="ksMapStatus" style="font-size:13px;color:#5c4638;margin:4px 0 8px">Belum ada lokasi dipilih.</div><div style="display:grid;gap:8px"><button type="button" id="ksGetLocation" style="padding:11px;border:1px solid #7b3f1d;border-radius:12px;background:#fff;color:#7b3f1d;font-weight:700;cursor:pointer">📍 Gunakan lokasi saya</button><button type="button" id="ksOpenMap" style="padding:11px;border:1px solid #228b4e;border-radius:12px;background:#228b4e;color:#fff;font-weight:700;cursor:pointer;display:none">🗺️ Buka di Google Maps</button></div><input type="hidden" id="ksMapLat"><input type="hidden" id="ksMapLng">`;
   addr.insertAdjacentElement("afterend",box);
   const status=box.querySelector("#ksMapStatus"), getBtn=box.querySelector("#ksGetLocation"), openBtn=box.querySelector("#ksOpenMap"), latEl=box.querySelector("#ksMapLat"), lngEl=box.querySelector("#ksMapLng");
-  const update=()=>{ const lat=Number(latEl.value),lng=Number(lngEl.value); if(Number.isFinite(lat)&&Number.isFinite(lng)){status.textContent=`Lokasi tersimpan: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;openBtn.style.display="block";openBtn.onclick=()=>window.open(ksMapsSearch(`${lat},${lng}`),"_blank","noopener");}else{status.textContent="Belum ada lokasi dipilih.";openBtn.style.display="none";} };
+  const update=()=>{ const lat=latEl.value.trim()===""?NaN:Number(latEl.value),lng=lngEl.value.trim()===""?NaN:Number(lngEl.value); if(Number.isFinite(lat)&&Number.isFinite(lng)&&!(lat===0&&lng===0)){status.textContent=`Lokasi tersimpan: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;openBtn.style.display="block";openBtn.onclick=()=>window.open(ksMapsSearch(`${lat},${lng}`),"_blank","noopener");}else{status.textContent="Belum ada lokasi dipilih.";openBtn.style.display="none";} };
   getBtn.onclick=()=>{
     if(!navigator.geolocation){status.textContent="Browser tidak mendukung lokasi.";return;}
     status.textContent="📍 Mengambil lokasi...";
     navigator.geolocation.getCurrentPosition(pos=>{latEl.value=pos.coords.latitude.toFixed(6);lngEl.value=pos.coords.longitude.toFixed(6);update();},err=>{status.textContent=err.code===1?"Izin lokasi ditolak.":"Lokasi tidak bisa diperoleh.";},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
   };
   const saved=JSON.parse(localStorage.getItem("kalensari_checkout_location")||"null");
-  if(saved&&Number.isFinite(Number(saved.lat))&&Number.isFinite(Number(saved.lng))){latEl.value=saved.lat;lngEl.value=saved.lng;update();}
+  if(saved&&Number.isFinite(Number(saved.lat))&&Number.isFinite(Number(saved.lng))&&!(Number(saved.lat)===0&&Number(saved.lng)===0)){latEl.value=saved.lat;lngEl.value=saved.lng;update();}
 }
 setupCheckoutMaps();
 
@@ -571,8 +571,9 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const phone=String(f.get("phone")||"").trim();
   const orderCode=makeOrderCode();
   const createdAt=new Date().toISOString();
-  const mapLat=Number(document.getElementById("ksMapLat")?.value), mapLng=Number(document.getElementById("ksMapLng")?.value);
-  const hasMap=Number.isFinite(mapLat)&&Number.isFinite(mapLng);
+  const _la=document.getElementById("ksMapLat")?.value, _ln=document.getElementById("ksMapLng")?.value;
+  const mapLat=String(_la||"").trim()===""?NaN:Number(_la), mapLng=String(_ln||"").trim()===""?NaN:Number(_ln);
+  const hasMap=Number.isFinite(mapLat)&&Number.isFinite(mapLng)&&!(mapLat===0&&mapLng===0);
   const address=String(f.get("address")||"").trim();
   const userNote=String(f.get("note")||"").trim();
   const mapToken=hasMap?`__KS_MAP__${mapLat.toFixed(6)},${mapLng.toFixed(6)}__END__`:"";
