@@ -489,55 +489,23 @@ function closeModal(id) {document.getElementById(id).classList.remove("show")}
 // ===== GOOGLE MAPS KALENSARI STORE V14 =====
 function ksMapsSearch(q){ return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`; }
 function ksMapsNavigate(q){ return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}&travelmode=driving&dir_action=navigate`; }
-// --- Checkout: nama & WhatsApp otomatis dari akun pembeli; alamat = rumah atau lokasi saat ini ---
-let checkoutBuyer=null, gpsLat="", gpsLng="";
-const phoneShow=wa=>String(wa||"").replace(/^62/,"0");
-async function loadBuyer(){
-  const wa=sessionStorage.getItem("kalensari_pembeli_sess"); if(!wa) return null;
-  const get=async key=>{
-    if(CLOUD_CONFIG?.enabled){ try{ const r=await cloudFetch(`store_settings?select=value&key=eq.${key}`); if(r[0]&&r[0].value!=null) return r[0].value; }catch(e){} }
-    return readLS("kalensari_"+key,null);
-  };
-  const acc=(await get("pembeli_accounts"))||{}, a=acc[wa]; if(!a) return null;
-  const list=await get("pembeli_members"), m=(Array.isArray(list)?list:[]).find(x=>x.id===a.id)||{};
-  return {wa, nama:String(m.nama||"").trim()||"Pembeli", alamat:String(m.alamat||"").trim(), lat:m.latitude, lng:m.longitude};
-}
-const okCoord=(la,ln)=>{la=Number(la);ln=Number(ln);return Number.isFinite(la)&&Number.isFinite(ln)&&!(la===0&&ln===0);};
-function renderCheckoutBuyer(){
-  const b=checkoutBuyer; if(!b) return;
-  document.getElementById("coBuyer").innerHTML=`<b>👤 Pemesan</b><div>${esc(b.nama)}</div><div>📱 ${esc(phoneShow(b.wa))}</div><small>Data otomatis dari akun pembeli. <a href="dashboard-pembeli.html">Ubah</a></small>`;
-  document.querySelectorAll('#checkoutForm [name="addrMode"]').forEach(r=>r.checked=false);
-  document.getElementById("coRumah").hidden=true; document.getElementById("coLokasi").hidden=true;
-  document.getElementById("ksMapLat").value=""; document.getElementById("ksMapLng").value="";
-}
 function setupCheckoutMaps(){
   const form=document.getElementById("checkoutForm");
-  if(!form || form.dataset.coWired) return; form.dataset.coWired="1";
-  const rumah=document.getElementById("coRumah"), lok=document.getElementById("coLokasi"),
-    status=document.getElementById("ksMapStatus"), getBtn=document.getElementById("ksGetLocation"), openBtn=document.getElementById("ksOpenMap"),
-    latEl=document.getElementById("ksMapLat"), lngEl=document.getElementById("ksMapLng");
-  const showGps=()=>{ if(okCoord(gpsLat,gpsLng)){ status.textContent=`✅ Lokasi tersimpan: ${Number(gpsLat).toFixed(6)}, ${Number(gpsLng).toFixed(6)}`; openBtn.style.display="block"; openBtn.onclick=()=>window.open(ksMapsSearch(`${gpsLat},${gpsLng}`),"_blank","noopener"); } else { status.textContent="Belum ada lokasi dipilih."; openBtn.style.display="none"; } };
-  form.querySelectorAll('[name="addrMode"]').forEach(r=>r.addEventListener("change",()=>{
-    const mode=r.value; if(!r.checked) return;
-    rumah.hidden=mode!=="rumah"; lok.hidden=mode!=="lokasi";
-    if(mode==="rumah"){
-      const b=checkoutBuyer;
-      if(!b||!b.alamat){
-        showToast("Alamat rumah belum diisi. Mengarahkan ke dasbor pembeli...");
-        sessionStorage.setItem("kalensari_next","checkout");
-        setTimeout(()=>{location.href="dashboard-pembeli.html";},1200); return;
-      }
-      rumah.innerHTML=`<div>${esc(b.alamat)}</div>${okCoord(b.lat,b.lng)?"<small>✅ Titik Google Maps tersimpan</small>":""}`;
-      latEl.value=okCoord(b.lat,b.lng)?Number(b.lat):""; lngEl.value=okCoord(b.lat,b.lng)?Number(b.lng):"";
-    } else { latEl.value=gpsLat; lngEl.value=gpsLng; showGps(); }
-  }));
+  if(!form || document.getElementById("ksMapBox")) return;
+  const addr=form.querySelector('[name="address"]');
+  if(!addr) return;
+  const box=document.createElement("div"); box.id="ksMapBox"; box.style.cssText="background:#fffaf2;border:1px solid #d3bfa8;border-radius:14px;padding:12px;margin:6px 0 12px";
+  box.innerHTML=`<b>📍 Lokasi pengantaran</b><div id="ksMapStatus" style="font-size:13px;color:#5c4638;margin:4px 0 8px">Belum ada lokasi dipilih.</div><div style="display:grid;gap:8px"><button type="button" id="ksGetLocation" style="padding:11px;border:1px solid #7b3f1d;border-radius:12px;background:#fff;color:#7b3f1d;font-weight:700;cursor:pointer">📍 Gunakan lokasi saya</button><button type="button" id="ksOpenMap" style="padding:11px;border:1px solid #228b4e;border-radius:12px;background:#228b4e;color:#fff;font-weight:700;cursor:pointer;display:none">🗺️ Buka di Google Maps</button></div><input type="hidden" id="ksMapLat"><input type="hidden" id="ksMapLng">`;
+  addr.insertAdjacentElement("afterend",box);
+  const status=box.querySelector("#ksMapStatus"), getBtn=box.querySelector("#ksGetLocation"), openBtn=box.querySelector("#ksOpenMap"), latEl=box.querySelector("#ksMapLat"), lngEl=box.querySelector("#ksMapLng");
+  const update=()=>{ const lat=latEl.value.trim()===""?NaN:Number(latEl.value),lng=lngEl.value.trim()===""?NaN:Number(lngEl.value); if(Number.isFinite(lat)&&Number.isFinite(lng)&&!(lat===0&&lng===0)){status.textContent=`Lokasi tersimpan: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;openBtn.style.display="block";openBtn.onclick=()=>window.open(ksMapsSearch(`${lat},${lng}`),"_blank","noopener");}else{status.textContent="Belum ada lokasi dipilih.";openBtn.style.display="none";} };
   getBtn.onclick=()=>{
     if(!navigator.geolocation){status.textContent="Browser tidak mendukung lokasi.";return;}
     status.textContent="📍 Mengambil lokasi...";
-    navigator.geolocation.getCurrentPosition(pos=>{gpsLat=pos.coords.latitude.toFixed(6);gpsLng=pos.coords.longitude.toFixed(6);latEl.value=gpsLat;lngEl.value=gpsLng;showGps();},
-      err=>{status.textContent=err.code===1?"Izin lokasi diblokir. Klik ikon gembok di alamat → Lokasi → Izinkan, atau pilih Alamat rumah.":"Lokasi tidak bisa diperoleh. Coba lagi atau pilih Alamat rumah.";},
-      {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+    navigator.geolocation.getCurrentPosition(pos=>{latEl.value=pos.coords.latitude.toFixed(6);lngEl.value=pos.coords.longitude.toFixed(6);update();},err=>{status.textContent=err.code===1?"Izin lokasi diblokir. Klik ikon gembok di alamat → Lokasi → Izinkan. Atau lewati saja, tulis alamat lengkap.":"Lokasi tidak bisa diperoleh. Tulis alamat lengkap saja.";},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
   };
+  const saved=JSON.parse(localStorage.getItem("kalensari_checkout_location")||"null");
+  if(saved&&Number.isFinite(Number(saved.lat))&&Number.isFinite(Number(saved.lng))&&!(Number(saved.lat)===0&&Number(saved.lng)===0)){latEl.value=saved.lat;lngEl.value=saved.lng;update();}
 }
 setupCheckoutMaps();
 
@@ -554,13 +522,7 @@ document.getElementById("clearCartBtn").onclick=()=>{
   renderCart();
   showToast("🗑️ Keranjang berhasil dikosongkan");
 };
-document.getElementById("checkoutBtn").onclick=async()=>{
-  const closed=closedCartItems(); if(closed.length){alertClosedItems(closed);return;}
-  if(!cart.length) return;
-  const b=await loadBuyer();
-  if(!b){ sessionStorage.setItem("kalensari_next","checkout"); showToast("Silakan masuk sebagai pembeli dulu..."); setTimeout(()=>{location.href="akun-pembeli.html";},900); return; }
-  checkoutBuyer=b; closeModal("cartModal"); renderCheckoutBuyer(); openModal("checkoutModal"); setupCheckoutMaps();
-};
+document.getElementById("checkoutBtn").onclick=()=>{const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}if(cart.length){closeModal("cartModal");openModal("checkoutModal");setTimeout(setupCheckoutMaps,0)}};
 // Pencarian produk tidak boleh terisi otomatis dari nomor WhatsApp/autofill pelanggan.
 const productSearchInput=document.getElementById("searchInput");
 if(productSearchInput){
@@ -603,29 +565,24 @@ function showToast(message){const t=document.getElementById("toast");t.textConte
 document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
 document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!cart.length)return;
-  if(!checkoutBuyer){showToast("Silakan masuk sebagai pembeli dulu");return;}
   await Promise.all([loadCloudSettings(),refreshProductStatus()]);
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
   const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),ships=shippingBreakdown(items),shipping=ships.reduce((t,x)=>t+x.fee,0),total=subtotal+shipping;
-  const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
+  const phone=String(f.get("phone")||"").trim();
   const orderCode=makeOrderCode();
   const createdAt=new Date().toISOString();
   const _la=document.getElementById("ksMapLat")?.value, _ln=document.getElementById("ksMapLng")?.value;
   const mapLat=String(_la||"").trim()===""?NaN:Number(_la), mapLng=String(_ln||"").trim()===""?NaN:Number(_ln);
   const hasMap=Number.isFinite(mapLat)&&Number.isFinite(mapLng)&&!(mapLat===0&&mapLng===0);
-  const mode=f.get("addrMode");
-  if(mode!=="rumah"&&mode!=="lokasi"){showToast("Pilih alamat pengiriman dulu");return;}
-  if(mode==="rumah"&&!checkoutBuyer.alamat){showToast("Alamat rumah belum diisi");return;}
-  if(mode==="lokasi"&&!hasMap){showToast("Ambil lokasi Anda dulu");return;}
-  const address=mode==="rumah"?checkoutBuyer.alamat:"Titik lokasi saat ini (lihat link Google Maps)";
+  const address=String(f.get("address")||"").trim();
   const userNote=String(f.get("note")||"").trim();
   const mapToken=hasMap?`__KS_MAP__${mapLat.toFixed(6)},${mapLng.toFixed(6)}__END__`:"";
   const orderNote=[userNote,mapToken].filter(Boolean).join(" ");
   if(hasMap) localStorage.setItem("kalensari_checkout_location",JSON.stringify({lat:mapLat,lng:mapLng}));
   const detail=items.map(p=>`- ${p.name} (Toko: ${p.seller}) x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
   const mapText=hasMap?`\nLokasi Maps: ${ksMapsSearch(`${mapLat},${mapLng}`)}`:"";
-  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(shipping)}${ships.length?"\n"+ships.map(x=>`  • ${x.name}: ${rupiah(x.fee)}`).join("\n")+"\n  (ongkir dihitung per toko)":""}\nTOTAL: ${rupiah(total)}\n\nNama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
-  const payload={order_code:orderCode,created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu"};
+  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(shipping)}${ships.length?"\n"+ships.map(x=>`  • ${x.name}: ${rupiah(x.fee)}`).join("\n")+"\n  (ongkir dihitung per toko)":""}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
+  const payload={order_code:orderCode,created_at:createdAt,customer_name:String(f.get("name")||""),customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu"};
 
   // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi pesanan.
   const local=getLocalOrders(); local.unshift({...payload,id:`local-${Date.now()}`}); saveLocalOrders(local);
@@ -651,7 +608,6 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
 
 document.getElementById("year").textContent=new Date().getFullYear();
 renderCategories();renderProducts();updateCartCount();renderCart();
-if(location.hash==="#checkout"){ history.replaceState(null,"",location.pathname); if(cart.length) setTimeout(()=>document.getElementById("checkoutBtn").click(),400); }
 (async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
 
 // ===== ADMIN DASHBOARD V6 =====
