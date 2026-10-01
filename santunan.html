@@ -139,9 +139,10 @@ async function loadMon(m){
 async function showMon(m){
  $('#detail').innerHTML='Memuat...';
  try{const d=await loadMon(m),yv=sum(d.yat.map(x=>x.v));
+  const dk=d.kgT||sum(d.duf.map(x=>x.kg)),dn=d.duf.filter(x=>x.kg>0).length||(dk>0?d.duf.length:0); // warga dihitung hanya jika menerima beras
   $('#detail').innerHTML=`<div class="grid">
   <div class="box">Santunan anak yatim dan piatu<b>${d.yat.length} anak</b>${rp(yv)}${d.yat.length?` (${rp(yv/d.yat.length)} per anak)`:''}</div>
-  <div class="box">Santunan duafa<b>${d.duf.length?d.duf.length+' warga':(d.kgT||0)+' kg beras'}</b>${d.duf.length?(d.kgT||sum(d.duf.map(x=>x.kg)))+' kg beras, ':''}${rp(d.dufV)}</div>
+  <div class="box">Santunan duafa${dn?`<b>${dn} warga</b>${dk} kg beras, ${rp(d.dufV)}`:(dk||d.dufV)?`<b>${dk} kg beras</b>${rp(d.dufV)}`:'<b>-</b>Belum ada santunan bulan ini'}</div>
   <div class="box">Donatur<b>${d.don.length} donatur</b>${rp(sum(d.don.map(x=>x.v)))}</div></div>
   ${d.lain.length?`<details><summary>Pengeluaran lainnya (${rp(sum(d.lain.map(x=>x.v)))})</summary><ul>${d.lain.map(x=>`<li>${esc(x.n)}: ${rp(x.v)}</li>`).join('')}</ul></details>`:''}
   ${d.don.length?`<details><summary>Daftar donatur ${MON[m]}</summary><ul>${d.don.map(x=>`<li>${esc(x.n)}: ${rp(x.v)}</li>`).join('')}</ul></details>`:''}`;
