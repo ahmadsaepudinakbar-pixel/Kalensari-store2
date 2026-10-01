@@ -1108,3 +1108,110 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
   document.addEventListener("keydown",e=>{if(e.key==="Escape")close();});
   addEventListener("resize",close);addEventListener("scroll",close,{passive:true});
 })();
+
+
+// ===== ADMIN: ✅ Persetujuan (kurir, penyedia jasa, penjual) =====
+(function(){
+  const exp=document.getElementById("exportBtn"), list=document.getElementById("adminProductList");
+  if(!exp||!list)return;
+  const GROUPS=[
+    {k:"kurir",label:"🛵 Kurir",members:"kurir_members",acc:"kurir_accounts",info:m=>[m.kendaraan,m.wilayah].filter(Boolean).join(" • ")||"-"},
+    {k:"jasa",label:"🤝 Jasa",members:"jasa_members",acc:"jasa_accounts",info:m=>[m.kategori,m.dusun].filter(Boolean).join(" • ")||"-"},
+    {k:"penjual",label:"🏪 Penjual",members:"penjual_members",acc:"penjual_accounts",info:m=>[m.toko||m.usaha,m.dusun].filter(Boolean).join(" • ")||"-"}
+  ];
+  const rd=async(key,def)=>{
+    if(CLOUD_CONFIG?.enabled){const r=await cloudFetch(`store_settings?select=value&key=eq.${key}`);return r[0]&&r[0].value!=null?r[0].value:def;}
+    try{const v=JSON.parse(localStorage.getItem("kalensari_"+key)||"null");return v==null?def:v;}catch{return def;}
+  };
+  const wr=async(key,val)=>{
+    try{localStorage.setItem("kalensari_"+key,JSON.stringify(val));}catch{}
+    if(CLOUD_CONFIG?.enabled)await cloudFetch("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key,value:val}])});
+  };
+  const st=document.createElement("style");
+  st.textContent=`.ap-badge{display:inline-block;min-width:18px;margin-left:6px;padding:1px 6px;border-radius:999px;background:#c0392b;color:#fff;font-size:11px;font-weight:700;text-align:center}.ap-badge:empty{display:none}
+#adminApprove{border:1px solid #eadfd6;border-radius:16px;padding:14px;margin:12px 0;background:#fffaf2}
+#adminApprove .ap-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+#adminApprove .ap-tab{border:1px solid #d3bfa8;background:#fff;border-radius:999px;padding:8px 14px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+#adminApprove .ap-tab.on{background:#7b3f1d;border-color:#7b3f1d;color:#fff}
+#adminApprove .ap-card{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid #eadfd6;background:#fff;border-radius:14px;padding:10px 12px;margin-top:8px}
+#adminApprove .ap-card small{display:block;color:#5c4638;font-size:12px;margin-top:2px}
+#adminApprove .ap-btns{display:flex;gap:6px}
+#adminApprove .ap-btns button{border:1px solid #7b3f1d;background:#fff;color:#7b3f1d;border-radius:10px;padding:8px 12px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
+#adminApprove .ap-btns .ap-ok{background:#228b4e;border-color:#228b4e;color:#fff}
+#adminApprove .ap-btns .ap-no{border-color:#b83c2b;color:#b83c2b}
+#adminApprove .ap-empty{font-size:13px;color:#5c4638;margin:10px 0 0}
+.pl-toggle{cursor:pointer;user-select:none}.pl-toggle .pl-caret{display:inline-block;margin-left:8px;font-size:.8em;color:#7b3f1d}`;
+  document.head.appendChild(st);
+  const btn=document.createElement("button");btn.type="button";btn.id="approveBtn";btn.className=exp.className;btn.innerHTML='✅ Persetujuan<span class="ap-badge" id="apBadge"></span>';
+  (document.getElementById("manageShipBtn")||exp).insertAdjacentElement("afterend",btn);
+  const ap=document.createElement("div");ap.id="adminApprove";ap.hidden=true;list.parentNode.insertBefore(ap,list);
+  let cur="kurir",data={},err="",busy=false;
+  const pend=g=>(data[g.k]||[]).filter(m=>m&&m.pending===true);
+  function badge(){const n=GROUPS.reduce((t,g)=>t+pend(g).length,0);document.getElementById("apBadge").textContent=n?String(n):"";}
+  function render(){
+    const g=GROUPS.find(x=>x.k===cur),rows=pend(g);
+    ap.innerHTML=`<div class="extra-head" style="display:flex;justify-content:space-between;align-items:center"><h4 style="margin:0">✅ Persetujuan bergabung</h4><button type="button" class="extra-close" data-a="close" aria-label="Tutup">✕</button></div>
+      <div class="ap-tabs">${GROUPS.map(x=>`<button type="button" class="ap-tab${x.k===cur?" on":""}" data-a="tab" data-g="${x.k}">${x.label} (${pend(x).length})</button>`).join("")}</div>
+      ${err?`<p class="ap-empty">⚠️ ${esc(err)}</p>`:""}
+      ${rows.length?rows.map(m=>`<div class="ap-card"><div><b>${esc(m.nama||"(tanpa nama)")}</b><small>📱 +${esc(m.wa||"")} • ${esc(g.info(m))}</small></div><div class="ap-btns"><button type="button" class="ap-ok" data-a="ok" data-g="${g.k}" data-id="${esc(m.id)}">✅ Setujui</button><button type="button" class="ap-no" data-a="no" data-g="${g.k}" data-id="${esc(m.id)}">✕ Tolak</button></div></div>`).join(""):`<p class="ap-empty">Tidak ada permintaan ${esc(g.label.replace(/^\S+\s/,""))} yang menunggu.</p>`}`;
+    badge();
+  }
+  async function reload(){
+    err="";
+    for(const g of GROUPS){try{const v=await rd(g.members,[]);data[g.k]=Array.isArray(v)?v:[];}catch(e){data[g.k]=[];err="Sebagian data gagal dimuat: "+(e.message||e);}}
+    render();
+  }
+  async function act(a,gk,id){
+    const g=GROUPS.find(x=>x.k===gk);if(!g||busy)return;
+    if(a==="no"&&!confirm("Tolak dan hapus pendaftaran ini? Orangnya bisa mendaftar ulang."))return;
+    busy=true;
+    try{
+      const lst=await rd(g.members,[]),arr=Array.isArray(lst)?lst:[],m=arr.find(x=>x.id===id);
+      if(!m){showToast("Data tidak ditemukan");return;}
+      if(a==="ok"){
+        const upd={...m,pending:false,updated:Date.now()};if(gk==="jasa")upd.status="Show";
+        await wr(g.members,arr.map(x=>x.id===id?upd:x));showToast(`"${m.nama||"Akun"}" disetujui`);
+      }else{
+        await wr(g.members,arr.filter(x=>x.id!==id));
+        const acc=await rd(g.acc,{});let ch=false;for(const w in acc){if(acc[w]&&acc[w].id===id){delete acc[w];ch=true;}}
+        if(ch)await wr(g.acc,acc);showToast("Pendaftaran ditolak");
+      }
+    }catch(e){showToast("Gagal: "+(e.message||e));}
+    finally{busy=false;await reload();}
+  }
+  btn.addEventListener("click",()=>{
+    const open=ap.hidden;ap.hidden=!open;
+    if(open){const x=document.querySelector('#adminExtra:not([hidden]) [data-act="close"]');if(x)x.click();ap.innerHTML='<p class="ap-empty">Memuat...</p>';reload();}
+  });
+  ["manageCatBtn","manageSellerBtn","manageShipBtn"].forEach(id=>{const b=document.getElementById(id);if(b)b.addEventListener("click",()=>{ap.hidden=true;});});
+  ap.addEventListener("click",e=>{
+    const b=e.target.closest("[data-a]");if(!b)return;
+    if(b.dataset.a==="close"){ap.hidden=true;}
+    else if(b.dataset.a==="tab"){cur=b.dataset.g;render();}
+    else act(b.dataset.a,b.dataset.g,b.dataset.id);
+  });
+  const lb=document.getElementById("adminLoginBtn");
+  if(lb)lb.addEventListener("click",()=>{setTimeout(()=>{if(adminLoggedIn)reload();},1500);});
+})();
+
+// ===== ADMIN: "Daftar Produk" jadi folder (produk tampil hanya setelah diklik) =====
+(function(){
+  const list=document.getElementById("adminProductList"),panel=document.getElementById("adminPanel");
+  if(!list||!panel)return;
+  let head=[...panel.querySelectorAll("h1,h2,h3,h4,summary,legend")].find(h=>/Daftar Produk/i.test(h.textContent));
+  if(!head){head=document.createElement("h3");head.textContent="📋 Daftar Produk";list.parentNode.insertBefore(head,list);}
+  head.classList.add("pl-toggle");head.setAttribute("role","button");head.setAttribute("tabindex","0");
+  const caret=document.createElement("span");caret.className="pl-caret";head.appendChild(caret);
+  let open=false;
+  function setFolder(v){
+    open=!!v;list.style.display=open?"":"none";
+    caret.textContent=(open?"▾ ":"▸ ")+"("+products.length+")";
+    head.setAttribute("aria-expanded",String(open));
+  }
+  head.addEventListener("click",()=>setFolder(!open));
+  head.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();setFolder(!open);}});
+  const add=document.getElementById("addProductBtn");
+  if(add)add.addEventListener("click",()=>setFolder(true),true);
+  const oa=openAdmin;openAdmin=function(){oa.apply(this,arguments);setFolder(false);};
+  setFolder(false);
+})();
