@@ -486,6 +486,29 @@ function updateCartCount() {document.getElementById("cartCount").textContent=car
 function openModal(id) {document.getElementById(id).classList.add("show")}
 function closeModal(id) {document.getElementById(id).classList.remove("show")}
 
+// ===== GOOGLE MAPS KALENSARI STORE V14 =====
+function ksMapsSearch(q){ return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`; }
+function ksMapsNavigate(q){ return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}&travelmode=driving&dir_action=navigate`; }
+function setupCheckoutMaps(){
+  const form=document.getElementById("checkoutForm");
+  if(!form || document.getElementById("ksMapBox")) return;
+  const addr=form.querySelector('[name="address"]');
+  if(!addr) return;
+  const box=document.createElement("div"); box.id="ksMapBox"; box.style.cssText="background:#fffaf2;border:1px solid #d3bfa8;border-radius:14px;padding:12px;margin:6px 0 12px";
+  box.innerHTML=`<b>📍 Lokasi pengantaran</b><div id="ksMapStatus" style="font-size:13px;color:#5c4638;margin:4px 0 8px">Belum ada lokasi dipilih.</div><div style="display:grid;gap:8px"><button type="button" id="ksGetLocation" style="padding:11px;border:1px solid #7b3f1d;border-radius:12px;background:#fff;color:#7b3f1d;font-weight:700;cursor:pointer">📍 Gunakan lokasi saya</button><button type="button" id="ksOpenMap" style="padding:11px;border:1px solid #228b4e;border-radius:12px;background:#228b4e;color:#fff;font-weight:700;cursor:pointer;display:none">🗺️ Buka di Google Maps</button></div><input type="hidden" id="ksMapLat"><input type="hidden" id="ksMapLng">`;
+  addr.insertAdjacentElement("afterend",box);
+  const status=box.querySelector("#ksMapStatus"), getBtn=box.querySelector("#ksGetLocation"), openBtn=box.querySelector("#ksOpenMap"), latEl=box.querySelector("#ksMapLat"), lngEl=box.querySelector("#ksMapLng");
+  const update=()=>{ const lat=Number(latEl.value),lng=Number(lngEl.value); if(Number.isFinite(lat)&&Number.isFinite(lng)){status.textContent=`Lokasi tersimpan: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;openBtn.style.display="block";openBtn.onclick=()=>window.open(ksMapsSearch(`${lat},${lng}`),"_blank","noopener");}else{status.textContent="Belum ada lokasi dipilih.";openBtn.style.display="none";} };
+  getBtn.onclick=()=>{
+    if(!navigator.geolocation){status.textContent="Browser tidak mendukung lokasi.";return;}
+    status.textContent="📍 Mengambil lokasi...";
+    navigator.geolocation.getCurrentPosition(pos=>{latEl.value=pos.coords.latitude.toFixed(6);lngEl.value=pos.coords.longitude.toFixed(6);update();},err=>{status.textContent=err.code===1?"Izin lokasi ditolak.":"Lokasi tidak bisa diperoleh.";},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+  };
+  const saved=JSON.parse(localStorage.getItem("kalensari_checkout_location")||"null");
+  if(saved&&Number.isFinite(Number(saved.lat))&&Number.isFinite(Number(saved.lng))){latEl.value=saved.lat;lngEl.value=saved.lng;update();}
+}
+setupCheckoutMaps();
+
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("show")}));
 document.getElementById("cartBtn").onclick=()=>{renderCart();openModal("cartModal")};
@@ -499,7 +522,7 @@ document.getElementById("clearCartBtn").onclick=()=>{
   renderCart();
   showToast("🗑️ Keranjang berhasil dikosongkan");
 };
-document.getElementById("checkoutBtn").onclick=()=>{const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}if(cart.length){closeModal("cartModal");openModal("checkoutModal")}};
+document.getElementById("checkoutBtn").onclick=()=>{const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}if(cart.length){closeModal("cartModal");openModal("checkoutModal");setTimeout(setupCheckoutMaps,0)}};
 // Pencarian produk tidak boleh terisi otomatis dari nomor WhatsApp/autofill pelanggan.
 const productSearchInput=document.getElementById("searchInput");
 if(productSearchInput){
@@ -548,9 +571,17 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const phone=String(f.get("phone")||"").trim();
   const orderCode=makeOrderCode();
   const createdAt=new Date().toISOString();
+  const mapLat=Number(document.getElementById("ksMapLat")?.value), mapLng=Number(document.getElementById("ksMapLng")?.value);
+  const hasMap=Number.isFinite(mapLat)&&Number.isFinite(mapLng);
+  const address=String(f.get("address")||"").trim();
+  const userNote=String(f.get("note")||"").trim();
+  const mapToken=hasMap?`__KS_MAP__${mapLat.toFixed(6)},${mapLng.toFixed(6)}__END__`:"";
+  const orderNote=[userNote,mapToken].filter(Boolean).join(" ");
+  if(hasMap) localStorage.setItem("kalensari_checkout_location",JSON.stringify({lat:mapLat,lng:mapLng}));
   const detail=items.map(p=>`- ${p.name} (Toko: ${p.seller}) x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
-  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(shipping)}${ships.length?"\n"+ships.map(x=>`  • ${x.name}: ${rupiah(x.fee)}`).join("\n")+"\n  (ongkir dihitung per toko)":""}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${phone}\nAlamat: ${f.get("address")}\nCatatan: ${f.get("note")||"-"}\nPembayaran: ${f.get("payment")}`;
-  const payload={order_code:orderCode,created_at:createdAt,customer_name:String(f.get("name")||""),customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address:String(f.get("address")||""),note:String(f.get("note")||""),payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu"};
+  const mapText=hasMap?`\nLokasi Maps: ${ksMapsSearch(`${mapLat},${mapLng}`)}`:"";
+  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(shipping)}${ships.length?"\n"+ships.map(x=>`  • ${x.name}: ${rupiah(x.fee)}`).join("\n")+"\n  (ongkir dihitung per toko)":""}\nTOTAL: ${rupiah(total)}\n\nNama: ${f.get("name")}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
+  const payload={order_code:orderCode,created_at:createdAt,customer_name:String(f.get("name")||""),customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu"};
 
   // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi pesanan.
   const local=getLocalOrders(); local.unshift({...payload,id:`local-${Date.now()}`}); saveLocalOrders(local);
