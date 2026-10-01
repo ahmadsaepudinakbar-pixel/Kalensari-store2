@@ -67,6 +67,17 @@ h2.sec{font-size:24px;margin:30px 0 14px}
 .cattoggle[aria-expanded="true"] .arr{transform:rotate(180deg)}
 #catPanel{margin-bottom:6px}
 .sechead .sec{margin-top:24px}
+.ico{overflow:hidden}.ico img{width:100%;height:100%;object-fit:cover;display:block}
+.abtns{display:flex;gap:8px;flex-wrap:wrap}
+.dimg{width:100%;max-height:260px;object-fit:cover;border-radius:18px;margin-bottom:12px;display:block}
+.frm label{display:block;font-weight:600;font-size:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.days{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.days label{display:flex;gap:5px;align-items:center;background:var(--chip);padding:6px 12px;border-radius:999px}
+textarea.fld{min-height:90px;resize:vertical}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.ico.big{width:110px;height:110px;font-size:54px;margin:6px 0 8px}
+.tagh{font-size:12px;font-weight:700;color:var(--red)}
 @media(max-width:520px){.hero{padding:22px}.list{grid-template-columns:1fr}.cats{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
@@ -80,9 +91,9 @@ h2.sec{font-size:24px;margin:30px 0 14px}
     <input id="q" class="search" type="search" placeholder="Cari jasa, nama, atau dusun..." autocomplete="off">
   </section>
 
+  <div id="adminbar" class="adminbar" hidden><span>🔧 Mode admin aktif</span><div class="abtns"><button id="addJasaBtn" type="button">➕ Tambah penyedia</button><button id="logoutBtn" type="button">Keluar</button></div></div>
   <button id="catToggle" class="cattoggle" type="button" aria-expanded="false" aria-controls="catPanel"><span>Pilih jenis jasa <small id="catNow"></small></span><span class="arr">▾</span></button>
   <div id="catPanel" hidden>
-  <div id="adminbar" class="adminbar" hidden><span>🔧 Mode admin aktif: tambah atau hapus jenis jasa</span><button id="logoutBtn" type="button">Keluar</button></div>
   <div class="cats" id="cats"></div>
   </div>
 
@@ -114,7 +125,7 @@ let KATEGORI = DEFAULT_KATEGORI.map(c => ({...c})); // daftar aktif (bisa diubah
 
 // ====== DATA PENYEDIA JASA (CONTOH — edit/ganti dengan data asli) ======
 // kategori harus sama persis dengan nama di KATEGORI. wa = 62xxxxxxxxxx. libur: 0=Minggu ... 6=Sabtu. status "Hide" = disembunyikan.
-const JASA = [
+const DEFAULT_JASA = [
  {nama:"Pak Wahyu",kategori:"Tukang urut",ket:"Tukang urut & pijat refleksi",buka:"08:00",tutup:"20:00",dusun:"Dusun Krajan",rating:4.9,harga:"Mulai Rp50.000",wa:"6281234567801",libur:[],layanan:["Urut badan","Pijat refleksi","Urut bayi (panggilan)"],status:"Show"},
  {nama:"Kang Asep Ojek",kategori:"Tukang ojek",ket:"Antar jemput desa & ke pasar",buka:"05:00",tutup:"21:00",dusun:"Dusun Tengah",rating:4.8,harga:"Mulai Rp5.000",wa:"6281234567802",libur:[],layanan:["Antar jemput","Antar ke pasar","Antar anak sekolah"],status:"Show"},
  {nama:"Rizal Net",kategori:"Pemasangan WiFi",ket:"Pemasangan WiFi & perbaikan jaringan",buka:"08:00",tutup:"21:00",dusun:"Dusun Krajan",rating:4.8,harga:"Pasang Rp150.000",wa:"6281234567804",libur:[],layanan:["Pasang WiFi baru","Perbaikan jaringan","Tarik kabel"],status:"Show"},
@@ -132,6 +143,7 @@ const JASA = [
  {nama:"Kelompok Ngerambet Pak Karta",kategori:"Ngerambet",ket:"Ngerambet (menyiangi gulma) sawah",buka:"05:00",tutup:"15:00",dusun:"Dusun Lor",rating:4.6,harga:"Hubungi untuk harga",wa:"6281234567816",libur:[0],layanan:["Ngerambet sawah","Borongan per petak","Harian"],status:"Show"},
  {nama:"Rafi Joki",kategori:"Joki Gaming",ket:"Joki rank & push akun game mobile",buka:"10:00",tutup:"23:00",dusun:"Dusun Krajan",rating:4.7,harga:"Mulai Rp10.000",wa:"6281234567817",libur:[],layanan:["Joki rank","Push bintang","Joki harian"],status:"Show"}
 ];
+let JASA = DEFAULT_JASA.map(j => ({...j})); // daftar aktif (bisa diedit admin)
 
 // ====== LOGIKA ======
 const $ = id => document.getElementById(id);
@@ -139,6 +151,8 @@ let kategori = "Semua";
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const jam = t => t.replace(":", ".");
 const toMin = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
+const icoHTML = j => j.foto ? `<img src="${esc(j.foto)}" alt="${esc(j.nama)}" loading="lazy">` : ikon(j.kategori);
+const ratingHTML = j => (+j.rating > 0) ? `<span>⭐ ${String(j.rating).replace(".",",")}</span>` : "";
 const ikon = k => (KATEGORI.find(x => x.n === k) || {e:"🛠️"}).e;
 
 function nowWIB(){
@@ -167,10 +181,10 @@ function renderCats(){
 function card(j, i){
   const open = isOpen(j);
   return `<article class="card">
-    <div class="row"><div class="ico">${ikon(j.kategori)}</div>
-      <div class="info"><h3 class="name">${esc(j.nama)}</h3><p class="desc">${esc(j.ket)}</p>
+    <div class="row"><div class="ico">${icoHTML(j)}</div>
+      <div class="info"><h3 class="name">${esc(j.nama)}${j.status==="Hide"?` <span class="tagh">(disembunyikan)</span>`:""}</h3><p class="desc">${esc(j.ket)}</p>
         <div class="meta"><span class="badge ${open?"buka":"tutup"}">${open?"Buka":"Tutup"}</span>
-          <span>🕒 ${jam(j.buka)}–${jam(j.tutup)}</span><span>📍 ${esc(j.dusun)}</span><span>⭐ ${String(j.rating).replace(".",",")}</span></div>
+          <span>🕒 ${jam(j.buka)}–${jam(j.tutup)}</span><span>📍 ${esc(j.dusun)}</span>${ratingHTML(j)}</div>
         <div class="price">${esc(j.harga)}</div></div></div>
     <div class="btns"><button class="btn" data-d="${i}">Lihat detail</button>
       ${open ? `<a class="btn wa" href="${waUrl(j)}" target="_blank" rel="noopener">Chat WhatsApp</a>` : `<span class="btn off">Sedang tutup</span>`}</div>
@@ -179,7 +193,7 @@ function card(j, i){
 function render(){
   const q = $("q").value.trim().toLowerCase();
   const rows = JASA.map((j,i)=>({j,i})).filter(({j}) =>
-    j.status !== "Hide" && (kategori==="Semua" || j.kategori===kategori) &&
+    (admin || j.status !== "Hide") && (kategori==="Semua" || j.kategori===kategori) &&
     (!q || [j.nama,j.ket,j.kategori,j.dusun,...(j.layanan||[])].join(" ").toLowerCase().includes(q)));
   $("judul").textContent = kategori==="Semua" ? "Semua penyedia jasa" : kategori;
   $("count").textContent = `${rows.length} penyedia`;
@@ -189,12 +203,13 @@ function detail(i){
   const j = JASA[i], open = isOpen(j);
   const hari = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
   $("sheet").innerHTML = `<button class="x" onclick="closeD()" aria-label="Tutup">✕</button>
-    <div class="ico" style="margin-bottom:10px">${ikon(j.kategori)}</div>
+    ${j.foto ? `<img class="dimg" src="${esc(j.foto)}" alt="${esc(j.nama)}">` : `<div class="ico" style="margin-bottom:10px">${ikon(j.kategori)}</div>`}
     <h2>${esc(j.nama)}</h2><p class="desc">${esc(j.ket)}</p>
-    <div class="meta"><span class="badge ${open?"buka":"tutup"}">${open?"Buka":"Tutup"}</span><span>⭐ ${String(j.rating).replace(".",",")}</span></div>
+    <div class="meta"><span class="badge ${open?"buka":"tutup"}">${open?"Buka":"Tutup"}</span>${ratingHTML(j)}${j.kategori?`<span>${esc(j.kategori)}</span>`:""}</div>
     <p>🕒 <b>${jam(j.buka)}–${jam(j.tutup)}</b> WIB${(j.libur||[]).length?` • Libur: ${j.libur.map(d=>hari[d]).join(", ")}`:""}<br>📍 ${esc(j.dusun)}<br>💰 <b>${esc(j.harga)}</b></p>
-    <b>Layanan:</b><ul>${(j.layanan||[]).map(l=>`<li>${esc(l)}</li>`).join("")}</ul>
-    <div class="btns" style="grid-template-columns:1fr">${open ? `<a class="btn wa" href="${waUrl(j)}" target="_blank" rel="noopener">Chat WhatsApp</a>` : `<span class="btn off">Sedang tutup</span>`}</div>`;
+    ${(j.layanan||[]).length?`<b>Layanan:</b><ul>${j.layanan.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`:""}
+    <div class="btns" style="grid-template-columns:1fr">${open ? `<a class="btn wa" href="${waUrl(j)}" target="_blank" rel="noopener">Chat WhatsApp</a>` : `<span class="btn off">Sedang tutup</span>`}
+    ${admin ? `<button class="btn" onclick="formEdit(${i})">✏️ Edit detail</button>` : ""}</div>`;
   $("modal").classList.add("show");
 }
 function closeD(){ $("modal").classList.remove("show"); }
@@ -224,14 +239,17 @@ async function cf(path, opt={}){
   const t = await r.text(); if(!r.ok) throw new Error(t || r.status);
   return t ? JSON.parse(t) : [];
 }
+const validJasa = a => Array.isArray(a) && a.every(x => x && typeof x.nama === "string");
 const validKat = a => Array.isArray(a) && a.every(c => c && typeof c.n === "string" && typeof c.e === "string");
 async function loadKat(){
   try{ const l = JSON.parse(localStorage.getItem("kalensari_jasa_categories") || "null"); if(validKat(l)) KATEGORI = l; }catch(e){}
+  try{ const l = JSON.parse(localStorage.getItem("kalensari_jasa_providers") || "null"); if(validJasa(l)) JASA = l; }catch(e){}
   if(!cloudOn()) return;
   try{
-    const rows = await cf("store_settings?select=*&key=in.(jasa_categories,admin_pin_hash)");
+    const rows = await cf("store_settings?select=*&key=in.(jasa_categories,jasa_providers,admin_pin_hash)");
     rows.forEach(r => {
       if(r.key === "jasa_categories" && validKat(r.value)){ KATEGORI = r.value; localStorage.setItem("kalensari_jasa_categories", JSON.stringify(r.value)); }
+      if(r.key === "jasa_providers" && validJasa(r.value)){ JASA = r.value; try{ localStorage.setItem("kalensari_jasa_providers", JSON.stringify(r.value)); }catch(e){} }
       if(r.key === "admin_pin_hash" && /^[0-9a-f]{64}$/.test(r.value)) pinHash = r.value;
     });
   }catch(e){ console.error("Muat jenis jasa:", e); }
@@ -287,6 +305,77 @@ async function hapusKat(n){
   if(kategori === n) kategori = "Semua";
   await simpanDanKabari(`Jenis "${n}" dihapus`);
 }
+
+// ====== ADMIN: tambah / edit / hapus penyedia (termasuk foto) ======
+async function saveJasa(){
+  try{ localStorage.setItem("kalensari_jasa_providers", JSON.stringify(JASA)); }catch(e){ console.warn("Penyimpanan lokal penuh", e); }
+  if(!cloudOn()) return false;
+  try{ await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key:"jasa_providers", value:JASA}])}); return true; }
+  catch(e){ console.error("Simpan penyedia:", e); return false; }
+}
+async function simpanJasa(pesan){
+  const ok = await saveJasa();
+  render();
+  toast(ok ? pesan : pesan + " (baru tersimpan di browser ini; database belum aktif)");
+}
+function resizeImg(file, max=480){
+  return new Promise((ok, no) => {
+    const fr = new FileReader(); fr.onerror = no;
+    fr.onload = () => { const im = new Image(); im.onerror = no;
+      im.onload = () => { const r = Math.min(1, max / Math.max(im.width, im.height)); const c = document.createElement("canvas");
+        c.width = Math.round(im.width * r); c.height = Math.round(im.height * r);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", 0.72)); };
+      im.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+function formEdit(i){
+  const baru = i < 0;
+  const j = baru ? {nama:"",kategori:(kategori!=="Semua"?kategori:""),ket:"",buka:"08:00",tutup:"17:00",dusun:"",rating:"",harga:"",wa:"",libur:[],layanan:[],status:"Show",foto:""} : {...JASA[i]};
+  let foto = j.foto || "";
+  const hari = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+  const kats = KATEGORI.map(c => c.n); if(j.kategori && !kats.includes(j.kategori)) kats.push(j.kategori);
+  $("sheet").innerHTML = `<div class="frm"><button class="x" onclick="closeD()" aria-label="Tutup">✕</button><h2>${baru?"Tambah penyedia":"Edit detail"}</h2>
+    <div class="ico big" id="fPrev"></div>
+    <input id="fFile" type="file" accept="image/*" style="display:none">
+    <div class="btns" style="margin:0 0 12px"><button class="btn" type="button" id="fPilih">📷 ${foto?"Ganti foto":"Pilih foto"}</button><button class="btn danger" type="button" id="fHapusFoto">Hapus foto</button></div>
+    <label>Nama<input id="fNama" class="fld" maxlength="60" value="${esc(j.nama)}"></label>
+    <label>Jenis jasa<select id="fKat" class="fld"><option value="">— tanpa jenis —</option>${kats.map(k=>`<option value="${esc(k)}"${k===j.kategori?" selected":""}>${esc(k)}</option>`).join("")}</select></label>
+    <label>Deskripsi singkat<input id="fKet" class="fld" maxlength="100" value="${esc(j.ket||"")}"></label>
+    <div class="row2"><label>Jam buka<input id="fBuka" class="fld" type="time" value="${esc(j.buka||"08:00")}"></label><label>Jam tutup<input id="fTutup" class="fld" type="time" value="${esc(j.tutup||"17:00")}"></label></div>
+    <label>Hari libur</label><div class="days">${hari.map((h,d)=>`<label><input type="checkbox" name="lb" value="${d}"${(j.libur||[]).includes(d)?" checked":""}>${h}</label>`).join("")}</div>
+    <div class="row2"><label>Dusun<input id="fDusun" class="fld" maxlength="40" value="${esc(j.dusun||"")}"></label><label>Rating (0–5)<input id="fRating" class="fld" type="number" step="0.1" min="0" max="5" value="${esc(j.rating??"")}"></label></div>
+    <label>Harga<input id="fHarga" class="fld" maxlength="40" placeholder="mis. Mulai Rp50.000" value="${esc(j.harga||"")}"></label>
+    <label>No. WhatsApp<input id="fWa" class="fld" type="tel" placeholder="08xxxxxxxxxx" value="${esc(j.wa||"")}"></label>
+    <label>Layanan (satu per baris)<textarea id="fLay" class="fld">${esc((j.layanan||[]).join("\n"))}</textarea></label>
+    <label>Status<select id="fStatus" class="fld"><option value="Show"${j.status!=="Hide"?" selected":""}>Tampil</option><option value="Hide"${j.status==="Hide"?" selected":""}>Sembunyikan</option></select></label>
+    <div class="btns"><button class="btn wa" id="fSimpan" type="button">Simpan</button>${baru?`<button class="btn" type="button" onclick="closeD()">Batal</button>`:`<button class="btn danger" id="fHapus" type="button">Hapus penyedia</button>`}</div></div>`;
+  $("modal").classList.add("show");
+  const prev = () => { $("fPrev").innerHTML = foto ? `<img src="${esc(foto)}" alt="">` : ikon($("fKat").value); $("fHapusFoto").style.display = foto ? "" : "none"; $("fPilih").textContent = (foto ? "📷 Ganti foto" : "📷 Pilih foto"); };
+  prev();
+  $("fKat").onchange = prev;
+  $("fPilih").onclick = () => $("fFile").click();
+  $("fFile").onchange = async e => { const f = e.target.files[0]; if(!f) return; try{ foto = await resizeImg(f); prev(); }catch(err){ toast("Foto tidak bisa dibaca"); } };
+  $("fHapusFoto").onclick = () => { foto = ""; prev(); };
+  $("fSimpan").onclick = async () => {
+    const nama = $("fNama").value.trim(); if(!nama) return toast("Nama wajib diisi");
+    let wa = $("fWa").value.replace(/\D/g, "").replace(/^0/, "62"); if(wa.length < 9 || wa.length > 15) return toast("Nomor WhatsApp tidak valid");
+    const buka = $("fBuka").value, tutup = $("fTutup").value; if(!buka || !tutup) return toast("Jam buka & tutup wajib diisi");
+    if(toMin(tutup) <= toMin(buka)) return toast("Jam tutup harus setelah jam buka");
+    const r = parseFloat($("fRating").value);
+    const data = {...j, nama, kategori:$("fKat").value, ket:$("fKet").value.trim(), buka, tutup,
+      libur:[...document.querySelectorAll('input[name="lb"]:checked')].map(x => +x.value),
+      dusun:$("fDusun").value.trim(), rating:isNaN(r) ? "" : Math.min(5, Math.max(0, r)), harga:$("fHarga").value.trim(), wa,
+      layanan:$("fLay").value.split("\n").map(x => x.trim()).filter(Boolean), status:$("fStatus").value, foto};
+    if(baru) JASA.push(data); else JASA[i] = data;
+    closeD(); await simpanJasa(baru ? `"${nama}" ditambahkan` : "Perubahan disimpan");
+  };
+  if(!baru) $("fHapus").onclick = async () => {
+    if(!confirm(`Hapus penyedia "${j.nama}"?`)) return;
+    JASA.splice(i, 1); closeD(); await simpanJasa(`"${j.nama}" dihapus`);
+  };
+}
+$("addJasaBtn").addEventListener("click", () => formEdit(-1));
 $("adminBtn").addEventListener("click", () => { admin ? toast("Mode admin sudah aktif") : formLogin(); });
 $("logoutBtn").addEventListener("click", () => { admin = false; renderCats(); toast("Keluar dari mode admin"); });
 
