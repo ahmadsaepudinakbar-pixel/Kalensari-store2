@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Penyedia Jasa • Kalensari Store</title>
 <style>
-:root{--brown:#7b3f1d;--ink:#3a1f10;--muted:#7a6558;--bg:#fff8f2;--line:#eadfd6;--chip:#f5e8d8;--green:#228b4e;--red:#b83c2b}
+:root{--brown:#7b3f1d;--ink:#3a1f10;--muted:#5c4638;--bg:#e4d3bf;--line:#d3bfa8;--chip:#f5e8d8;--green:#228b4e;--red:#b83c2b}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
 .topbar{background:var(--brown);color:#fff;text-align:center;font-size:13px;font-weight:600;padding:10px 12px}
@@ -18,7 +18,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui
 .hero p{margin:0 0 20px;max-width:520px;color:var(--ink)}
 .search{width:100%;max-width:520px;display:block;padding:16px 20px;border:1px solid var(--line);border-radius:999px;font:inherit;font-size:16px;background:#fff;color:var(--ink)}
 .search:focus{outline:2px solid var(--brown);outline-offset:1px}
-.daftar{display:inline-block;margin-top:18px;background:var(--green);color:#fff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px}
+.daftar-wrap{text-align:center;margin-top:36px}.daftar-wrap p{margin:0;color:var(--muted)}
+.daftar{display:inline-block;margin-top:14px;background:var(--green);color:#fff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px}
 h2.sec{font-size:24px;margin:30px 0 14px}
 .sechead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .cnt{color:var(--muted);font-size:15px}
@@ -49,39 +50,67 @@ h2.sec{font-size:24px;margin:30px 0 14px}
 .sheet ul{padding-left:20px;margin:8px 0}
 .sheet .x{float:right;border:0;background:var(--chip);width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer}
 @media(min-width:600px){.modal{align-items:center}.sheet{border-radius:26px}}
+.topbar{position:relative;padding-right:90px;padding-left:90px}
+.topbar .adm{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.adminbar{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff3cd;border:1px solid #e3c766;color:#5a4300;border-radius:14px;padding:10px 14px;margin-bottom:12px;font-size:14px;font-weight:600}
+.adminbar[hidden]{display:none}
+.adminbar button{border:0;background:var(--brown);color:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-weight:700;cursor:pointer}
+.catw{position:relative}.catw .cat{width:100%;height:100%}
+.catx{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:13px;cursor:pointer;line-height:1}
+.cat.add{border:2px dashed var(--brown);background:transparent;color:var(--brown)}
+.fld{display:block;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:16px;margin:6px 0 12px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.cattoggle{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;margin:30px 0 14px;padding:14px 20px;background:#fff;border:1px solid var(--line);border-radius:18px;font:inherit;font-size:20px;font-weight:700;color:var(--ink);cursor:pointer;text-align:left}
+.cattoggle small{font-size:14px;font-weight:600;color:var(--brown)}
+.cattoggle .arr{font-size:22px;color:var(--brown);transition:transform .25s}
+.cattoggle[aria-expanded="true"] .arr{transform:rotate(180deg)}
+#catPanel{margin-bottom:6px}
+.sechead .sec{margin-top:24px}
 @media(max-width:520px){.hero{padding:22px}.list{grid-template-columns:1fr}.cats{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
-<div class="topbar"><a href="index.html">🛍️ KALENSARI STORE • ← Kembali ke toko</a></div>
+<div class="topbar"><a href="index.html">🛍️ KALENSARI STORE • ← Kembali ke toko</a><button id="adminBtn" class="adm" type="button">⚙️ Admin</button></div>
 <main class="wrap">
   <section class="hero">
     <span class="tag">🛠️ KALENSARI STORE • PENYEDIA JASA</span>
     <h1>Butuh bantuan? <span>Cari jasa dari tetangga sendiri</span></h1>
     <p>Tukang urut, ojek, servis HP, sampai travel. Pilih jenis jasa, lalu hubungi penyedianya langsung lewat WhatsApp.</p>
     <input id="q" class="search" type="search" placeholder="Cari jasa, nama, atau dusun..." autocomplete="off">
-    <a id="daftar" class="daftar" href="#" target="_blank" rel="noopener">📝 Daftar jadi penyedia jasa</a>
   </section>
 
-  <h2 class="sec">Pilih jenis jasa</h2>
+  <button id="catToggle" class="cattoggle" type="button" aria-expanded="false" aria-controls="catPanel"><span>Pilih jenis jasa <small id="catNow"></small></span><span class="arr">▾</span></button>
+  <div id="catPanel" hidden>
+  <div id="adminbar" class="adminbar" hidden><span>🔧 Mode admin aktif: tambah atau hapus jenis jasa</span><button id="logoutBtn" type="button">Keluar</button></div>
   <div class="cats" id="cats"></div>
+  </div>
 
   <div class="sechead"><h2 class="sec" id="judul">Semua penyedia jasa</h2><span class="cnt" id="count"></span></div>
   <div class="list" id="list"></div>
+
+  <div class="daftar-wrap">
+    <p>Punya keahlian atau jasa? Tampilkan di sini agar mudah ditemukan warga.</p>
+    <a id="daftar" class="daftar" href="#" target="_blank" rel="noopener">📝 Daftar jadi penyedia jasa</a>
+  </div>
 </main>
 
+<div class="toast" id="toast"></div>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 
+<script src="config.js" onerror="void 0"></script>
 <script>
 // ====== PENGATURAN ======
 const ADMIN_WA = "6281234567890"; // nomor WhatsApp admin (untuk tombol Daftar) — ganti dengan nomor asli
 
 // ====== JENIS JASA ======
-const KATEGORI = [
+const DEFAULT_KATEGORI = [
  {n:"Tukang urut",e:"💆"},{n:"Tukang ojek",e:"🏍️"},{n:"Pemasangan WiFi",e:"📶"},{n:"Pemasangan CCTV",e:"📹"},
  {n:"Penjahit",e:"🧵"},{n:"Servis komputer",e:"💻"},{n:"Servis elektronik",e:"🔌"},{n:"Servis HP",e:"📱"},
- {n:"Supir traktor sawah",e:"🚜"},{n:"Paket Grabagan",e:"📦"},{n:"Supir",e:"🚗"},{n:"Travel",e:"🧳"}
+ {n:"Supir traktor sawah",e:"🚜"},{n:"Pasukan Grabag",e:"👥"},{n:"Supir",e:"🚗"},{n:"Travel",e:"🧳"},
+ {n:"Pemasangan air PAM",e:"🚰"},{n:"Pasukan tandur",e:"🌾"},{n:"Ngerambet",e:"🌿"},{n:"Joki Gaming",e:"🎮"}
 ];
+let KATEGORI = DEFAULT_KATEGORI.map(c => ({...c})); // daftar aktif (bisa diubah admin)
 
 // ====== DATA PENYEDIA JASA (CONTOH — edit/ganti dengan data asli) ======
 // kategori harus sama persis dengan nama di KATEGORI. wa = 62xxxxxxxxxx. libur: 0=Minggu ... 6=Sabtu. status "Hide" = disembunyikan.
@@ -95,9 +124,13 @@ const JASA = [
  {nama:"Servis Elektronik Hadi",kategori:"Servis elektronik",ket:"Servis TV, kulkas, mesin cuci",buka:"09:00",tutup:"17:00",dusun:"Dusun Kidul",rating:4.5,harga:"Cek Rp25.000",wa:"6281234567807",libur:[0],layanan:["Servis TV","Servis kulkas","Servis mesin cuci"],status:"Show"},
  {nama:"Ifan Cell",kategori:"Servis HP",ket:"Servis HP, ganti layar & baterai",buka:"09:00",tutup:"20:00",dusun:"Dusun Krajan",rating:4.8,harga:"Cek Rp20.000",wa:"6281234567810",libur:[],layanan:["Ganti layar","Ganti baterai","Install ulang"],status:"Show"},
  {nama:"Pak Darto Traktor",kategori:"Supir traktor sawah",ket:"Bajak & garu sawah (borongan)",buka:"06:00",tutup:"16:00",dusun:"Dusun Tengah",rating:4.9,harga:"Rp120.000/hari",wa:"6281234567806",libur:[0],layanan:["Bajak sawah","Garu sawah","Borongan per petak"],status:"Show"},
- {nama:"Grabagan Express",kategori:"Paket Grabagan",ket:"Kirim paket & barang ke Grabagan",buka:"07:00",tutup:"17:00",dusun:"Dusun Lor",rating:4.6,harga:"Mulai Rp10.000",wa:"6281234567811",libur:[0],layanan:["Antar paket","Antar barang","Jemput barang"],status:"Show"},
+ {nama:"Pasukan Grabag Kalensari",kategori:"Pasukan Grabag",ket:"Tim pekerja borongan, siap dipanggil",buka:"06:00",tutup:"17:00",dusun:"Dusun Lor",rating:4.6,harga:"Hubungi untuk harga",wa:"6281234567811",libur:[0],layanan:["Kerja borongan","Kerja harian","Tim sesuai kebutuhan"],status:"Show"},
  {nama:"Mang Edi Supir",kategori:"Supir",ket:"Supir harian & antar luar kota",buka:"06:00",tutup:"22:00",dusun:"Dusun Kidul",rating:4.7,harga:"Rp250.000/hari",wa:"6281234567812",libur:[],layanan:["Supir harian","Antar luar kota","Sewa + supir"],status:"Show"},
- {nama:"Kalensari Travel",kategori:"Travel",ket:"Travel antar kota, jadwal harian",buka:"05:00",tutup:"19:00",dusun:"Dusun Lor",rating:4.8,harga:"Mulai Rp80.000",wa:"6281234567813",libur:[],layanan:["Travel antar kota","Carter mobil","Antar ke bandara"],status:"Show"}
+ {nama:"Kalensari Travel",kategori:"Travel",ket:"Travel antar kota, jadwal harian",buka:"05:00",tutup:"19:00",dusun:"Dusun Lor",rating:4.8,harga:"Mulai Rp80.000",wa:"6281234567813",libur:[],layanan:["Travel antar kota","Carter mobil","Antar ke bandara"],status:"Show"},
+ {nama:"Pak Yayan PAM",kategori:"Pemasangan air PAM",ket:"Pasang sambungan air PAM & perbaikan pipa",buka:"07:00",tutup:"17:00",dusun:"Dusun Tengah",rating:4.7,harga:"Survei gratis",wa:"6281234567814",libur:[0],layanan:["Sambungan PAM baru","Perbaikan pipa bocor","Pasang meteran"],status:"Show"},
+ {nama:"Pasukan Tandur Bu Warti",kategori:"Pasukan tandur",ket:"Tandur (tanam padi) borongan",buka:"05:00",tutup:"15:00",dusun:"Dusun Kidul",rating:4.8,harga:"Hubungi untuk harga",wa:"6281234567815",libur:[0],layanan:["Tandur borongan","Tandur harian","Tim 10–20 orang"],status:"Show"},
+ {nama:"Kelompok Ngerambet Pak Karta",kategori:"Ngerambet",ket:"Ngerambet (menyiangi gulma) sawah",buka:"05:00",tutup:"15:00",dusun:"Dusun Lor",rating:4.6,harga:"Hubungi untuk harga",wa:"6281234567816",libur:[0],layanan:["Ngerambet sawah","Borongan per petak","Harian"],status:"Show"},
+ {nama:"Rafi Joki",kategori:"Joki Gaming",ket:"Joki rank & push akun game mobile",buka:"10:00",tutup:"23:00",dusun:"Dusun Krajan",rating:4.7,harga:"Mulai Rp10.000",wa:"6281234567817",libur:[],layanan:["Joki rank","Push bintang","Joki harian"],status:"Show"}
 ];
 
 // ====== LOGIKA ======
@@ -120,9 +153,16 @@ function isOpen(j){
 }
 const waUrl = j => `https://wa.me/${j.wa}?text=${encodeURIComponent(`Halo ${j.nama}, saya lihat Anda di Kalensari Store. Saya ingin bertanya tentang jasa ${j.kategori.toLowerCase()}.`)}`;
 
+function setOpen(o){
+  $("catPanel").hidden = !o;
+  $("catToggle").setAttribute("aria-expanded", String(o));
+}
 function renderCats(){
   const all = [{n:"Semua",e:"✨"}, ...KATEGORI];
-  $("cats").innerHTML = all.map(c => `<button class="cat${c.n===kategori?" on":""}" data-c="${esc(c.n)}"><span class="e">${c.e}</span>${esc(c.n)}</button>`).join("");
+  $("cats").innerHTML = all.map(c => `<div class="catw"><button class="cat${c.n===kategori?" on":""}" data-c="${esc(c.n)}"><span class="e">${esc(c.e)}</span>${esc(c.n)}</button>${admin && c.n!=="Semua" ? `<button class="catx" data-del="${esc(c.n)}" aria-label="Hapus ${esc(c.n)}">✕</button>` : ""}</div>`).join("")
+    + (admin ? `<div class="catw"><button class="cat add" id="addCat"><span class="e">➕</span>Tambah jenis</button></div>` : "");
+  $("adminbar").hidden = !admin;
+  $("catNow").textContent = kategori !== "Semua" ? "• " + kategori : "";
 }
 function card(j, i){
   const open = isOpen(j);
@@ -160,13 +200,98 @@ function detail(i){
 function closeD(){ $("modal").classList.remove("show"); }
 
 $("q").addEventListener("input", render);
-$("cats").addEventListener("click", e => { const b = e.target.closest(".cat"); if(!b) return; kategori = b.dataset.c; renderCats(); render(); });
+$("cats").addEventListener("click", e => {
+  const d = e.target.closest("[data-del]"); if(d){ hapusKat(d.dataset.del); return; }
+  if(e.target.closest("#addCat")){ formTambah(); return; }
+  const b = e.target.closest(".cat"); if(!b) return; kategori = b.dataset.c; renderCats(); render(); if(!admin) setOpen(false);
+});
+$("catToggle").addEventListener("click", () => setOpen($("catPanel").hidden));
 $("list").addEventListener("click", e => { const b = e.target.closest("[data-d]"); if(b) detail(+b.dataset.d); });
 $("modal").addEventListener("click", e => { if(e.target === $("modal")) closeD(); });
 document.addEventListener("keydown", e => { if(e.key === "Escape") closeD(); });
 $("daftar").href = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin mendaftar jadi penyedia jasa.")}`;
 
+
+// ====== ADMIN: tambah / hapus jenis jasa ======
+// Memakai kode admin & database (Supabase) yang sama dengan toko. Jika database belum aktif, perubahan hanya tersimpan di browser ini.
+const PIN_SALT = "kalensari-admin:", DEFAULT_PIN = "1234";
+let admin = false, pinHash = "";
+try{ pinHash = JSON.parse(localStorage.getItem("kalensari_admin_pin_hash") || '""') || ""; }catch(e){}
+const cloudOn = () => typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG && CLOUD_CONFIG.enabled && CLOUD_CONFIG.supabaseUrl && CLOUD_CONFIG.supabaseAnonKey;
+async function cf(path, opt={}){
+  const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
+  const r = await fetch(base + "/rest/v1/" + path, {...opt, headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json", ...(opt.headers||{})}});
+  const t = await r.text(); if(!r.ok) throw new Error(t || r.status);
+  return t ? JSON.parse(t) : [];
+}
+const validKat = a => Array.isArray(a) && a.every(c => c && typeof c.n === "string" && typeof c.e === "string");
+async function loadKat(){
+  try{ const l = JSON.parse(localStorage.getItem("kalensari_jasa_categories") || "null"); if(validKat(l)) KATEGORI = l; }catch(e){}
+  if(!cloudOn()) return;
+  try{
+    const rows = await cf("store_settings?select=*&key=in.(jasa_categories,admin_pin_hash)");
+    rows.forEach(r => {
+      if(r.key === "jasa_categories" && validKat(r.value)){ KATEGORI = r.value; localStorage.setItem("kalensari_jasa_categories", JSON.stringify(r.value)); }
+      if(r.key === "admin_pin_hash" && /^[0-9a-f]{64}$/.test(r.value)) pinHash = r.value;
+    });
+  }catch(e){ console.error("Muat jenis jasa:", e); }
+}
+async function saveKat(){
+  localStorage.setItem("kalensari_jasa_categories", JSON.stringify(KATEGORI));
+  if(!cloudOn()) return false;
+  try{ await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key:"jasa_categories", value:KATEGORI}])}); return true; }
+  catch(e){ console.error("Simpan jenis jasa:", e); return false; }
+}
+async function hashPin(v){
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(PIN_SALT + v));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join("");
+}
+async function cekPin(v){ if(!pinHash) return v === DEFAULT_PIN; try{ return (await hashPin(v)) === pinHash; }catch(e){ return false; } }
+function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 3200); }
+async function simpanDanKabari(pesan){
+  const ok = await saveKat();
+  renderCats(); render();
+  toast(ok ? pesan : pesan + " (baru tersimpan di browser ini; database belum aktif)");
+}
+function formLogin(){
+  $("sheet").innerHTML = `<button class="x" onclick="closeD()" aria-label="Tutup">✕</button><h2>Masuk admin</h2><p class="desc">Masukkan kode admin toko.</p>
+    <input id="pinIn" class="fld" type="password" autocomplete="off" placeholder="Kode admin"><button class="btn wa" id="pinOk" style="width:100%">Masuk</button>`;
+  $("modal").classList.add("show"); $("pinIn").focus();
+  const go = async () => {
+    await loadKat();
+    if(await cekPin($("pinIn").value)){ admin = true; closeD(); setOpen(true); renderCats(); toast("Mode admin aktif"); }
+    else { toast("Kode admin salah"); $("pinIn").select(); }
+  };
+  $("pinOk").onclick = go; $("pinIn").onkeydown = e => { if(e.key === "Enter") go(); };
+}
+function formTambah(){
+  $("sheet").innerHTML = `<button class="x" onclick="closeD()" aria-label="Tutup">✕</button><h2>Tambah jenis jasa</h2>
+    <label>Ikon (emoji)<input id="katE" class="fld" maxlength="4" value="🛠️"></label>
+    <label>Nama jenis jasa<input id="katN" class="fld" maxlength="30" placeholder="mis. Tukang cukur"></label>
+    <button class="btn wa" id="katOk" style="width:100%">Tambah</button>`;
+  $("modal").classList.add("show"); $("katN").focus();
+  const go = async () => {
+    const n = $("katN").value.trim().replace(/\s+/g," "), e = $("katE").value.trim() || "🛠️";
+    if(!n) return toast("Nama jenis jasa wajib diisi");
+    if(n.toLowerCase() === "semua" || KATEGORI.some(c => c.n.toLowerCase() === n.toLowerCase())) return toast("Jenis jasa itu sudah ada");
+    KATEGORI.push({n, e}); closeD();
+    await simpanDanKabari(`Jenis "${n}" ditambahkan`);
+  };
+  $("katOk").onclick = go; $("katN").onkeydown = e => { if(e.key === "Enter") go(); };
+}
+async function hapusKat(n){
+  const dipakai = JASA.filter(j => j.kategori === n).length;
+  const ket = dipakai ? `\n\n${dipakai} penyedia di jenis ini tetap tampil di "Semua", tetapi tidak punya jenis.` : "";
+  if(!confirm(`Hapus jenis jasa "${n}"?${ket}`)) return;
+  KATEGORI = KATEGORI.filter(c => c.n !== n);
+  if(kategori === n) kategori = "Semua";
+  await simpanDanKabari(`Jenis "${n}" dihapus`);
+}
+$("adminBtn").addEventListener("click", () => { admin ? toast("Mode admin sudah aktif") : formLogin(); });
+$("logoutBtn").addEventListener("click", () => { admin = false; renderCats(); toast("Keluar dari mode admin"); });
+
 renderCats(); render();
+loadKat().then(() => { if(!KATEGORI.some(c => c.n === kategori)) kategori = "Semua"; renderCats(); render(); });
 setInterval(render, 60000);
 </script>
 </body>
