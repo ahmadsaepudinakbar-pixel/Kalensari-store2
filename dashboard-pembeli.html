@@ -58,12 +58,10 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
   <div id="dash" hidden>
   
   <section class="box"><h2 id="dHalo" style="font-size:22px"></h2>
-    <p class="hint" style="margin:0 0 12px">Lengkapi data Anda di bawah ini.</p>
+    <p class="hint" style="margin:0 0 12px">Lengkapi data Anda di bawah ini sebagai alamat rumah.</p>
     <label>Nama<input id="f_nama" class="fld" maxlength="60"></label>
     <label>Alamat lengkap<textarea id="f_alamat" class="fld" placeholder="mis. RT 02 RW 01, rumah cat hijau"></textarea></label>
-    <label>Dusun<input id="f_dusun" class="fld" maxlength="40"></label>
-    <label>Catatan untuk kurir<input id="f_catatan" class="fld" maxlength="100" placeholder="mis. titip di warung depan"></label>
-    <div class="loc-box"><b>📍 Lokasi pengantaran</b><p class="hint" style="margin:4px 0 8px">Simpan lokasi agar kurir bisa langsung membuka Google Maps.</p><div id="locStatus" class="loc-status">Belum ada lokasi tersimpan.</div><div class="btns"><button class="btn" id="btnLokasi" type="button">📍 Gunakan lokasi saya</button><button class="btn" id="btnMap" type="button" hidden>🗺️ Lihat di Google Maps</button></div><label style="margin-top:12px">Atau tempel koordinat / link Google Maps<input id="fManual" class="fld" placeholder="mis. -6.123456, 107.123456"></label><div class="btns"><button class="btn" id="btnManual" type="button">💾 Simpan dari koordinat</button></div></div>
+    <div class="loc-box"><b>📍 Lokasi pengantaran</b><p class="hint" style="margin:4px 0 8px">Simpan lokasi agar kurir bisa langsung membuka Google Maps.</p><div id="locStatus" class="loc-status">Belum ada lokasi tersimpan.</div><div class="btns"><button class="btn" id="btnLokasi" type="button">📍 Gunakan lokasi saya</button><button class="btn" id="btnMap" type="button" hidden>🗺️ Lihat di Google Maps</button></div><label style="margin-top:12px">Atau salin dan tempel koordinat / link Google Maps<input id="fManual" class="fld" placeholder="mis. -6.123456, 107.123456"></label><div class="btns"><button class="btn" id="btnManual" type="button">💾 Simpan dari koordinat</button></div></div>
     <label>No. WhatsApp (untuk masuk)<input id="fWa" class="fld" disabled></label>
     <div class="btns"><button class="btn wa" id="fSimpan" type="button">💾 Simpan</button></div>
   </section>
@@ -117,7 +115,7 @@ async function hashPin(wa, pin){
   return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join("");
 }
 
-const FIELDS = ["nama","alamat","dusun","catatan"];
+const FIELDS = ["nama","alamat"];
 let me = null, WA = sessionStorage.getItem(SESS);
 function mapsSearchUrl(lat,lng){ return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`; }
 function validCoord(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180&&!(lat===0&&lng===0)}
