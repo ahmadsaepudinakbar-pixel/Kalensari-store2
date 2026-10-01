@@ -1085,3 +1085,27 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
   sync();
   if(!off){start();EV.forEach(v=>addEventListener(v,unlock,true));}
 })();
+
+// ===== MENU ☰ : Penjual, Penyedia Jasa, Admin (menggantikan ikon ⚙️ di header) =====
+(function(){
+  const btn=document.getElementById("menuBtn");if(!btn)return;
+  btn.textContent="☰";btn.setAttribute("aria-label","Menu");btn.setAttribute("aria-haspopup","true");btn.setAttribute("aria-expanded","false");
+  const st=document.createElement("style");
+  st.textContent=`.ks-menu{position:fixed;z-index:1200;min-width:210px;background:#fff;border:1px solid #eadfd6;border-radius:16px;box-shadow:0 18px 40px -16px rgba(58,31,16,.45);padding:6px;display:none}
+.ks-menu.open{display:block}
+.ks-menu a,.ks-menu button{display:flex;gap:10px;align-items:center;width:100%;padding:12px 14px;border:0;background:none;border-radius:12px;font:inherit;font-weight:600;color:#3a1f10;text-decoration:none;cursor:pointer;text-align:left}
+.ks-menu a:hover,.ks-menu button:hover,.ks-menu a:focus-visible,.ks-menu button:focus-visible{background:#f8edd3;outline:none}`;
+  document.head.appendChild(st);
+  const m=document.createElement("div");m.className="ks-menu";m.setAttribute("role","menu");
+  m.innerHTML=`<a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" id="ksMenuJasa" target="_blank" rel="noopener">🤝 Penyedia Jasa</a><button role="menuitem" type="button" id="ksMenuAdmin">⚙️ Admin</button>`;
+  document.body.appendChild(m);
+  const jasa=()=>`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin bertanya tentang penyedia jasa.")}`;
+  const close=()=>{m.classList.remove("open");btn.setAttribute("aria-expanded","false");};
+  const place=()=>{const r=btn.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.left=Math.max(8,Math.min(r.left,innerWidth-m.offsetWidth-8))+"px";};
+  btn.onclick=e=>{e.stopPropagation();const open=!m.classList.contains("open");if(open){m.querySelector("#ksMenuJasa").href=jasa();m.classList.add("open");place();}else m.classList.remove("open");btn.setAttribute("aria-expanded",String(open));};
+  m.querySelector("#ksMenuAdmin").onclick=()=>{close();openAdmin();};
+  m.addEventListener("click",e=>{if(e.target.closest("a"))close();});
+  document.addEventListener("click",e=>{if(!m.contains(e.target)&&e.target!==btn)close();});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")close();});
+  addEventListener("resize",close);addEventListener("scroll",close,{passive:true});
+})();
