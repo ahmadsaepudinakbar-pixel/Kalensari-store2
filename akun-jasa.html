@@ -208,7 +208,7 @@ $("btnDaftar").onclick = async () => {
     acc[wa] = {h:await hashPin(wa, pin), id};
     await setSetting("jasa_accounts", acc);
     await upsertMember(entry);
-    sessionStorage.setItem("kalensari_jasa_sess", wa);
+    localStorage.setItem("kalensari_jasa_sess", wa);
     toast("Akun dibuat. Lengkapi data jasa Anda.");
     await openDash(wa);
   }catch(e){ toast(e.message || "Gagal mendaftar"); }
@@ -224,7 +224,7 @@ $("btnMasuk").onclick = async () => {
     const a = acc[wa];
     if(!a || a.h !== await hashPin(wa, pin)){ failTry(); return toast("Nomor atau PIN salah"); }
     LSset("kalensari_jasa_try", {n:0,t:0});
-    sessionStorage.setItem("kalensari_jasa_sess", wa);
+    localStorage.setItem("kalensari_jasa_sess", wa);
     await openDash(wa);
   }catch(e){ toast(e.message || "Gagal masuk"); }
 };
@@ -258,10 +258,10 @@ function renderPreview(){
 }
 async function openDash(wa){
   const acc = (await getSetting("jasa_accounts", {})) || {};
-  const a = acc[wa]; if(!a){ sessionStorage.removeItem("kalensari_jasa_sess"); return; }
+  const a = acc[wa]; if(!a){ localStorage.removeItem("kalensari_jasa_sess"); return; }
   const list = (await getSetting("jasa_members", [])) || [];
   me = list.find(x => x.id === a.id);
-  if(!me){ sessionStorage.removeItem("kalensari_jasa_sess"); toast("Data jasa Anda tidak ditemukan. Hubungi admin."); return; }
+  if(!me){ localStorage.removeItem("kalensari_jasa_sess"); toast("Data jasa Anda tidak ditemukan. Hubungi admin."); return; }
   me.wa = wa; foto = me.foto || "";
   $("auth").hidden = true; $("dash").hidden = false;
   $("dHalo").textContent = "Halo, " + me.nama;
@@ -335,14 +335,14 @@ $("pSimpan").onclick = async () => {
     $("pOld").value = $("pNew").value = ""; toast("PIN diganti");
   }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
 };
-$("btnKeluar").onclick = () => { sessionStorage.removeItem("kalensari_jasa_sess"); me = null; $("dash").hidden = true; $("auth").hidden = false; $("lPin").value = ""; showTab(true); };
+$("btnKeluar").onclick = () => { localStorage.removeItem("kalensari_jasa_sess"); me = null; $("dash").hidden = true; $("auth").hidden = false; $("lPin").value = ""; showTab(true); };
 
 // ====== MULAI ======
 (async () => {
   $("warn").hidden = cloudOn();
   await loadKat();
   if(location.hash === "#daftar") showTab(false);
-  const s = sessionStorage.getItem("kalensari_jasa_sess");
+  const s = localStorage.getItem("kalensari_jasa_sess");
   if(s){ try{ await openDash(s); }catch(e){} }
 })();
 </script>

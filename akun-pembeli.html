@@ -126,7 +126,7 @@ function showTab(masuk){
 }
 $("tabMasuk").onclick = () => showTab(true);
 $("tabDaftar").onclick = () => showTab(false);
-const go = () => setTimeout(() => { if(sessionStorage.getItem("kalensari_next") === "checkout"){ sessionStorage.removeItem("kalensari_next"); location.href = "index.html#checkout"; } else { location.href = "dashboard-" + ROLE + ".html"; } }, 700);
+const go = () => setTimeout(() => { location.href = "dashboard-" + ROLE + ".html"; }, 700);
 $("btnDaftar").onclick = async () => {
   const nama = $("rNama").value.trim(), wa = normPhone($("rWa").value), pin = $("rPin").value, pin2 = $("rPin2").value;
   if(!nama) return toast("Nama wajib diisi");
@@ -141,7 +141,7 @@ $("btnDaftar").onclick = async () => {
     acc[wa] = {h:await hashPin(wa, pin), id};
     await setSetting(ROLE + "_accounts", acc);
     await upsertMember({id, nama, wa, alamat:"", dusun:"", catatan:"", updated:Date.now()});
-    sessionStorage.setItem(SESS, wa);
+    localStorage.setItem(SESS, wa);
     toast("Akun dibuat. Mengarahkan ke dashboard...");
     go();
   }catch(e){ toast(e.message || "Gagal mendaftar"); }
@@ -156,7 +156,7 @@ $("btnMasuk").onclick = async () => {
     const a = acc[wa];
     if(!a || a.h !== await hashPin(wa, pin)){ failTry(); return toast("Nomor atau PIN salah"); }
     LSset("kalensari_"+ROLE+"_try", {n:0,t:0});
-    sessionStorage.setItem(SESS, wa);
+    localStorage.setItem(SESS, wa);
     toast("Berhasil masuk...");
     go();
   }catch(e){ toast(e.message || "Gagal masuk"); }
@@ -165,7 +165,7 @@ $("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
 (() => {
   $("warn").hidden = cloudOn();
   if(location.hash === "#daftar") showTab(false);
-  if(sessionStorage.getItem(SESS)) location.replace("dashboard-" + ROLE + ".html");
+  if(localStorage.getItem(SESS)) location.replace("dashboard-" + ROLE + ".html");
 })();
 
 </script>
