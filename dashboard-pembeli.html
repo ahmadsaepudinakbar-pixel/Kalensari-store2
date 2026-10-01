@@ -169,7 +169,7 @@ $("fSimpan").onclick = async () => {
   FIELDS.forEach(k => { me[k] = $("f_" + k).value.trim(); });
   
   me.updated = Date.now();
-  try{ await upsertMember(me); $("dHalo").textContent = "Halo, " + me.nama + " 👋"; toast("Data berhasil disimpan"); }
+  try{ await upsertMember(me); $("dHalo").textContent = "Halo, " + me.nama + " 👋"; toast("Data berhasil disimpan"); if(sessionStorage.getItem("kalensari_next") === "checkout" && me.alamat){ sessionStorage.removeItem("kalensari_next"); toast("Tersimpan. Kembali ke checkout..."); setTimeout(() => { location.href = "index.html#checkout"; }, 900); } }
   catch(e){ toast(e.message || "Gagal menyimpan"); }
 };
 $("pSimpan").onclick = async () => {
