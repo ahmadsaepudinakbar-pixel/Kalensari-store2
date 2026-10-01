@@ -193,56 +193,5 @@ async function loadOrders(){
 })();
 
 </script>
-<script>
-
-/* KALENSARI STORE V14.4 - Location permission helper */
-async function kalensariRequestLocation(onSuccess, onError) {
-  const fail = (msg) => {
-    console.warn("[KALENSARI LOCATION]", msg);
-    if (typeof onError === "function") onError(msg);
-  };
-
-  if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
-    fail("Lokasi hanya dapat digunakan melalui HTTPS. Buka website dengan https://.");
-    return;
-  }
-  if (!("geolocation" in navigator)) {
-    fail("Browser ini tidak mendukung lokasi.");
-    return;
-  }
-
-  try {
-    if (navigator.permissions && navigator.permissions.query) {
-      const p = await navigator.permissions.query({name: "geolocation"});
-      if (p.state === "denied") {
-        fail("Izin lokasi diblokir. Klik ikon kunci di alamat website, izinkan Lokasi, lalu muat ulang halaman.");
-        return;
-      }
-    }
-  } catch (_) {}
-
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      const coords = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy
-      };
-      try { localStorage.setItem("kalensari_user_location", JSON.stringify(coords)); } catch (_) {}
-      if (typeof onSuccess === "function") onSuccess(position);
-    },
-    (error) => {
-      const messages = {
-        1: "Izin lokasi ditolak. Silakan izinkan Lokasi pada pengaturan situs/browser.",
-        2: "Lokasi tidak dapat ditemukan. Pastikan GPS/Lokasi perangkat aktif.",
-        3: "Permintaan lokasi terlalu lama. Coba lagi."
-      };
-      fail(messages[error.code] || "Lokasi tidak dapat diambil.");
-    },
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-  );
-}
-
-</script>
 </body>
 </html>
