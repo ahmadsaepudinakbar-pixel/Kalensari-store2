@@ -102,7 +102,8 @@ textarea.fld{min-height:90px;resize:vertical}
 
   <div class="daftar-wrap">
     <p>Punya keahlian atau jasa? Tampilkan di sini agar mudah ditemukan warga.</p>
-    <a id="daftar" class="daftar" href="#" target="_blank" rel="noopener">📝 Daftar jadi penyedia jasa</a>
+    <a id="daftar" class="daftar" href="akun-jasa.html#daftar">📝 Daftar jadi penyedia jasa</a>
+    <p style="margin-top:12px">Sudah punya akun? <a href="akun-jasa.html" style="color:var(--brown);font-weight:700">Masuk di sini</a></p>
   </div>
 </main>
 
@@ -144,6 +145,8 @@ const DEFAULT_JASA = [
  {nama:"Rafi Joki",kategori:"Joki Gaming",ket:"Joki rank & push akun game mobile",buka:"10:00",tutup:"23:00",dusun:"Dusun Krajan",rating:4.7,harga:"Mulai Rp10.000",wa:"6281234567817",libur:[],layanan:["Joki rank","Push bintang","Joki harian"],status:"Show"}
 ];
 let JASA = DEFAULT_JASA.map(j => ({...j})); // daftar aktif (bisa diedit admin)
+let MEMBERS = [];                            // penyedia yang mendaftar sendiri lewat akun-jasa.html
+const ALL = () => [...JASA, ...MEMBERS];
 
 // ====== LOGIKA ======
 const $ = id => document.getElementById(id);
@@ -182,7 +185,7 @@ function card(j, i){
   const open = isOpen(j);
   return `<article class="card">
     <div class="row"><div class="ico">${icoHTML(j)}</div>
-      <div class="info"><h3 class="name">${esc(j.nama)}${j.status==="Hide"?` <span class="tagh">(disembunyikan)</span>`:""}</h3><p class="desc">${esc(j.ket)}</p>
+      <div class="info"><h3 class="name">${esc(j.nama)}${j.status==="Hide"?` <span class="tagh">(${j.pending?"menunggu persetujuan":"disembunyikan"})</span>`:""}</h3><p class="desc">${esc(j.ket)}</p>
         <div class="meta"><span class="badge ${open?"buka":"tutup"}">${open?"Buka":"Tutup"}</span>
           <span>🕒 ${jam(j.buka)}–${jam(j.tutup)}</span><span>📍 ${esc(j.dusun)}</span>${ratingHTML(j)}</div>
         <div class="price">${esc(j.harga)}</div></div></div>
@@ -192,7 +195,7 @@ function card(j, i){
 }
 function render(){
   const q = $("q").value.trim().toLowerCase();
-  const rows = JASA.map((j,i)=>({j,i})).filter(({j}) =>
+  const rows = ALL().map((j,i)=>({j,i})).filter(({j}) =>
     (admin || j.status !== "Hide") && (kategori==="Semua" || j.kategori===kategori) &&
     (!q || [j.nama,j.ket,j.kategori,j.dusun,...(j.layanan||[])].join(" ").toLowerCase().includes(q)));
   $("judul").textContent = kategori==="Semua" ? "Semua penyedia jasa" : kategori;
@@ -200,7 +203,7 @@ function render(){
   $("list").innerHTML = rows.length ? rows.map(({j,i}) => card(j,i)).join("") : `<div class="empty">Belum ada penyedia jasa yang cocok. Coba jenis atau kata kunci lain.</div>`;
 }
 function detail(i){
-  const j = JASA[i], open = isOpen(j);
+  const j = ALL()[i], open = isOpen(j);
   const hari = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
   $("sheet").innerHTML = `<button class="x" onclick="closeD()" aria-label="Tutup">✕</button>
     ${j.foto ? `<img class="dimg" src="${esc(j.foto)}" alt="${esc(j.nama)}">` : `<div class="ico" style="margin-bottom:10px">${ikon(j.kategori)}</div>`}
@@ -209,6 +212,7 @@ function detail(i){
     <p>🕒 <b>${jam(j.buka)}–${jam(j.tutup)}</b> WIB${(j.libur||[]).length?` • Libur: ${j.libur.map(d=>hari[d]).join(", ")}`:""}<br>📍 ${esc(j.dusun)}<br>💰 <b>${esc(j.harga)}</b></p>
     ${(j.layanan||[]).length?`<b>Layanan:</b><ul>${j.layanan.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`:""}
     <div class="btns" style="grid-template-columns:1fr">${open ? `<a class="btn wa" href="${waUrl(j)}" target="_blank" rel="noopener">Chat WhatsApp</a>` : `<span class="btn off">Sedang tutup</span>`}
+    ${admin && j.pending ? `<button class="btn wa" onclick="setujui(${i})">✅ Setujui & tampilkan</button>` : ""}
     ${admin ? `<button class="btn" onclick="formEdit(${i})">✏️ Edit detail</button>` : ""}</div>`;
   $("modal").classList.add("show");
 }
@@ -224,7 +228,6 @@ $("catToggle").addEventListener("click", () => setOpen($("catPanel").hidden));
 $("list").addEventListener("click", e => { const b = e.target.closest("[data-d]"); if(b) detail(+b.dataset.d); });
 $("modal").addEventListener("click", e => { if(e.target === $("modal")) closeD(); });
 document.addEventListener("keydown", e => { if(e.key === "Escape") closeD(); });
-$("daftar").href = `https://wa.me/${ADMIN_WA}?text=${encodeURIComponent("Halo KALENSARI STORE, saya ingin mendaftar jadi penyedia jasa.")}`;
 
 
 // ====== ADMIN: tambah / hapus jenis jasa ======
@@ -244,12 +247,14 @@ const validKat = a => Array.isArray(a) && a.every(c => c && typeof c.n === "stri
 async function loadKat(){
   try{ const l = JSON.parse(localStorage.getItem("kalensari_jasa_categories") || "null"); if(validKat(l)) KATEGORI = l; }catch(e){}
   try{ const l = JSON.parse(localStorage.getItem("kalensari_jasa_providers") || "null"); if(validJasa(l)) JASA = l; }catch(e){}
+  try{ const l = JSON.parse(localStorage.getItem("kalensari_jasa_members") || "null"); if(validJasa(l)) MEMBERS = l; }catch(e){}
   if(!cloudOn()) return;
   try{
-    const rows = await cf("store_settings?select=*&key=in.(jasa_categories,jasa_providers,admin_pin_hash)");
+    const rows = await cf("store_settings?select=*&key=in.(jasa_categories,jasa_providers,jasa_members,admin_pin_hash)");
     rows.forEach(r => {
       if(r.key === "jasa_categories" && validKat(r.value)){ KATEGORI = r.value; localStorage.setItem("kalensari_jasa_categories", JSON.stringify(r.value)); }
       if(r.key === "jasa_providers" && validJasa(r.value)){ JASA = r.value; try{ localStorage.setItem("kalensari_jasa_providers", JSON.stringify(r.value)); }catch(e){} }
+      if(r.key === "jasa_members" && validJasa(r.value)){ MEMBERS = r.value; try{ localStorage.setItem("kalensari_jasa_members", JSON.stringify(r.value)); }catch(e){} }
       if(r.key === "admin_pin_hash" && /^[0-9a-f]{64}$/.test(r.value)) pinHash = r.value;
     });
   }catch(e){ console.error("Muat jenis jasa:", e); }
@@ -277,7 +282,7 @@ function formLogin(){
   $("modal").classList.add("show"); $("pinIn").focus();
   const go = async () => {
     await loadKat();
-    if(await cekPin($("pinIn").value)){ admin = true; closeD(); setOpen(true); renderCats(); toast("Mode admin aktif"); }
+    if(await cekPin($("pinIn").value)){ admin = true; closeD(); setOpen(true); renderCats(); render(); toast("Mode admin aktif"); }
     else { toast("Kode admin salah"); $("pinIn").select(); }
   };
   $("pinOk").onclick = go; $("pinIn").onkeydown = e => { if(e.key === "Enter") go(); };
@@ -298,7 +303,7 @@ function formTambah(){
   $("katOk").onclick = go; $("katN").onkeydown = e => { if(e.key === "Enter") go(); };
 }
 async function hapusKat(n){
-  const dipakai = JASA.filter(j => j.kategori === n).length;
+  const dipakai = ALL().filter(j => j.kategori === n).length;
   const ket = dipakai ? `\n\n${dipakai} penyedia di jenis ini tetap tampil di "Semua", tetapi tidak punya jenis.` : "";
   if(!confirm(`Hapus jenis jasa "${n}"?${ket}`)) return;
   KATEGORI = KATEGORI.filter(c => c.n !== n);
@@ -312,6 +317,31 @@ async function saveJasa(){
   if(!cloudOn()) return false;
   try{ await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key:"jasa_providers", value:JASA}])}); return true; }
   catch(e){ console.error("Simpan penyedia:", e); return false; }
+}
+async function saveMember(entry, delId){
+  let latest = MEMBERS;
+  if(cloudOn()){ try{ const r = await cf("store_settings?select=value&key=eq.jasa_members"); if(r[0] && validJasa(r[0].value)) latest = r[0].value; }catch(e){} }
+  latest = latest.slice();
+  if(delId) latest = latest.filter(x => x.id !== delId);
+  else { const k = latest.findIndex(x => x.id === entry.id); if(k >= 0) latest[k] = entry; else latest.push(entry); }
+  MEMBERS = latest;
+  try{ localStorage.setItem("kalensari_jasa_members", JSON.stringify(MEMBERS)); }catch(e){}
+  if(delId){ try{ const acc = JSON.parse(localStorage.getItem("kalensari_jasa_accounts") || "{}"); Object.keys(acc).forEach(k => { if(acc[k] && acc[k].id === delId) delete acc[k]; }); localStorage.setItem("kalensari_jasa_accounts", JSON.stringify(acc)); }catch(e){} }
+  if(!cloudOn()) return false;
+  try{
+    await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key:"jasa_members", value:MEMBERS}])});
+    if(delId){
+      const r = await cf("store_settings?select=value&key=eq.jasa_accounts"); const acc = (r[0] && r[0].value) || {};
+      Object.keys(acc).forEach(k => { if(acc[k] && acc[k].id === delId) delete acc[k]; });
+      await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key:"jasa_accounts", value:acc}])});
+    }
+    return true;
+  }catch(e){ console.error("Simpan anggota:", e); return false; }
+}
+async function setujui(i){
+  const j = ALL()[i]; if(!j || !j.member) return;
+  closeD(); const ok = await saveMember({...j, status:"Show", pending:false, updated:Date.now()});
+  render(); toast(ok ? `"${j.nama}" disetujui dan tampil` : `"${j.nama}" disetujui (baru tersimpan di browser ini; database belum aktif)`);
 }
 async function simpanJasa(pesan){
   const ok = await saveJasa();
@@ -331,7 +361,7 @@ function resizeImg(file, max=480){
 }
 function formEdit(i){
   const baru = i < 0;
-  const j = baru ? {nama:"",kategori:(kategori!=="Semua"?kategori:""),ket:"",buka:"08:00",tutup:"17:00",dusun:"",rating:"",harga:"",wa:"",libur:[],layanan:[],status:"Show",foto:""} : {...JASA[i]};
+  const j = baru ? {nama:"",kategori:(kategori!=="Semua"?kategori:""),ket:"",buka:"08:00",tutup:"17:00",dusun:"",rating:"",harga:"",wa:"",libur:[],layanan:[],status:"Show",foto:""} : {...ALL()[i]};
   let foto = j.foto || "";
   const hari = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
   const kats = KATEGORI.map(c => c.n); if(j.kategori && !kats.includes(j.kategori)) kats.push(j.kategori);
@@ -367,17 +397,21 @@ function formEdit(i){
       libur:[...document.querySelectorAll('input[name="lb"]:checked')].map(x => +x.value),
       dusun:$("fDusun").value.trim(), rating:isNaN(r) ? "" : Math.min(5, Math.max(0, r)), harga:$("fHarga").value.trim(), wa,
       layanan:$("fLay").value.split("\n").map(x => x.trim()).filter(Boolean), status:$("fStatus").value, foto};
+    data.updated = Date.now(); if(data.status === "Show") data.pending = false;
+    if(!baru && j.member){ closeD(); const ok = await saveMember(data); render(); toast(ok ? "Perubahan disimpan" : "Perubahan disimpan (baru tersimpan di browser ini; database belum aktif)"); return; }
     if(baru) JASA.push(data); else JASA[i] = data;
     closeD(); await simpanJasa(baru ? `"${nama}" ditambahkan` : "Perubahan disimpan");
   };
   if(!baru) $("fHapus").onclick = async () => {
     if(!confirm(`Hapus penyedia "${j.nama}"?`)) return;
-    JASA.splice(i, 1); closeD(); await simpanJasa(`"${j.nama}" dihapus`);
+    closeD();
+    if(j.member){ const ok = await saveMember(null, j.id); render(); toast(ok ? `"${j.nama}" dihapus` : `"${j.nama}" dihapus (baru di browser ini; database belum aktif)`); return; }
+    JASA.splice(i, 1); await simpanJasa(`"${j.nama}" dihapus`);
   };
 }
 $("addJasaBtn").addEventListener("click", () => formEdit(-1));
 $("adminBtn").addEventListener("click", () => { admin ? toast("Mode admin sudah aktif") : formLogin(); });
-$("logoutBtn").addEventListener("click", () => { admin = false; renderCats(); toast("Keluar dari mode admin"); });
+$("logoutBtn").addEventListener("click", () => { admin = false; renderCats(); render(); toast("Keluar dari mode admin"); });
 
 renderCats(); render();
 loadKat().then(() => { if(!KATEGORI.some(c => c.n === kategori)) kategori = "Semua"; renderCats(); render(); });

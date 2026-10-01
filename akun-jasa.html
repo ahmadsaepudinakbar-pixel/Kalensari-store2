@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Akun Penyedia Jasa – Kalensari Store</title>
+<style>
+:root{--brown:#7b3f1d;--ink:#3a1f10;--muted:#5c4638;--bg:#e4d3bf;--line:#d3bfa8;--chip:#f5e8d8;--green:#228b4e;--red:#b83c2b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+.topbar{background:var(--brown);color:#fff;text-align:center;font-size:13px;font-weight:600;padding:10px 12px}
+.topbar a{color:#fff;text-decoration:none}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+.hero{border-radius:28px;padding:26px;background:linear-gradient(120deg,#f8ead0 0%,#eef0d4 45%,#6f9f4e 100%);margin-bottom:16px}
+.tag{display:inline-block;background:var(--brown);color:#fff;font-weight:700;font-size:12px;padding:8px 14px;border-radius:999px}
+.hero h1{font-size:clamp(24px,5vw,34px);margin:14px 0 8px;line-height:1.2}
+.hero p{margin:0}
+.box{background:#fff;border:1px solid var(--line);border-radius:24px;padding:20px}
+.warn{background:#fff3cd;border:1px solid #e3c766;color:#5a4300;border-radius:14px;padding:10px 14px;margin-bottom:14px;font-size:14px;font-weight:600}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.tab{border:1px solid var(--line);background:var(--chip);color:var(--ink);padding:12px;border-radius:999px;font:inherit;font-weight:700;cursor:pointer}
+.tab.on{background:var(--brown);border-color:var(--brown);color:#fff}
+label{display:block;font-weight:600;font-size:14px}
+.fld{display:block;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:16px;margin:6px 0 12px;background:#fff;color:var(--ink)}
+textarea.fld{min-height:90px;resize:vertical}
+.hint{font-size:13px;color:var(--muted);margin:-6px 0 12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.days{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.days label{display:flex;gap:5px;align-items:center;background:var(--chip);padding:6px 12px;border-radius:999px}
+.btn{display:block;width:100%;text-align:center;text-decoration:none;font:inherit;font-weight:700;font-size:17px;padding:14px 8px;border-radius:16px;border:1px solid var(--brown);background:#fff;color:var(--brown);cursor:pointer}
+.btn.wa{background:var(--green);border-color:var(--green);color:#fff}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btns{display:grid;gap:10px;margin-top:6px}
+.ico{width:110px;height:110px;border-radius:24px;background:var(--chip);display:grid;place-items:center;font-size:54px;overflow:hidden;margin:4px 0 10px}
+.ico img{width:100%;height:100%;object-fit:cover;display:block}
+.status{border-radius:14px;padding:10px 14px;margin-bottom:14px;font-weight:600;font-size:14px}
+.status.p{background:#fff3cd;color:#5a4300}.status.ok{background:#dff3e6;color:#14502c}.status.h{background:#f6dcd7;color:#7a2418}
+h2{margin:0 0 4px;color:var(--brown)}
+hr{border:0;border-top:1px solid var(--line);margin:20px 0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="jasa.html">🛍️ KALENSARI STORE • ← Halaman Penyedia Jasa</a></div>
+<main class="wrap">
+  <section class="hero"><span class="tag">🛠️ KALENSARI STORE • AKUN PENYEDIA JASA</span>
+    <h1>Kelola jasa Anda sendiri</h1>
+    <p>Daftar atau masuk untuk mengatur foto, jam buka, harga, dan layanan Anda.</p></section>
+  <div id="warn" class="warn" hidden>⚠️ Database online belum aktif. Akun hanya tersimpan di browser ini (mode uji coba).</div>
+
+  <section id="auth" class="box">
+    <div class="tabs"><button class="tab on" id="tabMasuk" type="button">Masuk</button><button class="tab" id="tabDaftar" type="button">Daftar</button></div>
+    <div id="fMasuk">
+      <label>No. WhatsApp<input id="lWa" class="fld" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx" autocomplete="username"></label>
+      <label>PIN<input id="lPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="current-password"></label>
+      <div class="btns"><button class="btn wa" id="btnMasuk" type="button">Masuk</button></div>
+    </div>
+    <div id="fDaftar" hidden>
+      <label>Nama penyedia / usaha<input id="rNama" class="fld" maxlength="60" placeholder="mis. Bengkel Maju Jaya"></label>
+      <label>Jenis jasa<select id="rKat" class="fld"></select></label>
+      <label>No. WhatsApp<input id="rWa" class="fld" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx"></label>
+      <p class="hint">Nomor ini dipakai untuk masuk dan untuk dihubungi pelanggan.</p>
+      <div class="row2"><label>PIN<input id="rPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="new-password"></label>
+      <label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label></div>
+      <div class="btns"><button class="btn wa" id="btnDaftar" type="button">Buat akun</button></div>
+      <p class="hint" style="margin-top:12px">Setelah mendaftar, admin akan memeriksa lalu menampilkan jasa Anda di halaman Penyedia Jasa.</p>
+    </div>
+  </section>
+
+  <section id="dash" class="box" hidden>
+    <div id="stat" class="status"></div>
+    <h2 id="dHalo"></h2>
+    <p class="hint" style="margin:0 0 14px">Isi data selengkap mungkin supaya pelanggan mudah menghubungi Anda.</p>
+    <div class="ico" id="fPrev"></div>
+    <input id="fFile" type="file" accept="image/*" hidden>
+    <div class="row2" style="margin-bottom:12px"><button class="btn" type="button" id="fPilih">📷 Pilih foto</button><button class="btn danger" type="button" id="fHapusFoto">Hapus foto</button></div>
+    <label>Nama<input id="fNama" class="fld" maxlength="60"></label>
+    <label>Jenis jasa<select id="fKat" class="fld"></select></label>
+    <label>Deskripsi singkat<input id="fKet" class="fld" maxlength="100" placeholder="mis. Servis motor, tambal ban, ganti oli"></label>
+    <div class="row2"><label>Jam buka<input id="fBuka" class="fld" type="time"></label><label>Jam tutup<input id="fTutup" class="fld" type="time"></label></div>
+    <label>Hari libur</label><div class="days" id="fLibur"></div>
+    <label>Dusun<input id="fDusun" class="fld" maxlength="40" placeholder="mis. Dusun Krajan"></label>
+    <label>Harga<input id="fHarga" class="fld" maxlength="40" placeholder="mis. Mulai Rp50.000"></label>
+    <label>No. WhatsApp (untuk masuk)<input id="fWa" class="fld" disabled></label>
+    <label>Layanan (satu per baris)<textarea id="fLay" class="fld"></textarea></label>
+    <div class="btns"><button class="btn wa" id="fSimpan" type="button">Simpan perubahan</button><a class="btn" href="jasa.html">Lihat halaman Penyedia Jasa</a></div>
+    <hr>
+    <h2 style="font-size:18px">Ubah PIN</h2>
+    <div class="row2"><label>PIN lama<input id="pOld" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>PIN baru<input id="pNew" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div>
+    <div class="btns"><button class="btn" id="pSimpan" type="button">Simpan PIN baru</button><button class="btn danger" id="btnKeluar" type="button">Keluar</button></div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="config.js" onerror="void 0"></script>
+<script>
+// ====== UTIL ======
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const toMin = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
+function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 3200); }
+const normPhone = v => String(v||"").replace(/\D/g,"").replace(/^0/,"62");
+const okPin = v => /^\d{4,8}$/.test(v);
+
+// ====== DATABASE (Supabase yang sama dengan toko; cadangan di browser) ======
+const cloudOn = () => typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG && CLOUD_CONFIG.enabled && CLOUD_CONFIG.supabaseUrl && CLOUD_CONFIG.supabaseAnonKey;
+async function cf(path, opt={}){
+  const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
+  const r = await fetch(base + "/rest/v1/" + path, {...opt, headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json", ...(opt.headers||{})}});
+  const t = await r.text(); if(!r.ok) throw new Error(t || r.status);
+  return t ? JSON.parse(t) : [];
+}
+const LSget = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; }catch(e){ return d; } };
+const LSset = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+async function getSetting(key, def){
+  if(cloudOn()){
+    try{ const r = await cf(`store_settings?select=value&key=eq.${key}`); if(r[0] && r[0].value != null){ LSset("kalensari_"+key, r[0].value); return r[0].value; } return def; }
+    catch(e){ console.error(e); throw new Error("Tidak bisa terhubung ke database. Coba lagi."); }
+  }
+  return LSget("kalensari_"+key, def);
+}
+async function setSetting(key, value){
+  LSset("kalensari_"+key, value);
+  if(!cloudOn()) return true;
+  await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key, value}])});
+  return true;
+}
+// Baca data terbaru lalu ubah hanya bagian milik akun ini (agar tidak menimpa akun lain).
+async function upsertMember(entry){
+  let list = await getSetting("jasa_members", []); if(!Array.isArray(list)) list = [];
+  const k = list.findIndex(x => x.id === entry.id);
+  if(k >= 0) list[k] = entry; else list.push(entry);
+  await setSetting("jasa_members", list);
+}
+
+// ====== PIN ======
+async function hashPin(wa, pin){
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("kalensari-jasa:" + wa + ":" + pin));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join("");
+}
+function lockLeft(){ const t = LSget("kalensari_jasa_try", {n:0,t:0}); return t.n >= 5 ? Math.max(0, Math.ceil((t.t + 60000 - Date.now())/1000)) : 0; }
+function failTry(){ const t = LSget("kalensari_jasa_try", {n:0,t:0}); const n = (Date.now() - t.t > 60000 && t.n >= 5) ? 1 : t.n + 1; LSset("kalensari_jasa_try", {n, t:Date.now()}); }
+
+// ====== KATEGORI ======
+const DEFAULT_KAT = ["Tukang urut","Tukang ojek","Pemasangan WiFi","Pemasangan CCTV","Penjahit","Servis komputer","Servis elektronik","Servis HP","Supir traktor sawah","Pasukan Grabag","Supir","Travel","Pemasangan air PAM","Pasukan tandur","Ngerambet","Joki Gaming"];
+let KAT = DEFAULT_KAT;
+async function loadKat(){
+  try{ const v = await getSetting("jasa_categories", null); if(Array.isArray(v) && v.length) KAT = v.map(c => c.n); }catch(e){}
+  const opts = (sel, cur) => { const l = [...KAT]; if(cur && !l.includes(cur)) l.push(cur); sel.innerHTML = l.map(k => `<option value="${esc(k)}"${k===cur?" selected":""}>${esc(k)}</option>`).join(""); };
+  window.fillKat = opts; opts($("rKat"), KAT[0]);
+}
+
+// ====== DAFTAR / MASUK ======
+let me = null; // data penyedia yang sedang masuk
+function showTab(masuk){
+  $("tabMasuk").classList.toggle("on", masuk); $("tabDaftar").classList.toggle("on", !masuk);
+  $("fMasuk").hidden = !masuk; $("fDaftar").hidden = masuk;
+}
+$("tabMasuk").onclick = () => showTab(true);
+$("tabDaftar").onclick = () => showTab(false);
+
+$("btnDaftar").onclick = async () => {
+  const nama = $("rNama").value.trim(), wa = normPhone($("rWa").value), pin = $("rPin").value, pin2 = $("rPin2").value;
+  if(!nama) return toast("Nama wajib diisi");
+  if(wa.length < 9 || wa.length > 15) return toast("Nomor WhatsApp tidak valid");
+  if(!okPin(pin)) return toast("PIN harus 4–8 angka");
+  if(pin !== pin2) return toast("Ulangi PIN tidak sama");
+  $("btnDaftar").disabled = true;
+  try{
+    const acc = (await getSetting("jasa_accounts", {})) || {};
+    if(acc[wa]){ toast("Nomor ini sudah terdaftar. Silakan masuk."); showTab(true); $("lWa").value = $("rWa").value; return; }
+    const id = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+    const entry = {id, nama, kategori:$("rKat").value, ket:"", buka:"08:00", tutup:"17:00", dusun:"", rating:"", harga:"", wa, libur:[], layanan:[], status:"Hide", pending:true, member:true, foto:"", updated:Date.now()};
+    acc[wa] = {h:await hashPin(wa, pin), id};
+    await setSetting("jasa_accounts", acc);
+    await upsertMember(entry);
+    sessionStorage.setItem("kalensari_jasa_sess", wa);
+    toast("Akun dibuat. Lengkapi data jasa Anda.");
+    await openDash(wa);
+  }catch(e){ toast(e.message || "Gagal mendaftar"); }
+  finally{ $("btnDaftar").disabled = false; }
+};
+
+$("btnMasuk").onclick = async () => {
+  const wa = normPhone($("lWa").value), pin = $("lPin").value;
+  const lk = lockLeft(); if(lk) return toast(`Terlalu banyak percobaan. Coba lagi ${lk} detik lagi.`);
+  if(!wa || !pin) return toast("Isi nomor WhatsApp dan PIN");
+  try{
+    const acc = (await getSetting("jasa_accounts", {})) || {};
+    const a = acc[wa];
+    if(!a || a.h !== await hashPin(wa, pin)){ failTry(); return toast("Nomor atau PIN salah"); }
+    LSset("kalensari_jasa_try", {n:0,t:0});
+    sessionStorage.setItem("kalensari_jasa_sess", wa);
+    await openDash(wa);
+  }catch(e){ toast(e.message || "Gagal masuk"); }
+};
+$("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
+
+// ====== DASBOR ======
+let foto = "";
+async function openDash(wa){
+  const acc = (await getSetting("jasa_accounts", {})) || {};
+  const a = acc[wa]; if(!a){ sessionStorage.removeItem("kalensari_jasa_sess"); return; }
+  const list = (await getSetting("jasa_members", [])) || [];
+  me = list.find(x => x.id === a.id);
+  if(!me){ sessionStorage.removeItem("kalensari_jasa_sess"); toast("Data jasa Anda tidak ditemukan. Hubungi admin."); return; }
+  me.wa = wa; foto = me.foto || "";
+  $("auth").hidden = true; $("dash").hidden = false;
+  $("dHalo").textContent = "Halo, " + me.nama;
+  const st = $("stat");
+  if(me.pending){ st.className = "status p"; st.textContent = "⏳ Menunggu persetujuan admin. Setelah disetujui, jasa Anda tampil di halaman Penyedia Jasa."; }
+  else if(me.status === "Hide"){ st.className = "status h"; st.textContent = "🚫 Jasa Anda sedang disembunyikan oleh admin."; }
+  else { st.className = "status ok"; st.textContent = "✅ Jasa Anda tampil di halaman Penyedia Jasa."; }
+  $("fNama").value = me.nama; fillKat($("fKat"), me.kategori); $("fKet").value = me.ket || "";
+  $("fBuka").value = me.buka || "08:00"; $("fTutup").value = me.tutup || "17:00";
+  $("fDusun").value = me.dusun || ""; $("fHarga").value = me.harga || ""; $("fWa").value = "+" + wa;
+  $("fLay").value = (me.layanan || []).join("\n");
+  $("fLibur").innerHTML = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"].map((h,d) => `<label><input type="checkbox" name="lb" value="${d}"${(me.libur||[]).includes(d)?" checked":""}>${h}</label>`).join("");
+  prev();
+}
+function prev(){
+  $("fPrev").innerHTML = foto ? `<img src="${esc(foto)}" alt="">` : "🛠️";
+  $("fHapusFoto").style.visibility = foto ? "visible" : "hidden";
+  $("fPilih").textContent = foto ? "📷 Ganti foto" : "📷 Pilih foto";
+}
+function resizeImg(file, max=480){
+  return new Promise((ok, no) => {
+    const fr = new FileReader(); fr.onerror = no;
+    fr.onload = () => { const im = new Image(); im.onerror = no;
+      im.onload = () => { const r = Math.min(1, max / Math.max(im.width, im.height)); const c = document.createElement("canvas");
+        c.width = Math.round(im.width * r); c.height = Math.round(im.height * r);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", 0.72)); };
+      im.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+$("fPilih").onclick = () => $("fFile").click();
+$("fFile").onchange = async e => { const f = e.target.files[0]; if(!f) return; try{ foto = await resizeImg(f); prev(); }catch(err){ toast("Foto tidak bisa dibaca"); } };
+$("fHapusFoto").onclick = () => { foto = ""; prev(); };
+
+$("fSimpan").onclick = async () => {
+  const nama = $("fNama").value.trim(); if(!nama) return toast("Nama wajib diisi");
+  const buka = $("fBuka").value, tutup = $("fTutup").value;
+  if(!buka || !tutup) return toast("Jam buka & tutup wajib diisi");
+  if(toMin(tutup) <= toMin(buka)) return toast("Jam tutup harus setelah jam buka");
+  const data = {...me, nama, kategori:$("fKat").value, ket:$("fKet").value.trim(), buka, tutup,
+    libur:[...document.querySelectorAll('input[name="lb"]:checked')].map(x => +x.value),
+    dusun:$("fDusun").value.trim(), harga:$("fHarga").value.trim(),
+    layanan:$("fLay").value.split("\n").map(x => x.trim()).filter(Boolean), foto, updated:Date.now()};
+  $("fSimpan").disabled = true;
+  try{ await upsertMember(data); me = data; $("dHalo").textContent = "Halo, " + me.nama; toast("Perubahan disimpan"); }
+  catch(e){ toast(e.message || "Gagal menyimpan"); }
+  finally{ $("fSimpan").disabled = false; }
+};
+
+$("pSimpan").onclick = async () => {
+  const o = $("pOld").value, n = $("pNew").value;
+  if(!okPin(n)) return toast("PIN baru harus 4–8 angka");
+  try{
+    const acc = (await getSetting("jasa_accounts", {})) || {};
+    if(!acc[me.wa] || acc[me.wa].h !== await hashPin(me.wa, o)) return toast("PIN lama salah");
+    acc[me.wa].h = await hashPin(me.wa, n);
+    await setSetting("jasa_accounts", acc);
+    $("pOld").value = $("pNew").value = ""; toast("PIN diganti");
+  }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
+};
+$("btnKeluar").onclick = () => { sessionStorage.removeItem("kalensari_jasa_sess"); me = null; $("dash").hidden = true; $("auth").hidden = false; $("lPin").value = ""; showTab(true); };
+
+// ====== MULAI ======
+(async () => {
+  $("warn").hidden = cloudOn();
+  await loadKat();
+  if(location.hash === "#daftar") showTab(false);
+  const s = sessionStorage.getItem("kalensari_jasa_sess");
+  if(s){ try{ await openDash(s); }catch(e){} }
+})();
+</script>
+</body>
+</html>
