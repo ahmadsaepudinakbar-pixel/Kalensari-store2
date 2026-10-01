@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Pembeli – Kalensari Store</title>
+<style>
+:root{--brown:#7b3f1d;--ink:#3a1f10;--muted:#5c4638;--bg:#e4d3bf;--line:#d3bfa8;--chip:#f5e8d8;--green:#228b4e;--red:#b83c2b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+.topbar{background:var(--brown);color:#fff;text-align:center;font-size:13px;font-weight:600;padding:10px 12px}
+.topbar a{color:#fff;text-decoration:none}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+.hero{border-radius:28px;padding:26px;background:linear-gradient(120deg,#f8ead0 0%,#eef0d4 45%,#6f9f4e 100%);margin-bottom:16px}
+.tag{display:inline-block;background:var(--brown);color:#fff;font-weight:700;font-size:12px;padding:8px 14px;border-radius:999px}
+.hero h1{font-size:clamp(24px,5vw,34px);margin:14px 0 8px;line-height:1.2}
+.hero p{margin:0}
+.box{background:#fff;border:1px solid var(--line);border-radius:24px;padding:20px}
+.warn{background:#fff3cd;border:1px solid #e3c766;color:#5a4300;border-radius:14px;padding:10px 14px;margin-bottom:14px;font-size:14px;font-weight:600}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.tab{border:1px solid var(--line);background:var(--chip);color:var(--ink);padding:12px;border-radius:999px;font:inherit;font-weight:700;cursor:pointer}
+.tab.on{background:var(--brown);border-color:var(--brown);color:#fff}
+label{display:block;font-weight:600;font-size:14px}
+.fld{display:block;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:16px;margin:6px 0 12px;background:#fff;color:var(--ink)}
+textarea.fld{min-height:90px;resize:vertical}
+.hint{font-size:13px;color:var(--muted);margin:-6px 0 12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.days{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 12px}
+.days label{display:flex;gap:5px;align-items:center;background:var(--chip);padding:6px 12px;border-radius:999px}
+.btn{display:block;width:100%;text-align:center;text-decoration:none;font:inherit;font-weight:700;font-size:17px;padding:14px 8px;border-radius:16px;border:1px solid var(--brown);background:#fff;color:var(--brown);cursor:pointer}
+.btn.wa{background:var(--green);border-color:var(--green);color:#fff}
+.btn.danger{border-color:var(--red);color:var(--red)}
+.btns{display:grid;gap:10px;margin-top:6px}
+.ico{width:110px;height:110px;border-radius:24px;background:var(--chip);display:grid;place-items:center;font-size:54px;overflow:hidden;margin:4px 0 10px}
+.ico img{width:100%;height:100%;object-fit:cover;display:block}
+.status{border-radius:14px;padding:10px 14px;margin-bottom:14px;font-weight:600;font-size:14px}
+.status.p{background:#ffe55c;color:#4a3800}.status.ok{background:#dff3e6;color:#14502c}.status.h{background:#f6dcd7;color:#7a2418}
+h2{margin:0 0 4px;color:var(--brown)}
+hr{border:0;border-top:1px solid var(--line);margin:20px 0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+[hidden]{display:none!important}
+.card{border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:10px;background:#fffaf2}.card h3{margin:0;font-size:15px}.card p{margin:4px 0;font-size:13px;color:var(--muted)}.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--chip)}.mini{display:inline-block;margin:6px 6px 0 0;font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:12px;border:1px solid var(--brown);background:#fff;color:var(--brown);text-decoration:none;cursor:pointer}.mini.g{background:var(--green);border-color:var(--green);color:#fff}.sw{display:flex;gap:10px;align-items:center;background:var(--chip);padding:12px 14px;border-radius:14px;margin:6px 0 12px;font-weight:600}</style>
+</head>
+<body>
+<div class="topbar"><a href="index.html">🛍️ KALENSARI STORE • ← Kembali ke toko</a></div>
+<main class="wrap">
+<div id="warn" class="warn" hidden>⚠️ Database online belum aktif. Data hanya tersimpan di browser ini (mode uji coba).</div>
+  <div id="dash" hidden>
+  
+  <section class="box"><h2 id="dHalo" style="font-size:22px"></h2>
+    <p class="hint" style="margin:0 0 12px">Lengkapi data Anda di bawah ini.</p>
+    <label>Nama<input id="f_nama" class="fld" maxlength="60"></label>
+    <label>Alamat lengkap<textarea id="f_alamat" class="fld" placeholder="mis. RT 02 RW 01, rumah cat hijau"></textarea></label>
+    <label>Dusun<input id="f_dusun" class="fld" maxlength="40"></label>
+    <label>Catatan untuk kurir<input id="f_catatan" class="fld" maxlength="100" placeholder="mis. titip di warung depan"></label>
+    <label>No. WhatsApp (untuk masuk)<input id="fWa" class="fld" disabled></label>
+    <div class="btns"><button class="btn wa" id="fSimpan" type="button">💾 Simpan</button></div>
+  </section>
+  <section class="box" style="margin-top:14px"><h2>Riwayat pesanan</h2><div id="orders"></div><div class="btns"><a class="btn wa" href="index.html">🛍️ Belanja sekarang</a></div></section>
+  <section class="box" style="margin-top:14px"><h2>Keamanan akun</h2>
+    <div class="row2" style="margin-top:10px"><label>PIN lama<input id="pOld" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>PIN baru<input id="pNew" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div>
+    <div class="btns"><button class="btn" id="pSimpan" type="button">Simpan PIN baru</button><button class="btn danger" id="btnKeluar" type="button">Keluar</button></div></section>
+  </div>
+</main>
+<div class="toast" id="toast"></div>
+<script src="config.js" onerror="void 0"></script>
+<script>
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 3200); }
+const normPhone = v => String(v||"").replace(/\D/g,"").replace(/^0/,"62");
+const okPin = v => /^\d{4,8}$/.test(v);
+const fmtRp = n => "Rp" + Number(n||0).toLocaleString("id-ID");
+const ROLE = "pembeli", SESS = "kalensari_" + ROLE + "_sess";
+const cloudOn = () => typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG && CLOUD_CONFIG.enabled && CLOUD_CONFIG.supabaseUrl && CLOUD_CONFIG.supabaseAnonKey;
+async function cf(path, opt={}){
+  const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
+  const r = await fetch(base + "/rest/v1/" + path, {...opt, headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json", ...(opt.headers||{})}});
+  const t = await r.text(); if(!r.ok) throw new Error(t || r.status);
+  return t ? JSON.parse(t) : [];
+}
+const LSget = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; }catch(e){ return d; } };
+const LSset = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+async function getSetting(key, def){
+  if(cloudOn()){
+    try{ const r = await cf(`store_settings?select=value&key=eq.${key}`); if(r[0] && r[0].value != null){ LSset("kalensari_"+key, r[0].value); return r[0].value; } return def; }
+    catch(e){ console.error(e); throw new Error("Tidak bisa terhubung ke database. Coba lagi."); }
+  }
+  return LSget("kalensari_"+key, def);
+}
+async function setSetting(key, value){
+  LSset("kalensari_"+key, value);
+  if(!cloudOn()) return true;
+  await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key, value}])});
+  return true;
+}
+async function upsertMember(entry){
+  let list = await getSetting(ROLE + "_members", []); if(!Array.isArray(list)) list = [];
+  const k = list.findIndex(x => x.id === entry.id);
+  if(k >= 0) list[k] = entry; else list.push(entry);
+  await setSetting(ROLE + "_members", list);
+}
+async function hashPin(wa, pin){
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("kalensari-" + ROLE + ":" + wa + ":" + pin));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,"0")).join("");
+}
+
+const FIELDS = ["nama","alamat","dusun","catatan"];
+let me = null, WA = sessionStorage.getItem(SESS);
+function keluar(){ sessionStorage.removeItem(SESS); location.href = "akun-" + ROLE + ".html"; }
+$("btnKeluar").onclick = keluar;
+const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan"};
+function itemsText(o){
+  let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } }
+  return (Array.isArray(it) ? it : []).map(i => esc(i.name || i.nama || "Item") + " ×" + (i.qty || 1)).join(", ") || "-";
+}
+async function fetchOrders(q){
+  if(!cloudOn()) throw new Error("Pesanan hanya tampil bila database online aktif.");
+  return await cf("orders?select=*&" + q + "&order=created_at.desc&limit=50");
+}
+async function load(){
+  const acc = (await getSetting(ROLE + "_accounts", {})) || {}, a = acc[WA];
+  if(!a){ toast("Akun tidak ditemukan"); return setTimeout(keluar, 1200); }
+  const list = await getSetting(ROLE + "_members", []);
+  me = (Array.isArray(list) ? list : []).find(x => x.id === a.id) || {id:a.id, wa:WA, nama:"", pending:false};
+  $("dHalo").textContent = "Halo, " + (me.nama || "selamat datang") + " 👋";
+  FIELDS.forEach(k => { $("f_" + k).value = me[k] || ""; });
+  $("fWa").value = "+" + WA;
+  
+  $("dash").hidden = false;
+}
+$("fSimpan").onclick = async () => {
+  if(!$("f_nama").value.trim()) return toast("Nama wajib diisi");
+  FIELDS.forEach(k => { me[k] = $("f_" + k).value.trim(); });
+  
+  me.updated = Date.now();
+  try{ await upsertMember(me); $("dHalo").textContent = "Halo, " + me.nama + " 👋"; toast("Data berhasil disimpan"); }
+  catch(e){ toast(e.message || "Gagal menyimpan"); }
+};
+$("pSimpan").onclick = async () => {
+  const o = $("pOld").value, n = $("pNew").value;
+  if(!okPin(n)) return toast("PIN baru harus 4–8 angka");
+  try{
+    const acc = (await getSetting(ROLE + "_accounts", {})) || {};
+    if(!acc[WA] || acc[WA].h !== await hashPin(WA, o)) return toast("PIN lama salah");
+    acc[WA].h = await hashPin(WA, n); await setSetting(ROLE + "_accounts", acc);
+    $("pOld").value = $("pNew").value = ""; toast("PIN berhasil diganti");
+  }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
+};
+
+async function loadOrders(){
+  const box = $("orders"); box.innerHTML = '<p class="hint">Memuat...</p>';
+  try{
+    const a = await fetchOrders("customer_phone_normalized=eq." + WA), b = await fetchOrders("customer_phone=eq.0" + WA.slice(2)).catch(() => []);
+    const rows = [...new Map([...a, ...b].map(o => [o.order_code || o.id, o])).values()].sort((x, y) => new Date(y.created_at||0) - new Date(x.created_at||0));
+    box.innerHTML = rows.length ? rows.map(o => `<div class="card"><h3>${esc(o.order_code || "Pesanan")} <span class="chip">${esc(SL[o.status] || o.status || "Menunggu")}</span></h3><p>${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p></div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
+  }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
+}
+
+(async () => {
+  $("warn").hidden = cloudOn();
+  if(!WA) return location.replace("akun-" + ROLE + ".html");
+  try{ await load(); loadOrders(); }catch(e){ toast(e.message || "Gagal memuat data"); }
+})();
+
+</script>
+</body>
+</html>
