@@ -34,11 +34,28 @@ textarea.fld{min-height:90px;resize:vertical}
 .ico{width:110px;height:110px;border-radius:24px;background:var(--chip);display:grid;place-items:center;font-size:54px;overflow:hidden;margin:4px 0 10px}
 .ico img{width:100%;height:100%;object-fit:cover;display:block}
 .status{border-radius:14px;padding:10px 14px;margin-bottom:14px;font-weight:600;font-size:14px}
-.status.p{background:#fff3cd;color:#5a4300}.status.ok{background:#dff3e6;color:#14502c}.status.h{background:#f6dcd7;color:#7a2418}
+.status.p{background:#ffe930;color:#3a2a00;border:2px solid #f2c900}.status.ok{background:#dff3e6;color:#14502c}.status.h{background:#f6dcd7;color:#7a2418}
 h2{margin:0 0 4px;color:var(--brown)}
 hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
+.rehat{display:flex;gap:12px;align-items:flex-start;background:var(--chip);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:16px;cursor:pointer}
+.rehat input{width:22px;height:22px;margin-top:2px;flex:none;accent-color:var(--red)}
+.rehat small{display:block;font-weight:400;color:var(--muted);margin-top:2px}
+h3.ph{margin:0 0 4px;font-size:16px;color:var(--brown)}
+.pc{background:#fff;border:1px solid var(--line);border-radius:24px;padding:16px;margin:8px 0 4px;box-shadow:0 6px 18px -12px rgba(58,31,16,.5)}
+.prow{display:flex;gap:14px}
+.pico{flex:none;width:68px;height:68px;border-radius:18px;background:var(--chip);display:grid;place-items:center;font-size:36px;overflow:hidden}
+.pico img{width:100%;height:100%;object-fit:cover;display:block}
+.pinfo{min-width:0}.pname{font-size:19px;font-weight:700;margin:0}.pdesc{color:var(--muted);font-size:15px;margin:2px 0 6px}
+.pmeta{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;color:var(--muted);font-size:14px}
+.pbadge{color:#fff;font-weight:700;font-size:14px;padding:2px 12px;border-radius:999px}
+.pbadge.buka{background:var(--green)}.pbadge.tutup{background:var(--red)}
+.pprice{font-weight:700;margin-top:6px;font-size:15px}
+.pnote{margin:8px 0 0;font-size:13px;font-weight:700;color:var(--red)}
+.pbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.pb{text-align:center;font-weight:700;padding:12px 6px;border-radius:14px;border:1px solid var(--brown);color:var(--brown);background:#fff}
+.pb.wa{background:var(--green);border-color:var(--green);color:#fff}.pb.off{background:#93c6a8;border-color:#93c6a8;color:#fff}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -73,6 +90,11 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
     <div id="stat" class="status"></div>
     <h2 id="dHalo"></h2>
     <p class="hint" style="margin:0 0 14px">Isi data selengkap mungkin supaya pelanggan mudah menghubungi Anda.</p>
+    <label class="rehat"><input type="checkbox" id="fRehat"><span><b>⏸️ Tutup sementara</b><small>Nyalakan jika Anda tidak bisa melayani (misalnya sakit atau keluar kota). Pelanggan melihat "Sedang tutup" sampai Anda mematikannya. Berlaku langsung.</small></span></label>
+    <h3 class="ph">👀 Pratinjau kartu Anda</h3>
+    <p class="hint" style="margin:0">Begini tampilan Anda di halaman Penyedia Jasa. Berubah langsung saat Anda mengisi form di bawah.</p>
+    <div id="preview"></div>
+    <hr>
     <div class="ico" id="fPrev"></div>
     <input id="fFile" type="file" accept="image/*" hidden>
     <div class="row2" style="margin-bottom:12px"><button class="btn" type="button" id="fPilih">📷 Pilih foto</button><button class="btn danger" type="button" id="fHapusFoto">Hapus foto</button></div>
@@ -131,8 +153,10 @@ async function setSetting(key, value){
 async function upsertMember(entry){
   let list = await getSetting("jasa_members", []); if(!Array.isArray(list)) list = [];
   const k = list.findIndex(x => x.id === entry.id);
-  if(k >= 0) list[k] = entry; else list.push(entry);
+  if(k >= 0){ entry = {...entry, status:list[k].status, pending:list[k].pending, rating:list[k].rating}; list[k] = entry; } // status, persetujuan & rating hanya diubah admin
+  else list.push(entry);
   await setSetting("jasa_members", list);
+  return entry;
 }
 
 // ====== PIN ======
@@ -200,6 +224,30 @@ $("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
 
 // ====== DASBOR ======
 let foto = "";
+const jam = t => String(t || "").replace(":", ".");
+function nowWIB(){
+  const p = new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Jakarta",hour:"2-digit",minute:"2-digit",hour12:false,weekday:"short"}).formatToParts(new Date());
+  const g = t => p.find(x => x.type === t).value;
+  return {day:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(g("weekday")), min:(+g("hour")%24)*60 + +g("minute")};
+}
+function isOpenNow(j){
+  if(j.rehat) return false;
+  const n = nowWIB(); if((j.libur||[]).includes(n.day)) return false;
+  return n.min >= toMin(j.buka) && n.min < toMin(j.tutup);
+}
+function renderPreview(){
+  if(!me) return;
+  const j = {nama:$("fNama").value.trim() || "Nama Anda", ket:$("fKet").value.trim() || "Deskripsi singkat jasa Anda",
+    buka:$("fBuka").value || "08:00", tutup:$("fTutup").value || "17:00",
+    libur:[...document.querySelectorAll('input[name="lb"]:checked')].map(x => +x.value), rehat:$("fRehat").checked,
+    dusun:$("fDusun").value.trim(), harga:$("fHarga").value.trim() || "Harga belum diisi", rating:me.rating};
+  const open = isOpenNow(j);
+  $("preview").innerHTML = `<article class="pc"><div class="prow"><div class="pico">${foto ? `<img src="${esc(foto)}" alt="">` : "🛠️"}</div>
+    <div class="pinfo"><h3 class="pname">${esc(j.nama)}</h3><p class="pdesc">${esc(j.ket)}</p>
+    <div class="pmeta"><span class="pbadge ${open?"buka":"tutup"}">${open?"Buka":"Tutup"}</span><span>🕒 ${jam(j.buka)}–${jam(j.tutup)}</span>${j.dusun ? `<span>📍 ${esc(j.dusun)}</span>` : ""}${+j.rating > 0 ? `<span>⭐ ${String(j.rating).replace(".",",")}</span>` : ""}</div>
+    <div class="pprice">${esc(j.harga)}</div>${j.rehat ? `<p class="pnote">⏸️ Sedang tutup sementara</p>` : ""}</div></div>
+    <div class="pbtns"><span class="pb">Lihat detail</span>${open ? `<span class="pb wa">Chat WhatsApp</span>` : `<span class="pb off">Sedang tutup</span>`}</div></article>`;
+}
 async function openDash(wa){
   const acc = (await getSetting("jasa_accounts", {})) || {};
   const a = acc[wa]; if(!a){ sessionStorage.removeItem("kalensari_jasa_sess"); return; }
@@ -209,21 +257,26 @@ async function openDash(wa){
   me.wa = wa; foto = me.foto || "";
   $("auth").hidden = true; $("dash").hidden = false;
   $("dHalo").textContent = "Halo, " + me.nama;
-  const st = $("stat");
-  if(me.pending){ st.className = "status p"; st.textContent = "⏳ Menunggu persetujuan admin. Setelah disetujui, jasa Anda tampil di halaman Penyedia Jasa."; }
-  else if(me.status === "Hide"){ st.className = "status h"; st.textContent = "🚫 Jasa Anda sedang disembunyikan oleh admin."; }
-  else { st.className = "status ok"; st.textContent = "✅ Jasa Anda tampil di halaman Penyedia Jasa."; }
+  renderStat();
   $("fNama").value = me.nama; fillKat($("fKat"), me.kategori); $("fKet").value = me.ket || "";
   $("fBuka").value = me.buka || "08:00"; $("fTutup").value = me.tutup || "17:00";
   $("fDusun").value = me.dusun || ""; $("fHarga").value = me.harga || ""; $("fWa").value = "+" + wa;
   $("fLay").value = (me.layanan || []).join("\n");
   $("fLibur").innerHTML = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"].map((h,d) => `<label><input type="checkbox" name="lb" value="${d}"${(me.libur||[]).includes(d)?" checked":""}>${h}</label>`).join("");
+  $("fRehat").checked = !!me.rehat;
   prev();
+}
+function renderStat(){
+  const st = $("stat");
+  if(me.pending){ st.className = "status p"; st.textContent = "⏳ Menunggu persetujuan admin. Setelah disetujui, jasa Anda tampil di halaman Penyedia Jasa."; }
+  else if(me.status === "Hide"){ st.className = "status h"; st.textContent = "🚫 Jasa Anda sedang disembunyikan oleh admin."; }
+  else { st.className = "status ok"; st.textContent = "✅ Jasa Anda tampil di halaman Penyedia Jasa."; }
 }
 function prev(){
   $("fPrev").innerHTML = foto ? `<img src="${esc(foto)}" alt="">` : "🛠️";
   $("fHapusFoto").style.visibility = foto ? "visible" : "hidden";
   $("fPilih").textContent = foto ? "📷 Ganti foto" : "📷 Pilih foto";
+  renderPreview();
 }
 function resizeImg(file, max=480){
   return new Promise((ok, no) => {
@@ -250,11 +303,19 @@ $("fSimpan").onclick = async () => {
     dusun:$("fDusun").value.trim(), harga:$("fHarga").value.trim(),
     layanan:$("fLay").value.split("\n").map(x => x.trim()).filter(Boolean), foto, updated:Date.now()};
   $("fSimpan").disabled = true;
-  try{ await upsertMember(data); me = data; $("dHalo").textContent = "Halo, " + me.nama; toast("Perubahan disimpan"); }
+  try{ me = {...(await upsertMember(data)), wa:me.wa}; $("dHalo").textContent = "Halo, " + me.nama; renderStat(); toast("Perubahan disimpan"); }
   catch(e){ toast(e.message || "Gagal menyimpan"); }
   finally{ $("fSimpan").disabled = false; }
 };
 
+$("dash").addEventListener("input", renderPreview);
+$("dash").addEventListener("change", renderPreview);
+$("fRehat").addEventListener("change", async () => {
+  const v = $("fRehat").checked;
+  try{ me = {...(await upsertMember({...me, rehat:v, updated:Date.now()})), wa:me.wa}; renderStat(); toast(v ? "Jasa ditandai tutup sementara" : "Jasa kembali buka sesuai jadwal"); }
+  catch(e){ $("fRehat").checked = !v; toast(e.message || "Gagal menyimpan"); }
+  renderPreview();
+});
 $("pSimpan").onclick = async () => {
   const o = $("pOld").value, n = $("pNew").value;
   if(!okPin(n)) return toast("PIN baru harus 4–8 angka");

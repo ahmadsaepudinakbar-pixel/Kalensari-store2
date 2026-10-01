@@ -164,6 +164,7 @@ function nowWIB(){
   return {day:["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(g("weekday")), min:(+g("hour")%24)*60 + +g("minute")};
 }
 function isOpen(j){
+  if (j.rehat) return false; // penyedia menandai "tutup sementara"
   const n = nowWIB();
   if ((j.libur||[]).includes(n.day)) return false;
   return n.min >= toMin(j.buka) && n.min < toMin(j.tutup);
@@ -209,6 +210,7 @@ function detail(i){
     ${j.foto ? `<img class="dimg" src="${esc(j.foto)}" alt="${esc(j.nama)}">` : `<div class="ico" style="margin-bottom:10px">${ikon(j.kategori)}</div>`}
     <h2>${esc(j.nama)}</h2><p class="desc">${esc(j.ket)}</p>
     <div class="meta"><span class="badge ${open?"buka":"tutup"}">${open?"Buka":"Tutup"}</span>${ratingHTML(j)}${j.kategori?`<span>${esc(j.kategori)}</span>`:""}</div>
+    ${j.rehat?`<p class="tagh" style="margin:8px 0 0">⏸️ Penyedia sedang tutup sementara</p>`:""}
     <p>🕒 <b>${jam(j.buka)}–${jam(j.tutup)}</b> WIB${(j.libur||[]).length?` • Libur: ${j.libur.map(d=>hari[d]).join(", ")}`:""}<br>📍 ${esc(j.dusun)}<br>💰 <b>${esc(j.harga)}</b></p>
     ${(j.layanan||[]).length?`<b>Layanan:</b><ul>${j.layanan.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`:""}
     <div class="btns" style="grid-template-columns:1fr">${open ? `<a class="btn wa" href="${waUrl(j)}" target="_blank" rel="noopener">Chat WhatsApp</a>` : `<span class="btn off">Sedang tutup</span>`}
