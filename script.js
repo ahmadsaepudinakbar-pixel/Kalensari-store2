@@ -1055,3 +1055,30 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
     if(e.key==="Enter"&&["pinOld","pinNew","pinNew2"].includes(e.target.id)){e.preventDefault();panel.querySelector('[data-act="savepin"]').click();}
     if(e.key==="Enter"&&e.target.id==="waInput"){e.preventDefault();panel.querySelector('[data-act="savewa"]').click();}});
 })();
+
+// ===== MUSIK LATAR (otomatis diputar, ada tombol hidup/mati di pojok kanan bawah banner) =====
+// Browser (Chrome/Safari) melarang suara otomatis sebelum pengunjung menyentuh halaman, jadi musik
+// dicoba diputar saat halaman dibuka dan otomatis mulai pada ketukan/klik/tombol keyboard pertama.
+(function(){
+  const a=document.getElementById("bgMusic"),b=document.getElementById("musicBtn");if(!a||!b)return;
+  a.volume=0.5;
+  const KEY="kalensari_music_off";
+  let off=false;try{off=localStorage.getItem(KEY)==="1";}catch{}
+  const save=()=>{try{off?localStorage.setItem(KEY,"1"):localStorage.removeItem(KEY);}catch{}};
+  const sync=()=>{const on=!a.paused;b.textContent=on?"🔊":"🔇";b.setAttribute("aria-pressed",String(on));
+    b.setAttribute("aria-label",on?"Matikan musik":"Hidupkan musik");b.title=on?"Matikan musik":"Hidupkan musik";
+    b.classList.toggle("wait",!on&&!off);};
+  const start=()=>a.play().then(sync).catch(sync);
+  const EV=["pointerdown","touchend","keydown","click"];
+  const unlock=e=>{if(off||(e.target&&e.target.closest&&e.target.closest("#musicBtn")))return;
+    a.play().then(()=>{sync();EV.forEach(v=>removeEventListener(v,unlock,true));}).catch(()=>{});};
+  b.addEventListener("click",()=>{
+    if(a.paused){off=false;save();start();}else{a.pause();off=true;save();sync();}
+    EV.forEach(v=>removeEventListener(v,unlock,true));});
+  a.addEventListener("play",sync);a.addEventListener("pause",sync);
+  let resume=false;
+  document.addEventListener("visibilitychange",()=>{ // hemat baterai: jeda saat tab disembunyikan
+    if(document.hidden){resume=!a.paused;if(resume)a.pause();}else if(resume&&!off){a.play().catch(()=>{});resume=false;}});
+  sync();
+  if(!off){start();EV.forEach(v=>addEventListener(v,unlock,true));}
+})();
