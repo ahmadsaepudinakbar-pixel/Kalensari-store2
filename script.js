@@ -502,7 +502,7 @@ function setupCheckoutMaps(){
   getBtn.onclick=()=>{
     if(!navigator.geolocation){status.textContent="Browser tidak mendukung lokasi.";return;}
     status.textContent="📍 Mengambil lokasi...";
-    navigator.geolocation.getCurrentPosition(pos=>{latEl.value=pos.coords.latitude.toFixed(6);lngEl.value=pos.coords.longitude.toFixed(6);update();},err=>{status.textContent=err.code===1?"Izin lokasi ditolak.":"Lokasi tidak bisa diperoleh.";},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+    navigator.geolocation.getCurrentPosition(pos=>{latEl.value=pos.coords.latitude.toFixed(6);lngEl.value=pos.coords.longitude.toFixed(6);update();},err=>{status.textContent=err.code===1?"Izin lokasi diblokir. Klik ikon gembok di alamat → Lokasi → Izinkan. Atau lewati saja, tulis alamat lengkap.":"Lokasi tidak bisa diperoleh. Tulis alamat lengkap saja.";},{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
   };
   const saved=JSON.parse(localStorage.getItem("kalensari_checkout_location")||"null");
   if(saved&&Number.isFinite(Number(saved.lat))&&Number.isFinite(Number(saved.lng))&&!(Number(saved.lat)===0&&Number(saved.lng)===0)){latEl.value=saved.lat;lngEl.value=saved.lng;update();}

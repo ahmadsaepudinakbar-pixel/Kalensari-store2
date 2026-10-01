@@ -55,7 +55,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
     <label>Alamat lengkap<textarea id="f_alamat" class="fld" placeholder="mis. RT 02 RW 01, rumah cat hijau"></textarea></label>
     <label>Dusun<input id="f_dusun" class="fld" maxlength="40"></label>
     <label>Catatan untuk kurir<input id="f_catatan" class="fld" maxlength="100" placeholder="mis. titip di warung depan"></label>
-    <div class="loc-box"><b>📍 Lokasi pengantaran</b><p class="hint" style="margin:4px 0 8px">Simpan lokasi agar kurir bisa langsung membuka Google Maps.</p><div id="locStatus" class="loc-status">Belum ada lokasi tersimpan.</div><div class="btns"><button class="btn" id="btnLokasi" type="button">📍 Gunakan lokasi saya</button><button class="btn" id="btnMap" type="button" hidden>🗺️ Buka lokasi di Google Maps</button></div></div>
+    <div class="loc-box"><b>📍 Lokasi pengantaran</b><p class="hint" style="margin:4px 0 8px">Simpan lokasi agar kurir bisa langsung membuka Google Maps.</p><div id="locStatus" class="loc-status">Belum ada lokasi tersimpan.</div><div class="btns"><button class="btn" id="btnLokasi" type="button">📍 Gunakan lokasi saya</button><button class="btn" id="btnMap" type="button" hidden>🗺️ Lihat di Google Maps</button></div><label style="margin-top:12px">Atau tempel koordinat / link Google Maps<input id="fManual" class="fld" placeholder="mis. -6.123456, 107.123456"></label><div class="btns"><button class="btn" id="btnManual" type="button">💾 Simpan dari koordinat</button></div></div>
     <label>No. WhatsApp (untuk masuk)<input id="fWa" class="fld" disabled></label>
     <div class="btns"><button class="btn wa" id="fSimpan" type="button">💾 Simpan</button></div>
   </section>
@@ -112,20 +112,29 @@ async function hashPin(wa, pin){
 const FIELDS = ["nama","alamat","dusun","catatan"];
 let me = null, WA = sessionStorage.getItem(SESS);
 function mapsSearchUrl(lat,lng){ return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`; }
+function validCoord(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180&&!(lat===0&&lng===0)}
+function parseCoord(v){const t=String(v==null?"":v).trim().replace(",",".");return t===""?NaN:Number(t)}
+function parseLatLng(t){t=String(t||"").trim();if(!t)return null;const m=t.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)||t.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)||t.match(/[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i)||t.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/);return m?[Number(String(m[1]).replace(",",".")),Number(String(m[2]).replace(",","."))]:null}
 function updateLocationUI(){
   const box=$("locStatus"), btn=$("btnMap"); if(!box||!btn)return;
-  const lat=Number(me?.latitude), lng=Number(me?.longitude);
-  if(Number.isFinite(lat)&&Number.isFinite(lng)){ box.textContent=`Lokasi tersimpan: ${lat.toFixed(6)}, ${lng.toFixed(6)}`; btn.hidden=false; btn.onclick=()=>window.open(mapsSearchUrl(lat,lng),"_blank","noopener"); }
+  const lat=parseCoord(me?.latitude), lng=parseCoord(me?.longitude);
+  if(validCoord(lat,lng)){ box.textContent="✅ Lokasi pengantaran sudah tersimpan."; btn.hidden=false; btn.onclick=()=>window.open(mapsSearchUrl(lat,lng),"_blank","noopener"); }
   else { box.textContent="Belum ada lokasi tersimpan."; btn.hidden=true; }
 }
+async function saveLoc(lat,lng){
+  if(!validCoord(lat,lng)) return toast("Koordinat tidak valid (tidak boleh kosong atau 0,0).");
+  if(!(lat>=-11.5&&lat<=6.5&&lng>=94&&lng<=141.5)) return toast("Titik di luar Indonesia. Cek apakah latitude dan longitude tertukar.");
+  me.latitude=Number(lat.toFixed(6)); me.longitude=Number(lng.toFixed(6)); updateLocationUI();
+  try{ await upsertMember(me); toast("✅ Lokasi berhasil disimpan"); }catch(e){ toast(e.message||"Lokasi tersimpan di perangkat"); }
+}
 $("btnLokasi").onclick=()=>{
-  if(!navigator.geolocation) return toast("Browser tidak mendukung lokasi.");
+  if(!navigator.geolocation) return toast("Browser tidak mendukung lokasi. Isi manual di bawah.");
   toast("📍 Meminta izin lokasi...");
-  navigator.geolocation.getCurrentPosition(async pos=>{
-    me.latitude=Number(pos.coords.latitude.toFixed(6)); me.longitude=Number(pos.coords.longitude.toFixed(6)); updateLocationUI();
-    try{ await upsertMember(me); toast("✅ Lokasi berhasil disimpan"); }catch(e){ toast(e.message||"Lokasi tersimpan di perangkat"); }
-  }, err=>toast(err.code===1?"Izin lokasi ditolak.":"Lokasi tidak bisa diperoleh."), {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+  navigator.geolocation.getCurrentPosition(pos=>saveLoc(pos.coords.latitude,pos.coords.longitude),
+    err=>toast(err.code===1?"Izin lokasi diblokir. Klik ikon gembok → Lokasi → Izinkan, atau isi manual di bawah.":err.code===3?"Waktu habis. Coba lagi atau isi manual di bawah.":"Lokasi tidak tersedia. Isi manual di bawah."),
+    {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
 };
+$("btnManual").onclick=()=>{const v=parseLatLng($("fManual").value);if(!v)return toast("Format tidak dikenali. Contoh: -6.123456, 107.123456");saveLoc(v[0],v[1]).then(()=>{$("fManual").value=""})};
 function keluar(){ sessionStorage.removeItem(SESS); location.href = "akun-" + ROLE + ".html"; }
 $("btnKeluar").onclick = keluar;
 const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan"};
