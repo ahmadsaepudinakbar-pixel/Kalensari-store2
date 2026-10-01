@@ -95,6 +95,13 @@ async function saveCloudOrder(payload){
     cloudReady=true; return {ok:true,data:Array.isArray(data)?data[0]:data};
   } catch(e){ console.error("Supabase orders gagal:",e); return {ok:false,error:String(e.message||e)}; }
 }
+async function saveCloudOrders(list){
+  if(!CLOUD_CONFIG?.enabled) return {ok:false,error:"Database online belum aktif."};
+  try {
+    const data=await cloudFetch("orders",{method:"POST",body:JSON.stringify(list)});
+    cloudReady=true; return {ok:true,data:Array.isArray(data)?data:[data]};
+  } catch(e){ console.error("Supabase orders gagal:",e); return {ok:false,error:String(e.message||e)}; }
+}
 async function loadCloudOrders(){
   if(!CLOUD_CONFIG?.enabled) return [];
   return await cloudFetch("orders?select=*&order=created_at.desc&limit=100");
@@ -623,31 +630,38 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const mapToken=hasMap?`__KS_MAP__${mapLat.toFixed(6)},${mapLng.toFixed(6)}__END__`:"";
   const orderNote=[userNote,mapToken].filter(Boolean).join(" ");
   if(hasMap) localStorage.setItem("kalensari_checkout_location",JSON.stringify({lat:mapLat,lng:mapLng}));
-  const detail=items.map(p=>`- ${p.name} (Toko: ${p.seller}) x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n");
+  // ===== NOTA PER TOKO: satu nota (pesanan) terpisah untuk setiap toko di keranjang =====
+  const groups=new Map();
+  items.forEach(p=>{const k=sellerKey(p.seller);if(!groups.has(k))groups.set(k,{name:String(p.seller||"Toko").trim(),items:[]});groups.get(k).items.push(p);});
+  const notas=[...groups.values()].map((g,i,arr)=>{
+    const sub=g.items.reduce((t,p)=>t+currentPrice(p)*p.qty,0), ship=shippingFeeFor(g.name);
+    return {seller:g.name,code:arr.length>1?`${orderCode}-${String.fromCharCode(65+i)}`:orderCode,items:g.items,sub,ship,total:sub+ship};
+  });
   const mapText=hasMap?`\nLokasi Maps: ${ksMapsSearch(`${mapLat},${mapLng}`)}`:"";
-  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${detail}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${rupiah(shipping)}${ships.length?"\n"+ships.map(x=>`  • ${x.name}: ${rupiah(x.fee)}`).join("\n")+"\n  (ongkir dihitung per toko)":""}\nTOTAL: ${rupiah(total)}\n\nNama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
-  const payload={order_code:orderCode,created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu"};
+  const notaText=notas.map((n,i)=>`${notas.length>1?`NOTA ${i+1} dari ${notas.length}`:"NOTA"} • Toko ${n.seller}\nKode: ${n.code}\n${n.items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n")}\nSubtotal: ${rupiah(n.sub)}\nOngkir: ${n.ship>0?rupiah(n.ship):"Gratis"}\nTotal toko: ${rupiah(n.total)}`).join("\n\n");
+  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${notaText}\n\nTOTAL BAYAR: ${rupiah(total)}${notas.length>1?"\n(ongkir dihitung per toko)":""}\n\nNama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
+  const payloads=notas.map(n=>({order_code:n.code,created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items:n.items,subtotal:n.sub,shipping:n.ship,total:n.total,status:"menunggu"}));
 
-  // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi pesanan.
-  const local=getLocalOrders(); local.unshift({...payload,id:`local-${Date.now()}`}); saveLocalOrders(local);
+  // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi semua nota.
+  const local=getLocalOrders(); payloads.forEach((pl,i)=>local.unshift({...pl,id:`local-${Date.now()}-${i}`})); saveLocalOrders(local);
   localStorage.setItem("kalensari_customer_phone",phone);
 
-  const result=await saveCloudOrder(payload);
+  const result=await saveCloudOrders(payloads);
   if(!result.ok){
-    // Pesanan tetap ada di Pesanan Saya, tetapi diberi tanda belum tersinkron.
-    const rows=getLocalOrders().map(o=>o.order_code===orderCode?{...o,sync_error:result.error}:o); saveLocalOrders(rows);
+    const codes=payloads.map(x=>x.order_code);
+    const rows=getLocalOrders().map(o=>codes.includes(o.order_code)?{...o,sync_error:result.error}:o); saveLocalOrders(rows);
     renderMyOrders();
     alert(`Pesanan tersimpan di perangkat, tetapi BELUM masuk database online.\n\nDetail: ${result.error}\n\nJalankan supabase.sql lalu pastikan RLS orders mengizinkan INSERT.`);
     showToast("⚠️ Pesanan tersimpan lokal; database gagal.");
     return;
   }
   // Ganti salinan lokal dengan data server jika tersedia.
-  const saved=result.data||payload;
-  const merged=getLocalOrders().map(o=>o.order_code===orderCode?{...o,...saved,sync_error:null}:o); saveLocalOrders(merged);
+  const savedMap=new Map((result.data||[]).filter(Boolean).map(r=>[r.order_code,r]));
+  const merged=getLocalOrders().map(o=>savedMap.has(o.order_code)?{...o,...savedMap.get(o.order_code),sync_error:null}:o); saveLocalOrders(merged);
   renderMyOrders();
   window.open(waLink(msg),"_blank");
   cart=[];saveCart();updateCartCount();renderCart();closeModal("checkoutModal");
-  showToast("✅ Pesanan tersimpan dan dikirim."); e.target.reset();
+  showToast(notas.length>1?`✅ ${notas.length} nota (per toko) tersimpan dan dikirim.`:"✅ Pesanan tersimpan dan dikirim."); e.target.reset();
 });
 
 document.getElementById("year").textContent=new Date().getFullYear();
