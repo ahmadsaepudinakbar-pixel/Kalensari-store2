@@ -493,7 +493,8 @@ function ksMapsNavigate(q){ return `https://www.google.com/maps/dir/?api=1&desti
 let checkoutBuyer=null, gpsLat="", gpsLng="";
 const phoneShow=wa=>String(wa||"").replace(/^62/,"0");
 async function loadBuyer(){
-  const wa=sessionStorage.getItem("kalensari_pembeli_sess"); if(!wa) return null;
+  let wa=null; try{ const v=JSON.parse(localStorage.getItem("kalensari_pembeli_login")||"null"); if(v&&v.wa&&v.exp>Date.now()) wa=v.wa; }catch(e){}
+  if(!wa) wa=sessionStorage.getItem("kalensari_pembeli_sess"); if(!wa) return null;
   const get=async key=>{
     if(CLOUD_CONFIG?.enabled){ try{ const r=await cloudFetch(`store_settings?select=value&key=eq.${key}`); if(r[0]&&r[0].value!=null) return r[0].value; }catch(e){} }
     return readLS("kalensari_"+key,null);
