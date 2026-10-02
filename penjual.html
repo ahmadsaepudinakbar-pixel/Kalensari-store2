@@ -30,7 +30,7 @@
 <div class="topbar"><a href="index.html">🛍️ KALENSARI STORE • ← Kembali ke toko</a></div>
 <main class="wrap">
 <section class="hero"><span class="tag">🏪 KALENSARI STORE • AKUN PENJUAL</span><h1>Kelola toko Anda</h1><p>Daftar atau masuk sebagai penjual untuk mengelola data toko dan menunggu persetujuan admin.</p></section>
-<div id="warn" class="warn" hidden>⚠️ Database online belum aktif. Akun hanya tersimpan di browser ini (mode uji coba).</div>
+<a href="penjual-app.html" class="btn wa" style="margin-bottom:14px">📱 Buka Aplikasi Penjual (produk & pesanan)</a><div id="warn" class="warn" hidden>⚠️ Database online belum aktif. Akun hanya tersimpan di browser ini (mode uji coba).</div>
 <section id="auth" class="box">
 <div class="tabs"><button class="tab on" id="tabMasuk" type="button">Masuk</button><button class="tab" id="tabDaftar" type="button">Daftar</button></div>
 <div id="fMasuk"><label>No. WhatsApp<input id="lWa" class="fld" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx" autocomplete="username"></label><label>PIN<input id="lPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="current-password"></label><div class="btns"><button class="btn wa" id="btnMasuk" type="button">Masuk</button></div></div>
@@ -93,27 +93,21 @@ function notify(t,b){if(!("Notification" in window)||Notification.permission!=="
   const fb=()=>{try{new Notification(t,opt)}catch(e){}};
   if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(r=>r?r.showNotification(t,opt):fb()).catch(fb);else fb()}
 async function fetchMyOrders(){
-  const rows=cloudOn()?await cf("orders?select=*&order=created_at.desc&limit=200"):LSget("kalensari_orders",[]);
+  const rows=cloudOn()?await cf("orders?select=id,order_code,created_at,items,status,total,shipping,payment&order=created_at.desc&limit=200"):LSget("kalensari_orders",[]);
   const k=myKey();if(!k)return[];
   return (Array.isArray(rows)?rows:[]).filter(o=>Array.isArray(o.items)&&o.items.some(p=>sKey(p.seller)===k));
 }
 function ordCard(o){
   const k=myKey(),mine=o.items.filter(p=>sKey(p.seller)===k),only=mine.length===o.items.length;
   const sub=mine.reduce((t,p)=>t+(p.sale||p.price||0)*p.qty,0),ship=only?Number(o.shipping||0):0,total=only?Number(o.total||sub):sub;
-  const st=o.status==="baru"||!o.status?"menunggu":o.status,note=String(o.note||"").replace(/__KS_MAP__.*?__END__/g,"").trim();
-  const mm=String(o.note||"").match(/__KS_MAP__(-?[\d.]+),(-?[\d.]+)__END__/),wa=normPhone(o.customer_phone||"");
-  const msg=`Halo ${o.customer_name||""}, pesanan ${o.order_code||""} dari ${me.toko||me.usaha} sedang kami proses. Terima kasih 🙏`;
+  const st=o.status==="baru"||!o.status?"menunggu":o.status;
   const id=escH(String(o.id));
   return `<div class="ord${ordNew.has(o.order_code)?" new":""}"><h3>${escH(o.order_code||"Pesanan")}<span class="st ${escH(st)}">${escH(STL[st]||st)}</span></h3>
   <p>${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</p>
-  <p><b>${escH(o.customer_name||"Pelanggan")}</b> • 📱 ${escH(o.customer_phone||"")}</p>
-  <p>📍 ${escH(o.address||"-")}</p>${note?`<p>📝 ${escH(note)}</p>`:""}
   <ul>${mine.map(p=>`<li>${escH(p.name)} ×${p.qty} — ${rp((p.sale||p.price||0)*p.qty)}</li>`).join("")}</ul>
   <div class="sum"><span>Subtotal</span><b>${rp(sub)}</b></div>${only?`<div class="sum"><span>Ongkir</span><b>${ship>0?rp(ship):"Gratis"}</b></div>`:""}
   <div class="sum t"><span>Total</span><b>${rp(total)}</b></div><p>💳 ${escH(o.payment||"-")}</p>
-  <div class="ordbtns">${only?`<select data-id="${id}" aria-label="Status pesanan">${STATS.map(s=>`<option value="${s}"${s===st?" selected":""}>${STL[s]}</option>`).join("")}</select>`:`<small>Pesanan gabungan lama: status diubah oleh admin.</small>`}
-  ${wa?`<a class="mini g" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}">💬 Hubungi pembeli</a>`:""}
-  ${mm?`<a class="mini" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${mm[1]},${mm[2]}">🗺️ Lokasi</a>`:""}</div></div>`;
+  <div class="ordbtns">${only?`<select data-id="${id}" aria-label="Status pesanan">${STATS.map(s=>`<option value="${s}"${s===st?" selected":""}>${STL[s]}</option>`).join("")}</select>`:`<small>Pesanan gabungan lama: status diubah oleh admin.</small>`}</div></div>`;
 }
 function renderOrders(){
   const list=$("ordList"),open=ordRows.filter(o=>!["selesai","dibatalkan"].includes(o.status));
@@ -132,8 +126,8 @@ async function pollOrders(){
     const kn="kalensari_penjual_known_"+WA,had=localStorage.getItem(kn)!==null,known=new Set(LSget(kn,[]));
     const fresh=ordRows.filter(o=>!known.has(o.order_code));
     if(had&&fresh.length){fresh.forEach(o=>ordNew.add(o.order_code));beep();const f=fresh[0];
-      toast(`🔔 ${fresh.length} pesanan baru${f.customer_name?" dari "+f.customer_name:""}`);
-      notify("Pesanan baru • "+(me.toko||"Toko Anda"),`${fresh.length} pesanan baru${f.customer_name?" dari "+f.customer_name:""}`)}
+      toast(`🔔 ${fresh.length} pesanan baru`);
+      notify("Pesanan baru • "+(me.toko||"Toko Anda"),`${fresh.length} pesanan baru`)}
     LSset(kn,ordRows.map(o=>o.order_code));
     $("ordInfo").textContent="Hanya pesanan untuk produk toko Anda yang tampil di sini. Dicek otomatis tiap 25 detik selama halaman dibuka. Terakhir: "+new Date().toLocaleTimeString("id-ID");
     renderOrders();
