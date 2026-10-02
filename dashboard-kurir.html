@@ -59,7 +59,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
   <div id="dash" hidden>
   <div id="stat" class="status p"></div>
   <!-- 1. Pesanan untuk diantar -->
-  <section class="box" id="ordBox" style="margin-top:0" hidden><h2>Pesanan untuk diantar</h2><p class="hint" style="margin:0">Pesanan berstatus Diproses atau Dikirim.</p><div id="orders"></div><div class="btns"><button class="btn" id="btnRefresh" type="button">🔄 Muat ulang</button></div></section>
+  <section class="box" id="ordBox" style="margin-top:0" hidden><h2>Pesanan untuk diantar</h2><p class="hint" style="margin:0">Ambil pesanan dulu agar kurir lain tidak mengantar pesanan yang sama.</p><div id="orders"></div><div class="btns"><button class="btn" id="btnRefresh" type="button">🔄 Muat ulang</button></div></section>
 
   <!-- 2. Data diri -->
   <section class="box accordion-box" style="margin-top:14px">
@@ -191,24 +191,86 @@ function mapLinks(o){
   return `<a class="mini" target="_blank" rel="noopener" href="${view}">📍 Lihat di Google Maps</a><a class="mini g" target="_blank" rel="noopener" href="${nav}">🚗 Navigasi</a>`;
 }
 
+// ===== Penguncian pesanan per kurir (disimpan di store_settings, tanpa SQL tambahan) =====
+const CLAIM_KEY = "kurir_claims";
+async function getClaims(){
+  const v = await getSetting(CLAIM_KEY, {});
+  return (v && typeof v === "object" && !Array.isArray(v)) ? v : {};
+}
+async function claimOrder(code){
+  if(me.aktif === false){ toast("Centang \"Saya siap menerima antaran\" di Data diri dulu"); return false; }
+  let c = await getClaims();
+  if(c[code] && c[code].id !== me.id){ toast("Pesanan sudah diambil kurir lain"); return false; }
+  const now = Date.now();
+  Object.keys(c).forEach(k => { if(now - ((c[k] && c[k].t) || 0) > 7*86400000) delete c[k]; });
+  c[code] = {id:me.id, nama:me.nama || "", wa:WA, t:now};
+  await setSetting(CLAIM_KEY, c);
+  c = await getClaims();
+  if(!c[code] || c[code].id !== me.id){ toast("Pesanan sudah diambil kurir lain"); return false; }
+  return true;
+}
+async function releaseOrder(code){
+  const c = await getClaims();
+  if(c[code] && c[code].id === me.id){ delete c[code]; await setSetting(CLAIM_KEY, c); }
+}
+function orderHead(o){
+  return `<h3>${esc(o.order_code)} <span class="chip">${esc(SL[o.status] || o.status)}</span></h3>`
+    + `<p>📍 ${esc(cleanMapNote(o.address || "-"))}</p><p>${itemsText(o)}</p>`
+    + `<p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>`
+    + (cleanOrderNote(o.note) ? `<p>📝 ${esc(cleanOrderNote(o.note))}</p>` : "");
+}
+function cardFree(o){
+  return `<div class="card">${orderHead(o)}<p class="hint" style="margin:6px 0 0">Nomor pembeli tampil setelah pesanan diambil.</p><button class="mini g" type="button" data-act="ambil" data-code="${esc(o.order_code)}">🛵 Ambil pesanan ini</button></div>`;
+}
+function cardMine(o){
+  const next = o.status === "diproses" ? ["dikirim","🛵 Tandai sedang dikirim"] : ["selesai","✅ Tandai selesai"];
+  const num = o.customer_phone_normalized || normPhone(o.customer_phone);
+  return `<div class="card"><h3>${esc(o.order_code)} <span class="chip">${esc(SL[o.status] || o.status)}</span></h3>`
+    + `<p><b>${esc(o.customer_name || "")}</b> • ${esc(o.customer_phone || "")}</p>`
+    + `<p>📍 ${esc(cleanMapNote(o.address || "-"))}</p><div class="map-actions">${mapLinks(o)}</div>`
+    + `<p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>`
+    + (cleanOrderNote(o.note) ? `<p>📝 ${esc(cleanOrderNote(o.note))}</p>` : "")
+    + `<a class="mini g" href="tel:+${esc(num)}">📞 Telepon pembeli</a>`
+    + `<a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}">💬 WhatsApp</a>`
+    + `<button class="mini g" type="button" data-act="status" data-code="${esc(o.order_code)}" data-status="${next[0]}">${next[1]}</button>`
+    + (o.status === "diproses" ? `<button class="mini" type="button" data-act="lepas" data-code="${esc(o.order_code)}">↩️ Lepas pesanan</button>` : "")
+    + `</div>`;
+}
 async function loadOrders(){
   const box = $("orders"); box.innerHTML = '<p class="hint">Memuat...</p>';
   try{
-    const rows = await fetchOrders("status=in.(diproses,dikirim)");
-    box.innerHTML = rows.length ? rows.map(o => {
-      const next = o.status === "diproses" ? ["dikirim","🛵 Tandai sedang dikirim"] : ["selesai","✅ Tandai selesai"];
-      return `<div class="card"><h3>${esc(o.order_code)} <span class="chip">${esc(SL[o.status])}</span></h3><p><b>${esc(o.customer_name || "")}</b> • ${esc(o.customer_phone || "")}</p><p>📍 ${esc(cleanMapNote(o.address || "-"))}</p><div class="map-actions">${mapLinks(o)}</div><p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>${cleanOrderNote(o.note) ? `<p>📝 ${esc(cleanOrderNote(o.note))}</p>` : ""}<a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(normPhone(o.customer_phone))}">💬 WhatsApp pelanggan</a><button class="mini g" type="button" data-code="${esc(o.order_code)}" data-status="${next[0]}">${next[1]}</button></div>`;
-    }).join("") : '<p class="hint">Belum ada pesanan yang perlu diantar.</p>';
+    const [rows, claims] = await Promise.all([fetchOrders("status=in.(diproses,dikirim)"), getClaims()]);
+    const mine = rows.filter(o => claims[o.order_code] && claims[o.order_code].id === me.id);
+    const free = rows.filter(o => !claims[o.order_code]);
+    const others = rows.length - mine.length - free.length;
+    const hd = t => `<h3 style="margin:14px 0 0;font-size:15px;color:var(--brown)">${t}</h3>`;
+    let h = "";
+    if(mine.length) h += hd(`Pesanan saya (${mine.length})`) + mine.map(cardMine).join("");
+    if(free.length) h += hd(`Pesanan tersedia (${free.length})`) + free.map(cardFree).join("");
+    if(!mine.length && !free.length) h += '<p class="hint">Belum ada pesanan yang perlu diantar.</p>';
+    if(others > 0) h += `<p class="hint" style="margin-top:12px">${others} pesanan sudah diambil kurir lain.</p>`;
+    box.innerHTML = h;
   }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
 }
 async function setStatus(code, status){
-  try{ await cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status, updated_at:new Date().toISOString()})}); toast("Status diperbarui"); loadOrders(); }
-  catch(e){ toast("Gagal memperbarui status"); }
+  try{
+    const c = await getClaims();
+    if(!c[code] || c[code].id !== me.id){ toast("Pesanan ini bukan milik Anda"); return loadOrders(); }
+    await cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status, updated_at:new Date().toISOString()})});
+    toast(status === "selesai" ? "Pesanan selesai" : "Status diperbarui"); loadOrders();
+  }catch(e){ toast("Gagal memperbarui status"); loadOrders(); }
 }
 $("btnRefresh").onclick = loadOrders;
-$("orders").addEventListener("click", e => {
-  const b = e.target.closest("button[data-code]"); if(!b) return;
-  b.disabled = true; setStatus(b.dataset.code, b.dataset.status);
+$("orders").addEventListener("click", async e => {
+  const b = e.target.closest("button[data-act]"); if(!b) return;
+  const code = b.dataset.code, act = b.dataset.act;
+  b.disabled = true;
+  try{
+    if(act === "ambil"){ if(await claimOrder(code)) toast("Pesanan diambil. Nomor pembeli sudah tampil."); }
+    else if(act === "lepas"){ await releaseOrder(code); toast("Pesanan dilepas"); }
+    else if(act === "status"){ return await setStatus(code, b.dataset.status); }
+  }catch(err){ toast("Gagal: " + String(err.message || err).slice(0,100)); }
+  loadOrders();
 });
 
 // Accordion Data Diri & Keamanan Akun: klik judul untuk buka/tutup.
