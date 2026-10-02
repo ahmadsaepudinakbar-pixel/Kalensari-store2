@@ -272,7 +272,7 @@ async function loadOrders(){
       if(a && a.id === me.id) offers.push({o, end:slotEnd(o, st, now)}); else other++;
     });
     const codes = offers.map(x => x.o.order_code);
-    if(seenOffers && codes.some(c => !seenOffers.has(c))){ toast("🔔 Ada pesanan baru untuk Anda"); try{ navigator.vibrate && navigator.vibrate([250,120,250]); }catch(e){} }
+    if(seenOffers && codes.some(c => !seenOffers.has(c))){ toast("🔔 Ada pesanan baru untuk Anda"); bunyi(); try{ navigator.vibrate && navigator.vibrate([250,120,250]); }catch(e){} }
     seenOffers = new Set(codes);
     const hd = t => `<h3 style="margin:14px 0 0;font-size:15px;color:var(--brown)">${t}</h3>`;
     let h = "";
@@ -347,6 +347,40 @@ $("orders").addEventListener("click", async e => {
 });
 
 
+
+// ===== Suara "Pesanan masuk, pesanan untuk kamu" (saat halaman kurir terbuka) =====
+// Taruh rekaman suara di file "pesanan-masuk.mp3" (satu folder dengan dashboard-kurir.html).
+// Bila file itu tidak ada, dipakai suara bawaan browser (bahasa Indonesia, nada tinggi).
+const SUARA_FILE = "pesanan-masuk.mp3", SUARA_TEKS = "Pesanan masuk. Pesanan untuk kamu.", SUARA_ULANG = 2;
+let suaraAudio = null, suaraBusy = false;
+function suaraBawaan(n){
+  try{
+    if(!("speechSynthesis" in window)) return;
+    const u = new SpeechSynthesisUtterance(SUARA_TEKS); u.lang = "id-ID"; u.pitch = 2; u.rate = 0.95; u.volume = 1;
+    const v = (speechSynthesis.getVoices() || []).find(x => /^id/i.test(x.lang)); if(v) u.voice = v;
+    u.onend = () => { if(n > 1) suaraBawaan(n - 1); else suaraBusy = false; };
+    u.onerror = () => { suaraBusy = false; };
+    speechSynthesis.speak(u);
+  }catch(e){ suaraBusy = false; }
+}
+function bunyi(){
+  if(suaraBusy) return; suaraBusy = true;
+  let n = SUARA_ULANG;
+  const a = suaraAudio || (suaraAudio = new Audio(SUARA_FILE)); a.volume = 1;
+  const mainLagi = () => { if(--n > 0){ a.currentTime = 0; a.play().catch(() => {}); } else { a.onended = null; suaraBusy = false; } };
+  a.onended = mainLagi;
+  a.onerror = () => { a.onended = null; suaraAudio = null; suaraBawaan(SUARA_ULANG); };
+  a.currentTime = 0;
+  a.play().catch(() => { a.onended = null; suaraAudio = null; suaraBawaan(SUARA_ULANG); });
+}
+// Browser mewajibkan satu sentuhan dari pengguna sebelum suara boleh dibunyikan otomatis.
+document.addEventListener("pointerdown", function bukaSuara(){
+  document.removeEventListener("pointerdown", bukaSuara);
+  try{ const a = new Audio(SUARA_FILE); a.volume = 0; a.play().then(() => { a.pause(); }).catch(() => {}); }catch(e){}
+  try{ if("speechSynthesis" in window){ const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } }catch(e){}
+}, {once:false});
+if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(e.data && e.data.type === "bunyi-pesanan") bunyi(); });
+
 // ===== Notifikasi push: pesanan masuk tetap sampai ke HP walau aplikasi ditutup =====
 const VAPID_KEY = (typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG.vapidPublicKey) || "";
 const PUSH_KEY = "kurir_push_";
@@ -388,7 +422,7 @@ $("btnNotif").onclick = async () => {
   finally{ btn.disabled = false; }
 };
 $("btnNotifTest").onclick = async () => {
-  try{ const reg = await pushReg(); await reg.showNotification("Kalensari Store", {body:"Tes notifikasi berhasil 🎉", icon:"icons/icon-192.png", tag:"tes"}); }
+  try{ const reg = await pushReg(); bunyi(); await reg.showNotification("Kalensari Store", {body:"Tes notifikasi berhasil 🎉", icon:"icons/icon-192.png", tag:"tes"}); }
   catch(e){ toast("Tes gagal"); }
 };
 

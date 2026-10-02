@@ -2,7 +2,7 @@
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
    (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v4";
+const VERSION = "ks-v5";
 const CACHE = "kalensari-" + VERSION;
 const PRECACHE = [
   "./offline.html",
@@ -59,7 +59,10 @@ self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : "" }; }
   const title = d.title || "Kalensari Store";
-  e.waitUntil(self.registration.showNotification(title, {
+  // Bila halaman kurir sedang terbuka, minta halamannya membunyikan suara "pesanan masuk".
+  const kabari = self.clients.matchAll({ type: "window", includeUncontrolled: true })
+    .then((list) => list.forEach((c) => c.postMessage({ type: "bunyi-pesanan" }))).catch(() => {});
+  e.waitUntil(Promise.all([kabari, self.registration.showNotification(title, {
     body: d.body || "Ada pesanan baru untuk Anda.",
     icon: "icons/icon-192.png",
     badge: "icons/icon-192.png",
@@ -67,8 +70,9 @@ self.addEventListener("push", (e) => {
     renotify: true,
     requireInteraction: true,
     vibrate: [300, 120, 300, 120, 300],
+    silent: false,
     data: { url: d.url || "dashboard-kurir.html" }
-  }));
+  })]));
 });
 
 self.addEventListener("notificationclick", (e) => {
