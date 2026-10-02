@@ -40,6 +40,29 @@ th,td{padding:8px 10px;border-bottom:1px solid var(--ln);text-align:right;white-
 .play{all:unset;cursor:pointer;display:block;position:relative;width:100%}.play:after{content:"\25B6";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:40px;text-shadow:0 2px 8px #000}
 details{margin-top:14px}summary{cursor:pointer;font-weight:600}
 li{margin:2px 0}.err{background:#fdecea;border:1px solid #f5c6c2;padding:12px;border-radius:10px}
+.dn-stage{position:relative;max-width:none;margin:0 -18px;height:350px;overflow:hidden}
+#dnCards{position:absolute;inset:0}
+.dn-blob{position:absolute;border-radius:50%;background:#efe9d6;opacity:.8}.dn-blob.b1{width:200px;height:200px;right:5%;top:4px}.dn-blob.b2{width:150px;height:150px;left:-30px;top:150px;background:#f0ead8}
+.dn-lf{position:absolute;width:44px;height:62px;opacity:.9}
+.dn-lf.l1{right:2px;top:30px;transform:rotate(55deg)}.dn-lf.l2{left:-4px;top:175px;transform:rotate(-35deg)}.dn-lf.l3{left:18px;top:10px;transform:rotate(-70deg);width:30px;height:42px}.dn-lf.l4{right:12px;bottom:70px;transform:rotate(60deg);width:34px;height:48px}
+.dn-bh{position:absolute;font-style:normal;color:#7fb68f;font-size:18px}.dn-bh.h1{right:18%;top:0;font-size:24px}.dn-bh.h2{left:8%;bottom:34px}.dn-bh.h3{left:46%;top:154px;font-size:14px}
+.dn-card{position:absolute;width:80%;max-width:520px;display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--ln);border-radius:16px;padding:12px 16px;box-shadow:0 6px 16px rgba(122,62,29,.12);transform:rotate(var(--r));transition:opacity .6s ease,transform .6s ease;opacity:1}
+.dn-card[hidden]{display:none}
+.dn-card.off{opacity:0;transform:rotate(var(--r)) translateY(8px)}
+.dn-card.c0{--r:-4deg;left:3%;top:26px;z-index:1}.dn-card.c1{--r:3deg;right:2%;top:100px;z-index:2}.dn-card.c2{--r:-3deg;left:5%;top:182px;z-index:3}.dn-card.c3{--r:2.5deg;right:3%;top:256px;z-index:4}
+@media (min-width:700px){.dn-stage{margin:0;height:380px}.dn-card{width:46%}.dn-card.c0{left:6%}.dn-card.c1{right:6%}.dn-card.c2{left:12%}.dn-card.c3{right:12%}.dn-blob.b1{right:20%}}
+.dn-av{flex:none;width:50px;height:50px;border-radius:50%;background:#dcefe2;color:var(--gr);overflow:hidden;display:block}.dn-av svg{width:100%;height:100%;display:block}
+.c1 .dn-av{background:#f3e3d3;color:#8a5a3a}.c2 .dn-av{background:#e8dcc9;color:#7a3e1d}.c3 .dn-av{background:#cfe6d6;color:#3a7a52}
+.dn-tx{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.dn-tx b{font:700 16px Georgia,serif;color:var(--br);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dn-tx small{font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dn-tx span{font-size:12px;color:var(--mut)}.dn-tx strong{font:700 18px Georgia,serif;color:var(--gr)}
+.dn-h{font-style:normal;color:var(--gr);opacity:.7;align-self:flex-end}
+.dn-thx{text-align:center;font:italic 16px Georgia,serif;color:var(--br);margin:14px 0 0}
+@media (prefers-reduced-motion:reduce){.dn-card{transition:none}}
+.dn-tot{text-align:center;margin:18px 0 0;color:var(--mut)}.dn-tot b{display:block;font:700 28px Georgia,serif;color:var(--gr)}
+.rcd{margin-top:0}.rcd>summary{font:700 26px Georgia,serif;color:var(--br)}
+.rc th:nth-child(2),.rc td:nth-child(2){text-align:left;white-space:normal}.rc h3{font:700 20px Georgia,serif;color:var(--br);margin:22px 0 0}
 footer{padding:26px 0;text-align:center}
 </style></head><body>
 <header><div class="w"><a href="https://kalensari.web.id">&larr; Kalensari Store</a><span style="color:#fff">Info Santunan</span></div></header>
@@ -49,20 +72,34 @@ footer{padding:26px 0;text-align:center}
 <div class="mut" style="margin-top:22px">Uang kas saat ini</div>
 <div class="big" id="kas">...</div>
 <div class="mut" id="kasnote"></div>
-<p><a class="btn" href="#donasi">Donasi sekarang</a></p>
+<p><a class="btn" id="btnDon" href="#donatur">Donasi sekarang</a></p>
 
-<section id="donasi"><h2>Open donasi</h2><div id="rek"></div></section>
+<section id="donatur"><h2 id="dnTitle">Donatur Bulan Ini</h2><p class="mut" style="margin:-6px 0 14px">Kebaikan Anda, menumbuhkan harapan.</p>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="lf" viewBox="0 0 50 70"><path d="M25 68C25 45 25 25 25 8" stroke="#4f9565" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M25 8C14 12 12 26 25 34C38 26 36 12 25 8Z" fill="#6fa77f"/><path d="M25 36C12 38 6 50 20 58C30 52 32 44 25 36Z" fill="#5b9a6e"/><path d="M26 30C38 30 46 40 36 50C28 46 22 38 26 30Z" fill="#7fb68f"/></symbol>
+<symbol id="av" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="none"/><path d="M6 48C6 36 14 32 24 32C34 32 42 36 42 48Z" fill="currentColor"/><circle cx="24" cy="20" r="10" fill="#f3c9a1"/><path d="M13.5 19C13 9 22 6 28 8C34 9 36 14 34.5 19C32 14 26 13 22 14C18 15 15 16 13.5 19Z" fill="#4a2f1c"/><circle cx="20.5" cy="21" r="1.2" fill="#4a2f1c"/><circle cx="27.5" cy="21" r="1.2" fill="#4a2f1c"/><path d="M20.5 25Q24 28 27.5 25" stroke="#b5654a" stroke-width="1.4" fill="none" stroke-linecap="round"/></symbol>
+</defs></svg>
+<div class="dn-stage" id="dnStage">
+<span class="dn-blob b1"></span><span class="dn-blob b2"></span>
+<svg class="dn-lf l1"><use href="#lf"/></svg><svg class="dn-lf l2"><use href="#lf"/></svg><svg class="dn-lf l3"><use href="#lf"/></svg><svg class="dn-lf l4"><use href="#lf"/></svg>
+<i class="dn-bh h1">&#10084;</i><i class="dn-bh h2">&#10084;</i><i class="dn-bh h3">&#10084;</i>
+<div id="dnCards"><div class="dn-card c0"><span class="dn-av"><svg viewBox="0 0 48 48"><use href="#av"/></svg></span><div class="dn-tx"><b class="nm"></b><small class="ad"></small><span>Donasi</span><strong class="vl"></strong></div><i class="dn-h">&#10084;</i></div><div class="dn-card c1"><span class="dn-av"><svg viewBox="0 0 48 48"><use href="#av"/></svg></span><div class="dn-tx"><b class="nm"></b><small class="ad"></small><span>Donasi</span><strong class="vl"></strong></div><i class="dn-h">&#10084;</i></div><div class="dn-card c2"><span class="dn-av"><svg viewBox="0 0 48 48"><use href="#av"/></svg></span><div class="dn-tx"><b class="nm"></b><small class="ad"></small><span>Donasi</span><strong class="vl"></strong></div><i class="dn-h">&#10084;</i></div><div class="dn-card c3"><span class="dn-av"><svg viewBox="0 0 48 48"><use href="#av"/></svg></span><div class="dn-tx"><b class="nm"></b><small class="ad"></small><span>Donasi</span><strong class="vl"></strong></div><i class="dn-h">&#10084;</i></div></div>
+<p class="mut" id="dnEmpty" style="text-align:center;margin:0;position:relative"></p></div>
+<p class="dn-thx">Terima kasih atas dukungannya <span style="color:#e5484d">&#10084;</span></p>
+<div id="dnAll"></div></section>
 <section><h2>Data keuangan 2026</h2><div id="fin">Memuat...</div></section>
 <section><h2>Data santunan</h2><div id="san">Memuat...</div></section>
+<section><details class="rcd"><summary id="rcTitle">Penerima santunan</summary><div id="rc" class="rc">Memuat...</div></details></section>
 <section><h2>Dokumentasi</h2><div id="doc">Memuat...</div></section>
 </main>
-<footer class="mut">Sumber: Google Sheets pengurus. Nama penerima santunan tidak ditampilkan untuk menjaga privasi.</footer>
+<footer class="mut">Sumber: Google Sheets pengurus.</footer>
 
 <script>
 /* ===== ISI BAGIAN INI ===== */
 const C={
  fin:'1-Hb348czC7N2NBvwM-BZmaTOSzdsDUZO9Nr_aX3qSYo', // Sheet keuangan
  don:'1wN1ISCdPu5dbRbQjLeWvLYwGjZlk7AhzkZ6q7Tpcay0', // Sheet donatur bulanan
+ alamatCol:3,    // kolom alamat di Sheet donatur (A=0, B=1, C=2, D=3); dicari otomatis dari judul "Alamat" bila ada
  finCol:3,         // kolom Januari di Sheet keuangan (A=0, B=1, C=2, D=3)
  saldoAwal:3223000, // dipakai jika sel saldo awal (A3) tidak terbaca
  wa:'',   // nomor WhatsApp konfirmasi, contoh 6281234567890
@@ -90,10 +127,8 @@ async function get(id,sh){
  catch(e){return jsonp(id,sh)}}
 const fail=(el,m,e)=>{$(el).innerHTML=`<div class="err">${m||'Data belum bisa dimuat. Pastikan Google Sheet dibagikan dengan akses "Siapa saja yang memiliki link" (Pelihat), lalu muat ulang.'}${e?`<br><small>Detail: ${esc(e.message||e)}</small>`:''}</div>`};
 
-/* Donasi */
-(function(){const r=C.rek.map(x=>`<div class="box"><b>${esc(x.bank)}</b>${esc(x.no)}<br><span class="mut">a.n. ${esc(x.an)}</span></div>`).join('');
-$('#rek').innerHTML=(r?`<div class="grid">${r}</div>`:'<p class="mut">Nomor rekening akan segera ditampilkan.</p>')+
- '<p>Setelah transfer, kirim bukti transfer agar donasi Anda dicatat.</p>'+(C.wa?`<a class="btn" href="https://wa.me/${C.wa}?text=${encodeURIComponent('Assalamualaikum, saya sudah donasi santunan. Berikut bukti transfernya.')}">Konfirmasi lewat WhatsApp</a>`:'')})();
+/* Tombol donasi */
+if(C.wa)$('#btnDon').href=`https://wa.me/${C.wa}?text=${encodeURIComponent('Assalamualaikum, saya ingin donasi santunan.')}`;
 
 /* Keuangan */
 let lm=0;
@@ -136,12 +171,13 @@ async function loadMon(m){
  if(m>0&&JSON.stringify(R)===JSON.stringify(await get(C.don,TAB[0])))throw new Error(`tab "${TAB[m]}" tidak ditemukan di Sheet donatur`);
  const find=k=>R.findIndex(r=>cell(r,2).toLowerCase().includes(k));
  const sec=(h,f)=>{const a=[];if(h<0)return a;let i=h+1;while(i<h+5&&!/^\d+$/.test(cell(R[i],1)))i++;for(;i<R.length&&/^\d+$/.test(cell(R[i],1));i++)if(cell(R[i],2))a.push(f(R[i]));return a};
- const hf=find('santunan duafa');
+ const acol=h=>{let ac=C.alamatCol;for(let i=Math.max(h,0);i<Math.min(h+6,R.length);i++){const k=(R[i]||[]).findIndex(x=>/alamat/i.test(x));if(k>=0){ac=k;break}}return ac};
+ const hd=find('data donatur'),hy=find('santunan anak yatim'),hf=find('santunan duafa');
  const tr=hf<0?-1:R.findIndex((r,i)=>i>hf&&/total.*beras/i.test(cell(r,2)));
  return cache[m]={
-  don:sec(find('data donatur'),r=>({n:cell(r,2),v:num(r[4])*1000})),
-  yat:sec(find('santunan anak yatim'),r=>({v:num(r[4])*1000})),
-  duf:sec(hf,r=>({kg:num(r[5])})),dufV:tr>=0?num(R[tr][4]):0,
+  don:sec(hd,r=>({n:cell(r,2),a:cell(r,acol(hd)),v:num(r[4])*1000})),
+  yat:sec(hy,r=>({n:cell(r,2),a:cell(r,acol(hy)),v:num(r[4])*1000})),
+  duf:sec(hf,r=>({n:cell(r,2),a:cell(r,acol(hf)),kg:num(r[5]),v:num(r[4])*1000})),dufV:tr>=0?num(R[tr][4]):0,
   kgT:tr>=0?num((cell(R[tr],2).match(/(\d+)\s*kg/i)||[])[1]):0,
   lain:sec(find('pengeluaran lain'),r=>({n:cell(r,2),v:num(r[4])*1000}))}}
 async function showMon(m){
@@ -154,7 +190,15 @@ async function showMon(m){
   <div class="box">Donatur<b>${d.don.length} donatur</b>${rp(sum(d.don.map(x=>x.v)))}</div></div>
   ${d.lain.length?`<details><summary>Pengeluaran lainnya (${rp(sum(d.lain.map(x=>x.v)))})</summary><ul>${d.lain.map(x=>`<li>${esc(x.n)}: ${rp(x.v)}</li>`).join('')}</ul></details>`:''}
   ${d.don.length?`<details><summary>Daftar donatur ${MON[m]}</summary><ul>${d.don.map(x=>`<li>${esc(x.n)}: ${rp(x.v)}</li>`).join('')}</ul></details>`:''}`;
- }catch(e){fail('#detail',`Data bulan ${MON[m]} belum bisa dimuat. Pastikan nama tab di Sheet sama dengan daftar TAB di file ini.`,e)}}
+ recv(m,d);
+ }catch(e){$('#rc').innerHTML='';fail('#detail',`Data bulan ${MON[m]} belum bisa dimuat. Pastikan nama tab di Sheet sama dengan daftar TAB di file ini.`,e)}}
+function recv(m,d){
+ 
+ const tbl=(rows,kg)=>`<div class="tw"><table><tr><th>Nama</th><th>Alamat</th>${kg?'<th>Beras</th>':''}<th>Nominal</th></tr>${rows.map(x=>`<tr><td>${esc(x.n)}</td><td>${esc(x.a||'-')}</td>${kg?`<td>${x.kg?x.kg+' kg':'-'}</td>`:''}<td>${x.v?rp(x.v):'-'}</td></tr>`).join('')}</table></div>`;
+ const y=d.yat.filter(x=>x.n),f=d.duf.filter(x=>x.n&&(x.kg>0||x.v>0||!d.kgT));
+ $('#rcTitle').textContent='Penerima santunan bulan '+MON[m]+' (klik untuk melihat)';
+ $('#rc').innerHTML=(y.length?`<h3>Anak yatim dan piatu (${y.length})</h3>${tbl(y,false)}`:'')+(f.length?`<h3>Duafa (${f.length})</h3>${tbl(f,true)}`:'')||'<p class="mut">Belum ada penerima santunan bulan ini.</p>';
+}
 function initSan(){
  $('#san').innerHTML=`<label>Bulan: <select id="sel">${MON.slice(0,lm+1).map((x,i)=>`<option value="${i}">${x}</option>`).join('')}</select></label><div id="detail"></div>`;
  $('#sel').value=lm;$('#sel').onchange=e=>showMon(+e.target.value);showMon(lm)}
@@ -175,10 +219,29 @@ async function loadDoc(){
   return `<figure><a href="${esc(u)}" target="_blank" rel="noopener">Buka video</a>${cap}</figure>`}).join('')+'</div>';
  document.querySelectorAll('.play').forEach(b=>b.onclick=()=>{b.outerHTML=`<iframe class="m" allow="autoplay;encrypted-media" allowfullscreen src="${b.dataset.v}"></iframe>`})}
 
+/* Donatur bergantian: 4 kartu, bulan ini; jika kosong pakai bulan sebelumnya */
+async function loadDonatur(){
+ const cm=Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jakarta',month:'numeric'}).format(new Date()))-1;
+ let list=[],dd=[],bln=cm;
+ for(let m=cm;m>=Math.max(0,cm-11);m--){
+  try{const d=await loadMon(m);const x=d.don.filter(y=>y.n);if(x.length){list=x;dd=d.don;bln=m;break}}catch(e){}
+ }
+ if(!list.length){$('#dnCards').hidden=true;$('#dnEmpty').textContent='Belum ada data donatur.';return}
+ if(bln!==cm)$('#dnTitle').textContent='Donatur Bulan '+MON[bln];
+ const tot=sum((dd||[]).map(x=>x.v));
+ $('#dnAll').innerHTML=`<p class="dn-tot">Total pemasukan ${bln===cm?'bulan ini':'bulan '+MON[bln]}<b>${rp(tot)}</b></p>`;
+ const cards=[...document.querySelectorAll('.dn-card')],n=list.length,k=Math.min(4,n);
+ const paint=(c,x)=>{c.querySelector('.nm').textContent=x.n;const a=c.querySelector('.ad');a.textContent=x.a||'';a.hidden=!x.a;c.querySelector('.vl').textContent=x.v?rp(x.v):''};
+ let nx=0;cards.forEach((c,s)=>{if(s>=k)c.hidden=true;else paint(c,list[nx++%n])});
+ if(n<=k)return;
+ let s=0;setInterval(()=>{const c=cards[s];s=(s+1)%k;c.classList.add('off');setTimeout(()=>{paint(c,list[nx++%n]);c.classList.remove('off')},650)},2500);
+}
+
 (async()=>{
  try{await loadFin()}catch(e){fail('#fin',null,e);$('#kas').textContent='-';$('#kasnote').textContent='';
   lm=Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jakarta',month:'numeric'}).format(new Date()))-1} // tanpa data keuangan: pakai bulan berjalan
  initSan();
 })();
+loadDonatur();
 loadDoc();
 </script></body></html>
