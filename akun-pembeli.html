@@ -85,9 +85,6 @@ const normPhone = v => String(v||"").replace(/\D/g,"").replace(/^0/,"62");
 const okPin = v => /^\d{4,8}$/.test(v);
 const fmtRp = n => "Rp" + Number(n||0).toLocaleString("id-ID");
 const ROLE = "pembeli", SESS = "kalensari_" + ROLE + "_sess";
-const getLogin = () => { try{ const v = JSON.parse(localStorage.getItem("kalensari_pembeli_login") || "null"); if(v && v.wa && v.exp > Date.now()) return v.wa; }catch(e){} return sessionStorage.getItem("kalensari_pembeli_sess"); };
-const setLogin = wa => { try{ localStorage.setItem("kalensari_pembeli_login", JSON.stringify({wa, exp: Date.now() + 30*24*3600*1000})); }catch(e){} sessionStorage.setItem("kalensari_pembeli_sess", wa); };
-
 const cloudOn = () => typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG && CLOUD_CONFIG.enabled && CLOUD_CONFIG.supabaseUrl && CLOUD_CONFIG.supabaseAnonKey;
 async function cf(path, opt={}){
   const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
@@ -144,7 +141,7 @@ $("btnDaftar").onclick = async () => {
     acc[wa] = {h:await hashPin(wa, pin), id};
     await setSetting(ROLE + "_accounts", acc);
     await upsertMember({id, nama, wa, alamat:"", dusun:"", catatan:"", updated:Date.now()});
-    setLogin(wa);
+    sessionStorage.setItem(SESS, wa);
     toast("Akun dibuat. Mengarahkan ke dashboard...");
     go();
   }catch(e){ toast(e.message || "Gagal mendaftar"); }
@@ -159,7 +156,7 @@ $("btnMasuk").onclick = async () => {
     const a = acc[wa];
     if(!a || a.h !== await hashPin(wa, pin)){ failTry(); return toast("Nomor atau PIN salah"); }
     LSset("kalensari_"+ROLE+"_try", {n:0,t:0});
-    setLogin(wa);
+    sessionStorage.setItem(SESS, wa);
     toast("Berhasil masuk...");
     go();
   }catch(e){ toast(e.message || "Gagal masuk"); }
@@ -168,7 +165,7 @@ $("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
 (() => {
   $("warn").hidden = cloudOn();
   if(location.hash === "#daftar") showTab(false);
-  if(getLogin()) location.replace("dashboard-" + ROLE + ".html");
+  if(sessionStorage.getItem(SESS)) location.replace("dashboard-" + ROLE + ".html");
 })();
 
 </script>

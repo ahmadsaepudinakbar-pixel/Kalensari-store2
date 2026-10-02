@@ -82,9 +82,6 @@ const normPhone = v => String(v||"").replace(/\D/g,"").replace(/^0/,"62");
 const okPin = v => /^\d{4,8}$/.test(v);
 const fmtRp = n => "Rp" + Number(n||0).toLocaleString("id-ID");
 const ROLE = "pembeli", SESS = "kalensari_" + ROLE + "_sess";
-const getLogin = () => { try{ const v = JSON.parse(localStorage.getItem("kalensari_pembeli_login") || "null"); if(v && v.wa && v.exp > Date.now()) return v.wa; }catch(e){} return sessionStorage.getItem("kalensari_pembeli_sess"); };
-const setLogin = wa => { try{ localStorage.setItem("kalensari_pembeli_login", JSON.stringify({wa, exp: Date.now() + 30*24*3600*1000})); }catch(e){} sessionStorage.setItem("kalensari_pembeli_sess", wa); };
-
 const cloudOn = () => typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG && CLOUD_CONFIG.enabled && CLOUD_CONFIG.supabaseUrl && CLOUD_CONFIG.supabaseAnonKey;
 async function cf(path, opt={}){
   const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
@@ -119,7 +116,7 @@ async function hashPin(wa, pin){
 }
 
 const FIELDS = ["nama","alamat"];
-let me = null, WA = getLogin();
+let me = null, WA = sessionStorage.getItem(SESS);
 function mapsSearchUrl(lat,lng){ return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`; }
 function validCoord(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180&&!(lat===0&&lng===0)}
 function parseCoord(v){const t=String(v==null?"":v).trim().replace(",",".");return t===""?NaN:Number(t)}
@@ -144,7 +141,7 @@ $("btnLokasi").onclick=()=>{
     {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
 };
 $("btnManual").onclick=()=>{const v=parseLatLng($("fManual").value);if(!v)return toast("Format tidak dikenali. Contoh: -6.123456, 107.123456");saveLoc(v[0],v[1]).then(()=>{$("fManual").value=""})};
-function keluar(){ sessionStorage.removeItem(SESS); try{ localStorage.removeItem("kalensari_pembeli_login"); }catch(e){} location.href = "akun-" + ROLE + ".html"; }
+function keluar(){ sessionStorage.removeItem(SESS); location.href = "akun-" + ROLE + ".html"; }
 $("btnKeluar").onclick = keluar;
 const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan"};
 function itemsText(o){

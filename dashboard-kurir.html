@@ -134,8 +134,8 @@ async function hashPin(wa, pin){
 }
 
 const FIELDS = ["nama","kendaraan","wilayah"];
-let me = null, WA = localStorage.getItem(SESS);
-function keluar(){ localStorage.removeItem(SESS); location.href = "akun-" + ROLE + ".html"; }
+let me = null, WA = sessionStorage.getItem(SESS);
+function keluar(){ sessionStorage.removeItem(SESS); location.href = "akun-" + ROLE + ".html"; }
 $("btnKeluar").onclick = keluar;
 const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan"};
 function itemsText(o){
@@ -197,7 +197,7 @@ async function loadOrders(){
     const rows = await fetchOrders("status=in.(diproses,dikirim)");
     box.innerHTML = rows.length ? rows.map(o => {
       const next = o.status === "diproses" ? ["dikirim","🛵 Tandai sedang dikirim"] : ["selesai","✅ Tandai selesai"];
-      return `<div class="card"><h3>${esc(o.order_code)} <span class="chip">${esc(SL[o.status])}</span></h3><p><b>${esc(o.customer_name || "")}</b> • ${esc(o.customer_phone || "")}</p><p>📍 ${esc(cleanMapNote(o.address || "-"))}</p><div class="map-actions">${mapLinks(o)}</div><p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>${cleanOrderNote(o.note) ? `<p>📝 ${esc(cleanOrderNote(o.note))}</p>` : ""}<a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(normPhone(o.customer_phone))}">💬 WhatsApp pelanggan</a><button class="mini g" onclick="setStatus('${esc(o.order_code)}','${next[0]}')">${next[1]}</button></div>`;
+      return `<div class="card"><h3>${esc(o.order_code)} <span class="chip">${esc(SL[o.status])}</span></h3><p><b>${esc(o.customer_name || "")}</b> • ${esc(o.customer_phone || "")}</p><p>📍 ${esc(cleanMapNote(o.address || "-"))}</p><div class="map-actions">${mapLinks(o)}</div><p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>${cleanOrderNote(o.note) ? `<p>📝 ${esc(cleanOrderNote(o.note))}</p>` : ""}<a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(normPhone(o.customer_phone))}">💬 WhatsApp pelanggan</a><button class="mini g" type="button" data-code="${esc(o.order_code)}" data-status="${next[0]}">${next[1]}</button></div>`;
     }).join("") : '<p class="hint">Belum ada pesanan yang perlu diantar.</p>';
   }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
 }
@@ -206,6 +206,10 @@ async function setStatus(code, status){
   catch(e){ toast("Gagal memperbarui status"); }
 }
 $("btnRefresh").onclick = loadOrders;
+$("orders").addEventListener("click", e => {
+  const b = e.target.closest("button[data-code]"); if(!b) return;
+  b.disabled = true; setStatus(b.dataset.code, b.dataset.status);
+});
 
 // Accordion Data Diri & Keamanan Akun: klik judul untuk buka/tutup.
 document.querySelectorAll("[data-accordion]").forEach(head => {
