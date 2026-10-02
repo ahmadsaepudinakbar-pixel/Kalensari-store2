@@ -186,7 +186,7 @@ const BASE_CATEGORIES=["Makanan","Minuman"];
 const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])].filter(c=>!removedCategories.includes(c)||products.some(p=>p.category===c));
 const sellerKey=n=>String(n||"").trim().toLowerCase();
 const shippingFeeFor=n=>{const v=shippingFees[sellerKey(n)],d=Number(shippingFees.__default)||0;return(v===undefined||v===null||v==="")?d:(Number(v)||0);};
-// ===== ONGKIR = ongkir pertama toko + tambahan per KM (jarak titik toko -> titik pembeli, garis lurus) =====
+// ===== ONGKIR = ongkir pertama toko + tambahan per KM (jarak garis lurus toko TERAKHIR di rute -> titik pembeli) =====
 // Titik toko diambil dari lokasi yang disimpan penjual (penjual_members.latitude/longitude, dicocokkan lewat nama toko).
 let sellerLocs=readLS("kalensari_seller_locs",{});
 const SHIP_FREE_KM=2, SHIP_PER_KM=2500; // bawaan; bisa diubah di Admin > Ongkir
@@ -196,25 +196,41 @@ const validLL=(a,b)=>{a=Number(a);b=Number(b);return Number.isFinite(a)&&Number.
 const kmBetween=(a,b)=>{const R=6371,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dg=r(b.lng-a.lng),h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));};
 const fmtKm=k=>Number(k).toLocaleString("id-ID",{maximumFractionDigits:1});
 const buyerPoint=()=>{const la=document.getElementById("ksMapLat")?.value,ln=document.getElementById("ksMapLng")?.value;return(String(la||"").trim()!==""&&String(ln||"").trim()!==""&&validLL(la,ln))?{lat:Number(la),lng:Number(ln)}:null;};
-// state: ok = jarak terhitung | nobuyer = titik pembeli belum ada | nostore = titik toko belum disimpan penjual
-function shippingQuote(name){
-  const base=shippingFeeFor(name),s=sellerLocs[sellerKey(name)],b=buyerPoint();
-  const q={name:String(name||"Toko").trim(),base,km:null,extra:0,fee:base,state:"ok"};
-  if(!s||!validLL(s.lat,s.lng)){q.state="nostore";return q;}
-  if(!b){q.state="nobuyer";return q;}
-  q.km=kmBetween(s,b);
-  q.extra=Math.max(0,Math.ceil(q.km-shipFreeKm()-1e-9))*shipPerKm(); // dibulatkan ke atas per KM penuh di atas batas
-  q.fee=base+q.extra;
-  return q;
+// ===== RUTE KURIR, SATU NOTA =====
+// Kurir diarahkan: toko 1 -> toko 2 -> ... -> toko terakhir -> pembeli. Semua toko jadi SATU nota.
+// Ongkir = ongkir pertama tiap toko yang disinggahi + tambahan per KM dari TOKO TERAKHIR (titik awal) ke pembeli.
+// Urutan: toko tanpa titik lokasi lebih dulu, lalu toko bertitik dari yang TERJAUH ke yang TERDEKAT dengan pembeli
+// (jadi toko terakhir = paling dekat pembeli). Sebelum titik pembeli ada, urutan mengikuti keranjang.
+// state: ok = jarak terhitung | nobuyer = titik pembeli belum ada | nostore = titik toko terakhir belum disimpan penjual
+function shippingRoute(items){
+  const m=new Map();
+  items.forEach(p=>{const k=sellerKey(p.seller);if(m.has(k))return;const l=sellerLocs[k];
+    m.set(k,{name:String(p.seller||"Toko").trim(),base:shippingFeeFor(p.seller),loc:(l&&validLL(l.lat,l.lng))?l:null,km:null});});
+  const b=buyerPoint(),all=[...m.values()];
+  if(b)all.forEach(s=>{if(s.loc)s.km=kmBetween(s.loc,b);});
+  const noLoc=all.filter(s=>!s.loc),withLoc=all.filter(s=>s.loc);
+  if(b)withLoc.sort((x,y)=>y.km-x.km);
+  const stops=[...noLoc,...withLoc],last=stops[stops.length-1]||null,base=stops.reduce((t,s)=>t+s.base,0);
+  const r={stops,last,base,km:null,extra:0,fee:base,state:"ok"};
+  if(!last||!last.loc){r.state="nostore";return r;}
+  if(!b){r.state="nobuyer";return r;}
+  r.km=last.km;
+  r.extra=Math.max(0,Math.ceil(r.km-shipFreeKm()-1e-9))*shipPerKm(); // dibulatkan ke atas per KM penuh di atas batas
+  r.fee=base+r.extra;
+  return r;
 }
-// Satu tarif untuk tiap toko yang ada di keranjang (beberapa produk dari toko yang sama = satu ongkir).
-const shippingBreakdown=items=>{const m=new Map();items.forEach(p=>{const k=sellerKey(p.seller);if(!m.has(k))m.set(k,shippingQuote(p.seller));});return[...m.values()];};
-const shipLine=x=>x.state==="ok"?(x.extra>0?`Ongkir pertama ${rupiah(x.base)} + jarak ${fmtKm(x.km)} km: ${rupiah(x.extra)}`:`Jarak ${fmtKm(x.km)} km (masuk ${fmtKm(shipFreeKm())} km pertama)`):x.state==="nostore"?"Lokasi toko belum diatur penjual":`Ongkir pertama • +${rupiah(shipPerKm())}/km jika lebih dari ${fmtKm(shipFreeKm())} km`;
-function shipBreakdownHTML(ships){
-  if(!ships.length)return"";
-  const need=ships.some(x=>x.state==="nobuyer"),noStore=ships.some(x=>x.state==="nostore");
-  return`<div class="ship-head">Rincian ongkir · ${ships.length} toko</div>${ships.map(x=>`<div class="ship-row"><span>🏪 ${esc(x.name)}<small class="ship-sub">${esc(shipLine(x))}</small></span><b>${x.fee>0?rupiah(x.fee):"Gratis"}</b></div>`).join("")}<p class="ship-note">ℹ️ Ongkir dihitung <b>per toko</b>: ongkir pertama toko, ditambah <b>${rupiah(shipPerKm())} per km</b> untuk jarak lebih dari <b>${fmtKm(shipFreeKm())} km</b> (dari titik toko ke titik pembeli, dibulatkan ke atas).${need?" Tambahan jarak dihitung otomatis setelah alamat/lokasi dipilih di checkout.":""}${noStore?" Toko tanpa titik lokasi belum bisa dihitung jaraknya; admin akan konfirmasi lewat WhatsApp.":""}</p>`;
-}const shippingTotal=items=>shippingBreakdown(items).reduce((t,x)=>t+x.fee,0);
+function shipBreakdownHTML(r){
+  if(!r||!r.stops.length)return"";
+  const multi=r.stops.length>1,n=r.stops.length;
+  const rows=r.stops.map((s,i)=>`<div class="ship-row"><span>${multi?`${i+1}. `:""}🏪 ${esc(s.name)}<small class="ship-sub">${multi?(i===n-1?"Toko terakhir • titik awal hitungan jarak":"Singgah ambil pesanan"):"Ongkir pertama toko"}</small></span><b>${s.base>0?rupiah(s.base):"Gratis"}</b></div>`).join("");
+  let sub,val;
+  if(r.state==="ok"){sub=`Jarak ${esc(r.last.name)} → pembeli ${fmtKm(r.km)} km`+(r.extra>0?`, lebih ${fmtKm(Math.ceil(r.km-shipFreeKm()-1e-9))} km × ${rupiah(shipPerKm())}`:` (masuk ${fmtKm(shipFreeKm())} km pertama)`);val=r.extra>0?rupiah(r.extra):"Gratis";}
+  else if(r.state==="nostore"){sub="Lokasi toko belum diatur penjual";val="–";}
+  else{sub=`+${rupiah(shipPerKm())}/km jika lebih dari ${fmtKm(shipFreeKm())} km dari ${esc(r.last.name)}`;val="–";}
+  const missing=r.stops.filter(s=>!s.loc).length&&r.state==="ok";
+  return`<div class="ship-head">Rute kurir · ${n} toko · 1 nota</div>${rows}<div class="ship-row"><span>🏠 Antar ke pembeli<small class="ship-sub">${sub}</small></span><b>${val}</b></div><p class="ship-note">ℹ️ Kurir mampir ke ${multi?"<b>setiap toko</b> berurutan, lalu":"toko, lalu"} mengantar ke pembeli, semuanya dalam <b>satu nota</b>. Ongkir = ongkir pertama tiap toko + <b>${rupiah(shipPerKm())} per km</b> untuk jarak <b>toko terakhir → pembeli</b> yang lebih dari <b>${fmtKm(shipFreeKm())} km</b> (dibulatkan ke atas).${r.state==="nobuyer"?" Tambahan jarak dihitung otomatis setelah alamat/lokasi dipilih di checkout.":""}${r.state==="nostore"?" Toko tanpa titik lokasi belum bisa dihitung jaraknya; admin akan konfirmasi lewat WhatsApp.":""}${missing?" Ada toko tanpa titik lokasi; urutannya didahulukan dan admin akan konfirmasi bila perlu.":""}</p>`;
+}
+const shippingTotal=items=>shippingRoute(items).fee;
 // ===== JADWAL BUKA/TUTUP OTOMATIS PENJUAL (jam buka, jam tutup, hari libur; waktu WIB) =====
 // sellerSchedule: {"nama penjual (huruf kecil)": {o:"08:00", c:"17:00", off:[0..6 libur tiap pekan, 0=Minggu], h:["2026-10-17" tanggal libur khusus]}}
 let sellerSchedule=readLS("kalensari_seller_schedule",{});
@@ -500,7 +516,7 @@ function cartData() {
   }).filter(Boolean);
 }
 function renderCart() {
-  const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),shipping=shippingTotal(items),ships=shippingBreakdown(items);
+  const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),route=shippingRoute(items),shipping=route.fee;
   document.getElementById("cartItems").innerHTML=items.length?items.map(p=>`
     <div class="cart-row"><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div><div class="cart-seller">🏪 ${esc(p.seller)}${allSellersClosed(p)?' • <b style="color:#b3261e">Tutup</b>':""}</div></div>
     <div class="qty"><button onclick="changeQty(${p.idx},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.idx},1)">+</button></div>
@@ -510,9 +526,9 @@ function renderCart() {
   document.getElementById("cartShipping").textContent=rupiah(shipping);
   {const row=document.getElementById("cartShipping").parentElement;let bd=document.getElementById("cartShipBreakdown");
    if(!bd){bd=document.createElement("div");bd.id="cartShipBreakdown";bd.className="ship-breakdown";row.insertAdjacentElement("afterend",bd);}
-   bd.hidden=!ships.length;
-   bd.innerHTML=shipBreakdownHTML(ships);}
-  {const tot=document.querySelector("#checkoutForm .checkout-total");if(tot){let cb=document.getElementById("coShipBreakdown");if(!cb){cb=document.createElement("div");cb.id="coShipBreakdown";cb.className="ship-breakdown";tot.insertAdjacentElement("beforebegin",cb);}cb.hidden=!ships.length;cb.innerHTML=shipBreakdownHTML(ships);}}
+   bd.hidden=!route.stops.length;
+   bd.innerHTML=shipBreakdownHTML(route);}
+  {const tot=document.querySelector("#checkoutForm .checkout-total");if(tot){let cb=document.getElementById("coShipBreakdown");if(!cb){cb=document.createElement("div");cb.id="coShipBreakdown";cb.className="ship-breakdown";tot.insertAdjacentElement("beforebegin",cb);}cb.hidden=!route.stops.length;cb.innerHTML=shipBreakdownHTML(route);}}
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutBtn").disabled=!items.length;
@@ -643,7 +659,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   if(!checkoutBuyer){showToast("Silakan masuk sebagai pembeli dulu");return;}
   await Promise.all([loadCloudSettings(),refreshProductStatus()]);
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
-  const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),ships=shippingBreakdown(items),shipping=ships.reduce((t,x)=>t+x.fee,0),total=subtotal+shipping;
+  const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),route=shippingRoute(items),shipping=route.fee,total=subtotal+shipping;
   const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
   const orderCode=makeOrderCode();
   const createdAt=new Date().toISOString();
@@ -657,19 +673,21 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const address=mode==="rumah"?checkoutBuyer.alamat:"Titik lokasi saat ini (lihat link Google Maps)";
   const userNote=String(f.get("note")||"").trim();
   const mapToken=hasMap?`__KS_MAP__${mapLat.toFixed(6)},${mapLng.toFixed(6)}__END__`:"";
-  const orderNote=[userNote,mapToken].filter(Boolean).join(" ");
+  const routeNote=route.stops.length>1?`[Rute kurir: ${route.stops.map((s,i)=>`${i+1}. ${s.name}`).join(" → ")} → Pembeli]`:"";
+  const orderNote=[userNote,routeNote,mapToken].filter(Boolean).join(" ");
   if(hasMap) localStorage.setItem("kalensari_checkout_location",JSON.stringify({lat:mapLat,lng:mapLng}));
-  // ===== NOTA PER TOKO: satu nota (pesanan) terpisah untuk setiap toko di keranjang =====
-  const groups=new Map();
-  items.forEach(p=>{const k=sellerKey(p.seller);if(!groups.has(k))groups.set(k,{name:String(p.seller||"Toko").trim(),items:[]});groups.get(k).items.push(p);});
-  const notas=[...groups.values()].map((g,i,arr)=>{
-    const sub=g.items.reduce((t,p)=>t+currentPrice(p)*p.qty,0), q=shippingQuote(g.name), ship=q.fee;
-    return {seller:g.name,code:arr.length>1?`${orderCode}-${String.fromCharCode(65+i)}`:orderCode,items:g.items,sub,ship,q,total:sub+ship};
-  });
+  // ===== SATU NOTA: kurir diarahkan toko 1 -> toko 2 -> ... -> toko terakhir -> pembeli =====
+  const stops=route.stops,multi=stops.length>1;
+  const bySeller=new Map();items.forEach(p=>{const k=sellerKey(p.seller);if(!bySeller.has(k))bySeller.set(k,[]);bySeller.get(k).push(p);});
   const mapText=hasMap?`\nLokasi Maps: ${ksMapsSearch(`${mapLat},${mapLng}`)}`:"";
-  const notaText=notas.map((n,i)=>`${notas.length>1?`NOTA ${i+1} dari ${notas.length}`:"NOTA"} • Toko ${n.seller}\nKode: ${n.code}\n${n.items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n")}\nSubtotal: ${rupiah(n.sub)}\nOngkir: ${n.ship>0?rupiah(n.ship):"Gratis"}${n.q.state==="ok"?` (jarak ${fmtKm(n.q.km)} km${n.q.extra>0?`; ongkir pertama ${rupiah(n.q.base)} + ${rupiah(n.q.extra)}`:""})`:" (jarak belum terhitung, mohon konfirmasi)"}\nTotal toko: ${rupiah(n.total)}`).join("\n\n");
-  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${notaText}\n\nTOTAL BAYAR: ${rupiah(total)}${notas.length>1?"\n(ongkir dihitung per toko)":""}\n\nNama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
-  const payloads=notas.map(n=>({order_code:n.code,created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items:n.items,subtotal:n.sub,shipping:n.ship,total:n.total,status:"menunggu"}));
+  const tokoText=stops.map((s,i)=>{const its=bySeller.get(sellerKey(s.name))||[],sb=its.reduce((t,p)=>t+currentPrice(p)*p.qty,0);
+    return `${multi?`TOKO ${i+1}`:"Toko"}: ${s.name}\n${its.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n")}${multi?`\nSubtotal toko: ${rupiah(sb)}`:""}`;}).join("\n\n");
+  const routeLine=multi?`RUTE KURIR: ${stops.map((s,i)=>`${i+1}. ${s.name}`).join(" → ")} → Pembeli\n\n`:"";
+  const shipDetail=route.state==="ok"
+    ?`ongkir pertama ${rupiah(route.base)}${multi?` (${stops.length} toko)`:""}${route.extra>0?` + jarak ${route.last.name} → pembeli ${fmtKm(route.km)} km: ${rupiah(route.extra)}`:`; jarak ${route.last.name} → pembeli ${fmtKm(route.km)} km masuk gratis`}`
+    :"jarak belum terhitung, mohon konfirmasi";
+  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nNOTA • Kode Pesanan: ${orderCode}\n\n${routeLine}${tokoText}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${shipping>0?rupiah(shipping):"Gratis"} (${shipDetail})\nTOTAL BAYAR: ${rupiah(total)}\n\nNama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
+  const payloads=[{order_code:orderCode,created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu"}];
 
   // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi semua nota.
   const local=getLocalOrders(); payloads.forEach((pl,i)=>local.unshift({...pl,id:`local-${Date.now()}-${i}`})); saveLocalOrders(local);
@@ -690,7 +708,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   renderMyOrders();
   window.open(waLink(msg),"_blank");
   cart=[];saveCart();updateCartCount();renderCart();closeModal("checkoutModal");
-  showToast(notas.length>1?`✅ ${notas.length} nota (per toko) tersimpan dan dikirim.`:"✅ Pesanan tersimpan dan dikirim."); e.target.reset();
+  showToast(multi?`✅ Pesanan ${stops.length} toko (1 nota) tersimpan dan dikirim.`:"✅ Pesanan tersimpan dan dikirim."); e.target.reset();
 });
 
 document.getElementById("year").textContent=new Date().getFullYear();
@@ -1090,8 +1108,8 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
       panel.innerHTML=`<div class="extra-head"><h4>🚚 Ongkir & WhatsApp</h4><button type="button" class="extra-close" data-act="close" aria-label="Tutup">✕</button></div>
         <div class="fee-default"><label>💬 Nomor WhatsApp toko<span class="wa-row"><input id="waInput" type="tel" inputmode="tel" maxlength="20" placeholder="08123456789" value="${esc(WHATSAPP_NUMBER)}"><button type="button" class="btn primary" data-act="savewa">Simpan</button></span></label><small>Semua tombol WhatsApp dan pesanan checkout dikirim ke nomor ini. Boleh ditulis 08… atau 62… (otomatis diubah ke format 62…).</small></div>
         <div class="fee-default pin-card"><b>🔐 Kode admin</b><div class="pin-grid"><input id="pinOld" type="password" autocomplete="off" placeholder="Kode lama"><input id="pinNew" type="password" autocomplete="new-password" maxlength="12" placeholder="Kode baru (4–12 karakter)"><input id="pinNew2" type="password" autocomplete="new-password" maxlength="12" placeholder="Ulangi kode baru"><button type="button" class="btn primary" data-act="savepin">Ganti Kode</button></div><small>Kode ini dipakai untuk membuka Dashboard Admin. Kode lama diminta dulu sebelum diganti. Kode bawaan: 1234 — segera ganti.</small></div>
-        <div class="fee-default"><label>🚚 Ongkir standar per toko (Rp)<input type="number" inputmode="numeric" min="0" step="500" data-act="fee-default" value="${Number(shippingFees.__default)||0}"></label><small>Dipakai untuk toko yang tarifnya dikosongkan. Pembeli dari 2 toko = 2 × ongkir.</small></div>
-        <div class="fee-default"><b>📏 Tambahan ongkir per jarak</b><div class="pin-grid"><label>Gratis tambahan sampai (km)<input type="number" inputmode="decimal" min="0" step="0.5" data-act="fee-km" value="${shipFreeKm()}"></label><label>Tambahan per km (Rp)<input type="number" inputmode="numeric" min="0" step="500" data-act="fee-perkm" value="${shipPerKm()}"></label></div><small>Jarak dihitung dari titik toko (lokasi yang disimpan penjual) ke titik pembeli. Contoh: jarak 3,4 km = ongkir pertama + 2 km × tarif per km (dibulatkan ke atas).</small></div>
+        <div class="fee-default"><label>🚚 Ongkir standar per toko (Rp)<input type="number" inputmode="numeric" min="0" step="500" data-act="fee-default" value="${Number(shippingFees.__default)||0}"></label><small>Dipakai untuk toko yang tarifnya dikosongkan. Tiap toko yang disinggahi kurir dihitung satu kali (2 toko = 2 × ongkir pertama), semuanya dalam satu nota.</small></div>
+        <div class="fee-default"><b>📏 Tambahan ongkir per jarak</b><div class="pin-grid"><label>Gratis tambahan sampai (km)<input type="number" inputmode="decimal" min="0" step="0.5" data-act="fee-km" value="${shipFreeKm()}"></label><label>Tambahan per km (Rp)<input type="number" inputmode="numeric" min="0" step="500" data-act="fee-perkm" value="${shipPerKm()}"></label></div><small>Kurir mampir ke semua toko berurutan (dari yang terjauh ke yang terdekat dengan pembeli). Jarak tambahan dihitung dari TOKO TERAKHIR ke titik pembeli. Contoh: jarak 3,4 km dan gratis 2 km = 2 km × tarif per km (dibulatkan ke atas).</small></div>
         <div class="seller-status-list">${rows.map(r=>`<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><label class="fee-field">Ongkir Rp<input type="number" inputmode="numeric" min="0" step="500" data-act="fee" data-name="${esc(r.name)}" placeholder="${shippingFeeFor("")}" value="${shippingFees[sellerKey(r.name)]??""}"></label></div>`).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>
         <p class="admin-hint">Kolom ongkir toko yang dikosongkan memakai tarif standar. Isi <b>0</b> untuk toko yang gratis ongkir.</p>`;
     } else panel.innerHTML="";
