@@ -48,7 +48,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 [hidden]{display:none!important}
-.card{border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:10px;background:#fffaf2}.card h3{margin:0;font-size:15px}.card p{margin:4px 0;font-size:13px;color:var(--muted)}.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--chip)}.mini{display:inline-block;margin:6px 6px 0 0;font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:12px;border:1px solid var(--brown);background:#fff;color:var(--brown);text-decoration:none;cursor:pointer}.mini.g{background:var(--green);border-color:var(--green);color:#fff}.sw{display:flex;gap:10px;align-items:center;background:var(--chip);padding:12px 14px;border-radius:14px;margin:6px 0 12px;font-weight:600}#aktifBox{background:#fff;padding:22px 18px;font-size:16px;gap:12px;border-radius:16px}#aktifBox input{width:22px;height:22px}
+.card{border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:10px;background:#fffaf2}.card h3{margin:0;font-size:15px}.card p{margin:4px 0;font-size:13px;color:var(--muted)}.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--chip)}.mini{display:inline-block;margin:6px 6px 0 0;font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:12px;border:1px solid var(--brown);background:#fff;color:var(--brown);text-decoration:none;cursor:pointer}.mini.g{background:var(--green);border-color:var(--green);color:#fff}.sw{display:flex;gap:10px;align-items:center;background:var(--chip);padding:12px 14px;border-radius:14px;margin:6px 0 12px;font-weight:600}#aktifBox{background:#fff;padding:22px 18px;font-size:16px;gap:12px;border-radius:16px}#aktifBox input{width:22px;height:22px}#notifBox{background:#fff;border-radius:16px;padding:16px 18px;margin:0 0 14px}#notifBox b{display:block;font-size:16px}#notifBox p{margin:4px 0 10px;font-size:13px;color:var(--muted)}
 .map-actions{margin:6px 0 4px}.map-actions .mini{margin-top:2px}.accordion-head{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;user-select:none;margin:0;padding:0;background:none;border:0;color:var(--brown);width:100%;text-align:left;font:inherit}.accordion-head h2{margin:0}.chev{font-size:22px;font-weight:800;transition:transform .2s;line-height:1}.accordion-head[aria-expanded="false"] .chev{transform:rotate(-90deg)}.accordion-body{overflow:hidden;max-height:1200px;opacity:1;transition:max-height .25s ease,opacity .2s ease;margin-top:10px}.accordion-body.closed{max-height:0;opacity:0;margin-top:0}.section-note{font-size:13px;color:var(--muted);margin:3px 0 0}
 </style>
 </head>
@@ -59,6 +59,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
   <div id="dash" hidden>
   <div id="stat" class="status p"></div>
   <label class="sw" id="aktifBox" style="margin:0 0 14px" hidden><input type="checkbox" id="f_aktif"> Saya siap menerima antaran</label>
+  <div id="notifBox" hidden><b>🔔 Notifikasi pesanan</b><p id="notifTxt">Dapatkan pemberitahuan di HP saat ada pesanan masuk, walaupun aplikasi sedang ditutup.</p><button class="mini g" type="button" id="btnNotif">Aktifkan notifikasi</button><button class="mini" type="button" id="btnNotifTest" hidden>Kirim tes</button></div>
   <!-- 1. Pesanan untuk diantar -->
   <section class="box" id="ordBox" style="margin-top:0" hidden><h2>Pesanan untuk diantar</h2><p class="hint" style="margin:0">Tiap pesanan ditawarkan ke satu kurir secara acak. Jika tidak ditanggapi, otomatis pindah ke kurir lain.</p><div id="orders"></div><div class="btns"><button class="btn" id="btnRefresh" type="button">🔄 Muat ulang</button></div></section>
 
@@ -154,7 +155,7 @@ async function load(){
   $("dHalo").textContent = "Halo, " + (me.nama || "selamat datang") + " 👋";
   FIELDS.forEach(k => { $("f_" + k).value = me[k] || ""; });
   $("fWa").value = "+" + WA;
-  $("f_aktif").checked = me.aktif !== false; const ok = !me.pending; $("stat").className = "status " + (ok ? "ok" : "p"); $("stat").textContent = ok ? "✅ Akun kurir Anda sudah disetujui admin." : "⏳ Menunggu persetujuan admin. Daftar pesanan akan tampil setelah disetujui."; $("ordBox").hidden = !ok; $("aktifBox").hidden = !ok;
+  $("f_aktif").checked = me.aktif !== false; const ok = !me.pending; $("stat").className = "status " + (ok ? "ok" : "p"); $("stat").textContent = ok ? "✅ Akun kurir Anda sudah disetujui admin." : "⏳ Menunggu persetujuan admin. Daftar pesanan akan tampil setelah disetujui."; $("ordBox").hidden = !ok; $("aktifBox").hidden = !ok; $("notifBox").hidden = !ok; if(ok) pushInit();
   $("dash").hidden = false;
 }
 $("fSimpan").onclick = async () => {
@@ -344,6 +345,52 @@ $("orders").addEventListener("click", async e => {
   }catch(err){ toast("Gagal: " + String(err.message || err).slice(0, 100)); }
   loadOrders();
 });
+
+
+// ===== Notifikasi push: pesanan masuk tetap sampai ke HP walau aplikasi ditutup =====
+const VAPID_KEY = (typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG.vapidPublicKey) || "";
+const PUSH_KEY = "kurir_push_";
+const pushOK = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && !!VAPID_KEY;
+const b64u8 = b => { const p = "=".repeat((4 - b.length % 4) % 4), r = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...r].map(c => c.charCodeAt(0))); };
+async function pushReg(){ return (await navigator.serviceWorker.getRegistration()) || await navigator.serviceWorker.register("sw.js"); }
+async function savePushSub(sub){
+  const key = PUSH_KEY + me.id;
+  let cur = []; try{ const r = await cf("store_settings?select=value&key=eq." + encodeURIComponent(key)); cur = (r[0] && r[0].value && r[0].value.subs) || []; }catch(e){}
+  const j = sub.toJSON(); cur = cur.filter(x => x.endpoint !== j.endpoint); cur.push(j);
+  await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key, value:{subs:cur.slice(-3), nama:me.nama || "", t:Date.now()}}])});
+}
+async function pushInit(){
+  const btn = $("btnNotif"), txt = $("notifTxt");
+  if(!pushOK()){
+    btn.hidden = true;
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    txt.textContent = !VAPID_KEY ? "Notifikasi belum diatur oleh admin." : (ios ? "Di iPhone: buka menu Bagikan → \"Tambah ke Layar Utama\", lalu buka aplikasi dari ikon tersebut untuk mengaktifkan notifikasi." : "Browser ini belum mendukung notifikasi.");
+    return;
+  }
+  if(Notification.permission === "denied"){ btn.hidden = true; txt.textContent = "Notifikasi diblokir. Buka pengaturan situs/aplikasi di HP, izinkan Notifikasi, lalu muat ulang halaman ini."; return; }
+  let sub = null; try{ sub = await (await pushReg()).pushManager.getSubscription(); }catch(e){}
+  if(sub && Notification.permission === "granted"){
+    try{ await savePushSub(sub); }catch(e){}
+    txt.textContent = "✅ Notifikasi aktif di HP ini. Anda akan diberi tahu saat ada pesanan untuk Anda.";
+    btn.hidden = true; $("btnNotifTest").hidden = false;
+  }else{ btn.hidden = false; btn.textContent = "Aktifkan notifikasi"; }
+}
+$("btnNotif").onclick = async () => {
+  const btn = $("btnNotif"); btn.disabled = true;
+  try{
+    const perm = await Notification.requestPermission();
+    if(perm !== "granted"){ toast("Izin notifikasi tidak diberikan"); return pushInit(); }
+    const reg = await pushReg(); await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub) sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64u8(VAPID_KEY)});
+    await savePushSub(sub); toast("Notifikasi diaktifkan"); pushInit();
+  }catch(e){ toast("Gagal mengaktifkan: " + String(e.message || e).slice(0, 80)); }
+  finally{ btn.disabled = false; }
+};
+$("btnNotifTest").onclick = async () => {
+  try{ const reg = await pushReg(); await reg.showNotification("Kalensari Store", {body:"Tes notifikasi berhasil 🎉", icon:"icons/icon-192.png", tag:"tes"}); }
+  catch(e){ toast("Tes gagal"); }
+};
 
 // Accordion Data Diri & Keamanan Akun: klik judul untuk buka/tutup.
 document.querySelectorAll("[data-accordion]").forEach(head => {

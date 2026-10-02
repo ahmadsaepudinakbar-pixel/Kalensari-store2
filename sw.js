@@ -2,7 +2,7 @@
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
    (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v3";
+const VERSION = "ks-v4";
 const CACHE = "kalensari-" + VERSION;
 const PRECACHE = [
   "./offline.html",
@@ -51,5 +51,35 @@ self.addEventListener("fetch", (e) => {
           return Response.error();
         })
       )
+  );
+});
+
+/* ===== Notifikasi push (pesanan masuk untuk kurir) ===== */
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : "" }; }
+  const title = d.title || "Kalensari Store";
+  e.waitUntil(self.registration.showNotification(title, {
+    body: d.body || "Ada pesanan baru untuk Anda.",
+    icon: "icons/icon-192.png",
+    badge: "icons/icon-192.png",
+    tag: d.tag || "pesanan-baru",
+    renotify: true,
+    requireInteraction: true,
+    vibrate: [300, 120, 300, 120, 300],
+    data: { url: d.url || "dashboard-kurir.html" }
+  }));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const target = new URL((e.notification.data && e.notification.data.url) || "dashboard-kurir.html", self.registration.scope).href;
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if (c.url.indexOf("dashboard-kurir.html") !== -1 && "focus" in c) return c.focus();
+      }
+      return self.clients.openWindow(target);
+    })
   );
 });
