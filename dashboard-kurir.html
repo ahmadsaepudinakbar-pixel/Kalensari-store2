@@ -269,7 +269,8 @@ async function loadOrders(){
   try{
     const [rows, states, elig] = await Promise.all([fetchOrders(ACTIVE_Q), readStates(), eligibleCouriers()]);
     const now = Date.now(); ORD = {};
-    const free = freeCouriers(elig, busyIds(rows, states), null); // kurir sibuk tidak ikut giliran tawaran rows.forEach(o => { ORD[o.order_code] = o; });
+    rows.forEach(o => { ORD[o.order_code] = o; });
+    const free = freeCouriers(elig, busyIds(rows, states), null); // kurir sibuk tidak ikut giliran tawaran
     const mine = [], offers = []; let other = 0;
     rows.forEach(o => {
       const st = states[o.order_code] || {};
