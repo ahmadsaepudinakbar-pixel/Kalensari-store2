@@ -100,21 +100,21 @@ async function fetchMyOrders(){
 function ordCard(o){
   const k=myKey(),mine=o.items.filter(p=>sKey(p.seller)===k),only=mine.length===o.items.length;
   const sub=mine.reduce((t,p)=>t+(p.sale||p.price||0)*p.qty,0),ship=only?Number(o.shipping||0):0,total=only?Number(o.total||sub):sub;
-  const st=o.status==="baru"||!o.status?"menunggu":o.status;
+  let st=o.status==="baru"||!o.status?"menunggu":o.status;if(st==="menunggu"&&new Date(o.created_at).getTime()+15*60000<=Date.now())st="dibatalkan";
   const id=escH(String(o.id));
   return `<div class="ord${ordNew.has(o.order_code)?" new":""}"><h3>${escH(o.order_code||"Pesanan")}<span class="st ${escH(st)}">${escH(STL[st]||st)}</span></h3>
   <p>${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</p>
   <ul>${mine.map(p=>`<li>${escH(p.name)} ×${p.qty} — ${rp((p.sale||p.price||0)*p.qty)}</li>`).join("")}</ul>
   <div class="sum"><span>Subtotal</span><b>${rp(sub)}</b></div>${only?`<div class="sum"><span>Ongkir</span><b>${ship>0?rp(ship):"Gratis"}</b></div>`:""}
   <div class="sum t"><span>Total</span><b>${rp(total)}</b></div><p>💳 ${escH(o.payment||"-")}</p>
-  <div class="ordbtns">${only?`<select data-id="${id}" aria-label="Status pesanan">${STATS.map(s=>`<option value="${s}"${s===st?" selected":""}>${STL[s]}</option>`).join("")}</select>`:`<small>Pesanan gabungan lama: status diubah oleh admin.</small>`}</div></div>`;
+  <div class="ordbtns">${only?(st==="menunggu"?`<button class="mini g" data-id="${id}" data-a="diproses">✅ Terima & proses</button><button class="mini" style="border-color:#b83c2b;color:#b83c2b" data-id="${id}" data-a="dibatalkan">✖️ Tolak</button>`:`<small>${({diproses:"Menunggu kurir mengantar",dikirim:"Sedang diantar kurir",selesai:"Selesai",dibatalkan:"Ditolak"})[st]||""}</small>`):`<small>Pesanan gabungan lama: status diubah oleh admin.</small>`}</div></div>`;
 }
 function renderOrders(){
   const list=$("ordList"),open=ordRows.filter(o=>!["selesai","dibatalkan"].includes(o.status));
   const wait=ordRows.filter(o=>!o.status||o.status==="menunggu"||o.status==="baru").length;
   $("ordBadge").hidden=!wait;$("ordBadge").textContent=wait;document.title=(wait?`(${wait}) `:"")+T0;
   list.innerHTML=ordRows.length?ordRows.slice(0,50).map(ordCard).join(""):'<p class="hint">Belum ada pesanan untuk toko Anda.</p>';
-  list.querySelectorAll("select[data-id]").forEach(sel=>sel.onchange=async()=>{
+  list.querySelectorAll("button[data-a]").forEach(sel=>sel.onclick=async()=>{if(sel.dataset.a==="dibatalkan"&&!confirm("Tolak pesanan ini? Tidak bisa dibatalkan."))return;sel.value=sel.dataset.a;
     try{if(cloudOn())await cf("orders?id=eq."+encodeURIComponent(sel.dataset.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:sel.value,updated_at:new Date().toISOString()})});
       else{const loc=LSget("kalensari_orders",[]).map(o=>String(o.id)===sel.dataset.id?{...o,status:sel.value,updated_at:new Date().toISOString()}:o);LSset("kalensari_orders",loc)}
       const r=ordRows.find(o=>String(o.id)===sel.dataset.id);if(r)r.status=sel.value;renderOrders();toast("✅ Status: "+STL[sel.value])}
