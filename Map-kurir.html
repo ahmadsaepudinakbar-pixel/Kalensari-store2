@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Navigasi Kurir - Kalensari Store</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--green:#2E8B4A;--brown:#7B3F1A;--cream:#FBF8F1;--ink:#4a2a14}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--cream);color:var(--ink)}
+#peta{position:fixed;inset:0 0 0 0;z-index:0}
+.atas{position:fixed;z-index:500;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;gap:8px;align-items:center;
+  background:#fffdf8;border-radius:14px;padding:10px 14px;box-shadow:0 4px 14px rgba(0,0,0,.18);font-weight:600}
+.atas span{flex:1}
+.atas small{font-weight:400;color:#7a6f62;display:block}
+#gps{font-size:.78rem;font-weight:600;padding:4px 10px;border-radius:99px;background:#f6d9b8;color:#7a3d00}
+#gps.ok{background:#cfe9d6;color:#17562d}
+.kartu{position:fixed;z-index:500;left:0;right:0;bottom:0;background:#fffdf8;border-radius:20px 20px 0 0;
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(0,0,0,.18)}
+.tahap{font-size:.85rem;color:var(--green);font-weight:700;margin:0}
+.kartu h2{margin:2px 0 2px;font-size:1.25rem;color:var(--brown)}
+.alamat{margin:0 0 10px;color:#6b6258;font-size:.95rem}
+.info{display:flex;gap:10px;margin-bottom:12px}
+.info div{flex:1;background:#f3eee2;border-radius:12px;padding:8px 12px}
+.info b{display:block;font-size:1.25rem}
+.info small{color:#7a6f62}
+.baris{display:flex;gap:8px}
+button,.tombol{flex:1;border:0;border-radius:12px;padding:13px 10px;font:600 1rem inherit;font-family:inherit;text-align:center;text-decoration:none;cursor:pointer}
+.utama{background:var(--green);color:#fff}
+.utama.siap{animation:denyut 1.2s infinite}
+.sekunder{background:#efe6d4;color:var(--brown)}
+.kecil{margin-top:8px;display:block;text-align:center;font-size:.85rem;color:#7a6f62}
+button:focus-visible,.tombol:focus-visible{outline:3px solid var(--brown);outline-offset:2px}
+@keyframes denyut{50%{box-shadow:0 0 0 7px rgba(46,139,74,.25)}}
+@media (prefers-reduced-motion:reduce){.utama.siap{animation:none}}
+.pin{font-size:26px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+</style>
+</head>
+<body>
+
+<div class="atas"><span id="judul">Pesanan <small id="idp"></small></span><em id="gps">GPS mencari...</em></div>
+<div id="peta"></div>
+
+<div class="kartu">
+  <p class="tahap" id="tahap"></p>
+  <h2 id="nama"></h2>
+  <p class="alamat" id="alamat"></p>
+  <div class="info">
+    <div><b id="jarak">-</b><small>Jarak rute</small></div>
+    <div><b id="eta">-</b><small>Perkiraan tiba</small></div>
+  </div>
+  <div class="baris">
+    <a class="tombol sekunder" id="telp" href="#">Telepon</a>
+    <button class="utama" id="lanjut"></button>
+  </div>
+  <a class="kecil" id="gmaps" href="#" target="_blank" rel="noopener">Buka di Google Maps (cadangan)</a>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ===== DATA PESANAN: GANTI DENGAN DATA DARI SUPABASE ===== */
+const PESANAN = {
+  id: "KS-0123",
+  toko:      {nama:"Warung Bu Sari",   alamat:"Jl. Kalensari No. 5",  lat:-6.2000, lng:106.8160, hp:"6281200000001"},
+  pelanggan: {nama:"Pak Budi",         alamat:"Jl. Melati No. 12",    lat:-6.2060, lng:106.8230, hp:"6281200000002"}
+};
+/* contoh ambil dari Supabase:
+   const {data} = await db.from('pesanan').select('*').eq('id', idPesanan).single(); */
+
+const TAHAP = [
+  {label:"1. Ambil pesanan di toko",  target:()=>PESANAN.toko,      tombol:"Pesanan sudah diambil"},
+  {label:"2. Antar ke pelanggan",     target:()=>PESANAN.pelanggan, tombol:"Pesanan sudah diterima"}
+];
+let tahap = 0, posKurir = null, terakhirRute = 0, perluFit = true;
+
+/* ===== PETA ===== */
+const peta = L.map("peta",{zoomControl:false}).setView([PESANAN.toko.lat, PESANAN.toko.lng], 15);
+L.control.zoom({position:"topright"}).addTo(peta);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(peta);
+
+const ikon = e => L.divIcon({html:`<div class="pin">${e}</div>`,className:"",iconSize:[26,26],iconAnchor:[13,24]});
+L.marker([PESANAN.toko.lat, PESANAN.toko.lng],{icon:ikon("🏪")}).addTo(peta).bindPopup(PESANAN.toko.nama);
+L.marker([PESANAN.pelanggan.lat, PESANAN.pelanggan.lng],{icon:ikon("🏠")}).addTo(peta).bindPopup(PESANAN.pelanggan.nama);
+const marKurir = L.circleMarker([0,0],{radius:9,color:"#fff",weight:3,fillColor:"#1a73e8",fillOpacity:1});
+let garis = null;
+
+/* ===== TAMPILAN KARTU ===== */
+const $ = id => document.getElementById(id);
+function tampil(){
+  const t = TAHAP[tahap], tg = t.target();
+  $("idp").textContent = "#" + PESANAN.id;
+  $("tahap").textContent = t.label;
+  $("nama").textContent = tg.nama;
+  $("alamat").textContent = tg.alamat;
+  $("lanjut").textContent = t.tombol;
+  $("lanjut").classList.remove("siap");
+  $("telp").href = "tel:+" + tg.hp;
+  $("gmaps").href = `https://www.google.com/maps/dir/?api=1&destination=${tg.lat},${tg.lng}&travelmode=driving`;
+  $("jarak").textContent = $("eta").textContent = "-";
+  perluFit = true; terakhirRute = 0;
+  hitungRute();
+}
+
+/* ===== RUTE (OSRM, tanpa API key) ===== */
+function lurus(a,b){ // meter, rumus haversine
+  const R=6371000, r=x=>x*Math.PI/180, dLa=r(b[0]-a[0]), dLn=r(b[1]-a[1]);
+  const h=Math.sin(dLa/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(dLn/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+async function hitungRute(){
+  if(!posKurir) return;
+  const tg = TAHAP[tahap].target();
+  terakhirRute = Date.now();
+  try{
+    const u = `https://router.project-osrm.org/route/v1/driving/${posKurir[1]},${posKurir[0]};${tg.lng},${tg.lat}?overview=full&geometries=geojson`;
+    const r = (await (await fetch(u)).json()).routes[0];
+    if(garis) peta.removeLayer(garis);
+    garis = L.geoJSON(r.geometry,{style:{color:"#2E8B4A",weight:6,opacity:.85}}).addTo(peta);
+    $("jarak").textContent = (r.distance/1000).toFixed(1) + " km";
+    $("eta").textContent = Math.max(1,Math.round(r.duration/60)) + " menit";
+    if(perluFit){ peta.fitBounds(garis.getBounds(),{paddingTopLeft:[20,80],paddingBottomRight:[20,280]}); perluFit=false; }
+  }catch(e){
+    $("jarak").textContent = (lurus(posKurir,[tg.lat,tg.lng])/1000).toFixed(1) + " km"; // cadangan: garis lurus
+    $("eta").textContent = "-";
+  }
+}
+
+/* ===== GPS KURIR ===== */
+function updatePos(lat,lng){
+  posKurir = [lat,lng];
+  if(!peta.hasLayer(marKurir)) marKurir.addTo(peta);
+  marKurir.setLatLng(posKurir);
+  const tg = TAHAP[tahap].target();
+  $("lanjut").classList.toggle("siap", lurus(posKurir,[tg.lat,tg.lng]) < 60); // tombol berdenyut saat <60 m
+  if(Date.now()-terakhirRute > 30000) hitungRute(); // hitung ulang tiap 30 detik
+}
+if("geolocation" in navigator){
+  navigator.geolocation.watchPosition(p=>{
+    $("gps").textContent="GPS aktif"; $("gps").classList.add("ok");
+    const pertama = !posKurir;
+    updatePos(p.coords.latitude,p.coords.longitude);
+    if(pertama) hitungRute();
+  },()=>{ $("gps").textContent="GPS mati - aktifkan lokasi"; },{enableHighAccuracy:true,maximumAge:5000});
+}else{ $("gps").textContent="GPS tidak didukung"; }
+
+/* layar tetap menyala selama navigasi */
+let kunci=null;
+async function jagaLayar(){ try{ kunci = await navigator.wakeLock.request("screen"); }catch(e){} }
+jagaLayar();
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") jagaLayar(); });
+
+/* ===== TOMBOL ===== */
+$("lanjut").onclick = () => {
+  if(tahap < TAHAP.length-1){ tahap++; tampil(); }
+  else{
+    $("tahap").textContent = "Selesai"; $("nama").textContent = "Pesanan terkirim"; $("alamat").textContent = "Terima kasih, kurir!";
+    $("lanjut").disabled = true; if(garis) peta.removeLayer(garis);
+    /* di sini: update status pesanan di Supabase menjadi 'selesai' */
+  }
+};
+tampil();
+</script>
+</body>
+</html>
