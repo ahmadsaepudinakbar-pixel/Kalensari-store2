@@ -186,9 +186,35 @@ const BASE_CATEGORIES=["Makanan","Minuman"];
 const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])].filter(c=>!removedCategories.includes(c)||products.some(p=>p.category===c));
 const sellerKey=n=>String(n||"").trim().toLowerCase();
 const shippingFeeFor=n=>{const v=shippingFees[sellerKey(n)],d=Number(shippingFees.__default)||0;return(v===undefined||v===null||v==="")?d:(Number(v)||0);};
+// ===== ONGKIR = ongkir pertama toko + tambahan per KM (jarak titik toko -> titik pembeli, garis lurus) =====
+// Titik toko diambil dari lokasi yang disimpan penjual (penjual_members.latitude/longitude, dicocokkan lewat nama toko).
+let sellerLocs=readLS("kalensari_seller_locs",{});
+const SHIP_FREE_KM=2, SHIP_PER_KM=2500; // bawaan; bisa diubah di Admin > Ongkir
+const shipFreeKm=()=>{const v=shippingFees.__freeKm;return(v===undefined||v===null||v==="")?SHIP_FREE_KM:Math.max(0,Number(v)||0);};
+const shipPerKm=()=>{const v=shippingFees.__perKm;return(v===undefined||v===null||v==="")?SHIP_PER_KM:Math.max(0,Number(v)||0);};
+const validLL=(a,b)=>{a=Number(a);b=Number(b);return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a)<=90&&Math.abs(b)<=180&&!(a===0&&b===0);};
+const kmBetween=(a,b)=>{const R=6371,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dg=r(b.lng-a.lng),h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));};
+const fmtKm=k=>Number(k).toLocaleString("id-ID",{maximumFractionDigits:1});
+const buyerPoint=()=>{const la=document.getElementById("ksMapLat")?.value,ln=document.getElementById("ksMapLng")?.value;return(String(la||"").trim()!==""&&String(ln||"").trim()!==""&&validLL(la,ln))?{lat:Number(la),lng:Number(ln)}:null;};
+// state: ok = jarak terhitung | nobuyer = titik pembeli belum ada | nostore = titik toko belum disimpan penjual
+function shippingQuote(name){
+  const base=shippingFeeFor(name),s=sellerLocs[sellerKey(name)],b=buyerPoint();
+  const q={name:String(name||"Toko").trim(),base,km:null,extra:0,fee:base,state:"ok"};
+  if(!s||!validLL(s.lat,s.lng)){q.state="nostore";return q;}
+  if(!b){q.state="nobuyer";return q;}
+  q.km=kmBetween(s,b);
+  q.extra=Math.max(0,Math.ceil(q.km-shipFreeKm()-1e-9))*shipPerKm(); // dibulatkan ke atas per KM penuh di atas batas
+  q.fee=base+q.extra;
+  return q;
+}
 // Satu tarif untuk tiap toko yang ada di keranjang (beberapa produk dari toko yang sama = satu ongkir).
-const shippingBreakdown=items=>{const m=new Map();items.forEach(p=>{const k=sellerKey(p.seller);if(!m.has(k))m.set(k,{name:String(p.seller||"Toko").trim(),fee:shippingFeeFor(p.seller)});});return[...m.values()];};
-const shippingTotal=items=>shippingBreakdown(items).reduce((t,x)=>t+x.fee,0);
+const shippingBreakdown=items=>{const m=new Map();items.forEach(p=>{const k=sellerKey(p.seller);if(!m.has(k))m.set(k,shippingQuote(p.seller));});return[...m.values()];};
+const shipLine=x=>x.state==="ok"?(x.extra>0?`Ongkir pertama ${rupiah(x.base)} + jarak ${fmtKm(x.km)} km: ${rupiah(x.extra)}`:`Jarak ${fmtKm(x.km)} km (masuk ${fmtKm(shipFreeKm())} km pertama)`):x.state==="nostore"?"Lokasi toko belum diatur penjual":`Ongkir pertama • +${rupiah(shipPerKm())}/km jika lebih dari ${fmtKm(shipFreeKm())} km`;
+function shipBreakdownHTML(ships){
+  if(!ships.length)return"";
+  const need=ships.some(x=>x.state==="nobuyer"),noStore=ships.some(x=>x.state==="nostore");
+  return`<div class="ship-head">Rincian ongkir · ${ships.length} toko</div>${ships.map(x=>`<div class="ship-row"><span>🏪 ${esc(x.name)}<small class="ship-sub">${esc(shipLine(x))}</small></span><b>${x.fee>0?rupiah(x.fee):"Gratis"}</b></div>`).join("")}<p class="ship-note">ℹ️ Ongkir dihitung <b>per toko</b>: ongkir pertama toko, ditambah <b>${rupiah(shipPerKm())} per km</b> untuk jarak lebih dari <b>${fmtKm(shipFreeKm())} km</b> (dari titik toko ke titik pembeli, dibulatkan ke atas).${need?" Tambahan jarak dihitung otomatis setelah alamat/lokasi dipilih di checkout.":""}${noStore?" Toko tanpa titik lokasi belum bisa dihitung jaraknya; admin akan konfirmasi lewat WhatsApp.":""}</p>`;
+}const shippingTotal=items=>shippingBreakdown(items).reduce((t,x)=>t+x.fee,0);
 // ===== JADWAL BUKA/TUTUP OTOMATIS PENJUAL (jam buka, jam tutup, hari libur; waktu WIB) =====
 // sellerSchedule: {"nama penjual (huruf kecil)": {o:"08:00", c:"17:00", off:[0..6 libur tiap pekan, 0=Minggu], h:["2026-10-17" tanggal libur khusus]}}
 let sellerSchedule=readLS("kalensari_seller_schedule",{});
@@ -222,6 +248,7 @@ async function loadCloudSettings(){
       if(r.key==="whatsapp_number"&&typeof r.value==="string"){const n=normalizePhone(r.value);if(n.length>=9&&n.length<=15){WHATSAPP_NUMBER=n;localStorage.setItem("kalensari_wa_number",JSON.stringify(n));applyWaLinks();}}
       if(r.key==="admin_pin_hash"&&typeof r.value==="string"&&/^[0-9a-f]{64}$/.test(r.value)){adminPinHash=r.value;localStorage.setItem("kalensari_admin_pin_hash",JSON.stringify(adminPinHash));}
       if(r.key==="shipping_fees"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){shippingFees=r.value;localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));}
+      if(r.key==="penjual_members"&&Array.isArray(r.value)){const m={};r.value.forEach(x=>{const nm=sellerKey(x&&(x.toko||x.usaha));if(nm&&validLL(x.latitude,x.longitude))m[nm]={lat:Number(x.latitude),lng:Number(x.longitude)};});sellerLocs=m;localStorage.setItem("kalensari_seller_locs",JSON.stringify(sellerLocs));}
       if(r.key==="seller_schedule"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){sellerSchedule=r.value;localStorage.setItem("kalensari_seller_schedule",JSON.stringify(sellerSchedule));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
     });
@@ -484,7 +511,8 @@ function renderCart() {
   {const row=document.getElementById("cartShipping").parentElement;let bd=document.getElementById("cartShipBreakdown");
    if(!bd){bd=document.createElement("div");bd.id="cartShipBreakdown";bd.className="ship-breakdown";row.insertAdjacentElement("afterend",bd);}
    bd.hidden=!ships.length;
-   bd.innerHTML=ships.length?`<div class="ship-head">Rincian ongkir · ${ships.length} toko</div>${ships.map(x=>`<div class="ship-row"><span>🏪 ${esc(x.name)}</span><b>${x.fee>0?rupiah(x.fee):"Gratis"}</b></div>`).join("")}<p class="ship-note">ℹ️ Ongkir dihitung <b>per toko</b>, bukan per produk. Belanja dari ${ships.length>1?`${ships.length} toko berarti ongkir dikenakan ${ships.length} kali`:"1 toko berarti 1 kali ongkir"}; beberapa produk dari toko yang sama hanya kena satu ongkir.</p>`:"";}
+   bd.innerHTML=shipBreakdownHTML(ships);}
+  {const tot=document.querySelector("#checkoutForm .checkout-total");if(tot){let cb=document.getElementById("coShipBreakdown");if(!cb){cb=document.createElement("div");cb.id="coShipBreakdown";cb.className="ship-breakdown";tot.insertAdjacentElement("beforebegin",cb);}cb.hidden=!ships.length;cb.innerHTML=shipBreakdownHTML(ships);}}
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutBtn").disabled=!items.length;
@@ -538,11 +566,12 @@ function setupCheckoutMaps(){
       rumah.innerHTML=`<div>${esc(b.alamat)}</div>${okCoord(b.lat,b.lng)?"<small>✅ Titik Google Maps tersimpan</small>":""}`;
       latEl.value=okCoord(b.lat,b.lng)?Number(b.lat):""; lngEl.value=okCoord(b.lat,b.lng)?Number(b.lng):"";
     } else { latEl.value=gpsLat; lngEl.value=gpsLng; showGps(); }
+    renderCart();
   }));
   getBtn.onclick=()=>{
     if(!navigator.geolocation){status.textContent="Browser tidak mendukung lokasi.";return;}
     status.textContent="📍 Mengambil lokasi...";
-    navigator.geolocation.getCurrentPosition(pos=>{gpsLat=pos.coords.latitude.toFixed(6);gpsLng=pos.coords.longitude.toFixed(6);latEl.value=gpsLat;lngEl.value=gpsLng;showGps();},
+    navigator.geolocation.getCurrentPosition(pos=>{gpsLat=pos.coords.latitude.toFixed(6);gpsLng=pos.coords.longitude.toFixed(6);latEl.value=gpsLat;lngEl.value=gpsLng;showGps();renderCart();},
       err=>{status.textContent=err.code===1?"Izin lokasi diblokir. Klik ikon gembok di alamat → Lokasi → Izinkan, atau pilih Alamat rumah.":"Lokasi tidak bisa diperoleh. Coba lagi atau pilih Alamat rumah.";},
       {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
   };
@@ -551,7 +580,7 @@ setupCheckoutMaps();
 
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("show")}));
-document.getElementById("cartBtn").onclick=()=>{renderCart();openModal("cartModal")};
+document.getElementById("cartBtn").onclick=()=>{{const la=document.getElementById("ksMapLat"),ln=document.getElementById("ksMapLng");if(la)la.value="";if(ln)ln.value="";}renderCart();openModal("cartModal")};
 // Tombol Kosongkan Keranjang: hapus seluruh isi keranjang dan simpan ke localStorage.
 document.getElementById("clearCartBtn").onclick=()=>{
   if(!cart.length){showToast("🛒 Keranjang sudah kosong");return;}
@@ -567,7 +596,7 @@ document.getElementById("checkoutBtn").onclick=async()=>{
   if(!cart.length) return;
   const b=await loadBuyer();
   if(!b){ sessionStorage.setItem("kalensari_next","checkout"); showToast("Silakan masuk sebagai pembeli dulu..."); setTimeout(()=>{location.href="akun-pembeli.html";},900); return; }
-  checkoutBuyer=b; closeModal("cartModal"); renderCheckoutBuyer(); openModal("checkoutModal"); setupCheckoutMaps();
+  checkoutBuyer=b; closeModal("cartModal"); renderCheckoutBuyer(); renderCart(); openModal("checkoutModal"); setupCheckoutMaps();
 };
 // Pencarian produk tidak boleh terisi otomatis dari nomor WhatsApp/autofill pelanggan.
 const productSearchInput=document.getElementById("searchInput");
@@ -634,11 +663,11 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const groups=new Map();
   items.forEach(p=>{const k=sellerKey(p.seller);if(!groups.has(k))groups.set(k,{name:String(p.seller||"Toko").trim(),items:[]});groups.get(k).items.push(p);});
   const notas=[...groups.values()].map((g,i,arr)=>{
-    const sub=g.items.reduce((t,p)=>t+currentPrice(p)*p.qty,0), ship=shippingFeeFor(g.name);
-    return {seller:g.name,code:arr.length>1?`${orderCode}-${String.fromCharCode(65+i)}`:orderCode,items:g.items,sub,ship,total:sub+ship};
+    const sub=g.items.reduce((t,p)=>t+currentPrice(p)*p.qty,0), q=shippingQuote(g.name), ship=q.fee;
+    return {seller:g.name,code:arr.length>1?`${orderCode}-${String.fromCharCode(65+i)}`:orderCode,items:g.items,sub,ship,q,total:sub+ship};
   });
   const mapText=hasMap?`\nLokasi Maps: ${ksMapsSearch(`${mapLat},${mapLng}`)}`:"";
-  const notaText=notas.map((n,i)=>`${notas.length>1?`NOTA ${i+1} dari ${notas.length}`:"NOTA"} • Toko ${n.seller}\nKode: ${n.code}\n${n.items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n")}\nSubtotal: ${rupiah(n.sub)}\nOngkir: ${n.ship>0?rupiah(n.ship):"Gratis"}\nTotal toko: ${rupiah(n.total)}`).join("\n\n");
+  const notaText=notas.map((n,i)=>`${notas.length>1?`NOTA ${i+1} dari ${notas.length}`:"NOTA"} • Toko ${n.seller}\nKode: ${n.code}\n${n.items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n")}\nSubtotal: ${rupiah(n.sub)}\nOngkir: ${n.ship>0?rupiah(n.ship):"Gratis"}${n.q.state==="ok"?` (jarak ${fmtKm(n.q.km)} km${n.q.extra>0?`; ongkir pertama ${rupiah(n.q.base)} + ${rupiah(n.q.extra)}`:""})`:" (jarak belum terhitung, mohon konfirmasi)"}\nTotal toko: ${rupiah(n.total)}`).join("\n\n");
   const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nKode Pesanan: ${orderCode}\n\n${notaText}\n\nTOTAL BAYAR: ${rupiah(total)}${notas.length>1?"\n(ongkir dihitung per toko)":""}\n\nNama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
   const payloads=notas.map(n=>({order_code:n.code,created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items:n.items,subtotal:n.sub,shipping:n.ship,total:n.total,status:"menunggu"}));
 
@@ -1062,6 +1091,7 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
         <div class="fee-default"><label>💬 Nomor WhatsApp toko<span class="wa-row"><input id="waInput" type="tel" inputmode="tel" maxlength="20" placeholder="08123456789" value="${esc(WHATSAPP_NUMBER)}"><button type="button" class="btn primary" data-act="savewa">Simpan</button></span></label><small>Semua tombol WhatsApp dan pesanan checkout dikirim ke nomor ini. Boleh ditulis 08… atau 62… (otomatis diubah ke format 62…).</small></div>
         <div class="fee-default pin-card"><b>🔐 Kode admin</b><div class="pin-grid"><input id="pinOld" type="password" autocomplete="off" placeholder="Kode lama"><input id="pinNew" type="password" autocomplete="new-password" maxlength="12" placeholder="Kode baru (4–12 karakter)"><input id="pinNew2" type="password" autocomplete="new-password" maxlength="12" placeholder="Ulangi kode baru"><button type="button" class="btn primary" data-act="savepin">Ganti Kode</button></div><small>Kode ini dipakai untuk membuka Dashboard Admin. Kode lama diminta dulu sebelum diganti. Kode bawaan: 1234 — segera ganti.</small></div>
         <div class="fee-default"><label>🚚 Ongkir standar per toko (Rp)<input type="number" inputmode="numeric" min="0" step="500" data-act="fee-default" value="${Number(shippingFees.__default)||0}"></label><small>Dipakai untuk toko yang tarifnya dikosongkan. Pembeli dari 2 toko = 2 × ongkir.</small></div>
+        <div class="fee-default"><b>📏 Tambahan ongkir per jarak</b><div class="pin-grid"><label>Gratis tambahan sampai (km)<input type="number" inputmode="decimal" min="0" step="0.5" data-act="fee-km" value="${shipFreeKm()}"></label><label>Tambahan per km (Rp)<input type="number" inputmode="numeric" min="0" step="500" data-act="fee-perkm" value="${shipPerKm()}"></label></div><small>Jarak dihitung dari titik toko (lokasi yang disimpan penjual) ke titik pembeli. Contoh: jarak 3,4 km = ongkir pertama + 2 km × tarif per km (dibulatkan ke atas).</small></div>
         <div class="seller-status-list">${rows.map(r=>`<div class="seller-status-row"><div><b>${esc(r.name)}</b><small>${r.count} produk</small></div><label class="fee-field">Ongkir Rp<input type="number" inputmode="numeric" min="0" step="500" data-act="fee" data-name="${esc(r.name)}" placeholder="${shippingFeeFor("")}" value="${shippingFees[sellerKey(r.name)]??""}"></label></div>`).join("")||'<div class="empty-state">Belum ada penjual.</div>'}</div>
         <p class="admin-hint">Kolom ongkir toko yang dikosongkan memakai tarif standar. Isi <b>0</b> untuk toko yang gratis ongkir.</p>`;
     } else panel.innerHTML="";
@@ -1137,7 +1167,8 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
       schClean(n);schedOpen.add(sellerKey(n));render();afterSellerChange();
       await persist(half?"Isi jam buka DAN jam tutup agar jam berlaku":`Jadwal ${n} disimpan`);return;
     }
-    if(act!=="fee"&&act!=="fee-default")return;
+    if(act!=="fee"&&act!=="fee-default"&&act!=="fee-km"&&act!=="fee-perkm")return;
+    if(act==="fee-km"||act==="fee-perkm"){const v=Math.max(0,Number(String(t.value).replace(",","."))||0);if(act==="fee-km"){shippingFees.__freeKm=v;t.value=v;}else{shippingFees.__perKm=Math.round(v);t.value=Math.round(v);}renderCart();await persist(act==="fee-km"?`Batas tanpa tambahan: ${fmtKm(v)} km`:`Tambahan ${rupiah(Math.round(v))} per km`);return;}
     const raw=String(t.value).trim(),n=Math.max(0,Math.round(Number(raw)||0));
     if(act==="fee-default"){shippingFees.__default=n;t.value=n;}
     else{const k=sellerKey(t.dataset.name);if(raw==="")delete shippingFees[k];else{shippingFees[k]=n;t.value=n;}}
