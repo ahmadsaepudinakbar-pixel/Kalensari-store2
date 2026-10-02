@@ -58,6 +58,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 <div id="warn" class="warn" hidden>⚠️ Database online belum aktif. Data hanya tersimpan di browser ini (mode uji coba).</div>
   <div id="dash" hidden>
   <div id="stat" class="status p"></div>
+  <label class="sw" id="aktifBox" style="margin:0 0 14px" hidden><input type="checkbox" id="f_aktif"> Saya siap menerima antaran</label>
   <!-- 1. Pesanan untuk diantar -->
   <section class="box" id="ordBox" style="margin-top:0" hidden><h2>Pesanan untuk diantar</h2><p class="hint" style="margin:0">Tiap pesanan ditawarkan ke satu kurir secara acak. Jika tidak ditanggapi, otomatis pindah ke kurir lain.</p><div id="orders"></div><div class="btns"><button class="btn" id="btnRefresh" type="button">🔄 Muat ulang</button></div></section>
 
@@ -71,7 +72,6 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
       <label>Nama<input id="f_nama" class="fld" maxlength="60"></label>
       <label>Kendaraan<select id="f_kendaraan" class="fld"><option>Motor</option><option>Sepeda</option><option>Mobil</option></select></label>
       <label>Wilayah antar<input id="f_wilayah" class="fld" maxlength="60" placeholder="mis. Dusun Krajan dan sekitarnya"></label>
-      <label class="sw"><input type="checkbox" id="f_aktif"> Saya siap menerima antaran</label>
       <label>No. WhatsApp (untuk masuk)<input id="fWa" class="fld" disabled></label>
       <div class="btns"><button class="btn wa" id="fSimpan" type="button">💾 Simpan</button></div>
     </div>
@@ -154,7 +154,7 @@ async function load(){
   $("dHalo").textContent = "Halo, " + (me.nama || "selamat datang") + " 👋";
   FIELDS.forEach(k => { $("f_" + k).value = me[k] || ""; });
   $("fWa").value = "+" + WA;
-  $("f_aktif").checked = me.aktif !== false; const ok = !me.pending; $("stat").className = "status " + (ok ? "ok" : "p"); $("stat").textContent = ok ? "✅ Akun kurir Anda sudah disetujui admin." : "⏳ Menunggu persetujuan admin. Daftar pesanan akan tampil setelah disetujui."; $("ordBox").hidden = !ok;
+  $("f_aktif").checked = me.aktif !== false; const ok = !me.pending; $("stat").className = "status " + (ok ? "ok" : "p"); $("stat").textContent = ok ? "✅ Akun kurir Anda sudah disetujui admin." : "⏳ Menunggu persetujuan admin. Daftar pesanan akan tampil setelah disetujui."; $("ordBox").hidden = !ok; $("aktifBox").hidden = !ok;
   $("dash").hidden = false;
 }
 $("fSimpan").onclick = async () => {
@@ -275,7 +275,7 @@ async function loadOrders(){
     seenOffers = new Set(codes);
     const hd = t => `<h3 style="margin:14px 0 0;font-size:15px;color:var(--brown)">${t}</h3>`;
     let h = "";
-    if(me.aktif === false) h += '<p class="hint" style="margin-top:10px">⚠️ Anda sedang tidak siap menerima antaran. Centang "Saya siap menerima antaran" di Data diri agar pesanan bisa ditawarkan kepada Anda.</p>';
+    if(me.aktif === false) h += '<p class="hint" style="margin-top:10px">⚠️ Anda sedang tidak siap menerima antaran. Centang "Saya siap menerima antaran" di atas agar pesanan bisa ditawarkan kepada Anda.</p>';
     if(offers.length) h += hd(`Menunggu jawaban Anda (${offers.length})`) + offers.map(x => cardOffer(x.o, x.end)).join("");
     if(mine.length) h += hd(`Pesanan saya (${mine.length})`) + mine.map(cardMine).join("");
     if(!offers.length && !mine.length) h += '<p class="hint" style="margin-top:10px">Belum ada pesanan untuk Anda. Biarkan halaman ini terbuka; pesanan baru akan muncul otomatis.</p>';
@@ -326,6 +326,12 @@ async function setStatus(code, status){
   }catch(e){ toast("Gagal memperbarui status"); loadOrders(); }
 }
 $("btnRefresh").onclick = loadOrders;
+$("f_aktif").onchange = async () => {
+  const on = $("f_aktif").checked;
+  me.aktif = on; me.updated = Date.now();
+  try{ await upsertMember(me); toast(on ? "Anda siap menerima antaran" : "Anda tidak menerima antaran baru"); loadOrders(); }
+  catch(e){ me.aktif = !on; $("f_aktif").checked = !on; toast(e.message || "Gagal menyimpan"); }
+};
 $("orders").addEventListener("click", async e => {
   const b = e.target.closest("button[data-act]"); if(!b) return;
   const code = b.dataset.code, act = b.dataset.act;
