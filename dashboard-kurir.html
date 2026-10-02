@@ -269,6 +269,56 @@ function mapLinks(o){
   return `<a class="mini" target="_blank" rel="noopener" href="${view}">📍 Lihat di Google Maps</a><a class="mini g" target="_blank" rel="noopener" href="${nav}">🚗 Navigasi</a>`;
 }
 
+// ===== Jarak: kurir → toko → pembeli (ditampilkan sebelum Terima / Tolak) =====
+// Jarak = garis lurus antar titik (perkiraan); jarak jalan sebenarnya biasanya sedikit lebih jauh.
+let SELLERS = {}, KPOS = null, KPOS_T = 0, KPOS_ERR = "";
+const sKey = n => String(n || "").trim().toLowerCase();
+function jarakKm(a, b){
+  const R = 6371, rad = x => x * Math.PI / 180, dLa = rad(b.lat - a.lat), dLo = rad(b.lng - a.lng);
+  const h = Math.sin(dLa / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLo / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const fmtKm = k => k < 1 ? Math.max(10, Math.round(k * 1000 / 10) * 10) + " m" : k.toFixed(1).replace(".", ",") + " km";
+function sellerNameOf(o){
+  let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } }
+  const f = (Array.isArray(it) ? it : []).find(i => i && i.seller); return f ? String(f.seller).trim() : "";
+}
+function getKurirPos(){
+  return new Promise(res => {
+    if(KPOS && Date.now() - KPOS_T < 60000) return res(KPOS);
+    if(!navigator.geolocation){ KPOS_ERR = "Perangkat tidak mendukung lokasi."; return res(KPOS); }
+    navigator.geolocation.getCurrentPosition(
+      p => { KPOS = {lat:p.coords.latitude, lng:p.coords.longitude}; KPOS_T = Date.now(); KPOS_ERR = ""; res(KPOS); },
+      e => { KPOS_ERR = e && e.code === 1 ? "Izin lokasi ditolak. Izinkan lokasi di pengaturan browser untuk melihat jarak Anda ke toko." : "Lokasi Anda belum terbaca."; res(KPOS); },
+      {enableHighAccuracy:true, timeout:5000, maximumAge:60000}
+    );
+  });
+}
+async function prepJarak(){
+  try{
+    const l = await getSetting("penjual_members", []); const m = {};
+    (Array.isArray(l) ? l : []).forEach(x => {
+      const la = Number(x && x.latitude), ln = Number(x && x.longitude);
+      if(x && x.toko && Number.isFinite(la) && Number.isFinite(ln) && !(la === 0 && ln === 0)) m[sKey(x.toko)] = {lat:la, lng:ln};
+    });
+    SELLERS = m;
+  }catch(e){}
+  await getKurirPos();
+}
+function jarakHtml(o){
+  const nama = sellerNameOf(o), toko = SELLERS[sKey(nama)] || null;
+  const buyer = extractMapLocation(o.note) || extractMapLocation(o.address);
+  const row = (a, b) => `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0"><span>${a}</span><b>${b}</b></div>`;
+  let h = "", total = 0, lengkap = true;
+  if(KPOS && toko){ const d = jarakKm(KPOS, toko); total += d; h += row("🛵 Anda → 🏪 " + esc(nama || "Toko"), fmtKm(d)); }
+  else { lengkap = false; h += row("🛵 Anda → 🏪 " + esc(nama || "Toko"), `<span class="hint">${!toko ? "lokasi toko belum diisi" : "lokasi Anda belum terbaca"}</span>`); }
+  if(toko && buyer){ const d = jarakKm(toko, buyer); total += d; h += row("🏪 Toko → 🏠 Pembeli", fmtKm(d)); }
+  else { lengkap = false; h += row("🏪 Toko → 🏠 Pembeli", `<span class="hint">${!toko ? "lokasi toko belum diisi" : "titik pembeli belum ada"}</span>`); }
+  if(lengkap) h += `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0 0;margin-top:4px;border-top:1px dashed #cdbfae"><span>Total perjalanan</span><b>±${fmtKm(total)}</b></div>`;
+  if(!KPOS && KPOS_ERR) h += `<div class="hint" style="margin-top:4px">${esc(KPOS_ERR)}</div>`;
+  return `<div class="jarak" style="background:#fff7ea;border:1px solid #eadfce;border-radius:12px;padding:8px 12px;margin:8px 0;font-size:14px"><div style="font-weight:700;margin-bottom:2px">📏 Perkiraan jarak <small style="font-weight:400;color:#8a7767">(garis lurus)</small></div>${h}</div>`;
+}
+
 // ===== Pembagian pesanan otomatis: 1 pesanan = 1 kurir (acak), pindah otomatis bila tidak ditanggapi =====
 // Waktu tanggap tiap kurir (menit). Ubah angka ini bila ingin lebih lama / lebih singkat.
 const T_MENIT = 3, T_MS = T_MENIT * 60000;
@@ -315,7 +365,7 @@ function orderBody(o){
 }
 function cardOffer(o, end){
   const c = esc(o.order_code);
-  return `<div class="card offer"><h3>${c} <span class="chip">Baru untuk Anda</span></h3>${orderBody(o)}`
+  return `<div class="card offer"><h3>${c} <span class="chip">Baru untuk Anda</span></h3>${orderBody(o)}${jarakHtml(o)}`
     + `<p class="hint" style="margin:0">Nomor pembeli tampil setelah pesanan diterima.</p>`
     + `<div class="dua"><button class="tolak" type="button" data-act="tolak" data-code="${c}" aria-label="Tolak">✕</button>`
     + `<button class="terima" type="button" data-act="terima" data-code="${c}">TERIMA <b class="cd" data-end="${end}"></b></button></div></div>`;
@@ -351,6 +401,7 @@ async function loadOrders(){
     const codes = offers.map(x => x.o.order_code);
     if(seenOffers && codes.some(c => !seenOffers.has(c))){ toast("🔔 Ada pesanan baru untuk Anda"); bunyi(); try{ navigator.vibrate && navigator.vibrate([250,120,250]); }catch(e){} }
     seenOffers = new Set(codes); setCounts(offers.length, mine.length);
+    if(offers.length) await prepJarak();
     const hd = t => `<h3 style="margin:14px 0 0;font-size:15px;color:var(--brown)">${t}</h3>`;
     let h = "";
     if(me.aktif === false) h += '<p class="hint" style="margin-top:10px">⚠️ Anda sedang tidak siap menerima antaran. Centang "Saya siap menerima antaran" di atas agar pesanan bisa ditawarkan kepada Anda.</p>';
