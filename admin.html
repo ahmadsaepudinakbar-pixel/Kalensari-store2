@@ -565,6 +565,7 @@ produk(){
   const list=S.products.filter(p=>(prodFilter==='Semua'||p.category===prodFilter)&&[p.name,p.seller].join(' ').toLowerCase().includes(q.toLowerCase()));
   const stTxt=p=>p.status==='Show'?'':p.status==='Sold Out'?' · <b style="color:var(--red)">Stok habis</b>':' · <b>Disembunyikan</b>';
   return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari produk / penjual..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-g" onclick="productForm()">${ico('plus')}Tambah Produk</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 14px"><button class="btn btn-light" onclick="exportProduk()">⬇️ Export Produk</button><label class="btn btn-light" style="cursor:pointer">⬆️ Import Produk<input type="file" accept="application/json,.json" hidden onchange="importProduk(this)"></label></div>
   <div class="tabs">${cats.map(c=>`<button class="tab ${prodFilter===c?'on':''}" onclick="prodFilter='${jsq(c)}';render()">${esc(c)}</button>`).join('')}</div>
   <div class="cards" id="list">${list.length?list.map(p=>{const s=(sm.get('id:'+p.id)||{qty:0}).qty;const on=p.status==='Show'||p.status==='Sold Out';return `<div class="lc" style="${on?'':'opacity:.6'}"><div class="pimg" style="width:54px;height:54px;font-size:28px;overflow:hidden">${prodThumb(p)}</div><div class="meta"><b>${esc(p.name)}</b><div class="pr">${Number(p.sale)>0?`<s style="color:var(--mut);font-weight:500">${rp(p.price)}</s> ${rp(p.sale)}`:rp(p.price)}</div><div class="sm">${esc(p.seller||'-')} · ${p.stock!=null&&p.stock!==''?'Stok '+p.stock+' · ':''}Terjual ${s}${stTxt(p)}</div></div><div class="right-col"><button class="sw ${on?'on':''}" onclick="toggleProd(${Number(p.id)},this)" title="Tampilkan / sembunyikan"></button><button class="more" onclick="productMenu(${Number(p.id)})">${ico('dots')}</button></div></div>`}).join(''):'<div class="empty">Produk tidak ditemukan</div>'}</div>`;
 },
@@ -847,19 +848,43 @@ async function delProd(id,btn){
 function productForm(id){
   const p=id?getProd(id):{name:'',price:'',sale:'',category:allCats()[0]||'Makanan',unit:'',seller:'',stock:'',image:'',status:'Show'};
   const sellers=[...new Set(S.products.map(x=>x.seller).filter(Boolean))];
+  const hint=t=>`<small style="color:var(--mut);font-size:12px;display:block;margin-top:4px">${t}</small>`;
   modal(`<h3>${id?'Edit':'Tambah'} Produk</h3>
   <div class="field"><label>Nama produk</label><input class="inp" id="fN" value="${esc(p.name)}"></div>
   <div class="form-grid" style="gap:10px"><div class="field"><label>Harga (Rp)</label><input class="inp" id="fP" type="number" min="0" value="${esc(p.price??'')}"></div><div class="field"><label>Harga promo (opsional)</label><input class="inp" id="fSale" type="number" min="0" value="${esc(p.sale??'')}"></div></div>
   <div class="form-grid" style="gap:10px"><div class="field"><label>Kategori</label><select class="inp" id="fC">${allCats().map(c=>`<option ${c===p.category?'selected':''}>${esc(c)}</option>`).join('')}</select></div><div class="field"><label>Satuan</label><input class="inp" id="fU" value="${esc(p.unit||'')}" placeholder="1 porsi"></div></div>
   <div class="form-grid" style="gap:10px"><div class="field"><label>Penjual</label><input class="inp" id="fSel" list="sellerList" value="${esc(p.seller||'')}"><datalist id="sellerList">${sellers.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div><div class="field"><label>Stok (opsional)</label><input class="inp" id="fS" type="number" min="0" value="${esc(p.stock??'')}"></div></div>
-  <div class="field"><label>Link foto</label><input class="inp" id="fI" value="${esc(p.image||'')}" placeholder="https://..."></div>
+  <div class="field"><label>Foto produk</label>
+    <div style="display:flex;gap:10px;align-items:center"><div class="pimg" id="fImgPrev" style="width:64px;height:64px;font-size:28px;overflow:hidden;flex:none">${prodThumb(p)}</div>
+    <div style="flex:1"><label class="btn btn-light" style="cursor:pointer;display:inline-flex">📷 Upload foto<input type="file" accept="image/*" hidden onchange="fotoProduk(this)"></label>
+    <input class="inp" id="fI" value="${esc(p.image&&!String(p.image).startsWith('data:')?p.image:'')}" placeholder="atau tempel link foto https://..." style="margin-top:6px" oninput="window._fotoData=null"></div></div></div>
   <div class="field"><label>Status</label><select class="inp" id="fSt">${[['Show','Tampil'],['Sold Out','Stok habis'],['Hidden','Disembunyikan']].map(([v,l])=>`<option value="${v}" ${(p.status||'Show')===v?'selected':''}>${l}</option>`).join('')}</select></div>
-  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveProd(${Number(id)||0},this)">Simpan</button></div>`);
+  <details style="margin:6px 0 12px" ${p.product_group||p.variant||p.toppings||p.open_time?'open':''}><summary style="cursor:pointer;font-weight:700;padding:6px 0">⚙️ Pengaturan lanjutan (varian, prasmanan, jam tersedia)</summary>
+    <div class="form-grid" style="gap:10px;margin-top:8px"><div class="field"><label>Nama grup (opsional)</label><input class="inp" id="fGrp" value="${esc(p.product_group||'')}" placeholder="mis. Pecel Lele"></div><div class="field"><label>Nama varian (opsional)</label><input class="inp" id="fVar" value="${esc(p.variant||'')}" placeholder="mis. + Nasi"></div></div>
+    ${hint('🧩 Produk dengan Nama Grup yang sama digabung jadi 1 kartu dengan pilihan varian.')}
+    <div class="field" style="margin-top:10px"><label>Topping prasmanan (opsional)</label><textarea class="inp" id="fTop" rows="5" placeholder="Bakso | 1000 | https://link-foto.jpg&#10;Sosis | 1500&#10;Ceker | 2000">${esc(p.toppings||'')}</textarea>
+    ${hint('🍲 Satu baris = satu topping: Nama | Harga | URL foto (foto boleh kosong). Bila diisi, produk jadi menu racik dan Harga di atas jadi harga dasar (boleh 0).')}</div>
+    <div class="field"><label>Batas belanja per porsi (Rp, opsional)</label><input class="inp" id="fTLim" type="number" min="0" value="${esc(p.topping_limit??'')}" placeholder="mis. 10000"></div>
+    <div class="form-grid" style="gap:10px"><div class="field"><label>Tersedia dari jam</label><input class="inp" id="fOpen" type="time" value="${esc(p.open_time||'')}"></div><div class="field"><label>Sampai jam</label><input class="inp" id="fClose" type="time" value="${esc(p.close_time||'')}"></div></div>
+    ${hint('🕒 Waktu WIB. Kosongkan keduanya bila tersedia sepanjang hari.')}
+  </details>
+  <div class="mact">${id?`<button class="btn btn-red" onclick="hapusProd(${Number(id)},this)">Hapus</button>`:''}<button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveProd(${Number(id)||0},this)">Simpan</button></div>`);
+  window._fotoData=p.image&&String(p.image).startsWith('data:')?p.image:null;
 }
+async function fotoProduk(inp){
+  const f=inp.files&&inp.files[0];if(!f)return;
+  try{const d=await resizeImg(f,700);window._fotoData=d;$('#fI').value='';$('#fImgPrev').innerHTML=`<img src="${d}" alt="" style="width:100%;height:100%;object-fit:cover">`;toast('Foto siap disimpan')}
+  catch(e){toast('Foto tidak bisa dibaca')}
+}
+const cekTopping=txt=>txt.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).every(l=>{const [n,h]=l.split('|').map(x=>(x||'').trim());return n&&h!==''&&!isNaN(Number(h))&&Number(h)>=0});
 async function saveProd(id,btn){
   const num=v=>v===''?null:Number(v);
-  const d={name:$('#fN').value.trim(),price:Number($('#fP').value),sale:num($('#fSale').value),category:$('#fC').value,unit:$('#fU').value.trim()||null,seller:$('#fSel').value.trim()||null,stock:num($('#fS').value),image:$('#fI').value.trim()||null,status:$('#fSt').value};
-  if(!d.name||!(d.price>0)){toast('Nama dan harga wajib diisi');return}
+  const top=$('#fTop').value.trim(),openT=$('#fOpen').value,closeT=$('#fClose').value,tl=Number($('#fTLim').value);
+  const d={name:$('#fN').value.trim(),price:Number($('#fP').value),sale:num($('#fSale').value),category:$('#fC').value,unit:$('#fU').value.trim()||null,seller:$('#fSel').value.trim()||null,stock:num($('#fS').value),image:window._fotoData||$('#fI').value.trim()||null,status:$('#fSt').value,
+    product_group:$('#fGrp').value.trim()||null,variant:$('#fVar').value.trim()||null,toppings:top||null,topping_limit:tl>0?tl:null,open_time:openT||null,close_time:closeT||null};
+  if(!d.name||!(d.price>0||(top&&d.price>=0))){toast('Nama dan harga wajib diisi');return}
+  if(top&&!cekTopping(top)){toast('Format topping salah. Satu baris: Nama | Harga');return}
+  if(!!openT!==!!closeT){toast('Isi jam mulai DAN jam selesai, atau kosongkan keduanya');return}
   if(d.sale!=null&&(d.sale<=0||d.sale>=d.price)){toast('Harga promo harus lebih kecil dari harga');return}
   await busy(btn,async()=>{
     if(id){await patchProd(id,d)}
@@ -868,6 +893,27 @@ async function saveProd(id,btn){
   });
 }
 
+async function hapusProd(id,btn){
+  const p=getProd(id);if(!p||!confirm(`Hapus produk "${p.name}"? Tidak bisa dibatalkan.`))return;
+  await busy(btn,async()=>{await api('products?id=eq.'+Number(id),{method:'DELETE',headers:{Prefer:'return=minimal'}});S.products=S.products.filter(x=>Number(x.id)!==Number(id));closeModal();render();toast('Produk dihapus')});
+}
+function exportProduk(){
+  const blob=new Blob([JSON.stringify(S.products,null,2)],{type:'application/json'});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='kalensari-products-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast('File produk diunduh');
+}
+const KOLOM_PROD=['id','name','price','sale','category','unit','seller','stock','status','image','open_time','close_time','product_group','variant','toppings','topping_limit'];
+async function upsertProduk(list){
+  const rows=list.map(p=>{const o={};KOLOM_PROD.forEach(k=>{if(p[k]!==undefined)o[k]=p[k]});return o}).filter(p=>p.name&&Number(p.id)>0);
+  for(let i=0;i<rows.length;i+=50)await api('products?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+50))});
+  return rows.length;
+}
+async function importProduk(inp){
+  const f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  let data;try{data=JSON.parse(await f.text());if(!Array.isArray(data))throw 0}catch(e){return toast('File produk tidak valid (harus .json hasil Export)')}
+  data=data.map((p,i)=>({...p,id:Number(p.id)||i+1,price:Number(p.price)||0}));
+  if(!confirm(`Import ${data.length} produk?\nProduk dengan nomor (id) sama akan DITIMPA. Produk lain tidak dihapus.`))return;
+  try{const n=await upsertProduk(data);toast(n+' produk berhasil diimpor');await loadAll(true)}catch(e){toast('Gagal import: '+String(e.message||e).slice(0,80))}
+}
 /* ========== AKSI KATEGORI ========== */
 function catForm(old){
   modal(`<h3>${old?'Ubah Nama':'Tambah'} Kategori</h3><div class="field"><label>Nama kategori</label><input class="inp" id="cN" value="${esc(old||'')}"></div>

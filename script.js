@@ -1297,12 +1297,11 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
 .ks-menu a:hover,.ks-menu button:hover,.ks-menu a:focus-visible,.ks-menu button:focus-visible{background:#f8edd3;outline:none}`;
   document.head.appendChild(st);
   const m=document.createElement("div");m.className="ks-menu";m.setAttribute("role","menu");
-  m.innerHTML=`<a role="menuitem" href="akun-pembeli.html">🛒 Pembeli</a><a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" href="akun-jasa.html">🤝 Penyedia Jasa</a><a role="menuitem" href="akun-kurir.html">🛵 Kurir</a><button role="menuitem" type="button" id="ksMenuAdmin">⚙️ Admin</button>`;
+  m.innerHTML=`<a role="menuitem" href="akun-pembeli.html">🛒 Pembeli</a><a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" href="akun-jasa.html">🤝 Penyedia Jasa</a><a role="menuitem" href="akun-kurir.html">🛵 Kurir</a>`;
   document.body.appendChild(m);
   const close=()=>{m.classList.remove("open");btn.setAttribute("aria-expanded","false");};
   const place=()=>{const r=btn.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.left=Math.max(8,Math.min(r.left,innerWidth-m.offsetWidth-8))+"px";};
   btn.onclick=e=>{e.stopPropagation();const open=!m.classList.contains("open");if(open){m.classList.add("open");place();}else m.classList.remove("open");btn.setAttribute("aria-expanded",String(open));};
-  m.querySelector("#ksMenuAdmin").onclick=()=>{close();openAdmin();};
   m.addEventListener("click",e=>{if(e.target.closest("a"))close();});
   document.addEventListener("click",e=>{if(!m.contains(e.target)&&e.target!==btn)close();});
   document.addEventListener("keydown",e=>{if(e.key==="Escape")close();});
