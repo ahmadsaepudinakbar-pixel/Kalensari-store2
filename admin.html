@@ -554,7 +554,7 @@ pesanan(){
   const isLap=o=>{const l=laporOf(o);return !!(l&&!l.beres)};
   const cnt=s=>s==='Semua'?base.length:s==='Dilaporkan'?base.filter(isLap).length:base.filter(o=>stLabel(o.status)===s).length;
   const ql=q.toLowerCase();
-  const list=base.filter(o=>(orderFilter==='Semua'||(orderFilter==='Dilaporkan'?isLap(o):stLabel(o.status)===orderFilter))&&[o.order_code,o.id,o.customer_name,o.customer_phone].join(' ').toLowerCase().includes(ql)).slice(0,200);
+  const list=base.filter(o=>(orderFilter==='Semua'||(orderFilter==='Dilaporkan'?isLap(o):stLabel(o.status)===orderFilter))&&[o.order_code,o.id,o.customer_name,o.customer_phone,kodePembeli(o.customer_phone_normalized||o.customer_phone)].join(' ').toLowerCase().includes(ql)).slice(0,200);
   return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari kode pesanan / nama / nomor WA..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="tabs">${jen.map(([k,l])=>`<button class="tab ${jenisFilter===k?'on':''}" onclick="jenisFilter='${k}';render()">${l}<span class="n">${k==='Semua'?S.orders.length:S.orders.filter(o=>(k==='Ojek')===!!transOf(o)).length}</span></button>`).join('')}</div>
   <div class="tabs">${sts.map(s=>`<button class="tab ${orderFilter===s?'on':''}" onclick="orderFilter='${s}';render()">${s}<span class="n">${cnt(s)}</span></button>`).join('')}</div>
@@ -574,12 +574,12 @@ kategori(){
   <div class="cards">${allCats().map((c,i)=>{const n=S.products.filter(p=>p.category===c).length;return `<div class="lc"><div class="cat-ic" style="background:${colors[i%colors.length]}">${catEmoji(c)}</div><div class="meta"><b>${esc(c)}</b><div class="sm">${n} produk</div></div><button class="more" onclick="catMenu('${jsq(c)}')">${ico('dots')}</button></div>`}).join('')}</div>`;
 },
 pelanggan(){
-  const all=customers();const list=all.filter(c=>(c.name+c.wa).toLowerCase().includes(q.toLowerCase()));
+  const all=customers();const list=all.filter(c=>(c.name+c.wa+kodePembeli(c.wa)).toLowerCase().includes(q.toLowerCase()));
   const baru=all.filter(c=>Date.now()-new Date(c.first).getTime()<=30*864e5).length;
-  return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari nama / nomor WA..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div></div>
+  return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari nama / nomor WA / ID..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div></div>
   <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('users')}</div><div class="lbl">Total Pelanggan</div><div class="val">${all.length}</div></div>
   <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('plus')}</div><div class="lbl" style="color:var(--blue)">Pelanggan Baru (30 hari)</div><div class="val">${baru}</div></div></div>
-  <div class="cards" id="list">${list.map((c,i)=>{const wa=phoneKey(c.wa);return `<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(c.name))}</div><div class="meta"><b>${esc(c.name)}</b><div class="sm">${esc(c.wa||'-')}</div><div class="sm">${c.orders} pesanan · ${rp(c.spent)}</div></div><div class="right-col">${c.orders>1?'<span class="badge b-Selesai">Langganan</span>':''}${wa?`<a class="more" style="color:var(--g2)" href="https://wa.me/${wa}" target="_blank" rel="noopener" title="Chat WhatsApp">${ico('wa')}</a>`:''}</div></div>`}).join('')||'<div class="empty">Belum ada pelanggan</div>'}</div>`;
+  <div class="cards" id="list">${list.map((c,i)=>{const wa=phoneKey(c.wa);return `<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(c.name))}</div><div class="meta"><b>${esc(c.name)}</b> ${kodeChip(kodePembeli(c.wa))}<div class="sm">${esc(c.wa||'-')}</div><div class="sm">${c.orders} pesanan · ${rp(c.spent)}</div></div><div class="right-col">${c.orders>1?'<span class="badge b-Selesai">Langganan</span>':''}${wa?`<a class="more" style="color:var(--g2)" href="https://wa.me/${wa}" target="_blank" rel="noopener" title="Chat WhatsApp">${ico('wa')}</a>`:''}</div></div>`}).join('')||'<div class="empty">Belum ada pelanggan</div>'}</div>`;
 },
 promosi(){
   const list=S.products.filter(p=>Number(p.sale)>0&&Number(p.sale)<Number(p.price)&&p.name.toLowerCase().includes(q.toLowerCase()));
@@ -672,6 +672,8 @@ function sellerState(name){
   return open?{open:true,why:''}:{open:false,why:offOn(s,d)?'Libur hari ini':`Buka ${String(s.o).slice(0,5)}–${String(s.c).slice(0,5)} WIB`};
 }
 const schedText=s=>!s?'Belum diatur':[s.o&&s.c?`${String(s.o).slice(0,5)}–${String(s.c).slice(0,5)}`:'',(s.off||[]).length?'libur '+[1,2,3,4,5,6,0].filter(d=>s.off.includes(d)).map(d=>DAYS[d]).join(', '):'',(s.h||[]).length?(s.h.length+' tgl libur'):''].filter(Boolean).join(' • ')||'Belum diatur';
+const kodeChip=k=>k?`<span class="badge" style="background:#f4efe9;color:#5b2e1a;font-weight:700">🆔 ${esc(k)}</span>`:'';
+function kodePembeli(wa){const n=phoneKey(wa);if(!n)return '';const acc=S.settings.pembeli_accounts&&typeof S.settings.pembeli_accounts==='object'?S.settings.pembeli_accounts:{};const id=acc[n]&&acc[n].id;const m=members('pembeli').find(x=>(id&&x.id===id)||phoneKey(x.wa)===n);return m&&m.kode||''}
 const akunPenjual=()=>S.settings.penjual_accounts&&typeof S.settings.penjual_accounts==='object'?S.settings.penjual_accounts:{};
 const waAkun=m=>{if(!m)return '';const a=akunPenjual();return Object.keys(a).find(w=>a[w]&&a[w].id===m.id)||''};
 const punyaAkun=m=>!!waAkun(m);
@@ -686,13 +688,13 @@ const chip=(t,cls)=>`<span class="badge ${cls}">${t}</span>`;
 
 Object.assign(PAGES,{
 toko(){
-  const all=shops(),ql=q.toLowerCase(),list=all.filter(s=>[s.name,s.member&&s.member.nama,s.member&&s.member.wa].join(' ').toLowerCase().includes(ql));
+  const all=shops(),ql=q.toLowerCase(),list=all.filter(s=>[s.name,s.member&&s.member.nama,s.member&&s.member.wa,s.member&&s.member.kode].join(' ').toLowerCase().includes(ql));
   const openN=all.filter(s=>sellerState(s.name).open).length,pj=pendingOf('penjual').length;
   return `${pj?`<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;background:var(--ol)"><b style="flex:1">${pj} penjual menunggu persetujuan</b><button class="btn btn-g" onclick="apTab='penjual';go('persetujuan')">Lihat</button></div>`:''}
-  <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari toko / pemilik / nomor WA..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
+  <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari toko / pemilik / nomor WA / ID..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('store')}</div><div class="lbl">Total Toko</div><div class="val">${all.length}</div></div>
   <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('check')}</div><div class="lbl" style="color:var(--blue)">Buka Sekarang</div><div class="val">${openN}</div></div></div>
-  <div class="cards" id="list">${list.map((s,i)=>{const st=sellerState(s.name),m=s.member,forced=!!closedMap()[sKey(s.name)];return `<div class="lc" style="align-items:flex-start"><div class="cat-ic" style="background:${colors[i%colors.length]}">🏪</div><div class="meta"><b>${esc(s.name)}</b>
+  <div class="cards" id="list">${list.map((s,i)=>{const st=sellerState(s.name),m=s.member,forced=!!closedMap()[sKey(s.name)];return `<div class="lc" style="align-items:flex-start"><div class="cat-ic" style="background:${colors[i%colors.length]}">🏪</div><div class="meta"><b>${esc(s.name)}</b> ${m&&punyaAkun(m)?kodeChip(m.kode):''}
     <div class="sm">${m&&punyaAkun(m)?esc([m.nama,m.wa?'+'+m.wa:'',m.dusun].filter(Boolean).join(' • ')):'Belum punya akun penjual'+(m&&m.dusun?' • '+esc(m.dusun):'')}${m&&Number(m.latitude)?' • 📍':''}</div>
     <div class="sm">${s.count} produk • 🕒 ${esc(schedText(schedMap()[sKey(s.name)]))}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">${st.open?chip('🟢 Buka sekarang','b-Selesai'):chip('🔒 Tutup'+(st.why?' • '+esc(st.why):''),'b-Batal')}</div>
@@ -700,20 +702,20 @@ toko(){
     <div class="right-col">${m&&punyaAkun(m)?waLink(m.wa):''}${m&&punyaAkun(m)?`<button class="more" onclick="memberMenu('penjual','${jsq(m.id)}')">${ico('dots')}</button>`:''}</div></div>`}).join('')||'<div class="empty">Belum ada toko</div>'}</div>`;
 },
 kurir(){
-  const all=members('kurir').filter(m=>!m.pending),ql=q.toLowerCase(),list=all.filter(m=>[m.nama,m.wa,m.kendaraan,m.wilayah].join(' ').toLowerCase().includes(ql));
+  const all=members('kurir').filter(m=>!m.pending),ql=q.toLowerCase(),list=all.filter(m=>[m.nama,m.wa,m.kendaraan,m.wilayah,m.kode].join(' ').toLowerCase().includes(ql));
   const siap=all.filter(m=>m.aktif!==false).length,pk=pendingOf('kurir').length;
   return `${pk?`<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;background:var(--ol)"><b style="flex:1">${pk} kurir menunggu persetujuan</b><button class="btn btn-g" onclick="apTab='kurir';go('persetujuan')">Lihat</button></div>`:''}
-  <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari nama / nomor WA / kendaraan..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
+  <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari nama / nomor WA / ID / kendaraan..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('truck')}</div><div class="lbl">Total Kurir</div><div class="val">${all.length}</div></div>
   <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('check')}</div><div class="lbl" style="color:var(--blue)">Siap Antar</div><div class="val">${siap}</div></div></div>
   ${saldoPanel()}
-  <div class="cards" id="list">${list.map((m,i)=>`<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b><div class="sm">${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">🛵 ${esc([m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-')}</div><div style="margin-top:6px">${m.aktif!==false?chip('Siap antar','b-Selesai'):chip('Tidak aktif','b-Batal')}${biaya().aktif&&saldoOf(m.id)!==null?' '+chip('💰 '+rp(saldoOf(m.id)),saldoOf(m.id)<minSaldoB()?'b-Batal':'b-Diproses'):''}</div>${biaya().aktif&&S.saldo?`<button class="btn btn-light" style="margin-top:8px;padding:6px 12px" onclick="saldoKurir('${jsq(m.id)}')">💰 Saldo</button>`:''}</div><div class="right-col">${waLink(m.wa)}<button class="more" onclick="memberMenu('kurir','${jsq(m.id)}')">${ico('dots')}</button></div></div>`).join('')||'<div class="empty">Belum ada kurir yang disetujui</div>'}</div>`;
+  <div class="cards" id="list">${list.map((m,i)=>`<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b> ${kodeChip(m.kode)}<div class="sm">${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">🛵 ${esc([m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-')}</div><div style="margin-top:6px">${m.aktif!==false?chip('Siap antar','b-Selesai'):chip('Tidak aktif','b-Batal')}${biaya().aktif&&saldoOf(m.id)!==null?' '+chip('💰 '+rp(saldoOf(m.id)),saldoOf(m.id)<minSaldoB()?'b-Batal':'b-Diproses'):''}</div>${biaya().aktif&&S.saldo?`<button class="btn btn-light" style="margin-top:8px;padding:6px 12px" onclick="saldoKurir('${jsq(m.id)}')">💰 Saldo</button>`:''}</div><div class="right-col">${waLink(m.wa)}<button class="more" onclick="memberMenu('kurir','${jsq(m.id)}')">${ico('dots')}</button></div></div>`).join('')||'<div class="empty">Belum ada kurir yang disetujui</div>'}</div>`;
 },
 persetujuan(){
   const g=GROUPS.find(x=>x.k===apTab)||GROUPS[0],rows=pendingOf(g.k);
   return `<div class="toolbar"><p class="sm" style="color:var(--mut);flex:1;margin:0">Pendaftar baru menunggu di sini. Setelah disetujui, mereka bisa memakai dashboard masing-masing.</p><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="tabs">${GROUPS.map(x=>`<button class="tab ${x.k===g.k?'on':''}" onclick="apTab='${x.k}';render()">${x.em} ${x.label}<span class="n">${pendingOf(x.k).length}</span></button>`).join('')}</div>
-  <div class="cards" id="list">${rows.map((m,i)=>`<div class="lc" style="align-items:flex-start"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b><div class="sm">📱 ${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">${g.em} ${esc(g.info(m))}</div>${m.updated?`<div class="sm">Daftar ${ago(m.updated)}</div>`:''}
+  <div class="cards" id="list">${rows.map((m,i)=>`<div class="lc" style="align-items:flex-start"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b> ${kodeChip(m.kode)}<div class="sm">📱 ${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">${g.em} ${esc(g.info(m))}</div>${m.updated?`<div class="sm">Daftar ${ago(m.updated)}</div>`:''}
     <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-g" style="padding:8px 14px;font-size:13px" onclick="approve('${g.k}','${jsq(m.id)}',true,this)">✓ Setujui</button><button class="btn btn-red" style="padding:8px 14px;font-size:13px" onclick="approve('${g.k}','${jsq(m.id)}',false,this)">✕ Tolak</button></div></div><div class="right-col">${waLink(m.wa)}</div></div>`).join('')||`<div class="empty">Tidak ada ${g.label.toLowerCase()} yang menunggu persetujuan</div>`}</div>`;
 }
 });
@@ -880,6 +882,7 @@ function openOrder(id){
   const items=Array.isArray(o.items)?o.items:[];const wa=phoneKey(o.customer_phone);const cur=stLabel(o.status);
   modal(`<div class="chead"><h3 style="margin:0">${esc(orderCode(o))}</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
   <div class="detail-row"><span>Pelanggan</span><b>${esc(o.customer_name||'-')}</b></div>
+  ${kodePembeli(o.customer_phone_normalized||o.customer_phone)?`<div class="detail-row"><span>ID Pembeli</span><b>${esc(kodePembeli(o.customer_phone_normalized||o.customer_phone))}</b></div>`:''}
   <div class="detail-row"><span>No. WA</span><b>${wa?`<a href="https://wa.me/${wa}" target="_blank" rel="noopener" style="color:var(--g2)">${esc(o.customer_phone)}</a>`:'-'}</b></div>
   <div class="detail-row"><span>Alamat</span><b style="text-align:right;max-width:65%;white-space:normal">${esc(cleanMap(o.address)||'-')}</b></div>
   ${cleanMap(o.note)?`<div class="detail-row"><span>Catatan</span><b style="text-align:right;max-width:65%;white-space:normal">${esc(cleanMap(o.note))}</b></div>`:''}

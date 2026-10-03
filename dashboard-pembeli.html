@@ -57,7 +57,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 <div id="warn" class="warn" hidden>⚠️ Database online belum aktif. Data hanya tersimpan di browser ini (mode uji coba).</div>
   <div id="dash" hidden>
   
-  <section class="box"><h2 id="dHalo" style="font-size:22px"></h2>
+  <section class="box"><h2 id="dHalo" style="font-size:22px"></h2><div id="kodeAkun" style="margin:-4px 0 10px"></div>
     <p class="hint" style="margin:0 0 12px">Lengkapi data Anda di bawah ini sebagai alamat rumah.</p>
     <label>Nama<input id="f_nama" class="fld" maxlength="60"></label>
     <label>Alamat lengkap<textarea id="f_alamat" class="fld" placeholder="mis. RT 02 RW 01, rumah cat hijau"></textarea></label>
@@ -73,6 +73,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 </main>
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
+<script src="akun-id.js"></script>
 <script src="notif.js"></script>
 <script src="serahterima.js"></script>
 <script>
@@ -160,6 +161,7 @@ async function load(){
   const list = await getSetting(ROLE + "_members", []);
   me = (Array.isArray(list) ? list : []).find(x => x.id === a.id) || {id:a.id, wa:WA, nama:"", pending:false};
   $("dHalo").textContent = "Halo, " + (me.nama || "selamat datang") + " 👋";
+  if(window.KSID) $("kodeAkun").innerHTML = KSID.lencana(me.kode);
   FIELDS.forEach(k => { $("f_" + k).value = me[k] || ""; });
   $("fWa").value = "+" + WA;
   if(window.KSNotif) KSNotif.kartu($("ksNotifDb"), {key:"pembeli_push_" + WA, judul:"🔔 Kabari saya lewat notifikasi", ajakan:"Dapatkan pemberitahuan saat pesanan diterima toko, diantar kurir, dan selesai.", aktifTeks:"Anda akan diberi tahu saat status pesanan berubah."});

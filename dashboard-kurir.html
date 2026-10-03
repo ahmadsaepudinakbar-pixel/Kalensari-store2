@@ -141,7 +141,7 @@ h2{color:#2b2623}
   <div id="notifBox" hidden><b>🔔 Notifikasi pesanan</b><p id="notifTxt">Dapatkan pemberitahuan di HP saat ada pesanan masuk, walaupun aplikasi sedang ditutup.</p><button class="mini g" type="button" id="btnNotif">Aktifkan notifikasi</button><button class="mini" type="button" id="btnNotifTest" hidden>Kirim tes</button></div>
   <div id="ringkas" class="tiles" data-tab="home"><div class="tile"><b id="cWait">0</b><span>Menunggu jawaban</span></div><div class="tile"><b id="cMine">0</b><span>Sedang diantar</span></div></div>
   <button class="btn" id="btnLihat" type="button" data-tab="home" style="margin:0 0 14px">Lihat pesanan</button>
-  <section class="box" id="profBox" data-tab="profil" style="text-align:center"><div class="avatar" id="pAv">K</div><h2 id="pNama" style="margin:8px 0 12px"></h2><div class="tiles" style="margin:0"><div class="tile"><b id="pHari">0</b><span>Hari bergabung</span></div><div class="tile"><b id="pSel">0</b><span>Pesanan selesai</span></div></div></section>
+  <section class="box" id="profBox" data-tab="profil" style="text-align:center"><div class="avatar" id="pAv">K</div><h2 id="pNama" style="margin:8px 0 6px"></h2><div id="kodeAkun" style="margin:0 0 12px"></div><div class="tiles" style="margin:0"><div class="tile"><b id="pHari">0</b><span>Hari bergabung</span></div><div class="tile"><b id="pSel">0</b><span>Pesanan selesai</span></div></div></section>
   <!-- 1. Pesanan untuk diantar -->
   <section class="box" id="ordBox" style="margin-top:0" hidden><h2>Pesanan untuk diantar</h2><p class="hint" style="margin:0">Tiap pesanan ditawarkan ke satu kurir secara acak. Jika tidak ditanggapi, otomatis pindah ke kurir lain.</p><div id="orders"></div><div class="btns"><button class="btn" id="btnRefresh" type="button">🔄 Muat ulang</button></div></section>
 
@@ -175,6 +175,7 @@ h2{color:#2b2623}
 </main>
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
+<script src="akun-id.js"></script>
 <script src="notif.js"></script>
 <script>
 
@@ -241,6 +242,7 @@ async function load(){
   $("fWa").value = "+" + WA;
   $("f_aktif").checked = me.aktif !== false; const ok = !me.pending; $("stat").className = "status " + (ok ? "ok" : "p"); $("stat").textContent = ok ? "✅ Akun kurir Anda sudah disetujui admin." : "⏳ Menunggu persetujuan admin. Daftar pesanan akan tampil setelah disetujui."; $("ordBox").hidden = !ok; $("aktifBox").hidden = !ok; $("notifBox").hidden = !ok; if(ok) pushInit();
   if(ok && !me.joined){ me.joined = Date.now(); upsertMember(me).catch(() => {}); }
+  if(window.KSID) $("kodeAkun").innerHTML = KSID.lencana(me.kode);
   renderProf(); $("dash").hidden = false;
 }
 $("fSimpan").onclick = async () => {

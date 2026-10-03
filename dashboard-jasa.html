@@ -77,7 +77,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
   <div id="dash" class="dash" hidden>
     <section class="box">
       <div id="stat" class="status" style="margin-bottom:0"></div>
-      <h2 id="dHalo" style="margin-top:14px;font-size:22px"></h2>
+      <h2 id="dHalo" style="margin-top:14px;font-size:22px"></h2><div id="kodeAkun" style="margin:4px 0 8px"></div>
       <p class="hint" style="margin:0">Beginilah ringkasan jasa Anda di halaman Penyedia Jasa.</p>
       <div class="sum"><div><b>Kategori jasa</b><span id="sKat">-</span></div><div><b>Jam layanan</b><span id="sJam">-</span></div></div>
       <div class="pv"><div class="ico" id="pvIco">🛠️</div><div><h3 id="pvNama"></h3><p id="pvKet"></p><span class="pill" id="pvBuka"></span></div></div>
@@ -120,6 +120,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 <div class="toast" id="toast"></div>
 
 <script src="config.js" onerror="void 0"></script>
+<script src="akun-id.js"></script>
 <script>
 // ====== UTIL ======
 const $ = id => document.getElementById(id);
@@ -216,6 +217,7 @@ async function openDash(wa){
   me.wa = wa; foto = me.foto || "";
   $("dash").hidden = false;
   $("dHalo").textContent = "Halo, " + me.nama;
+  if(window.KSID) $("kodeAkun").innerHTML = KSID.lencana(me.kode);
   const st = $("stat");
   if(me.pending){ st.className = "status p"; st.textContent = "⏳ Menunggu persetujuan admin. Setelah disetujui, jasa Anda tampil di halaman Penyedia Jasa."; }
   else if(me.status === "Hide"){ st.className = "status h"; st.textContent = "🚫 Jasa Anda sedang disembunyikan oleh admin."; }
