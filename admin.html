@@ -331,7 +331,7 @@ async function loadAll(silent){
     const [p,o,s,mu]=await Promise.all([
       api('products?select=*&order=id.asc'),
       api('orders?select=*&order=created_at.desc&limit=1000'),
-      api('store_settings?select=key,value'),
+      api('store_settings?select=key,value&key=not.like.foto_*'),
       api('map_usage?select=day,loads&order=day.desc&limit=62').catch(()=>null)
     ]);
     S.mapUsage=Array.isArray(mu)?mu:null;
@@ -378,6 +378,10 @@ function ago(d){const s=(Date.now()-new Date(d).getTime())/1000;if(s<60)return '
 const orderCode=o=>o.order_code||('#'+o.id);
 const transOf=o=>{const it=Array.isArray(o.items)?o.items[0]:null;return it&&it.layanan?it:null};
 const kurirOf=o=>{const st=S.settings['kurir_ord_'+o.order_code];return st&&st.acc?st.acc:null};
+const antarOf=o=>{const a=S.settings['antar_'+o.order_code];return a&&typeof a==='object'?a:null};
+const laporOf=o=>{const l=S.settings['laporan_'+o.order_code];return l&&typeof l==='object'?l:null};
+const laporBuka=()=>S.orders.filter(o=>{const l=laporOf(o);return l&&!l.beres});
+const laporTag=o=>{const l=laporOf(o);return l&&!l.beres?' <span class="badge" style="background:#fdecea;color:#c0392b">⚠️ Belum diterima</span>':''};
 const cleanMap=t=>String(t||'').replace(/\s*__KS_MAP__-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?__END__\s*/g,' ').trim();
 const firstItem=o=>(Array.isArray(o.items)&&o.items[0])||null;
 
@@ -516,6 +520,7 @@ dashboard(){
     <div>
       ${gmPeringatan()}
       <div class="banner"><svg width="44" height="44" viewBox="0 0 100 100"><path d="M30 34 50 12 70 34" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M10 34h80v10H10zM15 44h70l-7 44H22z" fill="none" stroke="#fff" stroke-width="5"/><text x="50" y="80" text-anchor="middle" font-size="26" font-weight="900" fill="#fff">KS</text></svg><div><b>Kalensari Store</b><small>Belanja makanan &amp; minuman dari warga Kalensari</small></div></div>
+      ${laporBuka().length?`<div class="card" style="margin-bottom:20px;background:#fdecea;cursor:pointer" onclick="orderFilter='Dilaporkan';jenisFilter='Semua';go('pesanan')"><b style="color:#c0392b">⚠️ ${laporBuka().length} pesanan dilaporkan belum diterima pembeli</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${laporBuka().slice(0,3).map(o=>esc(orderCode(o))).join(', ')} · ketuk untuk menangani</div></div>`:''}
       ${pendingTotal()?`<div class="card" style="margin-bottom:20px;background:var(--ol);cursor:pointer" onclick="go('persetujuan')"><b>⏳ ${pendingTotal()} pendaftar menunggu persetujuan</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${GROUPS.map(g=>pendingOf(g.k).length?pendingOf(g.k).length+' '+g.label.toLowerCase():'').filter(Boolean).join(', ')} · ketuk untuk melihat</div></div>`:''}
       <div class="card" style="margin-bottom:20px"><div class="chead"><h3>Aksi Cepat</h3></div><div class="quick">
         <button class="qbtn" style="background:var(--gl);color:var(--g)" onclick="productForm()"><span class="qi" style="background:var(--g2)">${ico('plus')}</span>Tambah Produk</button>
@@ -528,16 +533,17 @@ dashboard(){
     </div></div>`;
 },
 pesanan(){
-  const sts=['Semua','Baru','Diproses','Dikirim','Selesai','Batal'],jen=[['Semua','Semua jenis'],['Belanja','🛍️ Belanja'],['Ojek','🛵 Ojek & Paket']];
+  const sts=['Semua','Baru','Diproses','Dikirim','Selesai','Batal',...(S.orders.some(o=>laporOf(o))?['Dilaporkan']:[])],jen=[['Semua','Semua jenis'],['Belanja','🛍️ Belanja'],['Ojek','🛵 Ojek & Paket']];
   const byJ=o=>jenisFilter==='Semua'||(jenisFilter==='Ojek')===!!transOf(o);
   const base=S.orders.filter(byJ);
-  const cnt=s=>s==='Semua'?base.length:base.filter(o=>stLabel(o.status)===s).length;
+  const isLap=o=>{const l=laporOf(o);return !!(l&&!l.beres)};
+  const cnt=s=>s==='Semua'?base.length:s==='Dilaporkan'?base.filter(isLap).length:base.filter(o=>stLabel(o.status)===s).length;
   const ql=q.toLowerCase();
-  const list=base.filter(o=>(orderFilter==='Semua'||stLabel(o.status)===orderFilter)&&[o.order_code,o.id,o.customer_name,o.customer_phone].join(' ').toLowerCase().includes(ql)).slice(0,200);
+  const list=base.filter(o=>(orderFilter==='Semua'||(orderFilter==='Dilaporkan'?isLap(o):stLabel(o.status)===orderFilter))&&[o.order_code,o.id,o.customer_name,o.customer_phone].join(' ').toLowerCase().includes(ql)).slice(0,200);
   return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari kode pesanan / nama / nomor WA..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="tabs">${jen.map(([k,l])=>`<button class="tab ${jenisFilter===k?'on':''}" onclick="jenisFilter='${k}';render()">${l}<span class="n">${k==='Semua'?S.orders.length:S.orders.filter(o=>(k==='Ojek')===!!transOf(o)).length}</span></button>`).join('')}</div>
   <div class="tabs">${sts.map(s=>`<button class="tab ${orderFilter===s?'on':''}" onclick="orderFilter='${s}';render()">${s}<span class="n">${cnt(s)}</span></button>`).join('')}</div>
-  <div class="cards" id="list">${list.length?list.map(o=>{const n=Array.isArray(o.items)?o.items.length:0,t=transOf(o),kr=kurirOf(o);return `<div class="lc" style="cursor:pointer" onclick="openOrder(${Number(o.id)})"><div class="pimg" style="width:54px;height:54px;font-size:28px;overflow:hidden">${t?(t.layanan==='paket'?'📦':'🛵'):prodThumb(firstItem(o))}</div><div class="meta"><b>${esc(orderCode(o))}</b><div class="sm">${esc(o.customer_name||'-')}${t?` · ${t.layanan==='paket'?'Kirim paket':'Ojek'} ${String(t.km||'').replace('.',',')} km`:n?` · ${n} item`:''}</div>${kr?`<div class="sm">🛵 Kurir: <span style="font-weight:700;color:var(--tx)">${esc(kr.nama||'-')}</span></div>`:''}<div class="pr">${rp(o.total)}</div><div class="sm">${ago(o.created_at)}</div></div><div class="right-col">${statusBadge(o)}${ico('right','color:#b6bec9')}</div></div>`}).join(''):'<div class="empty">Tidak ada pesanan</div>'}</div>`;
+  <div class="cards" id="list">${list.length?list.map(o=>{const n=Array.isArray(o.items)?o.items.length:0,t=transOf(o),kr=kurirOf(o);return `<div class="lc" style="cursor:pointer" onclick="openOrder(${Number(o.id)})"><div class="pimg" style="width:54px;height:54px;font-size:28px;overflow:hidden">${t?(t.layanan==='paket'?'📦':'🛵'):prodThumb(firstItem(o))}</div><div class="meta"><b>${esc(orderCode(o))}</b>${laporTag(o)}<div class="sm">${esc(o.customer_name||'-')}${t?` · ${t.layanan==='paket'?'Kirim paket':'Ojek'} ${String(t.km||'').replace('.',',')} km`:n?` · ${n} item`:''}</div>${kr?`<div class="sm">🛵 Kurir: <span style="font-weight:700;color:var(--tx)">${esc(kr.nama||'-')}</span></div>`:''}<div class="pr">${rp(o.total)}</div><div class="sm">${ago(o.created_at)}</div></div><div class="right-col">${statusBadge(o)}${ico('right','color:#b6bec9')}</div></div>`}).join(''):'<div class="empty">Tidak ada pesanan</div>'}</div>`;
 },
 produk(){
   const cats=['Semua',...allCats()];const sm=soldMap();
@@ -766,10 +772,33 @@ function openOrder(id){
   <div class="detail-row"><span>Ongkir</span><b>${rp(o.shipping)}</b></div>
   <div class="detail-row"><span>Total</span><b>${rp(o.total)}</b></div>
   ${kurirOf(o)?`<div class="detail-row"><span>Kurir</span><b>${esc(kurirOf(o).nama||'-')} · <a href="https://wa.me/${esc(kurirOf(o).wa)}" target="_blank" rel="noopener" style="color:var(--g2)">WhatsApp</a></b></div>`:(['Diproses'].includes(stLabel(o.status))&&transOf(o)?`<div class="detail-row"><span>Kurir</span><b style="color:var(--orange)">Mencari kurir...</b></div>`:'')}
+  ${antarHtml(o)}
   <div class="detail-row" style="border:0"><span>Status sekarang</span>${statusBadge(o)}</div>
   <p style="font-size:12px;color:var(--mut);margin:14px 0 8px;font-weight:600">Ubah status</p>
   <div class="st-pick">${['Baru','Diproses','Dikirim','Selesai'].map(s=>`<button class="${cur===s?'on':''}" onclick="setStatus(${Number(o.id)},'${s}',this)">${s}</button>`).join('')}</div>
   <div class="mact"><button class="btn btn-red" onclick="if(confirm('Batalkan pesanan ini?'))setStatus(${Number(o.id)},'Batal',this)">Batalkan</button><button class="btn btn-g" onclick="closeModal()">Tutup</button></div>`);
+}
+function antarHtml(o){
+  const a=antarOf(o),l=laporOf(o),code=o.order_code;let h='';
+  if(a){const cara=a.cara==='kode'?'✅ kode serah terima cocok':a.cara==='foto'?'📷 dengan foto bukti':'tanpa kode (pesanan lama)';
+    h+=`<div class="detail-row"><span>Diserahkan</span><b style="text-align:right;max-width:65%;white-space:normal">${esc(a.nama||'-')}${a.wa?` · <a href="https://wa.me/${esc(phoneKey(a.wa))}" target="_blank" rel="noopener" style="color:var(--g2)">WA</a>`:''}<br><small style="color:var(--mut)">${cara}${a.t?' · '+fmtDate(new Date(a.t).toISOString()):''}</small>${a.ket?`<br><small>“${esc(a.ket)}”</small>`:''}</b></div>`;
+    if(a.cara==='foto')h+=`<button class="btn btn-light full" style="margin:6px 0" onclick="lihatFotoAdm('${esc(code)}')">📷 Lihat foto bukti</button>`;}
+  if(l){const hp=phoneKey(l.hp||o.customer_phone);
+    h+=`<div style="margin:10px 0;padding:12px;border-radius:12px;background:${l.beres?'var(--gl)':'#fdecea'}"><b style="color:${l.beres?'var(--g)':'#c0392b'}">${l.beres?'✅ Laporan sudah ditangani':'⚠️ Pembeli melapor: pesanan belum diterima'}</b>
+      <div class="sm" style="margin-top:4px">${l.t?fmtDate(new Date(l.t).toISOString()):''}${l.ket?` · “${esc(l.ket)}”`:''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${hp?`<a class="btn btn-light" style="text-decoration:none" href="https://wa.me/${hp}" target="_blank" rel="noopener">💬 Hubungi pembeli</a>`:''}${a&&a.wa?`<a class="btn btn-light" style="text-decoration:none" href="https://wa.me/${esc(phoneKey(a.wa))}" target="_blank" rel="noopener">🛵 Hubungi kurir</a>`:''}${l.beres?'':`<button class="btn btn-g" onclick="laporBeres('${esc(code)}',this)">✅ Tandai sudah beres</button>`}</div></div>`;}
+  return h;
+}
+async function lihatFotoAdm(code){
+  const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML='<span style="color:#fff">Memuat foto...</span>';ov.onclick=()=>ov.remove();document.body.appendChild(ov);
+  try{const v=await readKey('foto_'+code,null),f=v&&v.foto;
+    ov.innerHTML=f&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(f)?`<img src="${f}" alt="Foto bukti" style="max-width:100%;max-height:85vh;border-radius:12px">`:'<span style="color:#fff">Foto tidak ditemukan</span>'}
+  catch(e){ov.innerHTML='<span style="color:#fff">Gagal memuat foto</span>'}
+}
+async function laporBeres(code,btn){
+  await busy(btn,async()=>{const cur=await readKey('laporan_'+code,{});const v={...(cur&&typeof cur==='object'?cur:{}),beres:true,beresT:Date.now()};
+    await setSetting('laporan_'+code,v);S.settings['laporan_'+code]=v;closeModal();render();toast('Laporan ditandai sudah beres')});
 }
 async function setStatus(id,s,btn){
   await busy(btn,async()=>{

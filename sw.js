@@ -2,7 +2,7 @@
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
    (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v18";
+const VERSION = "ks-v19";
 const CACHE = "kalensari-" + VERSION;
 const PRECACHE = [
   "./offline.html",

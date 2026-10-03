@@ -290,7 +290,7 @@ const allSellersClosed=p=>{const l=sellerList(p);return l.length>0&&l.every(sell
 async function loadCloudSettings(){
   if(!CLOUD_CONFIG?.enabled)return false;
   try{
-    const rows=await cloudFetch("store_settings?select=*");
+    const rows=await cloudFetch("store_settings?select=*&key=not.like.foto_*");
     (Array.isArray(rows)?rows:[]).forEach(r=>{
       if(r.key==="categories"&&Array.isArray(r.value)){customCategories=r.value;localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));}
       if(r.key==="removed_categories"&&Array.isArray(r.value)){removedCategories=r.value;localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));}
@@ -695,6 +695,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),route=shippingRoute(items),shipping=route.fee,total=subtotal+shipping;
   const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
   const orderCode=makeOrderCode();
+  const kodeST=window.KSST?KSST.buatKode():"";
   const createdAt=new Date().toISOString();
   const _la=document.getElementById("ksMapLat")?.value, _ln=document.getElementById("ksMapLng")?.value;
   const mapLat=String(_la||"").trim()===""?NaN:Number(_la), mapLng=String(_ln||"").trim()===""?NaN:Number(_ln);
@@ -720,11 +721,13 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
     ?`ongkir pertama ${rupiah(route.base)}${multi?` (${stops.length} toko)`:""}${route.extra>0?` + jarak ${route.last.name} → pembeli ${fmtKm(route.km)} km: ${rupiah(route.extra)}`:`; jarak ${route.last.name} → pembeli ${fmtKm(route.km)} km masuk gratis`}`
     :"jarak belum terhitung, mohon konfirmasi";
   const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nNOTA • Kode Pesanan: ${orderCode}\n\n${routeLine}${tokoText}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${shipping>0?rupiah(shipping):"Gratis"} (${shipDetail})\nTOTAL BAYAR: ${rupiah(total)}\n\nNama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
+  const msgWA=kodeST?msg+`\n\n🔑 Kode serah terima: ${kodeST}\n(sebutkan ke kurir hanya saat pesanan sudah diterima)`:msg;
   const payloads=[{order_code:orderCode,created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu"}];
 
   // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi semua nota.
   const local=getLocalOrders(); payloads.forEach((pl,i)=>local.unshift({...pl,id:`local-${Date.now()}-${i}`})); saveLocalOrders(local);
   localStorage.setItem("kalensari_customer_phone",phone);
+  if(kodeST) try{const m=JSON.parse(localStorage.getItem("kalensari_kode_st")||"{}");m[orderCode]=kodeST;localStorage.setItem("kalensari_kode_st",JSON.stringify(m))}catch(e){}
 
   const result=await saveCloudOrders(payloads);
   if(!result.ok){
@@ -739,7 +742,8 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const savedMap=new Map((result.data||[]).filter(Boolean).map(r=>[r.order_code,r]));
   const merged=getLocalOrders().map(o=>savedMap.has(o.order_code)?{...o,...savedMap.get(o.order_code),sync_error:null}:o); saveLocalOrders(merged);
   renderMyOrders();
-  window.open(waLink(msg),"_blank");
+  if(kodeST) await KSST.daftarkan(orderCode,kodeST);
+  window.open(waLink(msgWA),"_blank");
   cart=[];saveCart();updateCartCount();renderCart();closeModal("checkoutModal");
   showToast(multi?`✅ Pesanan ${stops.length} toko (1 nota) tersimpan dan dikirim.`:"✅ Pesanan tersimpan dan dikirim."); e.target.reset();
   if(window.KSNotif&&CLOUD_CONFIG?.enabled) setTimeout(()=>KSNotif.tawarkan({key:"pembeli_push_"+normalizePhone(phone),ajakan:"🔔 Kabari saya saat pesanan diterima toko & diantar kurir?"}),1500);
@@ -853,6 +857,7 @@ function renderMyOrders(rows=getLocalOrders()){
     <p><b>${esc(o.customer_name||"")}</b> • ${esc(o.customer_phone||"")}</p>
     <p>${(o.items||[]).map(x=>`${esc(x.name)}${x.seller?` (${esc(x.seller)})`:""} ×${x.qty}`).join(" • ")}</p>
     <strong>${rupiah(o.total||0)}</strong>
+    ${window.KSST?KSST.html(o):""}
     ${o.sync_error?`<div class="order-hint">⚠️ Belum tersinkron ke database: ${esc(o.sync_error)}</div>`:""}
     ${o.updated_at?`<div class="order-updated">Diperbarui: ${new Date(o.updated_at).toLocaleString("id-ID")}</div>`:""}
   </div>`).join(""):'<div class="empty-state"><b>📦 Belum ada pesanan</b>Pesanan yang Anda buat akan muncul di sini.</div>';
@@ -890,6 +895,7 @@ async function refreshMyOrders(){
     remote.forEach(o=>map.set(o.order_code||o.id,{...map.get(o.order_code||o.id),...o,sync_error:null}));
     const rows=[...map.values()].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
     saveLocalOrders(rows);
+    if(window.KSST){ await KSST.muatInfo(rows.filter(o=>o.status==="selesai"&&Date.now()-new Date(o.updated_at||o.created_at||0)<4*864e5).map(o=>o.order_code)); KSST.pasang(document.getElementById("myOrderList"),()=>pembeliHP,()=>renderMyOrders(rows)); }
     renderMyOrders(rows);
     if(note){note.textContent=remote.length?`☁️ ${remote.length} pesanan tersinkron dari database online.`:"☁️ Belum ada pesanan online untuk nomor ini.";note.className="order-sync-note cloud";}
   } catch(e){

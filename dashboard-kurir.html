@@ -432,10 +432,16 @@ async function alihkan(code, pesan){
   await writeState(code, {acc:null, skip:nextSkip(o, st, elig, now), base:now});
   toast(pesan);
 }
-async function setStatus(code, status){
+async function setStatus(code, status, antar){
   try{
     const st = await readState(code);
     if(!st.acc || st.acc.id !== me.id){ toast("Pesanan ini bukan milik Anda"); return loadOrders(); }
+    if(status === "selesai" && antar){
+      // catat siapa & bagaimana pesanan diserahkan (dibaca pembeli, admin, dan notifikasi)
+      const tulis = (key, value) => cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key, value}])});
+      if(antar.foto) await tulis("foto_" + code, {foto:antar.foto, t:Date.now()});
+      await tulis("antar_" + code, {id:me.id, nama:me.nama || "", wa:WA, cara:antar.cara, ket:antar.ket || "", t:Date.now()});
+    }
     await cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status, updated_at:new Date().toISOString()})});
     if(status === "selesai"){ try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){} }
     if(status === "selesai"){ me.selesai = (me.selesai || 0) + 1; upsertMember(me).catch(() => {}); renderProf(); }
@@ -457,12 +463,80 @@ $("orders").addEventListener("click", async e => {
     if(act === "terima") await terima(code);
     else if(act === "tolak") await alihkan(code, "Pesanan ditolak dan dialihkan ke kurir lain");
     else if(act === "lepas") await alihkan(code, "Pesanan dilepas dan dialihkan ke kurir lain");
-    else if(act === "status") return await setStatus(code, b.dataset.status);
+    else if(act === "status"){ if(b.dataset.status === "selesai"){ b.disabled = false; return serahTerima(code); } return await setStatus(code, b.dataset.status); }
   }catch(err){ toast("Gagal: " + String(err.message || err).slice(0, 100)); }
   loadOrders();
 });
 
 
+
+// ===== Serah terima: kode 4 angka dari pembeli, atau foto bukti bila pembeli tidak ada =====
+function kecilkanFoto(file, max = 900){
+  return new Promise((ok, no) => {
+    const fr = new FileReader(); fr.onerror = no;
+    fr.onload = () => { const im = new Image(); im.onerror = no;
+      im.onload = () => { const r = Math.min(1, max / Math.max(im.width, im.height)); const c = document.createElement("canvas");
+        c.width = Math.round(im.width * r); c.height = Math.round(im.height * r);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); ok(c.toDataURL("image/jpeg", 0.68)); };
+      im.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+async function cekKode(code, kode){
+  try{ return await cf("rpc/cek_kode_pesanan", {method:"POST", body:JSON.stringify({p_code:code, p_kode:kode})}); }
+  catch(e){ if(/PGRST202|Could not find the function|404/.test(String(e.message))) return "belum-aktif"; throw e; }
+}
+function serahTerima(code){
+  const o = ORD[code], tr = o && transOf(o), siapa = tr && tr.layanan === "paket" ? "penerima barang" : tr ? "penumpang" : "pembeli";
+  const ov = document.createElement("div"); ov.id = "stModal";
+  ov.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(40,20,10,.55);display:flex;align-items:flex-end;justify-content:center";
+  ov.innerHTML = `<div style="background:#fffaf2;width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto">
+    <h3 style="margin:0 0 4px;color:var(--brown)">✅ Serah terima ${esc(code)}</h3>
+    <p class="hint" style="margin:0 0 8px">Minta <b>kode 4 angka</b> dari ${siapa}. Kode ada di aplikasi / WhatsApp ${siapa === "penerima barang" ? "pengirim" : "pembeli"}.</p>
+    <input id="stKode" class="fld" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="• • • •" style="font-size:30px;letter-spacing:14px;text-align:center;font-weight:700">
+    <button class="mini g" id="stOk" type="button" style="width:100%;padding:13px;font-size:16px;margin:0">✅ Selesai — kode benar</button>
+    <details id="stFotoBox" style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px"><summary style="cursor:pointer;font-weight:700;color:var(--brown)">📷 ${siapa[0].toUpperCase() + siapa.slice(1)} tidak ada di tempat?</summary>
+      <p class="hint" style="margin:6px 0">Foto barang di lokasi (mis. dititipkan ke tetangga / keluarga, atau diletakkan di depan pintu). ${siapa[0].toUpperCase() + siapa.slice(1)} & admin bisa melihat foto ini.</p>
+      <input type="file" id="stFile" accept="image/*" capture="environment" hidden>
+      <button class="mini" id="stPilih" type="button">📷 Ambil foto</button>
+      <img id="stPrev" alt="" style="display:none;width:100%;border-radius:12px;margin-top:8px">
+      <input id="stKet" class="fld" maxlength="120" placeholder="Dititipkan ke siapa / diletakkan di mana">
+      <button class="mini g" id="stKirim" type="button" disabled style="width:100%;padding:12px;margin:0">📤 Kirim foto & selesaikan</button>
+    </details>
+    <button class="mini" id="stBatal" type="button" style="width:100%;margin-top:12px">Batal</button></div>`;
+  document.body.appendChild(ov);
+  let foto = "", sibuk = false;
+  const tutup = () => ov.remove();
+  ov.onclick = e => { if(e.target === ov) tutup(); };
+  $("stBatal").onclick = tutup;
+  setTimeout(() => $("stKode").focus(), 100);
+  $("stKode").oninput = e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4); };
+  $("stKode").onkeydown = e => { if(e.key === "Enter") $("stOk").click(); };
+  $("stOk").onclick = async () => {
+    const kode = $("stKode").value; if(kode.length !== 4) return toast("Masukkan 4 angka kode");
+    if(sibuk) return; sibuk = true; $("stOk").disabled = true;
+    try{
+      const r = String(await cekKode(code, kode));
+      if(r === "ok" || r === "tanpa-kode" || r === "belum-aktif"){ tutup(); await setStatus(code, "selesai", {cara: r === "ok" ? "kode" : "tanpa-kode"}); }
+      else if(r.indexOf("salah") === 0){ const sisa = r.split(":")[1]; toast("❌ Kode salah" + (sisa ? ` (sisa ${sisa}x coba)` : "")); $("stKode").value = ""; $("stKode").focus(); }
+      else if(r === "terkunci"){ toast("Kode salah terlalu sering. Pakai foto bukti atau hubungi admin."); $("stFotoBox").open = true; }
+      else toast("Tidak bisa memeriksa kode: " + r);
+    }catch(e){ toast("Gagal memeriksa kode. Cek internet lalu coba lagi."); }
+    finally{ sibuk = false; const b = $("stOk"); if(b) b.disabled = false; }
+  };
+  $("stPilih").onclick = () => $("stFile").click();
+  $("stFile").onchange = async e => {
+    const f = e.target.files[0]; if(!f) return;
+    try{ foto = await kecilkanFoto(f); $("stPrev").src = foto; $("stPrev").style.display = "block"; $("stKirim").disabled = false; $("stPilih").textContent = "📷 Ganti foto"; }
+    catch(err){ toast("Foto tidak bisa dibaca"); }
+  };
+  $("stKirim").onclick = async () => {
+    if(!foto) return toast("Ambil foto dulu");
+    const ket = $("stKet").value.trim(); if(!ket) return toast("Tulis dititipkan ke siapa / diletakkan di mana");
+    if(sibuk) return; sibuk = true; $("stKirim").disabled = true; $("stKirim").textContent = "Mengirim...";
+    tutup(); await setStatus(code, "selesai", {cara:"foto", foto, ket});
+  };
+}
 
 // ===== Suara "Pesanan masuk, pesanan untuk kamu" (saat halaman kurir terbuka) =====
 // Taruh rekaman suara di file "pesanan-masuk.mp3" (satu folder dengan dashboard-kurir.html).

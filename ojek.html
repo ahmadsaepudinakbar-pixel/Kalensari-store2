@@ -146,6 +146,7 @@ details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--bro
     <p class="hint" id="tCode"></p>
     <ul class="steps" id="tSteps"></ul>
     <div id="tKurir"></div>
+    <div id="tST"></div>
     <div id="tInfo" class="hint"></div>
     <div id="ksNotifOjek"></div>
     <button class="btn d" type="button" id="btnBatal">Batalkan pesanan</button>
@@ -161,6 +162,7 @@ details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--bro
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
 <script src="notif.js"></script>
+<script src="serahterima.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -419,6 +421,7 @@ $("btnPesan").onclick = async () => {
     catch(e){ if(/customer_phone_normalized/.test(String(e.message))){ delete row.customer_phone_normalized; await cf("orders", {method:"POST", headers:{Prefer:"return=minimal"}, body:JSON.stringify(row)}); } else throw e; }
     localStorage.setItem("kalensari_ojek_pemesan", JSON.stringify({nama, wa:$("wa").value.trim()}));
     localStorage.setItem("kalensari_ojek_aktif", code);
+    if(window.KSST) await KSST.daftarkan(code, KSST.buatKode());
     toast("✅ Pesanan terkirim, mencari kurir...");
     lacak(code);
   }catch(e){ toast("Gagal mengirim pesanan: " + String(e.message || e).slice(0, 80)); }
@@ -440,7 +443,7 @@ if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("messa
 async function muatLacak(){
   if(!lacakKode) return;
   try{
-    const [rows, st] = await Promise.all([cf("orders?select=order_code,status,total,items,created_at&order_code=eq." + encodeURIComponent(lacakKode)), cf("store_settings?select=value&key=eq." + encodeURIComponent("kurir_ord_" + lacakKode))]);
+    const [rows, st] = await Promise.all([cf("orders?select=order_code,status,total,items,created_at,updated_at&order_code=eq." + encodeURIComponent(lacakKode)), cf("store_settings?select=value&key=eq." + encodeURIComponent("kurir_ord_" + lacakKode))]);
     const o = rows[0]; if(!o){ $("tInfo").textContent = "Pesanan tidak ditemukan."; return; }
     const it = (o.items || [])[0] || {}, L0 = LAY[it.layanan] || LAY.ojek, acc = st[0] && st[0].value && st[0].value.acc;
     const s = o.status === "dibatalkan" ? "batal" : o.status === "selesai" ? "selesai" : o.status === "dikirim" ? "jalan" : acc ? "menuju" : "cari";
@@ -452,6 +455,12 @@ async function muatLacak(){
     $("tKurir").innerHTML = acc && s !== "batal" && s !== "selesai" ? `<div class="avail ok">🛵 Kurir: <b>${esc(acc.nama || "Kurir Kalensari")}</b></div><a class="btn g" href="https://wa.me/${esc(acc.wa)}" target="_blank" rel="noopener">💬 Chat kurir</a><a class="btn" href="tel:+${esc(acc.wa)}">📞 Telepon kurir</a>` : "";
     $("tInfo").textContent = s === "cari" ? "Pesanan ditawarkan ke kurir yang sedang tidak mengantar. Halaman ini diperbarui otomatis." : "";
     $("btnBatal").hidden = s !== "cari";
+    if(window.KSST){
+      if(o.status === "selesai") await KSST.muatInfo([o.order_code]);
+      let hp = ""; try{ hp = norm(JSON.parse(localStorage.getItem("kalensari_ojek_pemesan") || "{}").wa); }catch(e){}
+      KSST.pasang($("tST"), hp, muatLacak);
+      $("tST").innerHTML = KSST.html(o).replace("Sebutkan kode ini ke kurir", it.layanan === "paket" ? "Kirim kode ini ke penerima barang; kurir memintanya saat barang diserahkan. Sebutkan ke kurir" : "Sebutkan kode ini ke kurir");
+    }
     if(s === "selesai" || s === "batal"){ clearInterval(lacakTimer); localStorage.removeItem("kalensari_ojek_aktif"); }
   }catch(e){ $("tInfo").textContent = "Gagal memuat status: " + String(e.message || e).slice(0, 60); }
 }

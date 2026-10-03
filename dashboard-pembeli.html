@@ -74,6 +74,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
 <script src="notif.js"></script>
+<script src="serahterima.js"></script>
 <script>
 
 const $ = id => document.getElementById(id);
@@ -190,7 +191,8 @@ async function loadOrders(){
   try{
     const a = await fetchOrders("customer_phone_normalized=eq." + WA), b = await fetchOrders("customer_phone=eq.0" + WA.slice(2)).catch(() => []);
     const rows = [...new Map([...a, ...b].map(o => [o.order_code || o.id, o])).values()].sort((x, y) => new Date(y.created_at||0) - new Date(x.created_at||0));
-    box.innerHTML = rows.length ? rows.map(o => `<div class="card"><h3>${esc(o.order_code || "Pesanan")} <span class="chip">${esc(SL[o.status] || o.status || "Menunggu")}</span></h3><p>${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p></div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
+    if(window.KSST){ await KSST.muatInfo(rows.filter(o => o.status === "selesai" && Date.now() - new Date(o.updated_at || o.created_at || 0) < 4*864e5).map(o => o.order_code)); KSST.pasang(box, WA, loadOrders); }
+    box.innerHTML = rows.length ? rows.map(o => `<div class="card"><h3>${esc(o.order_code || "Pesanan")} <span class="chip">${esc(SL[o.status] || o.status || "Menunggu")}</span></h3><p>${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>${window.KSST ? KSST.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
   }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
 }
 
