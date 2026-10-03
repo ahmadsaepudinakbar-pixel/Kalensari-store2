@@ -79,7 +79,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
       <div id="stat" class="status" style="margin-bottom:0"></div>
       <h2 id="dHalo" style="margin-top:14px;font-size:22px"></h2>
       <p class="hint" style="margin:0">Beginilah ringkasan jasa Anda di halaman Penyedia Jasa.</p>
-      <div class="sum"><div><b>Jenis jasa</b><span id="sKat">-</span></div><div><b>Jam layanan</b><span id="sJam">-</span></div></div>
+      <div class="sum"><div><b>Kategori jasa</b><span id="sKat">-</span></div><div><b>Jam layanan</b><span id="sJam">-</span></div></div>
       <div class="pv"><div class="ico" id="pvIco">🛠️</div><div><h3 id="pvNama"></h3><p id="pvKet"></p><span class="pill" id="pvBuka"></span></div></div>
     </section>
 
@@ -90,7 +90,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
       <input id="fFile" type="file" accept="image/*" hidden>
       <div class="row2" style="margin-bottom:12px"><button class="btn" type="button" id="fPilih">📷 Pilih foto</button><button class="btn danger" type="button" id="fHapusFoto">Hapus foto</button></div>
       <label>Nama<input id="fNama" class="fld" maxlength="60"></label>
-      <label>Jenis jasa<select id="fKat" class="fld"></select></label>
+      <label>Kategori jasa<select id="fKat" class="fld"></select></label>
       <label>Deskripsi singkat<input id="fKet" class="fld" maxlength="100" placeholder="mis. Servis motor, tambal ban, ganti oli"></label>
       <label>No. WhatsApp (untuk masuk)<input id="fWa" class="fld" disabled></label>
     </section>
@@ -169,11 +169,14 @@ function lockLeft(){ const t = LSget("kalensari_jasa_try", {n:0,t:0}); return t.
 function failTry(){ const t = LSget("kalensari_jasa_try", {n:0,t:0}); const n = (Date.now() - t.t > 60000 && t.n >= 5) ? 1 : t.n + 1; LSset("kalensari_jasa_try", {n, t:Date.now()}); }
 
 // ====== KATEGORI ======
-const DEFAULT_KAT = ["Tukang urut","Tukang ojek","Pemasangan WiFi","Pemasangan CCTV","Penjahit","Servis komputer","Servis elektronik","Servis HP","Supir traktor sawah","Pasukan Grabag","Supir","Travel","Pemasangan air PAM","Pasukan tandur","Ngerambet","Joki Gaming"];
+const DEFAULT_KAT = ["Kesehatan","Pertanian","Garment","Kecantikan","Service","Game"];
+// Jenis jasa lama -> kategori baru (sama dengan jasa.html)
+const KAT_LAMA = {"tukang urut":"Kesehatan","penjahit":"Garment","servis komputer":"Service","servis elektronik":"Service","servis hp":"Service","pemasangan wifi":"Service","pemasangan cctv":"Service","pemasangan air pam":"Service","supir traktor sawah":"Pertanian","pasukan tandur":"Pertanian","ngerambet":"Pertanian","pasukan grabag":"Pertanian","joki gaming":"Game"};
+const NAMA_LAMA = ["tukang urut","tukang ojek","pemasangan wifi","pemasangan cctv","penjahit","servis komputer","servis elektronik","servis hp","supir traktor sawah","pasukan grabag","supir","travel","pemasangan air pam","pasukan tandur","ngerambet","joki gaming"];
 let KAT = DEFAULT_KAT;
 async function loadKat(){
-  try{ const v = await getSetting("jasa_categories", null); if(Array.isArray(v) && v.length) KAT = v.map(c => c.n); }catch(e){}
-  const opts = (sel, cur) => { const l = [...KAT]; if(cur && !l.includes(cur)) l.push(cur); sel.innerHTML = l.map(k => `<option value="${esc(k)}"${k===cur?" selected":""}>${esc(k)}</option>`).join(""); };
+  try{ const v = await getSetting("jasa_categories", null); if(Array.isArray(v) && v.length){ const n = v.map(c => c.n); KAT = n.some(x => NAMA_LAMA.includes(String(x).toLowerCase())) ? [...DEFAULT_KAT, ...n.filter(x => !NAMA_LAMA.includes(String(x).toLowerCase()) && !DEFAULT_KAT.includes(x))] : n; } }catch(e){}
+  const opts = (sel, cur) => { if(cur && !KAT.includes(cur) && KAT.includes(KAT_LAMA[String(cur).toLowerCase()])) cur = KAT_LAMA[String(cur).toLowerCase()]; const l = [...KAT]; if(cur && !l.includes(cur)) l.push(cur); sel.innerHTML = l.map(k => `<option value="${esc(k)}"${k===cur?" selected":""}>${esc(k)}</option>`).join(""); };
   window.fillKat = opts;
 }
 
