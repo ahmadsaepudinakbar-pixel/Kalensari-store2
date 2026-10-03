@@ -207,7 +207,8 @@ function nowMinutesWIB(){
   return h*60+m;
 }
 const timeToMin=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||""));return m?Number(m[1])*60+Number(m[2]):null};
-const hasHours=p=>timeToMin(p.open_time)!==null&&timeToMin(p.close_time)!==null;
+// Jam tersedia per produk DINONAKTIFKAN: ketersediaan kini mengikuti jam buka/tutup toko (jadwal penjual).
+const hasHours=p=>false;
 function isInHours(p){
   if(!hasHours(p))return true; // tanpa jam = tersedia sepanjang hari
   const o=timeToMin(p.open_time),c=timeToMin(p.close_time),n=nowMinutesWIB();

@@ -859,14 +859,12 @@ function productForm(id){
     <div style="flex:1"><label class="btn btn-light" style="cursor:pointer;display:inline-flex">📷 Upload foto<input type="file" accept="image/*" hidden onchange="fotoProduk(this)"></label>
     <input class="inp" id="fI" value="${esc(p.image&&!String(p.image).startsWith('data:')?p.image:'')}" placeholder="atau tempel link foto https://..." style="margin-top:6px" oninput="window._fotoData=null"></div></div></div>
   <div class="field"><label>Status</label><select class="inp" id="fSt">${[['Show','Tampil'],['Sold Out','Stok habis'],['Hidden','Disembunyikan']].map(([v,l])=>`<option value="${v}" ${(p.status||'Show')===v?'selected':''}>${l}</option>`).join('')}</select></div>
-  <details style="margin:6px 0 12px" ${p.product_group||p.variant||p.toppings||p.open_time?'open':''}><summary style="cursor:pointer;font-weight:700;padding:6px 0">⚙️ Pengaturan lanjutan (varian, prasmanan, jam tersedia)</summary>
+  <details style="margin:6px 0 12px" ${p.product_group||p.variant||p.toppings?'open':''}><summary style="cursor:pointer;font-weight:700;padding:6px 0">⚙️ Pengaturan lanjutan (varian, prasmanan)</summary>
     <div class="form-grid" style="gap:10px;margin-top:8px"><div class="field"><label>Nama grup (opsional)</label><input class="inp" id="fGrp" value="${esc(p.product_group||'')}" placeholder="mis. Pecel Lele"></div><div class="field"><label>Nama varian (opsional)</label><input class="inp" id="fVar" value="${esc(p.variant||'')}" placeholder="mis. + Nasi"></div></div>
     ${hint('🧩 Produk dengan Nama Grup yang sama digabung jadi 1 kartu dengan pilihan varian.')}
     <div class="field" style="margin-top:10px"><label>Topping prasmanan (opsional)</label><textarea class="inp" id="fTop" rows="5" placeholder="Bakso | 1000 | https://link-foto.jpg&#10;Sosis | 1500&#10;Ceker | 2000">${esc(p.toppings||'')}</textarea>
     ${hint('🍲 Satu baris = satu topping: Nama | Harga | URL foto (foto boleh kosong). Bila diisi, produk jadi menu racik dan Harga di atas jadi harga dasar (boleh 0).')}</div>
     <div class="field"><label>Batas belanja per porsi (Rp, opsional)</label><input class="inp" id="fTLim" type="number" min="0" value="${esc(p.topping_limit??'')}" placeholder="mis. 10000"></div>
-    <div class="form-grid" style="gap:10px"><div class="field"><label>Tersedia dari jam</label><input class="inp" id="fOpen" type="time" value="${esc(p.open_time||'')}"></div><div class="field"><label>Sampai jam</label><input class="inp" id="fClose" type="time" value="${esc(p.close_time||'')}"></div></div>
-    ${hint('🕒 Waktu WIB. Kosongkan keduanya bila tersedia sepanjang hari.')}
   </details>
   <div class="mact">${id?`<button class="btn btn-red" onclick="hapusProd(${Number(id)},this)">Hapus</button>`:''}<button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveProd(${Number(id)||0},this)">Simpan</button></div>`);
   window._fotoData=p.image&&String(p.image).startsWith('data:')?p.image:null;
@@ -879,12 +877,11 @@ async function fotoProduk(inp){
 const cekTopping=txt=>txt.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).every(l=>{const [n,h]=l.split('|').map(x=>(x||'').trim());return n&&h!==''&&!isNaN(Number(h))&&Number(h)>=0});
 async function saveProd(id,btn){
   const num=v=>v===''?null:Number(v);
-  const top=$('#fTop').value.trim(),openT=$('#fOpen').value,closeT=$('#fClose').value,tl=Number($('#fTLim').value);
+  const top=$('#fTop').value.trim(),tl=Number($('#fTLim').value);
   const d={name:$('#fN').value.trim(),price:Number($('#fP').value),sale:num($('#fSale').value),category:$('#fC').value,unit:$('#fU').value.trim()||null,seller:$('#fSel').value.trim()||null,stock:num($('#fS').value),image:window._fotoData||$('#fI').value.trim()||null,status:$('#fSt').value,
-    product_group:$('#fGrp').value.trim()||null,variant:$('#fVar').value.trim()||null,toppings:top||null,topping_limit:tl>0?tl:null,open_time:openT||null,close_time:closeT||null};
+    product_group:$('#fGrp').value.trim()||null,variant:$('#fVar').value.trim()||null,toppings:top||null,topping_limit:tl>0?tl:null,open_time:null,close_time:null};
   if(!d.name||!(d.price>0||(top&&d.price>=0))){toast('Nama dan harga wajib diisi');return}
   if(top&&!cekTopping(top)){toast('Format topping salah. Satu baris: Nama | Harga');return}
-  if(!!openT!==!!closeT){toast('Isi jam mulai DAN jam selesai, atau kosongkan keduanya');return}
   if(d.sale!=null&&(d.sale<=0||d.sale>=d.price)){toast('Harga promo harus lebih kecil dari harga');return}
   await busy(btn,async()=>{
     if(id){await patchProd(id,d)}
