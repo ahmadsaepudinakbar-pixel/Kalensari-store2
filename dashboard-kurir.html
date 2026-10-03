@@ -168,6 +168,7 @@ h2{color:#2b2623}
 </main>
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
+<script src="notif.js"></script>
 <script>
 
 const $ = id => document.getElementById(id);
@@ -494,13 +495,15 @@ document.addEventListener("pointerdown", function bukaSuara(){
   try{ const a = new Audio(SUARA_FILE); a.volume = 0; a.play().then(() => { a.pause(); }).catch(() => {}); }catch(e){}
   try{ if("speechSynthesis" in window){ const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } }catch(e){}
 }, {once:false});
-if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(e.data && e.data.type === "bunyi-pesanan") bunyi(); });
+if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(e.data && e.data.type === "bunyi-pesanan" && (!e.data.tag || e.data.tag === "pesanan-baru")){ bunyi(); if(me && !me.pending) loadOrders(); } });
 
 // ===== Notifikasi push: pesanan masuk tetap sampai ke HP walau aplikasi ditutup =====
 const VAPID_KEY = (typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG.vapidPublicKey) || "";
 const PUSH_KEY = "kurir_push_";
 const pushOK = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && !!VAPID_KEY;
 const b64u8 = b => { const p = "=".repeat((4 - b.length % 4) % 4), r = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from([...r].map(c => c.charCodeAt(0))); };
+// Kunci notifikasi server berganti -> langganan lama harus didaftarkan ulang.
+function kunciSama(sub){ try{ const k = sub.options && sub.options.applicationServerKey; if(!k) return true; const x = new Uint8Array(k), y = b64u8(VAPID_KEY); return x.length === y.length && x.every((v, i) => v === y[i]); }catch(e){ return true; } }
 async function pushReg(){ return (await navigator.serviceWorker.getRegistration()) || await navigator.serviceWorker.register("sw.js"); }
 async function savePushSub(sub){
   const key = PUSH_KEY + me.id;
@@ -517,7 +520,7 @@ async function pushInit(){
     return;
   }
   if(Notification.permission === "denied"){ btn.hidden = true; txt.textContent = "Notifikasi diblokir. Buka pengaturan situs/aplikasi di HP, izinkan Notifikasi, lalu muat ulang halaman ini."; return; }
-  let sub = null; try{ sub = await (await pushReg()).pushManager.getSubscription(); }catch(e){}
+  let sub = null; try{ sub = await (await pushReg()).pushManager.getSubscription(); if(sub && !kunciSama(sub)){ await sub.unsubscribe().catch(() => {}); sub = null; } }catch(e){}
   if(sub && Notification.permission === "granted"){
     try{ await savePushSub(sub); }catch(e){}
     txt.textContent = "✅ Notifikasi aktif di HP ini. Anda akan diberi tahu saat ada pesanan untuk Anda.";
@@ -531,14 +534,20 @@ $("btnNotif").onclick = async () => {
     if(perm !== "granted"){ toast("Izin notifikasi tidak diberikan"); return pushInit(); }
     const reg = await pushReg(); await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
+    if(sub && !kunciSama(sub)){ await sub.unsubscribe().catch(() => {}); sub = null; }
     if(!sub) sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64u8(VAPID_KEY)});
     await savePushSub(sub); toast("Notifikasi diaktifkan"); pushInit();
   }catch(e){ toast("Gagal mengaktifkan: " + String(e.message || e).slice(0, 80)); }
   finally{ btn.disabled = false; }
 };
 $("btnNotifTest").onclick = async () => {
-  try{ const reg = await pushReg(); bunyi(); await reg.showNotification("Kalensari Store", {body:"Tes notifikasi berhasil 🎉", icon:"icons/icon-192.png", tag:"tes"}); }
-  catch(e){ toast("Tes gagal"); }
+  const btn = $("btnNotifTest"); btn.disabled = true;
+  try{
+    const h = window.KSNotif ? await KSNotif.tes(PUSH_KEY + me.id) : "lokal";
+    if(h === "lokal" && !window.KSNotif){ const reg = await pushReg(); bunyi(); await reg.showNotification("Kalensari Store", {body:"Tes notifikasi berhasil 🎉", icon:"icons/icon-192.png", tag:"tes"}); }
+    toast(h === "server" ? "Tes dikirim dari server. Coba tutup aplikasi, notifikasi tetap muncul." : h === "tunggu" ? "Tunggu 30 detik sebelum tes lagi." : "Notifikasi lokal muncul. Pengiriman dari server belum aktif.");
+  }catch(e){ toast("Tes gagal"); }
+  finally{ setTimeout(() => { btn.disabled = false; }, 3000); }
 };
 
 

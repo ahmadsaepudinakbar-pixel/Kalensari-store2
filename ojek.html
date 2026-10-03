@@ -147,6 +147,7 @@ details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--bro
     <ul class="steps" id="tSteps"></ul>
     <div id="tKurir"></div>
     <div id="tInfo" class="hint"></div>
+    <div id="ksNotifOjek"></div>
     <button class="btn d" type="button" id="btnBatal">Batalkan pesanan</button>
     <button class="btn" type="button" id="btnBaru">Buat pesanan baru</button>
   </section>
@@ -159,6 +160,7 @@ details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--bro
 </div>
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
+<script src="notif.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -428,7 +430,13 @@ let lacakKode = null, lacakTimer = null;
 async function lacak(code){
   lacakKode = code; $("formView").hidden = true; $("trackView").hidden = false; window.scrollTo(0, 0);
   clearInterval(lacakTimer); await muatLacak(); lacakTimer = setInterval(muatLacak, 15000);
+  if(window.KSNotif){
+    let hp = ""; try{ hp = norm(JSON.parse(localStorage.getItem("kalensari_ojek_pemesan") || "{}").wa); }catch(e){}
+    if(hp && !lacakNotif) lacakNotif = KSNotif.kartu($("ksNotifOjek"), {key:"pembeli_push_" + hp, judul:"🔔 Kabari saya saat kurir datang", ajakan:"Dapatkan notifikasi saat kurir ditemukan, dalam perjalanan, dan sampai tujuan — walaupun halaman ini ditutup.", aktifTeks:"Anda akan diberi tahu saat kurir ditemukan dan saat pesanan selesai."});
+  }
 }
+let lacakNotif = null;
+if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(lacakKode && e.data && e.data.type === "bunyi-pesanan" && e.data.tag === "ks-" + lacakKode) muatLacak(); });
 async function muatLacak(){
   if(!lacakKode) return;
   try{
@@ -467,7 +475,8 @@ $("btnBaru").onclick = () => { clearInterval(lacakTimer); lacakKode = null; loca
     try{ const t = await getSetting("transport_tariff", null); if(t && typeof t === "object") TARIF = {...TARIF_DEFAULT, ...t, ojek:{...TARIF_DEFAULT.ojek, ...(t.ojek || {})}, paket:{...TARIF_DEFAULT.paket, ...(t.paket || {})}}; }catch(e){}
     setLayanan(layanan); renderAvail(); setInterval(renderAvail, 30000);
   }
-  const aktif = localStorage.getItem("kalensari_ojek_aktif");
+  const dariNotif = new URLSearchParams(location.search).get("lacak");
+  const aktif = dariNotif || localStorage.getItem("kalensari_ojek_aktif");
   if(aktif && cloudOn()) lacak(aktif);
 })();
 </script>

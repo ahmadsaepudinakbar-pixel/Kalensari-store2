@@ -2,7 +2,7 @@
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
    (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v16";
+const VERSION = "ks-v17";
 const CACHE = "kalensari-" + VERSION;
 const PRECACHE = [
   "./offline.html",
@@ -54,32 +54,40 @@ self.addEventListener("fetch", (e) => {
   );
 });
 
-/* ===== Notifikasi push (pesanan masuk untuk kurir) ===== */
+/* ===== Notifikasi push (penjual, kurir, pembeli, admin) ===== */
 self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : "" }; }
   const title = d.title || "Kalensari Store";
-  e.waitUntil(self.registration.showNotification(title, {
-    body: d.body || "Ada pesanan baru untuk Anda.",
-    icon: "icons/icon-192.png",
-    badge: "icons/icon-192.png",
-    tag: d.tag || "pesanan-baru",
-    renotify: true,
-    requireInteraction: true,
-    vibrate: [300, 120, 300, 120, 300],
-    data: { url: d.url || "dashboard-kurir.html" }
-  }));
+  e.waitUntil(Promise.all([
+    self.registration.showNotification(title, {
+      body: d.body || "Ada kabar baru untuk Anda.",
+      icon: "icons/icon-192.png",
+      badge: "icons/icon-192.png",
+      tag: d.tag || "kalensari",
+      renotify: true,
+      requireInteraction: /pesanan-baru|ks-pesanan/.test(d.tag || ""),
+      vibrate: [300, 120, 300, 120, 300],
+      data: { url: d.url || "./" }
+    }),
+    // halaman yang sedang terbuka ikut berbunyi & memuat ulang data
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => list.forEach((c) => c.postMessage({ type: "bunyi-pesanan", tag: d.tag || "" })))
+  ]));
 });
 
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
-  const target = new URL((e.notification.data && e.notification.data.url) || "dashboard-kurir.html", self.registration.scope).href;
+  const target = new URL((e.notification.data && e.notification.data.url) || "./", self.registration.scope);
   e.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       for (const c of list) {
-        if (c.url.indexOf("dashboard-kurir.html") !== -1 && "focus" in c) return c.focus();
+        const u = new URL(c.url);
+        if (u.pathname === target.pathname && "focus" in c) {
+          if (u.search !== target.search && "navigate" in c) return c.navigate(target.href).then((w) => (w || c).focus());
+          return c.focus();
+        }
       }
-      return self.clients.openWindow(target);
+      return self.clients.openWindow(target.href);
     })
   );
 });

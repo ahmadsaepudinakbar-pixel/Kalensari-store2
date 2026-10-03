@@ -742,10 +742,12 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   window.open(waLink(msg),"_blank");
   cart=[];saveCart();updateCartCount();renderCart();closeModal("checkoutModal");
   showToast(multi?`✅ Pesanan ${stops.length} toko (1 nota) tersimpan dan dikirim.`:"✅ Pesanan tersimpan dan dikirim."); e.target.reset();
+  if(window.KSNotif&&CLOUD_CONFIG?.enabled) setTimeout(()=>KSNotif.tawarkan({key:"pembeli_push_"+normalizePhone(phone),ajakan:"🔔 Kabari saya saat pesanan diterima toko & diantar kurir?"}),1500);
 });
 
 document.getElementById("year").textContent=new Date().getFullYear();
 renderCategories();renderProducts();updateCartCount();renderCart();
+if(new URLSearchParams(location.search).get("pesanan")){ history.replaceState(null,"",location.pathname); setTimeout(()=>document.getElementById("myOrdersBtn")?.click(),400); }
 if(location.hash==="#checkout"){ history.replaceState(null,"",location.pathname); if(cart.length) setTimeout(()=>document.getElementById("checkoutBtn").click(),400); }
 (async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
 
@@ -855,6 +857,7 @@ function renderMyOrders(rows=getLocalOrders()){
     ${o.updated_at?`<div class="order-updated">Diperbarui: ${new Date(o.updated_at).toLocaleString("id-ID")}</div>`:""}
   </div>`).join(""):'<div class="empty-state"><b>📦 Belum ada pesanan</b>Pesanan yang Anda buat akan muncul di sini.</div>';
 }
+let pembeliNotif=null,pembeliHP="";
 async function refreshMyOrders(){
   const note=document.getElementById("myOrderSyncNote");
   const local=getLocalOrders();
@@ -880,6 +883,7 @@ async function refreshMyOrders(){
     return;
   }
   if(identity) identity.hidden=true;
+  if(window.KSNotif){ pembeliHP=phone; if(!pembeliNotif) pembeliNotif=KSNotif.kartu(document.getElementById("ksNotifPembeli"),{key:()=>pembeliHP?"pembeli_push_"+pembeliHP:"",judul:"🔔 Kabari saya lewat notifikasi",ajakan:"Dapatkan pemberitahuan saat pesanan diterima toko, diantar kurir, dan selesai.",aktifTeks:"Anda akan diberi tahu saat status pesanan berubah."}); else pembeliNotif.refresh(); }
   try {
     const remote=await loadMyCloudOrders(phone);
     const map=new Map(local.map(o=>[o.order_code||o.id,o]));

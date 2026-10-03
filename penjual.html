@@ -40,7 +40,7 @@
 <section id="ordersBox" class="box" hidden style="margin-bottom:16px">
 <h2 style="margin:0 0 4px;color:var(--brown)">📦 Pesanan masuk <span id="ordBadge" class="obadge" hidden>0</span></h2>
 <p class="hint" id="ordInfo">Hanya pesanan untuk produk toko Anda yang tampil di sini. Halaman ini memeriksa pesanan baru tiap 25 detik selama dibuka.</p>
-<div class="btns" style="margin-bottom:6px"><button class="btn" id="btnNotif" type="button" hidden>🔔 Aktifkan notifikasi di HP ini</button><button class="btn" id="btnRefreshOrd" type="button">↻ Perbarui pesanan</button></div>
+<div id="ksNotifPj"></div><div class="btns" style="margin-bottom:6px"><button class="btn" id="btnNotif" type="button" hidden>🔔 Aktifkan notifikasi di HP ini</button><button class="btn" id="btnRefreshOrd" type="button">↻ Perbarui pesanan</button></div>
 <div id="ordList"></div>
 </section>
 <div id="outRow" class="btns" hidden style="margin:4px 0 24px"><button class="btn danger" id="btnOut" type="button">Keluar</button></div>
@@ -52,7 +52,8 @@
 <hr style="border:0;border-top:1px solid var(--line);margin:20px 0"><h2>Keamanan akun</h2><div class="row2"><label>PIN lama<input id="pOld" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>PIN baru<input id="pNew" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div><div class="btns"><button class="btn" id="pSimpan" type="button">Simpan PIN baru</button></div>
 </section>
 </main><div class="toast" id="toast"></div>
-<script src="config.js" onerror="void 0"></script><script>
+<script src="config.js" onerror="void 0"></script>
+<script src="notif.js"></script><script>
 const $=id=>document.getElementById(id);function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("show"),3200)}
 const normPhone=v=>String(v||"").replace(/\D/g,"").replace(/^0/,"62"),okPin=v=>/^\d{4,8}$/.test(v);const ROLE="penjual",SESS="kalensari_penjual_sess";
 const cloudOn=()=>typeof CLOUD_CONFIG!=="undefined"&&CLOUD_CONFIG&&CLOUD_CONFIG.enabled&&CLOUD_CONFIG.supabaseUrl&&CLOUD_CONFIG.supabaseAnonKey;
@@ -138,7 +139,8 @@ async function pollOrders(){
 function startOrders(){
   if(!me||me.pending||ordTimer)return;
   $("ordersBox").hidden=false;
-  const bn=$("btnNotif");if("Notification" in window&&Notification.permission==="default"){bn.hidden=false;bn.onclick=async()=>{const r=await Notification.requestPermission();bn.hidden=r!=="default";toast(r==="granted"?"🔔 Notifikasi aktif":"Notifikasi tidak diizinkan")}}
+  if(window.KSNotif)KSNotif.kartu($("ksNotifPj"),{key:"penjual_push_"+me.id,extra:{nama:me.toko||me.usaha||""},judul:"🔔 Aktifkan notifikasi pesanan",ajakan:"Supaya HP berbunyi saat ada pesanan masuk, walaupun aplikasi sedang ditutup.",aktifTeks:"HP ini akan berbunyi saat ada pesanan masuk untuk toko Anda, walaupun aplikasi ditutup."});
+  else{const bn=$("btnNotif");if("Notification" in window&&Notification.permission==="default"){bn.hidden=false;bn.onclick=async()=>{const r=await Notification.requestPermission();bn.hidden=r!=="default";toast(r==="granted"?"🔔 Notifikasi aktif":"Notifikasi tidak diizinkan")}}}
   $("btnRefreshOrd").onclick=pollOrders;
   pollOrders();ordTimer=setInterval(pollOrders,25000);
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollOrders()});

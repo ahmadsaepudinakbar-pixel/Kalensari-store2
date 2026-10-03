@@ -284,6 +284,7 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
 </svg>
 
 <script src="config.js"></script>
+<script src="notif.js"></script>
 <script>
 /* =====================================================================
    ADMIN KALENSARI STORE — tersambung ke data asli Supabase
@@ -454,7 +455,9 @@ function render(){
   renderNav();
   const [t,s]=TITLES[route];$('#pTitle').textContent=t;$('#pSub').textContent=s;
   $('#content').innerHTML=S.loaded||route==='lainnya'?PAGES[route]():'<div class="empty">Memuat data toko...</div>';
+  if(route==='pengaturan'&&window.KSNotif&&$('#admNotif'))KSNotif.kartu($('#admNotif'),{key:'admin_push',token:async()=>{await fresh();return auth.access_token},extra:{email:(auth&&auth.email)||''},judul:'Aktifkan di perangkat ini',ajakan:'Perangkat ini akan berbunyi saat ada pesanan atau pendaftar baru, walaupun halaman admin ditutup.',aktifTeks:'Perangkat ini menerima kabar pesanan & pendaftar baru.'});
 }
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(auth&&e.data&&e.data.type==='bunyi-pesanan'&&/^admin-/.test(e.data.tag||'')&&!$('#modalRoot').innerHTML)loadAll(true)});
 
 /* ========== GRAFIK ========== */
 function lineChart(data,labels){
@@ -596,6 +599,9 @@ pengaturan(){
   ${tarifCard()}
   ${tempatCard()}
   ${gmapsCard()}
+  <div class="card"><div class="chead"><h3>🔔 Notifikasi Admin</h3></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:4px">Kabar pesanan baru &amp; pendaftar baru (penjual, kurir, jasa) dikirim ke perangkat ini. Aktifkan di HP dan/atau komputer admin.</p>
+    <div id="admNotif">${window.KSNotif?'':'<p class="sm">File notif.js belum terunggah.</p>'}</div></div>
   <div class="card"><div class="chead"><h3>Akun Admin</h3></div>
     <div class="detail-row"><span>Email</span><b>${esc((auth&&auth.email)||'-')}</b></div>
     <p class="sm" style="color:var(--mut);font-size:12px;margin:12px 0">Akun ini sama dengan login ⚙️ Admin di toko. Ganti kata sandi atau tambah admin dari Supabase &gt; Authentication &gt; Users dan tabel <code>admins</code>.</p>

@@ -65,7 +65,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
     <label>No. WhatsApp (untuk masuk)<input id="fWa" class="fld" disabled></label>
     <div class="btns"><button class="btn wa" id="fSimpan" type="button">💾 Simpan</button></div>
   </section>
-  <section class="box" style="margin-top:14px"><h2>Riwayat pesanan</h2><div id="orders"></div><div class="btns"><a class="btn wa" href="index.html">🛍️ Belanja sekarang</a></div></section>
+  <section class="box" style="margin-top:14px"><h2>Riwayat pesanan</h2><div id="ksNotifDb"></div><div id="orders"></div><div class="btns"><a class="btn wa" href="index.html">🛍️ Belanja sekarang</a></div></section>
   <section class="box" style="margin-top:14px"><h2>Keamanan akun</h2>
     <div class="row2" style="margin-top:10px"><label>PIN lama<input id="pOld" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>PIN baru<input id="pNew" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div>
     <div class="btns"><button class="btn" id="pSimpan" type="button">Simpan PIN baru</button><button class="btn danger" id="btnKeluar" type="button">Keluar</button></div></section>
@@ -73,6 +73,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 </main>
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
+<script src="notif.js"></script>
 <script>
 
 const $ = id => document.getElementById(id);
@@ -160,6 +161,7 @@ async function load(){
   $("dHalo").textContent = "Halo, " + (me.nama || "selamat datang") + " 👋";
   FIELDS.forEach(k => { $("f_" + k).value = me[k] || ""; });
   $("fWa").value = "+" + WA;
+  if(window.KSNotif) KSNotif.kartu($("ksNotifDb"), {key:"pembeli_push_" + WA, judul:"🔔 Kabari saya lewat notifikasi", ajakan:"Dapatkan pemberitahuan saat pesanan diterima toko, diantar kurir, dan selesai.", aktifTeks:"Anda akan diberi tahu saat status pesanan berubah."});
   updateLocationUI();
   
   $("dash").hidden = false;
