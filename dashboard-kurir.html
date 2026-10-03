@@ -304,7 +304,8 @@ async function eligibleCouriers(){
 }
 // ===== Saldo kurir (deposit) =====
 let BIAYA = {aktif:false, potong:1000, minTopup:20000, minSaldo:1000, caraBayar:""}, SALDO = null;
-const minSaldo = () => Math.max(Number(BIAYA.minSaldo) || 0, Number(BIAYA.potong) || 0);
+const minSaldo = () => BIAYA.mode === "persen" ? (Number(BIAYA.minSaldo) || 1000) : Math.max(Number(BIAYA.minSaldo) || 0, Number(BIAYA.potong) || 0);
+const potongTeks = () => BIAYA.mode === "persen" ? `${String(Number(BIAYA.persen) || 0).replace(".", ",")}% dari ongkir` : fmtRp(BIAYA.potong);
 async function muatBiaya(){ try{ const b = await getSetting("kurir_biaya", null); BIAYA = {aktif:false, potong:1000, minTopup:20000, minSaldo:1000, caraBayar:"", ...(b && typeof b === "object" ? b : {})}; }catch(e){} return BIAYA; }
 async function saldoSemua(){ try{ const r = await cf("kurir_saldo?select=kurir_id,saldo"); const m = {}; (r || []).forEach(x => { m[x.kurir_id] = Number(x.saldo) || 0; }); return m; }catch(e){ return null; } }
 async function renderSaldo(){
@@ -320,7 +321,7 @@ async function renderSaldo(){
   SALDO = s; const kurang = s < minSaldo();
   box.hidden = false; box.className = kurang ? "habis" : "";
   const baru = x => Date.now() - Date.parse(x.diproses_t || x.t) < 2 * 864e5;
-  box.innerHTML = `<div class="sl"><div><span>💰 Saldo Anda</span><b>${fmtRp(s)}</b><small>Dipotong ${fmtRp(BIAYA.potong)} tiap pesanan selesai</small></div><button class="mini g" type="button" id="btnTopup">➕ Isi saldo</button></div>`
+  box.innerHTML = `<div class="sl"><div><span>💰 Saldo Anda</span><b>${fmtRp(s)}</b><small>Dipotong ${potongTeks()} tiap pesanan selesai</small></div><button class="mini g" type="button" id="btnTopup">➕ Isi saldo</button></div>`
     + (kurang ? `<p class="ws">⚠️ Saldo kurang. Anda tidak mendapat tawaran pesanan sampai saldo diisi (minimal isi ${fmtRp(BIAYA.minTopup)}).</p>` : "")
     + req.filter(x => x.status === "menunggu").map(x => `<p class="hint" style="margin:8px 0 0">⏳ Isi saldo ${fmtRp(x.jumlah)} menunggu konfirmasi admin.</p>`).join("")
     + req.filter(x => x.status === "ditolak" && baru(x)).map(x => `<p class="hint" style="margin:8px 0 0;color:#c0392b">❌ Isi saldo ${fmtRp(x.jumlah)} ditolak${x.catatan ? ": " + esc(x.catatan) : ""}.</p>`).join("")
@@ -340,7 +341,7 @@ async function bukaTopup(){
   const min = Number(BIAYA.minTopup) || 20000, pil = [min, 50000, 100000].filter((v, i, a) => v >= min && a.indexOf(v) === i);
   let wa = ""; try{ wa = String(await getSetting("whatsapp_number", "") || "").replace(/\D/g, "").replace(/^0/, "62"); }catch(e){}
   const ov = lembar(`<h3 style="margin:0 0 4px;color:var(--brown)">➕ Isi saldo kurir</h3>
-    <p class="hint" style="margin:0 0 6px">Minimal ${fmtRp(min)}. Saldo dipotong ${fmtRp(BIAYA.potong)} setiap pesanan selesai.</p>
+    <p class="hint" style="margin:0 0 6px">Minimal ${fmtRp(min)}. Saldo dipotong ${potongTeks()} setiap pesanan selesai.</p>
     <div class="nom">${pil.map(v => `<button type="button" data-v="${v}">${fmtRp(v)}</button>`).join("")}</div>
     <input id="tuJml" class="fld" inputmode="numeric" placeholder="Atau tulis jumlah lain, mis. 30000">
     <div style="background:#fff6dd;border-radius:14px;padding:12px;font-size:13px;margin:4px 0 12px;white-space:pre-line"><b>Cara bayar:</b>\n${esc(BIAYA.caraBayar || "Transfer ke rekening admin atau bayar tunai langsung ke admin, lalu kirim permintaan ini.")}</div>

@@ -389,7 +389,9 @@ const kurirOf=o=>{const st=S.settings['kurir_ord_'+o.order_code];return st&&st.a
 const antarOf=o=>{const a=S.settings['antar_'+o.order_code];return a&&typeof a==='object'?a:null};
 const laporOf=o=>{const l=S.settings['laporan_'+o.order_code];return l&&typeof l==='object'?l:null};
 const laporBuka=()=>S.orders.filter(o=>{const l=laporOf(o);return l&&!l.beres});
-const biaya=()=>({aktif:false,potong:1000,minTopup:20000,saldoAwal:10000,caraBayar:'',...(S.settings.kurir_biaya&&typeof S.settings.kurir_biaya==='object'?S.settings.kurir_biaya:{})});
+const biaya=()=>({aktif:false,mode:'nominal',potong:1000,persen:10,minSaldo:1000,minTopup:20000,saldoAwal:10000,caraBayar:'',...(S.settings.kurir_biaya&&typeof S.settings.kurir_biaya==='object'?S.settings.kurir_biaya:{})});
+const minSaldoB=()=>{const b=biaya();return b.mode==='persen'?(Number(b.minSaldo)||1000):Math.max(Number(b.minSaldo)||0,Number(b.potong)||0)};
+const potongTeks=()=>{const b=biaya();return b.mode==='persen'?String(Number(b.persen)||0).replace('.',',')+'% dari ongkir':rp(b.potong)};
 const topupMenunggu=()=>(S.topup||[]).filter(x=>x.status==='menunggu');
 const saldoOf=id=>S.saldo?(S.saldo[id]||0):null;
 function pemasukan(){const now=wibNow(),bln=now.d.slice(0,7);let h=0,b=0;(S.potong||[]).forEach(x=>{const d=new Date(new Date(x.t).getTime()+7*36e5).toISOString().slice(0,10),v=Math.abs(Number(x.jumlah)||0);if(d===now.d)h+=v;if(d.slice(0,7)===bln)b+=v});return{h,b}}
@@ -701,7 +703,7 @@ kurir(){
   <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('truck')}</div><div class="lbl">Total Kurir</div><div class="val">${all.length}</div></div>
   <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('check')}</div><div class="lbl" style="color:var(--blue)">Siap Antar</div><div class="val">${siap}</div></div></div>
   ${saldoPanel()}
-  <div class="cards" id="list">${list.map((m,i)=>`<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b><div class="sm">${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">🛵 ${esc([m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-')}</div><div style="margin-top:6px">${m.aktif!==false?chip('Siap antar','b-Selesai'):chip('Tidak aktif','b-Batal')}${biaya().aktif&&saldoOf(m.id)!==null?' '+chip('💰 '+rp(saldoOf(m.id)),saldoOf(m.id)<biaya().potong?'b-Batal':'b-Diproses'):''}</div>${biaya().aktif&&S.saldo?`<button class="btn btn-light" style="margin-top:8px;padding:6px 12px" onclick="saldoKurir('${jsq(m.id)}')">💰 Saldo</button>`:''}</div><div class="right-col">${waLink(m.wa)}<button class="more" onclick="memberMenu('kurir','${jsq(m.id)}')">${ico('dots')}</button></div></div>`).join('')||'<div class="empty">Belum ada kurir yang disetujui</div>'}</div>`;
+  <div class="cards" id="list">${list.map((m,i)=>`<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b><div class="sm">${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">🛵 ${esc([m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-')}</div><div style="margin-top:6px">${m.aktif!==false?chip('Siap antar','b-Selesai'):chip('Tidak aktif','b-Batal')}${biaya().aktif&&saldoOf(m.id)!==null?' '+chip('💰 '+rp(saldoOf(m.id)),saldoOf(m.id)<minSaldoB()?'b-Batal':'b-Diproses'):''}</div>${biaya().aktif&&S.saldo?`<button class="btn btn-light" style="margin-top:8px;padding:6px 12px" onclick="saldoKurir('${jsq(m.id)}')">💰 Saldo</button>`:''}</div><div class="right-col">${waLink(m.wa)}<button class="more" onclick="memberMenu('kurir','${jsq(m.id)}')">${ico('dots')}</button></div></div>`).join('')||'<div class="empty">Belum ada kurir yang disetujui</div>'}</div>`;
 },
 persetujuan(){
   const g=GROUPS.find(x=>x.k===apTab)||GROUPS[0],rows=pendingOf(g.k);
@@ -1240,18 +1242,29 @@ function biayaCard(){
     <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:10px">Kurir mengisi saldo (deposit), lalu saldo dipotong otomatis setiap pesanan selesai. Kurir dengan saldo kurang tidak mendapat tawaran pesanan.</p>
     ${S.saldo?'':'<p class="sm" style="color:var(--red);margin-bottom:10px">⚠️ Jalankan <code>supabase-saldo-kurir.sql</code> di Supabase dulu.</p>'}
     <label class="sm" style="display:flex;gap:10px;align-items:center;padding:6px 0 12px;cursor:pointer"><input type="checkbox" id="bAktif" ${b.aktif?'checked':''} style="width:18px;height:18px"><b>Aktifkan potongan saldo</b></label>
-    <div class="field"><label>Potongan per pesanan selesai (Rp)</label><input class="inp" id="bPotong" inputmode="numeric" value="${Number(b.potong)||0}"></div>
+    <p class="sm" style="font-weight:700;margin:4px 0 6px">Cara potong</p>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <label style="flex:1;display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer"><input type="radio" name="bMode" value="nominal" ${b.mode!=='persen'?'checked':''} onchange="biayaMode()"> <span><b>Nominal</b><br><small style="color:var(--mut)">Rp tetap per pesanan</small></span></label>
+      <label style="flex:1;display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer"><input type="radio" name="bMode" value="persen" ${b.mode==='persen'?'checked':''} onchange="biayaMode()"> <span><b>Persentase</b><br><small style="color:var(--mut)">% dari ongkir kurir</small></span></label>
+    </div>
+    <div class="field" id="fNominal" ${b.mode==='persen'?'hidden':''}><label>Potongan per pesanan selesai (Rp)</label><input class="inp" id="bPotong" inputmode="numeric" value="${Number(b.potong)||0}"></div>
+    <div class="field" id="fPersen" ${b.mode==='persen'?'':'hidden'}><label>Potongan (% dari ongkir yang diterima kurir)</label><input class="inp" id="bPersen" inputmode="decimal" value="${String(Number(b.persen)||0).replace('.',',')}">
+      <small style="color:var(--mut);font-size:12px">Contoh 10%: ongkir Rp5.000 → dipotong Rp500; ojek Rp12.000 → Rp1.200. Dibulatkan ke Rp100. Pesanan gratis ongkir tidak dipotong.</small></div>
+    <div class="field"><label>Saldo minimum agar kurir dapat pesanan (Rp)</label><input class="inp" id="bMinSaldo" inputmode="numeric" value="${Number(b.minSaldo)||0}"></div>
     <div class="field"><label>Minimal isi saldo (Rp)</label><input class="inp" id="bMin" inputmode="numeric" value="${Number(b.minTopup)||0}"></div>
     <div class="field"><label>Saldo awal kurir baru (Rp) — diberikan otomatis saat kurir disetujui, 0 = tidak ada</label><input class="inp" id="bAwal" inputmode="numeric" value="${Number(b.saldoAwal)||0}"></div>
     <div class="field"><label>Cara bayar (tampil di aplikasi kurir)</label><textarea class="inp" id="bCara" rows="3" placeholder="mis. Transfer BRI 1234567890 a.n. Kalensari Store, atau bayar tunai ke admin">${esc(b.caraBayar||'')}</textarea></div>
     <button class="btn btn-g full" onclick="saveBiaya(this)">Simpan Saldo Kurir</button>
     <p class="sm" style="color:var(--mut);font-size:12px;margin-top:10px">Tips: sebelum mengaktifkan, beri kurir saldo awal lewat Daftar Kurir → 💰 Saldo, supaya mereka tetap bisa menerima pesanan.</p></div>`;
 }
+function biayaMode(){const p=(document.querySelector('input[name=bMode]:checked')||{}).value==='persen';$('#fPersen').hidden=!p;$('#fNominal').hidden=p}
 async function saveBiaya(btn){
+  const mode=(document.querySelector('input[name=bMode]:checked')||{}).value==='persen'?'persen':'nominal',persen=Math.round((parseFloat(String($('#bPersen').value).replace(',','.'))||0)*100)/100,minSaldoV=parseInt($('#bMinSaldo').value,10)||0;
+  if(mode==='persen'&&(persen<=0||persen>100))return toast('Persentase harus antara 0 dan 100');
   const potong=parseInt($('#bPotong').value,10)||0,minTopup=parseInt($('#bMin').value,10)||0,saldoAwal=Math.max(0,Math.min(1000000,parseInt($('#bAwal').value,10)||0));
-  if(potong<0||potong>100000)return toast('Potongan tidak valid');if(minTopup<potong)return toast('Minimal isi saldo harus ≥ potongan');
-  const v={...biaya(),aktif:$('#bAktif').checked,potong,minTopup,minSaldo:potong,saldoAwal,caraBayar:$('#bCara').value.trim().slice(0,400)};
-  if(v.aktif&&!biaya().aktif&&!confirm('Aktifkan potongan saldo?\nKurir yang saldonya kurang dari '+rp(potong)+' tidak akan mendapat tawaran pesanan sampai mengisi saldo.'))return;
+  if(potong<0||potong>100000)return toast('Potongan tidak valid');if(mode==='nominal'&&minTopup<potong)return toast('Minimal isi saldo harus ≥ potongan');if(minTopup<minSaldoV)return toast('Minimal isi saldo harus ≥ saldo minimum');
+  const v={...biaya(),aktif:$('#bAktif').checked,mode,potong,persen,minTopup,minSaldo:mode==='nominal'?Math.max(minSaldoV,potong):minSaldoV,saldoAwal,caraBayar:$('#bCara').value.trim().slice(0,400)};
+  if(v.aktif&&!biaya().aktif&&!confirm('Aktifkan potongan saldo?\nKurir yang saldonya kurang dari '+rp(mode==='nominal'?Math.max(minSaldoV,potong):minSaldoV)+' tidak akan mendapat tawaran pesanan sampai mengisi saldo.'))return;
   await busy(btn,async()=>{await setSetting('kurir_biaya',v);S.settings.kurir_biaya=v;render();toast('Pengaturan saldo kurir disimpan')});
 }
 async function saveWa(btn){const n=phoneKey($('#sWa').value);if(n.length<9||n.length>15)return toast('Nomor WhatsApp tidak valid');

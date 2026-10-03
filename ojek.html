@@ -370,7 +370,7 @@ async function kurirSiap(){
   // potongan saldo aktif: kurir bersaldo kurang tidak mendapat pesanan
   try{
     const b = await getSetting("kurir_biaya", null);
-    if(b && b.aktif){ const min = Math.max(Number(b.minSaldo) || 0, Number(b.potong) || 0), s = {}; (await cf("kurir_saldo?select=kurir_id,saldo")).forEach(x => { s[x.kurir_id] = Number(x.saldo) || 0; }); siap = siap.filter(m => (s[m.id] || 0) >= min); }
+    if(b && b.aktif){ const min = b.mode === "persen" ? (Number(b.minSaldo) || 1000) : Math.max(Number(b.minSaldo) || 0, Number(b.potong) || 0), s = {}; (await cf("kurir_saldo?select=kurir_id,saldo")).forEach(x => { s[x.kurir_id] = Number(x.saldo) || 0; }); siap = siap.filter(m => (s[m.id] || 0) >= min); }
   }catch(e){}
   return {total:siap.length, bebas:siap.filter(m => !sibuk.has(m.id)).length};
 }
