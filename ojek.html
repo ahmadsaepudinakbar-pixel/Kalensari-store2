@@ -41,11 +41,22 @@ textarea.fld{min-height:70px;resize:vertical}
 .btn.g{background:var(--green);border-color:var(--green);color:#fff}
 .btn.d{border-color:var(--red);color:var(--red)}
 .btn:disabled{opacity:.55;cursor:wait}
-.pts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.pt{border:2px solid var(--line);background:#fff;border-radius:14px;padding:10px;font:inherit;text-align:left;cursor:pointer;color:var(--ink)}
-.pt b{display:block;font-size:13px}.pt small{color:var(--muted);font-size:12px}
-.pt.on{border-color:var(--brown);background:#fff7ec}
-#map{height:320px;border-radius:16px;margin-top:10px;border:1px solid var(--line);z-index:0}
+#map{height:220px;border-radius:16px;margin-top:10px;border:1px solid var(--line);z-index:0}
+.step{display:flex;align-items:center;gap:10px;font-size:17px}.num{width:28px;height:28px;border-radius:50%;background:var(--brown);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px;flex:none}
+.ptcard{display:flex;gap:12px;align-items:center;background:#fffaf2;border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:12px}
+.ptcard .dot{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:0 0 0 4px #fff}.ptcard b{display:block;font-size:15px}.ptcard small{color:var(--muted);font-size:13px}
+.ptcard.ok{border-color:var(--green);background:#f0faf3}
+.twob{display:grid;grid-template-columns:1fr 1fr;gap:10px}.twob .btn{margin-top:10px}
+.srch{position:relative}.hasil{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.hasil button{text-align:left;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 12px;font:inherit;cursor:pointer;color:var(--ink)}
+.hasil button b{display:block;font-size:14px}.hasil button small{color:var(--muted);font-size:12px}.hasil .h{font-size:13px;color:var(--muted);padding:4px 2px}
+details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--brown);font-weight:600;font-size:14px}
+.picker{position:fixed;inset:0;z-index:1000;background:#fff;display:flex;flex-direction:column}.picker[hidden]{display:none}
+.phead{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--brown);color:#fff;font-size:16px}.phead button{background:none;border:0;color:#fff;font-size:24px;cursor:pointer;padding:0 6px}
+.pwrap{position:relative;flex:1}#pmap{position:absolute;inset:0;z-index:0}
+.cpin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:500;pointer-events:none;filter:drop-shadow(0 3px 4px #0005)}
+.pgps{position:absolute;right:14px;bottom:14px;z-index:500;width:48px;height:48px;border-radius:50%;border:0;background:#fff;box-shadow:0 2px 8px #0004;font-size:22px;cursor:pointer}
+.pfoot{padding:14px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}.pfoot p{margin:0;font-weight:600;font-size:14px}
 .hint{color:var(--muted);font-size:13px;margin:6px 0 0}
 .fare{background:#fff7ec;border:1px dashed var(--brown);border-radius:16px;padding:14px;margin-top:14px}
 .fare .ln{display:flex;justify-content:space-between;font-size:14px;padding:3px 0;color:var(--muted)}
@@ -70,7 +81,7 @@ textarea.fld{min-height:70px;resize:vertical}
   <section class="hero">
     <span class="tag">🛵 LAYANAN RESMI KALENSARI STORE</span>
     <h1>Ojek & <span>Kirim Paket</span></h1>
-    <p>Diantar kurir Kalensari Store. Tandai titik jemput dan tujuan, ongkos langsung terlihat. Bayar tunai ke kurir.</p>
+    <p>Diantar kurir Kalensari Store. Pilih jemput & tujuan, ongkos langsung terlihat. Bayar tunai ke kurir.</p>
   </section>
 
   <div id="formView">
@@ -81,17 +92,25 @@ textarea.fld{min-height:70px;resize:vertical}
     <div id="offNote" class="avail no" hidden></div>
 
     <section class="box">
-      <b>📍 Titik jemput & tujuan</b>
-      <div class="pts">
-        <button class="pt on" type="button" data-p="a"><b>🟢 <span id="lblA">Jemput</span></b><small id="txtA">Belum ditandai</small></button>
-        <button class="pt" type="button" data-p="b"><b>🔴 Tujuan</b><small id="txtB">Belum ditandai</small></button>
-      </div>
-      <p class="hint" id="mapHint">Pilih kotak <b>Jemput</b> atau <b>Tujuan</b>, lalu ketuk peta di lokasinya.</p>
+      <div class="step"><span class="num">1</span><b id="lblA">Dijemput di mana?</b></div>
+      <div class="ptcard" id="cardA"><span class="dot" style="background:#228b4e"></span><div><b id="txtA">Belum dipilih</b><small id="subA">Pakai lokasi Anda sekarang atau pilih di peta</small></div></div>
+      <div class="twob"><button class="btn g" type="button" id="btnGps">📍 Lokasi saya</button><button class="btn" type="button" id="pickA">🗺️ Pilih di peta</button></div>
+      <label>Patokan (opsional)<input id="ketA" class="fld" maxlength="120" placeholder="mis. depan masjid, rumah cat hijau"></label>
+    </section>
+
+    <section class="box">
+      <div class="step"><span class="num">2</span><b>Mau ke mana?</b></div>
+      <div class="ptcard" id="cardB"><span class="dot" style="background:#b83c2b"></span><div><b id="txtB">Belum dipilih</b><small id="subB">Cari nama tempat atau pilih di peta</small></div></div>
+      <div class="srch"><input id="cari" class="fld" autocomplete="off" placeholder="🔍 Ketik nama tempat, mis. pasar, puskesmas"><div id="hasil" class="hasil"></div></div>
+      <button class="btn" type="button" id="pickB">🗺️ Pilih tujuan di peta</button>
+      <label>Patokan tujuan (opsional)<input id="ketB" class="fld" maxlength="120" placeholder="mis. gerbang utara pasar"></label>
+      <details class="more"><summary>Punya link Google Maps tujuan?</summary><input id="paste" class="fld" placeholder="Tempel link atau koordinat, mis. -6.912345, 107.612345"></details>
+    </section>
+
+    <section class="box" id="ringkas" hidden>
+      <b>🗺️ Rute Anda</b>
       <div id="map"></div>
-      <button class="btn" type="button" id="btnGps">📍 Pakai lokasi saya sebagai titik jemput</button>
-      <label>Atau tempel link Google Maps / koordinat untuk <span id="lblPaste">titik jemput</span><input id="paste" class="fld" placeholder="mis. -6.912345, 107.612345"></label>
-      <label>Patokan jemput<input id="ketA" class="fld" maxlength="120" placeholder="mis. depan masjid, rumah cat hijau"></label>
-      <label>Patokan tujuan<input id="ketB" class="fld" maxlength="120" placeholder="mis. Pasar Kalensari, gerbang utara"></label>
+      <p class="hint">🟢 A = jemput · 🔴 B = tujuan. Ketuk "Pilih di peta" di atas untuk mengubah.</p>
     </section>
 
     <section class="box">
@@ -109,7 +128,7 @@ textarea.fld{min-height:70px;resize:vertical}
       <div class="ln"><span>Tarif dasar</span><span id="fDasar">-</span></div>
       <div class="ln"><span id="fPerLbl">Per km</span><span id="fPer">-</span></div>
       <div class="ln tot"><span>Ongkos</span><span id="fTot">-</span></div>
-      <p class="hint" id="fNote">Tandai titik jemput dan tujuan untuk melihat ongkos.</p>
+      <p class="hint" id="fNote">Pilih jemput dan tujuan untuk melihat ongkos.</p>
     </div>
     <div id="avail" class="avail ok" hidden></div>
     <button class="btn g" type="button" id="btnPesan">Pesan sekarang</button>
@@ -126,6 +145,12 @@ textarea.fld{min-height:70px;resize:vertical}
     <button class="btn" type="button" id="btnBaru">Buat pesanan baru</button>
   </section>
 </main>
+<div id="picker" class="picker" hidden>
+  <div class="phead"><button type="button" id="pkBack" aria-label="Kembali">←</button><b id="pkTitle">Pilih lokasi</b></div>
+  <div class="pwrap"><div id="pmap"></div><div class="cpin"><svg width="44" height="54" viewBox="0 0 44 54"><path d="M22 2C11 2 3 10 3 21c0 14 19 31 19 31s19-17 19-31C41 10 33 2 22 2z" fill="#b83c2b" stroke="#fff" stroke-width="3"/><circle cx="22" cy="21" r="7" fill="#fff"/></svg></div>
+    <button type="button" class="pgps" id="pkGps" aria-label="Ke lokasi saya">🎯</button></div>
+  <div class="pfoot"><p id="pkAddr">Geser peta sampai pin tepat di lokasi</p><button class="btn g" type="button" id="pkOk">✅ Pakai titik ini</button></div>
+</div>
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
 <script>
@@ -148,7 +173,7 @@ const TARIF_DEFAULT = {faktor:1.3, bulat:500,
 let TARIF = TARIF_DEFAULT;
 const LAY = {ojek:{nama:"Ojek online", e:"🛵", jemput:"Jemput", kode:"OJ"}, paket:{nama:"Kirim paket/barang", e:"📦", jemput:"Ambil barang", kode:"KP"}};
 let layanan = new URLSearchParams(location.search).get("l") === "paket" ? "paket" : "ojek";
-let A = null, B = null, aktifPt = "a";
+let A = null, B = null;
 
 const rad = x => x * Math.PI / 180;
 function jarakKm(p, q){ const R = 6371, dLat = rad(q.lat - p.lat), dLng = rad(q.lng - p.lng); const h = Math.sin(dLat/2)**2 + Math.cos(rad(p.lat))*Math.cos(rad(q.lat))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
@@ -164,39 +189,88 @@ function hitung(){
 function renderFare(){
   const t = TARIF[layanan] || TARIF_DEFAULT[layanan], h = hitung();
   $("fDasar").textContent = rp(t.dasar); $("fPer").textContent = rp(t.perKm) + " / km";
-  if(!h){ $("fKm").textContent = "-"; $("fTot").textContent = "-"; $("fNote").textContent = "Tandai titik jemput dan tujuan untuk melihat ongkos."; return; }
+  if(!h){ $("fKm").textContent = "-"; $("fTot").textContent = "-"; $("fNote").textContent = "Pilih jemput dan tujuan untuk melihat ongkos."; return; }
   $("fKm").textContent = String(h.km).replace(".", ",") + " km";
   $("fTot").textContent = rp(h.ongkos);
   $("fNote").textContent = h.lewat ? `⚠️ Jarak melebihi batas layanan (${t.maxKm} km).` : `Jarak jalan diperkirakan dari peta. Minimal ongkos ${rp(t.minimal)}.`;
 }
 
-// ===== Peta =====
-let map = null, mkA = null, mkB = null;
+// ===== Lokasi: 1) jemput  2) tujuan. Peta pemilih memakai pin tetap di tengah (geser peta). =====
+let map = null, mkA = null, mkB = null, line = null, pmap = null, pickWhich = "b", CENTER = [-6.9, 107.6], TOKO = [];
 const pin = (c, t) => L.divIcon({className:"", html:`<div class="mk" style="background:${c}"><span>${t}</span></div>`, iconSize:[30,30], iconAnchor:[15,30]});
-function setPt(which, lat, lng, fly){
-  if(!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) return toast("Koordinat tidak valid");
+const singkat = n => String(n || "").split(",").slice(0, 3).join(",").trim();
+async function namaTempat(p){ try{ const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&accept-language=id&lat=${p.lat}&lon=${p.lng}`); const d = await r.json(); return singkat(d.display_name); }catch(e){ return ""; } }
+function setPt(which, lat, lng, nama){
+  if(!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) return toast("Lokasi tidak valid");
   const p = {lat:Number(lat.toFixed(6)), lng:Number(lng.toFixed(6))};
   if(which === "a") A = p; else B = p;
-  if(map){
-    const m = which === "a" ? mkA : mkB;
-    if(m) m.setLatLng(p); else if(which === "a") mkA = L.marker(p, {icon:pin("#228b4e","A"), draggable:true}).addTo(map).on("dragend", e => { const q = e.target.getLatLng(); setPt("a", q.lat, q.lng); });
-    else mkB = L.marker(p, {icon:pin("#b83c2b","B"), draggable:true}).addTo(map).on("dragend", e => { const q = e.target.getLatLng(); setPt("b", q.lat, q.lng); });
-    if(fly) map.setView(p, Math.max(map.getZoom(), 16));
-    if(A && B && fly) map.fitBounds([A, B], {padding:[40,40], maxZoom:17});
-  }
-  $(which === "a" ? "txtA" : "txtB").textContent = "✅ " + p.lat + ", " + p.lng;
-  if(which === "a" && !B) pilihPt("b");
-  renderFare();
+  const card = $(which === "a" ? "cardA" : "cardB"), tx = $(which === "a" ? "txtA" : "txtB"), sub = $(which === "a" ? "subA" : "subB");
+  card.classList.add("ok"); tx.textContent = nama ? "✅ " + nama : "✅ Lokasi sudah dipilih"; sub.textContent = "Ketuk \"Pilih di peta\" untuk mengubah";
+  if(!nama) namaTempat(p).then(n => { if(n && ((which === "a" && A === p) || (which === "b" && B === p))) tx.textContent = "✅ " + n; });
+  if(which === "b"){ $("hasil").innerHTML = ""; }
+  gambarRute(); renderFare();
 }
-function pilihPt(w){ aktifPt = w; document.querySelectorAll(".pt").forEach(b => b.classList.toggle("on", b.dataset.p === w)); $("lblPaste").textContent = w === "a" ? "titik " + LAY[layanan].jemput.toLowerCase() : "tujuan"; }
+function gambarRute(){
+  $("ringkas").hidden = !(A && B);
+  if(!(A && B) || typeof L === "undefined") return;
+  if(!map){ map = L.map("map", {zoomControl:false, attributionControl:true}); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map); }
+  setTimeout(() => {
+    map.invalidateSize();
+    if(mkA) mkA.setLatLng(A); else mkA = L.marker(A, {icon:pin("#228b4e","A")}).addTo(map);
+    if(mkB) mkB.setLatLng(B); else mkB = L.marker(B, {icon:pin("#b83c2b","B")}).addTo(map);
+    if(line) line.setLatLngs([A, B]); else line = L.polyline([A, B], {color:"#7b3f1d", weight:4, dashArray:"6 8"}).addTo(map);
+    map.fitBounds([A, B], {padding:[40,40], maxZoom:17});
+  }, 30);
+}
+function bukaPicker(which){
+  if(typeof L === "undefined") return toast("Peta tidak bisa dimuat. Tempel link Google Maps di bagian tujuan.");
+  pickWhich = which;
+  $("pkTitle").textContent = which === "a" ? (layanan === "paket" ? "Pilih lokasi ambil barang" : "Pilih lokasi jemput") : "Pilih tujuan";
+  $("pkAddr").textContent = "Geser peta sampai pin tepat di lokasi";
+  $("picker").hidden = false; document.body.style.overflow = "hidden";
+  const start = (which === "a" ? A : B) || (which === "b" && A) || A || {lat:CENTER[0], lng:CENTER[1]};
+  if(!pmap){
+    pmap = L.map("pmap", {zoomControl:true}); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(pmap);
+    let t; pmap.on("moveend", () => { clearTimeout(t); t = setTimeout(async () => { const c = pmap.getCenter(); const n = await namaTempat({lat:c.lat, lng:c.lng}); if(n && !$("picker").hidden) $("pkAddr").textContent = "📍 " + n; }, 700); });
+  }
+  setTimeout(() => { pmap.invalidateSize(); pmap.setView([start.lat, start.lng], (which === "a" ? A : B) ? 17 : 16); }, 30);
+}
+function tutupPicker(){ $("picker").hidden = true; document.body.style.overflow = ""; }
+$("pkBack").onclick = tutupPicker;
+$("pkOk").onclick = () => { const c = pmap.getCenter(), n = $("pkAddr").textContent.startsWith("📍 ") ? $("pkAddr").textContent.slice(3) : ""; tutupPicker(); setPt(pickWhich, c.lat, c.lng, n); if(pickWhich === "b") $("cari").value = ""; };
+$("pkGps").onclick = () => { if(!navigator.geolocation) return toast("HP ini tidak mendukung lokasi"); navigator.geolocation.getCurrentPosition(p => pmap.setView([p.coords.latitude, p.coords.longitude], 17), () => toast("Lokasi tidak tersedia"), {enableHighAccuracy:true, timeout:15000, maximumAge:60000}); };
+$("pickA").onclick = () => bukaPicker("a");
+$("pickB").onclick = () => bukaPicker("b");
 function parseLL(t){ t = String(t || "").trim(); if(!t) return null; const m = t.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) || t.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/) || t.match(/[?&](?:q|query|ll|destination)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i) || t.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/); return m ? [Number(String(m[1]).replace(",", ".")), Number(String(m[2]).replace(",", "."))] : null; }
+
+// Cari tujuan: toko-toko Kalensari dulu, lalu tempat dari OpenStreetMap di sekitar desa.
+let cariT = null, cariN = 0;
+$("cari").addEventListener("input", () => {
+  clearTimeout(cariT); const q = $("cari").value.trim();
+  if(q.length < 3){ $("hasil").innerHTML = q ? '<div class="h">Ketik minimal 3 huruf…</div>' : ""; return; }
+  cariT = setTimeout(() => cariTempat(q), 600);
+});
+async function cariTempat(q){
+  const id = ++cariN, ql = q.toLowerCase(), ref = A || {lat:CENTER[0], lng:CENTER[1]};
+  const lokal = TOKO.filter(t => t.nama.toLowerCase().includes(ql)).slice(0, 4).map(t => ({nama:"🏪 " + t.nama, ket:"Toko di Kalensari Store", lat:t.lat, lng:t.lng}));
+  $("hasil").innerHTML = '<div class="h">Mencari…</div>';
+  let osm = [];
+  try{
+    const d = 0.15, vb = [ref.lng - d, ref.lat + d, ref.lng + d, ref.lat - d].join(","); // hanya sekitar ±15 km dari desa
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&countrycodes=id&accept-language=id&bounded=1&viewbox=${vb}&q=${encodeURIComponent(q)}`);
+    osm = (await r.json()).map(x => ({nama:x.name || singkat(x.display_name), ket:singkat(String(x.display_name).split(",").slice(1).join(",")), lat:+x.lat, lng:+x.lon}));
+  }catch(e){}
+  if(id !== cariN) return;
+  const semua = [...lokal, ...osm].map(x => ({...x, km:jarakKm(ref, x)})).filter(x => x.km < 60).sort((a, b) => (a.nama.startsWith("🏪") ? -1 : 0) - (b.nama.startsWith("🏪") ? -1 : 0) || a.km - b.km);
+  window._hasil = semua;
+  $("hasil").innerHTML = semua.length ? semua.map((x, i) => `<button type="button" data-i="${i}"><b>${esc(x.nama)}</b><small>${esc(x.ket || "")}${x.ket ? " · " : ""}${String(Math.round(x.km * 10) / 10).replace(".", ",")} km</small></button>`).join("")
+    : '<div class="h">Belum ketemu di daftar. Ketuk <b>🗺️ Pilih tujuan di peta</b> di bawah, lalu geser peta ke lokasinya.</div>';
+}
+$("hasil").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if(!b) return; const x = window._hasil[+b.dataset.i]; setPt("b", x.lat, x.lng, x.nama.replace(/^🏪 /, "")); if(!$("ketB").value) $("ketB").value = x.nama.replace(/^🏪 /, ""); $("cari").value = ""; });
+
 async function initMap(){
-  let center = [-6.9, 107.6], zoom = 13;
-  try{ const pj = await getSetting("penjual_members", []); const pts = (Array.isArray(pj) ? pj : []).map(m => [Number(m.latitude), Number(m.longitude)]).filter(([a,b]) => Number.isFinite(a) && Number.isFinite(b) && !(a === 0 && b === 0)); if(pts.length){ center = [pts.reduce((s,p) => s+p[0],0)/pts.length, pts.reduce((s,p) => s+p[1],0)/pts.length]; zoom = 15; } }catch(e){}
-  if(typeof L === "undefined"){ $("map").innerHTML = '<p class="hint" style="padding:12px">Peta tidak bisa dimuat. Tempel link Google Maps / koordinat di bawah.</p>'; return; }
-  map = L.map("map", {zoomControl:true}).setView(center, zoom);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
-  map.on("click", e => setPt(aktifPt, e.latlng.lat, e.latlng.lng));
+  try{ const pj = await getSetting("penjual_members", []); TOKO = (Array.isArray(pj) ? pj : []).filter(m => m && !m.pending).map(m => ({nama:m.toko || m.usaha || m.nama || "", lat:Number(m.latitude), lng:Number(m.longitude)})).filter(t => t.nama && Number.isFinite(t.lat) && Number.isFinite(t.lng) && !(t.lat === 0 && t.lng === 0));
+    if(TOKO.length) CENTER = [TOKO.reduce((s,p) => s+p.lat,0)/TOKO.length, TOKO.reduce((s,p) => s+p.lng,0)/TOKO.length]; }catch(e){}
 }
 
 // ===== Ketersediaan kurir (aktif & tidak sedang mengantar) =====
@@ -218,15 +292,14 @@ async function renderAvail(){
 // ===== Pilihan layanan =====
 function setLayanan(l){
   layanan = l; document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.l === l));
-  $("paketFields").hidden = l !== "paket"; $("lblA").textContent = LAY[l].jemput; pilihPt(aktifPt);
+  $("paketFields").hidden = l !== "paket"; $("lblA").textContent = l === "paket" ? "Barang diambil di mana?" : "Dijemput di mana?";
   $("btnPesan").textContent = l === "paket" ? "📦 Kirim paket sekarang" : "🛵 Pesan ojek sekarang";
   const off = TARIF[l] && TARIF[l].aktif === false; $("offNote").hidden = !off; $("offNote").textContent = off ? `Layanan ${LAY[l].nama} sedang tidak tersedia.` : ""; $("btnPesan").disabled = off;
   renderFare();
 }
 document.querySelectorAll(".tab").forEach(b => b.onclick = () => setLayanan(b.dataset.l));
-document.querySelectorAll(".pt").forEach(b => b.onclick = () => pilihPt(b.dataset.p));
-$("paste").onchange = () => { const v = parseLL($("paste").value); if(!v) return toast("Format tidak dikenali. Contoh: -6.912345, 107.612345"); setPt(aktifPt, v[0], v[1], true); $("paste").value = ""; };
-$("btnGps").onclick = () => { if(!navigator.geolocation) return toast("HP/browser ini tidak mendukung lokasi"); toast("📍 Mengambil lokasi..."); navigator.geolocation.getCurrentPosition(p => setPt("a", p.coords.latitude, p.coords.longitude, true), e => toast(e.code === 1 ? "Izin lokasi diblokir. Ketuk peta atau tempel koordinat." : "Lokasi tidak tersedia. Ketuk peta atau tempel koordinat."), {enableHighAccuracy:true, timeout:15000, maximumAge:60000}); };
+$("paste").onchange = () => { const v = parseLL($("paste").value); if(!v) return toast("Format tidak dikenali. Contoh: -6.912345, 107.612345"); setPt("b", v[0], v[1]); $("paste").value = ""; };
+$("btnGps").onclick = () => { if(!navigator.geolocation) return toast("HP/browser ini tidak mendukung lokasi"); toast("📍 Mengambil lokasi..."); navigator.geolocation.getCurrentPosition(p => setPt("a", p.coords.latitude, p.coords.longitude), e => toast(e.code === 1 ? "Izin lokasi diblokir. Ketuk \"Pilih di peta\"." : "Lokasi tidak tersedia. Ketuk \"Pilih di peta\"."), {enableHighAccuracy:true, timeout:15000, maximumAge:60000}); };
 try{ const s = JSON.parse(localStorage.getItem("kalensari_ojek_pemesan") || "{}"); if(s.nama) $("nama").value = s.nama; if(s.wa) $("wa").value = s.wa; }catch(e){}
 
 // ===== Pesan =====
@@ -234,8 +307,8 @@ const MAP = p => `__KS_MAP__${p.lat},${p.lng}__END__`;
 $("btnPesan").onclick = async () => {
   if(!cloudOn()) return toast("Database online belum aktif");
   const nama = $("nama").value.trim(), wa = norm($("wa").value), h = hitung();
-  if(!A) return toast(`Tandai titik ${LAY[layanan].jemput.toLowerCase()} dulu`);
-  if(!B) return toast("Tandai titik tujuan dulu");
+  if(!A) return toast(layanan === "paket" ? "Pilih lokasi ambil barang dulu" : "Pilih lokasi jemput dulu");
+  if(!B) return toast("Pilih tujuan dulu");
   if(!nama) return toast("Isi nama Anda");
   if(wa.length < 9 || wa.length > 15) return toast("Nomor WhatsApp tidak valid");
   if(h.lewat) return toast(`Jarak terlalu jauh (maks ${h.t.maxKm} km)`);
@@ -299,7 +372,7 @@ $("btnBatal").onclick = async () => {
     toast("Pesanan dibatalkan"); muatLacak();
   }catch(e){ toast("Gagal membatalkan"); }
 };
-$("btnBaru").onclick = () => { clearInterval(lacakTimer); lacakKode = null; localStorage.removeItem("kalensari_ojek_aktif"); $("trackView").hidden = true; $("formView").hidden = false; renderAvail(); setTimeout(() => map && map.invalidateSize(), 60); };
+$("btnBaru").onclick = () => { clearInterval(lacakTimer); lacakKode = null; localStorage.removeItem("kalensari_ojek_aktif"); $("trackView").hidden = true; $("formView").hidden = false; renderAvail(); gambarRute(); };
 
 // ===== Mulai =====
 (async () => {
