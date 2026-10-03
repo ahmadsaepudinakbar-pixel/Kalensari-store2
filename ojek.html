@@ -249,23 +249,74 @@ function gambarRute(){
     map.fitBounds([A, B], {padding:[40,40], maxZoom:17});
   }, 30);
 }
-function bukaPicker(which){
-  if(typeof L === "undefined") return toast("Peta tidak bisa dimuat. Tempel link Google Maps di bagian tujuan.");
+// ===== Peta pemilih: Google Maps (bila diaktifkan admin & batas harian belum habis), selain itu peta gratis =====
+// Setiap kali peta Google dibuka dicatat ke database (map_usage) supaya admin bisa memantau kuota gratis 10.000/bulan.
+let GM = {aktif:false, key:"", batas:300}, gmPakai = false, gmGagal = false, PK = null, gmLoad = null, geserT = null;
+const hariWIB = () => new Intl.DateTimeFormat("en-CA", {timeZone:"Asia/Jakarta", year:"numeric", month:"2-digit", day:"2-digit"}).format(new Date());
+async function cekGoogle(){
+  try{
+    const g = await getSetting("google_maps", null); if(!g || !g.aktif || !g.key) return;
+    GM = {aktif:true, key:String(g.key).trim(), batas:Math.max(0, Number(g.batasHarian) || 300)};
+    try{ if(sessionStorage.getItem("ks_gm_gagal")) return; }catch(e){}
+    const r = await cf("map_usage?select=loads&day=eq." + hariWIB()); const n = r[0] ? Number(r[0].loads) || 0 : 0;
+    gmPakai = n < GM.batas;
+  }catch(e){ gmPakai = false; }
+}
+function muatGoogle(){
+  if(window.google && google.maps && google.maps.Map) return Promise.resolve();
+  if(gmLoad) return gmLoad;
+  gmLoad = new Promise((ok, no) => {
+    window.gm_authFailure = () => gagalGoogle("kunci API / izin ditolak");
+    window.__ksGm = () => ok();
+    const sc = document.createElement("script"); sc.async = true; sc.onerror = () => no(new Error("gagal dimuat"));
+    sc.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GM.key)}&callback=__ksGm&loading=async&language=id&region=ID`;
+    document.head.appendChild(sc); setTimeout(() => no(new Error("waktu habis")), 10000);
+  });
+  return gmLoad;
+}
+function gagalGoogle(why){
+  if(gmGagal) return; gmGagal = true; gmPakai = false; console.warn("Google Maps tidak dipakai:", why);
+  try{ sessionStorage.setItem("ks_gm_gagal", "1"); }catch(e){}
+  if(PK && PK.jenis === "google"){ const c = PK.center(); PK = null; if(!$("picker").hidden && typeof L !== "undefined"){ buatPKLeaflet(); setTimeout(() => PK.setView(c.lat, c.lng, 17), 30); } }
+}
+function baruPmap(){ const old = $("pmap"), n = document.createElement("div"); n.id = "pmap"; old.replaceWith(n); return n; }
+function onGeser(){
+  clearTimeout(geserT);
+  geserT = setTimeout(async () => { if(!PK) return; const c = PK.center(); const dekat = semuaPatokan().find(t => jarakKm(t, c) < 0.03); if(dekat){ $("pkAddr").textContent = "📍 " + dekat.nama; return; } const n = await namaTempat(c); if(n && !$("picker").hidden) $("pkAddr").textContent = "📍 " + n; }, 700);
+}
+function buatPKLeaflet(){
+  const m = L.map(baruPmap(), {zoomControl:true}); pasangDasar(m); tombolSat(m); pasangPatokan(m, true); pmap = m;
+  m.on("moveend", onGeser);
+  PK = {jenis:"leaflet", setView:(a, b, z) => { m.invalidateSize(); m.setView([a, b], z); }, center:() => { const c = m.getCenter(); return {lat:c.lat, lng:c.lng}; }};
+}
+async function buatPKGoogle(){
+  await muatGoogle();
+  const el = baruPmap(); pmap = null;
+  const m = new google.maps.Map(el, {center:{lat:CENTER[0], lng:CENTER[1]}, zoom:16, mapTypeId:modeSat ? "hybrid" : "roadmap", mapTypeControl:true,
+    mapTypeControlOptions:{mapTypeIds:["roadmap", "hybrid"], position:google.maps.ControlPosition.TOP_RIGHT}, streetViewControl:false, fullscreenControl:false, gestureHandling:"greedy"});
+  m.addListener("maptypeid_changed", () => { modeSat = m.getMapTypeId() === "hybrid"; try{ localStorage.setItem("kalensari_peta_satelit", modeSat ? "1" : "0"); }catch(e){} });
+  semuaPatokan().forEach(t => new google.maps.Marker({position:{lat:t.lat, lng:t.lng}, map:m, title:t.nama, label:{text:t.e || "📍", fontSize:"15px"},
+    icon:{path:google.maps.SymbolPath.CIRCLE, scale:14, fillColor:"#fff", fillOpacity:1, strokeColor:"#7b3f1d", strokeWeight:2}}).addListener("click", () => { m.panTo({lat:t.lat, lng:t.lng}); if(m.getZoom() < 17) m.setZoom(17); }));
+  m.addListener("idle", onGeser);
+  cf("rpc/catat_buka_peta", {method:"POST", body:"{}"}).catch(() => {});
+  setTimeout(() => { if(el.querySelector(".gm-err-container, .gm-err-content, .gm-err-message")) gagalGoogle("kuota habis / error Google"); }, 4000);
+  PK = {jenis:"google", setView:(a, b, z) => { m.setCenter({lat:a, lng:b}); m.setZoom(z); }, center:() => { const c = m.getCenter(); return {lat:c.lat(), lng:c.lng()}; }};
+}
+async function bukaPicker(which){
+  if(!gmPakai && typeof L === "undefined") return toast("Peta tidak bisa dimuat. Tempel link Google Maps di bagian tujuan.");
   pickWhich = which;
   $("pkTitle").textContent = which === "a" ? (layanan === "paket" ? "Pilih lokasi ambil barang" : "Pilih lokasi jemput") : "Pilih tujuan";
   $("pkAddr").textContent = "Geser peta sampai pin tepat di lokasi";
   $("picker").hidden = false; document.body.style.overflow = "hidden";
-  const start = (which === "a" ? A : B) || (which === "b" && A) || A || {lat:CENTER[0], lng:CENTER[1]};
-  if(!pmap){
-    pmap = L.map("pmap", {zoomControl:true}); pasangDasar(pmap); tombolSat(pmap); pasangPatokan(pmap, true);
-    let t; pmap.on("moveend", () => { clearTimeout(t); t = setTimeout(async () => { const c = pmap.getCenter(); const dekat = semuaPatokan().find(t => jarakKm(t, {lat:c.lat, lng:c.lng}) < 0.03); if(dekat){ $("pkAddr").textContent = "📍 " + dekat.nama; return; } const n = await namaTempat({lat:c.lat, lng:c.lng}); if(n && !$("picker").hidden) $("pkAddr").textContent = "📍 " + n; }, 700); });
-  }
-  setTimeout(() => { pmap.invalidateSize(); pmap.setView([start.lat, start.lng], (which === "a" ? A : B) ? 17 : 16); }, 30);
+  const start = (which === "a" ? A : B) || (which === "b" && A) || A || {lat:CENTER[0], lng:CENTER[1]}, z = (which === "a" ? A : B) ? 18 : 16;
+  if(!PK && gmPakai){ try{ await buatPKGoogle(); }catch(e){ gagalGoogle(e.message); } }
+  if(!PK){ if(typeof L === "undefined"){ tutupPicker(); return toast("Peta tidak bisa dimuat. Tempel link Google Maps di bagian tujuan."); } buatPKLeaflet(); }
+  setTimeout(() => PK && PK.setView(start.lat, start.lng, z), 30);
 }
 function tutupPicker(){ $("picker").hidden = true; document.body.style.overflow = ""; }
 $("pkBack").onclick = tutupPicker;
-$("pkOk").onclick = () => { const c = pmap.getCenter(), n = $("pkAddr").textContent.startsWith("📍 ") ? $("pkAddr").textContent.slice(3) : ""; tutupPicker(); setPt(pickWhich, c.lat, c.lng, n); if(pickWhich === "b") $("cari").value = ""; };
-$("pkGps").onclick = () => { if(!navigator.geolocation) return toast("HP ini tidak mendukung lokasi"); navigator.geolocation.getCurrentPosition(p => pmap.setView([p.coords.latitude, p.coords.longitude], 17), () => toast("Lokasi tidak tersedia"), {enableHighAccuracy:true, timeout:15000, maximumAge:60000}); };
+$("pkOk").onclick = () => { if(!PK) return; const c = PK.center(), n = $("pkAddr").textContent.startsWith("📍 ") ? $("pkAddr").textContent.slice(3) : ""; tutupPicker(); setPt(pickWhich, c.lat, c.lng, n); if(pickWhich === "b") $("cari").value = ""; };
+$("pkGps").onclick = () => { if(!navigator.geolocation) return toast("HP ini tidak mendukung lokasi"); navigator.geolocation.getCurrentPosition(p => PK && PK.setView(p.coords.latitude, p.coords.longitude, 17), () => toast("Lokasi tidak tersedia"), {enableHighAccuracy:true, timeout:15000, maximumAge:60000}); };
 $("pickA").onclick = () => bukaPicker("a");
 $("pickB").onclick = () => bukaPicker("b");
 function parseLL(t){ t = String(t || "").trim(); if(!t) return null; const m = t.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) || t.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/) || t.match(/[?&](?:q|query|ll|destination)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i) || t.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/); return m ? [Number(String(m[1]).replace(",", ".")), Number(String(m[2]).replace(",", "."))] : null; }
@@ -411,6 +462,7 @@ $("btnBaru").onclick = () => { clearInterval(lacakTimer); lacakKode = null; loca
 (async () => {
   setLayanan(layanan);
   await initMap();
+  if(cloudOn()) await cekGoogle();
   if(cloudOn()){
     try{ const t = await getSetting("transport_tariff", null); if(t && typeof t === "object") TARIF = {...TARIF_DEFAULT, ...t, ojek:{...TARIF_DEFAULT.ojek, ...(t.ojek || {})}, paket:{...TARIF_DEFAULT.paket, ...(t.paket || {})}}; }catch(e){}
     setLayanan(layanan); renderAvail(); setInterval(renderAvail, 30000);

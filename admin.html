@@ -327,11 +327,13 @@ const isCancelled=o=>stLabel(o.status)==='Batal';
 
 async function loadAll(silent){
   try{
-    const [p,o,s]=await Promise.all([
+    const [p,o,s,mu]=await Promise.all([
       api('products?select=*&order=id.asc'),
       api('orders?select=*&order=created_at.desc&limit=1000'),
-      api('store_settings?select=key,value')
+      api('store_settings?select=key,value'),
+      api('map_usage?select=day,loads&order=day.desc&limit=62').catch(()=>null)
     ]);
+    S.mapUsage=Array.isArray(mu)?mu:null;
     S.products=Array.isArray(p)?p:[];S.orders=Array.isArray(o)?o:[];
     S.settings={};(Array.isArray(s)?s:[]).forEach(r=>S.settings[r.key]=r.value);
     S.loaded=true;render();if(!silent)toast('Data terbaru dimuat');
@@ -509,6 +511,7 @@ dashboard(){
         ${today.slice(0,8).map((o,i)=>`<tr style="cursor:pointer" onclick="openOrder(${Number(o.id)})"><td>${i+1}</td><td>${esc(o.customer_name||'-')}</td><td>${rp(o.total)}</td><td>${statusBadge(o)}</td><td class="hide-m">${fmtTime(o.created_at)}</td></tr>`).join('')}</table></div>`:'<div class="empty">Belum ada pesanan hari ini</div>'}</div>
     </div></div>
     <div>
+      ${gmPeringatan()}
       <div class="banner"><svg width="44" height="44" viewBox="0 0 100 100"><path d="M30 34 50 12 70 34" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M10 34h80v10H10zM15 44h70l-7 44H22z" fill="none" stroke="#fff" stroke-width="5"/><text x="50" y="80" text-anchor="middle" font-size="26" font-weight="900" fill="#fff">KS</text></svg><div><b>Kalensari Store</b><small>Belanja makanan &amp; minuman dari warga Kalensari</small></div></div>
       ${pendingTotal()?`<div class="card" style="margin-bottom:20px;background:var(--ol);cursor:pointer" onclick="go('persetujuan')"><b>⏳ ${pendingTotal()} pendaftar menunggu persetujuan</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${GROUPS.map(g=>pendingOf(g.k).length?pendingOf(g.k).length+' '+g.label.toLowerCase():'').filter(Boolean).join(', ')} · ketuk untuk melihat</div></div>`:''}
       <div class="card" style="margin-bottom:20px"><div class="chead"><h3>Aksi Cepat</h3></div><div class="quick">
@@ -592,6 +595,7 @@ pengaturan(){
   ${ongkirCard()}
   ${tarifCard()}
   ${tempatCard()}
+  ${gmapsCard()}
   <div class="card"><div class="chead"><h3>Akun Admin</h3></div>
     <div class="detail-row"><span>Email</span><b>${esc((auth&&auth.email)||'-')}</b></div>
     <p class="sm" style="color:var(--mut);font-size:12px;margin:12px 0">Akun ini sama dengan login ⚙️ Admin di toko. Ganti kata sandi atau tambah admin dari Supabase &gt; Authentication &gt; Users dan tabel <code>admins</code>.</p>
@@ -1008,6 +1012,43 @@ async function jProvSave(src,key,btn){
 async function jProvDel(src,key,btn){
   if(!confirm('Hapus penyedia ini?'+(src==='m'?' Akunnya juga dihapus.':'')))return;
   await busy(btn,async()=>{if(src==='m')await saveJMemEntry(null,key);else{const l=jProv().filter((_,i)=>i!==+key);await saveJProv(l)}closeModal();render();toast('Penyedia dihapus')});
+}
+
+
+/* ========== GOOGLE MAPS (peta pemilih di ojek.html) ========== */
+const GM_GRATIS=10000;
+const gmNow=()=>{const g=S.settings.google_maps&&typeof S.settings.google_maps==='object'?S.settings.google_maps:{};return{aktif:!!g.aktif,key:g.key||'',batasHarian:Number(g.batasHarian)||300}};
+const hariWIB=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+function gmPakai(){const u=S.mapUsage||[],h=hariWIB(),bln=h.slice(0,7);return{hari:(u.find(r=>r.day===h)||{loads:0}).loads,bulan:u.filter(r=>String(r.day).startsWith(bln)).reduce((t,r)=>t+(+r.loads||0),0)}}
+function gmPeringatan(){const g=gmNow();if(!g.aktif||!S.mapUsage)return '';const p=gmPakai();if(p.bulan<GM_GRATIS*0.8)return '';
+  return `<div class="card" style="margin-bottom:16px;background:${p.bulan>=GM_GRATIS?'var(--rl)':'var(--ol)'};cursor:pointer" onclick="go('pengaturan')"><b>${p.bulan>=GM_GRATIS?'⛔':'⚠️'} Google Maps sudah dibuka ${p.bulan.toLocaleString('id-ID')} kali bulan ini</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">Batas gratis ${GM_GRATIS.toLocaleString('id-ID')}/bulan. ${p.bulan>=GM_GRATIS?'Pemakaian berikutnya bisa ditagih Google — turunkan batas harian atau matikan Google Maps.':'Pertimbangkan menurunkan batas harian.'} Ketuk untuk mengatur.</div></div>`}
+function gmapsCard(){
+  const g=gmNow(),p=gmPakai(),pct=Math.min(100,Math.round(p.bulan/GM_GRATIS*100)),warn=p.bulan>=GM_GRATIS*0.8;
+  return `<div class="card" style="grid-column:1/-1"><div class="chead"><h3>🗺️ Google Maps</h3><label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700"><input type="checkbox" id="gmOn" ${g.aktif?'checked':''}> Aktif</label></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:12px">Peta pemilih lokasi di halaman Ojek & Kirim Paket memakai Google Maps (toko, bank, masjid terlihat). Peta kecil "Rute" tetap memakai peta gratis supaya hemat. Jika kunci kosong, batas harian tercapai, atau Google error, otomatis kembali ke peta gratis.</p>
+    ${S.mapUsage?`<div class="mini-stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <div class="ms" style="background:var(--gl)"><div class="lbl">Dibuka hari ini</div><div class="val">${p.hari.toLocaleString('id-ID')} <small style="font-size:13px;color:var(--mut)">/ ${g.batasHarian}</small></div></div>
+      <div class="ms" style="background:${warn?'var(--ol)':'var(--bl)'}"><div class="lbl">Dibuka bulan ini</div><div class="val">${p.bulan.toLocaleString('id-ID')} <small style="font-size:13px;color:var(--mut)">/ ${GM_GRATIS.toLocaleString('id-ID')} gratis</small></div>
+        <div style="height:8px;border-radius:99px;background:#fff;margin-top:8px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${p.bulan>=GM_GRATIS?'var(--red)':warn?'var(--orange)':'var(--g2)'}"></div></div></div></div>`
+      :'<div class="sm" style="background:var(--ol);padding:10px;border-radius:10px;font-size:12px;margin-bottom:12px">Penghitung belum aktif. Jalankan <b>supabase-peta-google.sql</b> di Supabase.</div>'}
+    <div class="form-grid" style="gap:16px;grid-template-columns:2fr 1fr"><div class="field"><label>Kunci API Google Maps (Maps JavaScript API)</label><input class="inp" id="gmKey" value="${esc(g.key)}" placeholder="AIza..." autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label>Batas buka per hari</label><input class="inp" id="gmBatas" type="number" min="0" value="${esc(g.batasHarian)}"></div></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin:-4px 0 10px">300/hari ≈ 9.000/bulan (di bawah batas gratis). Setelah batas harian tercapai, hari itu otomatis memakai peta gratis.</p>
+    <details style="margin-bottom:10px"><summary style="cursor:pointer;font-weight:700;font-size:13px;color:var(--g)">Cara membuat kunci API (sekali saja)</summary>
+      <ol class="sm" style="font-size:12px;color:var(--tx);line-height:1.7;padding-left:18px;margin-top:8px">
+        <li>Buka <a href="https://console.cloud.google.com/google/maps-apis/start" target="_blank" rel="noopener" style="color:var(--blue)">Google Cloud Console → Google Maps Platform</a>, masuk dengan akun Google, buat proyek, lalu hubungkan akun penagihan (billing).</li>
+        <li>Aktifkan <b>Maps JavaScript API</b>.</li>
+        <li>Buka <b>Keys & Credentials → Create credentials → API key</b>. Salin kuncinya ke kolom di atas.</li>
+        <li>Klik kunci itu → <b>Application restrictions: Websites</b> → tambahkan <code>https://kalensari.web.id/*</code>. <b>API restrictions</b>: pilih Maps JavaScript API saja.</li>
+        <li>Pengaman tambahan: <b>APIs & Services → Maps JavaScript API → Quotas</b>, set <i>Map loads per day</i> sama dengan batas harian di sini (mis. 300). Lebih dari itu Google berhenti melayani, bukan menagih.</li>
+        <li>Opsional: <b>Billing → Budgets & alerts</b>, buat anggaran kecil (mis. Rp10.000) dengan email peringatan.</li></ol></details>
+    <button class="btn btn-g full" onclick="saveGmaps(this)">Simpan Google Maps</button></div>`;
+}
+async function saveGmaps(btn){
+  const key=$('#gmKey').value.trim(),batas=Math.round(Number($('#gmBatas').value)),aktif=$('#gmOn').checked;
+  if(aktif&&!/^AIza[0-9A-Za-z_\-]{30,}$/.test(key))return toast('Kunci API tidak valid (biasanya diawali "AIza")');
+  if(!(batas>=0))return toast('Isi batas harian dengan benar');
+  await busy(btn,async()=>{const g={aktif,key,batasHarian:batas};await setSetting('google_maps',g);S.settings.google_maps=g;render();toast(aktif?'Google Maps aktif':'Google Maps dimatikan, memakai peta gratis')});
 }
 
 /* ========== TARIF OJEK & KIRIM PAKET (dipakai ojek.html) ========== */

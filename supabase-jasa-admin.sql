@@ -12,7 +12,7 @@ as $$
   select k in ('categories','removed_categories','shipping_fees',
                'whatsapp_number','closed_sellers','seller_schedule',
                'admin_pin_hash','jasa_categories','jasa_providers',
-               'transport_tariff','transport_places');
+               'transport_tariff','transport_places','google_maps');
 $$;
 
 -- Cek: harus menampilkan true, true, true, true, false
