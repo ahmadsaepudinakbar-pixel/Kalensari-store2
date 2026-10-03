@@ -73,6 +73,12 @@ h2{font-size:20px}
 #aktifBox input:checked::after{transform:translateX(24px)}
 #aktifBox:has(input:checked){background:linear-gradient(120deg,#e3f6ea,#fff);color:#14502c}
 #notifBox{border-radius:22px;padding:16px 18px;background:#fffaf2}
+#saldoBox{border-radius:22px;padding:16px 18px;background:#fffaf2;box-shadow:0 2px 12px rgba(80,45,20,.08);margin:0 0 14px}
+#saldoBox .sl{display:flex;align-items:center;gap:12px}#saldoBox .sl>div{flex:1}#saldoBox .sl span{font-size:13px;color:var(--muted)}#saldoBox .sl b{display:block;font-size:26px;color:var(--brown)}
+#saldoBox .sl small{font-size:12px;color:var(--muted)}#saldoBox.habis{background:#fdecea}#saldoBox.habis .sl b{color:#c0392b}
+#saldoBox .ws{margin:10px 0 0;font-size:13px;color:#a35a00;font-weight:600}#saldoBox .mini{padding:10px 16px;border-radius:12px;font-size:14px}
+.nom{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.nom button{flex:1;min-width:90px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 8px;font:inherit;font-weight:700;cursor:pointer}.nom button.on{border-color:#228b4e;background:#e9f7ee;color:#14502c}
+.mut{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}.mut b.p{color:#14502c}.mut b.m{color:#c0392b}
 #notifBox .mini{padding:10px 16px;border-radius:12px;font-size:14px}
 #ordBox{border-top:5px solid var(--brown)}
 .card{border:0;border-left:5px solid var(--green);border-radius:16px;box-shadow:0 2px 10px rgba(80,45,20,.1);background:#fff;padding:14px}
@@ -131,6 +137,7 @@ h2{color:#2b2623}
   <div class="hd"><div><small>🏍️ KURIR KALENSARI</small><b id="hdNama">Halo 👋</b></div><span class="pill" id="hdPill">Offline</span></div>
   <div id="stat" class="status p"></div>
   <label class="sw" id="aktifBox" style="margin:0 0 14px" hidden><input type="checkbox" id="f_aktif"> Saya siap menerima antaran</label>
+  <div id="saldoBox" hidden></div>
   <div id="notifBox" hidden><b>🔔 Notifikasi pesanan</b><p id="notifTxt">Dapatkan pemberitahuan di HP saat ada pesanan masuk, walaupun aplikasi sedang ditutup.</p><button class="mini g" type="button" id="btnNotif">Aktifkan notifikasi</button><button class="mini" type="button" id="btnNotifTest" hidden>Kirim tes</button></div>
   <div id="ringkas" class="tiles" data-tab="home"><div class="tile"><b id="cWait">0</b><span>Menunggu jawaban</span></div><div class="tile"><b id="cMine">0</b><span>Sedang diantar</span></div></div>
   <button class="btn" id="btnLihat" type="button" data-tab="home" style="margin:0 0 14px">Lihat pesanan</button>
@@ -289,8 +296,83 @@ async function writeState(code, st){
 }
 function h32(str){ let h = 2166136261; for(let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 16; h = Math.imul(h, 2246822507); h ^= h >>> 13; h = Math.imul(h, 3266489909); h ^= h >>> 16; return h >>> 0; }
 async function eligibleCouriers(){
-  const l = await getSetting(ROLE + "_members", []);
-  return (Array.isArray(l) ? l : []).filter(m => m && m.id && m.pending !== true && m.aktif !== false);
+  const [l] = await Promise.all([getSetting(ROLE + "_members", []), muatBiaya()]);
+  let el = (Array.isArray(l) ? l : []).filter(m => m && m.id && m.pending !== true && m.aktif !== false);
+  // Bila potongan saldo aktif: hanya kurir dengan saldo cukup yang mendapat giliran (sama di semua HP)
+  if(BIAYA.aktif){ const s = await saldoSemua(); if(s) el = el.filter(m => (s[m.id] || 0) >= minSaldo()); }
+  return el;
+}
+// ===== Saldo kurir (deposit) =====
+let BIAYA = {aktif:false, potong:1000, minTopup:20000, minSaldo:1000, caraBayar:""}, SALDO = null;
+const minSaldo = () => Math.max(Number(BIAYA.minSaldo) || 0, Number(BIAYA.potong) || 0);
+async function muatBiaya(){ try{ const b = await getSetting("kurir_biaya", null); BIAYA = {aktif:false, potong:1000, minTopup:20000, minSaldo:1000, caraBayar:"", ...(b && typeof b === "object" ? b : {})}; }catch(e){} return BIAYA; }
+async function saldoSemua(){ try{ const r = await cf("kurir_saldo?select=kurir_id,saldo"); const m = {}; (r || []).forEach(x => { m[x.kurir_id] = Number(x.saldo) || 0; }); return m; }catch(e){ return null; } }
+async function renderSaldo(){
+  const box = $("saldoBox"); if(!box || !me) return;
+  await muatBiaya();
+  if(!BIAYA.aktif || me.pending){ box.hidden = true; SALDO = null; return; }
+  let s = 0, req = [];
+  try{
+    const id = encodeURIComponent(me.id);
+    const [r, p] = await Promise.all([cf("kurir_saldo?select=saldo&kurir_id=eq." + id), cf("kurir_topup?select=id,jumlah,status,t,catatan,diproses_t&kurir_id=eq." + id + "&order=t.desc&limit=5")]);
+    s = r[0] ? Number(r[0].saldo) || 0 : 0; req = p || [];
+  }catch(e){ box.hidden = true; return; }
+  SALDO = s; const kurang = s < minSaldo();
+  box.hidden = false; box.className = kurang ? "habis" : "";
+  const baru = x => Date.now() - Date.parse(x.diproses_t || x.t) < 2 * 864e5;
+  box.innerHTML = `<div class="sl"><div><span>💰 Saldo Anda</span><b>${fmtRp(s)}</b><small>Dipotong ${fmtRp(BIAYA.potong)} tiap pesanan selesai</small></div><button class="mini g" type="button" id="btnTopup">➕ Isi saldo</button></div>`
+    + (kurang ? `<p class="ws">⚠️ Saldo kurang. Anda tidak mendapat tawaran pesanan sampai saldo diisi (minimal isi ${fmtRp(BIAYA.minTopup)}).</p>` : "")
+    + req.filter(x => x.status === "menunggu").map(x => `<p class="hint" style="margin:8px 0 0">⏳ Isi saldo ${fmtRp(x.jumlah)} menunggu konfirmasi admin.</p>`).join("")
+    + req.filter(x => x.status === "ditolak" && baru(x)).map(x => `<p class="hint" style="margin:8px 0 0;color:#c0392b">❌ Isi saldo ${fmtRp(x.jumlah)} ditolak${x.catatan ? ": " + esc(x.catatan) : ""}.</p>`).join("")
+    + req.filter(x => x.status === "diterima" && baru(x)).slice(0, 1).map(x => `<p class="hint" style="margin:8px 0 0;color:#14502c">✅ Isi saldo ${fmtRp(x.jumlah)} sudah masuk.</p>`).join("")
+    + `<button class="mini" type="button" id="btnRiwayat" style="margin-top:10px">📜 Riwayat saldo</button>`;
+  $("btnTopup").onclick = bukaTopup; $("btnRiwayat").onclick = bukaRiwayat;
+}
+function lembar(html){
+  const ov = document.createElement("div");
+  ov.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(40,20,10,.55);display:flex;align-items:flex-end;justify-content:center";
+  ov.innerHTML = `<div style="background:#fffaf2;width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto">${html}</div>`;
+  ov.onclick = e => { if(e.target === ov) ov.remove(); };
+  document.body.appendChild(ov); return ov;
+}
+async function bukaTopup(){
+  await muatBiaya();
+  const min = Number(BIAYA.minTopup) || 20000, pil = [min, 50000, 100000].filter((v, i, a) => v >= min && a.indexOf(v) === i);
+  let wa = ""; try{ wa = String(await getSetting("whatsapp_number", "") || "").replace(/\D/g, "").replace(/^0/, "62"); }catch(e){}
+  const ov = lembar(`<h3 style="margin:0 0 4px;color:var(--brown)">➕ Isi saldo kurir</h3>
+    <p class="hint" style="margin:0 0 6px">Minimal ${fmtRp(min)}. Saldo dipotong ${fmtRp(BIAYA.potong)} setiap pesanan selesai.</p>
+    <div class="nom">${pil.map(v => `<button type="button" data-v="${v}">${fmtRp(v)}</button>`).join("")}</div>
+    <input id="tuJml" class="fld" inputmode="numeric" placeholder="Atau tulis jumlah lain, mis. 30000">
+    <div style="background:#fff6dd;border-radius:14px;padding:12px;font-size:13px;margin:4px 0 12px;white-space:pre-line"><b>Cara bayar:</b>\n${esc(BIAYA.caraBayar || "Transfer ke rekening admin atau bayar tunai langsung ke admin, lalu kirim permintaan ini.")}</div>
+    <input type="file" id="tuFile" accept="image/*" hidden>
+    <button class="mini" type="button" id="tuPilih">📎 Lampirkan bukti transfer (opsional)</button>
+    <img id="tuPrev" alt="" style="display:none;width:100%;border-radius:12px;margin-top:8px">
+    <button class="mini g" type="button" id="tuKirim" style="width:100%;padding:13px;font-size:16px;margin:12px 0 0">📤 Kirim permintaan isi saldo</button>
+    <button class="mini" type="button" id="tuBatal" style="width:100%;margin-top:10px">Batal</button>`);
+  let jml = 0, bukti = null;
+  const q = s => ov.querySelector(s);
+  ov.querySelectorAll(".nom button").forEach(b => b.onclick = () => { jml = +b.dataset.v; q("#tuJml").value = ""; ov.querySelectorAll(".nom button").forEach(x => x.classList.toggle("on", x === b)); });
+  q("#tuJml").oninput = e => { e.target.value = e.target.value.replace(/\D/g, ""); jml = +e.target.value || 0; ov.querySelectorAll(".nom button").forEach(x => x.classList.remove("on")); };
+  q("#tuBatal").onclick = () => ov.remove();
+  q("#tuPilih").onclick = () => q("#tuFile").click();
+  q("#tuFile").onchange = async e => { const f = e.target.files[0]; if(!f) return; try{ bukti = await kecilkanFoto(f, 900); q("#tuPrev").src = bukti; q("#tuPrev").style.display = "block"; }catch(err){ toast("Foto tidak bisa dibaca"); } };
+  q("#tuKirim").onclick = async () => {
+    if(jml < min) return toast("Isi saldo minimal " + fmtRp(min));
+    const b = q("#tuKirim"); b.disabled = true; b.textContent = "Mengirim...";
+    try{
+      await cf("rpc/ajukan_topup", {method:"POST", body:JSON.stringify({p_kurir_id:me.id, p_jumlah:jml, p_bukti:bukti})});
+      ov.remove(); toast("✅ Permintaan terkirim. Saldo masuk setelah dikonfirmasi admin."); renderSaldo();
+      if(wa && confirm("Kabari admin lewat WhatsApp?")) window.open("https://wa.me/" + wa + "?text=" + encodeURIComponent(`Halo admin, saya ${me.nama || "kurir"} mengajukan isi saldo kurir ${fmtRp(jml)}. Mohon dikonfirmasi.`), "_blank");
+    }catch(e){ const m = String(e.message || e); toast("Gagal: " + ((m.match(/"message":"([^"]+)"/) || [])[1] || m).slice(0, 90)); b.disabled = false; b.textContent = "📤 Kirim permintaan isi saldo"; }
+  };
+}
+async function bukaRiwayat(){
+  const ov = lembar(`<h3 style="margin:0 0 8px;color:var(--brown)">📜 Riwayat saldo</h3><div id="rwIsi"><p class="hint">Memuat...</p></div><button class="mini" type="button" id="rwTutup" style="width:100%;margin-top:12px">Tutup</button>`);
+  ov.querySelector("#rwTutup").onclick = () => ov.remove();
+  try{
+    const r = await cf("kurir_mutasi?select=jumlah,jenis,ket,saldo_akhir,t&kurir_id=eq." + encodeURIComponent(me.id) + "&order=t.desc&limit=50");
+    ov.querySelector("#rwIsi").innerHTML = r.length ? r.map(x => `<div class="mut"><div>${esc(x.ket || x.jenis)}<br><small class="hint">${new Date(x.t).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})} • saldo ${fmtRp(x.saldo_akhir)}</small></div><b class="${x.jumlah >= 0 ? "p" : "m"}">${x.jumlah >= 0 ? "+" : "−"}${fmtRp(Math.abs(x.jumlah))}</b></div>`).join("") : '<p class="hint">Belum ada riwayat.</p>';
+  }catch(e){ ov.querySelector("#rwIsi").innerHTML = '<p class="hint">Gagal memuat riwayat.</p>'; }
 }
 // Urutan kurir diacak per pesanan (berdasarkan kode pesanan), sama untuk semua perangkat.
 function sortedFor(o, elig){
@@ -388,6 +470,7 @@ async function loadOrders(){
     seenOffers = new Set(codes); setCounts(offers.length, mine.length);
     const hd = t => `<h3 style="margin:14px 0 0;font-size:15px;color:var(--brown)">${t}</h3>`;
     let h = "";
+    if(BIAYA.aktif && SALDO !== null && SALDO < minSaldo()) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda kurang. Isi saldo di Beranda agar bisa menerima tawaran pesanan.</p>';
     if(me.aktif === false) h += '<p class="hint" style="margin-top:10px">⚠️ Anda sedang tidak siap menerima antaran. Centang "Saya siap menerima antaran" di atas agar pesanan bisa ditawarkan kepada Anda.</p>';
     if(offers.length) h += hd(`Menunggu jawaban Anda (${offers.length})`) + offers.map(x => cardOffer(x.o, x.end)).join("");
     if(mine.length) h += hd(`Pesanan saya (${mine.length})`) + mine.map(cardMine).join("");
@@ -407,7 +490,7 @@ function tick(){
 }
 setInterval(tick, 1000);
 setInterval(() => { if(!document.hidden && me && !me.pending) loadOrders(); }, 20000);
-document.addEventListener("visibilitychange", () => { if(!document.hidden && me && !me.pending) loadOrders(); });
+document.addEventListener("visibilitychange", () => { if(!document.hidden && me && !me.pending){ renderSaldo(); loadOrders(); } });
 
 async function terima(code){
   const o = ORD[code]; if(!o) return;
@@ -444,7 +527,7 @@ async function setStatus(code, status, antar){
     }
     await cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status, updated_at:new Date().toISOString()})});
     if(status === "selesai"){ try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){} }
-    if(status === "selesai"){ me.selesai = (me.selesai || 0) + 1; upsertMember(me).catch(() => {}); renderProf(); }
+    if(status === "selesai"){ me.selesai = (me.selesai || 0) + 1; upsertMember(me).catch(() => {}); renderProf(); setTimeout(renderSaldo, 800); }
     toast(status === "selesai" ? "Pesanan selesai" : "Status diperbarui"); loadOrders();
   }catch(e){ toast("Gagal memperbarui status"); loadOrders(); }
 }
@@ -569,7 +652,7 @@ document.addEventListener("pointerdown", function bukaSuara(){
   try{ const a = new Audio(SUARA_FILE); a.volume = 0; a.play().then(() => { a.pause(); }).catch(() => {}); }catch(e){}
   try{ if("speechSynthesis" in window){ const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } }catch(e){}
 }, {once:false});
-if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(e.data && e.data.type === "bunyi-pesanan" && (!e.data.tag || e.data.tag === "pesanan-baru")){ bunyi(); if(me && !me.pending) loadOrders(); } });
+if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(e.data && e.data.type === "bunyi-pesanan" && (!e.data.tag || e.data.tag === "pesanan-baru")){ bunyi(); if(me && !me.pending) loadOrders(); } if(e.data && e.data.type === "bunyi-pesanan" && /^saldo/.test(e.data.tag || "") && me) renderSaldo(); });
 
 // ===== Notifikasi push: pesanan masuk tetap sampai ke HP walau aplikasi ditutup =====
 const VAPID_KEY = (typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG.vapidPublicKey) || "";
@@ -639,7 +722,7 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
 (async () => {
   $("warn").hidden = cloudOn();
   if(!WA) return location.replace("akun-" + ROLE + ".html");
-  try{ await load(); if(!me.pending) loadOrders(); }catch(e){ toast(e.message || "Gagal memuat data"); }
+  try{ await load(); if(!me.pending){ await renderSaldo(); loadOrders(); } }catch(e){ toast(e.message || "Gagal memuat data"); }
 })();
 
 </script>
@@ -657,7 +740,7 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)}, cur="home";
-  var HOME=[".hd","#stat","#aktifBox","#notifBox","#ringkas","#btnLihat"], ORD=["#ordBox"], PROF=["#profBox",".accordion-box"];
+  var HOME=[".hd","#stat","#aktifBox","#saldoBox","#notifBox","#ringkas","#btnLihat"], ORD=["#ordBox"], PROF=["#profBox",".accordion-box"];
   function all(l){var r=[];l.forEach(function(q){document.querySelectorAll(q).forEach(function(e){r.push(e)})});return r}
   function show(t){ cur=t;
     [[HOME,"home"],[ORD,"pesanan"],[PROF,"profil"]].forEach(function(g){all(g[0]).forEach(function(e){e.classList.toggle("tabhide",g[1]!==t)})});

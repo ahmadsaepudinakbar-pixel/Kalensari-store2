@@ -335,6 +335,14 @@ async function loadAll(silent){
       api('map_usage?select=day,loads&order=day.desc&limit=62').catch(()=>null)
     ]);
     S.mapUsage=Array.isArray(mu)?mu:null;
+    // saldo kurir (tabel dari supabase-saldo-kurir.sql; kosong bila belum dipasang)
+    const sejak=new Date(Date.now()-40*864e5).toISOString();
+    const [ks,kt,km]=await Promise.all([
+      api('kurir_saldo?select=kurir_id,saldo').catch(()=>null),
+      api('kurir_topup?select=id,kurir_id,nama,wa,jumlah,status,catatan,t,diproses_t&order=t.desc&limit=100').catch(()=>null),
+      api('kurir_mutasi?select=jumlah,t&jenis=eq.potong&t=gt.'+encodeURIComponent(sejak)+'&limit=10000').catch(()=>null)]);
+    S.saldo=Array.isArray(ks)?Object.fromEntries(ks.map(x=>[x.kurir_id,Number(x.saldo)||0])):null;
+    S.topup=Array.isArray(kt)?kt:[];S.potong=Array.isArray(km)?km:[];
     S.products=Array.isArray(p)?p:[];S.orders=Array.isArray(o)?o:[];
     S.settings={};(Array.isArray(s)?s:[]).forEach(r=>S.settings[r.key]=r.value);
     S.loaded=true;render();if(!silent)toast('Data terbaru dimuat');
@@ -381,6 +389,10 @@ const kurirOf=o=>{const st=S.settings['kurir_ord_'+o.order_code];return st&&st.a
 const antarOf=o=>{const a=S.settings['antar_'+o.order_code];return a&&typeof a==='object'?a:null};
 const laporOf=o=>{const l=S.settings['laporan_'+o.order_code];return l&&typeof l==='object'?l:null};
 const laporBuka=()=>S.orders.filter(o=>{const l=laporOf(o);return l&&!l.beres});
+const biaya=()=>({aktif:false,potong:1000,minTopup:20000,caraBayar:'',...(S.settings.kurir_biaya&&typeof S.settings.kurir_biaya==='object'?S.settings.kurir_biaya:{})});
+const topupMenunggu=()=>(S.topup||[]).filter(x=>x.status==='menunggu');
+const saldoOf=id=>S.saldo?(S.saldo[id]||0):null;
+function pemasukan(){const now=wibNow(),bln=now.d.slice(0,7);let h=0,b=0;(S.potong||[]).forEach(x=>{const d=new Date(new Date(x.t).getTime()+7*36e5).toISOString().slice(0,10),v=Math.abs(Number(x.jumlah)||0);if(d===now.d)h+=v;if(d.slice(0,7)===bln)b+=v});return{h,b}}
 const laporTag=o=>{const l=laporOf(o);return l&&!l.beres?' <span class="badge" style="background:#fdecea;color:#c0392b">⚠️ Belum diterima</span>':''};
 const cleanMap=t=>String(t||'').replace(/\s*__KS_MAP__-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?__END__\s*/g,' ').trim();
 const firstItem=o=>(Array.isArray(o.items)&&o.items[0])||null;
@@ -520,6 +532,7 @@ dashboard(){
     <div>
       ${gmPeringatan()}
       <div class="banner"><svg width="44" height="44" viewBox="0 0 100 100"><path d="M30 34 50 12 70 34" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M10 34h80v10H10zM15 44h70l-7 44H22z" fill="none" stroke="#fff" stroke-width="5"/><text x="50" y="80" text-anchor="middle" font-size="26" font-weight="900" fill="#fff">KS</text></svg><div><b>Kalensari Store</b><small>Belanja makanan &amp; minuman dari warga Kalensari</small></div></div>
+      ${topupMenunggu().length?`<div class="card" style="margin-bottom:20px;background:var(--gl);cursor:pointer" onclick="go('kurir')"><b style="color:var(--g)">💰 ${topupMenunggu().length} permintaan isi saldo kurir</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${topupMenunggu().slice(0,3).map(x=>esc(x.nama||'Kurir')+' '+rp(x.jumlah)).join(', ')} · ketuk untuk konfirmasi</div></div>`:''}
       ${laporBuka().length?`<div class="card" style="margin-bottom:20px;background:#fdecea;cursor:pointer" onclick="orderFilter='Dilaporkan';jenisFilter='Semua';go('pesanan')"><b style="color:#c0392b">⚠️ ${laporBuka().length} pesanan dilaporkan belum diterima pembeli</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${laporBuka().slice(0,3).map(o=>esc(orderCode(o))).join(', ')} · ketuk untuk menangani</div></div>`:''}
       ${pendingTotal()?`<div class="card" style="margin-bottom:20px;background:var(--ol);cursor:pointer" onclick="go('persetujuan')"><b>⏳ ${pendingTotal()} pendaftar menunggu persetujuan</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${GROUPS.map(g=>pendingOf(g.k).length?pendingOf(g.k).length+' '+g.label.toLowerCase():'').filter(Boolean).join(', ')} · ketuk untuk melihat</div></div>`:''}
       <div class="card" style="margin-bottom:20px"><div class="chead"><h3>Aksi Cepat</h3></div><div class="quick">
@@ -605,6 +618,7 @@ pengaturan(){
   ${tarifCard()}
   ${tempatCard()}
   ${gmapsCard()}
+  ${biayaCard()}
   <div class="card"><div class="chead"><h3>🔔 Notifikasi Admin</h3></div>
     <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:4px">Kabar pesanan baru &amp; pendaftar baru (penjual, kurir, jasa) dikirim ke perangkat ini. Aktifkan di HP dan/atau komputer admin.</p>
     <div id="admNotif">${window.KSNotif?'':'<p class="sm">File notif.js belum terunggah.</p>'}</div>
@@ -686,7 +700,8 @@ kurir(){
   <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari nama / nomor WA / kendaraan..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('truck')}</div><div class="lbl">Total Kurir</div><div class="val">${all.length}</div></div>
   <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('check')}</div><div class="lbl" style="color:var(--blue)">Siap Antar</div><div class="val">${siap}</div></div></div>
-  <div class="cards" id="list">${list.map((m,i)=>`<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b><div class="sm">${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">🛵 ${esc([m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-')}</div><div style="margin-top:6px">${m.aktif!==false?chip('Siap antar','b-Selesai'):chip('Tidak aktif','b-Batal')}</div></div><div class="right-col">${waLink(m.wa)}<button class="more" onclick="memberMenu('kurir','${jsq(m.id)}')">${ico('dots')}</button></div></div>`).join('')||'<div class="empty">Belum ada kurir yang disetujui</div>'}</div>`;
+  ${saldoPanel()}
+  <div class="cards" id="list">${list.map((m,i)=>`<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b><div class="sm">${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">🛵 ${esc([m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-')}</div><div style="margin-top:6px">${m.aktif!==false?chip('Siap antar','b-Selesai'):chip('Tidak aktif','b-Batal')}${biaya().aktif&&saldoOf(m.id)!==null?' '+chip('💰 '+rp(saldoOf(m.id)),saldoOf(m.id)<biaya().potong?'b-Batal':'b-Diproses'):''}</div>${biaya().aktif&&S.saldo?`<button class="btn btn-light" style="margin-top:8px;padding:6px 12px" onclick="saldoKurir('${jsq(m.id)}')">💰 Saldo</button>`:''}</div><div class="right-col">${waLink(m.wa)}<button class="more" onclick="memberMenu('kurir','${jsq(m.id)}')">${ico('dots')}</button></div></div>`).join('')||'<div class="empty">Belum ada kurir yang disetujui</div>'}</div>`;
 },
 persetujuan(){
   const g=GROUPS.find(x=>x.k===apTab)||GROUPS[0],rows=pendingOf(g.k);
@@ -1171,6 +1186,65 @@ async function saveAdmPref(el){
     await setSetting('admin_push',v);S.settings.admin_push=v;toast((el.checked?'🔔 Notifikasi ':'🔕 Notifikasi ')+(el.id==='anPes'?'pesanan baru':'pendaftar baru')+(el.checked?' dinyalakan':' dimatikan'))}
   catch(e){el.checked=!el.checked;toast('Gagal menyimpan: '+String(e.message||e).slice(0,80))}
   finally{el.disabled=false}}
+function saldoPanel(){
+  const b=biaya();
+  if(!S.saldo)return `<div class="card" style="margin-bottom:14px"><b>💰 Saldo kurir</b><div class="sm" style="color:var(--mut);margin-top:4px">Belum dipasang. Jalankan <code>supabase-saldo-kurir.sql</code> di Supabase.</div></div>`;
+  if(!b.aktif)return `<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px"><div style="flex:1"><b>💰 Potongan saldo kurir: nonaktif</b><div class="sm" style="color:var(--mut);margin-top:4px">Nyalakan di Pengaturan → Saldo Kurir.</div></div><button class="btn btn-light" onclick="go('pengaturan')">Atur</button></div>`;
+  const p=pemasukan(),w=topupMenunggu();
+  return `<div class="mini-stats" style="margin-top:0"><div class="ms" style="background:var(--gl)"><div class="lbl">Pemasukan hari ini</div><div class="val" style="font-size:20px">${rp(p.h)}</div></div><div class="ms" style="background:var(--pl)"><div class="lbl" style="color:var(--purple)">Pemasukan bulan ini</div><div class="val" style="font-size:20px">${rp(p.b)}</div></div></div>
+  ${w.length?`<div class="card" style="margin-bottom:14px"><div class="chead"><h3>💰 Permintaan isi saldo (${w.length})</h3></div>${w.map(x=>`<div class="detail-row" style="align-items:center;gap:8px;flex-wrap:wrap"><span style="white-space:normal"><b>${esc(x.nama||'Kurir')}</b> · ${rp(x.jumlah)}<br><small style="color:var(--mut)">${fmtDate(x.t)}${x.wa?' · +'+esc(x.wa):''}</small></span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-light" style="padding:6px 10px" onclick="lihatBukti(${Number(x.id)})">📎 Bukti</button><button class="btn btn-red" style="padding:6px 10px" onclick="prosesTopup(${Number(x.id)},false,this)">Tolak</button><button class="btn btn-g" style="padding:6px 10px" onclick="prosesTopup(${Number(x.id)},true,this)">Terima</button></span></div>`).join('')}</div>`:''}`;
+}
+async function prosesTopup(id,terima,btn){
+  const x=(S.topup||[]).find(r=>Number(r.id)===Number(id));if(!x)return;
+  let cat=null;
+  if(terima){if(!confirm(`Terima isi saldo ${rp(x.jumlah)} untuk ${x.nama||'kurir'}?\nPastikan uangnya sudah Anda terima.`))return}
+  else{cat=prompt('Alasan menolak (dikirim ke kurir):','Bukti transfer tidak ditemukan');if(cat===null)return}
+  await busy(btn,async()=>{await api('rpc/proses_topup',{method:'POST',body:JSON.stringify({p_id:Number(id),p_terima:terima,p_catatan:cat})});toast(terima?'Saldo ditambahkan':'Permintaan ditolak');await loadAll(true)});
+}
+async function lihatBukti(id){
+  const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.innerHTML='<span style="color:#fff">Memuat...</span>';ov.onclick=()=>ov.remove();document.body.appendChild(ov);
+  try{const r=await api('kurir_topup?select=bukti&id=eq.'+Number(id));const f=r[0]&&r[0].bukti;
+    ov.innerHTML=f&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(f)?`<img src="${f}" alt="Bukti" style="max-width:100%;max-height:85vh;border-radius:12px">`:'<span style="color:#fff">Tidak ada bukti foto. Cek mutasi rekening / uang tunai.</span>'}
+  catch(e){ov.innerHTML='<span style="color:#fff">Gagal memuat</span>'}
+}
+async function saldoKurir(id){
+  const m=members('kurir').find(x=>x.id===id)||{};
+  modal(`<div class="chead"><h3 style="margin:0">💰 Saldo ${esc(m.nama||'Kurir')}</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
+  <div class="detail-row"><span>Saldo sekarang</span><b style="font-size:18px">${rp(saldoOf(id)||0)}</b></div>
+  <div class="field" style="margin-top:12px"><label>Tambah / kurangi saldo (pakai minus untuk mengurangi)</label><input class="inp" id="kjJml" inputmode="numeric" placeholder="mis. 20000 atau -5000"></div>
+  <div class="field"><label>Keterangan</label><input class="inp" id="kjKet" placeholder="mis. Bayar tunai ke admin / Bonus awal"></div>
+  <button class="btn btn-g full" onclick="koreksiSaldo('${jsq(id)}',this)">Simpan</button>
+  <p style="font-size:12px;color:var(--mut);margin:16px 0 6px;font-weight:600">Riwayat terakhir</p><div id="kjRw" class="sm">Memuat...</div>`);
+  try{const r=await api('kurir_mutasi?select=jumlah,jenis,ket,saldo_akhir,t&kurir_id=eq.'+encodeURIComponent(id)+'&order=t.desc&limit=30');
+    $('#kjRw').innerHTML=r.length?r.map(x=>`<div class="detail-row"><span style="white-space:normal">${esc(x.ket||x.jenis)}<br><small style="color:var(--mut)">${fmtDate(x.t)} · saldo ${rp(x.saldo_akhir)}</small></span><b style="color:${x.jumlah>=0?'var(--g)':'var(--red)'}">${x.jumlah>=0?'+':'−'}${rp(Math.abs(x.jumlah))}</b></div>`).join(''):'Belum ada riwayat'}
+  catch(e){$('#kjRw').textContent='Gagal memuat riwayat'}
+}
+async function koreksiSaldo(id,btn){
+  const n=parseInt(String($('#kjJml').value).replace(/[^0-9-]/g,''),10);if(!n)return toast('Isi jumlahnya');
+  const ket=$('#kjKet').value.trim()||(n>0?'Isi saldo oleh admin':'Koreksi admin');
+  if(!confirm(`${n>0?'Tambah':'Kurangi'} saldo ${rp(Math.abs(n))}?`))return;
+  await busy(btn,async()=>{await api('rpc/koreksi_saldo',{method:'POST',body:JSON.stringify({p_kurir_id:id,p_jumlah:n,p_ket:ket})});closeModal();toast('Saldo diperbarui');await loadAll(true)});
+}
+function biayaCard(){
+  const b=biaya();
+  return `<div class="card"><div class="chead"><h3>💰 Saldo Kurir</h3></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:10px">Kurir mengisi saldo (deposit), lalu saldo dipotong otomatis setiap pesanan selesai. Kurir dengan saldo kurang tidak mendapat tawaran pesanan.</p>
+    ${S.saldo?'':'<p class="sm" style="color:var(--red);margin-bottom:10px">⚠️ Jalankan <code>supabase-saldo-kurir.sql</code> di Supabase dulu.</p>'}
+    <label class="sm" style="display:flex;gap:10px;align-items:center;padding:6px 0 12px;cursor:pointer"><input type="checkbox" id="bAktif" ${b.aktif?'checked':''} style="width:18px;height:18px"><b>Aktifkan potongan saldo</b></label>
+    <div class="field"><label>Potongan per pesanan selesai (Rp)</label><input class="inp" id="bPotong" inputmode="numeric" value="${Number(b.potong)||0}"></div>
+    <div class="field"><label>Minimal isi saldo (Rp)</label><input class="inp" id="bMin" inputmode="numeric" value="${Number(b.minTopup)||0}"></div>
+    <div class="field"><label>Cara bayar (tampil di aplikasi kurir)</label><textarea class="inp" id="bCara" rows="3" placeholder="mis. Transfer BRI 1234567890 a.n. Kalensari Store, atau bayar tunai ke admin">${esc(b.caraBayar||'')}</textarea></div>
+    <button class="btn btn-g full" onclick="saveBiaya(this)">Simpan Saldo Kurir</button>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-top:10px">Tips: sebelum mengaktifkan, beri kurir saldo awal lewat Daftar Kurir → 💰 Saldo, supaya mereka tetap bisa menerima pesanan.</p></div>`;
+}
+async function saveBiaya(btn){
+  const potong=parseInt($('#bPotong').value,10)||0,minTopup=parseInt($('#bMin').value,10)||0;
+  if(potong<0||potong>100000)return toast('Potongan tidak valid');if(minTopup<potong)return toast('Minimal isi saldo harus ≥ potongan');
+  const v={...biaya(),aktif:$('#bAktif').checked,potong,minTopup,minSaldo:potong,caraBayar:$('#bCara').value.trim().slice(0,400)};
+  if(v.aktif&&!biaya().aktif&&!confirm('Aktifkan potongan saldo?\nKurir yang saldonya kurang dari '+rp(potong)+' tidak akan mendapat tawaran pesanan sampai mengisi saldo.'))return;
+  await busy(btn,async()=>{await setSetting('kurir_biaya',v);S.settings.kurir_biaya=v;render();toast('Pengaturan saldo kurir disimpan')});
+}
 async function saveWa(btn){const n=phoneKey($('#sWa').value);if(n.length<9||n.length>15)return toast('Nomor WhatsApp tidak valid');
   await busy(btn,async()=>{await setSetting('whatsapp_number',n);S.settings.whatsapp_number=n;render();toast('Nomor WhatsApp disimpan')})}
 

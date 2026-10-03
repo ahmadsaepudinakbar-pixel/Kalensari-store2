@@ -43,7 +43,7 @@ as $$
                'whatsapp_number','closed_sellers','seller_schedule',
                'admin_pin_hash','jasa_categories','jasa_providers',
                'transport_tariff','transport_places','google_maps',
-               'admin_push');
+               'admin_push','kurir_biaya');
 $$;
 
 -- Cek: harus menampilkan 1 baris (hari ini) dan true

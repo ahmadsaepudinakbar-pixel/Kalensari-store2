@@ -366,7 +366,12 @@ async function kurirSiap(){
   const [mem, st, rows] = await Promise.all([getSetting("kurir_members", []), cf("store_settings?select=key,value&key=like.kurir_ord_*"), cf("orders?select=order_code&status=in.(diproses,dikirim)&limit=200")]);
   const aktifKode = new Set((rows || []).map(o => o.order_code)), sibuk = new Set();
   (st || []).forEach(r => { const code = r.key.slice("kurir_ord_".length), v = r.value || {}; if(v.acc && v.acc.id && aktifKode.has(code)) sibuk.add(v.acc.id); });
-  const siap = (Array.isArray(mem) ? mem : []).filter(m => m && m.id && m.pending !== true && m.aktif !== false);
+  let siap = (Array.isArray(mem) ? mem : []).filter(m => m && m.id && m.pending !== true && m.aktif !== false);
+  // potongan saldo aktif: kurir bersaldo kurang tidak mendapat pesanan
+  try{
+    const b = await getSetting("kurir_biaya", null);
+    if(b && b.aktif){ const min = Math.max(Number(b.minSaldo) || 0, Number(b.potong) || 0), s = {}; (await cf("kurir_saldo?select=kurir_id,saldo")).forEach(x => { s[x.kurir_id] = Number(x.saldo) || 0; }); siap = siap.filter(m => (s[m.id] || 0) >= min); }
+  }catch(e){}
   return {total:siap.length, bebas:siap.filter(m => !sibuk.has(m.id)).length};
 }
 async function renderAvail(){
