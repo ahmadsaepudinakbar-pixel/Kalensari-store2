@@ -66,6 +66,8 @@ h2.sec{font-size:24px;margin:30px 0 14px}
 .catw{position:relative}.catw .cat{width:100%;height:100%}
 .catx{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:13px;cursor:pointer;line-height:1}
 .cat.add{border:2px dashed var(--brown);background:transparent;color:var(--brown)}
+.transbox[hidden]{display:none}.transbox{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;margin:6px 0 10px}.transbox p{margin:0 0 12px;color:var(--muted)}.tbtns{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tbtn{display:block;text-align:center;background:var(--green);color:#fff;text-decoration:none;font-weight:700;padding:18px 10px;border-radius:16px}.tbtn span{display:block;font-size:32px;margin-bottom:4px}@media(max-width:420px){.tbtns{grid-template-columns:1fr}}
+.subbar{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}.subc{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font:inherit;font-weight:700;font-size:14px;color:var(--ink);cursor:pointer}.subc.on{background:var(--brown);border-color:var(--brown);color:#fff}
 .cate{position:absolute;top:6px;left:6px;width:26px;height:26px;border-radius:50%;border:0;background:var(--brown);color:#fff;font-size:13px;cursor:pointer;line-height:1}
 .kimg{width:36px;height:36px;object-fit:cover;border-radius:10px;display:inline-block;vertical-align:middle}.cat .e .kimg{width:34px;height:34px}.ico .kimg{width:100%;height:100%;border-radius:inherit}
 .kprev{width:72px;height:72px;margin:0 auto 12px;border-radius:18px;background:#fff7ec;display:grid;place-items:center;font-size:40px}.kprev .kimg{width:64px;height:64px}
@@ -108,6 +110,8 @@ textarea.fld{min-height:90px;resize:vertical}
   <div class="cats" id="cats"></div>
   </div>
 
+  <div id="subBar" class="subbar" hidden></div>
+  <div id="transBox" class="transbox" hidden></div>
   <div class="sechead"><h2 class="sec" id="judul">Semua penyedia jasa</h2><span class="cnt" id="count"></span></div>
   <div class="list" id="list"></div>
 
@@ -129,8 +133,10 @@ const ADMIN_WA = "6281234567890"; // nomor WhatsApp admin (untuk tombol Daftar) 
 // ====== KATEGORI JASA ======
 const DEFAULT_KATEGORI = [
  {n:"Kesehatan",e:"🩺"},{n:"Pertanian",e:"🌾"},{n:"Garment",e:"🧵"},
- {n:"Kecantikan",e:"💄"},{n:"Service",e:"🔧"},{n:"Game",e:"🎮"}
+ {n:"Kecantikan",e:"💄"},{n:"Service",e:"🔧"},{n:"Game",e:"🎮"},
+ {n:"Transportasi Online",e:"🛵",sub:["Ojek online","Kirim paket/barang"]}
 ];
+const TRANS = "Transportasi Online";
 // Jenis jasa lama -> kategori baru (data penyedia lama tetap terbaca tanpa perlu diubah satu per satu).
 const KAT_LAMA = {"tukang urut":"Kesehatan","penjahit":"Garment","servis komputer":"Service","servis elektronik":"Service","servis hp":"Service",
  "pemasangan wifi":"Service","pemasangan cctv":"Service","pemasangan air pam":"Service","supir traktor sawah":"Pertanian","pasukan tandur":"Pertanian",
@@ -139,13 +145,21 @@ const NAMA_LAMA = ["tukang urut","tukang ojek","pemasangan wifi","pemasangan cct
  "supir traktor sawah","pasukan grabag","supir","travel","pemasangan air pam","pasukan tandur","ngerambet","joki gaming"];
 // Daftar kategori yang tersimpan masih versi lama -> ganti ke 6 kategori baru, kategori buatan admin tetap dipertahankan.
 function migrasiKat(list){
-  if(!list.some(c => NAMA_LAMA.includes(String(c.n).toLowerCase()))) return list;
+  if(!list.some(c => NAMA_LAMA.includes(String(c.n).toLowerCase()))){
+    if(!list.some(c => c.n === TRANS)) return [...list, {...DEFAULT_KATEGORI.find(c => c.n === TRANS)}];
+    return list;
+  }
   const baru = DEFAULT_KATEGORI.map(c => ({...c}));
   list.forEach(c => { const k = String(c.n).toLowerCase(); if(!NAMA_LAMA.includes(k) && !baru.some(x => x.n.toLowerCase() === k)) baru.push(c); });
   return baru;
 }
 // Kategori efektif sebuah penyedia (jenis lama otomatis masuk kategori barunya).
-const katOf = j => { const k = j.kategori || ""; if(KATEGORI.some(c => c.n === k)) return k; const m = KAT_LAMA[k.toLowerCase()]; return m && KATEGORI.some(c => c.n === m) ? m : k; };
+const katByName = n => KATEGORI.find(c => c.n === n && !c.hidden);
+const KAT_AKTIF = () => KATEGORI.filter(c => !c.hidden);
+// Sub-kategori penyedia (mis. Ojek online). Data lama "Tukang ojek" otomatis = Ojek online.
+const subOf = j => j.sub || "";
+let subPilih = "Semua";
+const katOf = j => { const k = j.kategori || ""; if(katByName(k)) return k; const m = KAT_LAMA[k.toLowerCase()]; return m && katByName(m) ? m : k; };
 let KATEGORI = DEFAULT_KATEGORI.map(c => ({...c})); // daftar aktif (bisa diubah admin)
 
 // ====== DATA PENYEDIA JASA (CONTOH — edit/ganti dengan data asli) ======
@@ -181,7 +195,7 @@ const toMin = t => { const [h,m] = t.split(":").map(Number); return h*60+m; };
 const icoHTML = j => j.foto ? `<img src="${esc(j.foto)}" alt="${esc(j.nama)}" loading="lazy">` : ikon(katOf(j));
 const ratingHTML = j => (+j.rating > 0) ? `<span>⭐ ${String(j.rating).replace(".",",")}</span>` : "";
 const katIco = c => c && c.img ? `<img class="kimg" src="${esc(c.img)}" alt="">` : esc((c && c.e) || "🛠️");
-const ikon = k => { const m = KATEGORI.find(x => x.n === k) || KATEGORI.find(x => x.n === KAT_LAMA[String(k||"").toLowerCase()]); return katIco(m); };
+const ikon = k => { const m = katByName(k) || katByName(KAT_LAMA[String(k||"").toLowerCase()]); return katIco(m); };
 
 function nowWIB(){
   const p = new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Jakarta",hour:"2-digit",minute:"2-digit",hour12:false,weekday:"short"}).formatToParts(new Date());
@@ -201,7 +215,7 @@ function setOpen(o){
   $("catToggle").setAttribute("aria-expanded", String(o));
 }
 function renderCats(){
-  const all = [{n:"Semua",e:"✨"}, ...KATEGORI];
+  const all = [{n:"Semua",e:"✨"}, ...KAT_AKTIF()];
   $("cats").innerHTML = all.map(c => `<div class="catw"><button class="cat${c.n===kategori?" on":""}" data-c="${esc(c.n)}"><span class="e">${katIco(c)}</span>${esc(c.n)}</button>${admin && c.n!=="Semua" ? `<button class="catx" data-del="${esc(c.n)}" aria-label="Hapus ${esc(c.n)}">✕</button><button class="cate" data-edit="${esc(c.n)}" aria-label="Ubah ${esc(c.n)}">✎</button>` : ""}</div>`).join("")
     + (admin ? `<div class="catw"><button class="cat add" id="addCat"><span class="e">➕</span>Tambah kategori</button></div>` : "");
   $("adminbar").hidden = !admin;
@@ -213,8 +227,8 @@ function card(j, i){
     <div class="row"><div class="ico">${icoHTML(j)}</div>
       <div class="info"><h3 class="name">${esc(j.nama)}${j.status==="Hide"?` <span class="tagh">(${j.pending?"menunggu persetujuan":"disembunyikan"})</span>`:""}</h3><p class="desc">${esc(j.ket)}</p>
         <div class="meta"><span class="badge ${open?"buka":"tutup"}">${open?"Buka":"Tutup"}</span>
-          <span>🕒 ${jam(j.buka)}–${jam(j.tutup)}</span><span>📍 ${esc(j.dusun)}</span>${ratingHTML(j)}</div>
-        <div class="price">${esc(j.harga)}</div></div></div>
+          ${subOf(j) ? `<span>${esc(subOf(j))}</span>` : ""}<span>🕒 ${jam(j.buka)}–${jam(j.tutup)}</span><span>📍 ${esc(j.dusun)}</span>${ratingHTML(j)}</div>
+        <div class="price">${esc(j.harga||"")}</div></div></div>
     <div class="btns"><button class="btn" data-d="${i}">Lihat detail</button>
       ${open ? `<a class="btn wa" href="${waUrl(j)}" target="_blank" rel="noopener">Chat WhatsApp</a>` : `<span class="btn off">Sedang tutup</span>`}</div>
   </article>`;
@@ -222,9 +236,20 @@ function card(j, i){
 function render(){
   const q = $("q").value.trim().toLowerCase();
   const rows = ALL().map((j,i)=>({j,i})).filter(({j}) =>
-    (admin || j.status !== "Hide") && (kategori==="Semua" || katOf(j)===kategori) &&
-    (!q || [j.nama,j.ket,j.kategori,katOf(j),j.dusun,...(j.layanan||[])].join(" ").toLowerCase().includes(q)));
-  $("judul").textContent = kategori==="Semua" ? "Semua penyedia jasa" : kategori;
+    (admin || j.status !== "Hide") && (kategori==="Semua" || katOf(j)===kategori) && (subPilih==="Semua" || subOf(j)===subPilih) &&
+    (!q || [j.nama,j.ket,j.kategori,katOf(j),subOf(j),j.dusun,...(j.layanan||[])].join(" ").toLowerCase().includes(q)));
+  const kc = katByName(kategori), isTrans = kategori === TRANS;
+  // Transportasi Online = layanan resmi Kalensari Store (diantar kurir toko), bukan daftar penyedia warga.
+  $("transBox").hidden = !isTrans; $("list").style.display = isTrans ? "none" : ""; $("count").style.display = isTrans ? "none" : "";
+  if(isTrans){ $("subBar").hidden = true; $("judul").textContent = TRANS;
+    $("transBox").innerHTML = `<p>Layanan resmi <b>Kalensari Store</b>, diantar kurir toko yang sedang tidak mengantar. Ongkos dihitung otomatis dari jarak.</p>
+      <div class="tbtns"><a class="tbtn" href="ojek.html?l=ojek"><span>🛵</span>Pesan ojek online</a><a class="tbtn" href="ojek.html?l=paket"><span>📦</span>Kirim paket/barang</a></div>`;
+    return; }
+  const subs = (kc && kc.sub) || [];
+  if(!subs.includes(subPilih)) subPilih = "Semua";
+  $("subBar").hidden = !subs.length;
+  $("subBar").innerHTML = subs.length ? ["Semua", ...subs].map(x => `<button class="subc${x===subPilih?" on":""}" data-sub="${esc(x)}">${x==="Semua"?"Semua "+esc(kategori):esc(x)}</button>`).join("") : "";
+  $("judul").textContent = kategori==="Semua" ? "Semua penyedia jasa" : (subPilih!=="Semua" ? subPilih : kategori);
   $("count").textContent = `${rows.length} penyedia`;
   $("list").innerHTML = rows.length ? rows.map(({j,i}) => card(j,i)).join("") : `<div class="empty">Belum ada penyedia jasa yang cocok. Coba kategori atau kata kunci lain.</div>`;
 }
@@ -234,9 +259,9 @@ function detail(i){
   $("sheet").innerHTML = `<button class="x" onclick="closeD()" aria-label="Tutup">✕</button>
     ${j.foto ? `<img class="dimg" src="${esc(j.foto)}" alt="${esc(j.nama)}">` : `<div class="ico" style="margin-bottom:10px">${ikon(j.kategori)}</div>`}
     <h2>${esc(j.nama)}</h2><p class="desc">${esc(j.ket)}</p>
-    <div class="meta"><span class="badge ${open?"buka":"tutup"}">${open?"Buka":"Tutup"}</span>${ratingHTML(j)}${j.kategori?`<span>${esc(j.kategori)}</span>`:""}</div>
+    <div class="meta"><span class="badge ${open?"buka":"tutup"}">${open?"Buka":"Tutup"}</span>${ratingHTML(j)}${j.kategori?`<span>${esc(katOf(j))}${subOf(j)?" • "+esc(subOf(j)):""}</span>`:""}</div>
     ${j.rehat?`<p class="tagh" style="margin:8px 0 0">⏸️ Penyedia sedang tutup sementara</p>`:""}
-    <p>🕒 <b>${jam(j.buka)}–${jam(j.tutup)}</b> WIB${(j.libur||[]).length?` • Libur: ${j.libur.map(d=>hari[d]).join(", ")}`:""}<br>📍 ${esc(j.dusun)}<br>💰 <b>${esc(j.harga)}</b></p>
+    <p>🕒 <b>${jam(j.buka)}–${jam(j.tutup)}</b> WIB${(j.libur||[]).length?` • Libur: ${j.libur.map(d=>hari[d]).join(", ")}`:""}<br>📍 ${esc(j.dusun)}<br>💰 <b>${esc(j.harga||"")}</b></p>
     ${(j.layanan||[]).length?`<b>Layanan:</b><ul>${j.layanan.map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`:""}
     <div class="btns" style="grid-template-columns:1fr">${open ? `<a class="btn wa" href="${waUrl(j)}" target="_blank" rel="noopener">Chat WhatsApp</a>` : `<span class="btn off">Sedang tutup</span>`}
     ${admin && j.pending ? `<button class="btn wa" onclick="setujui(${i})">✅ Setujui & tampilkan</button>` : ""}
@@ -246,11 +271,12 @@ function detail(i){
 function closeD(){ $("modal").classList.remove("show"); }
 
 $("q").addEventListener("input", render);
+$("subBar").addEventListener("click", e => { const b = e.target.closest("[data-sub]"); if(!b) return; subPilih = b.dataset.sub; render(); });
 $("cats").addEventListener("click", e => {
   const d = e.target.closest("[data-del]"); if(d){ hapusKat(d.dataset.del); return; }
   const ed = e.target.closest("[data-edit]"); if(ed){ formTambah(ed.dataset.edit); return; }
   if(e.target.closest("#addCat")){ formTambah(); return; }
-  const b = e.target.closest(".cat"); if(!b) return; kategori = b.dataset.c; renderCats(); render(); if(!admin) setOpen(false);
+  const b = e.target.closest(".cat"); if(!b) return; if(kategori !== b.dataset.c) subPilih = "Semua"; kategori = b.dataset.c; renderCats(); render(); if(!admin) setOpen(false);
 });
 $("catToggle").addEventListener("click", () => setOpen($("catPanel").hidden));
 $("list").addEventListener("click", e => { const b = e.target.closest("[data-d]"); if(b) detail(+b.dataset.d); });
@@ -337,13 +363,14 @@ async function formLogin(){
   $("pinOk").onclick = go; $("pinIn").onkeydown = e => { if(e.key === "Enter") go(); };
 }
 function formTambah(lama){
-  const c = lama ? KATEGORI.find(x => x.n === lama) : {n:"", e:"🛠️", img:""};
+  const c = lama ? katByName(lama) : {n:"", e:"🛠️", img:""};
   if(!c) return;
   let img = c.img || "";
   $("sheet").innerHTML = `<button class="x" onclick="closeD()" aria-label="Tutup">✕</button><h2>${lama ? "Ubah kategori" : "Tambah kategori"}</h2>
     <div class="kprev" id="katPrev"></div>
     <label>Nama kategori<input id="katN" class="fld" maxlength="30" placeholder="mis. Transportasi" value="${esc(c.n)}"></label>
     <label>Logo (emoji)<input id="katE" class="fld" maxlength="8" value="${esc(c.e || "🛠️")}"></label>
+    <label>Sub-kategori (opsional, satu per baris)<textarea id="katSub" class="fld" placeholder="mis. Ojek online&#10;Kirim paket/barang">${esc((c.sub || []).join("\n"))}</textarea></label>
     <input id="katF" type="file" accept="image/*" style="display:none">
     <div class="btns" style="margin:0 0 12px"><button class="btn" type="button" id="katPilih">🖼️ Pakai gambar sendiri</button><button class="btn danger" type="button" id="katHapusImg">Hapus gambar</button></div>
     <p class="desc" style="margin-top:0">Kalau gambar dipilih, gambar dipakai sebagai logo. Kalau tidak, emoji yang dipakai.</p>
@@ -357,8 +384,11 @@ function formTambah(lama){
   const go = async () => {
     const n = $("katN").value.trim().replace(/\s+/g," "), e = $("katE").value.trim() || "🛠️";
     if(!n) return toast("Nama kategori wajib diisi");
-    if(n.toLowerCase() === "semua" || KATEGORI.some(x => x !== c && x.n.toLowerCase() === n.toLowerCase())) return toast("Kategori itu sudah ada");
+    const kembar = KATEGORI.find(x => x !== c && x.n.toLowerCase() === n.toLowerCase());
+    if(kembar && kembar.hidden && !lama) KATEGORI = KATEGORI.filter(x => x !== kembar); // kategori yang pernah dihapus dibuat ulang
+    else if(n.toLowerCase() === "semua" || kembar) return toast("Kategori itu sudah ada");
     const data = {n, e}; if(img) data.img = img;
+    const subs = [...new Set($("katSub").value.split("\n").map(x => x.trim().replace(/\s+/g," ")).filter(Boolean))].slice(0, 12); if(subs.length) data.sub = subs;
     closeD();
     if(!lama){ KATEGORI.push(data); await simpanDanKabari(`Kategori "${n}" ditambahkan`); return; }
     // Catat penyedia di kategori lama SEBELUM nama kategori diganti.
@@ -380,7 +410,7 @@ async function hapusKat(n){
   const dipakai = ALL().filter(j => katOf(j) === n).length;
   const ket = dipakai ? `\n\n${dipakai} penyedia di kategori ini tetap tampil di "Semua", tetapi tidak punya kategori.` : "";
   if(!confirm(`Hapus kategori "${n}"?${ket}`)) return;
-  KATEGORI = KATEGORI.filter(c => c.n !== n);
+  KATEGORI = n === TRANS ? KATEGORI.map(c => c.n === n ? {...c, hidden:true} : c) : KATEGORI.filter(c => c.n !== n);
   if(kategori === n) kategori = "Semua";
   await simpanDanKabari(`Kategori "${n}" dihapus`);
 }
@@ -438,13 +468,14 @@ function formEdit(i){
   const j = baru ? {nama:"",kategori:(kategori!=="Semua"?kategori:""),ket:"",buka:"08:00",tutup:"17:00",dusun:"",rating:"",harga:"",wa:"",libur:[],layanan:[],status:"Show",foto:""} : {...ALL()[i]};
   let foto = j.foto || "";
   const hari = ["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
-  if(!baru && j.kategori) j.kategori = katOf(j); const kats = KATEGORI.map(c => c.n); if(j.kategori && !kats.includes(j.kategori)) kats.push(j.kategori);
+  if(!baru && j.kategori){ j.sub = subOf(j); j.kategori = katOf(j); } const kats = KAT_AKTIF().filter(c => c.n !== TRANS).map(c => c.n); if(j.kategori && !kats.includes(j.kategori)) kats.push(j.kategori);
   $("sheet").innerHTML = `<div class="frm"><button class="x" onclick="closeD()" aria-label="Tutup">✕</button><h2>${baru?"Tambah penyedia":"Edit detail"}</h2>
     <div class="ico big" id="fPrev"></div>
     <input id="fFile" type="file" accept="image/*" style="display:none">
     <div class="btns" style="margin:0 0 12px"><button class="btn" type="button" id="fPilih">📷 ${foto?"Ganti foto":"Pilih foto"}</button><button class="btn danger" type="button" id="fHapusFoto">Hapus foto</button></div>
     <label>Nama<input id="fNama" class="fld" maxlength="60" value="${esc(j.nama)}"></label>
     <label>Kategori jasa<select id="fKat" class="fld"><option value="">— tanpa kategori —</option>${kats.map(k=>`<option value="${esc(k)}"${k===j.kategori?" selected":""}>${esc(k)}</option>`).join("")}</select></label>
+    <label id="fSubW">Sub-kategori<select id="fSub" class="fld"></select></label>
     <label>Deskripsi singkat<input id="fKet" class="fld" maxlength="100" value="${esc(j.ket||"")}"></label>
     <div class="row2"><label>Jam buka<input id="fBuka" class="fld" type="time" value="${esc(j.buka||"08:00")}"></label><label>Jam tutup<input id="fTutup" class="fld" type="time" value="${esc(j.tutup||"17:00")}"></label></div>
     <label>Hari libur</label><div class="days">${hari.map((h,d)=>`<label><input type="checkbox" name="lb" value="${d}"${(j.libur||[]).includes(d)?" checked":""}>${h}</label>`).join("")}</div>
@@ -456,8 +487,9 @@ function formEdit(i){
     <div class="btns"><button class="btn wa" id="fSimpan" type="button">Simpan</button>${baru?`<button class="btn" type="button" onclick="closeD()">Batal</button>`:`<button class="btn danger" id="fHapus" type="button">Hapus penyedia</button>`}</div></div>`;
   $("modal").classList.add("show");
   const prev = () => { $("fPrev").innerHTML = foto ? `<img src="${esc(foto)}" alt="">` : ikon($("fKat").value); $("fHapusFoto").style.display = foto ? "" : "none"; $("fPilih").textContent = (foto ? "📷 Ganti foto" : "📷 Pilih foto"); };
-  prev();
-  $("fKat").onchange = prev;
+  const isiSub = () => { const kc = katByName($("fKat").value), l = (kc && kc.sub) || []; $("fSubW").style.display = l.length ? "" : "none"; $("fSub").innerHTML = l.map(x => `<option${x===j.sub?" selected":""}>${esc(x)}</option>`).join(""); };
+  prev(); isiSub();
+  $("fKat").onchange = () => { prev(); isiSub(); };
   $("fPilih").onclick = () => $("fFile").click();
   $("fFile").onchange = async e => { const f = e.target.files[0]; if(!f) return; try{ foto = await resizeImg(f); prev(); }catch(err){ toast("Foto tidak bisa dibaca"); } };
   $("fHapusFoto").onclick = () => { foto = ""; prev(); };
@@ -467,7 +499,8 @@ function formEdit(i){
     const buka = $("fBuka").value, tutup = $("fTutup").value; if(!buka || !tutup) return toast("Jam buka & tutup wajib diisi");
     if(toMin(tutup) <= toMin(buka)) return toast("Jam tutup harus setelah jam buka");
     const r = parseFloat($("fRating").value);
-    const data = {...j, nama, kategori:$("fKat").value, ket:$("fKet").value.trim(), buka, tutup,
+    const kcS = katByName($("fKat").value), subV = kcS && kcS.sub && kcS.sub.length ? $("fSub").value : "";
+    const data = {...j, nama, kategori:$("fKat").value, sub:subV, ket:$("fKet").value.trim(), buka, tutup,
       libur:[...document.querySelectorAll('input[name="lb"]:checked')].map(x => +x.value),
       dusun:$("fDusun").value.trim(), rating:isNaN(r) ? "" : Math.min(5, Math.max(0, r)), harga:$("fHarga").value.trim(), wa,
       layanan:$("fLay").value.split("\n").map(x => x.trim()).filter(Boolean), status:$("fStatus").value, foto};

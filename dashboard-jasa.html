@@ -90,7 +90,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
       <input id="fFile" type="file" accept="image/*" hidden>
       <div class="row2" style="margin-bottom:12px"><button class="btn" type="button" id="fPilih">📷 Pilih foto</button><button class="btn danger" type="button" id="fHapusFoto">Hapus foto</button></div>
       <label>Nama<input id="fNama" class="fld" maxlength="60"></label>
-      <label>Kategori jasa<select id="fKat" class="fld"></select></label>
+      <label>Kategori jasa<select id="fKat" class="fld"></select></label><label style="display:none">Sub-kategori<select id="fSub" class="fld"></select></label>
       <label>Deskripsi singkat<input id="fKet" class="fld" maxlength="100" placeholder="mis. Servis motor, tambal ban, ganti oli"></label>
       <label>No. WhatsApp (untuk masuk)<input id="fWa" class="fld" disabled></label>
     </section>
@@ -169,15 +169,39 @@ function lockLeft(){ const t = LSget("kalensari_jasa_try", {n:0,t:0}); return t.
 function failTry(){ const t = LSget("kalensari_jasa_try", {n:0,t:0}); const n = (Date.now() - t.t > 60000 && t.n >= 5) ? 1 : t.n + 1; LSset("kalensari_jasa_try", {n, t:Date.now()}); }
 
 // ====== KATEGORI ======
-const DEFAULT_KAT = ["Kesehatan","Pertanian","Garment","Kecantikan","Service","Game"];
+const DEFAULT_KATS = [{n:"Kesehatan"},{n:"Pertanian"},{n:"Garment"},{n:"Kecantikan"},{n:"Service"},{n:"Game"},{n:"Transportasi Online",sub:["Ojek online","Kirim paket/barang"]}];
+const TRANS = "Transportasi Online";
 // Jenis jasa lama -> kategori baru (sama dengan jasa.html)
 const KAT_LAMA = {"tukang urut":"Kesehatan","penjahit":"Garment","servis komputer":"Service","servis elektronik":"Service","servis hp":"Service","pemasangan wifi":"Service","pemasangan cctv":"Service","pemasangan air pam":"Service","supir traktor sawah":"Pertanian","pasukan tandur":"Pertanian","ngerambet":"Pertanian","pasukan grabag":"Pertanian","joki gaming":"Game"};
 const NAMA_LAMA = ["tukang urut","tukang ojek","pemasangan wifi","pemasangan cctv","penjahit","servis komputer","servis elektronik","servis hp","supir traktor sawah","pasukan grabag","supir","travel","pemasangan air pam","pasukan tandur","ngerambet","joki gaming"];
-let KAT = DEFAULT_KAT;
+let KATS = DEFAULT_KATS;
+const KAT_AKTIF = () => KATS.filter(c => !c.hidden && c.n !== TRANS); // Transportasi Online = layanan kurir toko, bukan untuk penyedia
+let KAT = KAT_AKTIF().map(c => c.n);
+const katObj = n => KAT_AKTIF().find(c => c.n === n);
 async function loadKat(){
-  try{ const v = await getSetting("jasa_categories", null); if(Array.isArray(v) && v.length){ const n = v.map(c => c.n); KAT = n.some(x => NAMA_LAMA.includes(String(x).toLowerCase())) ? [...DEFAULT_KAT, ...n.filter(x => !NAMA_LAMA.includes(String(x).toLowerCase()) && !DEFAULT_KAT.includes(x))] : n; } }catch(e){}
-  const opts = (sel, cur) => { if(cur && !KAT.includes(cur) && KAT.includes(KAT_LAMA[String(cur).toLowerCase()])) cur = KAT_LAMA[String(cur).toLowerCase()]; const l = [...KAT]; if(cur && !l.includes(cur)) l.push(cur); sel.innerHTML = l.map(k => `<option value="${esc(k)}"${k===cur?" selected":""}>${esc(k)}</option>`).join(""); };
+  try{
+    const v = await getSetting("jasa_categories", null);
+    if(Array.isArray(v) && v.length){
+      let l = v.filter(c => c && typeof c.n === "string");
+      if(l.some(c => NAMA_LAMA.includes(String(c.n).toLowerCase()))) l = [...DEFAULT_KATS, ...l.filter(c => !NAMA_LAMA.includes(String(c.n).toLowerCase()) && !DEFAULT_KATS.some(d => d.n === c.n))];
+      else if(!l.some(c => c.n === TRANS)) l = [...l, DEFAULT_KATS.find(c => c.n === TRANS)];
+      KATS = l;
+    }
+  }catch(e){}
+  KAT = KAT_AKTIF().map(c => c.n);
+  // sel = <select> kategori; sub-kategori memakai <select> dengan id yang sama tapi "Kat" diganti "Sub".
+  const opts = (sel, cur, curSub) => {
+    const lc = String(cur||"").toLowerCase();
+    if(cur && !KAT.includes(cur) && KAT.includes(KAT_LAMA[lc])) cur = KAT_LAMA[lc];
+    const l = [...KAT]; if(cur && !l.includes(cur)) l.push(cur);
+    sel.innerHTML = l.map(k => `<option value="${esc(k)}"${k===cur?" selected":""}>${esc(k)}</option>`).join("");
+    const sub = document.getElementById(sel.id.replace("Kat","Sub")), wrap = sub && sub.closest("label");
+    const isi = () => { if(!sub) return; const o = katObj(sel.value), s = (o && o.sub) || []; wrap.style.display = s.length ? "" : "none"; sub.innerHTML = s.map(x => `<option${x===curSub?" selected":""}>${esc(x)}</option>`).join(""); };
+    sel.onchange = isi; isi();
+  };
   window.fillKat = opts;
+  window.subVal = id => { const sel = document.getElementById(id), o = katObj(sel.value), sub = document.getElementById(id.replace("Kat","Sub")); return o && o.sub && o.sub.length && sub ? sub.value : ""; };
+  
 }
 
 // ====== DASBOR ======
@@ -196,7 +220,7 @@ async function openDash(wa){
   if(me.pending){ st.className = "status p"; st.textContent = "⏳ Menunggu persetujuan admin. Setelah disetujui, jasa Anda tampil di halaman Penyedia Jasa."; }
   else if(me.status === "Hide"){ st.className = "status h"; st.textContent = "🚫 Jasa Anda sedang disembunyikan oleh admin."; }
   else { st.className = "status ok"; st.textContent = "✅ Jasa Anda tampil di halaman Penyedia Jasa."; }
-  $("fNama").value = me.nama; fillKat($("fKat"), me.kategori); $("fKet").value = me.ket || "";
+  $("fNama").value = me.nama; fillKat($("fKat"), me.kategori, me.sub); $("fKet").value = me.ket || "";
   $("fBuka").value = me.buka || "08:00"; $("fTutup").value = me.tutup || "17:00";
   $("fDusun").value = me.dusun || ""; $("fHarga").value = me.harga || ""; $("fWa").value = "+" + wa;
   $("fLay").value = (me.layanan || []).join("\n");
@@ -228,7 +252,7 @@ $("fSimpan").onclick = async () => {
   const buka = $("fBuka").value, tutup = $("fTutup").value;
   if(!buka || !tutup) return toast("Jam buka & tutup wajib diisi");
   if(toMin(tutup) <= toMin(buka)) return toast("Jam tutup harus setelah jam buka");
-  const data = {...me, nama, kategori:$("fKat").value, ket:$("fKet").value.trim(), buka, tutup,
+  const data = {...me, nama, kategori:$("fKat").value, sub:subVal("fKat"), ket:$("fKet").value.trim(), buka, tutup,
     libur:[...document.querySelectorAll('input[name="lb"]:checked')].map(x => +x.value),
     dusun:$("fDusun").value.trim(), harga:$("fHarga").value.trim(),
     layanan:$("fLay").value.split("\n").map(x => x.trim()).filter(Boolean), foto, updated:Date.now()};
@@ -255,7 +279,7 @@ $("btnKeluar").onclick = () => { sessionStorage.removeItem("kalensari_jasa_sess"
 function renderPrev(){
   const nama=$("fNama").value.trim()||"Nama jasa", buka=$("fBuka").value, tutup=$("fTutup").value;
   const libur=[...document.querySelectorAll('input[name="lb"]:checked')].map(x=>+x.value);
-  $("sKat").textContent=$("fKat").value||"-"; $("sJam").textContent=(buka&&tutup)?buka+" – "+tutup:"-";
+  $("sKat").textContent=($("fKat").value||"-")+(subVal("fKat")?" • "+subVal("fKat"):""); $("sJam").textContent=(buka&&tutup)?buka+" – "+tutup:"-";
   $("pvNama").textContent=nama; $("pvKet").textContent=$("fKet").value||"Deskripsi belum diisi";
   $("pvIco").innerHTML=foto?`<img src="${esc(foto)}" alt="">`:"🛠️";
   const n=new Date(), m=n.getHours()*60+n.getMinutes();

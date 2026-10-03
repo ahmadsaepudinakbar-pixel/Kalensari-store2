@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#7b3f1d">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kalensari">
+<script src="pwa.js" defer></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>if(!window.L){document.write('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"><script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"><\/script>');}</script>
+<title>Ojek & Kirim Paket • Kalensari Store</title>
+<style>
+:root{--brown:#7b3f1d;--ink:#3a1f10;--muted:#5c4638;--bg:#e4d3bf;--line:#d3bfa8;--chip:#f5e8d8;--green:#228b4e;--red:#b83c2b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+.topbar{background:var(--brown);color:#fff;text-align:center;font-size:13px;font-weight:600;padding:10px 12px}
+.topbar a{color:#fff;text-decoration:none}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 60px}
+.hero{border-radius:28px;padding:26px;background:linear-gradient(120deg,#f8ead0 0%,#eef0d4 45%,#6f9f4e 100%)}
+.tag{display:inline-block;background:var(--brown);color:#fff;font-weight:700;font-size:12px;letter-spacing:.3px;padding:8px 14px;border-radius:999px}
+.hero h1{font-size:clamp(26px,5vw,40px);line-height:1.15;margin:14px 0 8px}
+.hero h1 span{color:var(--brown)}
+.hero p{margin:0;color:var(--ink)}
+.box{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;margin-top:16px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.tab{border:2px solid var(--line);background:#fff;border-radius:18px;padding:16px 10px;font:inherit;font-weight:700;font-size:15px;color:var(--ink);cursor:pointer;text-align:center}
+.tab .e{display:block;font-size:30px;margin-bottom:4px}
+.tab.on{border-color:var(--brown);background:#fff7ec;color:var(--brown)}
+.tab:disabled{opacity:.45;cursor:not-allowed}
+label{display:block;font-weight:600;font-size:14px;margin:12px 0 0}
+.fld{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;margin:6px 0 0;font:inherit;font-size:16px;color:var(--ink)}
+textarea.fld{min-height:70px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:block;width:100%;padding:14px;border-radius:14px;border:2px solid var(--brown);background:#fff;color:var(--brown);font:inherit;font-weight:700;font-size:15px;cursor:pointer;margin-top:10px;text-align:center;text-decoration:none}
+.btn.g{background:var(--green);border-color:var(--green);color:#fff}
+.btn.d{border-color:var(--red);color:var(--red)}
+.btn:disabled{opacity:.55;cursor:wait}
+.pts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.pt{border:2px solid var(--line);background:#fff;border-radius:14px;padding:10px;font:inherit;text-align:left;cursor:pointer;color:var(--ink)}
+.pt b{display:block;font-size:13px}.pt small{color:var(--muted);font-size:12px}
+.pt.on{border-color:var(--brown);background:#fff7ec}
+#map{height:320px;border-radius:16px;margin-top:10px;border:1px solid var(--line);z-index:0}
+.hint{color:var(--muted);font-size:13px;margin:6px 0 0}
+.fare{background:#fff7ec;border:1px dashed var(--brown);border-radius:16px;padding:14px;margin-top:14px}
+.fare .ln{display:flex;justify-content:space-between;font-size:14px;padding:3px 0;color:var(--muted)}
+.fare .tot{font-size:22px;font-weight:800;color:var(--ink);border-top:1px solid var(--line);margin-top:6px;padding-top:8px}
+.avail{border-radius:12px;padding:10px 12px;font-size:14px;font-weight:600;margin-top:12px}
+.avail.ok{background:#dcf2e3;color:#14502c}.avail.no{background:#fff3cd;color:#6b4e00}
+.steps{list-style:none;padding:0;margin:12px 0 0}
+.steps li{display:flex;gap:10px;align-items:center;padding:8px 0;color:var(--muted)}
+.steps li i{width:26px;height:26px;border-radius:50%;background:var(--chip);display:grid;place-items:center;font-style:normal;font-size:13px;flex:none}
+.steps li.done{color:var(--ink);font-weight:600}.steps li.done i{background:var(--green);color:#fff}
+.steps li.now{color:var(--brown);font-weight:700}.steps li.now i{background:var(--brown);color:#fff}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:999;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.mk{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;border:3px solid #fff;box-shadow:0 2px 6px #0005}
+.mk span{transform:rotate(45deg);color:#fff;font-weight:800;font-size:13px}
+@media(max-width:480px){.hero{padding:20px}.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="index.html">🛍️ KALENSARI STORE • ← Kembali ke toko</a></div>
+<main class="wrap">
+  <section class="hero">
+    <span class="tag">🛵 LAYANAN RESMI KALENSARI STORE</span>
+    <h1>Ojek & <span>Kirim Paket</span></h1>
+    <p>Diantar kurir Kalensari Store. Tandai titik jemput dan tujuan, ongkos langsung terlihat. Bayar tunai ke kurir.</p>
+  </section>
+
+  <div id="formView">
+    <div class="tabs">
+      <button class="tab on" data-l="ojek" type="button"><span class="e">🛵</span>Ojek online</button>
+      <button class="tab" data-l="paket" type="button"><span class="e">📦</span>Kirim paket/barang</button>
+    </div>
+    <div id="offNote" class="avail no" hidden></div>
+
+    <section class="box">
+      <b>📍 Titik jemput & tujuan</b>
+      <div class="pts">
+        <button class="pt on" type="button" data-p="a"><b>🟢 <span id="lblA">Jemput</span></b><small id="txtA">Belum ditandai</small></button>
+        <button class="pt" type="button" data-p="b"><b>🔴 Tujuan</b><small id="txtB">Belum ditandai</small></button>
+      </div>
+      <p class="hint" id="mapHint">Pilih kotak <b>Jemput</b> atau <b>Tujuan</b>, lalu ketuk peta di lokasinya.</p>
+      <div id="map"></div>
+      <button class="btn" type="button" id="btnGps">📍 Pakai lokasi saya sebagai titik jemput</button>
+      <label>Atau tempel link Google Maps / koordinat untuk <span id="lblPaste">titik jemput</span><input id="paste" class="fld" placeholder="mis. -6.912345, 107.612345"></label>
+      <label>Patokan jemput<input id="ketA" class="fld" maxlength="120" placeholder="mis. depan masjid, rumah cat hijau"></label>
+      <label>Patokan tujuan<input id="ketB" class="fld" maxlength="120" placeholder="mis. Pasar Kalensari, gerbang utara"></label>
+    </section>
+
+    <section class="box">
+      <b>👤 Data pemesan</b>
+      <div class="row2"><label>Nama<input id="nama" class="fld" maxlength="60" autocomplete="name"></label><label>No. WhatsApp<input id="wa" class="fld" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx" autocomplete="tel"></label></div>
+      <div id="paketFields" hidden>
+        <label>Barang yang dikirim<input id="barang" class="fld" maxlength="100" placeholder="mis. 1 dus kue, dokumen"></label>
+        <div class="row2"><label>Nama penerima<input id="penerima" class="fld" maxlength="60"></label><label>WA penerima<input id="waPenerima" class="fld" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx"></label></div>
+      </div>
+      <label>Catatan untuk kurir (opsional)<textarea id="catatan" class="fld" maxlength="200"></textarea></label>
+    </section>
+
+    <div class="fare" id="fareBox">
+      <div class="ln"><span>Perkiraan jarak</span><b id="fKm">-</b></div>
+      <div class="ln"><span>Tarif dasar</span><span id="fDasar">-</span></div>
+      <div class="ln"><span id="fPerLbl">Per km</span><span id="fPer">-</span></div>
+      <div class="ln tot"><span>Ongkos</span><span id="fTot">-</span></div>
+      <p class="hint" id="fNote">Tandai titik jemput dan tujuan untuk melihat ongkos.</p>
+    </div>
+    <div id="avail" class="avail ok" hidden></div>
+    <button class="btn g" type="button" id="btnPesan">Pesan sekarang</button>
+    <p class="hint" style="text-align:center">Pembayaran tunai langsung ke kurir.</p>
+  </div>
+
+  <section id="trackView" class="box" hidden>
+    <b id="tTitle">Pesanan Anda</b>
+    <p class="hint" id="tCode"></p>
+    <ul class="steps" id="tSteps"></ul>
+    <div id="tKurir"></div>
+    <div id="tInfo" class="hint"></div>
+    <button class="btn d" type="button" id="btnBatal">Batalkan pesanan</button>
+    <button class="btn" type="button" id="btnBaru">Buat pesanan baru</button>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+<script src="config.js" onerror="void 0"></script>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rp = n => "Rp" + Math.round(Number(n || 0)).toLocaleString("id-ID");
+const norm = v => String(v || "").replace(/\D/g, "").replace(/^0/, "62");
+function toast(t){ const e = $("toast"); e.textContent = t; e.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("show"), 3200); }
+const cloudOn = () => typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG && CLOUD_CONFIG.enabled && CLOUD_CONFIG.supabaseUrl && CLOUD_CONFIG.supabaseAnonKey;
+async function cf(path, opt = {}){
+  const r = await fetch(String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "") + "/rest/v1/" + path, {...opt, headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json", ...(opt.headers || {})}});
+  const t = await r.text(); if(!r.ok) throw new Error(t || r.status); return t ? JSON.parse(t) : [];
+}
+async function getSetting(k, d){ const r = await cf("store_settings?select=value&key=eq." + encodeURIComponent(k)); return r[0] && r[0].value != null ? r[0].value : d; }
+
+// ===== Tarif (diatur admin di dashboard: Pengaturan > Tarif Ojek & Kirim Paket) =====
+const TARIF_DEFAULT = {faktor:1.3, bulat:500,
+  ojek:{aktif:true, dasar:5000, perKm:2000, minimal:5000, maxKm:20},
+  paket:{aktif:true, dasar:5000, perKm:2500, minimal:6000, maxKm:20}};
+let TARIF = TARIF_DEFAULT;
+const LAY = {ojek:{nama:"Ojek online", e:"🛵", jemput:"Jemput", kode:"OJ"}, paket:{nama:"Kirim paket/barang", e:"📦", jemput:"Ambil barang", kode:"KP"}};
+let layanan = new URLSearchParams(location.search).get("l") === "paket" ? "paket" : "ojek";
+let A = null, B = null, aktifPt = "a";
+
+const rad = x => x * Math.PI / 180;
+function jarakKm(p, q){ const R = 6371, dLat = rad(q.lat - p.lat), dLng = rad(q.lng - p.lng); const h = Math.sin(dLat/2)**2 + Math.cos(rad(p.lat))*Math.cos(rad(q.lat))*Math.sin(dLng/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+function hitung(){
+  const t = TARIF[layanan] || TARIF_DEFAULT[layanan];
+  if(!A || !B) return null;
+  const km = Math.max(0.1, Math.round(jarakKm(A, B) * (Number(TARIF.faktor) || 1) * 10) / 10);
+  const bulat = Math.max(1, Number(TARIF.bulat) || 1);
+  const raw = Number(t.dasar || 0) + Number(t.perKm || 0) * km;
+  const ongkos = Math.ceil(Math.max(Number(t.minimal || 0), raw) / bulat) * bulat;
+  return {km, ongkos, t, lewat: Number(t.maxKm) > 0 && km > Number(t.maxKm)};
+}
+function renderFare(){
+  const t = TARIF[layanan] || TARIF_DEFAULT[layanan], h = hitung();
+  $("fDasar").textContent = rp(t.dasar); $("fPer").textContent = rp(t.perKm) + " / km";
+  if(!h){ $("fKm").textContent = "-"; $("fTot").textContent = "-"; $("fNote").textContent = "Tandai titik jemput dan tujuan untuk melihat ongkos."; return; }
+  $("fKm").textContent = String(h.km).replace(".", ",") + " km";
+  $("fTot").textContent = rp(h.ongkos);
+  $("fNote").textContent = h.lewat ? `⚠️ Jarak melebihi batas layanan (${t.maxKm} km).` : `Jarak jalan diperkirakan dari peta. Minimal ongkos ${rp(t.minimal)}.`;
+}
+
+// ===== Peta =====
+let map = null, mkA = null, mkB = null;
+const pin = (c, t) => L.divIcon({className:"", html:`<div class="mk" style="background:${c}"><span>${t}</span></div>`, iconSize:[30,30], iconAnchor:[15,30]});
+function setPt(which, lat, lng, fly){
+  if(!Number.isFinite(lat) || !Number.isFinite(lng) || (lat === 0 && lng === 0)) return toast("Koordinat tidak valid");
+  const p = {lat:Number(lat.toFixed(6)), lng:Number(lng.toFixed(6))};
+  if(which === "a") A = p; else B = p;
+  if(map){
+    const m = which === "a" ? mkA : mkB;
+    if(m) m.setLatLng(p); else if(which === "a") mkA = L.marker(p, {icon:pin("#228b4e","A"), draggable:true}).addTo(map).on("dragend", e => { const q = e.target.getLatLng(); setPt("a", q.lat, q.lng); });
+    else mkB = L.marker(p, {icon:pin("#b83c2b","B"), draggable:true}).addTo(map).on("dragend", e => { const q = e.target.getLatLng(); setPt("b", q.lat, q.lng); });
+    if(fly) map.setView(p, Math.max(map.getZoom(), 16));
+    if(A && B && fly) map.fitBounds([A, B], {padding:[40,40], maxZoom:17});
+  }
+  $(which === "a" ? "txtA" : "txtB").textContent = "✅ " + p.lat + ", " + p.lng;
+  if(which === "a" && !B) pilihPt("b");
+  renderFare();
+}
+function pilihPt(w){ aktifPt = w; document.querySelectorAll(".pt").forEach(b => b.classList.toggle("on", b.dataset.p === w)); $("lblPaste").textContent = w === "a" ? "titik " + LAY[layanan].jemput.toLowerCase() : "tujuan"; }
+function parseLL(t){ t = String(t || "").trim(); if(!t) return null; const m = t.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/) || t.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/) || t.match(/[?&](?:q|query|ll|destination)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i) || t.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/); return m ? [Number(String(m[1]).replace(",", ".")), Number(String(m[2]).replace(",", "."))] : null; }
+async function initMap(){
+  let center = [-6.9, 107.6], zoom = 13;
+  try{ const pj = await getSetting("penjual_members", []); const pts = (Array.isArray(pj) ? pj : []).map(m => [Number(m.latitude), Number(m.longitude)]).filter(([a,b]) => Number.isFinite(a) && Number.isFinite(b) && !(a === 0 && b === 0)); if(pts.length){ center = [pts.reduce((s,p) => s+p[0],0)/pts.length, pts.reduce((s,p) => s+p[1],0)/pts.length]; zoom = 15; } }catch(e){}
+  if(typeof L === "undefined"){ $("map").innerHTML = '<p class="hint" style="padding:12px">Peta tidak bisa dimuat. Tempel link Google Maps / koordinat di bawah.</p>'; return; }
+  map = L.map("map", {zoomControl:true}).setView(center, zoom);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
+  map.on("click", e => setPt(aktifPt, e.latlng.lat, e.latlng.lng));
+}
+
+// ===== Ketersediaan kurir (aktif & tidak sedang mengantar) =====
+async function kurirSiap(){
+  const [mem, st, rows] = await Promise.all([getSetting("kurir_members", []), cf("store_settings?select=key,value&key=like.kurir_ord_*"), cf("orders?select=order_code&status=in.(diproses,dikirim)&limit=200")]);
+  const aktifKode = new Set((rows || []).map(o => o.order_code)), sibuk = new Set();
+  (st || []).forEach(r => { const code = r.key.slice("kurir_ord_".length), v = r.value || {}; if(v.acc && v.acc.id && aktifKode.has(code)) sibuk.add(v.acc.id); });
+  const siap = (Array.isArray(mem) ? mem : []).filter(m => m && m.id && m.pending !== true && m.aktif !== false);
+  return {total:siap.length, bebas:siap.filter(m => !sibuk.has(m.id)).length};
+}
+async function renderAvail(){
+  try{ const k = await kurirSiap(); const el = $("avail"); el.hidden = false;
+    if(k.bebas > 0){ el.className = "avail ok"; el.textContent = `🟢 ${k.bebas} kurir siap mengantar sekarang`; }
+    else if(k.total > 0){ el.className = "avail no"; el.textContent = "⏳ Semua kurir sedang mengantar. Pesanan tetap bisa dibuat dan akan diambil kurir pertama yang selesai."; }
+    else { el.className = "avail no"; el.textContent = "⚠️ Belum ada kurir yang aktif saat ini. Pesanan akan menunggu sampai ada kurir aktif."; }
+  }catch(e){}
+}
+
+// ===== Pilihan layanan =====
+function setLayanan(l){
+  layanan = l; document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.l === l));
+  $("paketFields").hidden = l !== "paket"; $("lblA").textContent = LAY[l].jemput; pilihPt(aktifPt);
+  $("btnPesan").textContent = l === "paket" ? "📦 Kirim paket sekarang" : "🛵 Pesan ojek sekarang";
+  const off = TARIF[l] && TARIF[l].aktif === false; $("offNote").hidden = !off; $("offNote").textContent = off ? `Layanan ${LAY[l].nama} sedang tidak tersedia.` : ""; $("btnPesan").disabled = off;
+  renderFare();
+}
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => setLayanan(b.dataset.l));
+document.querySelectorAll(".pt").forEach(b => b.onclick = () => pilihPt(b.dataset.p));
+$("paste").onchange = () => { const v = parseLL($("paste").value); if(!v) return toast("Format tidak dikenali. Contoh: -6.912345, 107.612345"); setPt(aktifPt, v[0], v[1], true); $("paste").value = ""; };
+$("btnGps").onclick = () => { if(!navigator.geolocation) return toast("HP/browser ini tidak mendukung lokasi"); toast("📍 Mengambil lokasi..."); navigator.geolocation.getCurrentPosition(p => setPt("a", p.coords.latitude, p.coords.longitude, true), e => toast(e.code === 1 ? "Izin lokasi diblokir. Ketuk peta atau tempel koordinat." : "Lokasi tidak tersedia. Ketuk peta atau tempel koordinat."), {enableHighAccuracy:true, timeout:15000, maximumAge:60000}); };
+try{ const s = JSON.parse(localStorage.getItem("kalensari_ojek_pemesan") || "{}"); if(s.nama) $("nama").value = s.nama; if(s.wa) $("wa").value = s.wa; }catch(e){}
+
+// ===== Pesan =====
+const MAP = p => `__KS_MAP__${p.lat},${p.lng}__END__`;
+$("btnPesan").onclick = async () => {
+  if(!cloudOn()) return toast("Database online belum aktif");
+  const nama = $("nama").value.trim(), wa = norm($("wa").value), h = hitung();
+  if(!A) return toast(`Tandai titik ${LAY[layanan].jemput.toLowerCase()} dulu`);
+  if(!B) return toast("Tandai titik tujuan dulu");
+  if(!nama) return toast("Isi nama Anda");
+  if(wa.length < 9 || wa.length > 15) return toast("Nomor WhatsApp tidak valid");
+  if(h.lewat) return toast(`Jarak terlalu jauh (maks ${h.t.maxKm} km)`);
+  let paket = null;
+  if(layanan === "paket"){
+    paket = {barang:$("barang").value.trim(), penerima:$("penerima").value.trim(), waPenerima:norm($("waPenerima").value)};
+    if(!paket.barang) return toast("Isi barang yang dikirim");
+    if(!paket.penerima || paket.waPenerima.length < 9) return toast("Isi nama & WA penerima");
+  }
+  const L0 = LAY[layanan], ketA = $("ketA").value.trim(), ketB = $("ketB").value.trim(), cat = $("catatan").value.trim();
+  const code = `${L0.kode}-${new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0,14)}-${Math.floor(100 + Math.random()*900)}`;
+  const item = {name:L0.nama, qty:1, price:h.ongkos, layanan, km:h.km, jemput:{...A, ket:ketA}, tujuan:{...B, ket:ketB}, ...(paket || {})};
+  const noteParts = [`Tujuan: ${ketB || (B.lat + ", " + B.lng)}`];
+  if(paket) noteParts.push(`Barang: ${paket.barang}`, `Penerima: ${paket.penerima} (+${paket.waPenerima})`);
+  if(cat) noteParts.push(`Catatan: ${cat}`);
+  const row = {order_code:code, created_at:new Date().toISOString(), customer_name:nama, customer_phone:$("wa").value.trim(), customer_phone_normalized:wa,
+    address:`${L0.jemput}: ${ketA || (A.lat + ", " + A.lng)} ${MAP(A)}`, note:noteParts.join(" | "), payment:"Tunai ke kurir",
+    items:[item], subtotal:h.ongkos, shipping:0, total:h.ongkos, status:"diproses"};
+  $("btnPesan").disabled = true; $("btnPesan").textContent = "Mengirim...";
+  try{
+    try{ await cf("orders", {method:"POST", headers:{Prefer:"return=minimal"}, body:JSON.stringify(row)}); }
+    catch(e){ if(/customer_phone_normalized/.test(String(e.message))){ delete row.customer_phone_normalized; await cf("orders", {method:"POST", headers:{Prefer:"return=minimal"}, body:JSON.stringify(row)}); } else throw e; }
+    localStorage.setItem("kalensari_ojek_pemesan", JSON.stringify({nama, wa:$("wa").value.trim()}));
+    localStorage.setItem("kalensari_ojek_aktif", code);
+    toast("✅ Pesanan terkirim, mencari kurir...");
+    lacak(code);
+  }catch(e){ toast("Gagal mengirim pesanan: " + String(e.message || e).slice(0, 80)); }
+  finally{ setLayanan(layanan); }
+};
+
+// ===== Lacak pesanan =====
+let lacakKode = null, lacakTimer = null;
+async function lacak(code){
+  lacakKode = code; $("formView").hidden = true; $("trackView").hidden = false; window.scrollTo(0, 0);
+  clearInterval(lacakTimer); await muatLacak(); lacakTimer = setInterval(muatLacak, 15000);
+}
+async function muatLacak(){
+  if(!lacakKode) return;
+  try{
+    const [rows, st] = await Promise.all([cf("orders?select=order_code,status,total,items,created_at&order_code=eq." + encodeURIComponent(lacakKode)), cf("store_settings?select=value&key=eq." + encodeURIComponent("kurir_ord_" + lacakKode))]);
+    const o = rows[0]; if(!o){ $("tInfo").textContent = "Pesanan tidak ditemukan."; return; }
+    const it = (o.items || [])[0] || {}, L0 = LAY[it.layanan] || LAY.ojek, acc = st[0] && st[0].value && st[0].value.acc;
+    const s = o.status === "dibatalkan" ? "batal" : o.status === "selesai" ? "selesai" : o.status === "dikirim" ? "jalan" : acc ? "menuju" : "cari";
+    $("tTitle").textContent = `${L0.e} ${L0.nama} • ${rp(o.total)}`;
+    $("tCode").textContent = "Kode pesanan: " + o.order_code + " • " + String(it.km || "").replace(".", ",") + " km • bayar tunai ke kurir";
+    const steps = [["cari","Mencari kurir"],["menuju",`Kurir menuju titik ${L0.jemput.toLowerCase()}`],["jalan", it.layanan === "paket" ? "Barang sedang diantar" : "Dalam perjalanan"],["selesai","Selesai"]];
+    const idx = steps.findIndex(x => x[0] === s);
+    $("tSteps").innerHTML = s === "batal" ? '<li class="now"><i>✕</i>Pesanan dibatalkan</li>' : steps.map((x, i) => `<li class="${i < idx || s === "selesai" ? "done" : i === idx ? "now" : ""}"><i>${i < idx || s === "selesai" ? "✓" : i + 1}</i>${x[1]}</li>`).join("");
+    $("tKurir").innerHTML = acc && s !== "batal" && s !== "selesai" ? `<div class="avail ok">🛵 Kurir: <b>${esc(acc.nama || "Kurir Kalensari")}</b></div><a class="btn g" href="https://wa.me/${esc(acc.wa)}" target="_blank" rel="noopener">💬 Chat kurir</a><a class="btn" href="tel:+${esc(acc.wa)}">📞 Telepon kurir</a>` : "";
+    $("tInfo").textContent = s === "cari" ? "Pesanan ditawarkan ke kurir yang sedang tidak mengantar. Halaman ini diperbarui otomatis." : "";
+    $("btnBatal").hidden = s !== "cari";
+    if(s === "selesai" || s === "batal"){ clearInterval(lacakTimer); localStorage.removeItem("kalensari_ojek_aktif"); }
+  }catch(e){ $("tInfo").textContent = "Gagal memuat status: " + String(e.message || e).slice(0, 60); }
+}
+$("btnBatal").onclick = async () => {
+  if(!confirm("Batalkan pesanan ini?")) return;
+  try{
+    const st = await cf("store_settings?select=value&key=eq." + encodeURIComponent("kurir_ord_" + lacakKode));
+    if(st[0] && st[0].value && st[0].value.acc) return toast("Kurir sudah menerima pesanan. Hubungi kurir untuk membatalkan."), muatLacak();
+    await cf("orders?order_code=eq." + encodeURIComponent(lacakKode) + "&status=eq.diproses", {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"dibatalkan", updated_at:new Date().toISOString()})});
+    toast("Pesanan dibatalkan"); muatLacak();
+  }catch(e){ toast("Gagal membatalkan"); }
+};
+$("btnBaru").onclick = () => { clearInterval(lacakTimer); lacakKode = null; localStorage.removeItem("kalensari_ojek_aktif"); $("trackView").hidden = true; $("formView").hidden = false; renderAvail(); setTimeout(() => map && map.invalidateSize(), 60); };
+
+// ===== Mulai =====
+(async () => {
+  setLayanan(layanan);
+  await initMap();
+  if(cloudOn()){
+    try{ const t = await getSetting("transport_tariff", null); if(t && typeof t === "object") TARIF = {...TARIF_DEFAULT, ...t, ojek:{...TARIF_DEFAULT.ojek, ...(t.ojek || {})}, paket:{...TARIF_DEFAULT.paket, ...(t.paket || {})}}; }catch(e){}
+    setLayanan(layanan); renderAvail(); setInterval(renderAvail, 30000);
+  }
+  const aktif = localStorage.getItem("kalensari_ojek_aktif");
+  if(aktif && cloudOn()) lacak(aktif);
+})();
+</script>
+</body>
+</html>

@@ -308,20 +308,53 @@ function nextSkip(o, st, elig, now){
   for(let k = 0; k < l.length && l.length > 1 && l[i % l.length].id === me.id; k++) i++;
   return i;
 }
+// ===== Ojek online & kirim paket (pesanan dari ojek.html) =====
+// Hanya ditawarkan ke kurir aktif yang TIDAK sedang memegang antaran lain.
+const itemsOf = o => { let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } } return Array.isArray(it) ? it : []; };
+const transOf = o => { const it = itemsOf(o)[0]; return it && it.layanan ? it : null; };
+const LAYK = {ojek:{e:"🛵", n:"Ojek online", a:"Jemput", jalan:"🛵 Penumpang sudah dijemput"}, paket:{e:"📦", n:"Kirim paket/barang", a:"Ambil barang", jalan:"📦 Barang sudah diambil"}};
+function busyIds(rows, states){ const s = new Set(); rows.forEach(o => { const st = states[o.order_code]; if(st && st.acc && st.acc.id) s.add(st.acc.id); }); return s; }
+const eligFor = (o, elig, busy) => transOf(o) ? elig.filter(m => !busy.has(m.id)) : elig;
+async function freshBusy(){ const states = await readStates(); return busyIds(Object.values(ORD), states); }
+function ptLinks(p){
+  if(!p || !Number.isFinite(+p.lat) || !Number.isFinite(+p.lng)) return "";
+  const q = encodeURIComponent(p.lat + "," + p.lng);
+  return `<a class="mini" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${q}">📍 Peta</a><a class="mini g" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving&dir_action=navigate">🚗 Navigasi</a>`;
+}
+function transBody(o, full){
+  const t = transOf(o), L0 = LAYK[t.layanan] || LAYK.ojek;
+  return `<p><b>${L0.e} ${L0.n}</b> • ${String(t.km || "-").replace(".", ",")} km • <b>${fmtRp(o.total)}</b> (tunai)</p>`
+    + `<p>🟢 ${L0.a}: ${esc((t.jemput && t.jemput.ket) || "lihat peta")}</p>${full ? `<div class="map-actions">${ptLinks(t.jemput)}</div>` : ""}`
+    + `<p>🔴 Tujuan: ${esc((t.tujuan && t.tujuan.ket) || "lihat peta")}</p>${full ? `<div class="map-actions">${ptLinks(t.tujuan)}</div>` : ""}`
+    + (t.layanan === "paket" ? `<p>📦 ${esc(t.barang || "-")}${full ? ` • Penerima: ${esc(t.penerima || "-")} (+${esc(t.waPenerima || "")})` : ""}</p>` : "")
+    + (full && /Catatan:/.test(o.note || "") ? `<p>📝 ${esc(String(o.note).split("Catatan:")[1].trim())}</p>` : "");
+}
 function orderBody(o){
+  if(transOf(o)) return transBody(o, false);
   return `<p>📍 ${esc(cleanMapNote(o.address || "-"))}</p><p>${itemsText(o)}</p>`
     + `<p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>`
     + (cleanOrderNote(o.note) ? `<p>📝 ${esc(cleanOrderNote(o.note))}</p>` : "");
 }
 function cardOffer(o, end){
   const c = esc(o.order_code);
-  return `<div class="card offer"><h3>${c} <span class="chip">Baru untuk Anda</span></h3>${orderBody(o)}`
+  return `<div class="card offer"><h3>${c} <span class="chip">${transOf(o) ? (LAYK[transOf(o).layanan] || LAYK.ojek).n : "Baru untuk Anda"}</span></h3>${orderBody(o)}`
     + `<p class="hint" style="margin:0">Nomor pembeli tampil setelah pesanan diterima.</p>`
     + `<div class="dua"><button class="tolak" type="button" data-act="tolak" data-code="${c}" aria-label="Tolak">✕</button>`
     + `<button class="terima" type="button" data-act="terima" data-code="${c}">TERIMA <b class="cd" data-end="${end}"></b></button></div></div>`;
 }
 function cardMine(o){
-  const next = o.status === "diproses" ? ["dikirim","🛵 Tandai sedang dikirim"] : ["selesai","✅ Tandai selesai"];
+  const tr = transOf(o);
+  const next = o.status === "diproses" ? ["dikirim", tr ? (LAYK[tr.layanan] || LAYK.ojek).jalan : "🛵 Tandai sedang dikirim"] : ["selesai", tr ? "✅ Sudah sampai tujuan" : "✅ Tandai selesai"];
+  if(tr){
+    const num = o.customer_phone_normalized || normPhone(o.customer_phone);
+    return `<div class="card"><h3>${esc(o.order_code)} <span class="chip">${esc(SL[o.status] || o.status)}</span></h3>`
+      + `<p><b>${esc(o.customer_name || "")}</b> • ${esc(o.customer_phone || "")}</p>` + transBody(o, true)
+      + `<a class="mini g" href="tel:+${esc(num)}">📞 Telepon pemesan</a><a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}">💬 WhatsApp</a>`
+      + (tr.layanan === "paket" && tr.waPenerima ? `<a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(tr.waPenerima)}">💬 WA penerima</a>` : "")
+      + `<button class="mini g" type="button" data-act="status" data-code="${esc(o.order_code)}" data-status="${next[0]}">${next[1]}</button>`
+      + (o.status === "diproses" ? `<button class="mini" type="button" data-act="lepas" data-code="${esc(o.order_code)}">↩️ Lepas pesanan</button>` : "")
+      + `</div>`;
+  }
   const num = o.customer_phone_normalized || normPhone(o.customer_phone);
   return `<div class="card"><h3>${esc(o.order_code)} <span class="chip">${esc(SL[o.status] || o.status)}</span></h3>`
     + `<p><b>${esc(o.customer_name || "")}</b> • ${esc(o.customer_phone || "")}</p>`
@@ -340,12 +373,13 @@ async function loadOrders(){
   try{
     const [rows, states, elig] = await Promise.all([fetchOrders("status=in.(diproses,dikirim)"), readStates(), eligibleCouriers()]);
     const now = Date.now(); ORD = {}; rows.forEach(o => { ORD[o.order_code] = o; });
+    const busy = busyIds(rows, states);
     const mine = [], offers = []; let other = 0;
     rows.forEach(o => {
       const st = states[o.order_code] || {};
       if(st.acc){ if(st.acc.id === me.id) mine.push(o); else other++; return; }
       if(o.status !== "diproses") return;
-      const a = assigneeOf(o, st, elig, now);
+      const a = assigneeOf(o, st, eligFor(o, elig, busy), now);
       if(a && a.id === me.id) offers.push({o, end:slotEnd(o, st, now)}); else other++;
     });
     const codes = offers.map(x => x.o.order_code);
@@ -376,8 +410,10 @@ document.addEventListener("visibilitychange", () => { if(!document.hidden && me 
 
 async function terima(code){
   const o = ORD[code]; if(!o) return;
-  const [st, elig] = await Promise.all([readState(code), eligibleCouriers()]);
+  const [st, elig0, busy] = await Promise.all([readState(code), eligibleCouriers(), freshBusy()]);
   if(st.acc && st.acc.id !== me.id) return toast("Pesanan sudah diambil kurir lain");
+  if(transOf(o) && busy.has(me.id)) return toast("Selesaikan antaran Anda dulu sebelum menerima ojek/paket");
+  const elig = eligFor(o, elig0, busy);
   const a = assigneeOf(o, st, elig, Date.now());
   if(!st.acc && (!a || a.id !== me.id)) return toast("Waktu habis. Pesanan dialihkan ke kurir lain.");
   await writeState(code, {...st, acc:{id:me.id, nama:me.nama || "", wa:WA, t:Date.now()}});
@@ -387,7 +423,8 @@ async function terima(code){
 }
 async function alihkan(code, pesan){
   const o = ORD[code]; if(!o) return;
-  const [st, elig] = await Promise.all([readState(code), eligibleCouriers()]);
+  const [st, elig0, busy] = await Promise.all([readState(code), eligibleCouriers(), freshBusy()]);
+  const elig = eligFor(o, elig0, busy);
   const now = Date.now();
   if(st.acc){ if(st.acc.id !== me.id) return toast("Pesanan ini bukan milik Anda"); }
   else { const a = assigneeOf(o, st, elig, now); if(!a || a.id !== me.id) return toast("Waktu habis. Pesanan sudah dialihkan."); }
