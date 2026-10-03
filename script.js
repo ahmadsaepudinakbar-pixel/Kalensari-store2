@@ -10,7 +10,23 @@ const saveProducts = () => localStorage.setItem("kalensari_products", JSON.strin
 const getLocalOrders = () => { try { return JSON.parse(localStorage.getItem("kalensari_orders") || "[]"); } catch { return []; } };
 const saveLocalOrders = rows => localStorage.setItem("kalensari_orders", JSON.stringify(rows));
 const normalizePhone = v => String(v||"").replace(/[^0-9]/g, "").replace(/^0/, "62");
-const makeOrderCode = () => `KS-${new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0,14)}-${Math.floor(100+Math.random()*900)}`;
+// Nomor pesanan singkat: KS-ddmm-XXX (tanggal WIB + 3 huruf/angka acak tanpa O/0/I/1/L)
+const KODE_HURUF = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+const makeOrderCode = (awal = "KS") => {
+  const d = new Date(Date.now() + 7 * 3600 * 1000), tgl = String(d.getUTCDate()).padStart(2, "0") + String(d.getUTCMonth() + 1).padStart(2, "0");
+  const r = new Uint32Array(3); crypto.getRandomValues(r);
+  return `${awal}-${tgl}-${[...r].map(x => KODE_HURUF[x % KODE_HURUF.length]).join("")}`;
+};
+// Pastikan nomor belum dipakai (sangat jarang terjadi, tapi dicek agar tidak dobel)
+async function makeUniqueOrderCode(){
+  let c = makeOrderCode();
+  if(!CLOUD_CONFIG?.enabled) return c;
+  for(let i = 0; i < 5; i++){
+    try{ const r = await cloudFetch("orders?select=order_code&order_code=eq." + encodeURIComponent(c)); if(!Array.isArray(r) || !r.length) return c; }catch(e){ return c; }
+    c = makeOrderCode();
+  }
+  return c;
+}
 
 const cloudHeaders = () => ({
   apikey: CLOUD_CONFIG?.supabaseAnonKey || "",
@@ -694,7 +710,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
   const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),route=shippingRoute(items),shipping=route.fee,total=subtotal+shipping;
   const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
-  const orderCode=makeOrderCode();
+  const orderCode=await makeUniqueOrderCode();
   const kodeST=window.KSST?KSST.buatKode():"";
   const createdAt=new Date().toISOString();
   const _la=document.getElementById("ksMapLat")?.value, _ln=document.getElementById("ksMapLng")?.value;
