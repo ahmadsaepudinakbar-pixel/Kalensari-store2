@@ -277,6 +277,8 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></symbol>
   <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
   <symbol id="i-wa" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A9 9 0 1 1 8 19.6z"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M1 4h13v12H1zM14 8h4l4 4v4h-8"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
 </svg>
 
@@ -388,22 +390,24 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['pengaturan','Pengaturan','gear']
 ];
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
 let route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
 
 function renderNav(){
   const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
-  $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}</a>`).join('');
+  $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}${k==='persetujuan'&&pendingTotal()?`<span class="cnt" style="background:var(--orange)">${pendingTotal()}</span>`:''}</a>`).join('');
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
-    const on=route===k||(k==='lainnya'&&['kategori','promosi','laporan','pengaturan','lainnya'].includes(route));
-    return `<button class="${on?'on':''}" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}</button>`}).join('');
+    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','persetujuan','promosi','laporan','pengaturan','lainnya'].includes(route));
+    const dot=k==='lainnya'&&pendingTotal()?`<span style="position:absolute;top:2px;right:calc(50% - 16px);background:var(--orange);color:#fff;font-size:10px;border-radius:99px;min-width:16px;padding:0 4px;font-weight:700">${pendingTotal()}</span>`:'';
+    return `<button class="${on?'on':''}" style="position:relative" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}${dot}</button>`}).join('');
   const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
   $('#bellN').textContent=baru;$('#bellN').classList.toggle('hide',!baru);
 }
 function go(r,filter){
   route=r;q='';if(r==='pesanan')orderFilter=filter||'Semua';
+  if(r==='persetujuan'&&typeof GROUPS!=='undefined'&&!pendingOf(apTab).length){const g=GROUPS.find(x=>pendingOf(x.k).length);if(g)apTab=g.k}
   toggleSide(false);render();window.scrollTo(0,0);
 }
 function toggleSide(o){$('#sidebar').classList.toggle('open',o);$('#overlay').classList.toggle('hide',!o)}
@@ -502,6 +506,7 @@ dashboard(){
     </div></div>
     <div>
       <div class="banner"><svg width="44" height="44" viewBox="0 0 100 100"><path d="M30 34 50 12 70 34" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M10 34h80v10H10zM15 44h70l-7 44H22z" fill="none" stroke="#fff" stroke-width="5"/><text x="50" y="80" text-anchor="middle" font-size="26" font-weight="900" fill="#fff">KS</text></svg><div><b>Kalensari Store</b><small>Belanja makanan &amp; minuman dari warga Kalensari</small></div></div>
+      ${pendingTotal()?`<div class="card" style="margin-bottom:20px;background:var(--ol);cursor:pointer" onclick="go('persetujuan')"><b>⏳ ${pendingTotal()} pendaftar menunggu persetujuan</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${GROUPS.map(g=>pendingOf(g.k).length?pendingOf(g.k).length+' '+g.label.toLowerCase():'').filter(Boolean).join(', ')} · ketuk untuk melihat</div></div>`:''}
       <div class="card" style="margin-bottom:20px"><div class="chead"><h3>Aksi Cepat</h3></div><div class="quick">
         <button class="qbtn" style="background:var(--gl);color:var(--g)" onclick="productForm()"><span class="qi" style="background:var(--g2)">${ico('plus')}</span>Tambah Produk</button>
         <button class="qbtn" style="background:var(--bl);color:var(--blue)" onclick="go('pesanan')"><span class="qi" style="background:var(--blue)">${ico('doc')}</span>Kelola Pesanan</button>
@@ -586,11 +591,138 @@ pengaturan(){
 lainnya(){
   const em=(auth&&auth.email)||'';
   return `<div class="profile-head"><div class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(em||'A'))}</div><div><b style="font-size:18px">Admin</b><div style="opacity:.9;font-size:13px">${esc(em)}</div></div></div>
-  <div class="card menu-list">${MENU.map(([k,l,i])=>`<a onclick="go('${k}')">${ico(i,'color:var(--mut)')}${l}<span class="ch">${ico('right')}</span></a>`).join('')}
+  <div class="card menu-list">${MENU.map(([k,l,i])=>`<a onclick="go('${k}')">${ico(i,'color:var(--mut)')}${l}${k==='persetujuan'&&pendingTotal()?` <span class="badge b-Diproses">${pendingTotal()} menunggu</span>`:''}<span class="ch">${ico('right')}</span></a>`).join('')}
   <a href="index.html">${ico('store','color:var(--mut)')}Buka Halaman Toko<span class="ch">${ico('right')}</span></a>
   <a onclick="logout()" style="color:var(--red);border:0">${ico('out')}Logout</a></div>`;
 }
 };
+/* ========== MITRA: TOKO, KURIR, PERSETUJUAN ========== */
+// Data sama dengan menu ⚙️ Admin di toko: penjual_members, kurir_members, jasa_members (+ *_accounts),
+// closed_sellers (tutup paksa) dan seller_schedule (jadwal otomatis, waktu WIB).
+const GROUPS=[
+  {k:'kurir',label:'Kurir',em:'🛵',info:m=>[m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-'},
+  {k:'jasa',label:'Penyedia Jasa',em:'🤝',info:m=>[m.kategori,m.dusun].filter(Boolean).join(' • ')||'-'},
+  {k:'penjual',label:'Penjual',em:'🏪',info:m=>[m.toko||m.usaha,m.dusun].filter(Boolean).join(' • ')||'-'}
+];
+const members=k=>(Array.isArray(S.settings[k+'_members'])?S.settings[k+'_members']:[]).filter(Boolean);
+const pendingOf=k=>members(k).filter(m=>m.pending===true);
+const pendingTotal=()=>GROUPS.reduce((t,g)=>t+pendingOf(g.k).length,0);
+async function readKey(key,def){const r=await api('store_settings?select=value&key=eq.'+encodeURIComponent(key));return r[0]&&r[0].value!=null?r[0].value:def}
+const sKey=n=>String(n||'').trim().toLowerCase();
+const sellerNames=p=>String(p.seller||'').split(',').map(x=>x.trim()).filter(Boolean);
+const closedMap=()=>S.settings.closed_sellers&&typeof S.settings.closed_sellers==='object'&&!Array.isArray(S.settings.closed_sellers)?S.settings.closed_sellers:{};
+const schedMap=()=>S.settings.seller_schedule&&typeof S.settings.seller_schedule==='object'&&!Array.isArray(S.settings.seller_schedule)?S.settings.seller_schedule:{};
+const DAYS=['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+const tMin=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||''));return m?+m[1]*60+ +m[2]:null};
+const wibNow=()=>{const p=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()).map(x=>[x.type,x.value]));return{d:`${p.year}-${p.month}-${p.day}`,m:+p.hour*60+ +p.minute}};
+const dow=d=>new Date(d+'T00:00:00Z').getUTCDay();
+const prevDay=d=>{const t=new Date(d+'T00:00:00Z');t.setUTCDate(t.getUTCDate()-1);return t.toISOString().slice(0,10)};
+const offOn=(s,d)=>(s.off||[]).includes(dow(d))||(s.h||[]).includes(d);
+function sellerState(name){
+  const k=sKey(name);if(closedMap()[k])return{open:false,why:'Ditutup admin'};
+  const s=schedMap()[k];if(!s)return{open:true,why:''};
+  const {d,m}=wibNow(),o=tMin(s.o),c=tMin(s.c),hasT=o!==null&&c!==null&&o!==c;let open;
+  if(!hasT)open=!offOn(s,d);else if(o<c)open=!offOn(s,d)&&m>=o&&m<c;else open=(m>=o&&!offOn(s,d))||(m<c&&!offOn(s,prevDay(d)));
+  return open?{open:true,why:''}:{open:false,why:offOn(s,d)?'Libur hari ini':`Buka ${String(s.o).slice(0,5)}–${String(s.c).slice(0,5)} WIB`};
+}
+const schedText=s=>!s?'Belum diatur':[s.o&&s.c?`${String(s.o).slice(0,5)}–${String(s.c).slice(0,5)}`:'',(s.off||[]).length?'libur '+[1,2,3,4,5,6,0].filter(d=>s.off.includes(d)).map(d=>DAYS[d]).join(', '):'',(s.h||[]).length?(s.h.length+' tgl libur'):''].filter(Boolean).join(' • ')||'Belum diatur';
+function shops(){
+  const map=new Map();
+  S.products.forEach(p=>sellerNames(p).forEach(n=>{const k=sKey(n);if(!map.has(k))map.set(k,{name:n,count:0,member:null});map.get(k).count++}));
+  members('penjual').filter(m=>!m.pending).forEach(m=>{const n=(m.toko||m.usaha||m.nama||'').trim();if(!n)return;const k=sKey(n);if(!map.has(k))map.set(k,{name:n,count:0,member:null});map.get(k).member=m});
+  return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,'id'));
+}
+const waLink=w=>{const n=phoneKey(w);return n?`<a class="more" style="color:var(--g2)" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Chat WhatsApp">${ico('wa')}</a>`:''};
+const chip=(t,cls)=>`<span class="badge ${cls}">${t}</span>`;
+
+Object.assign(PAGES,{
+toko(){
+  const all=shops(),ql=q.toLowerCase(),list=all.filter(s=>[s.name,s.member&&s.member.nama,s.member&&s.member.wa].join(' ').toLowerCase().includes(ql));
+  const openN=all.filter(s=>sellerState(s.name).open).length,pj=pendingOf('penjual').length;
+  return `${pj?`<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;background:var(--ol)"><b style="flex:1">${pj} penjual menunggu persetujuan</b><button class="btn btn-g" onclick="apTab='penjual';go('persetujuan')">Lihat</button></div>`:''}
+  <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari toko / pemilik / nomor WA..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
+  <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('store')}</div><div class="lbl">Total Toko</div><div class="val">${all.length}</div></div>
+  <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('check')}</div><div class="lbl" style="color:var(--blue)">Buka Sekarang</div><div class="val">${openN}</div></div></div>
+  <div class="cards" id="list">${list.map((s,i)=>{const st=sellerState(s.name),m=s.member,forced=!!closedMap()[sKey(s.name)];return `<div class="lc" style="align-items:flex-start"><div class="cat-ic" style="background:${colors[i%colors.length]}">🏪</div><div class="meta"><b>${esc(s.name)}</b>
+    <div class="sm">${m?esc([m.nama,m.wa?'+'+m.wa:'',m.dusun].filter(Boolean).join(' • ')):'Belum punya akun penjual'}</div>
+    <div class="sm">${s.count} produk • 🕒 ${esc(schedText(schedMap()[sKey(s.name)]))}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">${st.open?chip('🟢 Buka sekarang','b-Selesai'):chip('🔒 Tutup'+(st.why?' • '+esc(st.why):''),'b-Batal')}</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn ${forced?'btn-g':'btn-red'}" style="padding:7px 12px;font-size:12px" onclick="toggleShop('${jsq(s.name)}',this)">${forced?'Buka lagi':'Tutup paksa'}</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="schedForm('${jsq(s.name)}')">🕒 Jadwal</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="prodFilter='Semua';go('produk');q='${jsq(s.name)}';render()">Produk</button></div></div>
+    <div class="right-col">${m?waLink(m.wa):''}${m?`<button class="more" onclick="memberMenu('penjual','${jsq(m.id)}')">${ico('dots')}</button>`:''}</div></div>`}).join('')||'<div class="empty">Belum ada toko</div>'}</div>`;
+},
+kurir(){
+  const all=members('kurir').filter(m=>!m.pending),ql=q.toLowerCase(),list=all.filter(m=>[m.nama,m.wa,m.kendaraan,m.wilayah].join(' ').toLowerCase().includes(ql));
+  const siap=all.filter(m=>m.aktif!==false).length,pk=pendingOf('kurir').length;
+  return `${pk?`<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;background:var(--ol)"><b style="flex:1">${pk} kurir menunggu persetujuan</b><button class="btn btn-g" onclick="apTab='kurir';go('persetujuan')">Lihat</button></div>`:''}
+  <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari nama / nomor WA / kendaraan..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
+  <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('truck')}</div><div class="lbl">Total Kurir</div><div class="val">${all.length}</div></div>
+  <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('check')}</div><div class="lbl" style="color:var(--blue)">Siap Antar</div><div class="val">${siap}</div></div></div>
+  <div class="cards" id="list">${list.map((m,i)=>`<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b><div class="sm">${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">🛵 ${esc([m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-')}</div><div style="margin-top:6px">${m.aktif!==false?chip('Siap antar','b-Selesai'):chip('Tidak aktif','b-Batal')}</div></div><div class="right-col">${waLink(m.wa)}<button class="more" onclick="memberMenu('kurir','${jsq(m.id)}')">${ico('dots')}</button></div></div>`).join('')||'<div class="empty">Belum ada kurir yang disetujui</div>'}</div>`;
+},
+persetujuan(){
+  const g=GROUPS.find(x=>x.k===apTab)||GROUPS[0],rows=pendingOf(g.k);
+  return `<div class="toolbar"><p class="sm" style="color:var(--mut);flex:1;margin:0">Pendaftar baru menunggu di sini. Setelah disetujui, mereka bisa memakai dashboard masing-masing.</p><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
+  <div class="tabs">${GROUPS.map(x=>`<button class="tab ${x.k===g.k?'on':''}" onclick="apTab='${x.k}';render()">${x.em} ${x.label}<span class="n">${pendingOf(x.k).length}</span></button>`).join('')}</div>
+  <div class="cards" id="list">${rows.map((m,i)=>`<div class="lc" style="align-items:flex-start"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b><div class="sm">📱 ${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">${g.em} ${esc(g.info(m))}</div>${m.updated?`<div class="sm">Daftar ${ago(m.updated)}</div>`:''}
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-g" style="padding:8px 14px;font-size:13px" onclick="approve('${g.k}','${jsq(m.id)}',true,this)">✓ Setujui</button><button class="btn btn-red" style="padding:8px 14px;font-size:13px" onclick="approve('${g.k}','${jsq(m.id)}',false,this)">✕ Tolak</button></div></div><div class="right-col">${waLink(m.wa)}</div></div>`).join('')||`<div class="empty">Tidak ada ${g.label.toLowerCase()} yang menunggu persetujuan</div>`}</div>`;
+}
+});
+Object.assign(TITLES,{toko:['Daftar Toko','Penjual, jam buka, dan status toko'],kurir:['Daftar Kurir','Kurir yang sudah disetujui'],persetujuan:['Persetujuan','Pendaftar penjual, kurir, dan penyedia jasa']});
+let apTab='kurir';
+
+async function approve(gk,id,ok,btn){
+  const g=GROUPS.find(x=>x.k===gk);
+  if(!ok&&!confirm('Tolak dan hapus pendaftaran ini? Orangnya bisa mendaftar ulang.'))return;
+  await busy(btn,async()=>{
+    const key=gk+'_members',arr=await readKey(key,[]),list=Array.isArray(arr)?arr:[],m=list.find(x=>x&&x.id===id);
+    if(!m){toast('Data tidak ditemukan, mungkin sudah diproses');await loadAll(true);return}
+    if(ok){const upd={...m,pending:false,updated:Date.now()};if(gk==='jasa')upd.status='Show';const nl=list.map(x=>x&&x.id===id?upd:x);await setSetting(key,nl);S.settings[key]=nl;toast(`${m.nama||'Akun'} disetujui`)}
+    else{await removeMember(gk,id,list);toast('Pendaftaran ditolak')}
+    render();
+  });
+}
+async function removeMember(gk,id,list){
+  const key=gk+'_members';list=list||await readKey(key,[]);const nl=(Array.isArray(list)?list:[]).filter(x=>x&&x.id!==id);
+  await setSetting(key,nl);S.settings[key]=nl;
+  const acc=await readKey(gk+'_accounts',{});let ch=false;if(acc&&typeof acc==='object')for(const w in acc){if(acc[w]&&acc[w].id===id){delete acc[w];ch=true}}
+  if(ch){await setSetting(gk+'_accounts',acc);S.settings[gk+'_accounts']=acc}
+}
+function memberMenu(gk,id){
+  const m=members(gk).find(x=>x.id===id);if(!m)return;const g=GROUPS.find(x=>x.k===gk);
+  modal(`<h3>${g.em} ${esc(m.nama||'(tanpa nama)')}</h3>
+  <div class="detail-row"><span>No. WA</span><b>${m.wa?'+'+esc(m.wa):'-'}</b></div>
+  <div class="detail-row"><span>Keterangan</span><b>${esc(g.info(m))}</b></div>
+  ${m.updated?`<div class="detail-row"><span>Diperbarui</span><b>${fmtDate(m.updated)}</b></div>`:''}
+  <div class="mact" style="flex-direction:column">
+    <button class="btn btn-light" onclick="setPending('${gk}','${jsq(id)}',this)">⏸ Kembalikan ke menunggu persetujuan</button>
+    <button class="btn btn-red" onclick="delMember('${gk}','${jsq(id)}',this)">${ico('trash')}Hapus akun</button>
+    <button class="btn" onclick="closeModal()">Tutup</button></div>`)}
+async function setPending(gk,id,btn){if(!confirm('Akun ini tidak bisa dipakai sampai disetujui lagi. Lanjutkan?'))return;
+  await busy(btn,async()=>{const key=gk+'_members',arr=await readKey(key,[]),nl=(Array.isArray(arr)?arr:[]).map(x=>x&&x.id===id?{...x,pending:true,updated:Date.now()}:x);await setSetting(key,nl);S.settings[key]=nl;closeModal();render();toast('Akun dipindah ke Persetujuan')})}
+async function delMember(gk,id,btn){if(!confirm('Hapus akun ini? Orangnya harus mendaftar ulang untuk bisa masuk lagi.'))return;
+  await busy(btn,async()=>{await removeMember(gk,id);closeModal();render();toast('Akun dihapus')})}
+
+async function toggleShop(name,btn){
+  await busy(btn,async()=>{const cur=await readKey('closed_sellers',{}),m=cur&&typeof cur==='object'&&!Array.isArray(cur)?cur:{},k=sKey(name),closing=!m[k];
+    if(closing)m[k]=true;else delete m[k];await setSetting('closed_sellers',m);S.settings.closed_sellers=m;render();toast(closing?`${name} ditutup, produknya tidak bisa dipesan`:`${name} dibuka lagi`)})}
+function schedForm(name){
+  const s=schedMap()[sKey(name)]||{o:'',c:'',off:[],h:[]};
+  modal(`<h3>🕒 Jadwal ${esc(name)}</h3><p class="sm" style="color:var(--mut);font-size:12px;margin:-8px 0 12px">Waktu WIB. Kosongkan jam kalau toko buka seharian.</p>
+  <div class="form-grid" style="gap:10px"><div class="field"><label>Jam buka</label><input class="inp" type="time" id="jO" value="${esc(String(s.o||'').slice(0,5))}"></div><div class="field"><label>Jam tutup</label><input class="inp" type="time" id="jC" value="${esc(String(s.c||'').slice(0,5))}"></div></div>
+  <div class="field"><label>Libur tiap minggu</label><div style="display:flex;gap:6px;flex-wrap:wrap">${[1,2,3,4,5,6,0].map(d=>`<label style="display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;padding:6px 10px;font-size:13px;cursor:pointer"><input type="checkbox" class="jOff" value="${d}" ${(s.off||[]).includes(d)?'checked':''}>${DAYS[d]}</label>`).join('')}</div></div>
+  <div class="field"><label>Tanggal libur</label><div style="display:flex;gap:8px"><input class="inp" type="date" id="jH"><button class="btn btn-light" type="button" onclick="addHol()">Tambah</button></div><div id="jHl" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"></div></div>
+  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveSched('${jsq(name)}',this)">Simpan</button></div>`);
+  hol=[...(s.h||[])];drawHol();
+}
+let hol=[];
+function drawHol(){const el=$('#jHl');if(el)el.innerHTML=hol.sort().map(d=>`<span class="badge b-Diproses" style="display:inline-flex;gap:6px;align-items:center">${d.split('-').reverse().join('/')}<button onclick="hol=hol.filter(x=>x!=='${d}');drawHol()" title="Hapus">✕</button></span>`).join('')||'<span class="sm" style="color:var(--mut);font-size:12px">Belum ada</span>'}
+function addHol(){const v=$('#jH').value;if(!v)return toast('Pilih tanggal dulu');if(!hol.includes(v))hol.push(v);$('#jH').value='';drawHol()}
+async function saveSched(name,btn){
+  const o=$('#jO').value,c=$('#jC').value,off=[...document.querySelectorAll('.jOff:checked')].map(x=>+x.value);
+  if(!!o!==!!c)return toast('Isi jam buka dan jam tutup, atau kosongkan keduanya');
+  await busy(btn,async()=>{const cur=await readKey('seller_schedule',{}),m=cur&&typeof cur==='object'&&!Array.isArray(cur)?cur:{},k=sKey(name);
+    if(!o&&!c&&!off.length&&!hol.length)delete m[k];else m[k]={o,c,off,h:hol.slice().sort()};
+    await setSetting('seller_schedule',m);S.settings.seller_schedule=m;closeModal();render();toast('Jadwal '+name+' disimpan')})}
 function refreshList(){const tmp=document.createElement('div');tmp.innerHTML=PAGES[route]();const n=tmp.querySelector('#list');if(n&&$('#list'))$('#list').outerHTML=n.outerHTML}
 
 /* ========== AKSI PESANAN ========== */
