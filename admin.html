@@ -385,7 +385,7 @@ const colors=['#16a34a','#3b82f6','#f97316','#8b5cf6','#ec4899','#0ea5e9','#ef44
 const initials=n=>String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
 function modal(html){$('#modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="mbox">${html}</div></div>`}
-function closeModal(){$('#modalRoot').innerHTML=''}
+function closeModal(){$('#modalRoot').innerHTML='';tmap=null}
 async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{return await fn()}catch(e){if(e.message!=='login'){console.error(e);toast('Gagal menyimpan: '+String(e.message).slice(0,80))}}finally{if(btn){btn.disabled=false;btn.style.opacity=''}}}
 
 /* ========== NAVIGASI ========== */
@@ -584,6 +584,7 @@ pengaturan(){
     <p class="sm" style="color:var(--mut);font-size:12px;margin-top:14px">Ongkir, jadwal buka penjual, dan persetujuan akun penjual/kurir/jasa diatur dari menu ⚙️ Admin di halaman toko.</p>
     <a class="btn btn-light full" style="margin-top:8px;text-decoration:none" href="index.html">Buka halaman toko</a></div>
   ${tarifCard()}
+  ${tempatCard()}
   <div class="card"><div class="chead"><h3>Akun Admin</h3></div>
     <div class="detail-row"><span>Email</span><b>${esc((auth&&auth.email)||'-')}</b></div>
     <p class="sm" style="color:var(--mut);font-size:12px;margin:12px 0">Akun ini sama dengan login ⚙️ Admin di toko. Ganti kata sandi atau tambah admin dari Supabase &gt; Authentication &gt; Users dan tabel <code>admins</code>.</p>
@@ -860,6 +861,57 @@ async function saveTarif(btn){
   if(!(t.faktor>=1&&t.faktor<=3))return toast('Faktor jarak jalan antara 1 dan 3');if(!(t.bulat>=1))return toast('Pembulatan minimal Rp1');
   await busy(btn,async()=>{await setSetting('transport_tariff',t);S.settings.transport_tariff=t;render();toast('Tarif ojek & kirim paket disimpan')});
 }
+
+/* ========== TEMPAT PATOKAN (tampil di peta & "Tujuan populer" ojek.html) ========== */
+const IKON_TEMPAT=[['🕌','Masjid'],['🏦','Bank'],['🏧','ATM'],['🏥','Puskesmas / klinik'],['🏫','Sekolah'],['🏛️','Balai desa / kantor'],['🛒','Pasar'],['⛽','SPBU'],['🚉','Terminal / stasiun'],['⚽','Lapangan'],['📍','Lainnya']];
+const tempatNow=()=>(Array.isArray(S.settings.transport_places)?S.settings.transport_places:[]).filter(t=>t&&t.nama);
+function tempatCard(){
+  const l=tempatNow();
+  return `<div class="card" style="grid-column:1/-1"><div class="chead"><h3>📍 Tempat Patokan</h3><button class="btn btn-g" style="padding:8px 14px;font-size:13px" onclick="tempatForm()">${ico('plus')}Tambah tempat</button></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:12px">Tempat yang dikenal warga (masjid, bank, puskesmas, balai desa...). Tampil sebagai tanda di peta pesan ojek & kirim paket, dan sebagai tombol <b>Tujuan populer</b>. Toko penjual yang sudah mengisi lokasi tampil otomatis.</p>
+    ${l.length?`<div class="cards">${l.map((t,i)=>`<div class="lc"><div class="cat-ic" style="background:var(--gl)">${esc(t.e||'📍')}</div><div class="meta"><b>${esc(t.nama)}</b><div class="sm"><a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t.lat+','+t.lng)}" target="_blank" rel="noopener" style="color:var(--g2)">Lihat di peta</a></div></div><div class="right-col"><button class="more" onclick="tempatForm(${i})" title="Ubah">${ico('edit')}</button><button class="more" onclick="hapusTempat(${i},this)" title="Hapus" style="color:var(--red)">${ico('trash')}</button></div></div>`).join('')}</div>`:'<div class="empty" style="padding:20px">Belum ada tempat patokan</div>'}</div>`;
+}
+let _leaflet=null;
+function loadLeaflet(){
+  if(window.L)return Promise.resolve();if(_leaflet)return _leaflet;
+  const add=(base)=>new Promise((ok,no)=>{const c=document.createElement('link');c.rel='stylesheet';c.href=base+'/leaflet.css';document.head.appendChild(c);const j=document.createElement('script');j.src=base+'/leaflet.js';j.onload=ok;j.onerror=no;document.head.appendChild(j)});
+  _leaflet=add('https://unpkg.com/leaflet@1.9.4/dist').catch(()=>add('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist'));return _leaflet;
+}
+let tmap=null,tSat=true;
+async function tempatForm(i){
+  const t=i!=null?tempatNow()[i]:{nama:'',e:'🕌',lat:null,lng:null};
+  modal(`<h3>${i!=null?'Ubah':'Tambah'} Tempat Patokan</h3>
+  <div class="field"><label>Nama tempat</label><input class="inp" id="tpN" maxlength="40" value="${esc(t.nama)}" placeholder="mis. Masjid Jami Kalensari"></div>
+  <div class="field"><label>Ikon</label><select class="inp" id="tpE">${IKON_TEMPAT.map(([e,n])=>`<option value="${e}" ${e===t.e?'selected':''}>${e} ${n}</option>`).join('')}</select></div>
+  <div class="field"><label>Lokasi — geser peta sampai pin tepat di tempatnya</label>
+    <div style="position:relative;height:260px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"><div id="tpMap" style="position:absolute;inset:0"></div>
+      <svg width="34" height="42" viewBox="0 0 44 54" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:500;pointer-events:none"><path d="M22 2C11 2 3 10 3 21c0 14 19 31 19 31s19-17 19-31C41 10 33 2 22 2z" fill="#b83c2b" stroke="#fff" stroke-width="3"/><circle cx="22" cy="21" r="7" fill="#fff"/></svg>
+      <button type="button" id="tpSat" style="position:absolute;top:8px;right:8px;z-index:600;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-weight:700;font-size:12px">🗺️ Peta</button>
+      <button type="button" id="tpGps" style="position:absolute;bottom:8px;right:8px;z-index:600;background:#fff;border:0;border-radius:50%;width:40px;height:40px;box-shadow:0 1px 5px #0004;font-size:18px">🎯</button></div>
+    <input class="inp" id="tpPaste" style="margin-top:8px" placeholder="Atau tempel link Google Maps / koordinat"></div>
+  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="simpanTempat(${i??-1},this)">Simpan</button></div>`);
+  try{await loadLeaflet()}catch(e){$('#tpMap').innerHTML='<p style="padding:12px;font-size:12px;color:var(--mut)">Peta tidak bisa dimuat. Tempel link Google Maps / koordinat di bawah.</p>';return}
+  const pts=[...tempatNow(),...members('penjual').map(m=>({lat:+m.latitude,lng:+m.longitude}))].filter(x=>Number.isFinite(+x.lat)&&Number.isFinite(+x.lng)&&+x.lat);
+  const start=t.lat!=null?[t.lat,t.lng]:pts.length?[pts[0].lat,pts[0].lng]:[-6.36,107.9];
+  tmap=L.map('tpMap').setView(start,t.lat!=null?18:16);
+  const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}),
+        sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'© Esri'}),
+        lbl=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18});
+  const dasar=()=>{[osm,sat,lbl].forEach(l=>tmap.hasLayer(l)&&tmap.removeLayer(l));if(tSat){sat.addTo(tmap);lbl.addTo(tmap)}else osm.addTo(tmap);$('#tpSat').textContent=tSat?'🗺️ Peta':'🛰️ Satelit'};dasar();
+  $('#tpSat').onclick=()=>{tSat=!tSat;dasar()};
+  $('#tpGps').onclick=()=>navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>tmap.setView([p.coords.latitude,p.coords.longitude],18),()=>toast('Lokasi tidak tersedia'),{enableHighAccuracy:true,timeout:15000});
+  $('#tpPaste').onchange=()=>{const v=$('#tpPaste').value,m=v.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)||v.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)||v.match(/[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i)||v.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/);if(!m)return toast('Format tidak dikenali');tmap.setView([+String(m[1]).replace(',','.'),+String(m[2]).replace(',','.')],18);$('#tpPaste').value=''};
+  setTimeout(()=>tmap.invalidateSize(),60);
+}
+async function simpanTempat(i,btn){
+  const nama=$('#tpN').value.replace(/\s+/g,' ').trim();if(!nama)return toast('Nama tempat wajib diisi');
+  if(!tmap)return toast('Tentukan lokasi di peta dulu');
+  const c=tmap.getCenter(),d={nama,e:$('#tpE').value,lat:Number(c.lat.toFixed(6)),lng:Number(c.lng.toFixed(6))};
+  const l=tempatNow().slice();if(i>=0)l[i]=d;else l.push(d);
+  await busy(btn,async()=>{await setSetting('transport_places',l);S.settings.transport_places=l;tmap=null;closeModal();render();toast('Tempat patokan disimpan')});
+}
+async function hapusTempat(i,btn){const t=tempatNow()[i];if(!t||!confirm('Hapus tempat "'+t.nama+'"?'))return;
+  const l=tempatNow().filter((_,k)=>k!==i);await busy(btn,async()=>{await setSetting('transport_places',l);S.settings.transport_places=l;render();toast('Tempat dihapus')})}
 
 /* ========== PENGATURAN ========== */
 async function saveWa(btn){const n=phoneKey($('#sWa').value);if(n.length<9||n.length>15)return toast('Nomor WhatsApp tidak valid');

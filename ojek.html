@@ -55,6 +55,11 @@ details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--bro
 .phead{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--brown);color:#fff;font-size:16px}.phead button{background:none;border:0;color:#fff;font-size:24px;cursor:pointer;padding:0 6px}
 .pwrap{position:relative;flex:1}#pmap{position:absolute;inset:0;z-index:0}
 .cpin{position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:500;pointer-events:none;filter:drop-shadow(0 3px 4px #0005)}
+.satbtn{background:#fff;border:2px solid rgba(0,0,0,.2);border-radius:10px;padding:7px 10px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 1px 5px #0003}
+.poi{display:flex;align-items:center;gap:4px;white-space:nowrap;transform:translate(0,0)}.poi span{width:28px;height:28px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:16px;box-shadow:0 1px 4px #0005;border:2px solid #7b3f1d;flex:none}
+.poi b{font-size:11px;font-weight:700;color:#3a1f10;background:rgba(255,255,255,.88);padding:1px 6px;border-radius:6px;box-shadow:0 1px 3px #0003}
+.populer{margin-top:12px}.populer small{color:var(--muted);font-size:13px;display:block;margin-bottom:6px}.populer div{display:flex;gap:8px;flex-wrap:wrap}
+.populer button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 12px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--ink)}
 .pgps{position:absolute;right:14px;bottom:14px;z-index:500;width:48px;height:48px;border-radius:50%;border:0;background:#fff;box-shadow:0 2px 8px #0004;font-size:22px;cursor:pointer}
 .pfoot{padding:14px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}.pfoot p{margin:0;font-weight:600;font-size:14px}
 .hint{color:var(--muted);font-size:13px;margin:6px 0 0}
@@ -101,7 +106,8 @@ details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--bro
     <section class="box">
       <div class="step"><span class="num">2</span><b>Mau ke mana?</b></div>
       <div class="ptcard" id="cardB"><span class="dot" style="background:#b83c2b"></span><div><b id="txtB">Belum dipilih</b><small id="subB">Cari nama tempat atau pilih di peta</small></div></div>
-      <div class="srch"><input id="cari" class="fld" autocomplete="off" placeholder="🔍 Ketik nama tempat, mis. pasar, puskesmas"><div id="hasil" class="hasil"></div></div>
+      <div id="populer" class="populer" hidden><small>Tujuan populer — ketuk untuk memilih:</small><div id="populerList"></div></div>
+      <div class="srch"><input id="cari" class="fld" autocomplete="off" placeholder="🔍 Atau ketik nama tempat, mis. pasar, puskesmas"><div id="hasil" class="hasil"></div></div>
       <button class="btn" type="button" id="pickB">🗺️ Pilih tujuan di peta</button>
       <label>Patokan tujuan (opsional)<input id="ketB" class="fld" maxlength="120" placeholder="mis. gerbang utara pasar"></label>
       <details class="more"><summary>Punya link Google Maps tujuan?</summary><input id="paste" class="fld" placeholder="Tempel link atau koordinat, mis. -6.912345, 107.612345"></details>
@@ -196,7 +202,28 @@ function renderFare(){
 }
 
 // ===== Lokasi: 1) jemput  2) tujuan. Peta pemilih memakai pin tetap di tengah (geser peta). =====
-let map = null, mkA = null, mkB = null, line = null, pmap = null, pickWhich = "b", CENTER = [-6.9, 107.6], TOKO = [];
+let map = null, mkA = null, mkB = null, line = null, pmap = null, pickWhich = "b", CENTER = [-6.9, 107.6], TOKO = [], TEMPAT = [];
+// Peta biasa (OpenStreetMap) atau Satelit (foto udara Esri + nama jalan/tempat).
+let modeSat = (() => { try{ return localStorage.getItem("kalensari_peta_satelit") === "1"; }catch(e){ return false; } })();
+function pasangDasar(m){
+  m._osm = m._osm || L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"});
+  m._sat = m._sat || L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxZoom:19, maxNativeZoom:18, attribution:"Foto udara © Esri, Maxar"});
+  m._lbl = m._lbl || L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", {maxZoom:19, maxNativeZoom:18});
+  [m._osm, m._sat, m._lbl].forEach(l => { if(m.hasLayer(l)) m.removeLayer(l); });
+  if(modeSat){ m._sat.addTo(m); m._lbl.addTo(m); } else m._osm.addTo(m);
+}
+function tombolSat(m){
+  const C = L.Control.extend({options:{position:"topright"}, onAdd(){ const b = L.DomUtil.create("button", "satbtn"); b.type = "button"; const lbl = () => b.textContent = modeSat ? "🗺️ Peta" : "🛰️ Satelit"; lbl();
+    L.DomEvent.disableClickPropagation(b); b.onclick = () => { modeSat = !modeSat; try{ localStorage.setItem("kalensari_peta_satelit", modeSat ? "1" : "0"); }catch(e){} [map, pmap].forEach(x => x && pasangDasar(x)); document.querySelectorAll(".satbtn").forEach(x => x.textContent = modeSat ? "🗺️ Peta" : "🛰️ Satelit"); }; return b; }});
+  new C().addTo(m);
+}
+// Tanda patokan: toko Kalensari Store + tempat yang diisi admin (masjid, bank, puskesmas, dll.)
+const semuaPatokan = () => [...TOKO.map(t => ({...t, e:"🏪"})), ...TEMPAT];
+function pasangPatokan(m, bisaPilih){
+  if(m._poi) m.removeLayer(m._poi);
+  m._poi = L.layerGroup(semuaPatokan().map(t => L.marker([t.lat, t.lng], {icon:L.divIcon({className:"", html:`<div class="poi"><span>${esc(t.e || "📍")}</span><b>${esc(t.nama)}</b></div>`, iconSize:null, iconAnchor:[14,14]}), keyboard:false})
+    .on("click", () => { if(bisaPilih){ m.setView([t.lat, t.lng], Math.max(m.getZoom(), 17)); setTimeout(() => { $("pkAddr").textContent = "📍 " + t.nama; }, 750); } }))).addTo(m);
+}
 const pin = (c, t) => L.divIcon({className:"", html:`<div class="mk" style="background:${c}"><span>${t}</span></div>`, iconSize:[30,30], iconAnchor:[15,30]});
 const singkat = n => String(n || "").split(",").slice(0, 3).join(",").trim();
 async function namaTempat(p){ try{ const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=17&accept-language=id&lat=${p.lat}&lon=${p.lng}`); const d = await r.json(); return singkat(d.display_name); }catch(e){ return ""; } }
@@ -213,7 +240,7 @@ function setPt(which, lat, lng, nama){
 function gambarRute(){
   $("ringkas").hidden = !(A && B);
   if(!(A && B) || typeof L === "undefined") return;
-  if(!map){ map = L.map("map", {zoomControl:false, attributionControl:true}); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map); }
+  if(!map){ map = L.map("map", {zoomControl:false, attributionControl:true}); pasangDasar(map); tombolSat(map); pasangPatokan(map, false); }
   setTimeout(() => {
     map.invalidateSize();
     if(mkA) mkA.setLatLng(A); else mkA = L.marker(A, {icon:pin("#228b4e","A")}).addTo(map);
@@ -230,8 +257,8 @@ function bukaPicker(which){
   $("picker").hidden = false; document.body.style.overflow = "hidden";
   const start = (which === "a" ? A : B) || (which === "b" && A) || A || {lat:CENTER[0], lng:CENTER[1]};
   if(!pmap){
-    pmap = L.map("pmap", {zoomControl:true}); L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(pmap);
-    let t; pmap.on("moveend", () => { clearTimeout(t); t = setTimeout(async () => { const c = pmap.getCenter(); const n = await namaTempat({lat:c.lat, lng:c.lng}); if(n && !$("picker").hidden) $("pkAddr").textContent = "📍 " + n; }, 700); });
+    pmap = L.map("pmap", {zoomControl:true}); pasangDasar(pmap); tombolSat(pmap); pasangPatokan(pmap, true);
+    let t; pmap.on("moveend", () => { clearTimeout(t); t = setTimeout(async () => { const c = pmap.getCenter(); const dekat = semuaPatokan().find(t => jarakKm(t, {lat:c.lat, lng:c.lng}) < 0.03); if(dekat){ $("pkAddr").textContent = "📍 " + dekat.nama; return; } const n = await namaTempat({lat:c.lat, lng:c.lng}); if(n && !$("picker").hidden) $("pkAddr").textContent = "📍 " + n; }, 700); });
   }
   setTimeout(() => { pmap.invalidateSize(); pmap.setView([start.lat, start.lng], (which === "a" ? A : B) ? 17 : 16); }, 30);
 }
@@ -252,7 +279,8 @@ $("cari").addEventListener("input", () => {
 });
 async function cariTempat(q){
   const id = ++cariN, ql = q.toLowerCase(), ref = A || {lat:CENTER[0], lng:CENTER[1]};
-  const lokal = TOKO.filter(t => t.nama.toLowerCase().includes(ql)).slice(0, 4).map(t => ({nama:"🏪 " + t.nama, ket:"Toko di Kalensari Store", lat:t.lat, lng:t.lng}));
+  const lokal = [...TEMPAT.filter(t => t.nama.toLowerCase().includes(ql)).map(t => ({nama:(t.e || "📍") + " " + t.nama, ket:"Tempat patokan Kalensari", lat:t.lat, lng:t.lng, lok:1})),
+    ...TOKO.filter(t => t.nama.toLowerCase().includes(ql)).map(t => ({nama:"🏪 " + t.nama, ket:"Toko di Kalensari Store", lat:t.lat, lng:t.lng, lok:1}))].slice(0, 6);
   $("hasil").innerHTML = '<div class="h">Mencari…</div>';
   let osm = [];
   try{
@@ -261,17 +289,22 @@ async function cariTempat(q){
     osm = (await r.json()).map(x => ({nama:x.name || singkat(x.display_name), ket:singkat(String(x.display_name).split(",").slice(1).join(",")), lat:+x.lat, lng:+x.lon}));
   }catch(e){}
   if(id !== cariN) return;
-  const semua = [...lokal, ...osm].map(x => ({...x, km:jarakKm(ref, x)})).filter(x => x.km < 60).sort((a, b) => (a.nama.startsWith("🏪") ? -1 : 0) - (b.nama.startsWith("🏪") ? -1 : 0) || a.km - b.km);
+  const semua = [...lokal, ...osm].map(x => ({...x, km:jarakKm(ref, x)})).filter(x => x.km < 60).sort((a, b) => (b.lok ? 1 : 0) - (a.lok ? 1 : 0) || a.km - b.km);
   window._hasil = semua;
   $("hasil").innerHTML = semua.length ? semua.map((x, i) => `<button type="button" data-i="${i}"><b>${esc(x.nama)}</b><small>${esc(x.ket || "")}${x.ket ? " · " : ""}${String(Math.round(x.km * 10) / 10).replace(".", ",")} km</small></button>`).join("")
     : '<div class="h">Belum ketemu di daftar. Ketuk <b>🗺️ Pilih tujuan di peta</b> di bawah, lalu geser peta ke lokasinya.</div>';
 }
-$("hasil").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if(!b) return; const x = window._hasil[+b.dataset.i]; setPt("b", x.lat, x.lng, x.nama.replace(/^🏪 /, "")); if(!$("ketB").value) $("ketB").value = x.nama.replace(/^🏪 /, ""); $("cari").value = ""; });
+$("hasil").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if(!b) return; const x = window._hasil[+b.dataset.i]; const nm = x.lok ? x.nama.replace(/^\S+\s/, "") : x.nama; setPt("b", x.lat, x.lng, nm); if(!$("ketB").value) $("ketB").value = nm; $("cari").value = ""; });
 
 async function initMap(){
   try{ const pj = await getSetting("penjual_members", []); TOKO = (Array.isArray(pj) ? pj : []).filter(m => m && !m.pending).map(m => ({nama:m.toko || m.usaha || m.nama || "", lat:Number(m.latitude), lng:Number(m.longitude)})).filter(t => t.nama && Number.isFinite(t.lat) && Number.isFinite(t.lng) && !(t.lat === 0 && t.lng === 0));
     if(TOKO.length) CENTER = [TOKO.reduce((s,p) => s+p.lat,0)/TOKO.length, TOKO.reduce((s,p) => s+p.lng,0)/TOKO.length]; }catch(e){}
+  try{ const tp = await getSetting("transport_places", []); TEMPAT = (Array.isArray(tp) ? tp : []).map(t => ({nama:String(t.nama || "").trim(), e:t.e || "📍", lat:Number(t.lat), lng:Number(t.lng)})).filter(t => t.nama && Number.isFinite(t.lat) && Number.isFinite(t.lng)); }catch(e){}
+  const pop = semuaPatokan();
+  $("populer").hidden = !pop.length;
+  $("populerList").innerHTML = pop.map((t, i) => `<button type="button" data-p="${i}">${esc(t.e || "📍")} ${esc(t.nama)}</button>`).join("");
 }
+$("populerList").addEventListener("click", e => { const b = e.target.closest("[data-p]"); if(!b) return; const t = semuaPatokan()[+b.dataset.p]; setPt("b", t.lat, t.lng, t.nama); if(!$("ketB").value) $("ketB").value = t.nama; });
 
 // ===== Ketersediaan kurir (aktif & tidak sedang mengantar) =====
 async function kurirSiap(){
