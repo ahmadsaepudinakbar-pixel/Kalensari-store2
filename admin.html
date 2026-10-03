@@ -389,7 +389,7 @@ const kurirOf=o=>{const st=S.settings['kurir_ord_'+o.order_code];return st&&st.a
 const antarOf=o=>{const a=S.settings['antar_'+o.order_code];return a&&typeof a==='object'?a:null};
 const laporOf=o=>{const l=S.settings['laporan_'+o.order_code];return l&&typeof l==='object'?l:null};
 const laporBuka=()=>S.orders.filter(o=>{const l=laporOf(o);return l&&!l.beres});
-const biaya=()=>({aktif:false,potong:1000,minTopup:20000,caraBayar:'',...(S.settings.kurir_biaya&&typeof S.settings.kurir_biaya==='object'?S.settings.kurir_biaya:{})});
+const biaya=()=>({aktif:false,potong:1000,minTopup:20000,saldoAwal:10000,caraBayar:'',...(S.settings.kurir_biaya&&typeof S.settings.kurir_biaya==='object'?S.settings.kurir_biaya:{})});
 const topupMenunggu=()=>(S.topup||[]).filter(x=>x.status==='menunggu');
 const saldoOf=id=>S.saldo?(S.saldo[id]||0):null;
 function pemasukan(){const now=wibNow(),bln=now.d.slice(0,7);let h=0,b=0;(S.potong||[]).forEach(x=>{const d=new Date(new Date(x.t).getTime()+7*36e5).toISOString().slice(0,10),v=Math.abs(Number(x.jumlah)||0);if(d===now.d)h+=v;if(d.slice(0,7)===bln)b+=v});return{h,b}}
@@ -720,7 +720,7 @@ async function approve(gk,id,ok,btn){
   await busy(btn,async()=>{
     const key=gk+'_members',arr=await readKey(key,[]),list=Array.isArray(arr)?arr:[],m=list.find(x=>x&&x.id===id);
     if(!m){toast('Data tidak ditemukan, mungkin sudah diproses');await loadAll(true);return}
-    if(ok){const upd={...m,pending:false,updated:Date.now()};if(gk==='jasa')upd.status='Show';const nl=list.map(x=>x&&x.id===id?upd:x);await setSetting(key,nl);S.settings[key]=nl;toast(`${m.nama||'Akun'} disetujui`)}
+    if(ok){const upd={...m,pending:false,updated:Date.now()};if(gk==='jasa')upd.status='Show';const nl=list.map(x=>x&&x.id===id?upd:x);await setSetting(key,nl);S.settings[key]=nl;let ext='';if(gk==='kurir'){const sa=await beriSaldoAwal(id);if(sa)ext=` + saldo awal ${rp(biaya().saldoAwal)}`}toast(`${m.nama||'Akun'} disetujui${ext}`)}
     else{await removeMember(gk,id,list);toast('Pendaftaran ditolak')}
     render();
   });
@@ -1208,6 +1208,13 @@ async function lihatBukti(id){
     ov.innerHTML=f&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(f)?`<img src="${f}" alt="Bukti" style="max-width:100%;max-height:85vh;border-radius:12px">`:'<span style="color:#fff">Tidak ada bukti foto. Cek mutasi rekening / uang tunai.</span>'}
   catch(e){ov.innerHTML='<span style="color:#fff">Gagal memuat</span>'}
 }
+async function beriSaldoAwal(id){
+  if(!(Number(biaya().saldoAwal)>0))return null;
+  try{const r=await api('rpc/beri_saldo_awal',{method:'POST',body:JSON.stringify({p_kurir_id:id})});if(r!==null&&r!==undefined&&S.saldo){S.saldo[id]=Number(r)||0}return r}catch(e){console.warn(e);return null}
+}
+async function saldoAwalBtn(id,btn){
+  await busy(btn,async()=>{const r=await beriSaldoAwal(id);if(r===null||r===undefined)toast('Kurir ini sudah pernah mendapat saldo awal');else{toast('Saldo awal '+rp(biaya().saldoAwal)+' diberikan');closeModal();await loadAll(true)}});
+}
 async function saldoKurir(id){
   const m=members('kurir').find(x=>x.id===id)||{};
   modal(`<div class="chead"><h3 style="margin:0">💰 Saldo ${esc(m.nama||'Kurir')}</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
@@ -1215,6 +1222,7 @@ async function saldoKurir(id){
   <div class="field" style="margin-top:12px"><label>Tambah / kurangi saldo (pakai minus untuk mengurangi)</label><input class="inp" id="kjJml" inputmode="numeric" placeholder="mis. 20000 atau -5000"></div>
   <div class="field"><label>Keterangan</label><input class="inp" id="kjKet" placeholder="mis. Bayar tunai ke admin / Bonus awal"></div>
   <button class="btn btn-g full" onclick="koreksiSaldo('${jsq(id)}',this)">Simpan</button>
+  ${Number(biaya().saldoAwal)>0?`<button class="btn btn-light full" style="margin-top:8px" onclick="saldoAwalBtn('${jsq(id)}',this)">🎁 Beri saldo awal ${rp(biaya().saldoAwal)} (sekali per kurir)</button>`:''}
   <p style="font-size:12px;color:var(--mut);margin:16px 0 6px;font-weight:600">Riwayat terakhir</p><div id="kjRw" class="sm">Memuat...</div>`);
   try{const r=await api('kurir_mutasi?select=jumlah,jenis,ket,saldo_akhir,t&kurir_id=eq.'+encodeURIComponent(id)+'&order=t.desc&limit=30');
     $('#kjRw').innerHTML=r.length?r.map(x=>`<div class="detail-row"><span style="white-space:normal">${esc(x.ket||x.jenis)}<br><small style="color:var(--mut)">${fmtDate(x.t)} · saldo ${rp(x.saldo_akhir)}</small></span><b style="color:${x.jumlah>=0?'var(--g)':'var(--red)'}">${x.jumlah>=0?'+':'−'}${rp(Math.abs(x.jumlah))}</b></div>`).join(''):'Belum ada riwayat'}
@@ -1234,14 +1242,15 @@ function biayaCard(){
     <label class="sm" style="display:flex;gap:10px;align-items:center;padding:6px 0 12px;cursor:pointer"><input type="checkbox" id="bAktif" ${b.aktif?'checked':''} style="width:18px;height:18px"><b>Aktifkan potongan saldo</b></label>
     <div class="field"><label>Potongan per pesanan selesai (Rp)</label><input class="inp" id="bPotong" inputmode="numeric" value="${Number(b.potong)||0}"></div>
     <div class="field"><label>Minimal isi saldo (Rp)</label><input class="inp" id="bMin" inputmode="numeric" value="${Number(b.minTopup)||0}"></div>
+    <div class="field"><label>Saldo awal kurir baru (Rp) — diberikan otomatis saat kurir disetujui, 0 = tidak ada</label><input class="inp" id="bAwal" inputmode="numeric" value="${Number(b.saldoAwal)||0}"></div>
     <div class="field"><label>Cara bayar (tampil di aplikasi kurir)</label><textarea class="inp" id="bCara" rows="3" placeholder="mis. Transfer BRI 1234567890 a.n. Kalensari Store, atau bayar tunai ke admin">${esc(b.caraBayar||'')}</textarea></div>
     <button class="btn btn-g full" onclick="saveBiaya(this)">Simpan Saldo Kurir</button>
     <p class="sm" style="color:var(--mut);font-size:12px;margin-top:10px">Tips: sebelum mengaktifkan, beri kurir saldo awal lewat Daftar Kurir → 💰 Saldo, supaya mereka tetap bisa menerima pesanan.</p></div>`;
 }
 async function saveBiaya(btn){
-  const potong=parseInt($('#bPotong').value,10)||0,minTopup=parseInt($('#bMin').value,10)||0;
+  const potong=parseInt($('#bPotong').value,10)||0,minTopup=parseInt($('#bMin').value,10)||0,saldoAwal=Math.max(0,Math.min(1000000,parseInt($('#bAwal').value,10)||0));
   if(potong<0||potong>100000)return toast('Potongan tidak valid');if(minTopup<potong)return toast('Minimal isi saldo harus ≥ potongan');
-  const v={...biaya(),aktif:$('#bAktif').checked,potong,minTopup,minSaldo:potong,caraBayar:$('#bCara').value.trim().slice(0,400)};
+  const v={...biaya(),aktif:$('#bAktif').checked,potong,minTopup,minSaldo:potong,saldoAwal,caraBayar:$('#bCara').value.trim().slice(0,400)};
   if(v.aktif&&!biaya().aktif&&!confirm('Aktifkan potongan saldo?\nKurir yang saldonya kurang dari '+rp(potong)+' tidak akan mendapat tawaran pesanan sampai mengisi saldo.'))return;
   await busy(btn,async()=>{await setSetting('kurir_biaya',v);S.settings.kurir_biaya=v;render();toast('Pengaturan saldo kurir disimpan')});
 }

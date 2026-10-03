@@ -1370,7 +1370,9 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
       if(!m){showToast("Data tidak ditemukan");return;}
       if(a==="ok"){
         const upd={...m,pending:false,updated:Date.now()};if(gk==="jasa")upd.status="Show";
-        await wr(g.members,arr.map(x=>x.id===id?upd:x));showToast(`"${m.nama||"Akun"}" disetujui`);
+        await wr(g.members,arr.map(x=>x.id===id?upd:x));
+        let ext="";if(gk==="kurir"){try{const r=await cloudFetch("rpc/beri_saldo_awal",{method:"POST",body:JSON.stringify({p_kurir_id:id})});if(r!==null&&r!==undefined&&r!=="")ext=" + saldo awal";}catch(e){}}
+        showToast(`"${m.nama||"Akun"}" disetujui${ext}`);
       }else{
         await wr(g.members,arr.filter(x=>x.id!==id));
         const acc=await rd(g.acc,{});let ch=false;for(const w in acc){if(acc[w]&&acc[w].id===id){delete acc[w];ch=true;}}
