@@ -57,13 +57,56 @@ const mmss=l=>Math.floor(l/60000)+":"+String(Math.floor(l%60000/1000)).padStart(
 setInterval(()=>{const els=[...document.querySelectorAll("[data-exp]")];if(!els.length)return;let done=false;els.forEach(e=>{const l=e.dataset.exp-Date.now();if(l<=0)done=true;else e.textContent=mmss(l)});if(done){expireOld();go(view,arg)}},1000);
 /* shell */
 const NAV=[["home","🏠","Beranda"],["orders","📋","Pesanan"],["prods","📦","Produk"],["menu","☰","Menu"]];
-function go(v,a){if(v==="menu")return drawer();view=v;arg=a??null;const sub=["detail","form","io"].includes(v),T={home:"Kalensari Store",orders:"Daftar Pesanan",prods:"Daftar Produk",detail:"Detail Pesanan",form:a?"Edit Produk":"Tambah Produk",io:"Export / Import"};
+function go(v,a){if(v==="menu")return drawer();view=v;arg=a??null;const sub=["detail","form","io","toko"].includes(v),T={home:"Kalensari Store",orders:"Daftar Pesanan",prods:"Daftar Produk",detail:"Detail Pesanan",form:a?"Edit Produk":"Tambah Produk",io:"Export / Import",toko:"Pengaturan Toko"};
 $("hd").innerHTML=(sub?'<button id="bk">←</button>':'<button id="mn">☰</button>')+`<div class="t">${T[v]}${v==="home"?"<small>Penjual • "+esc(me.toko||me.usaha||"")+"</small>":""}</div>`;
 $("hd").querySelector("button").onclick=()=>sub?go(v==="detail"?"orders":v==="form"?"prods":"home"):drawer();
-$("nav").innerHTML=NAV.map(([k,i,t])=>`<button data-k="${k}" class="${k===(sub?({detail:"orders",form:"prods",io:"menu"})[v]:v)?"on":""}"><b>${i}</b>${t}</button>`).join("");$("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.k));
-$("v").innerHTML=($("v").dataset.w||"")+({home,orders,prods,detail,form,io})[v]();$("v").scrollTop=0;bind[v]&&bind[v]()}
-function drawer(){const d=$("dr");d.hidden=false;const L=[["home","🏠 Dashboard"],["orders","📋 Kelola Pesanan"],["form","➕ Tambah Produk"],["io","☁️ Export / Import Produk"],["prods","📦 Daftar Produk"]];d.innerHTML=`<div><div class="h"><div class="logo" style="width:72px;height:72px;margin:0 0 8px"><img src="icons/logo-kalensari.png" alt="Kalensari Store"></div>Kalensari Store<small style="display:block;font-weight:400;color:var(--mu)">${esc(me.nama||"Penjual")} • +${esc(WA)}</small></div>${L.map(([k,t])=>`<button class="m" data-k="${k}">${t}</button>`).join("")}<a href="penjual.html">⚙️ Pengaturan toko & lokasi</a><button class="m" id="lo" style="color:#b83c2b">🚪 Keluar</button></div>`;d.onclick=e=>{if(e.target===d)d.hidden=true};d.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{d.hidden=true;go(b.dataset.k)});$("lo").onclick=()=>{localStorage.removeItem(SESS);location.reload()}}
+$("nav").innerHTML=NAV.map(([k,i,t])=>`<button data-k="${k}" class="${k===(sub?({detail:"orders",form:"prods",io:"menu",toko:"menu"})[v]:v)?"on":""}"><b>${i}</b>${t}</button>`).join("");$("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.k));
+$("v").innerHTML=($("v").dataset.w||"")+({home,orders,prods,detail,form,io,toko})[v]();$("v").scrollTop=0;bind[v]&&bind[v]()}
+function drawer(){const d=$("dr");d.hidden=false;const L=[["home","🏠 Dashboard"],["orders","📋 Kelola Pesanan"],["form","➕ Tambah Produk"],["io","☁️ Export / Import Produk"],["prods","📦 Daftar Produk"]];d.innerHTML=`<div><div class="h"><div class="logo" style="width:72px;height:72px;margin:0 0 8px"><img src="icons/logo-kalensari.png" alt="Kalensari Store"></div>Kalensari Store<small style="display:block;font-weight:400;color:var(--mu)">${esc(me.nama||"Penjual")} • +${esc(WA)}</small></div>${L.map(([k,t])=>`<button class="m" data-k="${k}">${t}</button>`).join("")}<button class="m" data-k="toko">⚙️ Pengaturan toko & lokasi</button><button class="m" id="lo" style="color:#b83c2b">🚪 Keluar</button></div>`;d.onclick=e=>{if(e.target===d)d.hidden=true};d.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{d.hidden=true;go(b.dataset.k)});$("lo").onclick=()=>{localStorage.removeItem(SESS);location.reload()}}
 const bind={};
+/* ===== Pengaturan toko & lokasi (dipindah dari penjual.html ke dalam aplikasi) ===== */
+async function setS(k,v){LS("kalensari_"+k,v);if(!cloud())return;await cf("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:k,value:v}])})}
+async function saveMe(){let l=await getS("penjual_members",[]);if(!Array.isArray(l))l=[];const i=l.findIndex(x=>x&&x.id===me.id);const cur=i>=0?l[i]:{};const rec={...cur,...me};delete rec.wa_disp;if(i>=0)l[i]=rec;else l.push(rec);await setS("penjual_members",l)}
+const pCoord=v=>{const t=String(v==null?"":v).trim().replace(",",".");return t===""?NaN:Number(t)};
+const okCoord=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&a>=-90&&a<=90&&b>=-180&&b<=180&&!(a===0&&b===0);
+const inID=(a,b)=>a>=-11.5&&a<=6.5&&b>=94&&b<=141.5;
+const mapsUrl=(a,b)=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(a+","+b);
+function parseLL(t){t=String(t||"").trim();if(!t)return null;const m=t.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)||t.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)||t.match(/[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i)||t.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/);return m?[Number(String(m[1]).replace(",",".")),Number(String(m[2]).replace(",","."))]:null}
+function toko(){
+  const st=me.pending?'<div class="warn">⏳ Menunggu persetujuan admin. Setelah disetujui, toko dapat ditampilkan.</div>':me.status==="Hide"?'<div class="warn" style="background:#f6dcd7">🚫 Toko sedang disembunyikan oleh admin.</div>':'<div class="warn" style="background:#dcf2e3;color:#14502c">✅ Akun penjual aktif.</div>';
+  return `${st}<div class="card"><b>🏪 Data toko</b>
+  <label style="display:block;margin-top:10px">Nama pemilik<input id="sNama" class="fld" maxlength="60" value="${esc(me.nama||"")}"></label>
+  <label style="display:block">Nama toko / usaha<input id="sToko" class="fld" maxlength="60" value="${esc(me.toko||me.usaha||"")}"></label>
+  <label style="display:block">Alamat / Dusun<textarea id="sDusun" class="fld" maxlength="150" placeholder="Alamat toko atau dusun">${esc(me.dusun||"")}</textarea></label>
+  <div class="two"><label>Jam buka<input id="sBuka" class="fld" type="time" value="${esc(me.buka||"08:00")}"></label><label>Jam tutup<input id="sTutup" class="fld" type="time" value="${esc(me.tutup||"17:00")}"></label></div>
+  <label style="display:block">No. WhatsApp<input class="fld" value="+${esc(WA)}" disabled></label>
+  <button class="btn" id="sSave">💾 Simpan perubahan</button></div>
+  <div class="card" style="margin-top:12px;background:#fffaf2"><b>📍 Lokasi toko</b><p id="sLoc" style="margin:6px 0"></p>
+  <button class="btn o" id="sGps">📍 Simpan lokasi saya sekarang</button><button class="btn o" id="sMap" hidden>🗺️ Lihat di Google Maps</button>
+  <p style="color:var(--mu);font-size:13px;margin:8px 0 0">Tekan tombol ini saat Anda berada di toko.</p>
+  <label style="display:block;margin-top:12px">Atau tempel koordinat / link Google Maps<input id="sMan" class="fld" placeholder="mis. -6.123456, 107.123456"></label>
+  <button class="btn o" id="sManB">💾 Simpan dari koordinat</button>
+  <p style="color:var(--mu);font-size:13px;margin:8px 0 0">Cara: buka Google Maps, tekan lama titik toko, lalu salin angka koordinat yang muncul di bagian atas.</p></div>
+  <div class="card" style="margin-top:12px"><b>🔐 Ganti PIN</b><div class="two" style="margin-top:10px"><label>PIN lama<input id="sPo" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>PIN baru<input id="sPn" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div><button class="btn o" id="sPin">Simpan PIN baru</button></div>
+  <div style="height:16px"></div>`;
+}
+function locView(){const a=pCoord(me.latitude),b=pCoord(me.longitude),ok=okCoord(a,b);$("sLoc").textContent=ok?"✅ Lokasi toko sudah tersimpan.":"Belum ada lokasi tersimpan.";$("sMap").hidden=!ok;if(ok)$("sMap").onclick=()=>window.open(mapsUrl(a,b),"_blank","noopener")}
+async function saveLoc(a,b){if(!okCoord(a,b))return toast("Koordinat tidak valid (tidak boleh kosong atau 0,0).");if(!inID(a,b))return toast("Titik di luar Indonesia. Cek apakah latitude dan longitude tertukar.");const old=[me.latitude,me.longitude];me.latitude=Number(a.toFixed(6));me.longitude=Number(b.toFixed(6));try{await saveMe();locView();toast("✅ Lokasi toko berhasil disimpan")}catch(e){[me.latitude,me.longitude]=old;toast("Gagal menyimpan lokasi: "+String(e.message||e).slice(0,60))}}
+bind.toko=()=>{
+  locView();
+  $("sSave").onclick=async()=>{const nama=$("sNama").value.trim(),tk=$("sToko").value.replace(/\s+/g," ").trim();if(!nama||!tk)return toast("Nama pemilik dan nama toko wajib diisi");
+    const oldT=me.toko||me.usaha||"",rename=K(oldT)!==K(tk)&&oldT;
+    if(rename&&!confirm(`Ganti nama toko dari "${oldT}" ke "${tk}"? ${P.length} produk Anda ikut dipindah ke nama baru.`))return;
+    const b=$("sSave");b.disabled=true;b.textContent="Menyimpan...";
+    try{
+      if(rename&&cloud()){for(const p of P){const sel=String(p.seller||"").split(",").map(x=>x.trim()).map(x=>K(x)===K(oldT)?tk:x).join(", ");await cf("products?id=eq."+encodeURIComponent(p.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({seller:sel})});p.seller=sel}}
+      Object.assign(me,{nama,toko:tk,usaha:tk,dusun:$("sDusun").value.trim(),buka:$("sBuka").value,tutup:$("sTutup").value,updated:Date.now()});
+      await saveMe();toast("✅ Data toko berhasil disimpan");if(rename)await load();go("toko");
+    }catch(e){toast("Gagal menyimpan: "+String(e.message||e).slice(0,70))}finally{b.disabled=false;b.textContent="💾 Simpan perubahan"}};
+  $("sGps").onclick=()=>{if(!navigator.geolocation)return toast("HP/browser ini tidak mendukung lokasi.");toast("📍 Meminta izin lokasi...");navigator.geolocation.getCurrentPosition(p=>saveLoc(+p.coords.latitude,+p.coords.longitude),e=>toast(e.code===1?"Izin lokasi diblokir. Izinkan lokasi untuk situs ini, atau isi manual di bawah.":e.code===3?"Waktu habis. Coba lagi atau isi manual di bawah.":"Lokasi tidak tersedia. Isi manual di bawah."),{enableHighAccuracy:true,timeout:15000,maximumAge:60000})};
+  $("sManB").onclick=()=>{const v=parseLL($("sMan").value);if(!v)return toast("Format tidak dikenali. Contoh: -6.123456, 107.123456");saveLoc(v[0],v[1]).then(()=>{$("sMan").value=""})};
+  $("sPin").onclick=async()=>{const o=$("sPo").value,n=$("sPn").value;if(!/^\d{4,8}$/.test(n))return toast("PIN baru harus 4–8 angka");try{const acc=(await getS("penjual_accounts",{}))||{},a=acc[WA];if(!a||a.h!==await hashPin(WA,o))return toast("PIN lama salah");a.h=await hashPin(WA,n);acc[WA]=a;await setS("penjual_accounts",acc);$("sPo").value=$("sPn").value="";toast("✅ PIN berhasil diubah")}catch(e){toast("Gagal mengubah PIN: "+String(e.message||e).slice(0,60))}};
+};
 /* beranda */
 function home(){const c=s=>O.filter(o=>stOf(o)===s).length,td=O.filter(o=>new Date(o.created_at).toDateString()===new Date().toDateString()),om=td.filter(o=>stOf(o)!=="dibatalkan").reduce((t,o)=>t+tot(o),0);
 return `${me.pending?'<div class="warn">⏳ Akun menunggu persetujuan admin.</div>':""}${cloud()?"":'<div class="warn">⚠️ Database online belum aktif (mode uji coba).</div>'}<h2 style="margin:4px 0">Halo, ${esc(me.nama||"Penjual")} 👋</h2><p style="margin:0 0 12px;color:var(--mu)">Semangat terus mengelola toko ${esc(me.toko||"")}!</p>
