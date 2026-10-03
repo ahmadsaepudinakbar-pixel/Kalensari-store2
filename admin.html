@@ -672,10 +672,13 @@ function sellerState(name){
   return open?{open:true,why:''}:{open:false,why:offOn(s,d)?'Libur hari ini':`Buka ${String(s.o).slice(0,5)}–${String(s.c).slice(0,5)} WIB`};
 }
 const schedText=s=>!s?'Belum diatur':[s.o&&s.c?`${String(s.o).slice(0,5)}–${String(s.c).slice(0,5)}`:'',(s.off||[]).length?'libur '+[1,2,3,4,5,6,0].filter(d=>s.off.includes(d)).map(d=>DAYS[d]).join(', '):'',(s.h||[]).length?(s.h.length+' tgl libur'):''].filter(Boolean).join(' • ')||'Belum diatur';
+const akunPenjual=()=>S.settings.penjual_accounts&&typeof S.settings.penjual_accounts==='object'?S.settings.penjual_accounts:{};
+const waAkun=m=>{if(!m)return '';const a=akunPenjual();return Object.keys(a).find(w=>a[w]&&a[w].id===m.id)||''};
+const punyaAkun=m=>!!waAkun(m);
 function shops(){
   const map=new Map();
   S.products.forEach(p=>sellerNames(p).forEach(n=>{const k=sKey(n);if(!map.has(k))map.set(k,{name:n,count:0,member:null});map.get(k).count++}));
-  members('penjual').filter(m=>!m.pending).forEach(m=>{const n=(m.toko||m.usaha||m.nama||'').trim();if(!n)return;const k=sKey(n);if(!map.has(k))map.set(k,{name:n,count:0,member:null});map.get(k).member=m});
+  members('penjual').filter(m=>!m.pending).forEach(m=>{const n=(m.toko||m.usaha||m.nama||'').trim();if(!n)return;const k=sKey(n);if(!map.has(k))map.set(k,{name:n,count:0,member:null});const e=map.get(k);if(!e.member||punyaAkun(m))e.member=m});
   return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,'id'));
 }
 const waLink=w=>{const n=phoneKey(w);return n?`<a class="more" style="color:var(--g2)" href="https://wa.me/${n}" target="_blank" rel="noopener" title="Chat WhatsApp">${ico('wa')}</a>`:''};
@@ -690,11 +693,11 @@ toko(){
   <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('store')}</div><div class="lbl">Total Toko</div><div class="val">${all.length}</div></div>
   <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('check')}</div><div class="lbl" style="color:var(--blue)">Buka Sekarang</div><div class="val">${openN}</div></div></div>
   <div class="cards" id="list">${list.map((s,i)=>{const st=sellerState(s.name),m=s.member,forced=!!closedMap()[sKey(s.name)];return `<div class="lc" style="align-items:flex-start"><div class="cat-ic" style="background:${colors[i%colors.length]}">🏪</div><div class="meta"><b>${esc(s.name)}</b>
-    <div class="sm">${m?esc([m.nama,m.wa?'+'+m.wa:'',m.dusun].filter(Boolean).join(' • ')):'Belum punya akun penjual'}</div>
+    <div class="sm">${m&&punyaAkun(m)?esc([m.nama,m.wa?'+'+m.wa:'',m.dusun].filter(Boolean).join(' • ')):'Belum punya akun penjual'+(m&&m.dusun?' • '+esc(m.dusun):'')}${m&&Number(m.latitude)?' • 📍':''}</div>
     <div class="sm">${s.count} produk • 🕒 ${esc(schedText(schedMap()[sKey(s.name)]))}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">${st.open?chip('🟢 Buka sekarang','b-Selesai'):chip('🔒 Tutup'+(st.why?' • '+esc(st.why):''),'b-Batal')}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn ${forced?'btn-g':'btn-red'}" style="padding:7px 12px;font-size:12px" onclick="toggleShop('${jsq(s.name)}',this)">${forced?'Buka lagi':'Tutup paksa'}</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="schedForm('${jsq(s.name)}')">🕒 Jadwal</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="prodFilter='Semua';go('produk');q='${jsq(s.name)}';render()">Produk</button></div></div>
-    <div class="right-col">${m?waLink(m.wa):''}${m?`<button class="more" onclick="memberMenu('penjual','${jsq(m.id)}')">${ico('dots')}</button>`:''}</div></div>`}).join('')||'<div class="empty">Belum ada toko</div>'}</div>`;
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn ${forced?'btn-g':'btn-red'}" style="padding:7px 12px;font-size:12px" onclick="toggleShop('${jsq(s.name)}',this)">${forced?'Buka lagi':'Tutup paksa'}</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="schedForm('${jsq(s.name)}')">🕒 Jadwal</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="prodFilter='Semua';go('produk');q='${jsq(s.name)}';render()">Produk</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="editToko('${jsq(s.name)}')">✏️ Edit</button>${m&&punyaAkun(m)?'':`<button class="btn btn-g" style="padding:7px 12px;font-size:12px" onclick="serahkanToko('${jsq(s.name)}')">🤝 Serahkan</button>`}</div></div>
+    <div class="right-col">${m&&punyaAkun(m)?waLink(m.wa):''}${m&&punyaAkun(m)?`<button class="more" onclick="memberMenu('penjual','${jsq(m.id)}')">${ico('dots')}</button>`:''}</div></div>`}).join('')||'<div class="empty">Belum ada toko</div>'}</div>`;
 },
 kurir(){
   const all=members('kurir').filter(m=>!m.pending),ql=q.toLowerCase(),list=all.filter(m=>[m.nama,m.wa,m.kendaraan,m.wilayah].join(' ').toLowerCase().includes(ql));
@@ -749,6 +752,105 @@ async function setPending(gk,id,btn){if(!confirm('Akun ini tidak bisa dipakai sa
 async function delMember(gk,id,btn){if(!confirm('Hapus akun ini? Orangnya harus mendaftar ulang untuk bisa masuk lagi.'))return;
   await busy(btn,async()=>{await removeMember(gk,id);closeModal();render();toast('Akun dihapus')})}
 
+/* ========== EDIT & SERAHKAN TOKO ========== */
+const tokoOf=name=>shops().find(s=>sKey(s.name)===sKey(name));
+let tkMap=null;
+async function editToko(name){
+  const s=tokoOf(name);if(!s)return;const m=s.member||{};
+  modal(`<div class="chead"><h3 style="margin:0">✏️ Edit Toko</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
+  <div class="field"><label>Nama toko</label><input class="inp" id="tkN" maxlength="60" value="${esc(s.name)}"></div>
+  <small style="color:var(--mut);font-size:12px;display:block;margin:-6px 0 10px">Bila nama diganti, ${s.count} produk, jadwal, status tutup & ongkir toko ini ikut pindah otomatis.</small>
+  <div class="field"><label>Alamat / Dusun</label><input class="inp" id="tkA" maxlength="150" value="${esc(m.dusun||'')}" placeholder="mis. Dusun Kaler RT 02"></div>
+  <div class="field"><label>Titik lokasi toko (untuk ongkir & rute kurir) — geser peta sampai pin tepat di toko</label>${petaHTML('tk',240)}
+    <label class="sm" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="tkLokOn" ${Number(m.latitude)?'checked':''}> Simpan titik lokasi ini</label></div>
+  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="simpanToko('${jsq(s.name)}',this)">Simpan</button></div>`);
+  tkMap=await pasangPeta('tk',m.latitude,m.longitude);
+  if(tkMap)tkMap.on('movestart',()=>{const c=$('#tkLokOn');if(c)c.checked=true});
+}
+async function gantiNamaToko(lama,baru){
+  const kL=sKey(lama),kB=sKey(baru);
+  // produk
+  const ganti=S.products.filter(p=>sellerNames(p).some(n=>sKey(n)===kL));
+  for(const p of ganti){const seller=sellerNames(p).map(n=>sKey(n)===kL?baru:n).join(', ');await patchProd(p.id,{seller})}
+  // status tutup, jadwal, ongkir per toko
+  for(const key of ['closed_sellers','seller_schedule','shipping_fees']){
+    const cur=await readKey(key,null);if(!cur||typeof cur!=='object'||Array.isArray(cur)||!(kL in cur))continue;
+    const v={...cur};v[kB]=v[kL];delete v[kL];await setSetting(key,v);S.settings[key]=v;
+  }
+  return ganti.length;
+}
+async function simpanToko(name,btn){
+  const baru=$('#tkN').value.replace(/\s+/g,' ').trim();if(!baru)return toast('Nama toko wajib diisi');
+  if(sKey(baru)!==sKey(name)&&tokoOf(baru))return toast('Nama toko "'+baru+'" sudah dipakai toko lain');
+  const pasteLL=ambilLL($('#tkPaste').value);if(!tkMap&&pasteLL)$('#tkLokOn').checked=true;
+  const lokOn=$('#tkLokOn').checked,c=lokOn?(tkMap?tkMap.getCenter():pasteLL?{lat:pasteLL[0],lng:pasteLL[1]}:null):null;
+  await busy(btn,async()=>{
+    const s=tokoOf(name);let n=0;
+    if(baru!==name)n=await gantiNamaToko(name,baru);
+    const arr=await readKey('penjual_members',[]),list=Array.isArray(arr)?arr:[];
+    const id=s&&s.member?s.member.id:null,i=id?list.findIndex(x=>x&&x.id===id):-1;
+    const base=i>=0?list[i]:{id:'t'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),nama:'',wa:'',buka:'08:00',tutup:'17:00',aktif:true,pending:false,status:'Show',dibuatAdmin:true};
+    const rec={...base,toko:baru,usaha:baru,dusun:$('#tkA').value.trim(),updated:Date.now()};
+    if(c){rec.latitude=Number(c.lat.toFixed(6));rec.longitude=Number(c.lng.toFixed(6))}else if(!lokOn){delete rec.latitude;delete rec.longitude}
+    if(i>=0)list[i]=rec;else list.push(rec);
+    await setSetting('penjual_members',list);S.settings.penjual_members=list;
+    tkMap=null;closeModal();render();toast('Toko disimpan'+(n?` • ${n} produk ikut diganti namanya`:''));
+  });
+}
+async function hashPinPenjual(wa,pin){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('kalensari-penjual:'+wa+':'+pin));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function serahkanToko(name){
+  const s=tokoOf(name);if(!s)return;
+  const akun=members('penjual').filter(m=>punyaAkun(m)&&sKey(m.toko||m.usaha||'')!==sKey(name));
+  modal(`<div class="chead"><h3 style="margin:0">🤝 Serahkan "${esc(s.name)}"</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
+  <p class="sm" style="color:var(--mut);margin:0 0 10px">Pemilik baru bisa mengelola produk (${s.count}), pesanan & jam buka toko ini dari Aplikasi Penjual.</p>
+  <div class="tabs" style="margin-bottom:12px"><button class="tab on" id="srTab1" onclick="srTab(1)">Buat akun baru</button><button class="tab" id="srTab2" onclick="srTab(2)">Akun yang sudah ada (${akun.length})</button></div>
+  <div id="srBaru">
+    <div class="field"><label>Nama pemilik</label><input class="inp" id="srNama" maxlength="60"></div>
+    <div class="field"><label>Nomor WhatsApp pemilik</label><input class="inp" id="srWa" inputmode="tel" placeholder="08..."></div>
+    <div class="field"><label>PIN awal (4–8 angka) — berikan ke pemilik, bisa ia ganti sendiri</label><input class="inp" id="srPin" inputmode="numeric" maxlength="8" value="${String(Math.floor(1000+Math.random()*9000))}"></div>
+    <button class="btn btn-g full" onclick="serahBaru('${jsq(s.name)}',this)">Buat akun & serahkan</button></div>
+  <div id="srAda" hidden>${akun.length?`<div class="field"><label>Pilih akun penjual</label><select class="inp" id="srPilih">${akun.map(m=>`<option value="${esc(m.id)}">${esc(m.nama||'(tanpa nama)')} • +${esc(waAkun(m))}${m.toko?' • toko: '+esc(m.toko):''}</option>`).join('')}</select></div>
+    <small style="color:var(--mut);font-size:12px;display:block;margin:-6px 0 12px">Nama toko di akun itu akan diganti menjadi "${esc(s.name)}".</small>
+    <button class="btn btn-g full" onclick="serahAda('${jsq(s.name)}',this)">Hubungkan & serahkan</button>`:'<div class="empty">Belum ada akun penjual lain. Pakai "Buat akun baru".</div>'}</div>`);
+}
+function srTab(n){$('#srBaru').hidden=n!==1;$('#srAda').hidden=n!==2;$('#srTab1').classList.toggle('on',n===1);$('#srTab2').classList.toggle('on',n===2)}
+async function serahBaru(name,btn){
+  const nama=$('#srNama').value.trim(),wa=phoneKey($('#srWa').value),pin=$('#srPin').value.trim();
+  if(!nama)return toast('Nama pemilik wajib diisi');if(wa.length<9||wa.length>15)return toast('Nomor WhatsApp tidak valid');if(!/^\d{4,8}$/.test(pin))return toast('PIN harus 4–8 angka');
+  await busy(btn,async()=>{
+    const acc=await readKey('penjual_accounts',{}),A=acc&&typeof acc==='object'&&!Array.isArray(acc)?acc:{};
+    if(A[wa]){toast('Nomor ini sudah punya akun penjual. Pakai tab "Akun yang sudah ada".');return}
+    const arr=await readKey('penjual_members',[]),list=Array.isArray(arr)?arr:[],s=tokoOf(name);
+    const i=s&&s.member&&!punyaAkun(s.member)?list.findIndex(x=>x&&x.id===s.member.id):-1;
+    const id=i>=0?list[i].id:'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    const rec={...(i>=0?list[i]:{buka:'08:00',tutup:'17:00',aktif:true,status:'Show',dusun:''}),id,nama,wa,toko:name,usaha:name,pending:false,updated:Date.now()};delete rec.dibuatAdmin;
+    if(i>=0)list[i]=rec;else list.push(rec);
+    A[wa]={h:await hashPinPenjual(wa,pin),id};
+    await setSetting('penjual_accounts',A);S.settings.penjual_accounts=A;
+    await setSetting('penjual_members',list);S.settings.penjual_members=list;
+    infoSerah(name,nama,wa,pin);
+  });
+}
+async function serahAda(name,btn){
+  const id=$('#srPilih').value;if(!id)return;
+  await busy(btn,async()=>{
+    const arr=await readKey('penjual_members',[]);let list=Array.isArray(arr)?arr:[];const s=tokoOf(name);
+    const j=list.findIndex(x=>x&&x.id===id);if(j<0){toast('Akun tidak ditemukan');return}
+    const bayangan=s&&s.member&&!punyaAkun(s.member)?list.find(x=>x&&x.id===s.member.id):null;
+    const rec={...list[j],toko:name,usaha:name,pending:false,updated:Date.now()};
+    if(bayangan){if(!rec.dusun&&bayangan.dusun)rec.dusun=bayangan.dusun;if(!Number(rec.latitude)&&Number(bayangan.latitude)){rec.latitude=bayangan.latitude;rec.longitude=bayangan.longitude}}
+    list[j]=rec;if(bayangan)list=list.filter(x=>x!==bayangan);
+    await setSetting('penjual_members',list);S.settings.penjual_members=list;
+    closeModal();render();toast(`"${name}" diserahkan ke ${rec.nama||'penjual'}`);
+  });
+}
+function infoSerah(toko,nama,wa,pin){
+  const pesan=`Halo ${nama}, toko "${toko}" di Kalensari Store sudah menjadi milik Anda.\n\nMasuk di: https://kalensari.web.id/penjual.html\nNo. WhatsApp: ${wa.replace(/^62/,'0')}\nPIN: ${pin}\n\nSilakan ganti PIN setelah masuk. Terima kasih 🙏`;
+  modal(`<h3>✅ Toko berhasil diserahkan</h3>
+  <p class="sm" style="margin:0 0 10px">Kirim info masuk ini ke pemilik baru:</p>
+  <div style="background:var(--gl);border-radius:12px;padding:12px;font-size:13px;white-space:pre-line">${esc(pesan)}</div>
+  <div class="mact"><button class="btn btn-o" onclick="closeModal();render()">Tutup</button><a class="btn btn-g" style="text-decoration:none" href="https://wa.me/${esc(wa)}?text=${encodeURIComponent(pesan)}" target="_blank" rel="noopener" onclick="setTimeout(()=>{closeModal();render()},300)">💬 Kirim via WhatsApp</a></div>`);
+}
 async function toggleShop(name,btn){
   await busy(btn,async()=>{const cur=await readKey('closed_sellers',{}),m=cur&&typeof cur==='object'&&!Array.isArray(cur)?cur:{},k=sKey(name),closing=!m[k];
     if(closing)m[k]=true;else delete m[k];await setSetting('closed_sellers',m);S.settings.closed_sellers=m;render();toast(closing?`${name} ditutup, produknya tidak bisa dipesan`:`${name} dibuka lagi`)})}
@@ -1188,30 +1290,36 @@ function loadLeaflet(){
   _leaflet=add('https://unpkg.com/leaflet@1.9.4/dist').catch(()=>add('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist'));return _leaflet;
 }
 let tmap=null,tSat=true;
+// Peta pilih titik (pin di tengah). Dipakai Tempat Patokan & Edit Toko. id = awalan elemen (mis. 'tp' -> #tpMap, #tpSat, #tpGps, #tpPaste)
+function petaHTML(id,tinggi){return `<div style="position:relative;height:${tinggi||260}px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"><div id="${id}Map" style="position:absolute;inset:0"></div>
+      <svg width="34" height="42" viewBox="0 0 44 54" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:500;pointer-events:none"><path d="M22 2C11 2 3 10 3 21c0 14 19 31 19 31s19-17 19-31C41 10 33 2 22 2z" fill="#b83c2b" stroke="#fff" stroke-width="3"/><circle cx="22" cy="21" r="7" fill="#fff"/></svg>
+      <button type="button" id="${id}Sat" style="position:absolute;top:8px;right:8px;z-index:600;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-weight:700;font-size:12px">🗺️ Peta</button>
+      <button type="button" id="${id}Gps" style="position:absolute;bottom:8px;right:8px;z-index:600;background:#fff;border:0;border-radius:50%;width:40px;height:40px;box-shadow:0 1px 5px #0004;font-size:18px">🎯</button></div>
+    <input class="inp" id="${id}Paste" style="margin-top:8px" placeholder="Atau tempel link Google Maps / koordinat">`}
+const ambilLL=v=>{v=String(v||'');const m=v.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)||v.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)||v.match(/[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i)||v.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/);if(!m)return null;const a=+String(m[1]).replace(',','.'),b=+String(m[2]).replace(',','.');return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a)<=90&&Math.abs(b)<=180&&!(a===0&&b===0)?[a,b]:null};
+async function pasangPeta(id,lat,lng){
+  try{await loadLeaflet()}catch(e){$('#'+id+'Map').innerHTML='<p style="padding:12px;font-size:12px;color:var(--mut)">Peta tidak bisa dimuat. Tempel link Google Maps / koordinat di bawah.</p>';return null}
+  const pts=[...tempatNow(),...members('penjual').map(m=>({lat:+m.latitude,lng:+m.longitude}))].filter(x=>Number.isFinite(+x.lat)&&Number.isFinite(+x.lng)&&+x.lat);
+  const ada=Number.isFinite(+lat)&&Number.isFinite(+lng)&&+lat!==0&&lat!==null&&lat!=='';
+  const map=L.map(id+'Map').setView(ada?[+lat,+lng]:pts.length?[pts[0].lat,pts[0].lng]:[-6.36,107.9],ada?18:16);
+  const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}),
+        sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'© Esri'}),
+        lbl=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18});
+  const dasar=()=>{[osm,sat,lbl].forEach(l=>map.hasLayer(l)&&map.removeLayer(l));if(tSat){sat.addTo(map);lbl.addTo(map)}else osm.addTo(map);$('#'+id+'Sat').textContent=tSat?'🗺️ Peta':'🛰️ Satelit'};dasar();
+  $('#'+id+'Sat').onclick=()=>{tSat=!tSat;dasar()};
+  $('#'+id+'Gps').onclick=()=>navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],18),()=>toast('Lokasi tidak tersedia'),{enableHighAccuracy:true,timeout:15000});
+  $('#'+id+'Paste').onchange=()=>{const ll=ambilLL($('#'+id+'Paste').value);if(ll){map.setView(ll,18);toast('Titik dipindah ke lokasi tersebut')}else toast('Link / koordinat tidak dikenali')};
+  setTimeout(()=>map.invalidateSize(),60);return map;
+}
 async function tempatForm(i){
   const t=i!=null?tempatNow()[i]:{nama:'',e:'🕌',lat:null,lng:null};
   modal(`<h3>${i!=null?'Ubah':'Tambah'} Tempat Patokan</h3>
   <div class="field"><label>Nama tempat</label><input class="inp" id="tpN" maxlength="40" value="${esc(t.nama)}" placeholder="mis. Masjid Jami Kalensari"></div>
   <div class="field"><label>Ikon</label><select class="inp" id="tpE">${IKON_TEMPAT.map(([e,n])=>`<option value="${e}" ${e===t.e?'selected':''}>${e} ${n}</option>`).join('')}</select></div>
   <div class="field"><label>Lokasi — geser peta sampai pin tepat di tempatnya</label>
-    <div style="position:relative;height:260px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"><div id="tpMap" style="position:absolute;inset:0"></div>
-      <svg width="34" height="42" viewBox="0 0 44 54" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);z-index:500;pointer-events:none"><path d="M22 2C11 2 3 10 3 21c0 14 19 31 19 31s19-17 19-31C41 10 33 2 22 2z" fill="#b83c2b" stroke="#fff" stroke-width="3"/><circle cx="22" cy="21" r="7" fill="#fff"/></svg>
-      <button type="button" id="tpSat" style="position:absolute;top:8px;right:8px;z-index:600;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-weight:700;font-size:12px">🗺️ Peta</button>
-      <button type="button" id="tpGps" style="position:absolute;bottom:8px;right:8px;z-index:600;background:#fff;border:0;border-radius:50%;width:40px;height:40px;box-shadow:0 1px 5px #0004;font-size:18px">🎯</button></div>
-    <input class="inp" id="tpPaste" style="margin-top:8px" placeholder="Atau tempel link Google Maps / koordinat"></div>
+    ${petaHTML('tp')}</div>
   <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="simpanTempat(${i??-1},this)">Simpan</button></div>`);
-  try{await loadLeaflet()}catch(e){$('#tpMap').innerHTML='<p style="padding:12px;font-size:12px;color:var(--mut)">Peta tidak bisa dimuat. Tempel link Google Maps / koordinat di bawah.</p>';return}
-  const pts=[...tempatNow(),...members('penjual').map(m=>({lat:+m.latitude,lng:+m.longitude}))].filter(x=>Number.isFinite(+x.lat)&&Number.isFinite(+x.lng)&&+x.lat);
-  const start=t.lat!=null?[t.lat,t.lng]:pts.length?[pts[0].lat,pts[0].lng]:[-6.36,107.9];
-  tmap=L.map('tpMap').setView(start,t.lat!=null?18:16);
-  const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}),
-        sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'© Esri'}),
-        lbl=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18});
-  const dasar=()=>{[osm,sat,lbl].forEach(l=>tmap.hasLayer(l)&&tmap.removeLayer(l));if(tSat){sat.addTo(tmap);lbl.addTo(tmap)}else osm.addTo(tmap);$('#tpSat').textContent=tSat?'🗺️ Peta':'🛰️ Satelit'};dasar();
-  $('#tpSat').onclick=()=>{tSat=!tSat;dasar()};
-  $('#tpGps').onclick=()=>navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>tmap.setView([p.coords.latitude,p.coords.longitude],18),()=>toast('Lokasi tidak tersedia'),{enableHighAccuracy:true,timeout:15000});
-  $('#tpPaste').onchange=()=>{const v=$('#tpPaste').value,m=v.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)||v.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)||v.match(/[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i)||v.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/);if(!m)return toast('Format tidak dikenali');tmap.setView([+String(m[1]).replace(',','.'),+String(m[2]).replace(',','.')],18);$('#tpPaste').value=''};
-  setTimeout(()=>tmap.invalidateSize(),60);
+  tmap=await pasangPeta('tp',t.lat,t.lng);
 }
 async function simpanTempat(i,btn){
   const nama=$('#tpN').value.replace(/\s+/g,' ').trim();if(!nama)return toast('Nama tempat wajib diisi');
