@@ -601,7 +601,10 @@ pengaturan(){
   ${gmapsCard()}
   <div class="card"><div class="chead"><h3>🔔 Notifikasi Admin</h3></div>
     <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:4px">Kabar pesanan baru &amp; pendaftar baru (penjual, kurir, jasa) dikirim ke perangkat ini. Aktifkan di HP dan/atau komputer admin.</p>
-    <div id="admNotif">${window.KSNotif?'':'<p class="sm">File notif.js belum terunggah.</p>'}</div></div>
+    <div id="admNotif">${window.KSNotif?'':'<p class="sm">File notif.js belum terunggah.</p>'}</div>
+    <p class="sm" style="font-weight:700;margin:14px 0 6px">Jenis notifikasi admin <span style="font-weight:400;color:var(--mut)">(berlaku untuk semua perangkat admin)</span></p>
+    <label class="sm" style="display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer"><input type="checkbox" id="anPes" ${admPref().pesanan?'checked':''} onchange="saveAdmPref(this)" style="width:18px;height:18px">🛒 Pesanan baru</label>
+    <label class="sm" style="display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer"><input type="checkbox" id="anDaf" ${admPref().daftar?'checked':''} onchange="saveAdmPref(this)" style="width:18px;height:18px">👤 Pendaftar baru (penjual, kurir, jasa)</label></div>
   <div class="card"><div class="chead"><h3>Akun Admin</h3></div>
     <div class="detail-row"><span>Email</span><b>${esc((auth&&auth.email)||'-')}</b></div>
     <p class="sm" style="color:var(--mut);font-size:12px;margin:12px 0">Akun ini sama dengan login ⚙️ Admin di toko. Ganti kata sandi atau tambah admin dari Supabase &gt; Authentication &gt; Users dan tabel <code>admins</code>.</p>
@@ -1132,6 +1135,13 @@ async function hapusTempat(i,btn){const t=tempatNow()[i];if(!t||!confirm('Hapus 
   const l=tempatNow().filter((_,k)=>k!==i);await busy(btn,async()=>{await setSetting('transport_places',l);S.settings.transport_places=l;render();toast('Tempat dihapus')})}
 
 /* ========== PENGATURAN ========== */
+function admPref(){const v=S.settings.admin_push&&typeof S.settings.admin_push==='object'?S.settings.admin_push:{};return{pesanan:v.pesanan!==false,daftar:v.daftar!==false}}
+async function saveAdmPref(el){
+  el.disabled=true;
+  try{const cur=await readKey('admin_push',{});const v={...(cur&&typeof cur==='object'?cur:{}),pesanan:$('#anPes').checked,daftar:$('#anDaf').checked};
+    await setSetting('admin_push',v);S.settings.admin_push=v;toast((el.checked?'🔔 Notifikasi ':'🔕 Notifikasi ')+(el.id==='anPes'?'pesanan baru':'pendaftar baru')+(el.checked?' dinyalakan':' dimatikan'))}
+  catch(e){el.checked=!el.checked;toast('Gagal menyimpan: '+String(e.message||e).slice(0,80))}
+  finally{el.disabled=false}}
 async function saveWa(btn){const n=phoneKey($('#sWa').value);if(n.length<9||n.length>15)return toast('Nomor WhatsApp tidak valid');
   await busy(btn,async()=>{await setSetting('whatsapp_number',n);S.settings.whatsapp_number=n;render();toast('Nomor WhatsApp disimpan')})}
 

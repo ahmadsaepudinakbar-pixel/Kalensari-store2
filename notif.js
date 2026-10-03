@@ -37,15 +37,15 @@
   }
   function hdr(token) { var k = C.supabaseAnonKey; return { apikey: k, Authorization: "Bearer " + (token || k), "Content-Type": "application/json" }; }
   async function simpan(key, sub, extra, token) {
-    var h = hdr(token), cur = [];
+    var h = hdr(token), cur = [], lama = {};
     try {
       var r0 = await fetch(BASE + "/rest/v1/store_settings?select=value&key=eq." + encodeURIComponent(key), { headers: h });
-      var j = await r0.json(); cur = (j[0] && j[0].value && j[0].value.subs) || [];
+      var j = await r0.json(); lama = (j[0] && j[0].value && typeof j[0].value === "object") ? j[0].value : {}; cur = Array.isArray(lama.subs) ? lama.subs : [];
     } catch (e) {}
     var js = sub.toJSON();
     cur = cur.filter(function (x) { return x && x.endpoint !== js.endpoint; });
     cur.push({ endpoint: js.endpoint, keys: js.keys });
-    var val = Object.assign({}, extra || {}, { subs: cur.slice(-5), t: Date.now() });
+    var val = Object.assign({}, lama, extra || {}, { subs: cur.slice(-5), t: Date.now() });
     var r = await fetch(BASE + "/rest/v1/store_settings?on_conflict=key", { method: "POST", headers: Object.assign({}, h, { Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify([{ key: key, value: val }]) });
     if (!r.ok) throw new Error("Gagal menyimpan (" + r.status + ")");
     try { localStorage.setItem("ks_notif_" + key, "1"); } catch (e) {}
@@ -57,6 +57,19 @@
     var s = await berlangganan();
     await simpan(key, s, opt.extra, typeof opt.token === "function" ? await opt.token() : opt.token);
     return s;
+  }
+  async function matikan(key, token) {
+    var h = hdr(token), s = null;
+    try { s = await langgananSaatIni(); } catch (e) {}
+    if (s) {
+      var r0 = await fetch(BASE + "/rest/v1/store_settings?select=value&key=eq." + encodeURIComponent(key), { headers: h });
+      var j = await r0.json(), lama = (j[0] && j[0].value && typeof j[0].value === "object") ? j[0].value : {};
+      var ep = s.endpoint, subs = (Array.isArray(lama.subs) ? lama.subs : []).filter(function (x) { return x && x.endpoint !== ep; });
+      var r = await fetch(BASE + "/rest/v1/store_settings?on_conflict=key", { method: "POST", headers: Object.assign({}, h, { Prefer: "resolution=merge-duplicates,return=minimal" }), body: JSON.stringify([{ key: key, value: Object.assign({}, lama, { subs: subs, t: Date.now() }) }]) });
+      if (!r.ok) throw new Error("Gagal mematikan (" + r.status + ")");
+    }
+    try { localStorage.setItem("ks_notif_" + key, "0"); } catch (e) {}
+    SUDAH[key] = 0;
   }
   async function tes(key) {
     try {
@@ -73,7 +86,8 @@
     if (Notification.permission === "denied") return "diblokir";
     if (Notification.permission !== "granted") return "belum";
     var s = null; try { s = await langgananSaatIni(); } catch (e) {}
-    return s ? "aktif" : "belum";
+    var mati = false; try { mati = localStorage.getItem("ks_notif_" + key) === "0"; } catch (e) {}
+    return s && !mati ? "aktif" : "belum";
   }
 
   var CSS_OK = false, SUDAH = {};
@@ -108,7 +122,7 @@
         // simpan ulang supaya langganan di perangkat ini selalu tercatat untuk akun ini
         try { var sub = await langgananSaatIni(); if (sub && !SUDAH[key]) { SUDAH[key] = 1; Promise.resolve(typeof opt.token === "function" ? opt.token() : opt.token).then(function (tk) { return simpan(key, sub, opt.extra, tk); }).catch(function () { SUDAH[key] = 0; }); } } catch (e) {}
         if (opt.sembunyiBilaAktif) { el.innerHTML = ""; return; }
-        el.innerHTML = '<div class="ksn ok"><b>🔔 Notifikasi aktif</b><p>' + esc(opt.aktifTeks || "Anda akan diberi tahu di HP ini walaupun aplikasi ditutup.") + '</p><div class="ksb" style="margin-top:10px"><button type="button" class="ks2" data-t>Kirim tes</button></div></div>';
+        el.innerHTML = '<div class="ksn ok"><b>🔔 Notifikasi aktif</b><p>' + esc(opt.aktifTeks || "Anda akan diberi tahu di HP ini walaupun aplikasi ditutup.") + '</p><div class="ksb" style="margin-top:10px"><button type="button" class="ks2" data-t>Kirim tes</button>' + (opt.tanpaMatikan ? '' : '<button type="button" class="ks2" data-m>🔕 Matikan di perangkat ini</button>') + '</div></div>';
       } else if (s === "belum") {
         el.innerHTML = '<div class="ksn"><b>' + esc(opt.judul || "🔔 Aktifkan notifikasi") + '</b><p>' + esc(opt.ajakan || "Dapatkan pemberitahuan di HP walaupun aplikasi sedang ditutup.") + '</p><div class="ksb"><button type="button" data-a>🔔 Aktifkan notifikasi</button></div></div>';
       } else if (s === "diblokir") {
@@ -118,7 +132,14 @@
       } else {
         el.innerHTML = opt.sembunyiBilaAktif ? "" : '<div class="ksn"><b>🔔 Notifikasi</b><p>Browser ini belum mendukung notifikasi. Coba buka dengan Google Chrome.</p></div>';
       }
-      var a = el.querySelector("[data-a]"), t = el.querySelector("[data-t]");
+      var a = el.querySelector("[data-a]"), t = el.querySelector("[data-t]"), m = el.querySelector("[data-m]");
+      if (m) m.onclick = async function () {
+        if (!confirm("Matikan notifikasi di perangkat ini?")) return;
+        m.disabled = true;
+        try { await matikan(key, typeof opt.token === "function" ? await opt.token() : opt.token); toastKecil("🔕 Notifikasi dimatikan di perangkat ini"); }
+        catch (e) { toastKecil(String(e.message || e).slice(0, 90)); }
+        render();
+      };
       if (a) a.onclick = async function () {
         if (sibuk) return; sibuk = true; a.disabled = true; a.textContent = "Mengaktifkan...";
         try { await aktifkan(key, opt); toastKecil("✅ Notifikasi diaktifkan"); }
@@ -155,5 +176,5 @@
     };
   }
 
-  window.KSNotif = { didukung: didukung, status: status, aktifkan: aktifkan, tes: tes, kartu: kartu, tawarkan: tawarkan };
+  window.KSNotif = { didukung: didukung, status: status, aktifkan: aktifkan, matikan: matikan, tes: tes, kartu: kartu, tawarkan: tawarkan };
 })();
