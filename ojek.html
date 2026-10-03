@@ -374,11 +374,13 @@ async function kurirSiap(){
   }catch(e){}
   return {total:siap.length, bebas:siap.filter(m => !sibuk.has(m.id)).length};
 }
+let KURIR_NOL = false;
 async function renderAvail(){
   try{ const k = await kurirSiap(); const el = $("avail"); el.hidden = false;
     if(k.bebas > 0){ el.className = "avail ok"; el.textContent = `🟢 ${k.bebas} kurir siap mengantar sekarang`; }
     else if(k.total > 0){ el.className = "avail no"; el.textContent = "⏳ Semua kurir sedang mengantar. Pesanan tetap bisa dibuat dan akan diambil kurir pertama yang selesai."; }
-    else { el.className = "avail no"; el.textContent = "⚠️ Belum ada kurir yang aktif saat ini. Pesanan akan menunggu sampai ada kurir aktif."; }
+    else { el.className = "avail no"; el.textContent = "⚠️ Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa dibuat. Silakan coba lagi beberapa saat lagi."; }
+    KURIR_NOL = k.total === 0;
   }catch(e){}
 }
 
@@ -398,6 +400,8 @@ try{ const s = JSON.parse(localStorage.getItem("kalensari_ojek_pemesan") || "{}"
 // ===== Pesan =====
 const MAP = p => `__KS_MAP__${p.lat},${p.lng}__END__`;
 $("btnPesan").onclick = async () => {
+  if(cloudOn()){ try{ const k = await kurirSiap(); KURIR_NOL = k.total === 0; }catch(e){} }
+  if(KURIR_NOL){ renderAvail(); return alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini. Silakan coba lagi beberapa saat lagi."); }
   if(!cloudOn()) return toast("Database online belum aktif");
   const nama = $("nama").value.trim(), wa = norm($("wa").value), h = hitung();
   if(!A) return toast(layanan === "paket" ? "Pilih lokasi ambil barang dulu" : "Pilih lokasi jemput dulu");

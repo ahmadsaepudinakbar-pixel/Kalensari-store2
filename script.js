@@ -581,6 +581,7 @@ function renderCart() {
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutBtn").disabled=!items.length;
+  renderCekPesan();
 }
 function updateCartCount() {document.getElementById("cartCount").textContent=cart.reduce((s,i)=>s+i.qty,0);}
 function openModal(id) {document.getElementById(id).classList.add("show")}
@@ -645,7 +646,46 @@ setupCheckoutMaps();
 
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
 document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("show")}));
-document.getElementById("cartBtn").onclick=()=>{{const la=document.getElementById("ksMapLat"),ln=document.getElementById("ksMapLng");if(la)la.value="";if(ln)ln.value="";}renderCart();openModal("cartModal")};
+// ===== Cek sebelum checkout: penjual buka & ada kurir aktif. Alasannya ditampilkan ke pembeli. =====
+let KS_KURIR=null; // jumlah kurir aktif (null = belum/ tidak bisa dicek -> tidak memblokir)
+async function jumlahKurirAktif(){
+  if(!CLOUD_CONFIG?.enabled) return null;
+  try{
+    const rows=await cloudFetch("store_settings?select=key,value&key=in.(kurir_members,kurir_biaya)");
+    const S={};(rows||[]).forEach(r=>{S[r.key]=r.value;});
+    let siap=(Array.isArray(S.kurir_members)?S.kurir_members:[]).filter(m=>m&&m.id&&m.pending!==true&&m.aktif!==false);
+    const b=S.kurir_biaya&&typeof S.kurir_biaya==="object"?S.kurir_biaya:{};
+    if(b.aktif){
+      const min=b.mode==="persen"?(Number(b.minSaldo)||1000):Math.max(Number(b.minSaldo)||0,Number(b.potong)||0);
+      try{const s={};(await cloudFetch("kurir_saldo?select=kurir_id,saldo")).forEach(x=>{s[x.kurir_id]=Number(x.saldo)||0;});siap=siap.filter(m=>(s[m.id]||0)>=min);}catch(e){}
+    }
+    return siap.length;
+  }catch(e){ return null; }
+}
+function alasanTidakBisaPesan(){
+  const a=[],closed=closedCartItems();
+  const tutup=[...new Set(closed.filter(p=>p.status==="Show"&&allSellersClosed(p)).map(p=>p.seller).filter(Boolean))];
+  if(tutup.length) a.push(`🏪 Toko <b>${esc(tutup.join(", "))}</b> sedang tutup. Hapus produknya dari keranjang atau pesan lagi saat toko buka.`);
+  const habis=closed.filter(p=>p.status!=="Show").map(p=>p.name);
+  if(habis.length) a.push(`📦 Stok habis: <b>${esc(habis.join(", "))}</b>. Hapus dari keranjang untuk melanjutkan.`);
+  const jam=closed.filter(p=>p.status==="Show"&&!allSellersClosed(p)&&!isInHours(p));
+  if(jam.length) a.push(`🕒 Belum waktunya: ${jam.map(p=>`<b>${esc(p.name)}</b> (tersedia ${esc(hoursText(p))})`).join(", ")}.`);
+  if(KS_KURIR===0) a.push("🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");
+  return a;
+}
+function renderCekPesan(){
+  const btn=document.getElementById("checkoutBtn");if(!btn)return;
+  let box=document.getElementById("ksCekPesan");
+  if(!box){box=document.createElement("div");box.id="ksCekPesan";box.style.cssText="margin:10px 0;padding:12px 14px;border-radius:14px;background:#fdecea;color:#7a2318;font-size:14px;line-height:1.45";btn.insertAdjacentElement("beforebegin",box);}
+  const al=cart.length?alasanTidakBisaPesan():[];
+  box.hidden=!al.length;
+  box.innerHTML=al.length?`<b>⚠️ Pesanan belum bisa dibuat</b><ul style="margin:6px 0 0;padding-left:18px">${al.map(x=>`<li style="margin:4px 0">${x}</li>`).join("")}</ul>`:"";
+  if(al.length)btn.disabled=true;
+  return al;
+}
+async function cekBisaPesan(){ KS_KURIR=await jumlahKurirAktif(); return renderCekPesan()||[]; }
+const teksAlasan=al=>al.map(x=>"• "+x.replace(/<[^>]+>/g,"")).join("\n\n");
+document.getElementById("cartBtn").onclick=()=>{{const la=document.getElementById("ksMapLat"),ln=document.getElementById("ksMapLng");if(la)la.value="";if(ln)ln.value="";}renderCart();cekBisaPesan();openModal("cartModal")};
 // Tombol Kosongkan Keranjang: hapus seluruh isi keranjang dan simpan ke localStorage.
 document.getElementById("clearCartBtn").onclick=()=>{
   if(!cart.length){showToast("🛒 Keranjang sudah kosong");return;}
@@ -657,7 +697,7 @@ document.getElementById("clearCartBtn").onclick=()=>{
   showToast("🗑️ Keranjang berhasil dikosongkan");
 };
 document.getElementById("checkoutBtn").onclick=async()=>{
-  const closed=closedCartItems(); if(closed.length){alertClosedItems(closed);return;}
+  {const al=await cekBisaPesan(); if(al.length){alert("Pesanan belum bisa dibuat:\n\n"+teksAlasan(al));return;}}
   if(!cart.length) return;
   const b=await loadBuyer();
   if(!b){ sessionStorage.setItem("kalensari_next","checkout"); showToast("Silakan masuk sebagai pembeli dulu..."); setTimeout(()=>{location.href="akun-pembeli.html";},900); return; }
@@ -708,6 +748,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   if(!checkoutBuyer){showToast("Silakan masuk sebagai pembeli dulu");return;}
   await Promise.all([loadCloudSettings(),refreshProductStatus()]);
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
+  {KS_KURIR=await jumlahKurirAktif();if(KS_KURIR===0){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");return;}}
   const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),route=shippingRoute(items),shipping=route.fee,total=subtotal+shipping;
   const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
   const orderCode=await makeUniqueOrderCode();
