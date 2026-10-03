@@ -279,6 +279,7 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
   <symbol id="i-wa" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A9 9 0 1 1 8 19.6z"/></symbol>
   <symbol id="i-truck" viewBox="0 0 24 24"><path d="M1 4h13v12H1zM14 8h4l4 4v4h-8"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
 </svg>
 
@@ -372,6 +373,8 @@ const fmtTime=d=>new Date(d).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'
 const fmtDate=d=>new Date(d).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 function ago(d){const s=(Date.now()-new Date(d).getTime())/1000;if(s<60)return 'baru saja';if(s<3600)return Math.floor(s/60)+' menit yang lalu';if(s<86400)return Math.floor(s/3600)+' jam yang lalu';if(s<86400*30)return Math.floor(s/86400)+' hari yang lalu';return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}
 const orderCode=o=>o.order_code||('#'+o.id);
+const transOf=o=>{const it=Array.isArray(o.items)?o.items[0]:null;return it&&it.layanan?it:null};
+const kurirOf=o=>{const st=S.settings['kurir_ord_'+o.order_code];return st&&st.acc?st.acc:null};
 const cleanMap=t=>String(t||'').replace(/\s*__KS_MAP__-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?__END__\s*/g,' ').trim();
 const firstItem=o=>(Array.isArray(o.items)&&o.items[0])||null;
 
@@ -391,16 +394,16 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['pengaturan','Pengaturan','gear']
 ];
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
-let route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
+let jenisFilter='Semua',route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
 
 function renderNav(){
   const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
   $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}${k==='persetujuan'&&pendingTotal()?`<span class="cnt" style="background:var(--orange)">${pendingTotal()}</span>`:''}</a>`).join('');
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
-    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','persetujuan','promosi','laporan','pengaturan','lainnya'].includes(route));
+    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','pengaturan','lainnya'].includes(route));
     const dot=k==='lainnya'&&pendingTotal()?`<span style="position:absolute;top:2px;right:calc(50% - 16px);background:var(--orange);color:#fff;font-size:10px;border-radius:99px;min-width:16px;padding:0 4px;font-weight:700">${pendingTotal()}</span>`:'';
     return `<button class="${on?'on':''}" style="position:relative" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}${dot}</button>`}).join('');
   const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
@@ -519,13 +522,16 @@ dashboard(){
     </div></div>`;
 },
 pesanan(){
-  const sts=['Semua','Baru','Diproses','Dikirim','Selesai','Batal'];
-  const cnt=s=>s==='Semua'?S.orders.length:S.orders.filter(o=>stLabel(o.status)===s).length;
+  const sts=['Semua','Baru','Diproses','Dikirim','Selesai','Batal'],jen=[['Semua','Semua jenis'],['Belanja','🛍️ Belanja'],['Ojek','🛵 Ojek & Paket']];
+  const byJ=o=>jenisFilter==='Semua'||(jenisFilter==='Ojek')===!!transOf(o);
+  const base=S.orders.filter(byJ);
+  const cnt=s=>s==='Semua'?base.length:base.filter(o=>stLabel(o.status)===s).length;
   const ql=q.toLowerCase();
-  const list=S.orders.filter(o=>(orderFilter==='Semua'||stLabel(o.status)===orderFilter)&&[o.order_code,o.id,o.customer_name,o.customer_phone].join(' ').toLowerCase().includes(ql)).slice(0,200);
+  const list=base.filter(o=>(orderFilter==='Semua'||stLabel(o.status)===orderFilter)&&[o.order_code,o.id,o.customer_name,o.customer_phone].join(' ').toLowerCase().includes(ql)).slice(0,200);
   return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari kode pesanan / nama / nomor WA..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
+  <div class="tabs">${jen.map(([k,l])=>`<button class="tab ${jenisFilter===k?'on':''}" onclick="jenisFilter='${k}';render()">${l}<span class="n">${k==='Semua'?S.orders.length:S.orders.filter(o=>(k==='Ojek')===!!transOf(o)).length}</span></button>`).join('')}</div>
   <div class="tabs">${sts.map(s=>`<button class="tab ${orderFilter===s?'on':''}" onclick="orderFilter='${s}';render()">${s}<span class="n">${cnt(s)}</span></button>`).join('')}</div>
-  <div class="cards" id="list">${list.length?list.map(o=>{const n=Array.isArray(o.items)?o.items.length:0;return `<div class="lc" style="cursor:pointer" onclick="openOrder(${Number(o.id)})"><div class="pimg" style="width:54px;height:54px;font-size:28px;overflow:hidden">${prodThumb(firstItem(o))}</div><div class="meta"><b>${esc(orderCode(o))}</b><div class="sm">${esc(o.customer_name||'-')}${n?` · ${n} item`:''}</div><div class="pr">${rp(o.total)}</div><div class="sm">${ago(o.created_at)}</div></div><div class="right-col">${statusBadge(o)}${ico('right','color:#b6bec9')}</div></div>`}).join(''):'<div class="empty">Tidak ada pesanan</div>'}</div>`;
+  <div class="cards" id="list">${list.length?list.map(o=>{const n=Array.isArray(o.items)?o.items.length:0,t=transOf(o),kr=kurirOf(o);return `<div class="lc" style="cursor:pointer" onclick="openOrder(${Number(o.id)})"><div class="pimg" style="width:54px;height:54px;font-size:28px;overflow:hidden">${t?(t.layanan==='paket'?'📦':'🛵'):prodThumb(firstItem(o))}</div><div class="meta"><b>${esc(orderCode(o))}</b><div class="sm">${esc(o.customer_name||'-')}${t?` · ${t.layanan==='paket'?'Kirim paket':'Ojek'} ${String(t.km||'').replace('.',',')} km`:n?` · ${n} item`:''}</div>${kr?`<div class="sm">🛵 Kurir: <span style="font-weight:700;color:var(--tx)">${esc(kr.nama||'-')}</span></div>`:''}<div class="pr">${rp(o.total)}</div><div class="sm">${ago(o.created_at)}</div></div><div class="right-col">${statusBadge(o)}${ico('right','color:#b6bec9')}</div></div>`}).join(''):'<div class="empty">Tidak ada pesanan</div>'}</div>`;
 },
 produk(){
   const cats=['Semua',...allCats()];const sm=soldMap();
@@ -583,6 +589,7 @@ pengaturan(){
     <button class="btn btn-g full" onclick="saveWa(this)">Simpan Nomor</button>
     <p class="sm" style="color:var(--mut);font-size:12px;margin-top:14px">Ongkir, jadwal buka penjual, dan persetujuan akun penjual/kurir/jasa diatur dari menu ⚙️ Admin di halaman toko.</p>
     <a class="btn btn-light full" style="margin-top:8px;text-decoration:none" href="index.html">Buka halaman toko</a></div>
+  ${ongkirCard()}
   ${tarifCard()}
   ${tempatCard()}
   <div class="card"><div class="chead"><h3>Akun Admin</h3></div>
@@ -745,6 +752,7 @@ function openOrder(id){
   <div class="detail-row"><span>Subtotal</span><b>${rp(o.subtotal)}</b></div>
   <div class="detail-row"><span>Ongkir</span><b>${rp(o.shipping)}</b></div>
   <div class="detail-row"><span>Total</span><b>${rp(o.total)}</b></div>
+  ${kurirOf(o)?`<div class="detail-row"><span>Kurir</span><b>${esc(kurirOf(o).nama||'-')} · <a href="https://wa.me/${esc(kurirOf(o).wa)}" target="_blank" rel="noopener" style="color:var(--g2)">WhatsApp</a></b></div>`:(['Diproses'].includes(stLabel(o.status))&&transOf(o)?`<div class="detail-row"><span>Kurir</span><b style="color:var(--orange)">Mencari kurir...</b></div>`:'')}
   <div class="detail-row" style="border:0"><span>Status sekarang</span>${statusBadge(o)}</div>
   <p style="font-size:12px;color:var(--mut);margin:14px 0 8px;font-weight:600">Ubah status</p>
   <div class="st-pick">${['Baru','Diproses','Dikirim','Selesai'].map(s=>`<button class="${cur===s?'on':''}" onclick="setStatus(${Number(o.id)},'${s}',this)">${s}</button>`).join('')}</div>
@@ -838,6 +846,169 @@ async function savePromo(btn){const id=+$('#prP').value,p=getProd(id),s=Number($
   await busy(btn,async()=>{await patchProd(id,{sale:s});closeModal();if(route!=='promosi')go('promosi');else render();toast('Promo disimpan')})}
 function promoMenu(id){const p=getProd(id);modal(`<h3>${esc(p.name)}</h3><div class="mact" style="flex-direction:column"><button class="btn btn-light" onclick="promoForm(${Number(id)})">${ico('edit')}Ubah harga promo</button><button class="btn btn-red" onclick="endPromo(${Number(id)},this)">${ico('trash')}Akhiri promo</button><button class="btn" onclick="closeModal()">Batal</button></div>`)}
 async function endPromo(id,btn){await busy(btn,async()=>{await patchProd(id,{sale:null});closeModal();render();toast('Promo diakhiri')})}
+
+
+/* ========== ONGKIR PESANAN TOKO (sama dengan ⚙️ Admin > Ongkir di halaman toko) ========== */
+const ONG_FREE_KM=2,ONG_PER_KM=2500;
+const ongNow=()=>S.settings.shipping_fees&&typeof S.settings.shipping_fees==='object'&&!Array.isArray(S.settings.shipping_fees)?S.settings.shipping_fees:{};
+function ongkirCard(){
+  const f=ongNow(),fk=f.__freeKm??ONG_FREE_KM,pk=f.__perKm??ONG_PER_KM,rows=shops();
+  return `<div class="card" style="grid-column:1/-1"><div class="chead"><h3>🚚 Ongkir Pesanan Toko</h3></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:12px">Untuk belanja makanan/minuman. Tiap toko yang disinggahi kurir dihitung satu kali ongkir (2 toko = 2 × ongkir). Jarak tambahan dihitung dari toko terakhir ke pembeli.</p>
+    <div class="form-grid" style="gap:16px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div class="field"><label>Ongkir standar per toko (Rp)</label><input class="inp" type="number" min="0" step="500" id="og_def" value="${esc(Number(f.__default)||0)}"></div>
+      <div class="field"><label>Gratis tambahan sampai (km)</label><input class="inp" type="number" min="0" step="0.5" id="og_km" value="${esc(fk)}"></div>
+      <div class="field"><label>Tambahan per km (Rp)</label><input class="inp" type="number" min="0" step="500" id="og_per" value="${esc(pk)}"></div></div>
+    <details style="margin:4px 0 10px"><summary style="cursor:pointer;font-weight:700;font-size:13px;color:var(--g)">Ongkir khusus per toko (${rows.length} toko)</summary>
+      <p class="sm" style="color:var(--mut);font-size:12px;margin:8px 0">Kosongkan untuk memakai ongkir standar.</p>
+      <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">${rows.map((r,i)=>`<div class="lc" style="padding:10px"><div class="meta"><b>${esc(r.name)}</b><div class="sm">${r.count} produk</div></div><input class="inp og_toko" data-k="${esc(sKey(r.name))}" type="number" min="0" step="500" style="width:110px" placeholder="${esc(Number(f.__default)||0)}" value="${esc(f[sKey(r.name)]??'')}"></div>`).join('')}</div></details>
+    <button class="btn btn-g full" onclick="saveOngkir(this)">Simpan Ongkir</button></div>`;
+}
+async function saveOngkir(btn){
+  const num=id=>Number(String($('#'+id).value).replace(',','.'));
+  const d=num('og_def'),k=num('og_km'),pk=num('og_per');
+  if(!(d>=0)||!(k>=0)||!(pk>=0))return toast('Isi angka ongkir dengan benar');
+  await busy(btn,async()=>{
+    const cur=await readKey('shipping_fees',{}),f={...(cur&&typeof cur==='object'&&!Array.isArray(cur)?cur:{})};
+    f.__default=Math.round(d);f.__freeKm=k;f.__perKm=Math.round(pk);
+    document.querySelectorAll('.og_toko').forEach(el=>{const v=String(el.value).trim();if(v==='')delete f[el.dataset.k];else f[el.dataset.k]=Math.max(0,Math.round(Number(v)||0))});
+    await setSetting('shipping_fees',f);S.settings.shipping_fees=f;render();toast('Ongkir toko disimpan');
+  });
+}
+
+/* ========== JASA: kategori & penyedia (sama dengan ⚙️ Admin di halaman jasa.html) ========== */
+const DEFAULT_JASA = [
+ {nama:"Pak Wahyu",kategori:"Tukang urut",ket:"Tukang urut & pijat refleksi",buka:"08:00",tutup:"20:00",dusun:"Dusun Krajan",rating:4.9,harga:"Mulai Rp50.000",wa:"6281234567801",libur:[],layanan:["Urut badan","Pijat refleksi","Urut bayi (panggilan)"],status:"Show"},
+ {nama:"Kang Asep Ojek",kategori:"Tukang ojek",ket:"Antar jemput desa & ke pasar",buka:"05:00",tutup:"21:00",dusun:"Dusun Tengah",rating:4.8,harga:"Mulai Rp5.000",wa:"6281234567802",libur:[],layanan:["Antar jemput","Antar ke pasar","Antar anak sekolah"],status:"Show"},
+ {nama:"Rizal Net",kategori:"Pemasangan WiFi",ket:"Pemasangan WiFi & perbaikan jaringan",buka:"08:00",tutup:"21:00",dusun:"Dusun Krajan",rating:4.8,harga:"Pasang Rp150.000",wa:"6281234567804",libur:[],layanan:["Pasang WiFi baru","Perbaikan jaringan","Tarik kabel"],status:"Show"},
+ {nama:"Aman Cam",kategori:"Pemasangan CCTV",ket:"Pasang CCTV rumah & toko",buka:"08:00",tutup:"17:00",dusun:"Dusun Lor",rating:4.6,harga:"Survei gratis",wa:"6281234567805",libur:[],layanan:["Pasang CCTV","Survei lokasi gratis","Servis CCTV"],status:"Show"},
+ {nama:"Bu Siti Jahit",kategori:"Penjahit",ket:"Jahit baju, permak, seragam",buka:"09:00",tutup:"16:00",dusun:"Dusun Kidul",rating:4.7,harga:"Mulai Rp20.000",wa:"6281234567803",libur:[0],layanan:["Jahit baju","Permak","Seragam sekolah"],status:"Show"},
+ {nama:"Dani Komputer",kategori:"Servis komputer",ket:"Servis laptop & PC, install ulang",buka:"09:00",tutup:"17:00",dusun:"Dusun Tengah",rating:4.7,harga:"Cek Rp30.000",wa:"6281234567809",libur:[0],layanan:["Install ulang","Ganti LCD/baterai","Bersihkan virus"],status:"Show"},
+ {nama:"Servis Elektronik Hadi",kategori:"Servis elektronik",ket:"Servis TV, kulkas, mesin cuci",buka:"09:00",tutup:"17:00",dusun:"Dusun Kidul",rating:4.5,harga:"Cek Rp25.000",wa:"6281234567807",libur:[0],layanan:["Servis TV","Servis kulkas","Servis mesin cuci"],status:"Show"},
+ {nama:"Ifan Cell",kategori:"Servis HP",ket:"Servis HP, ganti layar & baterai",buka:"09:00",tutup:"20:00",dusun:"Dusun Krajan",rating:4.8,harga:"Cek Rp20.000",wa:"6281234567810",libur:[],layanan:["Ganti layar","Ganti baterai","Install ulang"],status:"Show"},
+ {nama:"Pak Darto Traktor",kategori:"Supir traktor sawah",ket:"Bajak & garu sawah (borongan)",buka:"06:00",tutup:"16:00",dusun:"Dusun Tengah",rating:4.9,harga:"Rp120.000/hari",wa:"6281234567806",libur:[0],layanan:["Bajak sawah","Garu sawah","Borongan per petak"],status:"Show"},
+ {nama:"Pasukan Grabag Kalensari",kategori:"Pasukan Grabag",ket:"Tim pekerja borongan, siap dipanggil",buka:"06:00",tutup:"17:00",dusun:"Dusun Lor",rating:4.6,harga:"Hubungi untuk harga",wa:"6281234567811",libur:[0],layanan:["Kerja borongan","Kerja harian","Tim sesuai kebutuhan"],status:"Show"},
+ {nama:"Mang Edi Supir",kategori:"Supir",ket:"Supir harian & antar luar kota",buka:"06:00",tutup:"22:00",dusun:"Dusun Kidul",rating:4.7,harga:"Rp250.000/hari",wa:"6281234567812",libur:[],layanan:["Supir harian","Antar luar kota","Sewa + supir"],status:"Show"},
+ {nama:"Kalensari Travel",kategori:"Travel",ket:"Travel antar kota, jadwal harian",buka:"05:00",tutup:"19:00",dusun:"Dusun Lor",rating:4.8,harga:"Mulai Rp80.000",wa:"6281234567813",libur:[],layanan:["Travel antar kota","Carter mobil","Antar ke bandara"],status:"Show"},
+ {nama:"Pak Yayan PAM",kategori:"Pemasangan air PAM",ket:"Pasang sambungan air PAM & perbaikan pipa",buka:"07:00",tutup:"17:00",dusun:"Dusun Tengah",rating:4.7,harga:"Survei gratis",wa:"6281234567814",libur:[0],layanan:["Sambungan PAM baru","Perbaikan pipa bocor","Pasang meteran"],status:"Show"},
+ {nama:"Pasukan Tandur Bu Warti",kategori:"Pasukan tandur",ket:"Tandur (tanam padi) borongan",buka:"05:00",tutup:"15:00",dusun:"Dusun Kidul",rating:4.8,harga:"Hubungi untuk harga",wa:"6281234567815",libur:[0],layanan:["Tandur borongan","Tandur harian","Tim 10–20 orang"],status:"Show"},
+ {nama:"Kelompok Ngerambet Pak Karta",kategori:"Ngerambet",ket:"Ngerambet (menyiangi gulma) sawah",buka:"05:00",tutup:"15:00",dusun:"Dusun Lor",rating:4.6,harga:"Hubungi untuk harga",wa:"6281234567816",libur:[0],layanan:["Ngerambet sawah","Borongan per petak","Harian"],status:"Show"},
+ {nama:"Rafi Joki",kategori:"Joki Gaming",ket:"Joki rank & push akun game mobile",buka:"10:00",tutup:"23:00",dusun:"Dusun Krajan",rating:4.7,harga:"Mulai Rp10.000",wa:"6281234567817",libur:[],layanan:["Joki rank","Push bintang","Joki harian"],status:"Show"}
+];
+const J_DEFKAT=[{n:"Kesehatan",e:"🩺"},{n:"Pertanian",e:"🌾"},{n:"Garment",e:"🧵"},{n:"Kecantikan",e:"💄"},{n:"Service",e:"🔧"},{n:"Game",e:"🎮"},{n:"Transportasi Online",e:"🛵",sub:["Ojek online","Kirim paket/barang"]}];
+const J_TRANS="Transportasi Online";
+const J_LAMA={"tukang urut":"Kesehatan","penjahit":"Garment","servis komputer":"Service","servis elektronik":"Service","servis hp":"Service","pemasangan wifi":"Service","pemasangan cctv":"Service","pemasangan air pam":"Service","supir traktor sawah":"Pertanian","pasukan tandur":"Pertanian","ngerambet":"Pertanian","pasukan grabag":"Pertanian","joki gaming":"Game"};
+const J_NAMA_LAMA=["tukang urut","tukang ojek","pemasangan wifi","pemasangan cctv","penjahit","servis komputer","servis elektronik","servis hp","supir traktor sawah","pasukan grabag","supir","travel","pemasangan air pam","pasukan tandur","ngerambet","joki gaming"];
+function jKatAll(){
+  let l=Array.isArray(S.settings.jasa_categories)&&S.settings.jasa_categories.length?S.settings.jasa_categories.filter(c=>c&&typeof c.n==='string'):J_DEFKAT.map(c=>({...c}));
+  if(l.some(c=>J_NAMA_LAMA.includes(String(c.n).toLowerCase()))){const b=J_DEFKAT.map(c=>({...c}));l.forEach(c=>{const k=String(c.n).toLowerCase();if(!J_NAMA_LAMA.includes(k)&&!b.some(x=>x.n.toLowerCase()===k))b.push(c)});l=b}
+  else if(!l.some(c=>c.n===J_TRANS))l=[...l,{...J_DEFKAT.find(c=>c.n===J_TRANS)}];
+  return l;
+}
+const jKat=()=>jKatAll().filter(c=>!c.hidden);
+const jKatBy=n=>jKat().find(c=>c.n===n);
+const jKatOf=j=>{const k=j.kategori||'';if(jKatBy(k))return k;const m=J_LAMA[k.toLowerCase()];return m&&jKatBy(m)?m:k};
+const jProv=()=>Array.isArray(S.settings.jasa_providers)?S.settings.jasa_providers:DEFAULT_JASA.map(j=>({...j}));
+const jMem=()=>(Array.isArray(S.settings.jasa_members)?S.settings.jasa_members:[]).filter(j=>j&&!j.pending);
+const jAll=()=>[...jProv().map((j,i)=>({...j,_src:'p',_i:i})),...jMem().map(j=>({...j,_src:'m'}))];
+const jIco=c=>c&&c.img?`<img src="${esc(c.img)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">`:esc((c&&c.e)||'🛠️');
+let jTab='Kategori',jKatF='Semua';
+function resizeImg(file,max){return new Promise((ok,no)=>{const fr=new FileReader();fr.onerror=no;fr.onload=()=>{const im=new Image();im.onerror=no;im.onload=()=>{const r=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);c.getContext('2d').drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.75))};im.src=fr.result};fr.readAsDataURL(file)})}
+async function saveJKat(l){await setSetting('jasa_categories',l);S.settings.jasa_categories=l}
+async function saveJProv(l){await setSetting('jasa_providers',l);S.settings.jasa_providers=l}
+async function saveJMemEntry(entry,delId){const cur=await readKey('jasa_members',[]);let l=(Array.isArray(cur)?cur:[]).slice();if(delId)l=l.filter(x=>x&&x.id!==delId);else{const k=l.findIndex(x=>x&&x.id===entry.id);if(k>=0)l[k]=entry;else l.push(entry)}await setSetting('jasa_members',l);S.settings.jasa_members=l;if(delId)await removeMember('jasa',delId,l)}
+
+PAGES.jasa=function(){
+  const tabs=['Kategori','Penyedia'];
+  const head=`<div class="tabs">${tabs.map(t=>`<button class="tab ${jTab===t?'on':''}" onclick="jTab='${t}';q='';render()">${t==='Kategori'?'🏷️ Kategori jasa':'👷 Penyedia jasa'}<span class="n">${t==='Kategori'?jKat().length:jAll().length}</span></button>`).join('')}<a class="tab" href="jasa.html" target="_blank" rel="noopener" style="text-decoration:none">Buka halaman jasa ↗</a></div>`;
+  if(jTab==='Kategori'){
+    const all=jAll();
+    return head+`<div class="toolbar"><p class="sm" style="flex:1;color:var(--mut);margin:0">Kategori tampil di halaman jasa. ${esc(J_TRANS)} adalah layanan kurir toko (tidak bisa dipilih penyedia).</p><button class="btn btn-g" onclick="jKatForm()">${ico('plus')}Tambah kategori</button></div>
+    <div class="cards">${jKat().map((c,i)=>{const n=all.filter(j=>jKatOf(j)===c.n).length;return `<div class="lc"><div class="cat-ic" style="background:var(--gl);overflow:hidden">${jIco(c)}</div><div class="meta"><b>${esc(c.n)}</b><div class="sm">${c.n===J_TRANS?'Layanan kurir Kalensari':n+' penyedia'}${c.sub&&c.sub.length?' · '+c.sub.map(esc).join(', '):''}</div></div><div class="right-col"><button class="more" onclick="jKatForm('${jsq(c.n)}')" title="Ubah">${ico('edit')}</button><button class="more" style="color:var(--red)" onclick="jKatDel('${jsq(c.n)}',this)" title="Hapus">${ico('trash')}</button></div></div>`}).join('')}</div>`;
+  }
+  const kats=['Semua',...jKat().filter(c=>c.n!==J_TRANS).map(c=>c.n)],ql=q.toLowerCase();
+  const list=jAll().filter(j=>(jKatF==='Semua'||jKatOf(j)===jKatF)&&[j.nama,j.ket,j.dusun,j.kategori,j.wa].join(' ').toLowerCase().includes(ql));
+  return head+`<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari nama / dusun / nomor WA..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-g" onclick="jProvForm()">${ico('plus')}Tambah penyedia</button></div>
+  <div class="tabs">${kats.map(k=>`<button class="tab ${jKatF===k?'on':''}" onclick="jKatF='${jsq(k)}';render()">${esc(k)}</button>`).join('')}</div>
+  <div class="cards" id="list">${list.map(j=>{const c=jKatBy(jKatOf(j)),on=j.status!=='Hide';return `<div class="lc" style="${on?'':'opacity:.6'}"><div class="cat-ic" style="background:var(--gl);overflow:hidden">${j.foto?`<img src="${esc(j.foto)}" style="width:100%;height:100%;object-fit:cover">`:jIco(c)}</div><div class="meta"><b>${esc(j.nama)}</b><div class="sm">${esc(jKatOf(j)||'Tanpa kategori')}${j.sub?' · '+esc(j.sub):''}${j._src==='m'?' · <span style="color:var(--blue)">daftar sendiri</span>':''}</div><div class="sm">🕒 ${esc(j.buka||'-')}–${esc(j.tutup||'-')}${j.dusun?' · 📍 '+esc(j.dusun):''}${on?'':' · <b>Disembunyikan</b>'}</div></div><div class="right-col">${j.wa?`<a class="more" style="color:var(--g2)" href="https://wa.me/${esc(phoneKey(j.wa))}" target="_blank" rel="noopener">${ico('wa')}</a>`:''}<button class="more" onclick="jProvForm('${j._src}','${j._src==='p'?j._i:jsq(j.id)}')">${ico('edit')}</button></div></div>`}).join('')||'<div class="empty">Belum ada penyedia</div>'}</div>`;
+};
+TITLES.jasa=['Jasa','Kategori & penyedia jasa warga'];
+
+function jKatForm(lama){
+  const c=lama?jKatBy(lama):{n:'',e:'🛠️'};if(!c)return;let img=c.img||'';
+  modal(`<h3>${lama?'Ubah':'Tambah'} Kategori Jasa</h3>
+  <div style="width:64px;height:64px;margin:0 auto 12px;border-radius:16px;background:var(--gl);display:grid;place-items:center;font-size:34px;overflow:hidden" id="jkPrev"></div>
+  <div class="field"><label>Nama kategori</label><input class="inp" id="jkN" maxlength="30" value="${esc(c.n)}" ${c.n===J_TRANS?'readonly':''}></div>
+  <div class="field"><label>Logo (emoji)</label><input class="inp" id="jkE" maxlength="8" value="${esc(c.e||'🛠️')}"></div>
+  <input type="file" id="jkF" accept="image/*" style="display:none"><div style="display:flex;gap:8px;margin-bottom:12px"><button class="btn btn-light" style="flex:1" type="button" onclick="$('#jkF').click()">🖼️ Pakai gambar sendiri</button><button class="btn btn-red" type="button" id="jkHapus">Hapus gambar</button></div>
+  <div class="field"><label>Sub-kategori (opsional, satu per baris)</label><textarea class="inp" id="jkSub" rows="3">${esc((c.sub||[]).join('\n'))}</textarea></div>
+  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="jKatSave('${lama?jsq(lama):''}',this)">Simpan</button></div>`);
+  const prev=()=>{$('#jkPrev').innerHTML=jIco({e:$('#jkE').value||'🛠️',img});$('#jkHapus').style.display=img?'':'none'};prev();
+  $('#jkE').oninput=prev;$('#jkF').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{img=await resizeImg(f,128);prev()}catch(err){toast('Gambar tidak bisa dibaca')}};$('#jkHapus').onclick=()=>{img='';prev()};
+  window._jkImg=()=>img;
+}
+async function jKatSave(lama,btn){
+  const n=$('#jkN').value.replace(/\s+/g,' ').trim(),e=$('#jkE').value.trim()||'🛠️',img=window._jkImg();
+  if(!n)return toast('Nama kategori wajib diisi');
+  const all=jKatAll(),cur=lama?all.find(c=>c.n===lama&&!c.hidden):null,kembar=all.find(c=>c!==cur&&c.n.toLowerCase()===n.toLowerCase());
+  if(n.toLowerCase()==='semua'||(kembar&&!kembar.hidden))return toast('Kategori itu sudah ada');
+  const subs=[...new Set($('#jkSub').value.split('\n').map(x=>x.trim().replace(/\s+/g,' ')).filter(Boolean))].slice(0,12);
+  const d={n,e};if(img)d.img=img;if(subs.length)d.sub=subs;
+  await busy(btn,async()=>{
+    let l=all.filter(c=>c!==kembar);
+    if(cur){const pl0=jProv(),pP=n!==lama?pl0.filter(j=>jKatOf(j)===lama):[],pM=n!==lama?jMem().filter(j=>jKatOf(j)===lama):[];
+      l=l.map(c=>c===cur?d:c);
+      if(pP.length){const pl=pl0.map(j=>pP.includes(j)?{...j,kategori:n}:j);await saveJProv(pl)}
+      if(pM.length){const curM=await readKey('jasa_members',[]),ml=(Array.isArray(curM)?curM:[]).map(j=>j&&pM.some(x=>x.id===j.id)?{...j,kategori:n}:j);await setSetting('jasa_members',ml);S.settings.jasa_members=ml}
+    }else l.push(d);
+    await saveJKat(l);closeModal();render();toast('Kategori disimpan');
+  });
+}
+async function jKatDel(n,btn){
+  const dip=jAll().filter(j=>jKatOf(j)===n).length;
+  if(!confirm(`Hapus kategori "${n}"?${dip?`\n\n${dip} penyedia di kategori ini tetap tampil di "Semua" tanpa kategori.`:''}`))return;
+  await busy(btn,async()=>{const l=n===J_TRANS?jKatAll().map(c=>c.n===n?{...c,hidden:true}:c):jKatAll().filter(c=>c.n!==n);await saveJKat(l);render();toast('Kategori dihapus')});
+}
+function jProvForm(src,key){
+  const baru=!src,j=baru?{nama:'',kategori:jKatF!=='Semua'?jKatF:'',sub:'',ket:'',buka:'08:00',tutup:'17:00',dusun:'',rating:'',harga:'',wa:'',libur:[],layanan:[],status:'Show',foto:''}:src==='p'?{...jProv()[+key]}:{...jMem().find(x=>x.id===key)};
+  if(!baru){j.kategori=jKatOf(j)}
+  let foto=j.foto||'';const hari=['Min','Sen','Sel','Rab','Kam','Jum','Sab'],kats=jKat().filter(c=>c.n!==J_TRANS).map(c=>c.n);if(j.kategori&&!kats.includes(j.kategori))kats.push(j.kategori);
+  modal(`<h3>${baru?'Tambah':'Ubah'} Penyedia Jasa</h3>${src==='m'?'<p class="sm" style="color:var(--blue);font-size:12px;margin:-8px 0 10px">Penyedia ini mendaftar sendiri; perubahan juga terlihat di akunnya.</p>':''}
+  <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px"><div id="jpPrev" style="width:64px;height:64px;border-radius:14px;background:var(--gl);display:grid;place-items:center;font-size:30px;overflow:hidden;flex:none"></div><input type="file" id="jpF" accept="image/*" style="display:none"><button class="btn btn-light" type="button" onclick="$('#jpF').click()">📷 Foto</button><button class="btn btn-red" type="button" id="jpHapus">Hapus</button></div>
+  <div class="field"><label>Nama</label><input class="inp" id="jpN" maxlength="60" value="${esc(j.nama)}"></div>
+  <div class="form-grid" style="gap:10px"><div class="field"><label>Kategori</label><select class="inp" id="jpK"><option value="">— tanpa kategori —</option>${kats.map(k=>`<option ${k===j.kategori?'selected':''}>${esc(k)}</option>`).join('')}</select></div><div class="field" id="jpSW"><label>Sub-kategori</label><select class="inp" id="jpS"></select></div></div>
+  <div class="field"><label>Deskripsi singkat</label><input class="inp" id="jpKet" maxlength="100" value="${esc(j.ket||'')}"></div>
+  <div class="form-grid" style="gap:10px"><div class="field"><label>Jam buka</label><input class="inp" type="time" id="jpB" value="${esc(j.buka||'08:00')}"></div><div class="field"><label>Jam tutup</label><input class="inp" type="time" id="jpT" value="${esc(j.tutup||'17:00')}"></div></div>
+  <div class="field"><label>Hari libur</label><div style="display:flex;gap:6px;flex-wrap:wrap">${hari.map((h,d)=>`<label style="display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:99px;padding:5px 9px;font-size:12px"><input type="checkbox" class="jpL" value="${d}" ${(j.libur||[]).includes(d)?'checked':''}>${h}</label>`).join('')}</div></div>
+  <div class="form-grid" style="gap:10px"><div class="field"><label>Dusun</label><input class="inp" id="jpD" maxlength="40" value="${esc(j.dusun||'')}"></div><div class="field"><label>Rating (0–5)</label><input class="inp" id="jpR" type="number" step="0.1" min="0" max="5" value="${esc(j.rating??'')}"></div></div>
+  <div class="form-grid" style="gap:10px"><div class="field"><label>Harga</label><input class="inp" id="jpH" maxlength="40" placeholder="mis. Mulai Rp50.000" value="${esc(j.harga||'')}"></div><div class="field"><label>No. WhatsApp</label><input class="inp" id="jpW" type="tel" value="${esc(j.wa||'')}"></div></div>
+  <div class="field"><label>Layanan (satu per baris)</label><textarea class="inp" id="jpLay" rows="3">${esc((j.layanan||[]).join('\n'))}</textarea></div>
+  <div class="field"><label>Status</label><select class="inp" id="jpSt"><option value="Show" ${j.status!=='Hide'?'selected':''}>Tampil</option><option value="Hide" ${j.status==='Hide'?'selected':''}>Sembunyikan</option></select></div>
+  <div class="mact">${baru?`<button class="btn btn-o" onclick="closeModal()">Batal</button>`:`<button class="btn btn-red" onclick="jProvDel('${src}','${jsq(String(key))}',this)">Hapus</button>`}<button class="btn btn-g" onclick="jProvSave('${src||''}','${jsq(String(key??''))}',this)">Simpan</button></div>`);
+  const prev=()=>{$('#jpPrev').innerHTML=foto?`<img src="${esc(foto)}" style="width:100%;height:100%;object-fit:cover">`:jIco(jKatBy($('#jpK').value));$('#jpHapus').style.display=foto?'':'none'};
+  const isiSub=()=>{const c=jKatBy($('#jpK').value),l=(c&&c.sub)||[];$('#jpSW').style.display=l.length?'':'none';$('#jpS').innerHTML=l.map(x=>`<option ${x===j.sub?'selected':''}>${esc(x)}</option>`).join('')};
+  prev();isiSub();$('#jpK').onchange=()=>{prev();isiSub()};
+  $('#jpF').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{foto=await resizeImg(f,480);prev()}catch(err){toast('Foto tidak bisa dibaca')}};$('#jpHapus').onclick=()=>{foto='';prev()};
+  window._jpBase=j;window._jpFoto=()=>foto;
+}
+async function jProvSave(src,key,btn){
+  const j=window._jpBase,nama=$('#jpN').value.trim();if(!nama)return toast('Nama wajib diisi');
+  const wa=phoneKey($('#jpW').value);if(wa.length<9||wa.length>15)return toast('Nomor WhatsApp tidak valid');
+  const buka=$('#jpB').value,tutup=$('#jpT').value;if(!buka||!tutup)return toast('Jam buka & tutup wajib diisi');
+  const r=parseFloat($('#jpR').value),c=jKatBy($('#jpK').value);
+  const {_src,_i,...clean}=j;
+  const d={...clean,nama,kategori:$('#jpK').value,sub:c&&c.sub&&c.sub.length?$('#jpS').value:'',ket:$('#jpKet').value.trim(),buka,tutup,libur:[...document.querySelectorAll('.jpL:checked')].map(x=>+x.value),dusun:$('#jpD').value.trim(),rating:isNaN(r)?'':Math.min(5,Math.max(0,r)),harga:$('#jpH').value.trim(),wa,layanan:$('#jpLay').value.split('\n').map(x=>x.trim()).filter(Boolean),status:$('#jpSt').value,foto:window._jpFoto(),updated:Date.now()};
+  if(d.status==='Show')d.pending=false;
+  await busy(btn,async()=>{
+    if(src==='m')await saveJMemEntry(d);
+    else{const l=jProv().slice();if(src==='p')l[+key]=d;else l.push(d);await saveJProv(l)}
+    closeModal();render();toast('Penyedia disimpan');
+  });
+}
+async function jProvDel(src,key,btn){
+  if(!confirm('Hapus penyedia ini?'+(src==='m'?' Akunnya juga dihapus.':'')))return;
+  await busy(btn,async()=>{if(src==='m')await saveJMemEntry(null,key);else{const l=jProv().filter((_,i)=>i!==+key);await saveJProv(l)}closeModal();render();toast('Penyedia dihapus')});
+}
 
 /* ========== TARIF OJEK & KIRIM PAKET (dipakai ojek.html) ========== */
 const TARIF_DEF={faktor:1.3,bulat:500,ojek:{aktif:true,dasar:5000,perKm:2000,minimal:5000,maxKm:20},paket:{aktif:true,dasar:5000,perKm:2500,minimal:6000,maxKm:20}};
