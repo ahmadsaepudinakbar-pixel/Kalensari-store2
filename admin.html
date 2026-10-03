@@ -33,6 +33,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .field label{display:block;font-size:12px;color:var(--mut);margin-bottom:5px;font-weight:600}
 .inp{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;outline:none}
 .inp:focus{border-color:var(--g2);box-shadow:0 0 0 3px rgba(22,163,74,.12)}
+.btn:disabled{cursor:wait}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 18px;border-radius:12px;font-weight:700}
 .btn-g{background:var(--g);color:#fff}.btn-g:active{transform:scale(.98)}
 .btn-o{border:1.5px solid var(--g);color:var(--g);background:#fff}
@@ -69,7 +70,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .card h3{font-size:17px;font-weight:700}
 .chead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px}
 .link{color:var(--blue);font-size:13px;font-weight:600;cursor:pointer}
-.grid-dash{display:grid;grid-template-columns:1fr 300px;gap:20px}
+.grid-dash{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px}.grid-dash>div,.row2>div{min-width:0}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
 .stat{display:flex;gap:14px;align-items:flex-start}
 .ic{width:54px;height:54px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
@@ -78,7 +79,7 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .stat .val{font-size:clamp(17px,1.6vw,24px);font-weight:800;margin:4px 0;white-space:nowrap}
 .up{color:var(--g2);font-size:12px;font-weight:700}
 .stat small{display:block;color:var(--mut);font-size:11px}
-.row2{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;margin-bottom:20px}
+.row2{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;margin-bottom:20px}
 .sel{border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:#fff;font-size:12px}
 .donutwrap{display:flex;align-items:center;gap:24px}
 .donut{width:160px;height:160px;border-radius:50%;position:relative;flex-shrink:0}
@@ -171,6 +172,8 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
 .detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px}
 
 /* RESPONSIVE */
+.tbl-wrap{overflow-x:auto}
+@media(max-width:1440px){.stats{grid-template-columns:repeat(2,1fr)}.row2{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:1200px){.grid-dash{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:900px){
   .sidebar{transform:translateX(-100%)}.sidebar.open{transform:none}
@@ -207,10 +210,10 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
     <div class="sub">Panel Admin</div>
     <h2>Selamat datang di Kalensari Store</h2>
     <p class="m">Kelola toko Anda dengan mudah dan praktis</p>
-    <div class="field"><label>Email atau No. WhatsApp</label><input class="inp" id="lUser" value="admin@kalensari.store"></div>
-    <div class="field"><label>Kata sandi</label><input class="inp" id="lPass" type="password" value="admin123"></div>
-    <button class="btn btn-g full" onclick="doLogin()" style="margin-top:8px">Masuk</button>
-    <button class="btn btn-o full" style="margin-top:12px" onclick="toast('Pendaftaran admin baru belum tersedia')">Buat Akun</button>
+    <div class="field"><label>Email admin</label><input class="inp" id="lUser" type="email" autocomplete="username" placeholder="email@contoh.com"></div>
+    <div class="field"><label>Kata sandi</label><input class="inp" id="lPass" type="password" autocomplete="current-password" placeholder="Kata sandi"></div>
+    <button class="btn btn-g full" id="lBtn" onclick="doLogin()" style="margin-top:8px">Masuk</button>
+    <p class="m" style="margin:14px 0 0;font-size:12px">Pakai akun admin yang sama dengan menu ⚙️ Admin di toko.</p>
   </div>
 </section>
 
@@ -229,12 +232,12 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
   <main class="main">
     <header class="top">
       <button class="burger" onclick="toggleSide(true)"><svg class="i"><use href="#i-menu"/></svg></button>
-      <div><h1 id="pTitle">Dashboard</h1><div class="welcome" id="pSub">Selamat datang di Kalensari Store, Admin!</div></div>
+      <div><h1 id="pTitle">Dashboard</h1><div class="welcome" id="pSub">Ringkasan toko dari data asli</div></div>
       <div class="right">
-        <button class="bell" onclick="go('pesanan','Baru')"><svg class="i" style="width:22px;height:22px"><use href="#i-bell"/></svg><span class="dot" id="bellN">3</span></button>
+        <button class="bell" onclick="go('pesanan','Baru')"><svg class="i" style="width:22px;height:22px"><use href="#i-bell"/></svg><span class="dot hide" id="bellN">0</span></button>
         <div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="go('lainnya')">
-          <div class="avatar">A</div>
-          <div class="who"><b>Admin</b><small>Administrator</small></div>
+          <div class="avatar" id="avatarL">A</div>
+          <div class="who"><b id="whoName">Admin</b><small>Administrator</small></div>
           <svg class="i chev" style="width:16px;color:var(--mut)"><use href="#i-down"/></svg>
         </div>
       </div>
@@ -277,67 +280,110 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
 </svg>
 
+<script src="config.js"></script>
 <script>
-/* ========== DATA CONTOH ========== */
-const KEY='ks_admin_demo_v1';
-const seed={
-  store:{name:'Kalensari Store',desc:'Toko online untuk kebutuhan sehari-hari Anda.',wa:'0812 3456 7890',tagline:'Belanja Mudah, Hidup Lebih Baik'},
-  banks:[{bank:'BCA',no:'1234 5678 9010',an:'Kalensari Store'},{bank:'BRI',no:'9876 5432 1098',an:'Kalensari Store'}],
-  orders:[
-    {id:'KS2026092801',name:'Rina Wati',total:85000,status:'Baru',time:'08:12',ago:'2 menit yang lalu',em:'🍜'},
-    {id:'KS2026092802',name:'Andi Saputra',total:120000,status:'Diproses',time:'08:45',ago:'12 menit yang lalu',em:'🧴'},
-    {id:'KS2026092803',name:'Siti Nurhaliza',total:65000,status:'Dikirim',time:'09:20',ago:'25 menit yang lalu',em:'🍪'},
-    {id:'KS2026092804',name:'Budi Santoso',total:200000,status:'Selesai',time:'10:03',ago:'1 jam yang lalu',em:'🛢️'},
-    {id:'KS2026092805',name:'Dewi Lestari',total:95000,status:'Diproses',time:'10:27',ago:'1 jam yang lalu',em:'🍞'},
-    {id:'KS2026092806',name:'Agus Setiawan',total:150000,status:'Baru',time:'11:15',ago:'2 jam yang lalu',em:'🥛'},
-    {id:'KS2026092807',name:'Intan Permata',total:78000,status:'Dikirim',time:'11:42',ago:'2 jam yang lalu',em:'🍚'},
-    {id:'KS2026092808',name:'Fajar Hidayat',total:110000,status:'Selesai',time:'12:10',ago:'3 jam yang lalu',em:'🥚'},
-    {id:'KS2026092809',name:'Rina Wati',total:46000,status:'Baru',time:'12:31',ago:'3 jam yang lalu',em:'🍬'}
-  ],
-  products:[
-    {id:1,name:'Indomie Goreng',price:3500,stock:50,sold:312,cat:'Makanan & Minuman',em:'🍜',on:true},
-    {id:2,name:'Aqua 600ml',price:4000,stock:100,sold:245,cat:'Minuman',em:'💧',on:true},
-    {id:3,name:'Minyak Goreng 1L',price:18000,stock:45,sold:198,cat:'Sembako',em:'🛢️',on:true},
-    {id:4,name:'Susu UHT 1L',price:19500,stock:60,sold:156,cat:'Minuman',em:'🥛',on:true},
-    {id:5,name:'Roti Tawar',price:15000,stock:40,sold:142,cat:'Makanan & Minuman',em:'🍞',on:true},
-    {id:6,name:'Mie Instan Kari',price:3500,stock:80,sold:120,cat:'Makanan & Minuman',em:'🍲',on:true},
-    {id:7,name:'Gula Pasir 1kg',price:14500,stock:100,sold:98,cat:'Sembako',em:'🧂',on:true},
-    {id:8,name:'Telur Ayam 1kg',price:26000,stock:60,sold:87,cat:'Sembako',em:'🥚',on:false}
-  ],
-  cats:[
-    {name:'Makanan & Minuman',em:'🍴',c:'#f97316'},{name:'Snack',em:'🍪',c:'#8b5cf6'},
-    {name:'Minuman',em:'🥤',c:'#3b82f6'},{name:'Sembako',em:'🛍️',c:'#16a34a'},
-    {name:'Perlengkapan Rumah',em:'🏠',c:'#ef4444'},{name:'Kecantikan',em:'🌸',c:'#ec4899'},{name:'Elektronik',em:'💻',c:'#0ea5e9'}
-  ],
-  customers:[
-    {name:'Rina Wati',wa:'+62 812 3456 7890',orders:12},{name:'Andi Saputra',wa:'+62 813 9876 5432',orders:8},
-    {name:'Siti Nurhaliza',wa:'+62 815 1234 5678',orders:6},{name:'Budi Santoso',wa:'+62 816 8765 4321',orders:5},
-    {name:'Dewi Lestari',wa:'+62 817 6543 2109',orders:4},{name:'Fajar Hidayat',wa:'+62 818 3210 9876',orders:3},
-    {name:'Agus Setiawan',wa:'+62 819 2233 4455',orders:2},{name:'Intan Permata',wa:'+62 821 5566 7788',orders:2}
-  ],
-  promos:[
-    {title:'Diskon Spesial 50%',tag:'DISKON 50%',desc:'Semua Produk',from:'2025-09-01',to:'2025-09-30',on:true,c:'#ef4444'},
-    {title:'Gratis Ongkir',tag:'GRATIS ONGKIR',desc:'Min. Pembelian Rp 100.000',from:'2025-09-15',to:'2025-09-30',on:true,c:'#8b5cf6'},
-    {title:'Flash Sale',tag:'FLASH SALE',desc:'Produk Pilihan',from:'2025-09-20',to:'2025-09-25',on:true,c:'#f97316'},
-    {title:'Beli 1 Gratis 1',tag:'BUY 1 GET 1',desc:'Min. Pembelian Rp 50.000',from:'2025-09-22',to:'2025-09-30',on:false,c:'#0f7a3d'}
-  ],
-  sales:[4,8,11,9,15,14,21],
-  salesDays:['22 Sep','23 Sep','24 Sep','25 Sep','26 Sep','27 Sep','28 Sep']
-};
-let S;
-try{S=JSON.parse(localStorage.getItem(KEY))||structuredClone(seed)}catch(e){S=structuredClone(seed)}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+/* =====================================================================
+   ADMIN KALENSARI STORE — tersambung ke data asli Supabase
+   Login memakai akun admin Supabase yang sama dengan menu ⚙️ Admin di toko.
+   ===================================================================== */
+const CFG=window.CLOUD_CONFIG||{};
+const BASE=String(CFG.supabaseUrl||'').replace(/\/$/,'');
+const AUTH_KEY='kalensari_admin_auth';
+let auth=(()=>{try{return JSON.parse(sessionStorage.getItem(AUTH_KEY)||'null')}catch(e){return null}})();
+const saveAuth=a=>{auth=a;try{a?sessionStorage.setItem(AUTH_KEY,JSON.stringify(a)):sessionStorage.removeItem(AUTH_KEY)}catch(e){}};
+async function authReq(grant,body){
+  const r=await fetch(`${BASE}/auth/v1/token?grant_type=${grant}`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error_description||d.msg||d.message||('HTTP '+r.status));
+  return {access_token:d.access_token,refresh_token:d.refresh_token,expires_at:d.expires_at||Math.floor(Date.now()/1000)+(d.expires_in||3600),email:(d.user&&d.user.email)||''};
+}
+async function fresh(){
+  if(!auth||!auth.refresh_token)throw new Error('login');
+  if(auth.expires_at*1000-Date.now()>60000)return;
+  try{saveAuth({...await authReq('refresh_token',{refresh_token:auth.refresh_token}),email:auth.email})}
+  catch(e){saveAuth(null);throw new Error('login')}
+}
+async function api(path,opt={}){
+  try{await fresh()}catch(e){sessionExpired();throw e}
+  const r=await fetch(`${BASE}/rest/v1/${path}`,{...opt,headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json',Prefer:'return=representation',...(opt.headers||{})}});
+  const t=await r.text();
+  if(!r.ok)throw new Error(t||('HTTP '+r.status));
+  return t?JSON.parse(t):[];
+}
+const setSetting=(key,value)=>api('store_settings?on_conflict=key',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify([{key,value}])});
+
+/* ========== DATA ASLI ========== */
+const S={products:[],orders:[],settings:{},loaded:false};
+const BASE_CATS=['Makanan','Minuman'];
+const STATUS_LABEL={menunggu:'Baru',baru:'Baru',diproses:'Diproses',dikirim:'Dikirim',selesai:'Selesai',dibatalkan:'Batal'};
+const STATUS_DB={Baru:'menunggu',Diproses:'diproses',Dikirim:'dikirim',Selesai:'selesai',Batal:'dibatalkan'};
+const stLabel=s=>STATUS_LABEL[String(s||'').toLowerCase()]||'Baru';
+const phoneKey=v=>String(v||'').replace(/\D/g,'').replace(/^0/,'62');
+const itemPrice=it=>Number(it.sale)>0&&Number(it.sale)<Number(it.price)?Number(it.sale):Number(it.price)||0;
+const isCancelled=o=>stLabel(o.status)==='Batal';
+
+async function loadAll(silent){
+  try{
+    const [p,o,s]=await Promise.all([
+      api('products?select=*&order=id.asc'),
+      api('orders?select=*&order=created_at.desc&limit=1000'),
+      api('store_settings?select=key,value')
+    ]);
+    S.products=Array.isArray(p)?p:[];S.orders=Array.isArray(o)?o:[];
+    S.settings={};(Array.isArray(s)?s:[]).forEach(r=>S.settings[r.key]=r.value);
+    S.loaded=true;render();if(!silent)toast('Data terbaru dimuat');
+  }catch(e){if(e.message!=='login'){console.error(e);toast('Gagal memuat data: '+String(e.message).slice(0,70))}}
+}
+const customCats=()=>Array.isArray(S.settings.categories)?S.settings.categories:[];
+const removedCats=()=>Array.isArray(S.settings.removed_categories)?S.settings.removed_categories:[];
+function allCats(){
+  const used=new Set(S.products.map(p=>p.category).filter(Boolean));
+  return [...new Set([...BASE_CATS,...customCats(),...used])].filter(c=>!removedCats().includes(c)||used.has(c));
+}
+const catEmoji=c=>/minum|jus|es |kopi|teh/i.test(c)?'🥤':/makan|nasi|mie|kue|jajan/i.test(c)?'🍛':'🏷️';
+const prodThumb=(p,size)=>p&&p.image?`<img src="${esc(p.image)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" loading="lazy" onerror="this.replaceWith(document.createTextNode('${catEmoji(p.category||'')}'))">`:catEmoji((p&&p.category)||'');
+
+// Penjualan per produk dihitung dari pesanan yang tidak dibatalkan.
+function soldMap(orders=S.orders){
+  const m=new Map();
+  orders.filter(o=>!isCancelled(o)).forEach(o=>(Array.isArray(o.items)?o.items:[]).forEach(it=>{
+    const k=it.id!=null?'id:'+it.id:'n:'+it.name;const cur=m.get(k)||{name:it.name,qty:0,rev:0,id:it.id};
+    const q=Number(it.qty)||1;cur.qty+=q;cur.rev+=itemPrice(it)*q;m.set(k,cur);}));
+  return m;
+}
+const soldOf=p=>{const m=soldMap();return (m.get('id:'+p.id)||{qty:0}).qty};
+function customers(orders=S.orders){
+  const m=new Map();
+  orders.forEach(o=>{const k=phoneKey(o.customer_phone)||('nama:'+(o.customer_name||'-'));
+    const c=m.get(k)||{name:o.customer_name||'Tanpa nama',wa:o.customer_phone||'',orders:0,spent:0,first:o.created_at,last:o.created_at};
+    c.orders++;if(!isCancelled(o))c.spent+=Number(o.total)||0;
+    if(o.created_at<c.first)c.first=o.created_at;if(o.created_at>c.last){c.last=o.created_at;c.name=o.customer_name||c.name}
+    m.set(k,c);});
+  return [...m.values()].sort((a,b)=>b.orders-a.orders||b.spent-a.spent);
+}
+const revenue=(orders=S.orders)=>orders.filter(o=>!isCancelled(o)).reduce((a,o)=>a+(Number(o.total)||0),0);
+const inDays=(o,d)=>Date.now()-new Date(o.created_at).getTime()<=d*864e5;
+const dayKey=d=>{const x=new Date(d);return x.getFullYear()+'-'+(x.getMonth()+1)+'-'+x.getDate()};
+function lastDays(n){const out=[];for(let i=n-1;i>=0;i--){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-i);out.push(d)}return out}
+const fmtDay=d=>d.toLocaleDateString('id-ID',{day:'2-digit',month:'short'});
+const fmtTime=d=>new Date(d).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+const fmtDate=d=>new Date(d).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+function ago(d){const s=(Date.now()-new Date(d).getTime())/1000;if(s<60)return 'baru saja';if(s<3600)return Math.floor(s/60)+' menit yang lalu';if(s<86400)return Math.floor(s/3600)+' jam yang lalu';if(s<86400*30)return Math.floor(s/86400)+' hari yang lalu';return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}
+const orderCode=o=>o.order_code||('#'+o.id);
+const firstItem=o=>(Array.isArray(o.items)&&o.items[0])||null;
 
 /* ========== HELPERS ========== */
 const $=s=>document.querySelector(s);
-const rp=n=>'Rp '+Number(n).toLocaleString('id-ID');
+const rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
 const ico=(n,st='')=>`<svg class="i" style="${st}"><use href="#i-${n}"/></svg>`;
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const jsq=s=>esc(String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
 const colors=['#16a34a','#3b82f6','#f97316','#8b5cf6','#ec4899','#0ea5e9','#ef4444','#eab308'];
-const initials=n=>n.split(' ').map(w=>w[0]).slice(0,2).join('');
-function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2200)}
+const initials=n=>String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
 function modal(html){$('#modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="mbox">${html}</div></div>`}
 function closeModal(){$('#modalRoot').innerHTML=''}
+async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{return await fn()}catch(e){if(e.message!=='login'){console.error(e);toast('Gagal menyimpan: '+String(e.message).slice(0,80))}}finally{if(btn){btn.disabled=false;btn.style.opacity=''}}}
 
 /* ========== NAVIGASI ========== */
 const MENU=[
@@ -345,244 +391,337 @@ const MENU=[
   ['pelanggan','Pelanggan','users'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['pengaturan','Pengaturan','gear']
 ];
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
-let route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan';
+let route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
 
 function renderNav(){
-  const baru=S.orders.filter(o=>o.status==='Baru'||o.status==='Diproses').length;
-  $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'?`<span class="cnt">${baru}</span>`:''}</a>`).join('');
+  const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
+  $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}</a>`).join('');
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
     const on=route===k||(k==='lainnya'&&['kategori','promosi','laporan','pengaturan','lainnya'].includes(route));
     return `<button class="${on?'on':''}" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}</button>`}).join('');
-  $('#bellN').textContent=S.orders.filter(o=>o.status==='Baru').length;
+  const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
+  $('#bellN').textContent=baru;$('#bellN').classList.toggle('hide',!baru);
 }
 function go(r,filter){
   route=r;q='';if(r==='pesanan')orderFilter=filter||'Semua';
   toggleSide(false);render();window.scrollTo(0,0);
 }
 function toggleSide(o){$('#sidebar').classList.toggle('open',o);$('#overlay').classList.toggle('hide',!o)}
-function doLogin(){if(!$('#lUser').value.trim()||!$('#lPass').value){toast('Isi email dan kata sandi');return}
-  try{sessionStorage.setItem('ks_login','1')}catch(e){}
-  $('#login').classList.add('hide');$('#app').classList.remove('hide');go('dashboard')}
-function logout(){try{sessionStorage.removeItem('ks_login')}catch(e){}$('#app').classList.add('hide');$('#login').classList.remove('hide');toggleSide(false)}
 
-const TITLES={dashboard:['Dashboard','Selamat datang di Kalensari Store, Admin!'],pesanan:['Pesanan','Kelola semua pesanan masuk'],
-  produk:['Produk','Atur produk, harga, dan stok'],kategori:['Kategori','Kelompokkan produk toko'],pelanggan:['Pelanggan','Data pelanggan toko'],
-  promosi:['Promosi','Buat dan atur promo'],laporan:['Laporan','Ringkasan penjualan toko'],pengaturan:['Pengaturan Toko','Informasi toko dan rekening'],lainnya:['Menu','Semua menu admin']};
+/* ========== LOGIN ========== */
+async function doLogin(){
+  const em=$('#lUser').value.trim(),pw=$('#lPass').value,btn=$('#lBtn');
+  if(!em||!pw){toast('Isi email dan kata sandi');return}
+  if(!BASE||!CFG.supabaseAnonKey){toast('config.js belum berisi data Supabase');return}
+  btn.disabled=true;const t=btn.textContent;btn.textContent='Memeriksa...';
+  try{
+    const sess=await authReq('password',{email:em,password:pw});
+    const r=await fetch(`${BASE}/rest/v1/rpc/is_admin`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+sess.access_token,'Content-Type':'application/json'},body:'{}'});
+    if(!r.ok)throw new Error('cek-admin-gagal');
+    if((await r.json())!==true){fetch(`${BASE}/auth/v1/logout`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+sess.access_token}}).catch(()=>{});throw new Error('bukan-admin')}
+    saveAuth(sess);$('#lPass').value='';enterApp();
+  }catch(e){
+    const m=String(e.message||e);
+    toast(m==='bukan-admin'?'Akun ini bukan admin':m==='cek-admin-gagal'?'Jalankan supabase-admin-auth.sql di Supabase dulu':/invalid|credentials/i.test(m)?'Email atau kata sandi salah':/confirm/i.test(m)?'Email admin belum dikonfirmasi':'Gagal masuk: '+m.slice(0,70));
+  }finally{btn.disabled=false;btn.textContent=t}
+}
+function enterApp(){
+  $('#login').classList.add('hide');$('#app').classList.remove('hide');
+  const em=(auth&&auth.email)||'Admin';$('#whoName').textContent=em.split('@')[0];$('#avatarL').textContent=initials(em);
+  go('dashboard');loadAll(true);
+}
+function logout(){
+  if(auth&&auth.access_token)fetch(`${BASE}/auth/v1/logout`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+auth.access_token}}).catch(()=>{});
+  saveAuth(null);S.loaded=false;$('#app').classList.add('hide');$('#login').classList.remove('hide');toggleSide(false);closeModal();
+}
+function sessionExpired(){if(!$('#app').classList.contains('hide')){logout();toast('Sesi admin habis, silakan masuk lagi')}}
+
+const TITLES={dashboard:['Dashboard','Ringkasan toko dari data asli'],pesanan:['Pesanan','Kelola semua pesanan masuk'],
+  produk:['Produk','Atur produk, harga, dan stok'],kategori:['Kategori','Kelompokkan produk toko'],pelanggan:['Pelanggan','Dihitung dari pesanan yang masuk'],
+  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
 
 function render(){
   renderNav();
   const [t,s]=TITLES[route];$('#pTitle').textContent=t;$('#pSub').textContent=s;
-  $('#content').innerHTML=PAGES[route]();
+  $('#content').innerHTML=S.loaded||route==='lainnya'?PAGES[route]():'<div class="empty">Memuat data toko...</div>';
 }
 
 /* ========== GRAFIK ========== */
 function lineChart(data,labels){
-  const W=520,H=210,pl=30,pb=26,pt=10,max=Math.ceil(Math.max(...data)/5)*5||5;
-  const x=i=>pl+i*(W-pl-10)/(data.length-1),y=v=>pt+(H-pt-pb)*(1-v/max);
-  let grid='';for(let v=0;v<=max;v+=5)grid+=`<line x1="${pl}" x2="${W-10}" y1="${y(v)}" y2="${y(v)}" stroke="#eef1f4"/><text x="${pl-8}" y="${y(v)+4}" font-size="10" fill="#8a94a3" text-anchor="end">${v}</text>`;
-  const pts=data.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+  const W=520,H=210,pl=30,pb=26,pt=10,rawMax=Math.max(...data,0),step=Math.max(1,Math.ceil(rawMax/4)),max=step*4||4;
+  const n=Math.max(data.length-1,1),x=i=>pl+i*(W-pl-10)/n,y=v=>pt+(H-pt-pb)*(1-v/max);
+  let grid='';for(let v=0;v<=max;v+=step)grid+=`<line x1="${pl}" x2="${W-10}" y1="${y(v)}" y2="${y(v)}" stroke="#eef1f4"/><text x="${pl-8}" y="${y(v)+4}" font-size="10" fill="#8a94a3" text-anchor="end">${v}</text>`;
+  const pts=data.map((v,i)=>`${x(i)},${y(v)}`).join(' ');const every=Math.ceil(data.length/8);
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">
     <defs><linearGradient id="gf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16a34a" stop-opacity=".22"/><stop offset="1" stop-color="#16a34a" stop-opacity="0"/></linearGradient></defs>
     ${grid}<polygon points="${x(0)},${y(0)} ${pts} ${x(data.length-1)},${y(0)}" fill="url(#gf)"/>
     <polyline points="${pts}" fill="none" stroke="#16a34a" stroke-width="2.5"/>
-    ${data.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="#16a34a" stroke="#fff" stroke-width="2"><title>${labels[i]}: ${v} pesanan</title></circle><text x="${x(i)}" y="${H-6}" font-size="10" fill="#8a94a3" text-anchor="middle">${labels[i]}</text>`).join('')}
+    ${data.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="${data.length>10?3:4}" fill="#16a34a" stroke="#fff" stroke-width="2"><title>${labels[i]}: ${v} pesanan</title></circle>${i%every===0||i===data.length-1?`<text x="${x(i)}" y="${H-6}" font-size="10" fill="#8a94a3" text-anchor="${i===0?'start':i===data.length-1?'end':'middle'}">${labels[i]}</text>`:''}`).join('')}
   </svg>`;
 }
+function ordersPerDay(n){const days=lastDays(n),m=new Map(days.map(d=>[dayKey(d),0]));S.orders.forEach(o=>{const k=dayKey(o.created_at);if(m.has(k))m.set(k,m.get(k)+1)});return{labels:days.map(fmtDay),data:days.map(d=>m.get(dayKey(d)))}}
 function catShare(){
-  const groups=[['Makanan & Minuman','#16a34a'],['Sembako','#3b82f6'],['Perlengkapan Rumah','#f97316'],['Pakaian','#8b5cf6'],['Lainnya','#a3adb9']];
-  const pct=[35,22,15,12,16];let acc=0;
-  const grad=pct.map((p,i)=>{const s=acc;acc+=p;return `${groups[i][1]} ${s}% ${acc}%`}).join(',');
-  return `<div class="donutwrap"><div class="donut" style="background:conic-gradient(${grad})"><div class="c">Total Produk<b>${S.products.reduce((a,p)=>a+p.sold,0)>0?287:0}</b></div></div>
-  <div class="legend">${groups.map((g,i)=>`<div><i style="background:${g[1]}"></i><span>${g[0]}</span><span>${pct[i]}%</span></div>`).join('')}</div></div>`;
+  const counts=new Map();S.products.forEach(p=>{const c=p.category||'Lainnya';counts.set(c,(counts.get(c)||0)+1)});
+  const rows=[...counts.entries()].sort((a,b)=>b[1]-a[1]);const total=S.products.length;
+  if(!total)return '<div class="empty">Belum ada produk</div>';
+  let acc=0;const grad=rows.map(([c,n],i)=>{const s=acc;acc+=n/total*100;return `${colors[i%colors.length]} ${s}% ${acc}%`}).join(',');
+  return `<div class="donutwrap"><div class="donut" style="background:conic-gradient(${grad})"><div class="c">Total Produk<b>${total}</b></div></div>
+  <div class="legend">${rows.map(([c,n],i)=>`<div><i style="background:${colors[i%colors.length]}"></i><span>${esc(c)}</span><span>${n} (${Math.round(n/total*100)}%)</span></div>`).join('')}</div></div>`;
 }
 
 /* ========== HALAMAN ========== */
-const stat=(lbl,val,up,icon,bg)=>`<div class="card stat"><div class="ic" style="background:${bg}">${ico(icon)}</div><div><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="up">↑ ${up}</div><small>dibanding bulan lalu</small></div></div>`;
-const totalRev=()=>12450000;
-const orderItem=o=>`<div class="it" onclick="openOrder('${o.id}')"><div class="pimg">${o.em}</div><div class="meta"><b>${esc(o.name)}</b><div class="sm">#${o.id}</div><div class="pr">${rp(o.total)}</div><div class="sm">${o.ago}</div></div><span class="badge b-${o.status}" style="align-self:flex-start">${o.status}</span></div>`;
+const stat=(lbl,val,note,icon,bg)=>`<div class="card stat"><div class="ic" style="background:${bg}">${ico(icon)}</div><div><div class="lbl">${lbl}</div><div class="val">${val}</div><small>${note}</small></div></div>`;
+const statusBadge=o=>{const s=stLabel(o.status);return `<span class="badge b-${s}">${s}</span>`};
+const orderItem=o=>{const it=firstItem(o),n=Array.isArray(o.items)?o.items.length:0;return `<div class="it" onclick="openOrder(${Number(o.id)})"><div class="pimg" style="overflow:hidden">${prodThumb(it)}</div><div class="meta"><b>${esc(o.customer_name||'Tanpa nama')}</b><div class="sm">${esc(orderCode(o))}${n>1?` · ${n} item`:''}</div><div class="pr">${rp(o.total)}</div><div class="sm">${ago(o.created_at)}</div></div><div style="align-self:flex-start">${statusBadge(o)}</div></div>`};
+const soldTotal=()=>[...soldMap().values()].reduce((a,x)=>a+x.qty,0);
 
 const PAGES={
 dashboard(){
-  const top=[...S.products].sort((a,b)=>b.sold-a.sold).slice(0,5);
+  const sm=soldMap();
+  const top=S.products.map(p=>({p,s:sm.get('id:'+p.id)||{qty:0,rev:0}})).filter(x=>x.s.qty>0).sort((a,b)=>b.s.qty-a.s.qty).slice(0,5);
+  const today=S.orders.filter(o=>dayKey(o.created_at)===dayKey(new Date()));
+  const ch=ordersPerDay(chartDays);
   return `<div class="grid-dash"><div>
     <div class="stats">
-      ${stat('Total Pesanan',152,'12%','bag','#0f7a3d')}
-      ${stat('Total Pelanggan','1.248','8%','users','#3b82f6')}
-      ${stat('Total Pendapatan',rp(totalRev()),'15%','rp','#f97316')}
-      ${stat('Produk Terjual',287,'10%','box','#8b5cf6')}
+      ${stat('Total Pesanan',S.orders.length.toLocaleString('id-ID'),`${S.orders.filter(o=>inDays(o,30)).length} dalam 30 hari`,'bag','#0f7a3d')}
+      ${stat('Total Pelanggan',customers().length.toLocaleString('id-ID'),'nomor WA berbeda','users','#3b82f6')}
+      ${stat('Total Pendapatan',rp(revenue()),'tanpa pesanan batal','rp','#f97316')}
+      ${stat('Produk Terjual',soldTotal().toLocaleString('id-ID'),'jumlah item terjual','box','#8b5cf6')}
     </div>
     <div class="row2">
-      <div class="card"><div class="chead"><h3>Grafik Penjualan</h3><select class="sel"><option>7 Hari Terakhir</option><option>30 Hari Terakhir</option></select></div>${lineChart(S.sales,S.salesDays)}</div>
+      <div class="card"><div class="chead"><h3>Grafik Pesanan</h3><select class="sel" onchange="chartDays=+this.value;render()"><option value="7" ${chartDays===7?'selected':''}>7 Hari Terakhir</option><option value="30" ${chartDays===30?'selected':''}>30 Hari Terakhir</option></select></div>${lineChart(ch.data,ch.labels)}</div>
       <div class="card"><div class="chead"><h3>Kategori Produk</h3></div>${catShare()}</div>
     </div>
     <div class="row2">
-      <div class="card"><div class="chead"><h3>Produk Terlaris</h3><span class="link" onclick="go('produk')">Lihat Semua</span></div>
-        <div class="tbl-wrap"><table><tr><th>No</th><th>Produk</th><th>Terjual</th><th>Pendapatan</th></tr>
-        ${top.map((p,i)=>`<tr><td>${i+1}</td><td><div class="pcell"><span class="pimg">${p.em}</span>${esc(p.name)}</div></td><td>${p.sold} pcs</td><td>${rp(p.sold*p.price)}</td></tr>`).join('')}</table></div></div>
+      <div class="card"><div class="chead"><h3>Produk Terlaris</h3><span class="link" onclick="go('laporan');repTab='Penjualan';render()">Lihat Semua</span></div>
+        ${top.length?`<div class="tbl-wrap"><table><tr><th>No</th><th>Produk</th><th>Terjual</th><th>Pendapatan</th></tr>
+        ${top.map((x,i)=>`<tr><td>${i+1}</td><td><div class="pcell"><span class="pimg" style="overflow:hidden">${prodThumb(x.p)}</span>${esc(x.p.name)}</div></td><td>${x.s.qty}</td><td>${rp(x.s.rev)}</td></tr>`).join('')}</table></div>`:'<div class="empty">Belum ada penjualan</div>'}</div>
       <div class="card"><div class="chead"><h3>Pesanan Hari Ini</h3><span class="link" onclick="go('pesanan')">Lihat Semua</span></div>
-        <div class="tbl-wrap"><table><tr><th>No</th><th>Pelanggan</th><th>Total</th><th>Status</th><th class="hide-m">Waktu</th></tr>
-        ${S.orders.slice(0,8).map((o,i)=>`<tr style="cursor:pointer" onclick="openOrder('${o.id}')"><td>${i+1}</td><td>${esc(o.name)}</td><td>${rp(o.total)}</td><td><span class="badge b-${o.status}">${o.status}</span></td><td class="hide-m">${o.time}</td></tr>`).join('')}</table></div></div>
+        ${today.length?`<div class="tbl-wrap"><table><tr><th>No</th><th>Pelanggan</th><th>Total</th><th>Status</th><th class="hide-m">Waktu</th></tr>
+        ${today.slice(0,8).map((o,i)=>`<tr style="cursor:pointer" onclick="openOrder(${Number(o.id)})"><td>${i+1}</td><td>${esc(o.customer_name||'-')}</td><td>${rp(o.total)}</td><td>${statusBadge(o)}</td><td class="hide-m">${fmtTime(o.created_at)}</td></tr>`).join('')}</table></div>`:'<div class="empty">Belum ada pesanan hari ini</div>'}</div>
     </div></div>
     <div>
-      <div class="banner"><svg width="44" height="44" viewBox="0 0 100 100"><path d="M30 34 50 12 70 34" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M10 34h80v10H10zM15 44h70l-7 44H22z" fill="none" stroke="#fff" stroke-width="5"/><text x="50" y="80" text-anchor="middle" font-size="26" font-weight="900" fill="#fff">KS</text></svg><div><b>${esc(S.store.name)}</b><small>${esc(S.store.tagline)}</small></div></div>
+      <div class="banner"><svg width="44" height="44" viewBox="0 0 100 100"><path d="M30 34 50 12 70 34" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M10 34h80v10H10zM15 44h70l-7 44H22z" fill="none" stroke="#fff" stroke-width="5"/><text x="50" y="80" text-anchor="middle" font-size="26" font-weight="900" fill="#fff">KS</text></svg><div><b>Kalensari Store</b><small>Belanja makanan &amp; minuman dari warga Kalensari</small></div></div>
       <div class="card" style="margin-bottom:20px"><div class="chead"><h3>Aksi Cepat</h3></div><div class="quick">
         <button class="qbtn" style="background:var(--gl);color:var(--g)" onclick="productForm()"><span class="qi" style="background:var(--g2)">${ico('plus')}</span>Tambah Produk</button>
         <button class="qbtn" style="background:var(--bl);color:var(--blue)" onclick="go('pesanan')"><span class="qi" style="background:var(--blue)">${ico('doc')}</span>Kelola Pesanan</button>
         <button class="qbtn" style="background:var(--pl);color:var(--purple)" onclick="go('laporan')"><span class="qi" style="background:var(--purple)">${ico('chart')}</span>Lihat Laporan</button>
-        <button class="qbtn" style="background:var(--ol);color:var(--orange)" onclick="go('pengaturan')"><span class="qi" style="background:var(--orange)">${ico('gear')}</span>Pengaturan Toko</button>
+        <button class="qbtn" style="background:var(--ol);color:var(--orange)" onclick="loadAll()"><span class="qi" style="background:var(--orange)">${ico('dl')}</span>Muat Ulang Data</button>
       </div></div>
       <div class="card"><div class="chead"><h3>Pesanan Terbaru</h3><span class="link" onclick="go('pesanan')">Lihat Semua</span></div>
-        <div class="olist">${S.orders.slice(0,4).map(orderItem).join('')}</div></div>
+        <div class="olist">${S.orders.slice(0,4).map(orderItem).join('')||'<div class="empty">Belum ada pesanan</div>'}</div></div>
     </div></div>`;
 },
 pesanan(){
-  const sts=['Semua','Baru','Diproses','Dikirim','Selesai'];
-  const cnt=s=>s==='Semua'?S.orders.length:S.orders.filter(o=>o.status===s).length;
-  const list=S.orders.filter(o=>(orderFilter==='Semua'||o.status===orderFilter)&&(o.id+o.name).toLowerCase().includes(q.toLowerCase()));
-  return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari nomor pesanan / nama pelanggan..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div></div>
+  const sts=['Semua','Baru','Diproses','Dikirim','Selesai','Batal'];
+  const cnt=s=>s==='Semua'?S.orders.length:S.orders.filter(o=>stLabel(o.status)===s).length;
+  const ql=q.toLowerCase();
+  const list=S.orders.filter(o=>(orderFilter==='Semua'||stLabel(o.status)===orderFilter)&&[o.order_code,o.id,o.customer_name,o.customer_phone].join(' ').toLowerCase().includes(ql)).slice(0,200);
+  return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari kode pesanan / nama / nomor WA..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="tabs">${sts.map(s=>`<button class="tab ${orderFilter===s?'on':''}" onclick="orderFilter='${s}';render()">${s}<span class="n">${cnt(s)}</span></button>`).join('')}</div>
-  <div class="cards" id="list">${list.length?list.map(o=>`<div class="lc" style="cursor:pointer" onclick="openOrder('${o.id}')"><div class="pimg" style="width:54px;height:54px;font-size:28px">${o.em}</div><div class="meta"><b>#${o.id}</b><div class="sm">${esc(o.name)}</div><div class="pr">${rp(o.total)}</div><div class="sm">${o.ago}</div></div><div class="right-col"><span class="badge b-${o.status}">${o.status}</span>${ico('right','color:#b6bec9')}</div></div>`).join(''):'<div class="empty">Tidak ada pesanan</div>'}</div>`;
+  <div class="cards" id="list">${list.length?list.map(o=>{const n=Array.isArray(o.items)?o.items.length:0;return `<div class="lc" style="cursor:pointer" onclick="openOrder(${Number(o.id)})"><div class="pimg" style="width:54px;height:54px;font-size:28px;overflow:hidden">${prodThumb(firstItem(o))}</div><div class="meta"><b>${esc(orderCode(o))}</b><div class="sm">${esc(o.customer_name||'-')}${n?` · ${n} item`:''}</div><div class="pr">${rp(o.total)}</div><div class="sm">${ago(o.created_at)}</div></div><div class="right-col">${statusBadge(o)}${ico('right','color:#b6bec9')}</div></div>`}).join(''):'<div class="empty">Tidak ada pesanan</div>'}</div>`;
 },
 produk(){
-  const cats=['Semua',...new Set(S.products.map(p=>p.cat))];
-  const list=S.products.filter(p=>(prodFilter==='Semua'||p.cat===prodFilter)&&p.name.toLowerCase().includes(q.toLowerCase()));
-  return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari produk..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-g" onclick="productForm()">${ico('plus')}Tambah Produk</button></div>
-  <div class="tabs">${cats.map(c=>`<button class="tab ${prodFilter===c?'on':''}" onclick="prodFilter='${c}';render()">${c}</button>`).join('')}</div>
-  <div class="cards" id="list">${list.length?list.map(p=>`<div class="lc" style="${p.on?'':'opacity:.6'}"><div class="pimg" style="width:54px;height:54px;font-size:28px">${p.em}</div><div class="meta"><b>${esc(p.name)}</b><div class="pr">${rp(p.price)}</div><div class="sm">Stok: ${p.stock} pcs · Terjual ${p.sold}</div></div><div class="right-col"><button class="sw ${p.on?'on':''}" onclick="toggleProd(${p.id})" title="Aktif/nonaktif"></button><button class="more" onclick="productMenu(${p.id})">${ico('dots')}</button></div></div>`).join(''):'<div class="empty">Produk tidak ditemukan</div>'}</div>`;
+  const cats=['Semua',...allCats()];const sm=soldMap();
+  const list=S.products.filter(p=>(prodFilter==='Semua'||p.category===prodFilter)&&[p.name,p.seller].join(' ').toLowerCase().includes(q.toLowerCase()));
+  const stTxt=p=>p.status==='Show'?'':p.status==='Sold Out'?' · <b style="color:var(--red)">Stok habis</b>':' · <b>Disembunyikan</b>';
+  return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari produk / penjual..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-g" onclick="productForm()">${ico('plus')}Tambah Produk</button></div>
+  <div class="tabs">${cats.map(c=>`<button class="tab ${prodFilter===c?'on':''}" onclick="prodFilter='${jsq(c)}';render()">${esc(c)}</button>`).join('')}</div>
+  <div class="cards" id="list">${list.length?list.map(p=>{const s=(sm.get('id:'+p.id)||{qty:0}).qty;const on=p.status==='Show'||p.status==='Sold Out';return `<div class="lc" style="${on?'':'opacity:.6'}"><div class="pimg" style="width:54px;height:54px;font-size:28px;overflow:hidden">${prodThumb(p)}</div><div class="meta"><b>${esc(p.name)}</b><div class="pr">${Number(p.sale)>0?`<s style="color:var(--mut);font-weight:500">${rp(p.price)}</s> ${rp(p.sale)}`:rp(p.price)}</div><div class="sm">${esc(p.seller||'-')} · ${p.stock!=null&&p.stock!==''?'Stok '+p.stock+' · ':''}Terjual ${s}${stTxt(p)}</div></div><div class="right-col"><button class="sw ${on?'on':''}" onclick="toggleProd(${Number(p.id)},this)" title="Tampilkan / sembunyikan"></button><button class="more" onclick="productMenu(${Number(p.id)})">${ico('dots')}</button></div></div>`}).join(''):'<div class="empty">Produk tidak ditemukan</div>'}</div>`;
 },
 kategori(){
   return `<div class="toolbar"><div style="flex:1"></div><button class="btn btn-g" onclick="catForm()">${ico('plus')}Tambah Kategori</button></div>
-  <div class="cards">${S.cats.map((c,i)=>{const n=S.products.filter(p=>p.cat===c.name).length;return `<div class="lc"><div class="cat-ic" style="background:${c.c}">${c.em}</div><div class="meta"><b>${esc(c.name)}</b><div class="sm">${n} produk</div></div><button class="more" onclick="catMenu(${i})">${ico('dots')}</button></div>`}).join('')}</div>`;
+  <div class="cards">${allCats().map((c,i)=>{const n=S.products.filter(p=>p.category===c).length;return `<div class="lc"><div class="cat-ic" style="background:${colors[i%colors.length]}">${catEmoji(c)}</div><div class="meta"><b>${esc(c)}</b><div class="sm">${n} produk</div></div><button class="more" onclick="catMenu('${jsq(c)}')">${ico('dots')}</button></div>`}).join('')}</div>`;
 },
 pelanggan(){
-  const list=S.customers.filter(c=>(c.name+c.wa).toLowerCase().includes(q.toLowerCase()));
-  return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari nama pelanggan..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div></div>
-  <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('users')}</div><div class="lbl">Total Pelanggan</div><div class="val">1.248</div><div class="up">↑ 8%</div></div>
-  <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('plus')}</div><div class="lbl" style="color:var(--blue)">Pelanggan Baru</div><div class="val">342</div><div class="up">↑ 12%</div></div></div>
-  <div class="cards" id="list">${list.map((c,i)=>`<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${initials(c.name)}</div><div class="meta"><b>${esc(c.name)}</b><div class="sm">${c.wa}</div><div class="sm">${c.orders} pesanan</div></div><div class="right-col"><span class="badge b-Selesai">Member</span><a class="more" style="color:var(--g2)" href="https://wa.me/${c.wa.replace(/\D/g,'')}" target="_blank">${ico('wa')}</a></div></div>`).join('')||'<div class="empty">Pelanggan tidak ditemukan</div>'}</div>`;
+  const all=customers();const list=all.filter(c=>(c.name+c.wa).toLowerCase().includes(q.toLowerCase()));
+  const baru=all.filter(c=>Date.now()-new Date(c.first).getTime()<=30*864e5).length;
+  return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari nama / nomor WA..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div></div>
+  <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('users')}</div><div class="lbl">Total Pelanggan</div><div class="val">${all.length}</div></div>
+  <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('plus')}</div><div class="lbl" style="color:var(--blue)">Pelanggan Baru (30 hari)</div><div class="val">${baru}</div></div></div>
+  <div class="cards" id="list">${list.map((c,i)=>{const wa=phoneKey(c.wa);return `<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(c.name))}</div><div class="meta"><b>${esc(c.name)}</b><div class="sm">${esc(c.wa||'-')}</div><div class="sm">${c.orders} pesanan · ${rp(c.spent)}</div></div><div class="right-col">${c.orders>1?'<span class="badge b-Selesai">Langganan</span>':''}${wa?`<a class="more" style="color:var(--g2)" href="https://wa.me/${wa}" target="_blank" rel="noopener" title="Chat WhatsApp">${ico('wa')}</a>`:''}</div></div>`}).join('')||'<div class="empty">Belum ada pelanggan</div>'}</div>`;
 },
 promosi(){
-  const list=S.promos.filter(p=>p.title.toLowerCase().includes(q.toLowerCase()));
-  const fd=d=>new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
-  return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari promo..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-g" onclick="promoForm()">${ico('plus')}Tambah Promo</button></div>
-  <div class="cards" id="list">${list.map(p=>{const i=S.promos.indexOf(p);return `<div class="lc"><div class="promo-tag" style="background:${p.c}">${esc(p.tag)}</div><div class="meta"><b>${esc(p.title)}</b><div class="sm">${esc(p.desc)}</div><div class="sm" style="margin:6px 0">${fd(p.from)} - ${fd(p.to)}</div><div style="display:flex;align-items:center;gap:8px"><button class="sw ${p.on?'on':''}" onclick="S.promos[${i}].on=!S.promos[${i}].on;save();render()"></button><span class="sm">${p.on?'Aktif':'Nonaktif'}</span></div></div><button class="more" onclick="promoMenu(${i})">${ico('dots')}</button></div>`}).join('')}</div>`;
+  const list=S.products.filter(p=>Number(p.sale)>0&&Number(p.sale)<Number(p.price)&&p.name.toLowerCase().includes(q.toLowerCase()));
+  return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari produk promo..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-g" onclick="promoForm()">${ico('plus')}Tambah Promo</button></div>
+  <p class="sm" style="color:var(--mut);margin:-4px 0 14px">Promo = harga coret. Harga promo langsung tampil di toko pada produk tersebut.</p>
+  <div class="cards" id="list">${list.map(p=>{const pct=Math.round((1-p.sale/p.price)*100);return `<div class="lc"><div class="promo-tag" style="background:#ef4444">-${pct}%</div><div class="meta"><b>${esc(p.name)}</b><div class="sm"><s>${rp(p.price)}</s> → <b style="color:var(--g)">${rp(p.sale)}</b></div><div class="sm">${esc(p.seller||'-')}</div></div><button class="more" onclick="promoMenu(${Number(p.id)})">${ico('dots')}</button></div>`}).join('')||'<div class="empty">Belum ada produk promo</div>'}</div>`;
 },
 laporan(){
-  const days=S.salesDays,vals=S.sales.map(v=>v*560000/10);const max=Math.max(...vals);
-  const tabs=['Ringkasan','Penjualan','Pelanggan'];
-  let body='';
-  if(repTab==='Ringkasan')body=`<div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
-      <div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('bag')}</div><div class="lbl">Total Pendapatan</div><div class="val">${rp(totalRev())}</div><div class="up">↑ 15%</div></div>
-      <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('doc')}</div><div class="lbl" style="color:var(--blue)">Total Pesanan</div><div class="val">152</div><div class="up">↑ 12%</div></div>
-      <div class="ms" style="background:var(--ol)"><div class="ic" style="background:var(--orange)">${ico('users')}</div><div class="lbl">Total Pelanggan</div><div class="val">1.248</div><div class="up">↑ 8%</div></div>
-      <div class="ms" style="background:var(--pl)"><div class="ic" style="background:var(--purple)">${ico('rp')}</div><div class="lbl">Rata-rata Order</div><div class="val">${rp(81900)}</div><div class="up">↑ 10%</div></div></div>`;
-  else if(repTab==='Penjualan')body=`<div class="card" style="margin-bottom:16px"><table><tr><th>Produk</th><th>Terjual</th><th>Pendapatan</th></tr>${[...S.products].sort((a,b)=>b.sold-a.sold).map(p=>`<tr><td><div class="pcell"><span class="pimg">${p.em}</span>${esc(p.name)}</div></td><td>${p.sold}</td><td>${rp(p.sold*p.price)}</td></tr>`).join('')}</table></div>`;
-  else body=`<div class="card" style="margin-bottom:16px"><table><tr><th>Pelanggan</th><th>Pesanan</th></tr>${[...S.customers].sort((a,b)=>b.orders-a.orders).map(c=>`<tr><td>${esc(c.name)}</td><td>${c.orders}</td></tr>`).join('')}</table></div>`;
-  return `<div class="toolbar"><div class="search" style="max-width:320px">${ico('cal')}<select style="border:0;outline:0;padding:11px 0;width:100%;background:none"><option>01 Sep 2025 - 29 Sep 2025</option><option>01 Agu 2025 - 31 Agu 2025</option></select></div></div>
+  const os=S.orders.filter(o=>inDays(o,repDays)),ok=os.filter(o=>!isCancelled(o));
+  const tabs=['Ringkasan','Penjualan','Pelanggan'];let body='';
+  if(repTab==='Ringkasan'){const rev=revenue(os);body=`<div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('bag')}</div><div class="lbl">Total Pendapatan</div><div class="val">${rp(rev)}</div></div>
+      <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('doc')}</div><div class="lbl" style="color:var(--blue)">Total Pesanan</div><div class="val">${os.length}</div><small style="color:var(--mut)">${os.length-ok.length} batal</small></div>
+      <div class="ms" style="background:var(--ol)"><div class="ic" style="background:var(--orange)">${ico('users')}</div><div class="lbl">Pelanggan</div><div class="val">${customers(os).length}</div></div>
+      <div class="ms" style="background:var(--pl)"><div class="ic" style="background:var(--purple)">${ico('rp')}</div><div class="lbl">Rata-rata Order</div><div class="val">${rp(ok.length?Math.round(rev/ok.length):0)}</div></div></div>`}
+  else if(repTab==='Penjualan'){const rows=[...soldMap(os).values()].sort((a,b)=>b.qty-a.qty);body=`<div class="card" style="margin-bottom:16px"><div class="tbl-wrap"><table><tr><th>Produk</th><th>Terjual</th><th>Pendapatan</th></tr>${rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.qty}</td><td>${rp(r.rev)}</td></tr>`).join('')||'<tr><td colspan="3" class="empty">Belum ada penjualan</td></tr>'}</table></div></div>`}
+  else{const rows=customers(os);body=`<div class="card" style="margin-bottom:16px"><div class="tbl-wrap"><table><tr><th>Pelanggan</th><th>No. WA</th><th>Pesanan</th><th>Belanja</th></tr>${rows.map(c=>`<tr><td>${esc(c.name)}</td><td>${esc(c.wa)}</td><td>${c.orders}</td><td>${rp(c.spent)}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Belum ada pelanggan</td></tr>'}</table></div></div>`}
+  const bd=Math.min(repDays,30),days=lastDays(bd),m=new Map(days.map(d=>[dayKey(d),0]));ok.forEach(o=>{const k=dayKey(o.created_at);if(m.has(k))m.set(k,m.get(k)+(Number(o.total)||0))});
+  const vals=days.map(d=>m.get(dayKey(d))),max=Math.max(...vals,1),every=Math.ceil(bd/8);
+  const short=v=>v>=1e6?(v/1e6).toFixed(1)+' jt':v>=1e3?Math.round(v/1e3)+' rb':v||'';
+  return `<div class="toolbar"><div class="search" style="max-width:320px">${ico('cal')}<select style="border:0;outline:0;padding:11px 0;width:100%;background:none" onchange="repDays=+this.value;render()">${[[7,'7 hari terakhir'],[30,'30 hari terakhir'],[90,'90 hari terakhir'],[3650,'Semua waktu']].map(([v,l])=>`<option value="${v}" ${repDays===v?'selected':''}>${l}</option>`).join('')}</select></div></div>
   <div class="tabs">${tabs.map(t=>`<button class="tab ${repTab===t?'on':''}" onclick="repTab='${t}';render()">${t}</button>`).join('')}</div>
   ${body}
-  <div class="card" style="margin-bottom:16px"><div class="chead"><h3>Grafik Penjualan</h3></div>
-    <div class="bars" style="margin-top:20px">${vals.map(v=>`<div style="height:${v/max*100}%"><span>${(v/1e6).toFixed(1)} jt</span></div>`).join('')}</div>
-    <div class="blabels">${days.map(d=>`<span>${d}</span>`).join('')}</div></div>
-  <button class="btn btn-g full" onclick="exportCSV()">${ico('dl')}Export Laporan</button>`;
+  <div class="card" style="margin-bottom:16px"><div class="chead"><h3>Pendapatan per Hari</h3><span class="sm" style="color:var(--mut);font-size:12px">${bd} hari terakhir</span></div>
+    <div class="bars" style="margin-top:20px;gap:${bd>10?3:12}px">${vals.map(v=>`<div style="height:${v/max*100}%" title="${rp(v)}">${bd<=10?`<span>${short(v)}</span>`:''}</div>`).join('')}</div>
+    <div class="blabels" style="gap:${bd>10?3:12}px">${days.map((d,i)=>`<span>${i%every===0?fmtDay(d):''}</span>`).join('')}</div></div>
+  <button class="btn btn-g full" onclick="exportCSV()">${ico('dl')}Export Laporan (CSV)</button>`;
 },
 pengaturan(){
+  const wa=typeof S.settings.whatsapp_number==='string'?S.settings.whatsapp_number:'';
   return `<div class="form-grid">
-  <div class="card"><div class="chead"><h3>Informasi Toko</h3></div>
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px"><div class="cat-ic" style="background:var(--gl);width:64px;height:64px;font-size:30px">🛒</div><div><b>${esc(S.store.name)}</b><div class="sm" style="color:var(--mut);font-size:12px">${esc(S.store.tagline)}</div><button class="btn btn-light" style="padding:5px 10px;font-size:12px;margin-top:6px" onclick="toast('Unggah logo akan aktif setelah tersambung ke data asli')">${ico('plus','width:14px')}Ubah Logo</button></div></div>
-    <div class="field"><label>Nama Toko</label><input class="inp" id="sName" value="${esc(S.store.name)}"></div>
-    <div class="field"><label>Slogan</label><input class="inp" id="sTag" value="${esc(S.store.tagline)}"></div>
-    <div class="field"><label>Deskripsi</label><textarea class="inp" id="sDesc" rows="3">${esc(S.store.desc)}</textarea></div>
-    <div class="field"><label>No. WhatsApp</label><input class="inp" id="sWa" value="${esc(S.store.wa)}"></div>
-    <button class="btn btn-g full" onclick="saveStore()">Simpan Perubahan</button></div>
-  <div class="card"><div class="chead"><h3>Rekening Pembayaran</h3></div>
-    ${S.banks.map((b,i)=>`<div class="bank"><span class="bl">${esc(b.bank)}</span><div style="flex:1"><b>${esc(b.no)}</b><div style="font-size:12px;color:var(--mut)">a.n. ${esc(b.an)}</div></div><button class="more" onclick="bankForm(${i})">${ico('edit')}</button></div>`).join('')}
-    <button class="btn btn-light full" onclick="bankForm()">${ico('plus')}Tambah Rekening</button>
-    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)"><button class="btn btn-red full" onclick="resetDemo()">Kembalikan data contoh</button></div></div>
+  <div class="card"><div class="chead"><h3>WhatsApp Toko</h3></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:12px">Nomor tujuan pesanan dari tombol checkout &amp; WhatsApp di toko.</p>
+    <div class="field"><label>No. WhatsApp</label><input class="inp" id="sWa" inputmode="tel" value="${esc(wa)}" placeholder="08123456789"></div>
+    <button class="btn btn-g full" onclick="saveWa(this)">Simpan Nomor</button>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-top:14px">Ongkir, jadwal buka penjual, dan persetujuan akun penjual/kurir/jasa diatur dari menu ⚙️ Admin di halaman toko.</p>
+    <a class="btn btn-light full" style="margin-top:8px;text-decoration:none" href="index.html">Buka halaman toko</a></div>
+  <div class="card"><div class="chead"><h3>Akun Admin</h3></div>
+    <div class="detail-row"><span>Email</span><b>${esc((auth&&auth.email)||'-')}</b></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin:12px 0">Akun ini sama dengan login ⚙️ Admin di toko. Ganti kata sandi atau tambah admin dari Supabase &gt; Authentication &gt; Users dan tabel <code>admins</code>.</p>
+    <button class="btn btn-red full" onclick="logout()">${ico('out')}Keluar</button></div>
   </div>`;
 },
 lainnya(){
-  return `<div class="profile-head"><div class="avatar" style="width:56px;height:56px;font-size:22px">A</div><div><b style="font-size:18px">Admin</b><div style="opacity:.9;font-size:13px">admin@kalensari.store</div></div></div>
+  const em=(auth&&auth.email)||'';
+  return `<div class="profile-head"><div class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(em||'A'))}</div><div><b style="font-size:18px">Admin</b><div style="opacity:.9;font-size:13px">${esc(em)}</div></div></div>
   <div class="card menu-list">${MENU.map(([k,l,i])=>`<a onclick="go('${k}')">${ico(i,'color:var(--mut)')}${l}<span class="ch">${ico('right')}</span></a>`).join('')}
-  <a onclick="toast('Hubungi pengembang lewat WhatsApp')">${ico('help','color:var(--mut)')}Bantuan</a>
+  <a href="index.html">${ico('store','color:var(--mut)')}Buka Halaman Toko<span class="ch">${ico('right')}</span></a>
   <a onclick="logout()" style="color:var(--red);border:0">${ico('out')}Logout</a></div>`;
 }
 };
-function refreshList(){const c=$('#content').innerHTML;const tmp=document.createElement('div');tmp.innerHTML=PAGES[route]();$('#list').outerHTML=tmp.querySelector('#list').outerHTML}
+function refreshList(){const tmp=document.createElement('div');tmp.innerHTML=PAGES[route]();const n=tmp.querySelector('#list');if(n&&$('#list'))$('#list').outerHTML=n.outerHTML}
 
 /* ========== AKSI PESANAN ========== */
 function openOrder(id){
-  const o=S.orders.find(x=>x.id===id);
-  modal(`<div class="chead"><h3 style="margin:0">#${o.id}</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
-  <div class="detail-row"><span>Pelanggan</span><b>${esc(o.name)}</b></div>
+  const o=S.orders.find(x=>Number(x.id)===Number(id));if(!o)return;
+  const items=Array.isArray(o.items)?o.items:[];const wa=phoneKey(o.customer_phone);const cur=stLabel(o.status);
+  modal(`<div class="chead"><h3 style="margin:0">${esc(orderCode(o))}</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
+  <div class="detail-row"><span>Pelanggan</span><b>${esc(o.customer_name||'-')}</b></div>
+  <div class="detail-row"><span>No. WA</span><b>${wa?`<a href="https://wa.me/${wa}" target="_blank" rel="noopener" style="color:var(--g2)">${esc(o.customer_phone)}</a>`:'-'}</b></div>
+  <div class="detail-row"><span>Alamat</span><b style="text-align:right;max-width:65%;white-space:normal">${esc(o.address||'-')}</b></div>
+  ${o.note?`<div class="detail-row"><span>Catatan</span><b style="text-align:right;max-width:65%;white-space:normal">${esc(o.note)}</b></div>`:''}
+  <div class="detail-row"><span>Pembayaran</span><b>${esc(o.payment||'-')}</b></div>
+  <div class="detail-row"><span>Waktu</span><b>${fmtDate(o.created_at)}</b></div>
+  <p style="font-size:12px;color:var(--mut);margin:14px 0 6px;font-weight:600">Barang</p>
+  ${items.map(it=>`<div class="detail-row"><span style="white-space:normal">${esc(it.name)} × ${Number(it.qty)||1}${it.seller?`<br><small style="color:var(--mut)">${esc(it.seller)}</small>`:''}</span><b>${rp(itemPrice(it)*(Number(it.qty)||1))}</b></div>`).join('')||'<div class="sm">-</div>'}
+  <div class="detail-row"><span>Subtotal</span><b>${rp(o.subtotal)}</b></div>
+  <div class="detail-row"><span>Ongkir</span><b>${rp(o.shipping)}</b></div>
   <div class="detail-row"><span>Total</span><b>${rp(o.total)}</b></div>
-  <div class="detail-row"><span>Waktu</span><b>${o.time} · ${o.ago}</b></div>
-  <div class="detail-row" style="border:0"><span>Status sekarang</span><span class="badge b-${o.status}">${o.status}</span></div>
+  <div class="detail-row" style="border:0"><span>Status sekarang</span>${statusBadge(o)}</div>
   <p style="font-size:12px;color:var(--mut);margin:14px 0 8px;font-weight:600">Ubah status</p>
-  <div class="st-pick">${['Baru','Diproses','Dikirim','Selesai'].map(s=>`<button class="${o.status===s?'on':''}" onclick="setStatus('${o.id}','${s}')">${s}</button>`).join('')}</div>
-  <div class="mact"><button class="btn btn-red" onclick="setStatus('${o.id}','Batal')">Batalkan</button><button class="btn btn-g" onclick="closeModal()">Tutup</button></div>`);
+  <div class="st-pick">${['Baru','Diproses','Dikirim','Selesai'].map(s=>`<button class="${cur===s?'on':''}" onclick="setStatus(${Number(o.id)},'${s}',this)">${s}</button>`).join('')}</div>
+  <div class="mact"><button class="btn btn-red" onclick="if(confirm('Batalkan pesanan ini?'))setStatus(${Number(o.id)},'Batal',this)">Batalkan</button><button class="btn btn-g" onclick="closeModal()">Tutup</button></div>`);
 }
-function setStatus(id,s){S.orders.find(x=>x.id===id).status=s;save();closeModal();render();toast('Status diubah ke '+s)}
+async function setStatus(id,s,btn){
+  await busy(btn,async()=>{
+    await api('orders?id=eq.'+Number(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:STATUS_DB[s],updated_at:new Date().toISOString()})});
+    const o=S.orders.find(x=>Number(x.id)===Number(id));if(o)o.status=STATUS_DB[s];
+    closeModal();render();toast('Status diubah ke '+s);
+  });
+}
 
 /* ========== AKSI PRODUK ========== */
-function toggleProd(id){const p=S.products.find(x=>x.id===id);p.on=!p.on;save();render();toast(p.name+(p.on?' diaktifkan':' dinonaktifkan'))}
-function productMenu(id){modal(`<h3>${esc(S.products.find(p=>p.id===id).name)}</h3><div class="mact" style="flex-direction:column"><button class="btn btn-light" onclick="productForm(${id})">${ico('edit')}Edit produk</button><button class="btn btn-red" onclick="delProd(${id})">${ico('trash')}Hapus produk</button><button class="btn" onclick="closeModal()">Batal</button></div>`)}
-function delProd(id){if(!confirm('Hapus produk ini?'))return;S.products=S.products.filter(p=>p.id!==id);save();closeModal();render();toast('Produk dihapus')}
+const getProd=id=>S.products.find(x=>Number(x.id)===Number(id));
+async function patchProd(id,data){await api('products?id=eq.'+Number(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(data)});Object.assign(getProd(id)||{},data)}
+async function toggleProd(id,btn){const p=getProd(id);const on=p.status==='Show'||p.status==='Sold Out';
+  await busy(btn,async()=>{await patchProd(id,{status:on?'Hidden':'Show'});render();toast(p.name+(on?' disembunyikan':' ditampilkan'))})}
+function productMenu(id){const p=getProd(id);modal(`<h3>${esc(p.name)}</h3><div class="mact" style="flex-direction:column">
+  <button class="btn btn-light" onclick="productForm(${Number(id)})">${ico('edit')}Edit produk</button>
+  <button class="btn btn-light" onclick="setProdStatus(${Number(id)},'${p.status==='Sold Out'?'Show':'Sold Out'}',this)">${p.status==='Sold Out'?'Tandai stok tersedia':'Tandai stok habis'}</button>
+  <button class="btn btn-red" onclick="delProd(${Number(id)},this)">${ico('trash')}Hapus produk</button>
+  <button class="btn" onclick="closeModal()">Batal</button></div>`)}
+async function setProdStatus(id,st,btn){await busy(btn,async()=>{await patchProd(id,{status:st});closeModal();render();toast(st==='Sold Out'?'Ditandai stok habis':'Stok tersedia lagi')})}
+async function delProd(id,btn){
+  const p=getProd(id);
+  // Produk bawaan (id 1-25) selalu dipulihkan otomatis oleh halaman toko, jadi cukup disembunyikan.
+  if(Number(id)>=1&&Number(id)<=25){if(!confirm(`${p.name} adalah produk bawaan toko dan akan muncul lagi kalau dihapus. Sembunyikan saja?`))return;
+    return setProdStatus(id,'Hidden',btn).then(()=>toast('Produk disembunyikan'))}
+  if(!confirm(`Hapus ${p.name}? Tindakan ini tidak bisa dibatalkan.`))return;
+  await busy(btn,async()=>{await api('products?id=eq.'+Number(id),{method:'DELETE',headers:{Prefer:'return=minimal'}});S.products=S.products.filter(x=>Number(x.id)!==Number(id));closeModal();render();toast('Produk dihapus')});
+}
 function productForm(id){
-  const p=id?S.products.find(x=>x.id===id):{name:'',price:'',stock:'',cat:S.cats[0].name,em:'📦'};
+  const p=id?getProd(id):{name:'',price:'',sale:'',category:allCats()[0]||'Makanan',unit:'',seller:'',stock:'',image:'',status:'Show'};
+  const sellers=[...new Set(S.products.map(x=>x.seller).filter(Boolean))];
   modal(`<h3>${id?'Edit':'Tambah'} Produk</h3>
   <div class="field"><label>Nama produk</label><input class="inp" id="fN" value="${esc(p.name)}"></div>
-  <div class="form-grid" style="gap:10px"><div class="field"><label>Harga (Rp)</label><input class="inp" id="fP" type="number" value="${p.price}"></div><div class="field"><label>Stok</label><input class="inp" id="fS" type="number" value="${p.stock}"></div></div>
-  <div class="field"><label>Kategori</label><select class="inp" id="fC">${S.cats.map(c=>`<option ${c.name===p.cat?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
-  <div class="field"><label>Ikon (emoji)</label><input class="inp" id="fE" value="${p.em}" maxlength="4"></div>
-  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveProd(${id||0})">Simpan</button></div>`);
+  <div class="form-grid" style="gap:10px"><div class="field"><label>Harga (Rp)</label><input class="inp" id="fP" type="number" min="0" value="${esc(p.price??'')}"></div><div class="field"><label>Harga promo (opsional)</label><input class="inp" id="fSale" type="number" min="0" value="${esc(p.sale??'')}"></div></div>
+  <div class="form-grid" style="gap:10px"><div class="field"><label>Kategori</label><select class="inp" id="fC">${allCats().map(c=>`<option ${c===p.category?'selected':''}>${esc(c)}</option>`).join('')}</select></div><div class="field"><label>Satuan</label><input class="inp" id="fU" value="${esc(p.unit||'')}" placeholder="1 porsi"></div></div>
+  <div class="form-grid" style="gap:10px"><div class="field"><label>Penjual</label><input class="inp" id="fSel" list="sellerList" value="${esc(p.seller||'')}"><datalist id="sellerList">${sellers.map(s=>`<option value="${esc(s)}">`).join('')}</datalist></div><div class="field"><label>Stok (opsional)</label><input class="inp" id="fS" type="number" min="0" value="${esc(p.stock??'')}"></div></div>
+  <div class="field"><label>Link foto</label><input class="inp" id="fI" value="${esc(p.image||'')}" placeholder="https://..."></div>
+  <div class="field"><label>Status</label><select class="inp" id="fSt">${[['Show','Tampil'],['Sold Out','Stok habis'],['Hidden','Disembunyikan']].map(([v,l])=>`<option value="${v}" ${(p.status||'Show')===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveProd(${Number(id)||0},this)">Simpan</button></div>`);
 }
-function saveProd(id){
-  const d={name:$('#fN').value.trim(),price:+$('#fP').value,stock:+$('#fS').value,cat:$('#fC').value,em:$('#fE').value||'📦'};
-  if(!d.name||!d.price){toast('Nama dan harga wajib diisi');return}
-  if(id)Object.assign(S.products.find(x=>x.id===id),d);
-  else S.products.unshift({id:Date.now(),sold:0,on:true,...d});
-  save();closeModal();if(route!=='produk')go('produk');else render();toast('Produk disimpan');
+async function saveProd(id,btn){
+  const num=v=>v===''?null:Number(v);
+  const d={name:$('#fN').value.trim(),price:Number($('#fP').value),sale:num($('#fSale').value),category:$('#fC').value,unit:$('#fU').value.trim()||null,seller:$('#fSel').value.trim()||null,stock:num($('#fS').value),image:$('#fI').value.trim()||null,status:$('#fSt').value};
+  if(!d.name||!(d.price>0)){toast('Nama dan harga wajib diisi');return}
+  if(d.sale!=null&&(d.sale<=0||d.sale>=d.price)){toast('Harga promo harus lebih kecil dari harga');return}
+  await busy(btn,async()=>{
+    if(id){await patchProd(id,d)}
+    else{const nid=Math.max(25,...S.products.map(x=>Number(x.id)||0))+1;const r=await api('products',{method:'POST',body:JSON.stringify({id:nid,...d})});S.products.push(Array.isArray(r)&&r[0]?r[0]:{id:nid,...d})}
+    closeModal();if(route!=='produk')go('produk');else render();toast('Produk disimpan');
+  });
 }
 
 /* ========== AKSI KATEGORI ========== */
-function catForm(i){const c=i!=null?S.cats[i]:{name:'',em:'🏷️',c:colors[S.cats.length%colors.length]};
-  modal(`<h3>${i!=null?'Edit':'Tambah'} Kategori</h3><div class="field"><label>Nama kategori</label><input class="inp" id="cN" value="${esc(c.name)}"></div><div class="field"><label>Ikon (emoji)</label><input class="inp" id="cE" value="${c.em}" maxlength="4"></div><div class="field"><label>Warna</label><input class="inp" id="cC" type="color" value="${c.c}" style="height:46px;padding:4px"></div>
-  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveCat(${i??-1})">Simpan</button></div>`)}
-function saveCat(i){const d={name:$('#cN').value.trim(),em:$('#cE').value||'🏷️',c:$('#cC').value};if(!d.name)return toast('Nama wajib diisi');
-  if(i>=0){const old=S.cats[i].name;S.products.forEach(p=>{if(p.cat===old)p.cat=d.name});S.cats[i]=d}else S.cats.push(d);save();closeModal();render();toast('Kategori disimpan')}
-function catMenu(i){modal(`<h3>${esc(S.cats[i].name)}</h3><div class="mact" style="flex-direction:column"><button class="btn btn-light" onclick="catForm(${i})">${ico('edit')}Edit</button><button class="btn btn-red" onclick="if(confirm('Hapus kategori?')){S.cats.splice(${i},1);save();closeModal();render()}">${ico('trash')}Hapus</button><button class="btn" onclick="closeModal()">Batal</button></div>`)}
+function catForm(old){
+  modal(`<h3>${old?'Ubah Nama':'Tambah'} Kategori</h3><div class="field"><label>Nama kategori</label><input class="inp" id="cN" value="${esc(old||'')}"></div>
+  ${old?`<p class="sm" style="color:var(--mut);font-size:12px">Semua produk di kategori ini ikut dipindah ke nama baru.</p>`:''}
+  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveCat('${old?jsq(old):''}',this)">Simpan</button></div>`)}
+async function saveCat(old,btn){
+  const v=$('#cN').value.replace(/\s+/g,' ').trim();if(!v)return toast('Nama wajib diisi');
+  if(v!==old&&allCats().some(c=>c.toLowerCase()===v.toLowerCase()))return toast('Kategori itu sudah ada');
+  await busy(btn,async()=>{
+    let cats=customCats().filter(c=>c!==old);if(!BASE_CATS.includes(v))cats.push(v);
+    let removed=removedCats().filter(c=>c!==v);if(old&&old!==v)removed.push(old);
+    if(old&&old!==v){await api('products?category=eq.'+encodeURIComponent(old),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({category:v})});S.products.forEach(p=>{if(p.category===old)p.category=v})}
+    await setSetting('categories',cats);await setSetting('removed_categories',removed);
+    S.settings.categories=cats;S.settings.removed_categories=removed;closeModal();render();toast('Kategori disimpan');
+  });
+}
+function catMenu(c){const n=S.products.filter(p=>p.category===c).length;
+  modal(`<h3>${esc(c)}</h3><div class="mact" style="flex-direction:column"><button class="btn btn-light" onclick="catForm('${jsq(c)}')">${ico('edit')}Ubah nama</button>
+  <button class="btn btn-red" onclick="delCat('${jsq(c)}',this)" ${n?'disabled style="opacity:.5"':''}>${ico('trash')}Hapus</button>
+  ${n?`<p class="sm" style="color:var(--mut);font-size:12px">Kategori masih dipakai ${n} produk. Pindahkan produknya dulu untuk menghapus.</p>`:''}
+  <button class="btn" onclick="closeModal()">Batal</button></div>`)}
+async function delCat(c,btn){if(!confirm('Hapus kategori '+c+'?'))return;
+  await busy(btn,async()=>{const cats=customCats().filter(x=>x!==c),removed=[...new Set([...removedCats(),c])];
+    await setSetting('categories',cats);await setSetting('removed_categories',removed);S.settings.categories=cats;S.settings.removed_categories=removed;closeModal();render();toast('Kategori dihapus')})}
 
-/* ========== AKSI PROMO ========== */
-function promoForm(i){const p=i!=null?S.promos[i]:{title:'',tag:'',desc:'',from:'2025-10-01',to:'2025-10-31',c:'#ef4444'};
-  modal(`<h3>${i!=null?'Edit':'Tambah'} Promo</h3><div class="field"><label>Judul promo</label><input class="inp" id="pT" value="${esc(p.title)}"></div><div class="field"><label>Label di gambar (mis. DISKON 20%)</label><input class="inp" id="pG" value="${esc(p.tag)}"></div><div class="field"><label>Keterangan</label><input class="inp" id="pD" value="${esc(p.desc)}"></div>
-  <div class="form-grid" style="gap:10px"><div class="field"><label>Mulai</label><input class="inp" type="date" id="pF" value="${p.from}"></div><div class="field"><label>Selesai</label><input class="inp" type="date" id="pU" value="${p.to}"></div></div>
-  <div class="field"><label>Warna</label><input class="inp" id="pC" type="color" value="${p.c}" style="height:46px;padding:4px"></div>
-  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="savePromo(${i??-1})">Simpan</button></div>`)}
-function savePromo(i){const d={title:$('#pT').value.trim(),tag:$('#pG').value.trim()||'PROMO',desc:$('#pD').value,from:$('#pF').value,to:$('#pU').value,c:$('#pC').value};if(!d.title)return toast('Judul wajib diisi');
-  if(i>=0)Object.assign(S.promos[i],d);else S.promos.unshift({on:true,...d});save();closeModal();render();toast('Promo disimpan')}
-function promoMenu(i){modal(`<h3>${esc(S.promos[i].title)}</h3><div class="mact" style="flex-direction:column"><button class="btn btn-light" onclick="promoForm(${i})">${ico('edit')}Edit</button><button class="btn btn-red" onclick="if(confirm('Hapus promo?')){S.promos.splice(${i},1);save();closeModal();render()}">${ico('trash')}Hapus</button><button class="btn" onclick="closeModal()">Batal</button></div>`)}
+/* ========== AKSI PROMO (harga coret) ========== */
+function promoForm(id){
+  const p=id?getProd(id):null;const opts=S.products.filter(x=>x.status!=='Hidden').sort((a,b)=>a.name.localeCompare(b.name));
+  modal(`<h3>${p?'Ubah':'Tambah'} Promo</h3>
+  <div class="field"><label>Produk</label><select class="inp" id="prP" ${p?'disabled':''}>${opts.map(x=>`<option value="${Number(x.id)}" ${p&&Number(p.id)===Number(x.id)?'selected':''}>${esc(x.name)} — ${rp(x.price)}</option>`).join('')}</select></div>
+  <div class="field"><label>Harga promo (Rp)</label><input class="inp" id="prS" type="number" min="0" value="${esc(p&&p.sale||'')}"></div>
+  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="savePromo(this)">Simpan</button></div>`)}
+async function savePromo(btn){const id=+$('#prP').value,p=getProd(id),s=Number($('#prS').value);
+  if(!p)return;if(!(s>0)||s>=Number(p.price))return toast('Harga promo harus lebih kecil dari '+rp(p.price));
+  await busy(btn,async()=>{await patchProd(id,{sale:s});closeModal();if(route!=='promosi')go('promosi');else render();toast('Promo disimpan')})}
+function promoMenu(id){const p=getProd(id);modal(`<h3>${esc(p.name)}</h3><div class="mact" style="flex-direction:column"><button class="btn btn-light" onclick="promoForm(${Number(id)})">${ico('edit')}Ubah harga promo</button><button class="btn btn-red" onclick="endPromo(${Number(id)},this)">${ico('trash')}Akhiri promo</button><button class="btn" onclick="closeModal()">Batal</button></div>`)}
+async function endPromo(id,btn){await busy(btn,async()=>{await patchProd(id,{sale:null});closeModal();render();toast('Promo diakhiri')})}
 
 /* ========== PENGATURAN ========== */
-function saveStore(){Object.assign(S.store,{name:$('#sName').value,tagline:$('#sTag').value,desc:$('#sDesc').value,wa:$('#sWa').value});save();toast('Informasi toko disimpan')}
-function bankForm(i){const b=i!=null?S.banks[i]:{bank:'',no:'',an:S.store.name};
-  modal(`<h3>${i!=null?'Edit':'Tambah'} Rekening</h3><div class="field"><label>Bank / E-wallet</label><input class="inp" id="bB" value="${esc(b.bank)}" placeholder="BCA, BRI, DANA..."></div><div class="field"><label>No. rekening</label><input class="inp" id="bN" value="${esc(b.no)}"></div><div class="field"><label>Atas nama</label><input class="inp" id="bA" value="${esc(b.an)}"></div>
-  <div class="mact">${i!=null?`<button class="btn btn-red" onclick="S.banks.splice(${i},1);save();closeModal();render()">Hapus</button>`:''}<button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveBank(${i??-1})">Simpan</button></div>`)}
-function saveBank(i){const d={bank:$('#bB').value.trim(),no:$('#bN').value.trim(),an:$('#bA').value.trim()};if(!d.bank||!d.no)return toast('Lengkapi data rekening');
-  if(i>=0)S.banks[i]=d;else S.banks.push(d);save();closeModal();render();toast('Rekening disimpan')}
-function resetDemo(){if(!confirm('Semua perubahan akan hilang. Lanjutkan?'))return;S=structuredClone(seed);save();render();toast('Data contoh dipulihkan')}
+async function saveWa(btn){const n=phoneKey($('#sWa').value);if(n.length<9||n.length>15)return toast('Nomor WhatsApp tidak valid');
+  await busy(btn,async()=>{await setSetting('whatsapp_number',n);S.settings.whatsapp_number=n;render();toast('Nomor WhatsApp disimpan')})}
 
 /* ========== EXPORT ========== */
 function exportCSV(){
-  const rows=[['No Pesanan','Pelanggan','Total','Status','Waktu'],...S.orders.map(o=>[o.id,o.name,o.total,o.status,o.time])];
-  const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='laporan-kalensari.csv';a.click();toast('Laporan diunduh');
+  const os=S.orders.filter(o=>inDays(o,repDays));
+  const rows=[['Kode Pesanan','Waktu','Pelanggan','No WA','Barang','Subtotal','Ongkir','Total','Status','Pembayaran'],
+    ...os.map(o=>[orderCode(o),fmtDate(o.created_at),o.customer_name||'',o.customer_phone||'',(Array.isArray(o.items)?o.items:[]).map(i=>`${i.name} x${i.qty||1}`).join('; '),o.subtotal||0,o.shipping||0,o.total||0,stLabel(o.status),o.payment||''])];
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv'}));a.download='laporan-kalensari.csv';a.click();toast('Laporan diunduh');
 }
 
 /* ========== MULAI ========== */
-let logged=false;try{logged=sessionStorage.getItem('ks_login')==='1'}catch(e){}
-if(logged){$('#login').classList.add('hide');$('#app').classList.remove('hide');go('dashboard')}
+$('#lPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
+if(auth&&auth.refresh_token)enterApp();
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+// Pesanan baru dimuat ulang otomatis tiap 60 detik.
+setInterval(()=>{if(auth&&!$('#app').classList.contains('hide')&&!$('#modalRoot').innerHTML&&document.visibilityState==='visible')loadAll(true)},60000);
 </script>
 </body>
 </html>
