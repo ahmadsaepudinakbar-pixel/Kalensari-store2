@@ -41,6 +41,9 @@ textarea.fld{min-height:90px;resize:vertical}
 .btns{display:grid;gap:10px;margin-top:6px}
 .ico{width:110px;height:110px;border-radius:24px;background:var(--chip);display:grid;place-items:center;font-size:54px;overflow:hidden;margin:4px 0 10px}
 .ico img{width:100%;height:100%;object-fit:cover;display:block}
+.mini.merah{background:#fdecea;color:#a32d2d;border-color:#f1b0a8}
+.ga-chips{display:flex;flex-wrap:wrap;gap:6px}.ga-chip{border:1px solid var(--line,#e5d6c3);background:#fff;border-radius:999px;padding:8px 12px;font:inherit;font-size:13px;cursor:pointer}
+.ga-chip.on{background:#fdecea;border-color:#e24b4a;color:#791f1f;font-weight:700}
 .status{border-radius:14px;padding:10px 14px;margin-bottom:14px;font-weight:600;font-size:14px}
 .status.p{background:#ffe55c;color:#4a3800}.status.ok{background:#dff3e6;color:#14502c}.status.h{background:#f6dcd7;color:#7a2418}
 h2{margin:0 0 4px;color:var(--brown)}
@@ -223,7 +226,7 @@ const FIELDS = ["nama","kendaraan","wilayah"];
 let me = null, WA = sessionStorage.getItem(SESS);
 function keluar(){ sessionStorage.removeItem(SESS); location.href = "akun-" + ROLE + ".html"; }
 $("btnKeluar").onclick = keluar;
-const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan"};
+const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan", gagal:"Gagal antar"};
 function itemsText(o){
   let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } }
   return (Array.isArray(it) ? it : []).map(i => esc(i.name || i.nama || "Item") + " ×" + (i.qty || 1)).join(", ") || "-";
@@ -451,6 +454,7 @@ function cardMine(o){
     + `<a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}">💬 WhatsApp</a>`
     + `<button class="mini g" type="button" data-act="status" data-code="${esc(o.order_code)}" data-status="${next[0]}">${next[1]}</button>`
     + (o.status === "diproses" ? `<button class="mini" type="button" data-act="lepas" data-code="${esc(o.order_code)}">↩️ Lepas pesanan</button>` : "")
+    + (o.status === "dikirim" ? `<button class="mini merah" type="button" data-act="gagal" data-code="${esc(o.order_code)}">❌ Gagal antar</button>` : "")
     + `</div>`;
 }
 async function loadOrders(){
@@ -549,12 +553,48 @@ $("orders").addEventListener("click", async e => {
     if(act === "terima") await terima(code);
     else if(act === "tolak") await alihkan(code, "Pesanan ditolak dan dialihkan ke kurir lain");
     else if(act === "lepas") await alihkan(code, "Pesanan dilepas dan dialihkan ke kurir lain");
+    else if(act === "gagal"){ b.disabled = false; return gagalAntar(code); }
     else if(act === "status"){ if(b.dataset.status === "selesai"){ b.disabled = false; return serahTerima(code); } return await setStatus(code, b.dataset.status); }
   }catch(err){ toast("Gagal: " + String(err.message || err).slice(0, 100)); }
   loadOrders();
 });
 
 
+
+// ===== Gagal antar: kurir wajib pilih alasan. Dipakai admin untuk memblokir COD pembeli yang sering gagal =====
+const ALASAN_GAGAL = ["Pembeli menolak", "Tidak ada di rumah", "Nomor tidak bisa dihubungi", "Alamat tidak ditemukan", "Lainnya"];
+function gagalAntar(code){
+  const o = ORD[code]; if(!o) return;
+  let alasan = "", barang = "Dikembalikan ke toko", sibuk = false;
+  const ov = lembar(`<h3 style="margin:0 0 4px;color:#a32d2d">❌ Gagal antar ${esc(code)}</h3>
+    <p class="hint" style="margin:0 0 10px">Pastikan sudah menelepon / WA pembeli dulu. Pilih alasannya:</p>
+    <div id="gaAl" class="ga-chips">${ALASAN_GAGAL.map(a => `<button type="button" class="ga-chip" data-v="${esc(a)}">${esc(a)}</button>`).join("")}</div>
+    <input id="gaKet" class="fld" maxlength="120" placeholder="Keterangan singkat (wajib jika pilih Lainnya)" style="margin-top:10px">
+    <p class="hint" style="margin:10px 0 6px"><b>Barangnya:</b></p>
+    <div id="gaBr" class="ga-chips">${["Dikembalikan ke toko", "Dititip di kurir", "Lainnya"].map((a, i) => `<button type="button" class="ga-chip${i ? "" : " on"}" data-v="${esc(a)}">${esc(a)}</button>`).join("")}</div>
+    <p id="gaErr" class="hint" style="color:#c0392b;margin:8px 0 0"></p>
+    <button class="mini merah" id="gaKirim" type="button" style="width:100%;padding:13px;font-size:15px;margin:12px 0 0">Laporkan gagal antar</button>
+    <button class="mini" id="gaBatal" type="button" style="width:100%;margin-top:10px">Batal</button>`);
+  const pilih = (box, set) => { $(box).onclick = e => { const x = e.target.closest(".ga-chip"); if(!x) return; $(box).querySelectorAll(".ga-chip").forEach(y => y.classList.toggle("on", y === x)); set(x.dataset.v); $("gaErr").textContent = ""; }; };
+  pilih("gaAl", v => { alasan = v; }); pilih("gaBr", v => { barang = v; });
+  $("gaBatal").onclick = () => ov.remove();
+  $("gaKirim").onclick = async () => {
+    if(sibuk) return;
+    const ket = $("gaKet").value.trim();
+    if(!alasan) return $("gaErr").textContent = "Pilih alasan dulu.";
+    if(alasan === "Lainnya" && !ket) return $("gaErr").textContent = "Tulis keterangannya.";
+    sibuk = true; $("gaKirim").textContent = "Mengirim…";
+    try{
+      const st = await readState(code);
+      if(!st.acc || st.acc.id !== me.id){ ov.remove(); toast("Pesanan ini bukan milik Anda"); return loadOrders(); }
+      const now = new Date().toISOString();
+      const teks = alasan + (ket ? " – " + ket : "") + " • Barang: " + barang + " • Kurir: " + (me.nama || WA);
+      await cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"gagal", gagal_alasan:teks, gagal_at:now, updated_at:now})});
+      try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){}
+      ov.remove(); toast("Laporan gagal antar terkirim ke admin"); loadOrders();
+    }catch(e){ sibuk = false; $("gaKirim").textContent = "Laporkan gagal antar"; $("gaErr").textContent = "Gagal mengirim: " + String(e.message || e).slice(0, 120); }
+  };
+}
 
 // ===== Serah terima: kode 4 angka dari pembeli, atau foto bukti bila pembeli tidak ada =====
 function kecilkanFoto(file, max = 900){

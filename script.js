@@ -5,7 +5,7 @@ const DEFAULT_PRODUCTS = [{"id":1,"name":"Lotek Bongko","price":12000,"sale":800
 const pendingDeletes = new Set(); // id produk yang sengaja dihapus admin (agar produk baru milik penjual tidak ikut terhapus)
 let products = JSON.parse(localStorage.getItem("kalensari_products") || "null") || DEFAULT_PRODUCTS.map(p=>({...p}));
 let cloudReady = false;
-const ORDER_STATUSES = ["menunggu","diproses","dikirim","selesai","dibatalkan"];
+const ORDER_STATUSES = ["menunggu","diproses","dikirim","selesai","dibatalkan","gagal"];
 const saveProducts = () => localStorage.setItem("kalensari_products", JSON.stringify(products));
 const getLocalOrders = () => { try { return JSON.parse(localStorage.getItem("kalensari_orders") || "[]"); } catch { return []; } };
 const saveLocalOrders = rows => localStorage.setItem("kalensari_orders", JSON.stringify(rows));
@@ -317,6 +317,7 @@ async function loadCloudSettings(){
       if(r.key==="penjual_members"&&Array.isArray(r.value)){const m={};r.value.forEach(x=>{const nm=sellerKey(x&&(x.toko||x.usaha));if(nm&&validLL(x.latitude,x.longitude))m[nm]={lat:Number(x.latitude),lng:Number(x.longitude)};});sellerLocs=m;localStorage.setItem("kalensari_seller_locs",JSON.stringify(sellerLocs));}
       if(r.key==="seller_schedule"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){sellerSchedule=r.value;localStorage.setItem("kalensari_seller_schedule",JSON.stringify(sellerSchedule));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
+      if(r.key==="cod_aturan"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){codAturan={...codAturan,...r.value};}
     });
     return true;
   }catch(e){console.error("Supabase pengaturan toko:",e);return false;}
@@ -847,6 +848,12 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   {KS_KURIR=await jumlahKurirAktif();if(KS_KURIR===0){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");return;}}
   const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),route=shippingRoute(items),shipping=route.fee,total=subtotal+shipping;
   const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
+  let codTahan=false;
+  if(isCod(f.get("payment"))){
+    const ci=await codInfo(phone);
+    if(!ci.boleh){alert(ci.pesan);pilihQrisCheckout();return;}
+    codTahan=ci.tahan;
+  }
   const orderCode=await makeUniqueOrderCode();
   const kodeST=window.KSST?KSST.buatKode():"";
   const createdAt=new Date().toISOString();
@@ -875,7 +882,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
     :"jarak belum terhitung, mohon konfirmasi";
   const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nNOTA • Kode Pesanan: ${orderCode}\n\n${routeLine}${tokoText}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${shipping>0?rupiah(shipping):"Gratis"} (${shipDetail})\nTOTAL BAYAR: ${rupiah(total)}\n\nNama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
   const msgWA=kodeST?msg+`\n\n🔑 Kode serah terima: ${kodeST}\n(sebutkan ke kurir hanya saat pesanan sudah diterima)`:msg;
-  const payloads=[{order_code:orderCode,created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu"}];
+  const payloads=[{order_code:orderCode,created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu",...(codTahan?{pay_status:"tunggu_wa"}:{})}];
 
   // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi semua nota.
   const local=getLocalOrders(); payloads.forEach((pl,i)=>local.unshift({...pl,id:`local-${Date.now()}-${i}`})); saveLocalOrders(local);
@@ -900,6 +907,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   else window.open(waLink(msgWA),"_blank");
   cart=[];saveCart();updateCartCount();renderCart();closeModal("checkoutModal");
   showToast(multi?`✅ Pesanan ${stops.length} toko (1 nota) tersimpan dan dikirim.`:"✅ Pesanan tersimpan dan dikirim."); e.target.reset();
+  if(codTahan) setTimeout(()=>alert("Ini pesanan COD pertama Anda 🙏\n\nAdmin Kalensari Store akan menghubungi Anda lewat WhatsApp untuk konfirmasi. Setelah dikonfirmasi, pesanan langsung diteruskan ke toko."),400);
   if(window.KSNotif&&CLOUD_CONFIG?.enabled) setTimeout(()=>KSNotif.tawarkan({key:"pembeli_push_"+normalizePhone(phone),ajakan:"🔔 Kabari saya saat pesanan diterima toko & diantar kurir?"}),1500);
 });
 
@@ -996,7 +1004,7 @@ document.getElementById("importFile").onchange=e=>{const file=e.target.files[0];
 document.getElementById("resetProductsBtn").onclick=()=>{if(!confirm("Kembalikan 25 produk bawaan?"))return;products=DEFAULT_PRODUCTS.map(p=>({...p}));saveProducts();syncCloudProducts();renderProducts();renderCategories();renderAdminProducts();showToast("Produk dikembalikan ke bawaan")};
 
 
-function statusLabel(s){return ({menunggu:"Menunggu",baru:"Menunggu",diproses:"Diproses",dikirim:"Dikirim",selesai:"Selesai",dibatalkan:"Dibatalkan"}[s]||s||"Menunggu");}
+function statusLabel(s){return ({menunggu:"Menunggu",baru:"Menunggu",diproses:"Diproses",dikirim:"Dikirim",selesai:"Selesai",dibatalkan:"Dibatalkan",gagal:"Gagal diantar"}[s]||s||"Menunggu");}
 function statusSteps(status){
   const order=["menunggu","diproses","dikirim","selesai"]; const idx=order.indexOf(status);
   return `<div class="order-timeline">${order.map((x,i)=>`<div class="order-step ${status==='dibatalkan'?'cancelled':i<idx?'done':i===idx?'current':''}"><div class="dot">${i<idx?'✓':i===idx?'•':'○'}</div>${statusLabel(x)}</div>`).join("")}</div>`;
@@ -1011,6 +1019,7 @@ function renderMyOrders(rows=getLocalOrders()){
     <p><b>${esc(o.customer_name||"")}</b> • ${esc(o.customer_phone||"")}</p>
     <p>${(o.items||[]).map(x=>`${esc(x.name)}${x.seller?` (${esc(x.seller)})`:""} ×${x.qty}`).join(" • ")}</p>
     <strong>${rupiah(o.total||0)}</strong>
+    ${o.pay_status==="tunggu_wa"&&o.status==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
     ${o.pay_status==="lunas"?'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>':QRIS_OTOMATIS&&o.payment==="QRIS"&&o.status!=="dibatalkan"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="bayarQris('${esc(o.order_code)}')">💳 Bayar dengan QRIS</button>`:""}
     ${window.KSST?KSST.html(o):""}
     ${o.sync_error?`<div class="order-hint">⚠️ Belum tersinkron ke database: ${esc(o.sync_error)}</div>`:""}
@@ -1725,3 +1734,48 @@ function simpanQris(q,code,total){
   },"image/png");
   function unduh(b){const u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=nama;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);showToast("✅ QR disimpan. Buka aplikasi bank/e-wallet → Scan → pilih dari galeri.");}
 }
+
+
+// ===== PENGAMAN COD =====
+// Aturan bisa diubah admin (menu "COD bermasalah"): batas nilai, konfirmasi WA pembeli baru, batas gagal.
+var codAturan={maks:100000,wa_baru:true,maks_gagal:2,buka:{}};
+const isCod=v=>/^cod/i.test(String(v||"").trim());
+function pilihQrisCheckout(){const sel=document.querySelector('#checkoutForm select[name="payment"]');const o=sel&&[...sel.options].find(x=>/^qris/i.test(x.value||x.textContent));if(o){sel.value=o.value;sel.dispatchEvent(new Event("change"));}}
+function totalCheckout(){return Number(String(document.getElementById("checkoutTotal")?.textContent||"").replace(/[^0-9]/g,""))||0;}
+let codRiwayat={hp:"",t:0,data:null};
+async function riwayatCod(phone){
+  const hp=normalizePhone(phone);
+  if(codRiwayat.hp===hp&&Date.now()-codRiwayat.t<60000)return codRiwayat.data;
+  let rows=[];try{rows=await cloudFetch(`orders?select=status,payment,gagal_at,updated_at&customer_phone_normalized=eq.${encodeURIComponent(hp)}&status=in.(selesai,gagal)`);}catch(e){rows=null;}
+  codRiwayat={hp,t:Date.now(),data:Array.isArray(rows)?rows:null};return codRiwayat.data;
+}
+async function codInfo(phone){
+  const A=codAturan||{},maks=Number(A.maks)||0,hp=normalizePhone(phone),total=totalCheckout();
+  const rows=await riwayatCod(phone);
+  if(rows===null)return{boleh:true,tahan:A.wa_baru!==false,pesan:""};      // gagal cek riwayat: tetap boleh, tapi dikonfirmasi WA
+  const buka=Date.parse((A.buka||{})[hp]||"")||0;
+  const gagal=rows.filter(o=>o.status==="gagal"&&isCod(o.payment)&&(Date.parse(o.gagal_at||o.updated_at||"")||0)>buka).length;
+  const selesai=rows.filter(o=>o.status==="selesai").length;
+  const maksGagal=Number(A.maks_gagal)||2;
+  if(gagal>=maksGagal)return{boleh:false,gagal,selesai,pesan:`COD belum bisa dipakai untuk nomor ini karena ${gagal}x pesanan gagal diantar.\n\nSilakan pilih pembayaran QRIS. Hubungi admin jika ada kekeliruan.`};
+  if(maks>0&&total>maks)return{boleh:false,gagal,selesai,pesan:`COD maksimal ${rupiah(maks)}.\n\nTotal pesanan Anda ${rupiah(total)}, silakan bayar dengan QRIS.`};
+  return{boleh:true,gagal,selesai,tahan:A.wa_baru!==false&&selesai===0,pesan:""};
+}
+(function(){
+  const sel=document.querySelector('#checkoutForm select[name="payment"]');if(!sel)return;
+  const hint=document.createElement("small");hint.id="codHint";hint.style.cssText="display:block;margin-top:6px;font-size:12px;line-height:1.45";sel.insertAdjacentElement("afterend",hint);
+  let n=0;
+  async function cek(){
+    const my=++n;
+    if(!isCod(sel.value)){hint.textContent="";return;}
+    const maks=Number(codAturan.maks)||0;
+    if(!checkoutBuyer){hint.style.color="#7a5b00";hint.textContent=maks?`COD maksimal ${rupiah(maks)}.`:"";return;}
+    hint.style.color="#6b7280";hint.textContent="Mengecek COD…";
+    const ci=await codInfo(phoneShow(checkoutBuyer.wa));if(my!==n)return;
+    if(!ci.boleh){hint.style.color="#c0392b";hint.textContent="⚠️ "+ci.pesan.split("\n")[0]+" Pilih QRIS.";}
+    else if(ci.tahan){hint.style.color="#9a6700";hint.textContent="📞 COD pertama: admin konfirmasi lewat WhatsApp dulu sebelum pesanan diteruskan ke toko.";}
+    else{hint.style.color="#14502c";hint.textContent=`✅ Bisa COD${maks?` (maksimal ${rupiah(maks)})`:""}.`;}
+  }
+  sel.addEventListener("change",cek);
+  const tot=document.getElementById("checkoutTotal");if(tot)new MutationObserver(cek).observe(tot,{childList:true,characterData:true,subtree:true});
+})();

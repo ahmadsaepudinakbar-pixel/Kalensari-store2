@@ -87,7 +87,7 @@ $("btnOut").onclick=()=>{localStorage.removeItem(SESS);location.reload()};$("btn
 /* ===== PESANAN MASUK PER TOKO + NOTIFIKASI ===== */
 const escH=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rp=n=>"Rp"+Number(n||0).toLocaleString("id-ID"),sKey=n=>String(n||"").trim().toLowerCase();
-const STATS=["menunggu","diproses","dikirim","selesai","dibatalkan"],STL={menunggu:"Menunggu",diproses:"Diproses",dikirim:"Dikirim",selesai:"Selesai",dibatalkan:"Dibatalkan"};
+const STATS=["menunggu","diproses","dikirim","selesai","dibatalkan"],STL={menunggu:"Menunggu",diproses:"Diproses",dikirim:"Dikirim",selesai:"Selesai",dibatalkan:"Dibatalkan",gagal:"Gagal antar"};
 const T0=document.title;let ordTimer=null,ordRows=[],ordNew=new Set(),audioCtx=null;
 const myKey=()=>sKey(me&&(me.toko||me.usaha));
 function unlockAudio(){try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume()}catch(e){}}
@@ -100,19 +100,19 @@ async function fetchMyOrders(){
   const rows=cloudOn()?await cf("orders?select=*&order=created_at.desc&limit=200"):LSget("kalensari_orders",[]);
   const k=myKey();if(!k)return[];
   // pesanan QRIS yang belum dibayar ditahan (belum diteruskan ke penjual)
-  return (Array.isArray(rows)?rows:[]).filter(o=>Array.isArray(o.items)&&o.items.some(p=>sKey(p.seller)===k)&&!(/^qris/i.test(String(o.payment||""))&&o.pay_status!=="lunas"));
+  return (Array.isArray(rows)?rows:[]).filter(o=>Array.isArray(o.items)&&o.items.some(p=>sKey(p.seller)===k)&&!(/^qris/i.test(String(o.payment||""))&&o.pay_status!=="lunas")&&o.pay_status!=="tunggu_wa");
 }
 function ordCard(o){
   const k=myKey(),mine=o.items.filter(p=>sKey(p.seller)===k),only=mine.length===o.items.length;
   const sub=mine.reduce((t,p)=>t+(p.sale||p.price||0)*p.qty,0),ship=only?Number(o.shipping||0):0,total=only?Number(o.total||sub):sub;
-  let st=o.status==="baru"||!o.status?"menunggu":o.status;const t0=/^qris/i.test(String(o.payment||""))&&o.paid_at?o.paid_at:o.created_at;if(st==="menunggu"&&new Date(t0).getTime()+15*60000<=Date.now())st="dibatalkan";
+  let st=o.status==="baru"||!o.status?"menunggu":o.status;const t0=o.paid_at||o.created_at;if(st==="menunggu"&&new Date(t0).getTime()+15*60000<=Date.now())st="dibatalkan";
   const id=escH(String(o.id));
   return `<div class="ord${ordNew.has(o.order_code)?" new":""}"><h3>${escH(o.order_code||"Pesanan")}<span class="st ${escH(st)}">${escH(STL[st]||st)}</span></h3>
   <p>${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</p>
   <ul>${mine.map(p=>`<li>${escH(p.name)} ×${p.qty} — ${rp((p.sale||p.price||0)*p.qty)}</li>`).join("")}</ul>
   <div class="sum"><span>Subtotal</span><b>${rp(sub)}</b></div>${only?`<div class="sum"><span>Ongkir</span><b>${ship>0?rp(ship):"Gratis"}</b></div>`:""}
   <div class="sum t"><span>Total</span><b>${rp(total)}</b></div><p>💳 ${escH(o.payment||"-")}${o.pay_status==="lunas"?' • <b style="color:#14502c">LUNAS</b>':""}</p>
-  <div class="ordbtns">${only?(st==="menunggu"?`<button class="mini g" data-id="${id}" data-a="diproses">✅ Terima & proses</button><button class="mini" style="border-color:#b83c2b;color:#b83c2b" data-id="${id}" data-a="dibatalkan">✖️ Tolak</button>`:`<small>${({diproses:"Menunggu kurir mengantar",dikirim:"Sedang diantar kurir",selesai:"Selesai",dibatalkan:"Ditolak"})[st]||""}</small>`):`<small>Pesanan gabungan lama: status diubah oleh admin.</small>`}</div></div>`;
+  <div class="ordbtns">${only?(st==="menunggu"?`<button class="mini g" data-id="${id}" data-a="diproses">✅ Terima & proses</button><button class="mini" style="border-color:#b83c2b;color:#b83c2b" data-id="${id}" data-a="dibatalkan">✖️ Tolak</button>`:`<small>${({diproses:"Menunggu kurir mengantar",dikirim:"Sedang diantar kurir",selesai:"Selesai",gagal:"Gagal diantar kurir",dibatalkan:"Ditolak"})[st]||""}</small>`):`<small>Pesanan gabungan lama: status diubah oleh admin.</small>`}</div></div>`;
 }
 function renderOrders(){
   const list=$("ordList"),open=ordRows.filter(o=>!["selesai","dibatalkan"].includes(o.status));
