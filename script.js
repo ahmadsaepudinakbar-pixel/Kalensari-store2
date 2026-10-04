@@ -447,6 +447,16 @@ function closeShopPanel(){
   const b=document.createElement("button");b.type="button";b.id="shopBtn";b.className="icon-btn shop-btn";b.title="Daftar toko";b.setAttribute("aria-label","Daftar toko");b.textContent="🏪";
   b.onclick=openShopPanel;cb.parentNode.insertBefore(b,cb);
 })();
+// Hapus tombol "Toko" lama di samping kolom Cari Produk (sudah diganti chip Toko & ikon header)
+(function(){
+  const si=document.getElementById("searchInput"),ss=document.getElementById("sortSelect");if(!si)return;
+  let box=si.parentElement;while(box&&box!==document.body&&!(ss&&box.contains(ss)))box=box.parentElement;
+  if(!box||box===document.body)box=si.closest(".shop-toolbar,.search-box")||si.parentElement;
+  box.querySelectorAll("button,a,label,span").forEach(el=>{
+    if(el.id==="shopBtn"||el.classList.contains("cat-toko")||el.contains(si)||(ss&&el.contains(ss)))return;
+    if(/^\s*(🏪|🏬)?\s*toko\s*$/i.test(el.textContent||""))el.remove();
+  });
+})();
 // ===== VARIAN PRODUK: produk dengan "Nama Grup" sama digabung jadi 1 kartu =====
 const groupName=p=>String(p.product_group||"").trim();
 const variantLabel=p=>String(p.variant||"").trim()||p.name;
