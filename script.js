@@ -747,7 +747,7 @@ async function loadBuyer(){
 const okCoord=(la,ln)=>{la=Number(la);ln=Number(ln);return Number.isFinite(la)&&Number.isFinite(ln)&&!(la===0&&ln===0);};
 function renderCheckoutBuyer(){
   const b=checkoutBuyer; if(!b) return;
-  document.getElementById("coBuyer").innerHTML=`<b>👤 Pemesan</b><div>${esc(b.nama)}</div><div>📱 ${esc(phoneShow(b.wa))}</div><small>Data otomatis dari akun pembeli. <a href="dashboard-pembeli.html">Ubah</a></small>`;
+  document.getElementById("coBuyer").innerHTML=`<b>👤 Pemesan</b><div>${esc(b.nama)}</div><div>📱 ${esc(phoneShow(b.wa))}</div><small>Data otomatis dari akun warga. <a href="dashboard-pembeli.html">Ubah</a></small>`;
   document.querySelectorAll('#checkoutForm [name="addrMode"]').forEach(r=>r.checked=false);
   document.getElementById("coRumah").hidden=true; document.getElementById("coLokasi").hidden=true;
   document.getElementById("ksMapLat").value=""; document.getElementById("ksMapLng").value="";
@@ -765,7 +765,7 @@ function setupCheckoutMaps(){
     if(mode==="rumah"){
       const b=checkoutBuyer;
       if(!b||!b.alamat){
-        showToast("Alamat rumah belum diisi. Mengarahkan ke dasbor pembeli...");
+        showToast("Alamat rumah belum diisi. Mengarahkan ke dasbor warga...");
         sessionStorage.setItem("kalensari_next","checkout");
         setTimeout(()=>{ksGo("dashboard-pembeli.html");},1200); return;
       }
@@ -840,7 +840,7 @@ document.getElementById("checkoutBtn").onclick=async()=>{
   {const al=await cekBisaPesan(); if(al.length){alert("Pesanan belum bisa dibuat:\n\n"+teksAlasan(al));return;}}
   if(!cart.length) return;
   const b=await loadBuyer();
-  if(!b){ sessionStorage.setItem("kalensari_next","checkout"); showToast("Silakan masuk sebagai pembeli dulu..."); setTimeout(()=>{ksGo("akun-pembeli.html");},900); return; }
+  if(!b){ sessionStorage.setItem("kalensari_next","checkout"); showToast("Silakan masuk dengan akun warga dulu..."); setTimeout(()=>{ksGo("akun-pembeli.html");},900); return; }
   checkoutBuyer=b; closeModal("cartModal"); renderCheckoutBuyer(); renderCart(); openModal("checkoutModal"); setupCheckoutMaps();
 };
 // Pencarian produk tidak boleh terisi otomatis dari nomor WhatsApp/autofill pelanggan.
@@ -885,7 +885,7 @@ function showToast(message){const t=document.getElementById("toast");t.textConte
 document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
 document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!cart.length)return;
-  if(!checkoutBuyer){showToast("Silakan masuk sebagai pembeli dulu");return;}
+  if(!checkoutBuyer){showToast("Silakan masuk dengan akun warga dulu");return;}
   await Promise.all([loadCloudSettings(),refreshProductStatus()]);
   if(!cartGroups().some(g=>g.on)){alert("Centang minimal satu produk yang ingin di-checkout.");return;}
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
@@ -1170,11 +1170,6 @@ function setupHeroButtons(){
   jasa.textContent="Penyedia Jasa";
   jasa.setAttribute("href","jasa.html");
   jasa.removeAttribute("target");jasa.removeAttribute("rel");
-  let lapak=document.getElementById("lapakHero");
-  if(!lapak){lapak=info.cloneNode(false);lapak.id="lapakHero";lapak.classList.add("hero-lapak");jasa.insertAdjacentElement("afterend",lapak);}
-  lapak.textContent="🔁 Lapak Barter";
-  lapak.setAttribute("href","pasar.html");
-  lapak.removeAttribute("target");lapak.removeAttribute("rel");
 }
 // Perbarui semua tautan WhatsApp statis setelah nomor diubah / dimuat dari database.
 function applyWaLinks(){
@@ -1515,7 +1510,7 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
 .ks-menu a:hover,.ks-menu button:hover,.ks-menu a:focus-visible,.ks-menu button:focus-visible{background:#f8edd3;outline:none}`;
   document.head.appendChild(st);
   const m=document.createElement("div");m.className="ks-menu";m.setAttribute("role","menu");
-  m.innerHTML=`<a role="menuitem" href="akun-pembeli.html">🛒 Pembeli</a><a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" href="akun-jasa.html">🤝 Penyedia Jasa</a><a role="menuitem" href="akun-kurir.html">🛵 Kurir</a>`;
+  m.innerHTML=`<a role="menuitem" href="pasar.html" style="background:#fff6ec;color:#5b2e1a;margin-bottom:4px">🔁 Lapak Barter <span style="margin-left:auto;background:#faeeda;color:#633806;font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px">Baru</span></a><a role="menuitem" href="akun-pembeli.html"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true" style="flex:none;vertical-align:middle"><circle cx="20" cy="20" r="20" fill="#FFE27A"/><path d="M5 34c1-6 5-9 9-9s8 3 9 9z" fill="#4FC3A1"/><path d="M17 34c1-7 5-10 9-10s8 3 9 10z" fill="#FF8A5C"/><path d="M11 36c1-6 5-9 9-9s8 3 9 9z" fill="#5AA9F0"/><circle cx="12" cy="19" r="5" fill="#FFD3A8" stroke="#7a3e20" stroke-width="1"/><circle cx="28" cy="18" r="5.5" fill="#F7C39A" stroke="#7a3e20" stroke-width="1"/><circle cx="20" cy="22" r="5.5" fill="#FFDDB8" stroke="#7a3e20" stroke-width="1"/><path d="M17.8 23.5q2.2 2 4.4 0M9.8 20.3q2.2 1.8 4.4 0M25.8 19.5q2.2 1.8 4.4 0" stroke="#7a3e20" stroke-width="1.1" fill="none" stroke-linecap="round"/><circle cx="18.3" cy="21" r=".8" fill="#5b2e1a"/><circle cx="21.7" cy="21" r=".8" fill="#5b2e1a"/><circle cx="10.6" cy="18" r=".7" fill="#5b2e1a"/><circle cx="13.4" cy="18" r=".7" fill="#5b2e1a"/><circle cx="26.6" cy="17.2" r=".7" fill="#5b2e1a"/><circle cx="29.4" cy="17.2" r=".7" fill="#5b2e1a"/><path d="M14.5 17q5.5-6 11 0" fill="#5b2e1a" opacity=".85"/></svg> Warga Desa</a><a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" href="akun-jasa.html">🤝 Penyedia Jasa</a><a role="menuitem" href="akun-kurir.html">🛵 Kurir</a>`;
   document.body.appendChild(m);
   const close=()=>{m.classList.remove("open");btn.setAttribute("aria-expanded","false");};
   const place=()=>{const r=btn.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.left=Math.max(8,Math.min(r.left,innerWidth-m.offsetWidth-8))+"px";};
@@ -1944,10 +1939,28 @@ function mintaKataSandi(wa){
         if(!acc)acc=readLS("kalensari_pembeli_accounts",{});
         const a=acc&&acc[wa];
         if(a&&a.h===await hashPinPembeli(wa,pin))return tutup(true);
-        salah++;inp.value="";err.textContent=salah>=5?"Kata sandi salah 5x. Coba lagi nanti atau atur ulang lewat akun pembeli.":"Kata sandi salah. Coba lagi.";
+        salah++;inp.value="";err.textContent=salah>=5?"Kata sandi salah 5x. Coba lagi nanti atau atur ulang lewat akun warga.":"Kata sandi salah. Coba lagi.";
         if(salah>=5)setTimeout(()=>tutup(false),1800);
       }catch(e){err.textContent="Gagal memeriksa kata sandi. Periksa koneksi lalu coba lagi.";}
       finally{sibuk=false;ok.textContent="Konfirmasi";}
     };
   });
 }
+
+// ===== KARTU LAPAK BARTER di bawah daftar produk (3 iklan terbaru dari pasar.html) =====
+(function(){
+  if(document.getElementById("lapakCard"))return;
+  const ref=document.querySelector(".wa-banner")||document.querySelector("footer");if(!ref)return;
+  const sec=document.createElement("section");sec.className="container";sec.id="lapakCard";
+  sec.innerHTML=`<div class="lk"><a class="lk-top" href="pasar.html"><div class="lk-ic">🔁</div><div><h3>Lapak Barter Kalensari</h3><p>Punya barang tak terpakai? Jual atau tukar dengan warga lain.</p></div></a>
+    <div class="lk-row" id="lapakRow"><div class="lk-kosong">Memuat iklan terbaru…</div></div>
+    <div class="lk-btn"><a class="w" href="pasar.html">Lihat lapak →</a><a class="o" href="pasar.html#/pasang">+ Pasang iklan</a></div></div>`;
+  ref.parentNode.insertBefore(sec,ref);
+  const row=sec.querySelector("#lapakRow");
+  const tag=i=>i.harga?`<span class="j">${rupiah(i.harga)}</span>`:i.barter?`<span class="b">🔁 Barter</span>`:`<span class="n">Nego</span>`;
+  (async()=>{
+    let l=[];try{if(CLOUD_CONFIG?.enabled)l=await cloudFetch("lapak_iklan?select=id,judul,harga,barter,thumb&status=eq.aktif&order=created_at.desc&limit=3");}catch(e){l=null;}
+    if(!Array.isArray(l)||!l.length){row.innerHTML=`<div class="lk-kosong">${l===null?"Lapak sedang disiapkan.":"Belum ada iklan. Jadilah yang pertama memasang barang!"}</div>`;return;}
+    row.innerHTML=l.map(i=>`<a class="lk-it" href="pasar.html#/i/${i.id}"><div class="lk-ph"${i.thumb?` style="background-image:url('${i.thumb}')"`:""}>${i.thumb?"":"📦"}</div><b>${esc(i.judul)}</b>${tag(i)}</a>`).join("");
+  })();
+})();

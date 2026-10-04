@@ -243,7 +243,7 @@ async function detail(id){
       ${!pemilik ? `<p class="hint" style="margin-top:10px">💬 Tanya, tawar harga, atau tawarkan barang barter lewat komentar di bawah.</p>` : ""}
     </div>
     <div class="card" id="komBox"><div class="cmh"><b>💬 Komentar <span id="komJml"></span></b></div><div id="komList"><div class="load" style="padding:10px">Memuat komentar…</div></div>
-      ${me ? `<div class="cbox"><textarea id="komIn" maxlength="500" placeholder="${pemilik ? "Balas pertanyaan pembeli…" : "Tulis komentar, tawaran harga, atau barang barter…"}"></textarea><button class="btn p" id="komKirim">Kirim</button></div>`
+      ${me ? `<div class="cbox"><textarea id="komIn" maxlength="500" placeholder="${pemilik ? "Balas pertanyaan warga…" : "Tulis komentar, tawaran harga, atau barang barter…"}"></textarea><button class="btn p" id="komKirim">Kirim</button></div>`
            : `<button class="btn full" id="komLogin" style="margin-top:10px">Masuk akun untuk berkomentar</button>`}</div>`;
   // galeri
   const gal = $("gal");
@@ -288,7 +288,7 @@ async function detail(id){
 /* ---------- 3. PASANG / UBAH IKLAN (isian sama dengan detail) ---------- */
 async function formIklan(id){
   const v = $("v"), me = await akun();
-  if(!me){ v.innerHTML = `<div class="empty">🔒 Masuk dengan akun pembeli Kalensari Store untuk memasang iklan.<br><br><button class="btn p" id="bMasuk">Masuk / Daftar</button><br><br><a class="btn" href="#/">← Kembali ke lapak</a></div>`; $("bMasuk").onclick = () => keLogin(id ? "#/ubah/" + id : "#/pasang"); return; }
+  if(!me){ v.innerHTML = `<div class="empty">🔒 Masuk dengan akun warga Kalensari untuk memasang iklan.<br><br><button class="btn p" id="bMasuk">Masuk / Daftar</button><br><br><a class="btn" href="#/">← Kembali ke lapak</a></div>`; $("bMasuk").onclick = () => keLogin(id ? "#/ubah/" + id : "#/pasang"); return; }
   let lama = null;
   if(id){ const r = await api(`lapak_iklan?select=*&id=eq.${id}&wa=eq.${encodeURIComponent(me.wa)}`); lama = r && r[0]; if(!lama){ v.innerHTML = '<div class="empty">Iklan tidak ditemukan.<br><br><a class="btn" href="#/saya">← Iklan saya</a></div>'; return; } }
   const foto = lama && Array.isArray(lama.foto) ? lama.foto.slice(0, 3) : [];
@@ -296,7 +296,7 @@ async function formIklan(id){
     <div class="card f"><h2 style="margin:0 0 4px;font-size:19px">${id ? "✏️ Ubah iklan" : "📢 Pasang iklan"}</h2>
       <label>Foto <small>(1–3 foto, foto pertama jadi foto utama)</small></label>
       <div class="fotos" id="fotos"></div><input type="file" id="fIn" accept="image/*" multiple hidden>
-      <label>Nama pemilik</label><div class="ro">${esc(me.nama)}${me.alamat ? " • " + esc(me.alamat) : ""}<small>Otomatis dari akun pembeli Anda</small></div>
+      <label>Nama pemilik</label><div class="ro">${esc(me.nama)}${me.alamat ? " • " + esc(me.alamat) : ""}<small>Otomatis dari akun warga Anda</small></div>
       <label>Nama produk</label><input id="fJudul" maxlength="80" placeholder="Contoh: Sepeda anak 16 inci" value="${esc(lama ? lama.judul : "")}">
       <label>Kondisi</label><input id="fKondisi" maxlength="80" list="kondisiList" placeholder="Contoh: Bekas, masih bagus" value="${esc(lama ? lama.kondisi : "")}">
       <datalist id="kondisiList"><option>Baru</option><option>Bekas, seperti baru</option><option>Bekas, masih bagus</option><option>Bekas, perlu perbaikan</option></datalist>
@@ -334,7 +334,7 @@ async function formIklan(id){
 /* ---------- 4. IKLAN SAYA ---------- */
 async function iklanSaya(){
   const v = $("v"), me = await akun();
-  if(!me){ v.innerHTML = `<div class="empty">🔒 Masuk dengan akun pembeli untuk melihat iklan Anda.<br><br><button class="btn p" id="bMasuk">Masuk / Daftar</button></div>`; $("bMasuk").onclick = () => keLogin("#/saya"); return; }
+  if(!me){ v.innerHTML = `<div class="empty">🔒 Masuk dengan akun warga untuk melihat iklan Anda.<br><br><button class="btn p" id="bMasuk">Masuk / Daftar</button></div>`; $("bMasuk").onclick = () => keLogin("#/saya"); return; }
   v.innerHTML = '<div class="load">Memuat…</div>';
   const l = await api(`lapak_iklan?select=id,created_at,judul,harga,barter,thumb,status&wa=eq.${encodeURIComponent(me.wa)}&order=created_at.desc`);
   const nm = {aktif:"Tayang", selesai:"Sudah laku", disembunyikan:"Disembunyikan admin"};
