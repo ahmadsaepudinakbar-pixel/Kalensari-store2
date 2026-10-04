@@ -177,12 +177,14 @@ async function loadMon(m){
  const find=k=>R.findIndex(r=>cell(r,2).toLowerCase().includes(k));
  const sec=(h,f)=>{const a=[];if(h<0)return a;let i=h+1;while(i<h+5&&!/^\d+$/.test(cell(R[i],1)))i++;for(;i<R.length&&/^\d+$/.test(cell(R[i],1));i++)if(cell(R[i],2))a.push(f(R[i]));return a};
  const acol=h=>{let ac=C.alamatCol;for(let i=Math.max(h,0);i<Math.min(h+6,R.length);i++){const k=(R[i]||[]).findIndex(x=>/alamat/i.test(x));if(k>=0){ac=k;break}}return ac};
+ // cari kolom berdasarkan judul (mis. "RT", "Beras") di bawah judul bagian; pakai cadangan bila tidak ketemu
+ const hcol=(h,re,def)=>{for(let i=Math.max(h,0);i<Math.min(h+6,R.length);i++){const k=(R[i]||[]).findIndex(x=>re.test(String(x).trim()));if(k>=0)return k}return def};
  const hd=find('data donatur'),hy=find('santunan anak yatim'),hf=find('santunan duafa');
  const tr=hf<0?-1:R.findIndex((r,i)=>i>hf&&/total.*beras/i.test(cell(r,2)));
  return cache[m]={
   don:sec(hd,r=>({n:cell(r,2),a:cell(r,acol(hd)),v:num(r[4])*1000})),
   yat:sec(hy,r=>({n:cell(r,2),a:cell(r,acol(hy)),v:num(r[4])*1000})),
-  duf:sec(hf,r=>({n:cell(r,2),a:cell(r,acol(hf)),kg:num(r[5]),v:num(r[4])*1000})),dufV:tr>=0?num(R[tr][4]):0,
+  duf:sec(hf,r=>({n:cell(r,2),a:cell(r,acol(hf)),rt:cell(r,hcol(hf,/^rt$/i,4)),kg:num(r[hcol(hf,/^beras$/i,5)]),v:0})), // kolom RT = alamat, bukan uangdufV:tr>=0?num(R[tr][4]):0,
   kgT:tr>=0?num((cell(R[tr],2).match(/(\d+)\s*kg/i)||[])[1]):0,
   lain:sec(find('pengeluaran lain'),r=>({n:cell(r,2),v:num(r[4])*1000}))}}
 async function showMon(m){
@@ -199,7 +201,8 @@ async function showMon(m){
  }catch(e){$('#rc').innerHTML='';fail('#detail',`Data bulan ${MON[m]} belum bisa dimuat. Pastikan nama tab di Sheet sama dengan daftar TAB di file ini.`,e)}}
 function recv(m,d){
  
- const tbl=(rows,kg)=>`<div class="tw"><table><tr><th>Nama</th><th>Alamat</th>${kg?'<th>Beras</th>':''}<th>Nominal</th></tr>${rows.map(x=>`<tr><td>${esc(x.n)}</td><td>${esc(x.a||'-')}</td>${kg?`<td>${x.kg?x.kg+' kg':'-'}</td>`:''}<td>${x.v?rp(x.v):'-'}</td></tr>`).join('')}</table></div>`;
+ // Anak yatim: Nama, Alamat, Nominal. Duafa: Nama, Alamat, RT, Beras (sama seperti di Sheet)
+ const tbl=(rows,kg)=>`<div class="tw"><table><tr><th>Nama</th><th>Alamat</th>${kg?'<th>RT</th><th>Beras</th>':'<th>Nominal</th>'}</tr>${rows.map(x=>`<tr><td>${esc(x.n)}</td><td>${esc(x.a||'-')}</td>${kg?`<td>${esc(x.rt||'-')}</td><td>${x.kg?x.kg+' kg':'-'}</td>`:`<td>${x.v?rp(x.v):'-'}</td>`}</tr>`).join('')}</table></div>`;
  const y=d.yat.filter(x=>x.n),f=d.duf.filter(x=>x.n&&(x.kg>0||x.v>0||!d.kgT));
  $('#rcTitle').textContent='Penerima santunan bulan '+MON[m]+' (klik untuk melihat)';
  $('#rc').innerHTML=(y.length?`<h3>Anak yatim dan piatu (${y.length})</h3>${tbl(y,false)}`:'')+(f.length?`<h3>Duafa (${f.length})</h3>${tbl(f,true)}`:'')||'<p class="mut">Belum ada penerima santunan bulan ini.</p>';
