@@ -77,6 +77,13 @@ footer{padding:26px 0;text-align:center}
 .qr-acts{display:grid;gap:8px;margin-top:12px}.qr-acts .btn{display:block;text-align:center}
 .qr-acts [hidden]{display:none!important}.qr-acts .btn.o{background:#fff;color:var(--br);border:1.5px solid var(--br)}
 .qr-tip{font-size:13px;color:var(--mut);margin:10px 4px 0}
+.qr-f{text-align:left;margin-top:12px;border-top:1px dashed var(--ln);padding-top:12px}.qr-f[hidden]{display:none}
+.qr-f h3{margin:0 0 4px;font:700 18px Georgia,serif;color:var(--br)}.qr-f p{margin:0 0 10px;font-size:13px;color:var(--mut)}
+.qr-f label{display:block;font-size:13px;font-weight:600;margin:8px 0 0}
+.qr-f input[type=text],.qr-f input[type=tel]{display:block;width:100%;margin-top:4px;padding:11px 12px;border:1px solid var(--ln);border-radius:10px;font:inherit;font-size:16px}
+.qr-f .ck{display:flex;gap:8px;align-items:center;font-weight:500}.qr-f .ck input{width:18px;height:18px}
+.qr-f .hp{position:absolute;left:-9999px}
+.qr-ok{background:#e8f5ec;border:1px solid #bfe1c9;color:#1f6b3a;border-radius:12px;padding:12px;font-size:14px;margin-top:12px;text-align:left}.qr-ok[hidden]{display:none}
 </style></head><body>
 <header><div class="w"><a href="https://kalensari.web.id">&larr; Kalensari Store</a><span style="color:#fff">Info Santunan</span></div></header>
 <main class="w">
@@ -110,7 +117,17 @@ footer{padding:26px 0;text-align:center}
 <button class="qr-x" id="qrX" type="button" aria-label="Tutup">&#10005;</button>
 <img id="qrImg" alt="QRIS Santunan Yatim dan Duafa Kalensari">
 <p class="qr-tip">Buka aplikasi bank atau e-wallet (GoPay, OVO, DANA, m-banking), pilih <b>Scan/QRIS</b>, lalu scan gambar ini. Di HP yang sama: simpan gambar, lalu pilih dari galeri.</p>
-<div class="qr-acts"><a class="btn" id="qrDl" download="QRIS-Santunan-Kalensari.png">&#11015;&#65039; Simpan gambar QRIS</a><a class="btn o" id="qrWa" target="_blank" rel="noopener" hidden>&#128172; Konfirmasi donasi via WhatsApp</a></div>
+<div class="qr-acts"><a class="btn" id="qrDl" download="QRIS-Santunan-Kalensari.png">&#11015;&#65039; Simpan gambar QRIS</a><button class="btn" id="qrSudah" type="button" hidden>&#9989; Saya sudah donasi</button><a class="btn o" id="qrWa" target="_blank" rel="noopener" hidden>&#128172; Konfirmasi donasi via WhatsApp</a></div>
+<form class="qr-f" id="qrF" hidden novalidate>
+<h3>Konfirmasi donasi</h3><p>Nama Anda tampil di daftar donatur setelah dicek pengurus.</p>
+<label>Nama<input type="text" id="dNama" maxlength="60" autocomplete="name" placeholder="mis. Bp. Pardi"></label>
+<label class="ck"><input type="checkbox" id="dAnon"> Sembunyikan nama (tampil "Hamba Allah")</label>
+<label>Alamat / dusun<input type="text" id="dAlamat" maxlength="60" placeholder="mis. Krajan 2"></label>
+<label>Nominal donasi<input type="tel" id="dNom" inputmode="numeric" placeholder="mis. 100.000"></label>
+<input class="hp" type="text" id="dWeb" tabindex="-1" autocomplete="off" aria-hidden="true">
+<div class="qr-acts"><button class="btn" id="dKirim" type="submit">Kirim konfirmasi</button></div>
+</form>
+<div class="qr-ok" id="qrOk" hidden>&#9989; <b>Terima kasih!</b> Konfirmasi donasi Anda sudah terkirim. Nama Anda akan tampil di daftar donatur setelah dicek pengurus.</div>
 </div></div>
 
 <script>
@@ -123,7 +140,8 @@ const C={
  saldoAwal:3223000, // dipakai jika sel saldo awal (A3) tidak terbaca
  wa:'',   // nomor WhatsApp konfirmasi, contoh 6281234567890
  rek:[],  // contoh: [{bank:'BRI',no:'1234567890',an:'Nama Pengurus'}]
- qris:'qris-santunan.png' // gambar QRIS donasi (tampil saat tombol "Donasi sekarang" diklik)
+ qris:'qris-santunan.png', // gambar QRIS donasi (tampil saat tombol "Donasi sekarang" diklik)
+ formUrl:'https://script.google.com/macros/s/AKfycbyrHaHCNzTk4msPoClVteynRauGyv6o6pO8BElPllXSig7EFgMxOj2VnXGN_QsDFoG35w/exec'  // URL Aplikasi Web Google Apps Script (…/exec) untuk form "Saya sudah donasi"
 };
 const TAB=['Januari','Februari','Maret','Avril','mey','Juni','juli','Agustus','September','Oktober','November','Desember']; // nama tab persis di Sheet donatur
 /* ========================== */
@@ -156,6 +174,30 @@ if(C.qris){
  $('#qrX').onclick=qClose;$('#qrM').onclick=e=>{if(e.target.id==='qrM')qClose()};
  document.addEventListener('keydown',e=>{if(e.key==='Escape')qClose()});
 }else if(waDon)$('#btnDon').href=waDon.replace('sudah donasi santunan lewat QRIS','ingin donasi santunan');
+/* Form "Saya sudah donasi" -> Google Sheet (tab Konfirmasi), tampil di web setelah dicek pengurus */
+if(C.qris&&C.formUrl){
+ const nomF=v=>{const n=String(v).replace(/\D/g,'');return n?Number(n).toLocaleString('id-ID'):''};
+ $('#qrSudah').hidden=false;
+ $('#qrSudah').onclick=()=>{$('#qrF').hidden=false;$('#qrSudah').hidden=true;$('#qrOk').hidden=true;setTimeout(()=>$('#qrF').scrollIntoView({behavior:'smooth',block:'start'}),50);$('#dNama').focus()};
+ $('#dNom').oninput=e=>{e.target.value=nomF(e.target.value)};
+ $('#dAnon').onchange=e=>{$('#dNama').disabled=e.target.checked};
+ $('#qrF').onsubmit=async e=>{
+  e.preventDefault();
+  const anon=$('#dAnon').checked,nama=anon?'Hamba Allah':$('#dNama').value.trim(),alamat=$('#dAlamat').value.trim(),nom=num($('#dNom').value);
+  const msg=t=>{const o=$('#qrOk');o.hidden=false;o.style.cssText='background:#fdecea;border-color:#f5c6c2;color:#8b2a1f';o.textContent=t};
+  if(!nama)return msg('Isi nama Anda, atau centang "Sembunyikan nama".');
+  if(nom<1000)return msg('Isi nominal donasi (minimal Rp1.000).');
+  const last=Number(localStorage.getItem('ks_don_t')||0);if(Date.now()-last<60000)return msg('Konfirmasi baru saja terkirim. Tunggu 1 menit untuk mengirim lagi.');
+  const b=$('#dKirim');b.disabled=true;b.textContent='Mengirim...';
+  try{
+   await fetch(C.formUrl,{method:'POST',mode:'no-cors',body:new URLSearchParams({nama,alamat,nominal:String(nom),website:$('#dWeb').value})});
+   localStorage.setItem('ks_don_t',String(Date.now()));
+   $('#qrF').reset();$('#dNama').disabled=false;$('#qrF').hidden=true;
+   const o=$('#qrOk');o.style.cssText='';o.innerHTML='&#9989; <b>Terima kasih!</b> Konfirmasi donasi '+rp(nom)+' atas nama <b>'+esc(nama)+'</b> sudah terkirim. Nama Anda tampil di daftar donatur setelah dicek pengurus.';o.hidden=false;
+  }catch(err){msg('Gagal mengirim. Periksa internet lalu coba lagi.')}
+  finally{b.disabled=false;b.textContent='Kirim konfirmasi'}
+ };
+}
 
 /* Keuangan */
 let lm=0,KELUAR=null; // KELUAR[bulan] = total pengeluaran dari Sheet keuangan
