@@ -127,7 +127,8 @@ function showTab(masuk){
 }
 $("tabMasuk").onclick = () => showTab(true);
 $("tabDaftar").onclick = () => showTab(false);
-const go = () => setTimeout(() => { if(sessionStorage.getItem("kalensari_next") === "checkout"){ sessionStorage.removeItem("kalensari_next"); location.href = "index.html#checkout"; } else { location.href = "dashboard-" + ROLE + ".html"; } }, 700);
+const nextUrl = () => { const n = sessionStorage.getItem("kalensari_next") || ""; if(n === "checkout"){ sessionStorage.removeItem("kalensari_next"); return "index.html#checkout"; } if(n.startsWith("url:")){ sessionStorage.removeItem("kalensari_next"); return n.slice(4); } return ""; };
+const go = () => setTimeout(() => { location.href = nextUrl() || ("dashboard-" + ROLE + ".html"); }, 700);
 $("btnDaftar").onclick = async () => {
   const nama = $("rNama").value.trim(), wa = normPhone($("rWa").value), pin = $("rPin").value, pin2 = $("rPin2").value;
   if(!nama) return toast("Nama wajib diisi");
@@ -168,7 +169,7 @@ $("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
 (() => {
   $("warn").hidden = cloudOn();
   if(location.hash === "#daftar") showTab(false);
-  if(sessionStorage.getItem(SESS)) location.replace("dashboard-" + ROLE + ".html");
+  if(sessionStorage.getItem(SESS)) location.replace(nextUrl() || ("dashboard-" + ROLE + ".html"));
 })();
 
 </script>

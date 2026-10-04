@@ -1170,6 +1170,11 @@ function setupHeroButtons(){
   jasa.textContent="Penyedia Jasa";
   jasa.setAttribute("href","jasa.html");
   jasa.removeAttribute("target");jasa.removeAttribute("rel");
+  let lapak=document.getElementById("lapakHero");
+  if(!lapak){lapak=info.cloneNode(false);lapak.id="lapakHero";lapak.classList.add("hero-lapak");jasa.insertAdjacentElement("afterend",lapak);}
+  lapak.textContent="🔁 Lapak Barter";
+  lapak.setAttribute("href","pasar.html");
+  lapak.removeAttribute("target");lapak.removeAttribute("rel");
 }
 // Perbarui semua tautan WhatsApp statis setelah nomor diubah / dimuat dari database.
 function applyWaLinks(){

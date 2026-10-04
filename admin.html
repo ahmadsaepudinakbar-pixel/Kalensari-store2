@@ -418,7 +418,7 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo Toko','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo Toko','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['lapak','Lapak Barter','tag'],['pengaturan','Pengaturan','gear']
 ];
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
 let jenisFilter='Semua',route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
@@ -427,7 +427,7 @@ function renderNav(){
   const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
   $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}${k==='persetujuan'&&pendingTotal()?`<span class="cnt" style="background:var(--orange)">${pendingTotal()}</span>`:''}</a>`).join('');
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
-    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','pengaturan','lainnya'].includes(route));
+    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','lapak','pengaturan','lainnya'].includes(route));
     const dot=k==='lainnya'&&pendingTotal()?`<span style="position:absolute;top:2px;right:calc(50% - 16px);background:var(--orange);color:#fff;font-size:10px;border-radius:99px;min-width:16px;padding:0 4px;font-weight:700">${pendingTotal()}</span>`:'';
     return `<button class="${on?'on':''}" style="position:relative" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}${dot}</button>`}).join('');
   const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
@@ -470,7 +470,7 @@ function sessionExpired(){if(!$('#app').classList.contains('hide')){logout();toa
 
 const TITLES={dashboard:['Dashboard','Ringkasan toko dari data asli'],pesanan:['Pesanan','Kelola semua pesanan masuk'],
   produk:['Produk','Atur produk, harga, dan stok'],kategori:['Kategori','Kelompokkan produk toko'],pelanggan:['Pelanggan','Dihitung dari pesanan yang masuk'],
-  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],cair:['Pencairan Saldo Toko','Saldo penjualan toko (pesanan non-COD selesai) dan permintaan pencairan'],cod:['COD & Gagal antar','Pengaman COD dan laporan gagal antar kurir'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
+  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],cair:['Pencairan Saldo Toko','Saldo penjualan toko (pesanan non-COD selesai) dan permintaan pencairan'],lapak:['Lapak Barter','Iklan jual beli & barter warga (pasar.html)'],cod:['COD & Gagal antar','Pengaman COD dan laporan gagal antar kurir'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
 
 function render(){
   renderNav();
@@ -640,6 +640,7 @@ pengaturan(){
 setoran(){return setoranPage()},
 keuangan(){return keuanganPage()},
 cod(){return codPage()},
+lapak(){return lapakPage()},
 cair(){return cairPage()},
 lainnya(){
   const em=(auth&&auth.email)||'';
@@ -1627,6 +1628,34 @@ async function cairProses(id,status,btn){
     if(!x)throw new Error('Permintaan tidak ditemukan');if(x.status!=='menunggu')throw new Error('Sudah diproses sebelumnya');
     Object.assign(x,{status,catatan:catatan.trim(),diproses_t:new Date().toISOString()});await setSetting('cair_toko',l);S.settings.cair_toko=l;render();toast(status==='selesai'?'Pencairan ditandai sudah ditransfer':'Pencairan ditolak, saldo kembali ke toko')});
 }
+/* ========== LAPAK BARTER (pasar.html) ==========
+   Iklan langsung tayang. Admin bisa menyembunyikan / menampilkan / menghapus iklan dan komentar. */
+let LAPAK=null,lapakQ='',lapakLihat=0;
+async function muatLapak(){try{const [i,k]=await Promise.all([api('lapak_iklan?select=id,created_at,wa,nama,alamat,judul,kondisi,harga,barter,thumb,status&order=created_at.desc&limit=300'),api('lapak_komentar?select=id,iklan_id,created_at,nama,wa,isi&order=created_at.desc&limit=2000')]);LAPAK={i,k}}catch(e){LAPAK={err:String(e.message||e)}}if(route==='lapak')render()}
+function lapakPage(){
+  if(!LAPAK){muatLapak();return '<div class="empty">Memuat lapak...</div>'}
+  if(LAPAK.err)return `<div class="card"><b>Tabel lapak belum siap.</b><p class="sm">Jalankan <code>supabase-lapak.sql</code> di Supabase SQL Editor.</p><small style="color:var(--mut)">${esc(LAPAK.err.slice(0,160))}</small></div>`;
+  const q=lapakQ.toLowerCase(),kom=id=>LAPAK.k.filter(x=>x.iklan_id===id);
+  const l=LAPAK.i.filter(x=>!q||[x.judul,x.nama,x.alamat,x.barter].join(' ').toLowerCase().includes(q));
+  const n=s=>LAPAK.i.filter(x=>x.status===s).length;
+  return `<div class="stats">${stat('Iklan tayang',n('aktif'),'aktif di pasar','tag','#0f7a3d')}${stat('Sudah laku',n('selesai'),'ditandai pemilik','check','#3b82f6')}${stat('Disembunyikan',n('disembunyikan'),'oleh admin','x','#ef4444')}${stat('Komentar',LAPAK.k.length,'semua iklan','doc','#f97316')}</div>
+  <div class="card"><div class="chead"><h3>🔁 Iklan</h3><button class="btn btn-light" onclick="LAPAK=null;render()">↻ Muat ulang</button></div>
+    <input class="inp" placeholder="Cari judul / pemilik..." value="${esc(lapakQ)}" oninput="lapakQ=this.value;clearTimeout(window._lq);window._lq=setTimeout(render,300)" style="margin-bottom:10px">
+    ${l.length?l.map(x=>{const ks=kom(x.id),open=lapakLihat===x.id;return `<div style="border-bottom:1px solid var(--line);padding:10px 0">
+      <div style="display:flex;gap:10px;align-items:center"><div style="width:52px;height:52px;border-radius:10px;background:#f3e3d6 center/cover;flex:none;${x.thumb?`background-image:url('${x.thumb}')`:''}"></div>
+      <div style="flex:1;min-width:0"><b>${esc(x.judul)}</b> <span class="badge ${x.status==='aktif'?'b-Selesai':x.status==='selesai'?'b-Dikirim':'b-Batal'}">${x.status==='aktif'?'Tayang':x.status==='selesai'?'Laku':'Disembunyikan'}</span>
+        <div class="sm" style="color:var(--mut)">${esc(x.nama)} · +${esc(x.wa)} · ${x.harga?rp(x.harga):''}${x.harga&&x.barter?' · ':''}${x.barter?'Barter: '+esc(x.barter):''}${!x.harga&&!x.barter?'Nego':''} · ${ago(x.created_at)}</div></div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        <a class="btn btn-light" style="padding:6px 10px" href="pasar.html#/i/${x.id}" target="_blank" rel="noopener">Lihat</a>
+        ${x.status==='disembunyikan'?`<button class="btn btn-g" style="padding:6px 10px" onclick="lapakStatus(${x.id},'aktif',this)">Tampilkan</button>`:`<button class="btn btn-light" style="padding:6px 10px" onclick="lapakStatus(${x.id},'disembunyikan',this)">Sembunyikan</button>`}
+        <button class="btn btn-light" style="padding:6px 10px" onclick="lapakLihat=lapakLihat===${x.id}?0:${x.id};render()">💬 ${ks.length} komentar</button>
+        <button class="btn btn-red" style="padding:6px 10px" onclick="lapakHapus(${x.id},this)">Hapus</button></div>
+      ${open?`<div style="background:#faf6f2;border-radius:10px;padding:8px 10px;margin-top:8px">${ks.length?ks.map(k=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #eee"><span class="sm"><b>${esc(k.nama)}</b> ${ago(k.created_at)}<br>${esc(k.isi)}</span><button class="more" title="Hapus komentar" onclick="lapakHapusKom(${k.id},this)">${ico('trash')}</button></div>`).join(''):'<span class="sm">Belum ada komentar</span>'}</div>`:''}
+    </div>`}).join(''):'<div class="empty" style="padding:14px">Belum ada iklan</div>'}</div>`;
+}
+async function lapakStatus(id,st,btn){await busy(btn,async()=>{await api('lapak_iklan?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({status:st})});const x=LAPAK.i.find(y=>y.id===id);if(x)x.status=st;render();toast(st==='aktif'?'Iklan ditampilkan':'Iklan disembunyikan')})}
+async function lapakHapus(id,btn){if(!confirm('Hapus iklan ini beserta komentarnya?'))return;await busy(btn,async()=>{await api('lapak_iklan?id=eq.'+id,{method:'DELETE',headers:{Prefer:'return=minimal'}});LAPAK.i=LAPAK.i.filter(y=>y.id!==id);LAPAK.k=LAPAK.k.filter(y=>y.iklan_id!==id);render();toast('Iklan dihapus')})}
+async function lapakHapusKom(id,btn){if(!confirm('Hapus komentar ini?'))return;await busy(btn,async()=>{await api('lapak_komentar?id=eq.'+id,{method:'DELETE',headers:{Prefer:'return=minimal'}});LAPAK.k=LAPAK.k.filter(y=>y.id!==id);render();toast('Komentar dihapus')})}
 /* ========== KEUANGAN ==========
    Omset          = nilai semua pesanan yang tidak batal (harga barang + ongkir), semua cara bayar.
    Pendapatan bersih Kalensari Store = potongan saldo kurir per pesanan
