@@ -914,6 +914,8 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
 document.getElementById("year").textContent=new Date().getFullYear();
 renderCategories();renderProducts();updateCartCount();renderCart();
 if(new URLSearchParams(location.search).get("pesanan")){ history.replaceState(null,"",location.pathname); setTimeout(()=>document.getElementById("myOrdersBtn")?.click(),400); }
+// ?toko=Nama Toko -> langsung tampilkan produk toko itu (dipakai tombol "Lihat Toko Saya" di aplikasi penjual)
+{const tk=new URLSearchParams(location.search).get("toko");if(tk){history.replaceState(null,"",location.pathname);activeSeller=sellerKey(tk);activeCategory="Semua";renderCategories();renderProducts();setTimeout(()=>document.getElementById("products")?.scrollIntoView({behavior:"smooth"}),700);}}
 if(location.hash==="#checkout"){ history.replaceState(null,"",location.pathname); if(cart.length) setTimeout(()=>document.getElementById("checkoutBtn").click(),400); }
 (async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
 
