@@ -15,6 +15,7 @@
 h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:12px}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}.stats div{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:10px 2px;font-size:11.5px;color:var(--mu)}.stats b{display:block;font-size:22px;color:var(--ink)}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.two .card small{color:var(--mu)}.two .card b{display:block;font-size:19px}
+.saldo-card{display:block;background:var(--b);color:#fff;border-radius:16px;padding:14px 16px;margin:14px 0 4px;cursor:pointer}.saldo-card small{opacity:.85;font-size:12.5px}.saldo-card b{display:block;font-size:24px;margin:2px 0}.saldo-card span{font-size:12.5px;opacity:.9}.saldo-card.big{cursor:default}.saldo-card.big b{font-size:30px}
 a.q,a.m{text-decoration:none;color:inherit;display:flex}.q.q-ks{background:var(--b);border-color:var(--b);color:#fff}.q-ks img,.m-ks img{width:30px;height:30px;border-radius:50%;background:#fff;object-fit:contain;flex:none}a.m.m-ks{align-items:center;gap:10px;color:var(--b)}.q{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--ln);border-radius:14px;padding:14px 12px;font-weight:600;font-size:13.5px;cursor:pointer;text-align:left}.q i{font-style:normal;font-size:20px}
 .chips{display:flex;gap:8px;overflow-x:auto;margin:10px 0;padding-bottom:2px}.chips button{white-space:nowrap;border:1px solid var(--ln);background:#fff;border-radius:999px;padding:7px 14px;cursor:pointer;font-size:13.5px}.chips button.on{background:var(--b);color:#fff;border-color:var(--b)}
 .row{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid var(--ln);cursor:pointer}.row .g{flex:1;min-width:0}.row small{color:var(--mu);display:block}.row img,.row .ph{width:64px;height:64px;border-radius:10px;object-fit:cover;background:var(--ln);display:grid;place-items:center;font-size:26px;flex:none}
@@ -85,12 +86,12 @@ const mmss=l=>Math.floor(l/60000)+":"+String(Math.floor(l%60000/1000)).padStart(
 setInterval(()=>{const els=[...document.querySelectorAll("[data-exp]")];if(!els.length)return;let done=false;els.forEach(e=>{const l=e.dataset.exp-Date.now();if(l<=0)done=true;else e.textContent=mmss(l)});if(done){expireOld();go(view,arg)}},1000);
 /* shell */
 const NAV=[["home","🏠","Beranda"],["orders","📋","Pesanan"],["prods","📦","Produk"],["menu","☰","Menu"]];
-function go(v,a){if(v==="menu")return drawer();view=v;arg=a??null;const sub=["detail","form","io","toko"].includes(v),T={home:"Kalensari Store",orders:"Daftar Pesanan",prods:"Daftar Produk",detail:"Detail Pesanan",form:a?"Edit Produk":"Tambah Produk",io:"Export / Import",toko:"Pengaturan Toko"};
+function go(v,a){if(v==="menu")return drawer();view=v;arg=a??null;const sub=["detail","form","io","toko"].includes(v),T={home:"Kalensari Store",orders:"Daftar Pesanan",prods:"Daftar Produk",detail:"Detail Pesanan",form:a?"Edit Produk":"Tambah Produk",io:"Export / Import",toko:"Pengaturan Toko",uang:"Laporan Keuangan",saldo:"Saldo Penjualan"};
 $("hd").innerHTML=(sub?'<button id="bk">←</button>':'<button id="mn">☰</button>')+`<div class="t">${T[v]}${v==="home"?"<small>Penjual • "+esc(me.toko||me.usaha||"")+"</small>":""}</div>`;
 $("hd").querySelector("button").onclick=()=>sub?go(v==="detail"?"orders":v==="form"?"prods":"home"):drawer();
 $("nav").innerHTML=NAV.map(([k,i,t])=>`<button data-k="${k}" class="${k===(sub?({detail:"orders",form:"prods",io:"menu",toko:"menu"})[v]:v)?"on":""}"><b>${i}</b>${t}</button>`).join("");$("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.k));
-$("v").innerHTML=($("v").dataset.w||"")+({home,orders,prods,detail,form,io,toko})[v]();$("v").scrollTop=0;if(v==="home"&&NB)$("v").prepend(NB);bind[v]&&bind[v]()}
-function drawer(){const d=$("dr");d.hidden=false;const L=[["home","🏠 Dashboard"],["orders","📋 Kelola Pesanan"],["form","➕ Tambah Produk"],["io","☁️ Export / Import Produk"],["prods","📦 Daftar Produk"]];d.innerHTML=`<div><div class="h"><div class="logo" style="width:72px;height:72px;margin:0 0 8px"><img src="icons/logo-kalensari.png" alt="Kalensari Store"></div>Kalensari Store<small style="display:block;font-weight:400;color:var(--mu)">${esc(me.nama||"Penjual")} • +${esc(WA)}${me.kode?" • 🆔 "+esc(me.kode):""}</small></div>${L.map(([k,t])=>`<button class="m" data-k="${k}">${t}</button>`).join("")}<button class="m" data-k="toko">⚙️ Pengaturan toko & lokasi</button><a class="m" href="${lihatTokoUrl()}">🏪 Lihat toko saya</a><a class="m m-ks" href="index.html"><img src="icons/logo-kalensari.png" alt="">Ke Kalensari Store</a>${window.KSNotif?'<button class="m" id="tn">🔔 Tes notifikasi</button>':""}<button class="m" id="lo" style="color:#b83c2b">🚪 Keluar</button></div>`;d.onclick=e=>{if(e.target===d)d.hidden=true};d.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{d.hidden=true;go(b.dataset.k)});$("lo").onclick=()=>{localStorage.removeItem(SESS);location.reload()};$("tn")&&($("tn").onclick=async()=>{d.hidden=true;const s=await KSNotif.status("penjual_push_"+me.id);if(s!=="aktif"){go("home");return toast("Aktifkan notifikasi dulu di Dashboard")}const h=await KSNotif.tes("penjual_push_"+me.id);toast(h==="server"?"Tes dikirim. Notifikasi muncul sebentar lagi.":h==="tunggu"?"Tunggu 30 detik sebelum tes lagi.":"Notifikasi lokal muncul. Server notifikasi belum aktif.")})}
+$("v").innerHTML=($("v").dataset.w||"")+({home,orders,prods,detail,form,io,toko,uang,saldo})[v]();$("v").scrollTop=0;if(v==="home"&&NB)$("v").prepend(NB);bind[v]&&bind[v]()}
+function drawer(){const d=$("dr");d.hidden=false;const L=[["home","🏠 Dashboard"],["orders","📋 Kelola Pesanan"],["form","➕ Tambah Produk"],["io","☁️ Export / Import Produk"],["prods","📦 Daftar Produk"],["saldo","💳 Saldo Penjualan"],["uang","💰 Laporan Keuangan"]];d.innerHTML=`<div><div class="h"><div class="logo" style="width:72px;height:72px;margin:0 0 8px"><img src="icons/logo-kalensari.png" alt="Kalensari Store"></div>Kalensari Store<small style="display:block;font-weight:400;color:var(--mu)">${esc(me.nama||"Penjual")} • +${esc(WA)}${me.kode?" • 🆔 "+esc(me.kode):""}</small></div>${L.map(([k,t])=>`<button class="m" data-k="${k}">${t}</button>`).join("")}<button class="m" data-k="toko">⚙️ Pengaturan toko & lokasi</button><a class="m" href="${lihatTokoUrl()}">🏪 Lihat toko saya</a><a class="m m-ks" href="index.html"><img src="icons/logo-kalensari.png" alt="">Ke Kalensari Store</a>${window.KSNotif?'<button class="m" id="tn">🔔 Tes notifikasi</button>':""}<button class="m" id="lo" style="color:#b83c2b">🚪 Keluar</button></div>`;d.onclick=e=>{if(e.target===d)d.hidden=true};d.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{d.hidden=true;go(b.dataset.k)});$("lo").onclick=()=>{localStorage.removeItem(SESS);location.reload()};$("tn")&&($("tn").onclick=async()=>{d.hidden=true;const s=await KSNotif.status("penjual_push_"+me.id);if(s!=="aktif"){go("home");return toast("Aktifkan notifikasi dulu di Dashboard")}const h=await KSNotif.tes("penjual_push_"+me.id);toast(h==="server"?"Tes dikirim. Notifikasi muncul sebentar lagi.":h==="tunggu"?"Tunggu 30 detik sebelum tes lagi.":"Notifikasi lokal muncul. Server notifikasi belum aktif.")})}
 const bind={};
 /* ===== Pengaturan toko & lokasi (dipindah dari penjual.html ke dalam aplikasi) ===== */
 async function setS(k,v){LS("kalensari_"+k,v);if(!cloud())return;await cf("store_settings?on_conflict=key",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{key:k,value:v}])})}
@@ -139,8 +140,96 @@ bind.toko=()=>{
 function home(){const c=s=>O.filter(o=>stOf(o)===s).length,td=O.filter(o=>new Date(o.created_at).toDateString()===new Date().toDateString()),om=td.filter(o=>stOf(o)!=="dibatalkan").reduce((t,o)=>t+tot(o),0);
 return `${me.pending?'<div class="warn">⏳ Akun menunggu persetujuan admin.</div>':""}${cloud()?"":'<div class="warn">⚠️ Database online belum aktif (mode uji coba).</div>'}<h2 style="margin:4px 0">Halo, ${esc(me.nama||"Penjual")} 👋</h2><p style="margin:0 0 12px;color:var(--mu)">Semangat terus mengelola toko ${esc(me.toko||"")}!</p>
 <div class="stats">${["menunggu","diproses","dikirim","selesai"].map(s=>`<div>${SI[s]}<b>${c(s)}</b>${STL[s]}</div>`).join("")}</div><h3>Ringkasan Hari Ini</h3><div class="two"><div class="card"><small>Total Pesanan</small><b>${td.length}</b></div><div class="card"><small>Omset Hari Ini</small><b>${rp(om)}</b></div></div>
-<h3>Menu Cepat</h3><div class="two">${[["form","➕","Tambah Produk"],["prods","📦","Daftar Produk"],["orders","📋","Kelola Pesanan"],["io","☁️","Export / Import"]].map(([k,i,t])=>`<div class="q" data-k="${k}"><i>${i}</i>${t}</div>`).join("")}<a class="q" href="${lihatTokoUrl()}"><i>🏪</i>Lihat Toko Saya</a><a class="q q-ks" href="index.html"><img src="icons/logo-kalensari.png" alt="">Ke Kalensari Store</a></div>`}
-bind.home=()=>document.querySelectorAll(".q[data-k]").forEach(e=>e.onclick=()=>go(e.dataset.k));
+${saldoKartu()}<h3>Menu Cepat</h3><div class="two">${[["form","➕","Tambah Produk"],["prods","📦","Daftar Produk"],["orders","📋","Kelola Pesanan"],["io","☁️","Export / Import"],["saldo","💳","Saldo Penjualan"],["uang","💰","Laporan Keuangan"]].map(([k,i,t])=>`<div class="q" data-k="${k}"><i>${i}</i>${t}</div>`).join("")}<a class="q" href="${lihatTokoUrl()}"><i>🏪</i>Lihat Toko Saya</a><a class="q q-ks" href="index.html"><img src="icons/logo-kalensari.png" alt="">Ke Kalensari Store</a></div>`}
+bind.home=()=>{document.querySelectorAll(".q[data-k]").forEach(e=>e.onclick=()=>go(e.dataset.k));if(!SALDO||Date.now()-SALDO.t>60000)muatSaldo().then(()=>{if(view==="home")go("home")}).catch(()=>{})};
+/* ===== LAPORAN KEUANGAN TOKO =====
+   Hanya uang BARANG milik toko ini (ongkir milik kurir tidak dihitung).
+   Dihitung dari pesanan yang sudah diterima toko (Diproses, Dikirim, Selesai). Ditolak / gagal antar tidak dihitung.
+   QRIS: uang diteruskan admin (catatan "setoran_qris"). COD: dibayar kurir saat mengambil (tombol "Uang sudah diterima"). */
+let uPer="bulan",SETQ=null;
+const hargaU=p=>Number(p.sale)>0&&Number(p.sale)<Number(p.price)?Number(p.sale):Number(p.price)||0;
+const barangKu=o=>mineItems(o).reduce((a,p)=>a+hargaU(p)*(Number(p.qty)||1),0);
+const tglKey=d=>{const x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")};
+function uRange(){const n=new Date(),t0=new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime();
+  return({hari:[t0,"Hari ini"],"7":[t0-6*864e5,"7 hari"],bulan:[new Date(n.getFullYear(),n.getMonth(),1).getTime(),"Bulan ini"],"30":[t0-29*864e5,"30 hari"],semua:[0,"Semua"]})}
+function uang(){
+  const R=uRange(),[dari]=R[uPer],inR=o=>new Date(o.created_at).getTime()>=dari;
+  const semua=O.filter(inR),ok=semua.filter(o=>["diproses","dikirim","selesai"].includes(stOf(o))),gagal=semua.filter(o=>["dibatalkan","gagal"].includes(stOf(o)));
+  const k=myK(),sq=SETQ||{},jual=ok.reduce((a,o)=>a+barangKu(o),0);
+  const cara={qris:{t:0,sudah:0},cod:{t:0,sudah:0},lain:{t:0}};
+  ok.forEach(o=>{const v=barangKu(o);if(isQris(o)){cara.qris.t+=v;if(sq[o.order_code+"|t:"+k]||o.status==="selesai")cara.qris.sudah+=v}else if(isCodO(o)){cara.cod.t+=v;if(utOf(o)[k])cara.cod.sudah+=v}else cara.lain.t+=v});
+  const pm=new Map();ok.forEach(o=>mineItems(o).forEach(p=>{const n=p.name||"Produk";const x=pm.get(n)||{q:0,v:0};x.q+=Number(p.qty)||1;x.v+=hargaU(p)*(Number(p.qty)||1);pm.set(n,x)}));
+  const top=[...pm.entries()].sort((a,b)=>b[1].q-a[1].q).slice(0,5);
+  const hariN=uPer==="hari"?1:uPer==="7"?7:uPer==="bulan"?new Date().getDate():30,hm=new Map();
+  for(let i=hariN-1;i>=0;i--)hm.set(tglKey(Date.now()-i*864e5),0);ok.forEach(o=>{const d=tglKey(o.created_at);if(hm.has(d))hm.set(d,hm.get(d)+barangKu(o))});
+  const mx=Math.max(1,...hm.values());
+  const ln=(a,b,c)=>`<div class="ln"><span>${a}</span><b${c?` style="color:${c}"`:""}>${b}</b></div>`;
+  const sisa=(t,s)=>t-s>0?ln("&nbsp;&nbsp;⏳ Belum diterima",rp(t-s),"#a35a00"):"";
+  return `<div class="chips">${["hari","7","bulan","30","semua"].map(kk=>[kk,R[kk]]).map(([kk,[,l]])=>`<button data-u="${kk}" class="${kk===uPer?"on":""}">${l}</button>`).join("")}</div>
+  <div class="two"><div class="card"><small style="color:var(--mu)">Penjualan barang</small><b style="display:block;font-size:20px;margin-top:4px">${rp(jual)}</b></div>
+  <div class="card"><small style="color:var(--mu)">Pesanan berhasil</small><b style="display:block;font-size:20px;margin-top:4px">${ok.length}</b><small style="color:var(--mu)">rata-rata ${rp(ok.length?Math.round(jual/ok.length):0)}</small></div></div>
+  <h3>💵 Uang masuk ke toko</h3><div class="card">
+  ${ln("QRIS",rp(cara.qris.t))}${cara.qris.t?ln("&nbsp;&nbsp;✅ Masuk saldo",rp(cara.qris.sudah),"#14502c")+(cara.qris.t-cara.qris.sudah>0?ln("&nbsp;&nbsp;⏳ Masuk saldo setelah selesai diantar",rp(cara.qris.t-cara.qris.sudah),"#a35a00"):""):""}
+  ${ln("COD (dibayar kurir)",rp(cara.cod.t))}${cara.cod.t?ln("&nbsp;&nbsp;✅ Sudah diterima dari kurir",rp(cara.cod.sudah),"#14502c")+sisa(cara.cod.t,cara.cod.sudah):""}
+  ${cara.lain.t?ln("Cara bayar lain",rp(cara.lain.t)):""}
+  <div class="ln" style="border-top:1px solid var(--ln);margin-top:6px;padding-top:8px"><b>Total penjualan</b><b>${rp(jual)}</b></div>
+  ${SETQ===null&&cara.qris.t?'<small style="color:var(--mu)">Memuat catatan setoran QRIS…</small>':""}</div>
+  <h3>📈 Penjualan per hari</h3><div class="card"><div style="display:flex;align-items:flex-end;gap:3px;height:120px">${[...hm.entries()].map(([d,v])=>`<div title="${d}: ${rp(v)}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%"><div style="width:100%;max-width:26px;height:${Math.max(v?6:2,Math.round(v/mx*100))}%;background:${v?"var(--b2)":"var(--ln)"};border-radius:4px 4px 0 0"></div></div>`).join("")}</div>
+  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mu);margin-top:4px"><span>${[...hm.keys()][0].slice(5).split("-").reverse().join("/")}</span><span>${[...hm.keys()].pop().slice(5).split("-").reverse().join("/")}</span></div></div>
+  <h3>🏆 Produk terlaris</h3><div class="card">${top.length?top.map(([n,x],i)=>ln(`${i+1}. ${esc(n)} <small style="color:var(--mu)">×${x.q}</small>`,rp(x.v))).join(""):'<small style="color:var(--mu)">Belum ada penjualan di periode ini.</small>'}</div>
+  <h3>🧾 Rincian pesanan</h3><div class="card">${ok.length?ok.slice(0,40).map(o=>{const q=isQris(o),c=isCodO(o),st=q?(sq[o.order_code+"|t:"+k]||o.status==="selesai"?"✅ masuk saldo":"⏳ menunggu selesai"):c?(utOf(o)[k]?"✅ diterima":"⏳ belum diterima"):"";
+    return `<div class="ln u-row" data-id="${esc(String(o.id))}" style="cursor:pointer"><span>${esc(o.order_code)}<small style="display:block;color:var(--mu)">${new Date(o.created_at).toLocaleDateString("id-ID",{day:"numeric",month:"short"})} • ${q?"QRIS":c?"COD":esc(o.payment||"-")} ${st}</small></span><b>${rp(barangKu(o))}</b></div>`}).join(""):'<small style="color:var(--mu)">Belum ada pesanan.</small>'}</div>
+  ${gagal.length?`<p style="font-size:12px;color:var(--mu);margin:10px 2px">Tidak dihitung: ${gagal.length} pesanan ditolak / gagal diantar.</p>`:""}
+  <p style="font-size:12px;color:var(--mu);margin:10px 2px 20px">Ongkir tidak dihitung karena milik kurir. Pesanan yang belum diterima toko juga belum dihitung.</p>`}
+bind.uang=()=>{document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{uPer=b.dataset.u;go("uang")});document.querySelectorAll(".u-row").forEach(r=>r.onclick=()=>go("detail",r.dataset.id));
+  if(SETQ===null&&cloud())getS("setoran_qris",{}).then(v=>{SETQ=v&&typeof v==="object"&&!Array.isArray(v)?v:{};if(view==="uang")go("uang")}).catch(()=>{SETQ={}})};
+/* ===== SALDO PENJUALAN =====
+   Pesanan NON-COD (QRIS lunas / transfer) yang sudah SELESAI diantar kurir -> uang barang masuk saldo toko.
+   Pencairan: sehari 1x (WIB), minimal Rp20.000, saldo di bawah Rp20.000 belum bisa dicairkan.
+   Permintaan disimpan di store_settings "cair_toko" lalu diproses (ditransfer) admin.
+   Pesanan yang dulu sudah disetor manual lewat menu Setoran QRIS (catatan "setoran_qris") tidak dihitung lagi. */
+const MIN_CAIR=20000;
+let SALDO=null;
+const wibTgl=t=>new Date(t).toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"});
+const masukSaldo=(o,sq)=>o.status==="selesai"&&!isCodO(o)&&!(isQris(o)&&o.pay_status!=="lunas")&&!sq[o.order_code+"|t:"+myK()];
+async function muatSaldo(){
+  const k=myK();let rows=O,sq={},cair=[];
+  if(cloud()){const [r,a,b]=await Promise.all([cf("orders?select=id,order_code,status,payment,pay_status,items,created_at,updated_at&status=eq.selesai&order=updated_at.desc&limit=5000"),getS("setoran_qris",{}),getS("cair_toko",[])]);
+    rows=(r||[]).filter(o=>mineItems(o).length);sq=a&&typeof a==="object"&&!Array.isArray(a)?a:{};cair=Array.isArray(b)?b:[];SETQ=sq;}
+  const masuk=rows.filter(o=>masukSaldo(o,sq)).map(o=>({o,v:barangKu(o),t:o.updated_at||o.created_at})).sort((a,b)=>new Date(b.t)-new Date(a.t));
+  const mine=cair.filter(x=>x&&x.toko===k).sort((a,b)=>new Date(b.t)-new Date(a.t));
+  const total=masuk.reduce((a,x)=>a+x.v,0),keluar=mine.filter(x=>x.status!=="ditolak").reduce((a,x)=>a+(Number(x.jumlah)||0),0);
+  SALDO={masuk,total,mine,keluar,saldo:Math.max(0,total-keluar),t:Date.now()};return SALDO;
+}
+function cekCair(S){if(!S)return"Memuat saldo…";
+  if(S.mine.some(x=>x.status==="menunggu"))return"Masih ada pencairan yang menunggu diproses admin.";
+  if(S.mine.some(x=>x.status!=="ditolak"&&wibTgl(x.t)===wibTgl(Date.now())))return"Pencairan hanya bisa 1x sehari. Coba lagi besok.";
+  if(S.saldo<MIN_CAIR)return`Saldo minimal ${rp(MIN_CAIR)} untuk bisa dicairkan.`;return""}
+function saldoKartu(){const S=SALDO;return `<div class="saldo-card" data-k="saldo" onclick="go('saldo')"><small>💳 Saldo penjualan</small><b>${S?rp(S.saldo):"…"}</b><span>Lihat & cairkan ›</span></div>`}
+function saldo(){const S=SALDO;if(!S)return'<p style="color:var(--mu)">Memuat saldo…</p>';const alasan=cekCair(S);
+  const stl={menunggu:["⏳ Menunggu diproses","#a35a00"],selesai:["✅ Sudah ditransfer","#14502c"],ditolak:["✖️ Ditolak","#b83c2b"]};
+  return `<div class="saldo-card big"><small>Saldo bisa dicairkan</small><b>${rp(S.saldo)}</b><span>Total masuk ${rp(S.total)} • sudah/sedang dicairkan ${rp(S.keluar)}</span></div>
+  <div class="card" style="margin-top:12px">${alasan?`<p class="warn" style="margin:0">${esc(alasan)}</p>`:`<b>💸 Cairkan saldo</b>
+    <label style="display:block;margin-top:8px">Jumlah (minimal ${rp(MIN_CAIR)})<input id="cJml" class="fld" inputmode="numeric" value="${S.saldo}"></label>
+    <label style="display:block">Kirim ke (bank / e-wallet, nomor, atas nama)<input id="cRek" class="fld" maxlength="100" placeholder="mis. DANA 0812xxxx a.n. Siti" value="${esc(me.rek||"")}"></label>
+    <button class="btn" id="cBtn">💸 Ajukan pencairan</button>`}
+    <small style="display:block;color:var(--mu);margin-top:8px">Pencairan bisa 1x sehari, minimal ${rp(MIN_CAIR)}. Admin akan mentransfer ke rekening / e-wallet Anda.</small></div>
+  <h3>📤 Riwayat pencairan</h3><div class="card">${S.mine.length?S.mine.slice(0,20).map(x=>{const[l,c]=stl[x.status]||[x.status,"inherit"];return `<div class="ln"><span>${new Date(x.t).toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}<small style="display:block;color:${c}">${l}${x.catatan?" • "+esc(x.catatan):""}</small></span><b>${rp(x.jumlah)}</b></div>`}).join(""):'<small style="color:var(--mu)">Belum pernah mencairkan saldo.</small>'}</div>
+  <h3>📥 Saldo masuk</h3><div class="card">${S.masuk.length?S.masuk.slice(0,30).map(x=>`<div class="ln u-row" data-id="${esc(String(x.o.id))}" style="cursor:pointer"><span>${esc(x.o.order_code)}<small style="display:block;color:var(--mu)">${new Date(x.t).toLocaleDateString("id-ID",{day:"numeric",month:"short"})} • ${isQris(x.o)?"QRIS":esc(x.o.payment||"-")} • selesai diantar</small></span><b style="color:#14502c">+${rp(x.v)}</b></div>`).join(""):'<small style="color:var(--mu)">Belum ada. Saldo bertambah setiap pesanan non-COD selesai diantar kurir.</small>'}</div>
+  <p style="font-size:12px;color:var(--mu);margin:10px 2px 20px">Pesanan COD tidak masuk saldo karena uangnya langsung dibayar kurir saat mengambil pesanan.</p>`}
+bind.saldo=()=>{document.querySelectorAll(".u-row").forEach(r=>r.onclick=()=>go("detail",r.dataset.id));
+  if(!SALDO||Date.now()-SALDO.t>20000)muatSaldo().then(()=>{if(view==="saldo")go("saldo")}).catch(e=>toast("Gagal memuat saldo"));
+  $("cJml")&&($("cJml").oninput=e=>{e.target.value=e.target.value.replace(/\D/g,"")});
+  $("cBtn")&&($("cBtn").onclick=async()=>{const b=$("cBtn"),j=Number($("cJml").value)||0,rek=$("cRek").value.trim();
+    if(j<MIN_CAIR)return toast("Minimal pencairan "+rp(MIN_CAIR));if(!rek)return toast("Isi tujuan transfer dulu");
+    b.disabled=true;b.textContent="Mengecek saldo…";
+    try{const S=await muatSaldo(),al=cekCair(S);if(al){toast(al);return go("saldo")}if(j>S.saldo){toast("Jumlah melebihi saldo "+rp(S.saldo));return go("saldo")}
+      if(!confirm(`Cairkan ${rp(j)} ke ${rek}?`)){b.disabled=false;b.textContent="💸 Ajukan pencairan";return}
+      let l=await getS("cair_toko",[]);if(!Array.isArray(l))l=[];
+      l.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),toko:myK(),nama:me.toko||me.usaha||"",wa:WA,jumlah:j,rek,t:new Date().toISOString(),status:"menunggu"});
+      await setS("cair_toko",l);if(me.rek!==rek){me.rek=rek;saveMe().catch(()=>{})}
+      SALDO=null;await muatSaldo();toast("✅ Pencairan diajukan. Admin akan segera mentransfer.");go("saldo")}
+    catch(e){toast("Gagal: "+String(e.message||e).slice(0,80));b.disabled=false;b.textContent="💸 Ajukan pencairan"}})};
 /* pesanan */
 function orders(){const l=O.filter(o=>(fo==="semua"||stOf(o)===fo)&&(!q||String(o.order_code).toLowerCase().includes(q.toLowerCase())));
 return `<div class="chips">${["semua",...Object.keys(STL)].map(s=>`<button data-f="${s}" class="${s===fo?"on":""}">${s==="semua"?"Semua":STL[s]}</button>`).join("")}</div><input id="sq" class="fld" style="margin-top:0" placeholder="🔍 Cari nomor pesanan..." value="${esc(q)}">${l.length?l.map(o=>`<div class="row" data-id="${esc(o.id)}"><div class="g"><b>${esc(o.order_code)}</b><small>${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small><small>${mineItems(o).length} produk | ${rp(tot(o))}</small>${payTag(o)}${stOf(o)==="menunggu"?`<small style="color:#9a5a00">⏱ Sisa <b data-exp="${exp(o)}">${mmss(Math.max(0,exp(o)-Date.now()))}</b></small>`:""}</div><span class="pill ${stOf(o)}">${STL[stOf(o)]||stOf(o)}</span>›</div>`).join(""):'<p style="color:var(--mu);text-align:center;margin-top:30px">Belum ada pesanan.</p>'}`}
