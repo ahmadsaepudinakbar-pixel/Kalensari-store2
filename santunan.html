@@ -68,6 +68,15 @@ li{margin:2px 0}.err{background:#fdecea;border:1px solid #f5c6c2;padding:12px;bo
 .rcd{margin-top:0}.rcd>summary{font:700 26px Georgia,serif;color:var(--br)}
 .rc th:nth-child(2),.rc td:nth-child(2){text-align:left;white-space:normal}.rc h3{font:700 20px Georgia,serif;color:var(--br);margin:22px 0 0}
 footer{padding:26px 0;text-align:center}
+/* Popup QRIS donasi */
+.qr-m{position:fixed;inset:0;z-index:50;background:rgba(43,29,20,.6);display:none;align-items:center;justify-content:center;padding:16px}
+.qr-m.show{display:flex}
+.qr-box{position:relative;background:#fff;border-radius:22px;width:min(420px,100%);max-height:94vh;overflow:auto;padding:14px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.qr-box img{display:block;width:100%;height:auto;border-radius:14px}
+.qr-x{position:absolute;top:8px;right:8px;width:38px;height:38px;border-radius:50%;border:0;background:#fffaf5;color:var(--br);font-size:20px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.qr-acts{display:grid;gap:8px;margin-top:12px}.qr-acts .btn{display:block;text-align:center}
+.qr-acts [hidden]{display:none!important}.qr-acts .btn.o{background:#fff;color:var(--br);border:1.5px solid var(--br)}
+.qr-tip{font-size:13px;color:var(--mut);margin:10px 4px 0}
 </style></head><body>
 <header><div class="w"><a href="https://kalensari.web.id">&larr; Kalensari Store</a><span style="color:#fff">Info Santunan</span></div></header>
 <main class="w">
@@ -97,6 +106,12 @@ footer{padding:26px 0;text-align:center}
 <section><h2>Dokumentasi</h2><div id="doc">Memuat...</div></section>
 </main>
 <footer class="mut">Sumber: Google Sheets pengurus.</footer>
+<div class="qr-m" id="qrM" role="dialog" aria-modal="true" aria-label="QRIS donasi santunan"><div class="qr-box">
+<button class="qr-x" id="qrX" type="button" aria-label="Tutup">&#10005;</button>
+<img id="qrImg" alt="QRIS Santunan Yatim dan Duafa Kalensari">
+<p class="qr-tip">Buka aplikasi bank atau e-wallet (GoPay, OVO, DANA, m-banking), pilih <b>Scan/QRIS</b>, lalu scan gambar ini. Di HP yang sama: simpan gambar, lalu pilih dari galeri.</p>
+<div class="qr-acts"><a class="btn" id="qrDl" download="QRIS-Santunan-Kalensari.png">&#11015;&#65039; Simpan gambar QRIS</a><a class="btn o" id="qrWa" target="_blank" rel="noopener" hidden>&#128172; Konfirmasi donasi via WhatsApp</a></div>
+</div></div>
 
 <script>
 /* ===== ISI BAGIAN INI ===== */
@@ -107,7 +122,8 @@ const C={
  finCol:3,         // kolom Januari di Sheet keuangan (A=0, B=1, C=2, D=3)
  saldoAwal:3223000, // dipakai jika sel saldo awal (A3) tidak terbaca
  wa:'',   // nomor WhatsApp konfirmasi, contoh 6281234567890
- rek:[]   // contoh: [{bank:'BRI',no:'1234567890',an:'Nama Pengurus'}]
+ rek:[],  // contoh: [{bank:'BRI',no:'1234567890',an:'Nama Pengurus'}]
+ qris:'qris-santunan.png' // gambar QRIS donasi (tampil saat tombol "Donasi sekarang" diklik)
 };
 const TAB=['Januari','Februari','Maret','Avril','mey','Juni','juli','Agustus','September','Oktober','November','Desember']; // nama tab persis di Sheet donatur
 /* ========================== */
@@ -132,7 +148,14 @@ async function get(id,sh){
 const fail=(el,m,e)=>{$(el).innerHTML=`<div class="err">${m||'Data belum bisa dimuat. Pastikan Google Sheet dibagikan dengan akses "Siapa saja yang memiliki link" (Pelihat), lalu muat ulang.'}${e?`<br><small>Detail: ${esc(e.message||e)}</small>`:''}</div>`};
 
 /* Tombol donasi */
-if(C.wa)$('#btnDon').href=`https://wa.me/${C.wa}?text=${encodeURIComponent('Assalamualaikum, saya ingin donasi santunan.')}`;
+const waDon=C.wa?`https://wa.me/${C.wa}?text=${encodeURIComponent('Assalamualaikum, saya sudah donasi santunan lewat QRIS.')}`:'';
+if(C.qris){
+ $('#qrImg').src=C.qris;$('#qrDl').href=C.qris;if(waDon){$('#qrWa').href=waDon;$('#qrWa').hidden=false}
+ const qOpen=()=>{$('#qrM').classList.add('show');document.body.style.overflow='hidden'},qClose=()=>{$('#qrM').classList.remove('show');document.body.style.overflow=''};
+ $('#btnDon').onclick=e=>{e.preventDefault();qOpen()};
+ $('#qrX').onclick=qClose;$('#qrM').onclick=e=>{if(e.target.id==='qrM')qClose()};
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')qClose()});
+}else if(waDon)$('#btnDon').href=waDon.replace('sudah donasi santunan lewat QRIS','ingin donasi santunan');
 
 /* Keuangan */
 let lm=0,KELUAR=null; // KELUAR[bulan] = total pengeluaran dari Sheet keuangan
