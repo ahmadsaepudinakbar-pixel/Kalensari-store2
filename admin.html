@@ -417,7 +417,7 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['setoran','Setoran QRIS','rp'],['pengaturan','Pengaturan','gear']
 ];
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
 let jenisFilter='Semua',route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
@@ -426,7 +426,7 @@ function renderNav(){
   const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
   $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}${k==='persetujuan'&&pendingTotal()?`<span class="cnt" style="background:var(--orange)">${pendingTotal()}</span>`:''}</a>`).join('');
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
-    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','pengaturan','lainnya'].includes(route));
+    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','setoran','pengaturan','lainnya'].includes(route));
     const dot=k==='lainnya'&&pendingTotal()?`<span style="position:absolute;top:2px;right:calc(50% - 16px);background:var(--orange);color:#fff;font-size:10px;border-radius:99px;min-width:16px;padding:0 4px;font-weight:700">${pendingTotal()}</span>`:'';
     return `<button class="${on?'on':''}" style="position:relative" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}${dot}</button>`}).join('');
   const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
@@ -469,7 +469,7 @@ function sessionExpired(){if(!$('#app').classList.contains('hide')){logout();toa
 
 const TITLES={dashboard:['Dashboard','Ringkasan toko dari data asli'],pesanan:['Pesanan','Kelola semua pesanan masuk'],
   produk:['Produk','Atur produk, harga, dan stok'],kategori:['Kategori','Kelompokkan produk toko'],pelanggan:['Pelanggan','Dihitung dari pesanan yang masuk'],
-  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
+  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
 
 function render(){
   renderNav();
@@ -636,6 +636,7 @@ pengaturan(){
     <button class="btn btn-red full" onclick="logout()">${ico('out')}Keluar</button></div>
   </div>`;
 },
+setoran(){return setoranPage()},
 lainnya(){
   const em=(auth&&auth.email)||'';
   return `<div class="profile-head"><div class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(em||'A'))}</div><div><b style="font-size:18px">Admin</b><div style="opacity:.9;font-size:13px">${esc(em)}</div></div></div>
@@ -1441,6 +1442,69 @@ if(auth&&auth.refresh_token)enterApp();
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 // Pesanan baru dimuat ulang otomatis tiap 60 detik.
 setInterval(()=>{if(auth&&!$('#app').classList.contains('hide')&&!$('#modalRoot').innerHTML&&document.visibilityState==='visible')loadAll(true)},60000);
+
+/* ========== SETORAN QRIS ==========
+   Uang pembayaran QRIS (Duitku) masuk ke akun Kalensari Store. Halaman ini menghitung berapa yang harus
+   diteruskan ke tiap toko (harga barang) dan tiap kurir (ongkir), lalu admin menandai "sudah disetor".
+   Catatan setoran disimpan di store_settings key "setoran_qris": {"KODE|t:nama toko"|"KODE|k:id kurir": waktu} */
+let setTab='toko',setLihat='';
+const isQrisLunas=o=>/^qris/i.test(String(o.payment||''))&&o.pay_status==='lunas';
+const setMap=()=>{const v=S.settings.setoran_qris;return v&&typeof v==='object'&&!Array.isArray(v)?v:{}};
+function setoranData(){
+  const toko=new Map(),kurir=new Map(),refund=[],tunggu=[],done=setMap();
+  const add=(m,key,name,wa,o,amt,mark)=>{if(!m.has(key))m.set(key,{key,name,wa,belum:[],sudah:[]});const g=m.get(key);(done[mark]?g.sudah:g.belum).push({o,amt,mark,t:done[mark]})};
+  S.orders.filter(isQrisLunas).forEach(o=>{
+    const st=stLabel(o.status);
+    if(st==='Batal'){refund.push(o);return}
+    if(st==='Baru'){tunggu.push(o);return}               // belum diterima penjual: belum dihitung
+    const items=Array.isArray(o.items)?o.items:[],by=new Map();
+    items.forEach(it=>{const n=String(it.seller||'Tanpa toko').split(',')[0].trim(),k=sKey(n);by.set(k,{n,amt:((by.get(k)||{}).amt||0)+itemPrice(it)*(Number(it.qty)||1)})});
+    by.forEach((v,k)=>{const m=memberToko(v.n);add(toko,k,v.n,m&&m.wa,o,v.amt,o.order_code+'|t:'+k)});
+    const ship=Number(o.shipping)||0,kr=kurirOf(o);
+    if(ship>0)add(kurir,kr?String(kr.id||kr.wa||kr.nama):'?',kr?(kr.nama||'Kurir'):'Belum ada kurir',kr&&kr.wa,o,ship,o.order_code+'|k:'+(kr?String(kr.id||kr.wa||kr.nama):'?'));
+  });
+  return {toko:[...toko.values()],kurir:[...kurir.values()],refund,tunggu};
+}
+function memberToko(name){const l=Array.isArray(S.settings.penjual_members)?S.settings.penjual_members:[];return l.find(m=>m&&sKey(m.toko||m.usaha)===sKey(name))||null}
+const sumAmt=a=>a.reduce((t,x)=>t+x.amt,0);
+function setoranPage(){
+  const d=setoranData(),list=setTab==='toko'?d.toko:d.kurir;
+  list.sort((a,b)=>sumAmt(b.belum)-sumAmt(a.belum)||a.name.localeCompare(b.name,'id'));
+  const totBelum=sumAmt(d.toko.flatMap(g=>g.belum))+sumAmt(d.kurir.flatMap(g=>g.belum));
+  const totLunas=S.orders.filter(isQrisLunas).reduce((t,o)=>t+(Number(o.total)||0),0);
+  return `<div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+    ${stat('Total masuk lewat QRIS',rp(totLunas),S.orders.filter(isQrisLunas).length+' pesanan lunas','rp','var(--g2)')}
+    ${stat('Belum disetor',rp(totBelum),'ke toko & kurir','bag','var(--orange)')}
+    ${stat('Perlu dikembalikan',rp(d.refund.reduce((t,o)=>t+(Number(o.total)||0),0)),d.refund.length+' pesanan dibatalkan setelah dibayar','doc','#ef4444')}</div>
+  <div class="checkout-note" style="background:#fff8ec;border:1px solid #f3dfb8;border-radius:12px;padding:12px;font-size:13px;margin:4px 0 14px">Uang QRIS masuk ke saldo Duitku Kalensari Store. Yang dihitung di sini hanya pesanan QRIS <b>lunas</b> yang sudah diterima penjual (Diproses/Dikirim/Selesai). Biaya QRIS Duitku tidak dipotongkan dari setoran.</div>
+  <div class="tabs">${[['toko','🏪 Per toko'],['kurir','🛵 Ongkir per kurir']].map(([k,l])=>`<button class="tab ${setTab===k?'on':''}" onclick="setTab='${k}';setLihat='';render()">${l}</button>`).join('')}</div>
+  <div class="cards">${list.length?list.map(g=>{const b=sumAmt(g.belum),open=setLihat===g.key;return `<div class="card" style="padding:14px">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><b style="font-size:16px">${esc(g.name)}</b><div class="sm" style="color:var(--mut)">${g.belum.length} pesanan belum disetor • ${g.sudah.length} sudah</div></div>
+      <div style="text-align:right"><div style="font-size:20px;font-weight:800;color:${b?'var(--orange)':'var(--g2)'}">${rp(b)}</div><small style="color:var(--mut)">sudah disetor ${rp(sumAmt(g.sudah))}</small></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      ${b?`<button class="btn btn-g" onclick="tandaiSetor('${setTab}','${esc(g.key)}',this)">✅ Tandai sudah disetor ${rp(b)}</button>`:''}
+      ${b&&g.wa?`<a class="btn" style="border:1px solid var(--line);text-decoration:none;color:inherit" target="_blank" rel="noopener" href="${waSetor(g)}">💬 Kirim rincian ke WA</a>`:''}
+      <button class="btn" style="border:1px solid var(--line)" onclick="setLihat=setLihat==='${esc(g.key)}'?'':'${esc(g.key)}';render()">${open?'Sembunyikan':'Lihat'} rincian</button></div>
+    ${open?`<div class="tbl-wrap" style="margin-top:10px"><table><tr><th>Pesanan</th><th>Tanggal</th><th>Jumlah</th><th>Status</th></tr>${[...g.belum,...g.sudah].map(x=>`<tr><td>${esc(x.o.order_code)}</td><td>${fmtDate(x.o.paid_at||x.o.created_at)}</td><td>${rp(x.amt)}</td><td>${x.t?`✅ ${fmtDate(x.t)} <button class="more" title="Batalkan tanda" onclick="batalSetor('${esc(x.mark)}',this)">↺</button>`:'⏳ Belum'}</td></tr>`).join('')}</table></div>`:''}
+  </div>`}).join(''):'<div class="empty">Belum ada pembayaran QRIS yang perlu disetor.</div>'}</div>
+  ${d.refund.length?`<div class="card" style="margin-top:16px;border:1px solid #f5c6c2"><div class="chead"><h3>↩️ Dibatalkan setelah dibayar (kembalikan uang ke pembeli)</h3></div>${d.refund.map(o=>`<div class="detail-row"><span>${esc(o.order_code)} • ${esc(o.customer_name||'')}<br><small style="color:var(--mut)">${esc(o.customer_phone||'')}</small></span><b>${rp(o.total)}</b></div>`).join('')}</div>`:''}
+  ${d.tunggu.length?`<p class="sm" style="color:var(--mut);margin-top:12px">⏳ ${d.tunggu.length} pesanan QRIS lunas masih menunggu diterima penjual (belum dihitung).</p>`:''}`;
+}
+function waSetor(g){
+  const wa=String(g.wa||'').replace(/\D/g,'').replace(/^0/,'62');
+  const txt=`Assalamualaikum ${g.name}, berikut rincian setoran QRIS Kalensari Store:\n\n${g.belum.map(x=>`• ${x.o.order_code}: ${rp(x.amt)}`).join('\n')}\n\nTotal: ${rp(sumAmt(g.belum))}\nTerima kasih 🙏`;
+  return `https://wa.me/${wa}?text=${encodeURIComponent(txt)}`;
+}
+async function tandaiSetor(tab,key,btn){
+  const g=(setoranData()[tab]||[]).find(x=>x.key===key);if(!g||!g.belum.length)return;
+  if(!confirm(`Tandai ${g.belum.length} pesanan (${rp(sumAmt(g.belum))}) untuk ${g.name} sebagai SUDAH DISETOR?`))return;
+  await busy(btn,async()=>{const cur=await readKey('setoran_qris',{}),m=cur&&typeof cur==='object'&&!Array.isArray(cur)?cur:{},t=new Date().toISOString();
+    g.belum.forEach(x=>{m[x.mark]=t});await setSetting('setoran_qris',m);S.settings.setoran_qris=m;render();toast('Setoran '+g.name+' dicatat')});
+}
+async function batalSetor(mark,btn){
+  if(!confirm('Batalkan tanda "sudah disetor" untuk baris ini?'))return;
+  await busy(btn,async()=>{const cur=await readKey('setoran_qris',{}),m=cur&&typeof cur==='object'&&!Array.isArray(cur)?cur:{};delete m[mark];await setSetting('setoran_qris',m);S.settings.setoran_qris=m;render();toast('Tanda setoran dibatalkan')});
+}
 </script>
 </body>
 </html>
