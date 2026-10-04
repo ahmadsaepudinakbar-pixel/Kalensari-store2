@@ -238,7 +238,7 @@ async function loadDonatur(){
  $('#dnAll').innerHTML=`<p class="dn-tot">Total pemasukan ${lbl}<b>${rp(tot)}</b></p><div id="dnOut"></div>`;
  // Pengeluaran: dari Sheet keuangan; bila belum terbaca, dijumlah dari tab bulan di Sheet donatur
  finReady.then(()=>{
-  const tab=sum(dm.yat.map(x=>x.v))+(dm.dufV||sum(dm.duf.map(x=>x.v)))+sum(dm.lain.map(x=>x.v)),kel=(KELUAR&&KELUAR[bln])||tab,net=tot-kel;
+  const kel=KELUAR?KELUAR[bln]:sum(dm.yat.map(x=>x.v))+(dm.dufV||sum(dm.duf.map(x=>x.v)))+sum(dm.lain.map(x=>x.v)),net=tot-kel;
   $('#dnOut').innerHTML=`<p class="dn-tot out">Total pengeluaran ${lbl}<b>${rp(kel)}</b></p><p class="dn-tot net${net<0?' neg':''}">Total ${lbl}<b>${rp(net)}</b></p>`;
  });
  const cards=[...document.querySelectorAll('.dn-card')],n=list.length,k=Math.min(4,n);
