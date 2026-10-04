@@ -286,6 +286,12 @@ const shippingTotal=items=>shippingRoute(items).fee;
 let sellerSchedule=readLS("kalensari_seller_schedule",{});
 // tutupToko: {"nama toko (huruf kecil)": {t:"waktu"}} = penjual menutup tokonya sendiri dari Aplikasi Penjual
 let tutupToko=readLS("kalensari_tutup_toko",{});
+// unggulanToko: {"nama toko (huruf kecil)": [id produk,...]} dipilih penjual (maks 3), tampil paling atas di halaman toko
+let unggulanToko=readLS("kalensari_unggulan_toko",{});
+const isUnggulan=p=>sellerList(p).some(n=>(unggulanToko[sellerKey(n)]||[]).map(String).includes(String(p.id)));
+// Stok: null/kosong = tidak dibatasi
+const stokOf=p=>p&&p.stock!=null&&p.stock!==""&&Number.isFinite(Number(p.stock))?Number(p.stock):null;
+const qtyDiCart=(id,kecuali)=>cart.reduce((t,x,i)=>t+(x.id===id&&i!==kecuali?Number(x.qty)||0:0),0);
 const DAY_NAMES=["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
 const fmtDate=d=>{const[y,m,dd]=String(d).split("-");return`${dd}/${m}/${y}`;};
 const dayOfWeek=d=>new Date(d+"T00:00:00Z").getUTCDay();
@@ -318,6 +324,7 @@ async function loadCloudSettings(){
       if(r.key==="shipping_fees"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){shippingFees=r.value;localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));}
       if(r.key==="penjual_members"&&Array.isArray(r.value)){const m={};r.value.forEach(x=>{const nm=sellerKey(x&&(x.toko||x.usaha));if(nm&&validLL(x.latitude,x.longitude))m[nm]={lat:Number(x.latitude),lng:Number(x.longitude)};});sellerLocs=m;localStorage.setItem("kalensari_seller_locs",JSON.stringify(sellerLocs));}
       if(r.key==="seller_schedule"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){sellerSchedule=r.value;localStorage.setItem("kalensari_seller_schedule",JSON.stringify(sellerSchedule));}
+      if(r.key==="unggulan_toko"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){unggulanToko=r.value;localStorage.setItem("kalensari_unggulan_toko",JSON.stringify(unggulanToko));}
       if(r.key==="tutup_toko"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){tutupToko=r.value;localStorage.setItem("kalensari_tutup_toko",JSON.stringify(tutupToko));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
       if(r.key==="penjual_members"&&Array.isArray(r.value)){r.value.forEach(x=>{if(x&&x.id)sellerIdMap[x.id]=sellerKey(x.toko||x.usaha)});}
@@ -359,9 +366,10 @@ async function refreshProductStatus(){
     return true;
   }catch(e){console.error("Refresh status produk:",e);return false;}
 }
-const closedCartItems=()=>selItems().filter(p=>p.status!=="Show"||!isInHours(p)||allSellersClosed(p));
+const lewatStok=(p,l)=>{const st=stokOf(products.find(x=>x.id===p.id)||p);return st!==null&&l.filter(x=>x.id===p.id).reduce((t,x)=>t+(Number(x.qty)||0),0)>st;};
+const closedCartItems=()=>{const l=selItems();return l.filter(p=>p.status!=="Show"||!isInHours(p)||allSellersClosed(p)||lewatStok(p,l));};
 function alertClosedItems(list){
-  alert("Produk berikut sedang tidak bisa dipesan:\n\n"+list.map(p=>p.status!=="Show"?`- ${p.name} (stok habis)`:allSellersClosed(p)?`- ${p.name} (penjual ${p.seller} sedang tutup)`:`- ${p.name} (jam ${hoursText(p)})`).join("\n")+"\n\nHapus dari keranjang atau pesan lagi saat tersedia.");
+  alert("Produk berikut sedang tidak bisa dipesan:\n\n"+list.map(p=>p.status!=="Show"?`- ${p.name} (stok habis)`:allSellersClosed(p)?`- ${p.name} (penjual ${p.seller} sedang tutup)`:isInHours(p)&&stokOf(p)!==null?`- ${p.name} (stok tinggal ${stokOf(p)}, kurangi jumlahnya)`:`- ${p.name} (jam ${hoursText(p)})`).join("\n")+"\n\nHapus dari keranjang atau pesan lagi saat tersedia.");
 }
 
 // ===== FILTER TOKO + URUTAN ACAK 20 MENIT =====
@@ -403,7 +411,7 @@ function renderSellerBar(){
   if(!activeSeller){bar.hidden=true;bar.innerHTML="";return;}
   const n=activeSellerName(),closed=sellerClosed(n);
   bar.hidden=false;
-  bar.innerHTML=`<span>${shopFotos[activeSeller]?`<i class="sf-foto" style="background-image:url('${shopFotos[activeSeller]}')"></i>`:"🏪"} Produk dari <b>${esc(n)}</b>${closed?' <em class="sf-closed">Tutup</em>':""}</span><button type="button" onclick="setSeller('')">× Semua toko</button>`;
+  const sfF=(shopFotos||{})[activeSeller];bar.innerHTML=`<span>${sfF?`<i class="sf-foto" style="background-image:url('${sfF}')"></i>`:"🏪"} Produk dari <b>${esc(n)}</b>${closed?' <em class="sf-closed">Tutup</em>':""}</span><button type="button" onclick="setSeller('')">× Semua toko</button>`;
 }
 // Daftar toko diambil otomatis dari nama penjual di tiap produk (produk multi-penjual masuk ke tiap toko).
 function shopRows(){
@@ -470,12 +478,12 @@ function singleCardHTML(p) {
   return `
    <article class="product${soldOut?" soldout":""}">
   <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
-        ${soldOut?'<span class="soldout-badge">STOK HABIS</span>':p.sale?'<span class="sale-badge">PROMO</span>':''}
+        ${soldOut?'<span class="soldout-badge">STOK HABIS</span>':p.sale?'<span class="sale-badge">PROMO</span>':''}${isUnggulan(p)?'<span class="ung-badge">⭐ Unggulan</span>':''}
       </div>
       <div class="product-body">
         <h3>${p.name}</h3>
         <div class="price">${builder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
-        <small>${p.unit}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
+        <small>${p.unit}${!soldOut&&stokOf(p)!==null&&stokOf(p)<=5?` • <b class="sisa">Sisa ${stokOf(p)}</b>`:""}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
         ${sClosed?`<small class="hours closed">🔒 ${esc(sellerWhy(p))}</small>`:""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
@@ -490,7 +498,7 @@ function groupCardHTML(u) {
   return `
    <article class="product${v.every(isSoldOut)?" soldout":""}">
   <div class="product-img"><img src="${getProductImage(first.image)}" alt="${esc(u.group)}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
-        ${v.every(isSoldOut)?'<span class="soldout-badge">STOK HABIS</span>':v.some(x=>x.sale)?'<span class="sale-badge">PROMO</span>':''}
+        ${v.every(isSoldOut)?'<span class="soldout-badge">STOK HABIS</span>':v.some(x=>x.sale)?'<span class="sale-badge">PROMO</span>':''}${v.some(isUnggulan)?'<span class="ung-badge">⭐ Unggulan</span>':''}
       </div>
       <div class="product-body">
         <h3>${esc(u.group)}</h3>
@@ -512,6 +520,7 @@ function renderProducts() {
   if(sort==="priceAsc" || sort==="price-low") list.sort((a,b)=>currentPrice(a)-currentPrice(b));
   if(sort==="priceDesc" || sort==="price-high") list.sort((a,b)=>currentPrice(b)-currentPrice(a));
   if(sort==="name") list.sort((a,b)=>a.name.localeCompare(b.name,"id"));
+  if(activeSeller){const ug=(unggulanToko[activeSeller]||[]).map(String),r=p=>{const i=ug.indexOf(String(p.id));return i<0?99:i};list=list.map((p,i)=>[p,i]).sort((a,b)=>r(a[0])-r(b[0])||a[1]-b[1]).map(x=>x[0]);}
   // Gabungkan varian: kartu muncul di posisi produk pertama dari grupnya.
   const units=[], seen=new Map();
   list.forEach(p=>{
@@ -633,12 +642,14 @@ function addToCart(id,qty=1,seller,custom) {
     seller=list[0]||p.seller||"";
   }
   qty=Math.max(1,parseInt(qty)||1);
+  {const st=stokOf(p),ada=qtyDiCart(id);if(st!==null&&ada+qty>st){if(st-ada<=0){showToast(`Stok ${p.name} tinggal ${st}${ada?`, sudah ${ada} di keranjang`:""}`);return;}qty=st-ada;showToast(`Stok ${p.name} tinggal ${st}`);}}
   const sig=custom?JSON.stringify(custom.t):"";
   const item=cart.find(x=>x.id===id&&(x.seller||"")===seller&&(x.custom?JSON.stringify(x.custom.t):"")===sig); if(item){item.qty+=qty;delete item.off;} else cart.push(custom?{id,qty,seller,custom}:{id,qty,seller});
   saveCart();updateCartCount();renderCart();showToast(`${qty>1?qty+"× ":""}${p.name} (${seller}) ditambahkan ke keranjang`);
 }
 function changeQty(idx,d) {
   const item=cart[idx];if(!item)return;
+  if(d>0){const p=products.find(x=>x.id===item.id),st=stokOf(p);if(st!==null&&qtyDiCart(item.id)+d>st){showToast(`Stok ${p.name} tinggal ${st}`);return;}}
   item.qty+=d;if(item.qty<=0)cart.splice(idx,1);
   saveCart();updateCartCount();renderCart();
 }
@@ -1060,8 +1071,11 @@ function statusSteps(status){
   const order=["menunggu","diproses","dikirim","selesai"]; const idx=order.indexOf(status);
   return `<div class="order-timeline">${order.map((x,i)=>`<div class="order-step ${status==='dibatalkan'?'cancelled':i<idx?'done':i===idx?'current':''}"><div class="dot">${i<idx?'✓':i===idx?'•':'○'}</div>${statusLabel(x)}</div>`).join("")}</div>`;
 }
+let myOrdersLast=null;
 function renderMyOrders(rows=getLocalOrders()){
   const box=document.getElementById("myOrderList"), count=document.getElementById("myOrderCount"); if(!box)return;
+  myOrdersLast=rows;
+  if(window.KSUlasan){KSUlasan.pasang(box,()=>renderMyOrders(myOrdersLast));KSUlasan.muat(rows).then(baru=>{if(baru&&myOrdersLast===rows)renderMyOrders(rows);});}
   const sorted=[...rows].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   if(count)count.textContent=`${sorted.length} pesanan`;
   box.innerHTML=sorted.length?sorted.map(o=>`<div class="my-order-card">
@@ -1074,6 +1088,7 @@ function renderMyOrders(rows=getLocalOrders()){
     ${o.pay_status==="tunggu_wa"&&o.status==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
     ${o.pay_status==="lunas"?'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>':QRIS_OTOMATIS&&o.payment==="QRIS"&&o.status!=="dibatalkan"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="bayarQris('${esc(o.order_code)}')">💳 Bayar dengan QRIS</button>`:""}
     ${window.KSST?KSST.html(o):""}
+    ${window.KSUlasan?KSUlasan.html(o):""}
     ${o.sync_error?`<div class="order-hint">⚠️ Belum tersinkron ke database: ${esc(o.sync_error)}</div>`:""}
     ${o.updated_at?`<div class="order-updated">Diperbarui: ${new Date(o.updated_at).toLocaleString("id-ID")}</div>`:""}
   </div>`).join(""):'<div class="empty-state"><b>📦 Belum ada pesanan</b>Pesanan yang Anda buat akan muncul di sini.</div>';
@@ -1970,4 +1985,5 @@ function mintaKataSandi(wa){
 })();
 
 // crop.js: semua upload foto di toko (mis. foto produk admin) bisa dipotong dulu
+(function(){if(window.KSUlasan||document.querySelector('script[src*="ulasan.js"]'))return;const s=document.createElement("script");s.src="ulasan.js";s.onload=()=>{if(myOrdersLast)renderMyOrders(myOrdersLast);};document.head.appendChild(s);})();
 (function(){if(window.KSCrop||document.querySelector('script[src*="crop.js"]'))return;const s=document.createElement("script");s.src="crop.js";document.head.appendChild(s);})();
