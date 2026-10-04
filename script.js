@@ -723,7 +723,7 @@ function setupCheckoutMaps(){
       if(!b||!b.alamat){
         showToast("Alamat rumah belum diisi. Mengarahkan ke dasbor pembeli...");
         sessionStorage.setItem("kalensari_next","checkout");
-        setTimeout(()=>{location.href="dashboard-pembeli.html";},1200); return;
+        setTimeout(()=>{ksGo("dashboard-pembeli.html");},1200); return;
       }
       rumah.innerHTML=`<div>${esc(b.alamat)}</div>${okCoord(b.lat,b.lng)?"<small>✅ Titik Google Maps tersimpan</small>":""}`;
       latEl.value=okCoord(b.lat,b.lng)?Number(b.lat):""; lngEl.value=okCoord(b.lat,b.lng)?Number(b.lng):"";
@@ -796,7 +796,7 @@ document.getElementById("checkoutBtn").onclick=async()=>{
   {const al=await cekBisaPesan(); if(al.length){alert("Pesanan belum bisa dibuat:\n\n"+teksAlasan(al));return;}}
   if(!cart.length) return;
   const b=await loadBuyer();
-  if(!b){ sessionStorage.setItem("kalensari_next","checkout"); showToast("Silakan masuk sebagai pembeli dulu..."); setTimeout(()=>{location.href="akun-pembeli.html";},900); return; }
+  if(!b){ sessionStorage.setItem("kalensari_next","checkout"); showToast("Silakan masuk sebagai pembeli dulu..."); setTimeout(()=>{ksGo("akun-pembeli.html");},900); return; }
   checkoutBuyer=b; closeModal("cartModal"); renderCheckoutBuyer(); renderCart(); openModal("checkoutModal"); setupCheckoutMaps();
 };
 // Pencarian produk tidak boleh terisi otomatis dari nomor WhatsApp/autofill pelanggan.
@@ -1568,4 +1568,69 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
   if(add)add.addEventListener("click",()=>setFolder(true),true);
   const oa=openAdmin;openAdmin=function(){oa.apply(this,arguments);setFolder(false);};
   setFolder(false);
+})();
+
+
+// ===== HALAMAN DALAM BINGKAI: musik tidak putus saat membuka Santunan, Jasa, Akun, dll. =====
+// index.html menjadi "rangka" yang tidak pernah dimuat ulang. Halaman lain (santunan.html, jasa.html, ...)
+// tetap file sendiri, hanya dibuka di dalam bingkai di atas toko. Musik (#bgMusic) tetap jalan di rangka.
+// Tombol "← Kembali ke toko" di halaman tersebut, atau tombol back HP, menutup bingkai.
+function ksGo(url){ if(window.ksBuka) window.ksBuka(url); else location.href=url; }
+(function(){
+  if(window.top!==window.self) return; // index.html sendiri sedang di dalam bingkai: jangan buat bingkai lagi
+  const st=document.createElement("style");
+  st.textContent=`.ks-frame{position:fixed;inset:0;z-index:3000;background:#fffaf6;display:none}
+.ks-frame.show{display:block}
+.ks-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fffaf6}
+.ks-frame-load{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);color:#7a3e20;font-weight:700;font-size:14px}
+body.ks-frame-open{overflow:hidden}`;
+  document.head.appendChild(st);
+  const wrap=document.createElement("div");wrap.className="ks-frame";wrap.innerHTML='<div class="ks-frame-load">Memuat…</div>';
+  document.body.appendChild(wrap);
+  let fr=null,open=false;
+  const here=new URL(location.href);
+  const isHome=u=>u.origin===here.origin&&(/\/(index\.html)?$/i.test(u.pathname)||u.pathname===here.pathname);
+  const isPage=u=>u.origin===here.origin&&/\.html?$/i.test(u.pathname)&&!isHome(u);
+  function close(hash){
+    if(!open)return;open=false;
+    wrap.classList.remove("show");document.body.classList.remove("ks-frame-open");
+    if(fr){fr.remove();fr=null;}
+    if(history.state&&history.state.ksFrame)history.replaceState(null,"",location.pathname+location.search);
+    // data mungkin berubah di halaman lain (mis. baru masuk akun pembeli)
+    try{cart=JSON.parse(localStorage.getItem("kalensari_cart")||"[]");updateCartCount();renderCart();}catch(e){}
+    if(hash==="#checkout"&&cart.length)setTimeout(()=>document.getElementById("checkoutBtn")?.click(),300);
+    if(hash==="#products")document.getElementById("products")?.scrollIntoView();
+  }
+  function watch(){
+    let w,d;try{w=fr.contentWindow;d=fr.contentDocument;w.location.href;}catch(e){return;} // beda domain: biarkan
+    const u=new URL(w.location.href);
+    if(isHome(u)){close(u.hash);return;}
+    wrap.querySelector(".ks-frame-load").style.display="none";
+    d.addEventListener("click",e=>{
+      const a=e.target.closest&&e.target.closest("a[href]");if(!a||a.target==="_blank"||e.ctrlKey||e.metaKey||e.shiftKey)return;
+      let t;try{t=new URL(a.getAttribute("href"),w.location.href);}catch(x){return;}
+      if(isHome(t)){e.preventDefault();close(t.hash);}
+    },true);
+  }
+  window.ksBuka=function(url){
+    const u=new URL(url,location.href);
+    if(!isPage(u)){location.href=u.href;return;}
+    if(fr)fr.remove();
+    fr=document.createElement("iframe");fr.title="Halaman Kalensari";fr.setAttribute("allow","geolocation; clipboard-write; autoplay");
+    fr.addEventListener("load",watch);
+    wrap.querySelector(".ks-frame-load").style.display="";
+    wrap.appendChild(fr);fr.src=u.href;
+    if(!open){open=true;history.pushState({ksFrame:1},"",location.pathname+location.search);}
+    wrap.classList.add("show");document.body.classList.add("ks-frame-open");
+  };
+  // Tombol back HP / browser: kembali di dalam bingkai dulu, lalu menutup bingkai
+  addEventListener("popstate",e=>{if(open&&!(e.state&&e.state.ksFrame))close();});
+  // Semua link ke halaman lain di toko dibuka di bingkai
+  document.addEventListener("click",e=>{
+    if(e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
+    const a=e.target.closest&&e.target.closest("a[href]");if(!a||a.target==="_blank"||a.hasAttribute("download"))return;
+    let u;try{u=new URL(a.getAttribute("href"),location.href);}catch(x){return;}
+    if(!isPage(u))return;
+    e.preventDefault();window.ksBuka(u.href);
+  });
 })();
