@@ -336,7 +336,7 @@ async function loadAll(silent){
     ]);
     S.mapUsage=Array.isArray(mu)?mu:null;
     // saldo kurir (tabel dari supabase-saldo-kurir.sql; kosong bila belum dipasang)
-    const sejak=new Date(Date.now()-40*864e5).toISOString();
+    const sejak=new Date(Date.now()-400*864e5).toISOString();
     const [ks,kt,km]=await Promise.all([
       api('kurir_saldo?select=kurir_id,saldo').catch(()=>null),
       api('kurir_topup?select=id,kurir_id,nama,wa,jumlah,status,catatan,t,diproses_t&order=t.desc&limit=100').catch(()=>null),
@@ -417,7 +417,7 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['setoran','Setoran QRIS','rp'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['setoran','Setoran QRIS','rp'],['pengaturan','Pengaturan','gear']
 ];
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
 let jenisFilter='Semua',route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
@@ -426,7 +426,7 @@ function renderNav(){
   const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
   $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}${k==='persetujuan'&&pendingTotal()?`<span class="cnt" style="background:var(--orange)">${pendingTotal()}</span>`:''}</a>`).join('');
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
-    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','setoran','pengaturan','lainnya'].includes(route));
+    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','setoran','pengaturan','lainnya'].includes(route));
     const dot=k==='lainnya'&&pendingTotal()?`<span style="position:absolute;top:2px;right:calc(50% - 16px);background:var(--orange);color:#fff;font-size:10px;border-radius:99px;min-width:16px;padding:0 4px;font-weight:700">${pendingTotal()}</span>`:'';
     return `<button class="${on?'on':''}" style="position:relative" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}${dot}</button>`}).join('');
   const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
@@ -469,7 +469,7 @@ function sessionExpired(){if(!$('#app').classList.contains('hide')){logout();toa
 
 const TITLES={dashboard:['Dashboard','Ringkasan toko dari data asli'],pesanan:['Pesanan','Kelola semua pesanan masuk'],
   produk:['Produk','Atur produk, harga, dan stok'],kategori:['Kategori','Kelompokkan produk toko'],pelanggan:['Pelanggan','Dihitung dari pesanan yang masuk'],
-  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
+  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
 
 function render(){
   renderNav();
@@ -637,6 +637,7 @@ pengaturan(){
   </div>`;
 },
 setoran(){return setoranPage()},
+keuangan(){return keuanganPage()},
 lainnya(){
   const em=(auth&&auth.email)||'';
   return `<div class="profile-head"><div class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(em||'A'))}</div><div><b style="font-size:18px">Admin</b><div style="opacity:.9;font-size:13px">${esc(em)}</div></div></div>
@@ -1504,6 +1505,82 @@ async function tandaiSetor(tab,key,btn){
 async function batalSetor(mark,btn){
   if(!confirm('Batalkan tanda "sudah disetor" untuk baris ini?'))return;
   await busy(btn,async()=>{const cur=await readKey('setoran_qris',{}),m=cur&&typeof cur==='object'&&!Array.isArray(cur)?cur:{};delete m[mark];await setSetting('setoran_qris',m);S.settings.setoran_qris=m;render();toast('Tanda setoran dibatalkan')});
+}
+/* ========== KEUANGAN ==========
+   Omset          = nilai semua pesanan yang tidak batal (harga barang + ongkir), semua cara bayar.
+   Pendapatan bersih Kalensari Store = potongan saldo kurir per pesanan
+                    + pemasukan lain (catatan manual) − biaya QRIS (persen, bisa diatur) − pengeluaran (catatan manual).
+   Catatan manual disimpan di store_settings key "keuangan_catatan": [{id,t,jenis:'masuk'|'keluar',ket,jumlah}]
+   Persen biaya QRIS di key "biaya_qris_persen" (bawaan 0,7%).                                                     */
+let kuPeriode='bulan';
+const KU_PER=[['hari','Hari ini'],['7','7 hari'],['bulan','Bulan ini'],['30','30 hari'],['tahun','Tahun ini'],['semua','Semua']];
+const wibDate=d=>new Date(new Date(d).getTime()+7*36e5).toISOString().slice(0,10);   // YYYY-MM-DD (WIB)
+function kuRange(){const now=wibDate(new Date());const back=n=>wibDate(Date.now()-(n-1)*864e5);
+  return {hari:[now,now],'7':[back(7),now],bulan:[now.slice(0,8)+'01',now],'30':[back(30),now],tahun:[now.slice(0,5)+'01-01',now],semua:['0000-00-00','9999-12-31']}[kuPeriode]}
+const inR=(d,[a,b])=>{const x=wibDate(d);return x>=a&&x<=b};
+const kuCatatan=()=>Array.isArray(S.settings.keuangan_catatan)?S.settings.keuangan_catatan:[];
+const qrisPersen=()=>{const v=Number(S.settings.biaya_qris_persen);return Number.isFinite(v)&&v>=0?v:0.7};
+function kuHitung(r){
+  const os=S.orders.filter(o=>inR(o.created_at,r)&&!isCancelled(o));
+  const barang=os.reduce((t,o)=>t+(Number(o.subtotal)||Math.max(0,(Number(o.total)||0)-(Number(o.shipping)||0))),0);
+  const ongkir=os.reduce((t,o)=>t+(Number(o.shipping)||0),0),omset=os.reduce((t,o)=>t+(Number(o.total)||0),0);
+  const cara=new Map();os.forEach(o=>{const k=/^qris/i.test(o.payment||'')?(o.pay_status==='lunas'?'QRIS (lunas)':'QRIS (belum bayar)'):(o.payment||'Lainnya');cara.set(k,(cara.get(k)||0)+(Number(o.total)||0))});
+  const qrisLunas=S.orders.filter(o=>isQrisLunas(o)&&inR(o.paid_at||o.created_at,r)).reduce((t,o)=>t+(Number(o.total)||0),0);
+  const potKurir=(S.potong||[]).filter(x=>inR(x.t,r)).reduce((t,x)=>t+Math.abs(Number(x.jumlah)||0),0);
+  const cat=kuCatatan().filter(x=>inR(x.t,r)),masukLain=cat.filter(x=>x.jenis==='masuk').reduce((t,x)=>t+(Number(x.jumlah)||0),0),keluar=cat.filter(x=>x.jenis!=='masuk').reduce((t,x)=>t+(Number(x.jumlah)||0),0);
+  const biayaQris=Math.round(qrisLunas*qrisPersen()/100),bersih=potKurir+masukLain-biayaQris-keluar;
+  return {os,barang,ongkir,omset,cara,qrisLunas,potKurir,masukLain,keluar,biayaQris,bersih,cat};
+}
+function keuanganPage(){
+  const r=kuRange(),h=kuHitung(r),row=(l,v,c)=>`<div class="detail-row"><span>${l}</span><b style="${c?'color:'+c:''}">${v}</b></div>`;
+  // grafik omset per hari (maks 31 hari terakhir dari periode)
+  const end=new Date(r[1]==='9999-12-31'?wibDate(new Date()):r[1]),nDays=Math.min(31,Math.max(1,Math.round((end-new Date(r[0]==='0000-00-00'?Date.now()-29*864e5:r[0]))/864e5)+1));
+  const days=[...Array(nDays)].map((_,i)=>new Date(end.getTime()-(nDays-1-i)*864e5).toISOString().slice(0,10));
+  const per=new Map(days.map(d=>[d,0]));h.os.forEach(o=>{const d=wibDate(o.created_at);if(per.has(d))per.set(d,per.get(d)+(Number(o.total)||0))});
+  const vals=days.map(d=>per.get(d)),max=Math.max(...vals,1),every=Math.ceil(nDays/8),short=v=>v>=1e6?(v/1e6).toFixed(1)+' jt':v>=1e3?Math.round(v/1e3)+' rb':v||'';
+  return `<div class="tabs">${KU_PER.map(([k,l])=>`<button class="tab ${kuPeriode===k?'on':''}" onclick="kuPeriode='${k}';render()">${l}</button>`).join('')}</div>
+  <div class="stats" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    ${stat('Omset',rp(h.omset),h.os.length+' pesanan (tanpa yang batal)','chart','var(--blue)')}
+    ${stat('Pendapatan bersih',(h.bersih<0?'− ':'')+rp(Math.abs(h.bersih)),'yang benar-benar jadi milik Kalensari Store','rp',h.bersih>=0?'var(--g2)':'#ef4444')}</div>
+  <div class="grid2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:16px 0">
+    <div class="card"><div class="chead"><h3>📊 Rincian omset</h3></div>
+      ${row('Penjualan barang (milik toko)',rp(h.barang))}${row('Ongkir (milik kurir)',rp(h.ongkir))}${row('<b>Total omset</b>',rp(h.omset))}
+      <p class="sm" style="color:var(--mut);margin:12px 0 4px;font-weight:600">Per cara bayar</p>${[...h.cara.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>row(esc(k),rp(v))).join('')||'<div class="sm">-</div>'}</div>
+    <div class="card"><div class="chead"><h3>💰 Pendapatan bersih</h3></div>
+      ${row('Potongan saldo kurir per pesanan',rp(h.potKurir),'var(--g2)')}${row('Pemasukan lain (catatan)',rp(h.masukLain),'var(--g2)')}
+      ${row(`Biaya QRIS ${String(qrisPersen()).replace('.',',')}% × ${rp(h.qrisLunas)} <button class="more" title="Ubah persen" onclick="ubahPersenQris()">✎</button>`,'− '+rp(h.biayaQris),'#c0392b')}
+      ${row('Pengeluaran (catatan)','− '+rp(h.keluar),'#c0392b')}${row('<b>Pendapatan bersih</b>',(h.bersih<0?'− ':'')+rp(Math.abs(h.bersih)),h.bersih>=0?'var(--g2)':'#c0392b')}
+      <p class="sm" style="color:var(--mut);margin-top:10px">Uang barang & ongkir bukan pendapatan Kalensari Store karena diteruskan ke toko dan kurir (lihat menu Setoran QRIS).</p></div></div>
+  <div class="card" style="margin-bottom:16px"><div class="chead"><h3>Omset per hari</h3><span class="sm" style="color:var(--mut);font-size:12px">${nDays} hari</span></div>
+    <div class="bars" style="margin-top:20px;gap:${nDays>10?3:12}px">${vals.map((v,i)=>`<div style="height:${v/max*100}%" title="${days[i]}: ${rp(v)}">${nDays<=10?`<span>${short(v)}</span>`:''}</div>`).join('')}</div>
+    <div class="blabels" style="gap:${nDays>10?3:12}px">${days.map((d,i)=>`<span>${i%every===0?d.slice(8)+'/'+d.slice(5,7):''}</span>`).join('')}</div></div>
+  <div class="card"><div class="chead"><h3>📝 Catatan pemasukan & pengeluaran lain</h3><button class="btn btn-g" onclick="kuForm()">${ico('plus')}Tambah</button></div>
+    ${h.cat.length?h.cat.slice().sort((a,b)=>String(b.t).localeCompare(String(a.t))).map(x=>`<div class="detail-row"><span style="white-space:normal">${esc(x.ket||'-')}<br><small style="color:var(--mut)">${fmtDate(x.t)}</small></span><b style="color:${x.jenis==='masuk'?'var(--g2)':'#c0392b'}">${x.jenis==='masuk'?'+':'−'} ${rp(x.jumlah)} <button class="more" title="Hapus" onclick="kuHapus('${esc(x.id)}',this)">${ico('trash')}</button></b></div>`).join(''):'<div class="sm" style="color:var(--mut)">Belum ada catatan di periode ini. Contoh: biaya hosting/domain, beli kemasan, pulsa, atau pemasukan iklan.</div>'}</div>`;
+}
+function kuForm(){
+  modal(`<div class="chead"><h3 style="margin:0">Tambah catatan</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
+  <div class="field"><label>Jenis</label><select class="inp" id="kuJ"><option value="keluar">Pengeluaran</option><option value="masuk">Pemasukan lain</option></select></div>
+  <div class="field"><label>Keterangan</label><input class="inp" id="kuK" maxlength="80" placeholder="mis. Bayar domain kalensari.web.id"></div>
+  <div class="field"><label>Jumlah (Rp)</label><input class="inp" id="kuN" inputmode="numeric" placeholder="mis. 150000"></div>
+  <div class="field"><label>Tanggal</label><input class="inp" id="kuT" type="date" value="${wibDate(new Date())}"></div>
+  <button class="btn btn-g full" onclick="kuSimpan(this)">Simpan</button>`);
+}
+async function kuSimpan(btn){
+  const jumlah=parseInt(String($('#kuN').value).replace(/\D/g,''),10)||0,ket=$('#kuK').value.trim(),tgl=$('#kuT').value;
+  if(!ket)return toast('Isi keterangannya');if(!jumlah)return toast('Isi jumlahnya');
+  await busy(btn,async()=>{const cur=await readKey('keuangan_catatan',[]),l=Array.isArray(cur)?cur:[];
+    l.push({id:Date.now().toString(36),t:(tgl?new Date(tgl+'T12:00:00+07:00'):new Date()).toISOString(),jenis:$('#kuJ').value,ket,jumlah});
+    await setSetting('keuangan_catatan',l);S.settings.keuangan_catatan=l;closeModal();render();toast('Catatan disimpan')});
+}
+async function kuHapus(id,btn){
+  if(!confirm('Hapus catatan ini?'))return;
+  await busy(btn,async()=>{const cur=await readKey('keuangan_catatan',[]),l=(Array.isArray(cur)?cur:[]).filter(x=>x.id!==id);
+    await setSetting('keuangan_catatan',l);S.settings.keuangan_catatan=l;render();toast('Catatan dihapus')});
+}
+async function ubahPersenQris(){
+  const v=prompt('Biaya QRIS dari Duitku (persen dari nominal). Cek angka pastinya di dashboard Duitku.',String(qrisPersen()).replace('.',','));
+  if(v==null)return;const n=Number(String(v).replace(',','.'));if(!Number.isFinite(n)||n<0||n>10)return toast('Isi angka persen yang valid, mis. 0,7');
+  await busy(null,async()=>{await setSetting('biaya_qris_persen',n);S.settings.biaya_qris_persen=n;render();toast('Biaya QRIS diubah ke '+String(n).replace('.',',')+'%')});
 }
 </script>
 </body>
