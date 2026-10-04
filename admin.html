@@ -673,7 +673,7 @@ const dow=d=>new Date(d+'T00:00:00Z').getUTCDay();
 const prevDay=d=>{const t=new Date(d+'T00:00:00Z');t.setUTCDate(t.getUTCDate()-1);return t.toISOString().slice(0,10)};
 const offOn=(s,d)=>(s.off||[]).includes(dow(d))||(s.h||[]).includes(d);
 function sellerState(name){
-  const k=sKey(name);if(closedMap()[k])return{open:false,why:'Ditutup admin'};
+  const k=sKey(name);if(closedMap()[k])return{open:false,why:'Ditutup admin'};const tp=S.settings.tutup_toko;if(tp&&typeof tp==='object'&&tp[k])return{open:false,why:'Ditutup penjual'};
   const s=schedMap()[k];if(!s)return{open:true,why:''};
   const {d,m}=wibNow(),o=tMin(s.o),c=tMin(s.c),hasT=o!==null&&c!==null&&o!==c;let open;
   if(!hasT)open=!offOn(s,d);else if(o<c)open=!offOn(s,d)&&m>=o&&m<c;else open=(m>=o&&!offOn(s,d))||(m<c&&!offOn(s,prevDay(d)));
@@ -783,7 +783,7 @@ async function gantiNamaToko(lama,baru){
   const ganti=S.products.filter(p=>sellerNames(p).some(n=>sKey(n)===kL));
   for(const p of ganti){const seller=sellerNames(p).map(n=>sKey(n)===kL?baru:n).join(', ');await patchProd(p.id,{seller})}
   // status tutup, jadwal, ongkir per toko
-  for(const key of ['closed_sellers','seller_schedule','shipping_fees']){
+  for(const key of ['closed_sellers','seller_schedule','shipping_fees','tutup_toko']){
     const cur=await readKey(key,null);if(!cur||typeof cur!=='object'||Array.isArray(cur)||!(kL in cur))continue;
     const v={...cur};v[kB]=v[kL];delete v[kL];await setSetting(key,v);S.settings[key]=v;
   }

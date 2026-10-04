@@ -284,6 +284,8 @@ const shippingTotal=items=>shippingRoute(items).fee;
 // ===== JADWAL BUKA/TUTUP OTOMATIS PENJUAL (jam buka, jam tutup, hari libur; waktu WIB) =====
 // sellerSchedule: {"nama penjual (huruf kecil)": {o:"08:00", c:"17:00", off:[0..6 libur tiap pekan, 0=Minggu], h:["2026-10-17" tanggal libur khusus]}}
 let sellerSchedule=readLS("kalensari_seller_schedule",{});
+// tutupToko: {"nama toko (huruf kecil)": {t:"waktu"}} = penjual menutup tokonya sendiri dari Aplikasi Penjual
+let tutupToko=readLS("kalensari_tutup_toko",{});
 const DAY_NAMES=["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
 const fmtDate=d=>{const[y,m,dd]=String(d).split("-");return`${dd}/${m}/${y}`;};
 const dayOfWeek=d=>new Date(d+"T00:00:00Z").getUTCDay();
@@ -300,8 +302,8 @@ function scheduleState(n){
   if(open)return{open:true,why:""};
   return{open:false,why:dayIsOff(s,d)?"Libur hari ini":`Buka ${fmtTime(s.o)}–${fmtTime(s.c)} WIB`};
 }
-const sellerClosed=n=>!!closedSellers[sellerKey(n)]||!scheduleState(n).open;
-const sellerWhy=p=>{const n=sellerList(p).find(sellerClosed);if(!n)return"";return closedSellers[sellerKey(n)]?"Penjual sedang tutup":"Penjual sedang tutup • "+scheduleState(n).why;};
+const sellerClosed=n=>!!closedSellers[sellerKey(n)]||!!tutupToko[sellerKey(n)]||!scheduleState(n).open;
+const sellerWhy=p=>{const n=sellerList(p).find(sellerClosed);if(!n)return"";const k=sellerKey(n);return closedSellers[k]||tutupToko[k]?"Penjual sedang tutup":"Penjual sedang tutup • "+scheduleState(n).why;};
 const openSellerList=p=>sellerList(p).filter(n=>!sellerClosed(n));
 const allSellersClosed=p=>{const l=sellerList(p);return l.length>0&&l.every(sellerClosed);};
 async function loadCloudSettings(){
@@ -316,6 +318,7 @@ async function loadCloudSettings(){
       if(r.key==="shipping_fees"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){shippingFees=r.value;localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));}
       if(r.key==="penjual_members"&&Array.isArray(r.value)){const m={};r.value.forEach(x=>{const nm=sellerKey(x&&(x.toko||x.usaha));if(nm&&validLL(x.latitude,x.longitude))m[nm]={lat:Number(x.latitude),lng:Number(x.longitude)};});sellerLocs=m;localStorage.setItem("kalensari_seller_locs",JSON.stringify(sellerLocs));}
       if(r.key==="seller_schedule"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){sellerSchedule=r.value;localStorage.setItem("kalensari_seller_schedule",JSON.stringify(sellerSchedule));}
+      if(r.key==="tutup_toko"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){tutupToko=r.value;localStorage.setItem("kalensari_tutup_toko",JSON.stringify(tutupToko));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
       if(r.key==="penjual_members"&&Array.isArray(r.value)){r.value.forEach(x=>{if(x&&x.id)sellerIdMap[x.id]=sellerKey(x.toko||x.usaha)});}
       if(r.key==="cod_aturan"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){codAturan={...codAturan,...r.value};}

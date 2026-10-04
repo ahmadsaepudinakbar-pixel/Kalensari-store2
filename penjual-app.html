@@ -40,6 +40,11 @@ a.q,a.m{text-decoration:none;color:inherit;display:flex}.q.q-ks{background:var(-
 .ln{display:flex;justify-content:space-between;padding:4px 0}.ph0{width:100%;height:150px;border-radius:14px;background:#fff;border:1px dashed var(--ln);object-fit:cover;display:grid;place-items:center;margin-bottom:12px;cursor:pointer;font-size:34px}
 #dr{position:absolute;inset:0;background:#0007;z-index:20}#dr>div{width:78%;height:100%;background:#fff;overflow:auto}#dr .h{background:var(--bg);padding:20px 16px;font-weight:700}#dr a,#dr button.m{display:block;width:100%;text-align:left;background:none;border:0;padding:14px 18px;font-weight:600;cursor:pointer;color:var(--ink);text-decoration:none}
 #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:90vw;text-align:center}#toast.s{opacity:1}
+.bt{border-radius:18px;padding:14px;margin:0 0 12px;border:1px solid}.bt b{display:block;font-size:17px}.bt small{display:block;font-size:12.5px;margin-top:2px;opacity:.9}
+.bt.on{background:#e8f6ee;border-color:#bfe3cc;color:#14502c}.bt.off{background:#fdecea;border-color:#f3c5bf;color:#8a2116}.bt.jd{background:#f4efe9;border-color:var(--ln);color:var(--ink)}
+.bt .btn{margin-top:10px}.bt .btn.red{background:#c0392b;border-color:#c0392b}.bt .btn.grn{background:var(--ok);border-color:var(--ok)}.bt a{display:inline-block;margin-top:8px;font-size:12.5px;color:inherit;font-weight:700;cursor:pointer}
+.hari{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}.hari label{display:flex;align-items:center;gap:4px;border:1.5px solid var(--ln);border-radius:999px;padding:6px 11px;font-size:13px;cursor:pointer;background:#fff}.hari label:has(input:checked){background:#fdecea;border-color:#e3a59c;color:#8a2116;font-weight:700}.hari input{display:none}
+.tgl{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.tgl span{background:#fdecea;color:#8a2116;border-radius:999px;padding:4px 6px 4px 10px;font-size:12.5px}.tgl button{border:0;background:none;color:#8a2116;font-weight:700;cursor:pointer}
 .warn{background:#fff3cd;border-radius:12px;padding:10px 12px;font-size:13.5px;margin-bottom:10px}
 </style></head><body>
 <section id="auth"><div class="logo" style="width:120px;height:120px"><img src="icons/logo-kalensari.png" alt="Kalensari Store"></div><h1>Kalensari Store</h1><p>Bersama dalam setiap manisnya hari</p>
@@ -100,7 +105,7 @@ const mmss=l=>Math.floor(l/60000)+":"+String(Math.floor(l%60000/1000)).padStart(
 setInterval(()=>{const els=[...document.querySelectorAll("[data-exp]")];if(!els.length)return;let done=false;els.forEach(e=>{const l=e.dataset.exp-Date.now();if(l<=0)done=true;else e.textContent=mmss(l)});if(done){expireOld();go(view,arg)}},1000);
 /* shell */
 const NAV=[["home","🏠","Beranda"],["orders","📋","Pesanan"],["prods","📦","Produk"],["menu","☰","Menu"]];
-function go(v,a){if(v==="menu")return drawer();view=v;arg=a??null;const sub=["detail","form","io","toko"].includes(v),T={home:"Kalensari Store",orders:"Daftar Pesanan",prods:"Daftar Produk",detail:"Detail Pesanan",form:a?"Edit Produk":"Tambah Produk",io:"Export / Import",toko:"Pengaturan Toko",uang:"Laporan Keuangan",saldo:"Saldo Penjualan",notif:"Notifikasi Pesanan"};
+function go(v,a){if(v==="menu")return drawer();if(v!=="toko"||view!=="toko")JF=null;view=v;arg=a??null;const sub=["detail","form","io","toko"].includes(v),T={home:"Kalensari Store",orders:"Daftar Pesanan",prods:"Daftar Produk",detail:"Detail Pesanan",form:a?"Edit Produk":"Tambah Produk",io:"Export / Import",toko:"Pengaturan Toko",uang:"Laporan Keuangan",saldo:"Saldo Penjualan",notif:"Notifikasi Pesanan"};
 $("hd").innerHTML=(sub?'<button id="bk">←</button>':'<button id="mn">☰</button>')+`<div class="t">${T[v]}${v==="home"?"<small>Penjual • "+esc(me.toko||me.usaha||"")+"</small>":""}</div>`;
 $("hd").querySelector("button").onclick=()=>sub?go(v==="detail"?"orders":v==="form"?"prods":"home"):drawer();
 $("nav").innerHTML=NAV.map(([k,i,t])=>`<button data-k="${k}" class="${k===(sub?({detail:"orders",form:"prods",io:"menu",toko:"menu"})[v]:v)?"on":""}"><b>${i}</b>${t}</button>`).join("");$("nav").querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.k));
@@ -121,9 +126,9 @@ function toko(){
   <label style="display:block;margin-top:10px">Nama pemilik<input id="sNama" class="fld" maxlength="60" value="${esc(me.nama||"")}"></label>
   <label style="display:block">Nama toko / usaha<input id="sToko" class="fld" maxlength="60" value="${esc(me.toko||me.usaha||"")}"></label>
   <label style="display:block">Alamat / Dusun<textarea id="sDusun" class="fld" maxlength="150" placeholder="Alamat toko atau dusun">${esc(me.dusun||"")}</textarea></label>
-  <div class="two"><label>Jam buka<input id="sBuka" class="fld" type="time" value="${esc(me.buka||"08:00")}"></label><label>Jam tutup<input id="sTutup" class="fld" type="time" value="${esc(me.tutup||"17:00")}"></label></div>
   <label style="display:block">No. WhatsApp<input class="fld" value="+${esc(WA)}" disabled></label>
   <button class="btn" id="sSave">💾 Simpan perubahan</button></div>
+  <div class="card" style="margin-top:12px" id="jdCard">${kartuJadwal()}</div>
   <div class="card" style="margin-top:12px;background:#fffaf2"><b>📍 Lokasi toko</b><p id="sLoc" style="margin:6px 0"></p>
   <button class="btn o" id="sGps">📍 Simpan lokasi saya sekarang</button><button class="btn o" id="sMap" hidden>🗺️ Lihat di Google Maps</button>
   <p style="color:var(--mu);font-size:13px;margin:8px 0 0">Tekan tombol ini saat Anda berada di toko.</p>
@@ -136,20 +141,78 @@ function toko(){
 function locView(){const a=pCoord(me.latitude),b=pCoord(me.longitude),ok=okCoord(a,b);$("sLoc").textContent=ok?"✅ Lokasi toko sudah tersimpan.":"Belum ada lokasi tersimpan.";$("sMap").hidden=!ok;if(ok)$("sMap").onclick=()=>window.open(mapsUrl(a,b),"_blank","noopener")}
 async function saveLoc(a,b){if(!okCoord(a,b))return toast("Koordinat tidak valid (tidak boleh kosong atau 0,0).");if(!inID(a,b))return toast("Titik di luar Indonesia. Cek apakah latitude dan longitude tertukar.");const old=[me.latitude,me.longitude];me.latitude=Number(a.toFixed(6));me.longitude=Number(b.toFixed(6));try{await saveMe();locView();toast("✅ Lokasi toko berhasil disimpan")}catch(e){[me.latitude,me.longitude]=old;toast("Gagal menyimpan lokasi: "+String(e.message||e).slice(0,60))}}
 bind.toko=()=>{
-  locView();
+  locView();bindJadwal();bindBukaTutup();
   $("sSave").onclick=async()=>{const nama=$("sNama").value.trim(),tk=$("sToko").value.replace(/\s+/g," ").trim();if(!nama||!tk)return toast("Nama pemilik dan nama toko wajib diisi");
     const oldT=me.toko||me.usaha||"",rename=K(oldT)!==K(tk)&&oldT;
     if(rename&&!confirm(`Ganti nama toko dari "${oldT}" ke "${tk}"? ${P.length} produk Anda ikut dipindah ke nama baru.`))return;
     const b=$("sSave");b.disabled=true;b.textContent="Menyimpan...";
     try{
+      if(rename)await pindahKunci(K(oldT),K(tk));
       if(rename&&cloud()){for(const p of P){const sel=String(p.seller||"").split(",").map(x=>x.trim()).map(x=>K(x)===K(oldT)?tk:x).join(", ");await cf("products?id=eq."+encodeURIComponent(p.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({seller:sel})});p.seller=sel}}
-      Object.assign(me,{nama,toko:tk,usaha:tk,dusun:$("sDusun").value.trim(),buka:$("sBuka").value,tutup:$("sTutup").value,updated:Date.now()});
+      Object.assign(me,{nama,toko:tk,usaha:tk,dusun:$("sDusun").value.trim(),updated:Date.now()});
       await saveMe();toast("✅ Data toko berhasil disimpan");if(rename)await load();go("toko");
     }catch(e){toast("Gagal menyimpan: "+String(e.message||e).slice(0,70))}finally{b.disabled=false;b.textContent="💾 Simpan perubahan"}};
   $("sGps").onclick=()=>{if(!navigator.geolocation)return toast("HP/browser ini tidak mendukung lokasi.");toast("📍 Meminta izin lokasi...");navigator.geolocation.getCurrentPosition(p=>saveLoc(+p.coords.latitude,+p.coords.longitude),e=>toast(e.code===1?"Izin lokasi diblokir. Izinkan lokasi untuk situs ini, atau isi manual di bawah.":e.code===3?"Waktu habis. Coba lagi atau isi manual di bawah.":"Lokasi tidak tersedia. Isi manual di bawah."),{enableHighAccuracy:true,timeout:15000,maximumAge:60000})};
   $("sManB").onclick=()=>{const v=parseLL($("sMan").value);if(!v)return toast("Format tidak dikenali. Contoh: -6.123456, 107.123456");saveLoc(v[0],v[1]).then(()=>{$("sMan").value=""})};
   $("sPin").onclick=async()=>{const o=$("sPo").value,n=$("sPn").value;if(!/^\d{4,8}$/.test(n))return toast("PIN baru harus 4–8 angka");try{const acc=(await getS("penjual_accounts",{}))||{},a=acc[WA];if(!a||a.h!==await hashPin(WA,o))return toast("PIN lama salah");a.h=await hashPin(WA,n);acc[WA]=a;await setS("penjual_accounts",acc);$("sPo").value=$("sPn").value="";toast("✅ PIN berhasil diubah")}catch(e){toast("Gagal mengubah PIN: "+String(e.message||e).slice(0,60))}};
 };
+/* ===== STATUS BUKA / TUTUP TOKO =====
+   seller_schedule[toko] = {o,c,off,h}  (jadwal; dipakai Kalensari Store & admin)
+   tutup_toko[toko]      = {t}          (penjual menutup sendiri sekarang)
+   closed_sellers[toko]  = true         (ditutup admin – penjual tidak bisa membuka) */
+let JAD=null;
+const HARI=["Min","Sen","Sel","Rab","Kam","Jum","Sab"],myKey=()=>K(me.toko||me.usaha||"");
+const ob=v=>v&&typeof v==="object"&&!Array.isArray(v)?v:{};
+async function muatJadwal(){const [a,b,c]=await Promise.all([getS("seller_schedule",{}),getS("closed_sellers",{}),getS("tutup_toko",{})]);JAD={sched:ob(a),closed:ob(b),tutup:ob(c),t:Date.now()}}
+const tM=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||""));return m?+m[1]*60+ +m[2]:null};
+const jamT=t=>String(t||"").slice(0,5).replace(":",".");
+function wibKini(){const p=Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date()).map(x=>[x.type,x.value]));return{d:`${p.year}-${p.month}-${p.day}`,m:+p.hour*60+ +p.minute}}
+const hariKe=d=>new Date(d+"T00:00:00Z").getUTCDay(),kemarin=d=>{const t=new Date(d+"T00:00:00Z");t.setUTCDate(t.getUTCDate()-1);return t.toISOString().slice(0,10)};
+const libur=(s,d)=>(s.off||[]).includes(hariKe(d))||(s.h||[]).includes(d);
+function jadwalBuka(s){if(!s)return true;const {d,m}=wibKini(),o=tM(s.o),c=tM(s.c);if(o===null||c===null||o===c)return!libur(s,d);if(o<c)return!libur(s,d)&&m>=o&&m<c;return(m>=o&&!libur(s,d))||(m<c&&!libur(s,kemarin(d)))}
+function teksJadwal(s){if(!s)return"Buka sepanjang hari, tanpa libur";const j=s.o&&s.c?`${jamT(s.o)}–${jamT(s.c)} WIB`:"Sepanjang hari";const off=(s.off||[]).length?" • libur "+[1,2,3,4,5,6,0].filter(d=>s.off.includes(d)).map(d=>HARI[d]).join(", "):"";return j+off}
+function statusToko(){if(!JAD)return{st:"muat"};const k=myKey(),s=JAD.sched[k];if(JAD.closed[k])return{st:"admin",s};if(JAD.tutup[k])return{st:"manual",s,t:JAD.tutup[k].t};if(jadwalBuka(s))return{st:"buka",s};const {d}=wibKini();return{st:"jadwal",s,why:libur(s,d)?"Hari ini libur":`Buka ${jamT(s.o)}–${jamT(s.c)} WIB`}}
+function kartuBukaTutup(){const x=statusToko(),atur='<a data-k="toko">🕒 Atur jam buka & hari libur ›</a>';
+  if(x.st==="muat")return '<div class="bt jd"><b>Memuat status toko…</b></div>';
+  if(x.st==="admin")return `<div class="bt off"><b>🔒 Toko ditutup admin</b><small>Produk tidak bisa dipesan. Hubungi admin Kalensari untuk membuka lagi.</small></div>`;
+  if(x.st==="manual")return `<div class="bt off"><b>🔴 Toko sedang TUTUP</b><small>Ditutup sejak ${new Date(x.t).toLocaleString("id-ID",{weekday:"long",hour:"2-digit",minute:"2-digit"})}. Pembeli belum bisa memesan.</small>${jadwalBuka(x.s)?"":`<small>Catatan: menurut jadwal, toko juga sedang di luar jam buka (${esc(teksJadwal(x.s))}).</small>`}<button class="btn grn" id="btBuka">🟢 Buka toko sekarang</button>${atur}</div>`;
+  if(x.st==="jadwal")return `<div class="bt jd"><b>🕒 Tutup sesuai jadwal</b><small>${esc(x.why)}${(x.s.off||[]).length?" • libur "+[1,2,3,4,5,6,0].filter(d=>x.s.off.includes(d)).map(d=>HARI[d]).join(", "):""}</small><small>Toko otomatis buka lagi sesuai jadwal.</small>${atur}</div>`;
+  return `<div class="bt on"><b>🟢 Toko sedang BUKA</b><small>Pembeli bisa memesan • ${esc(teksJadwal(x.s))}</small><button class="btn red" id="btTutup">🔴 Tutup toko sekarang</button>${atur}</div>`}
+async function setTutup(tutup,btn){const k=myKey();if(!k)return toast("Isi nama toko dulu di Pengaturan toko");
+  if(tutup&&!confirm("Tutup toko sekarang?\n\nProduk Anda tidak bisa dipesan sampai Anda menekan \"Buka toko sekarang\"."))return;
+  btn.disabled=true;btn.textContent="Menyimpan...";
+  try{const cur=ob(await getS("tutup_toko",{}));if(tutup)cur[k]={t:new Date().toISOString(),id:me.id};else delete cur[k];await setS("tutup_toko",cur);JAD.tutup=cur;toast(tutup?"🔴 Toko ditutup":"🟢 Toko dibuka kembali")}
+  catch(e){toast("Gagal menyimpan: "+String(e.message||e).slice(0,60))}go(view)}
+function bindBukaTutup(){$("btTutup")&&($("btTutup").onclick=e=>setTutup(true,e.target));$("btBuka")&&($("btBuka").onclick=e=>setTutup(false,e.target));if(!JAD||Date.now()-JAD.t>60000)muatJadwal().then(()=>{if(["home","toko"].includes(view))go(view)}).catch(()=>{})}
+// pindahkan data per toko saat nama toko diganti
+async function pindahKunci(lama,baru){for(const key of ["seller_schedule","tutup_toko","closed_sellers","shipping_fees"]){const cur=ob(await getS(key,{}));if(!(lama in cur))continue;cur[baru]=cur[lama];delete cur[lama];await setS(key,cur)}JAD=null}
+/* jadwal buka toko (diisi penjual, langsung dipakai Kalensari Store) */
+let JF=null;
+function kartuJadwal(){if(!JAD)return '<b>🕒 Jam buka & hari libur</b><p style="color:var(--mu)">Memuat…</p>';
+  const s=JAD.sched[myKey()];if(!JF)JF={on:!!(s&&s.o&&s.c),o:(s&&s.o)||me.buka||"08:00",c:(s&&s.c)||me.tutup||"17:00",off:[...((s&&s.off)||[])],h:[...((s&&s.h)||[])].filter(d=>d>=wibKini().d).sort()};
+  return `<b>🕒 Jam buka & hari libur</b><small style="display:block;color:var(--mu);margin:2px 0 10px">Di luar jam & hari ini, produk Anda otomatis tidak bisa dipesan di Kalensari Store.</small>
+  <label style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" id="jOn" ${JF.on?"checked":""} style="width:18px;height:18px"> Pakai jam buka</label>
+  ${JF.on?`<div class="two"><label>Jam buka<input id="jO" class="fld" type="time" value="${esc(JF.o)}"></label><label>Jam tutup<input id="jC" class="fld" type="time" value="${esc(JF.c)}"></label></div>`:'<small style="display:block;color:var(--mu);margin:4px 0 6px">Toko buka sepanjang hari (24 jam).</small>'}
+  <div style="margin-top:8px;font-weight:700;font-size:14px">Libur tiap minggu</div>
+  <div class="hari">${[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" data-hr="${d}" ${JF.off.includes(d)?"checked":""}>${HARI[d]}</label>`).join("")}</div>
+  <div style="margin-top:8px;font-weight:700;font-size:14px">Tanggal libur khusus</div>
+  <div style="display:flex;gap:8px"><input id="jH" class="fld" type="date" min="${wibKini().d}" style="margin:0"><button class="btn o" id="jHB" style="width:auto;margin:0;padding:0 16px">Tambah</button></div>
+  <div class="tgl">${JF.h.map(d=>`<span>${new Date(d+"T00:00:00").toLocaleDateString("id-ID",{weekday:"short",day:"numeric",month:"short"})}<button data-hx="${d}">✕</button></span>`).join("")||'<small style="color:var(--mu)">Belum ada.</small>'}</div>
+  <button class="btn" id="jSave">💾 Simpan jadwal</button>`}
+function bindJadwal(){const c=$("jdCard");if(!c)return;
+  const baca=()=>{if($("jO"))JF.o=$("jO").value;if($("jC"))JF.c=$("jC").value;JF.off=[...c.querySelectorAll("[data-hr]")].filter(x=>x.checked).map(x=>+x.dataset.hr)};
+  $("jOn")&&($("jOn").onchange=e=>{baca();JF.on=e.target.checked;c.innerHTML=kartuJadwal();bindJadwal()});
+  $("jHB")&&($("jHB").onclick=()=>{const d=$("jH").value;if(!d)return toast("Pilih tanggal dulu");baca();if(!JF.h.includes(d))JF.h.push(d);JF.h.sort();c.innerHTML=kartuJadwal();bindJadwal()});
+  c.querySelectorAll("[data-hx]").forEach(b=>b.onclick=()=>{baca();JF.h=JF.h.filter(d=>d!==b.dataset.hx);c.innerHTML=kartuJadwal();bindJadwal()});
+  $("jSave")&&($("jSave").onclick=async e=>{baca();const k=myKey();if(!k)return toast("Isi nama toko dulu");
+    if(JF.on&&(!JF.o||!JF.c||JF.o===JF.c))return toast("Jam buka dan jam tutup harus diisi dan tidak boleh sama");
+    if(JF.off.length===7)return toast("Tidak bisa libur 7 hari. Pakai tombol Tutup toko di Beranda.");
+    const b=e.target;b.disabled=true;b.textContent="Menyimpan...";
+    try{const cur=ob(await getS("seller_schedule",{})),rec={off:JF.off.slice().sort(),h:JF.h.slice()};if(JF.on){rec.o=JF.o;rec.c=JF.c}
+      if(!rec.o&&!rec.off.length&&!rec.h.length)delete cur[k];else cur[k]=rec;await setS("seller_schedule",cur);JAD.sched=cur;
+      if(JF.on){me.buka=JF.o;me.tutup=JF.c;try{await saveMe()}catch{}}
+      toast("✅ Jadwal disimpan • langsung berlaku di Kalensari Store");JF=null;c.innerHTML=kartuJadwal();bindJadwal()}
+    catch(err){toast("Gagal menyimpan: "+String(err.message||err).slice(0,60));b.disabled=false;b.textContent="💾 Simpan jadwal"}});}
 /* beranda */
 function home(){const c=s=>O.filter(o=>stOf(o)===s).length,td=O.filter(o=>new Date(o.created_at).toDateString()===new Date().toDateString()),om=td.filter(o=>!["dibatalkan","gagal"].includes(stOf(o))).reduce((t,o)=>t+tot(o),0),S=SALDO;
 const tile=(k,i,t)=>`<div class="q2" data-k="${k}"><i>${i}</i><span>${t}</span></div>`;
@@ -157,7 +220,7 @@ return `${me.pending?'<div class="warn">⏳ Akun menunggu persetujuan admin.</di
 <div class="hero"><div class="hero-top"><div><small>Halo, ${esc(me.nama||"Penjual")} 👋</small><b>${esc(me.toko||me.usaha||"Toko saya")}</b></div><label class="hero-foto" title="Ganti foto toko" style="${FOTO_TOKO?`background-image:url('${FOTO_TOKO}')`:""}">${FOTO_TOKO?"":"<span>📷<br>Foto toko</span>"}<em>✎</em><input type="file" id="hfIn" accept="image/*" hidden></label></div>
   <div class="hero-saldo" data-k="saldo"><small>💳 Saldo penjualan</small><b>${S?rp(S.saldo):"…"}</b>${S&&S.saldo>=MIN_CAIR&&!cekCair(S)?'<em>Bisa dicairkan</em>':""}</div>
   <div class="hero-btn"><button data-k="saldo">💸 Cairkan</button><button data-k="uang">📊 Laporan</button><button data-k="orders">📋 Pesanan</button></div></div>
-<div class="stats2">${["menunggu","diproses","dikirim","selesai"].map(s=>`<div data-f="${s}" class="${s==="menunggu"&&c(s)?"hot":""}"><b>${c(s)}</b><span>${SI[s]} ${STL[s]}</span></div>`).join("")}</div>
+${kartuBukaTutup()}<div class="stats2">${["menunggu","diproses","dikirim","selesai"].map(s=>`<div data-f="${s}" class="${s==="menunggu"&&c(s)?"hot":""}"><b>${c(s)}</b><span>${SI[s]} ${STL[s]}</span></div>`).join("")}</div>
 <div class="today"><div><small>Pesanan hari ini</small><b>${td.length}</b></div><div><small>Omset hari ini</small><b>${rp(om)}</b></div></div>
 <h3>Menu</h3><div class="grid3">${tile("form","➕","Tambah Produk")}${tile("prods","📦","Daftar Produk")}${tile("orders","📋","Kelola Pesanan")}${tile("saldo","💳","Saldo")}${tile("uang","💰","Laporan Keuangan")}${tile("io","☁️","Export / Import")}</div>
 <a class="ks-banner" href="index.html"><img src="icons/logo-kalensari.png" alt=""><span><b>Ke Kalensari Store</b><small>Lihat semua toko & produk warga</small></span><i>›</i></a>`}
@@ -167,7 +230,7 @@ async function muatFotoToko(){if(FOTO_DIMUAT)return;FOTO_DIMUAT=true;try{FOTO_TO
 function pilihFotoToko(f){if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=async()=>{const z=Math.min(im.width,im.height),c=document.createElement("canvas");c.width=c.height=320;
   c.getContext("2d").drawImage(im,(im.width-z)/2,(im.height-z)/2,z,z,0,0,320,320);const foto=c.toDataURL("image/jpeg",.82);
   try{await setS("foto_toko_"+me.id,{foto,t:Date.now(),toko:me.toko||me.usaha||""});FOTO_TOKO=foto;LS("kalensari_fototoko_"+me.id,foto);toast("✅ Foto toko disimpan • tampil di Kalensari Store");go("home")}catch(e){toast("Gagal menyimpan foto")}};im.src=r.result};r.readAsDataURL(f)}
-bind.home=()=>{$("hfIn")&&($("hfIn").onchange=e=>pilihFotoToko(e.target.files[0]));if(!FOTO_DIMUAT)muatFotoToko().then(()=>{if(view==="home"&&FOTO_TOKO)go("home")});document.querySelectorAll("#v [data-k]").forEach(e=>e.onclick=()=>go(e.dataset.k));document.querySelectorAll(".stats2 [data-f]").forEach(e=>e.onclick=()=>{fo=e.dataset.f;go("orders")});if(!SALDO||Date.now()-SALDO.t>60000)muatSaldo().then(()=>{if(view==="home")go("home")}).catch(()=>{})};
+bind.home=()=>{bindBukaTutup();$("hfIn")&&($("hfIn").onchange=e=>pilihFotoToko(e.target.files[0]));if(!FOTO_DIMUAT)muatFotoToko().then(()=>{if(view==="home"&&FOTO_TOKO)go("home")});document.querySelectorAll("#v [data-k]").forEach(e=>e.onclick=()=>go(e.dataset.k));document.querySelectorAll(".stats2 [data-f]").forEach(e=>e.onclick=()=>{fo=e.dataset.f;go("orders")});if(!SALDO||Date.now()-SALDO.t>60000)muatSaldo().then(()=>{if(view==="home")go("home")}).catch(()=>{})};
 /* ===== LAPORAN KEUANGAN TOKO =====
    Hanya uang BARANG milik toko ini (ongkir milik kurir tidak dihitung).
    Dihitung dari pesanan yang sudah diterima toko (Diproses, Dikirim, Selesai). Ditolak / gagal antar tidak dihitung.
