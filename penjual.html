@@ -36,13 +36,8 @@
 <div id="fMasuk"><label>No. WhatsApp atau ID akun<input id="lWa" class="fld" type="text" inputmode="text" autocapitalize="characters" placeholder="08xxxxxxxxxx atau PJ-0001" autocomplete="username"></label><label>PIN<input id="lPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="current-password"></label><div class="btns"><button class="btn wa" id="btnMasuk" type="button">Masuk</button></div></div>
 <div id="fDaftar" hidden><label>Nama pemilik<input id="rNama" class="fld" maxlength="60"></label><label>Nama toko / usaha<input id="rToko" class="fld" maxlength="60" placeholder="mis. KALENSARI CAKE"></label><label>No. WhatsApp<input id="rWa" class="fld" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx"></label><div class="row2"><label>PIN<input id="rPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka"></label><label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div><div class="btns"><button class="btn wa" id="btnDaftar" type="button">Buat akun penjual</button></div><p class="hint" style="margin-top:12px">Setelah mendaftar, admin akan memeriksa akun sebelum toko ditampilkan.</p></div>
 </section>
-<section id="pendBox" class="box" hidden style="margin-bottom:16px"><div class="status p" style="margin:0">⏳ Menunggu persetujuan admin. Pesanan masuk akan tampil di sini setelah akun Anda disetujui.</div></section>
-<section id="ordersBox" class="box" hidden style="margin-bottom:16px">
-<h2 style="margin:0 0 4px;color:var(--brown)">📦 Pesanan masuk <span id="ordBadge" class="obadge" hidden>0</span></h2>
-<p class="hint" id="ordInfo">Hanya pesanan untuk produk toko Anda yang tampil di sini. Halaman ini memeriksa pesanan baru tiap 25 detik selama dibuka.</p>
-<div id="ksNotifPj"></div><div class="btns" style="margin-bottom:6px"><button class="btn" id="btnNotif" type="button" hidden>🔔 Aktifkan notifikasi di HP ini</button><button class="btn" id="btnRefreshOrd" type="button">↻ Perbarui pesanan</button></div>
-<div id="ordList"></div>
-</section>
+<section id="pendBox" class="box" hidden style="margin-bottom:16px"><div class="status p" style="margin:0">⏳ Menunggu persetujuan admin. Setelah disetujui, kelola produk &amp; pesanan lewat tombol <b>Buka Aplikasi Penjual</b> di atas.</div></section>
+
 <div id="outRow" class="btns" hidden style="margin:4px 0 24px"><button class="btn danger" id="btnOut" type="button">Keluar</button></div>
 <section id="dash" class="box" hidden>
 <div id="stat" class="status"></div><h2 id="dHalo" style="font-size:22px"></h2><p class="hint">Lengkapi data toko Anda. Perubahan disimpan ke database jika Supabase aktif.</p>
@@ -158,6 +153,7 @@ async function pollOrders(){
   }catch(e){$("ordInfo").textContent="⚠️ Gagal memuat pesanan: "+(e.message||e)}
 }
 function startOrders(){
+  return; // pesanan masuk kini hanya di Aplikasi Penjual (penjual-app.html)
   if(!me||me.pending||ordTimer)return;
   $("ordersBox").hidden=false;
   if(window.KSNotif)KSNotif.kartu($("ksNotifPj"),{key:"penjual_push_"+me.id,extra:{nama:me.toko||me.usaha||""},judul:"🔔 Aktifkan notifikasi pesanan",ajakan:"Supaya HP berbunyi saat ada pesanan masuk, walaupun aplikasi sedang ditutup.",aktifTeks:"HP ini akan berbunyi saat ada pesanan masuk untuk toko Anda, walaupun aplikasi ditutup."});
