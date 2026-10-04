@@ -681,25 +681,31 @@ function toggleProduk(idx){setOff([idx],!(cart[idx]&&cart[idx].off));}
 function toggleToko(k){const g=cartGroups().find(x=>x.k===k);if(g)setOff(g.all.map(p=>p.idx),g.full);}
 function toggleSemuaToko(){const gs=cartGroups(),all=gs.every(g=>g.full);setOff(gs.flatMap(g=>g.all.map(p=>p.idx)),all);}
 function ongkirTeks(g){
-  const r=g.route,multi=r.stops.length>1;
   if(!g.on)return{v:rupiah(0),s:"tidak dipilih"};
-  if(!g.last)return{v:g.fee>0?rupiah(g.fee):"Gratis",s:`ongkir pertama toko${multi?` • jemputan ke-${g.urut} kurir`:""}`};
-  const pre=multi?`jemputan terakhir • ${rupiah(g.base)} + `:"";
-  if(r.state==="ok")return{v:g.fee>0?rupiah(g.fee):"Gratis",s:`${multi?`jemputan terakhir • `:""}${fmtKm(r.km)} km ke pembeli${r.extra>0?` • ${rupiah(g.base)} + ${rupiah(r.extra)} jarak`:""}`};
-  if(r.state==="nostore")return{v:rupiah(g.fee),s:"lokasi toko belum diatur • admin konfirmasi"};
-  return{v:rupiah(g.fee),s:`${pre?pre.replace(/ \+ $/,"")+" • ":""}+${rupiah(shipPerKm())}/km jika lebih dari ${fmtKm(shipFreeKm())} km • dihitung saat checkout`};
+  const multi=g.route.stops.length>1,ke=multi?` • ${g.last?"jemputan terakhir":`jemputan ke-${g.urut}`}`:"";
+  if(g.last&&g.route.state==="nostore")return{v:rupiah(g.base),s:"lokasi toko belum diatur • admin konfirmasi"};
+  return{v:g.base>0?rupiah(g.base):"Gratis",s:`ongkir pertama toko${ke}`};
+}
+// Tambahan jarak (toko terakhir -> rumah pembeli) ditampilkan sebagai baris sendiri di bawah nota terakhir
+function jarakInfo(sel){
+  const g=sel.find(x=>x.last);if(!g)return null;const r=g.route;
+  if(r.state==="ok"){const lebih=Math.max(0,Math.ceil(r.km-shipFreeKm()-1e-9));
+    return{v:r.extra>0?rupiah(r.extra):"Gratis",extra:r.extra,s:`${esc(g.name)} → rumah Anda ${fmtKm(r.km)} km • ${fmtKm(shipFreeKm())} km pertama gratis${lebih>0?` • ${lebih} km × ${rupiah(shipPerKm())}`:""}`};}
+  if(r.state==="nobuyer")return{v:"–",extra:0,s:`${rupiah(shipPerKm())}/km jika lebih dari ${fmtKm(shipFreeKm())} km dari ${esc(g.name)} • dihitung setelah alamat dipilih`};
+  return null;
 }
 function renderCart() {
   const gs=cartGroups(),sel=gs.filter(g=>g.on),subtotal=sel.reduce((t,g)=>t+g.sub,0),shipping=sel.reduce((t,g)=>t+g.fee,0);
   const semua=gs.length&&gs.every(g=>g.full);
   document.getElementById("cartItems").innerHTML=gs.length?(gs.reduce((t,g)=>t+g.all.length,0)>1?`<label class="cg-all"><input type="checkbox" ${semua?"checked":""} data-ind="${sel.length&&!semua?1:""}" onchange="toggleSemuaToko()"> Pilih semua <small>(${sel.reduce((t,g)=>t+g.items.length,0)}/${gs.reduce((t,g)=>t+g.all.length,0)} produk dipilih)</small></label>`:"")
-    +gs.map(g=>{const o=ongkirTeks(g);return `<div class="cg${g.on?"":" off"}">
+    +gs.slice().sort((a,b)=>(b.on-a.on)||(a.urut-b.urut)).map(g=>{const o=ongkirTeks(g);return `<div class="cg${g.on?"":" off"}">
     <label class="cg-head"><input type="checkbox" ${g.full?"checked":""} data-ind="${g.on&&!g.full?1:""}" onchange="toggleToko('${esc(g.k).replace(/'/g,"&#39;")}')"><span>🏪 <b>${esc(g.name)}</b>${g.closed?' <em class="cg-tutup">Tutup</em>':""}</span></label>
     ${g.all.map(p=>`<div class="cart-row${p.on?"":" off"}"><input class="cr-cek" type="checkbox" ${p.on?"checked":""} onchange="toggleProduk(${p.idx})" aria-label="Pilih ${esc(p.name)}"><div class="cr-foto">${p.image?`<img src="${getProductImage(p.image)}" alt="" loading="lazy" onerror="this.remove()">`:""}<span>🍽️</span></div><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div></div>
       <div class="qty"><button onclick="changeQty(${p.idx},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.idx},1)">+</button></div>
       <button class="cart-remove" type="button" title="Hapus produk" aria-label="Hapus ${p.name} dari keranjang" onclick="removeFromCart(${p.idx})">🗑️</button></div>`).join("")}
     <div class="cg-ship"><span>🛵 Ongkir<small>${o.s}</small></span><b>${o.v}</b></div>
-    <div class="cg-sum"><span>Total toko ini</span><b>${rupiah(g.sub+g.fee)}</b></div></div>`}).join("")
+    <div class="cg-sum"><span>Total toko ini</span><b>${rupiah(g.sub+(g.on?g.base:0))}</b></div></div>`}).join("")
+    +(()=>{const j=jarakInfo(sel);return j?`<div class="cg cg-jarak"><div class="cg-ship" style="border-top:0;padding-top:2px"><span>📏 <b>Tambahan jarak</b><small>${j.s}</small></span><b>${j.v}</b></div></div>`:""})()
     +(gs.length>1?`<p class="cg-note">ℹ️ Tiap toko jadi <b>nota terpisah</b>, tapi semuanya dijemput & diantar <b>1 kurir</b>${sel.length>1&&sel[0].route.stops.length>1?` (rute: ${sel[0].route.stops.map(x=>esc(x.name)).join(" → ")} → rumah Anda)`:""}. Produk yang tidak dicentang tetap tersimpan di keranjang.</p>`:"")
     :`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
   document.querySelectorAll('#cartItems [data-ind="1"]').forEach(x=>{x.indeterminate=true});
@@ -708,7 +714,8 @@ function renderCart() {
   document.getElementById("cartShipping").textContent=rupiah(shipping);
   {const old=document.getElementById("cartShipBreakdown");if(old)old.hidden=true;}
   {const tot=document.querySelector("#checkoutForm .checkout-total");if(tot){let cb=document.getElementById("coShipBreakdown");if(!cb){cb=document.createElement("div");cb.id="coShipBreakdown";cb.className="ship-breakdown";tot.insertAdjacentElement("beforebegin",cb);}
-    cb.hidden=!sel.length;cb.innerHTML=`<div class="ship-head">${sel.length>1?`${sel.length} toko • ${sel.length} nota • 1 kurir`:"Rincian pesanan"}</div>`+sel.map((g,i)=>{const o=ongkirTeks(g);return `<div class="ship-row"><span>${sel.length>1?`Nota ${i+1} • `:""}🏪 ${esc(g.name)}<small class="ship-sub">Barang ${rupiah(g.sub)} • Ongkir ${o.v} (${o.s})</small></span><b>${rupiah(g.sub+g.fee)}</b></div>`}).join("")
+    cb.hidden=!sel.length;cb.innerHTML=`<div class="ship-head">${sel.length>1?`${sel.length} toko • ${sel.length} nota • 1 kurir`:"Rincian pesanan"}</div>`+sel.slice().sort((a,b)=>a.urut-b.urut).map((g,i)=>{const o=ongkirTeks(g);return `<div class="ship-row"><span>${sel.length>1?`Nota ${i+1} • `:""}🏪 ${esc(g.name)}<small class="ship-sub">Barang ${rupiah(g.sub)} • Ongkir ${o.v} (${o.s})</small></span><b>${rupiah(g.sub+g.base)}</b></div>`}).join("")
+      +(()=>{const j=jarakInfo(sel);return j?`<div class="ship-row ship-jarak"><span>📏 Tambahan jarak<small class="ship-sub">${j.s}</small></span><b>${j.v}</b></div>`:""})()
       +(sel.length>1?`<p class="ship-note">🛵 Satu kurir menjemput ${sel[0].route.stops.map(x=>esc(x.name)).join(" → ")} lalu mengantar ke rumah Anda. ${"QRIS"===String(document.querySelector('#checkoutForm select[name="payment"]')?.value||"")?"Bayar QRIS cukup <b>sekali</b> untuk semua nota.":""}</p>`:"");}}
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
