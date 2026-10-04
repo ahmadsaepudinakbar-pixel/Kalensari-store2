@@ -190,10 +190,6 @@ async function updateCloudOrderStatus(id,status){
 
 let cart = JSON.parse(localStorage.getItem("kalensari_cart") || "[]");
 let activeCategory = "Semua";
-let activeSeller = ""; // sellerKey toko yang dipilih lewat tombol 🏪 Toko ("" = semua toko)
-// Urutan acak: tiap kartu diberi angka acak sekali per kunjungan, jadi urutan tidak loncat-loncat saat filter/cari.
-const shuffleRank=new Map();
-const rankOf=k=>{if(!shuffleRank.has(k))shuffleRank.set(k,Math.random());return shuffleRank.get(k);};
 
 const rupiah = n => "Rp" + new Intl.NumberFormat("id-ID").format(n);
 const saveCart = () => localStorage.setItem("kalensari_cart", JSON.stringify(cart));
@@ -363,14 +359,94 @@ function alertClosedItems(list){
   alert("Produk berikut sedang tidak bisa dipesan:\n\n"+list.map(p=>p.status!=="Show"?`- ${p.name} (stok habis)`:allSellersClosed(p)?`- ${p.name} (penjual ${p.seller} sedang tutup)`:`- ${p.name} (jam ${hoursText(p)})`).join("\n")+"\n\nHapus dari keranjang atau pesan lagi saat tersedia.");
 }
 
+// ===== FILTER TOKO + URUTAN ACAK 20 MENIT =====
+// activeSeller = nama toko (huruf kecil) yang sedang dipilih; "" = semua toko.
+let activeSeller="";
+// Urutan acak berganti tiap blok 20 menit (sama untuk semua pengunjung). Kunci blok
+// dibekukan saat halaman dibuka / "Semua" diklik, supaya produk tidak melompat saat dilihat.
+const SHUFFLE_MS=20*60*1000;
+const shuffleBlockNow=()=>Math.floor(Date.now()/SHUFFLE_MS);
+let shuffleBlock=shuffleBlockNow();
+function shuffleKey(id){let h=2166136261^shuffleBlock;const s=String(id);for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}h^=h>>>15;h=Math.imul(h,2246822507);h^=h>>>13;return h>>>0;}
+const activeSellerName=()=>{if(!activeSeller)return"";for(const p of products){const n=sellerList(p).find(x=>sellerKey(x)===activeSeller);if(n)return n;}return activeSeller;};
+const productHasSeller=(p,k)=>sellerList(p).some(n=>sellerKey(n)===k);
+
 function renderCategories() {
   const cats=["Semua",...new Set(products.map(p=>p.category))];
-  document.getElementById("categories").innerHTML=cats.map(c=>`<button class="cat ${c===activeCategory?"active":""}" onclick="setCategory(${JSON.stringify(c).replace(/"/g,'&quot;')})">${esc(c)}</button>`).join("");
+  const tokoLbl=activeSeller?`🏪 ${esc(activeSellerName())}`:"🏪 Toko";
+  document.getElementById("categories").innerHTML=cats.map(c=>`<button class="cat ${c===activeCategory&&!(c==="Semua"&&activeSeller)?"active":""}" onclick="setCategory(${JSON.stringify(c).replace(/"/g,'&quot;')})">${esc(c)}</button>`).join("")
+    +`<button type="button" class="cat cat-toko${activeSeller?" active":""}" onclick="openShopPanel()">${tokoLbl}</button>`;
+  renderSellerBar();
 }
 function setCategory(c) {
+  if(c==="Semua"){activeSeller="";shuffleBlock=shuffleBlockNow();}
   activeCategory=c; renderCategories(); renderProducts();
   document.getElementById("products").scrollIntoView({behavior:"smooth"});
 }
+function setSeller(k){
+  activeSeller=k||"";
+  if(!activeSeller)shuffleBlock=shuffleBlockNow();
+  activeCategory="Semua";
+  closeShopPanel();renderCategories();renderProducts();
+  document.getElementById("products")?.scrollIntoView({behavior:"smooth"});
+}
+// Bar "Produk dari ..." + tombol "× Semua toko" tepat di atas grid produk
+function renderSellerBar(){
+  const grid=document.getElementById("productGrid");if(!grid)return;
+  let bar=document.getElementById("sellerFilterBar");
+  if(!bar){bar=document.createElement("div");bar.id="sellerFilterBar";bar.className="seller-filter-bar";grid.parentNode.insertBefore(bar,grid);}
+  if(!activeSeller){bar.hidden=true;bar.innerHTML="";return;}
+  const n=activeSellerName(),closed=sellerClosed(n);
+  bar.hidden=false;
+  bar.innerHTML=`<span>🏪 Produk dari <b>${esc(n)}</b>${closed?' <em class="sf-closed">Tutup</em>':""}</span><button type="button" onclick="setSeller('')">× Semua toko</button>`;
+}
+// Daftar toko diambil otomatis dari nama penjual di tiap produk (produk multi-penjual masuk ke tiap toko).
+function shopRows(){
+  const m=new Map();
+  products.filter(isVisible).forEach(p=>sellerList(p).forEach(n=>{
+    const k=sellerKey(n);if(!m.has(k))m.set(k,{k,name:n,items:[]});
+    const it=m.get(k).items,label=groupName(p)||p.name;if(!it.some(x=>x.toLowerCase()===label.toLowerCase()))it.push(label);
+  }));
+  return [...m.values()].map(r=>({...r,closed:sellerClosed(r.name)})).sort((a,b)=>(a.closed-b.closed)||a.name.localeCompare(b.name,"id"));
+}
+const shopInitials=n=>String(n||"").replace(/[^\p{L}\p{N}\s]/gu," ").trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase()||"🏪";
+function ensureShopPanel(){
+  let el=document.getElementById("shopPanel");if(el)return el;
+  el=document.createElement("div");el.id="shopPanel";el.className="shop-sheet";el.hidden=true;
+  el.innerHTML=`<div class="shop-sheet-bg" data-close></div><div class="shop-sheet-box" role="dialog" aria-modal="true" aria-labelledby="shopSheetTitle">
+    <div class="shop-sheet-grip"></div>
+    <div class="shop-sheet-head"><h3 id="shopSheetTitle">Daftar toko</h3><button type="button" class="shop-sheet-x" data-close aria-label="Tutup">✕</button></div>
+    <input id="shopSearch" class="shop-search" type="search" placeholder="Cari toko..." autocomplete="off">
+    <div id="shopList" class="shop-list"></div></div>`;
+  document.body.appendChild(el);
+  el.addEventListener("click",e=>{if(e.target.closest("[data-close]"))closeShopPanel();const r=e.target.closest("[data-shop]");if(r)setSeller(r.dataset.shop);});
+  el.querySelector("#shopSearch").addEventListener("input",renderShopList);
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!el.hidden)closeShopPanel();});
+  return el;
+}
+function renderShopList(){
+  const q=(document.getElementById("shopSearch")?.value||"").toLowerCase().trim();
+  const rows=shopRows().filter(r=>!q||r.name.toLowerCase().includes(q)||r.items.some(x=>x.toLowerCase().includes(q)));
+  document.getElementById("shopList").innerHTML=rows.length?rows.map(r=>`<button type="button" class="shop-row${r.k===activeSeller?" active":""}" data-shop="${esc(r.k)}">
+      <span class="shop-ava">${esc(shopInitials(r.name))}</span>
+      <span class="shop-info"><b>${esc(r.name)}</b><small>${r.items.length} produk · ${esc(r.items.slice(0,2).join(", "))}${r.items.length>2?", …":""}</small></span>
+      <span class="shop-st ${r.closed?"off":"on"}">${r.closed?"Tutup":"Buka"}</span></button>`).join("")
+    :`<p class="shop-empty">Toko tidak ditemukan.</p>`;
+}
+function openShopPanel(){
+  const el=ensureShopPanel();const s=el.querySelector("#shopSearch");s.value="";renderShopList();
+  el.hidden=false;document.body.classList.add("shop-open");requestAnimationFrame(()=>el.classList.add("show"));
+}
+function closeShopPanel(){
+  const el=document.getElementById("shopPanel");if(!el||el.hidden)return;
+  el.classList.remove("show");document.body.classList.remove("shop-open");setTimeout(()=>{el.hidden=true;},220);
+}
+// Ikon toko di header, di sebelah kiri keranjang
+(function(){
+  const cb=document.getElementById("cartBtn");if(!cb||document.getElementById("shopBtn"))return;
+  const b=document.createElement("button");b.type="button";b.id="shopBtn";b.className="icon-btn shop-btn";b.title="Daftar toko";b.setAttribute("aria-label","Daftar toko");b.textContent="🏪";
+  b.onclick=openShopPanel;cb.parentNode.insertBefore(b,cb);
+})();
 // ===== VARIAN PRODUK: produk dengan "Nama Grup" sama digabung jadi 1 kartu =====
 const groupName=p=>String(p.product_group||"").trim();
 const variantLabel=p=>String(p.variant||"").trim()||p.name;
@@ -415,7 +491,9 @@ function groupCardHTML(u) {
 function renderProducts() {
   const q=document.getElementById("searchInput").value.toLowerCase().trim();
   const sort=document.getElementById("sortSelect").value;
-  let list=products.filter(p=>isVisible(p) && (activeCategory==="Semua"||p.category===activeCategory) && (!activeSeller||sellerList(p).some(n=>sellerKey(n)===activeSeller)) && (p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q)||p.seller.toLowerCase().includes(q)||groupName(p).toLowerCase().includes(q)));
+  let list=products.filter(p=>isVisible(p) && (activeCategory==="Semua"||p.category===activeCategory) && (!activeSeller||productHasSeller(p,activeSeller)) && (p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q)||String(p.seller||"").toLowerCase().includes(q)||groupName(p).toLowerCase().includes(q)));
+  // Bawaan saat "Semua": urutan acak per blok 20 menit (dropdown Urutan tetap diutamakan)
+  if(activeCategory==="Semua"&&!activeSeller&&!["priceAsc","price-low","priceDesc","price-high","name"].includes(sort)) list.sort((a,b)=>shuffleKey(groupName(a)||a.id)-shuffleKey(groupName(b)||b.id)||Number(a.id)-Number(b.id));
   if(sort==="priceAsc" || sort==="price-low") list.sort((a,b)=>currentPrice(a)-currentPrice(b));
   if(sort==="priceDesc" || sort==="price-high") list.sort((a,b)=>currentPrice(b)-currentPrice(a));
   if(sort==="name") list.sort((a,b)=>a.name.localeCompare(b.name,"id"));
@@ -428,8 +506,8 @@ function renderProducts() {
     if(seen.has(key)){seen.get(key).variants.push(p);}
     else{const u={group:g,variants:[p]};seen.set(key,u);units.push(u);}
   });
-  if(sort==="default") units.sort((a,b)=>rankOf(a.single?"p:"+a.single.id:"g:"+a.group.toLowerCase())-rankOf(b.single?"p:"+b.single.id:"g:"+b.group.toLowerCase()));
   document.getElementById("resultInfo").textContent=`${units.length} produk`;
+  renderSellerBar();
   document.getElementById("productGrid").innerHTML=units.length?units.map(u=>u.single?singleCardHTML(u.single):(u.variants.length>1?groupCardHTML(u):singleCardHTML(u.variants[0]))).join(""):`<div class="empty-state"><b>😔 Produk tidak ditemukan</b>Coba kata kunci atau kategori lain.</div>`;
 }
 // ===== MENU PRASMANAN / RACIK SENDIRI (mis. Seblak Prasmanan) =====
@@ -499,7 +577,7 @@ function addDetailToCart(id) {
 function showProduct(id) {
   const p=products.find(x=>x.id===id);
   detailProduct=p;detailToppings={};
-  detailQty=1;detailSellers=openSellerList(p);detailSeller=detailSellers.length===1?detailSellers[0]:"";
+  detailQty=1;detailSellers=openSellerList(p);detailSeller=detailSellers.length===1?detailSellers[0]:(detailSellers.find(n=>activeSeller&&sellerKey(n)===activeSeller)||"");
   const gname=groupName(p);
   const variants=gname?products.filter(x=>isVisible(x)&&groupName(x).toLowerCase()===gname.toLowerCase()):[];
   const isGroup=variants.length>1;
@@ -534,6 +612,8 @@ function addToCart(id,qty=1,seller,custom) {
   if(seller===undefined){
     // Produk dengan lebih dari satu toko: minta pelanggan memilih toko di popup Detail.
     const list=openSellerList(p);
+    const pick=activeSeller&&list.find(n=>sellerKey(n)===activeSeller);
+    if(pick)list.splice(0,list.length,pick);
     if(list.length>1){showProduct(id);showToast("Pilih nama toko dulu");return;}
     seller=list[0]||p.seller||"";
   }
@@ -745,46 +825,7 @@ if(productSearchInput){
   window.addEventListener("pageshow",resetProductSearch);
 }
 
-document.getElementById("sortSelect").addEventListener("change",e=>{if(e.target.value==="default")shuffleRank.clear();renderProducts();});
-// ===== TOMBOL 🏪 TOKO: pilih toko untuk melihat produk dari toko itu saja =====
-function storeRows(){
-  const map=new Map();
-  products.filter(isVisible).forEach(p=>sellerList(p).forEach(n=>{const k=sellerKey(n);if(!map.has(k))map.set(k,{key:k,name:n,count:0});map.get(k).count++;}));
-  return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name,"id"));
-}
-function renderStorePanel(){
-  const panel=document.getElementById("storePanel"), label=document.getElementById("storeBtnLabel"), btn=document.getElementById("storeBtn");
-  if(!panel||!btn)return;
-  const rows=storeRows(), cur=rows.find(r=>r.key===activeSeller);
-  if(activeSeller&&!cur)activeSeller="";
-  label.textContent=cur?cur.name:"Toko";
-  btn.classList.toggle("active",!!cur);
-  btn.setAttribute("aria-expanded",String(!panel.hidden));
-  const total=products.filter(isVisible).length;
-  panel.innerHTML=`<div class="store-panel-head"><b>🏪 Pilih Toko</b><button type="button" class="store-close" data-store-close aria-label="Tutup">✕</button></div>
-    <div class="store-list">
-      <button type="button" class="store-chip${activeSeller?"":" active"}" data-store="">🛍️ Semua Toko<small>${total} produk</small></button>
-      ${rows.map(r=>{const tutup=sellerClosed(r.name);return `<button type="button" class="store-chip${r.key===activeSeller?" active":""}" data-store="${esc(r.key)}">${tutup?"🔒":"🟢"} ${esc(r.name)}<small>${r.count} produk${tutup?" • tutup":""}</small></button>`;}).join("")}
-    </div>`;
-}
-function setStore(k){
-  activeSeller=k||"";
-  document.getElementById("storePanel").hidden=true;
-  renderStorePanel(); renderProducts();
-  document.getElementById("products").scrollIntoView({behavior:"smooth"});
-}
-(function(){
-  const btn=document.getElementById("storeBtn"), panel=document.getElementById("storePanel");
-  if(!btn||!panel)return;
-  btn.addEventListener("click",()=>{panel.hidden=!panel.hidden;renderStorePanel();});
-  panel.addEventListener("click",e=>{
-    if(e.target.closest("[data-store-close]")){panel.hidden=true;renderStorePanel();return;}
-    const c=e.target.closest("[data-store]"); if(c)setStore(c.dataset.store);
-  });
-  // Selalu perbarui daftar toko setiap kali produk digambar ulang (produk dari database, status buka/tutup, dll).
-  const __render=renderProducts;
-  renderProducts=function(){__render.apply(this,arguments);renderStorePanel();};
-})();
+document.getElementById("sortSelect").addEventListener("change",renderProducts);
 document.getElementById("clearSearch").addEventListener("click",()=>{document.getElementById("searchInput").value="";renderProducts();document.getElementById("searchInput").focus()});
 function showToast(message){const t=document.getElementById("toast");t.textContent=message;t.classList.add("show");clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove("show"),1800)}
 document.getElementById("waGeneral").href=waLink("Halo KALENSARI STORE, saya ingin bertanya tentang produk.");
