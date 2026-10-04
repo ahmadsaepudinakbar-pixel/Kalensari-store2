@@ -356,7 +356,7 @@ async function refreshProductStatus(){
     return true;
   }catch(e){console.error("Refresh status produk:",e);return false;}
 }
-const closedCartItems=()=>cartData().filter(p=>p.status!=="Show"||!isInHours(p)||allSellersClosed(p));
+const closedCartItems=()=>selItems().filter(p=>p.status!=="Show"||!isInHours(p)||allSellersClosed(p));
 function alertClosedItems(list){
   alert("Produk berikut sedang tidak bisa dipesan:\n\n"+list.map(p=>p.status!=="Show"?`- ${p.name} (stok habis)`:allSellersClosed(p)?`- ${p.name} (penjual ${p.seller} sedang tutup)`:`- ${p.name} (jam ${hoursText(p)})`).join("\n")+"\n\nHapus dari keranjang atau pesan lagi saat tersedia.");
 }
@@ -631,7 +631,7 @@ function addToCart(id,qty=1,seller,custom) {
   }
   qty=Math.max(1,parseInt(qty)||1);
   const sig=custom?JSON.stringify(custom.t):"";
-  const item=cart.find(x=>x.id===id&&(x.seller||"")===seller&&(x.custom?JSON.stringify(x.custom.t):"")===sig); if(item)item.qty+=qty; else cart.push(custom?{id,qty,seller,custom}:{id,qty,seller});
+  const item=cart.find(x=>x.id===id&&(x.seller||"")===seller&&(x.custom?JSON.stringify(x.custom.t):"")===sig); if(item){item.qty+=qty;delete item.off;} else cart.push(custom?{id,qty,seller,custom}:{id,qty,seller});
   saveCart();updateCartCount();renderCart();showToast(`${qty>1?qty+"× ":""}${p.name} (${seller}) ditambahkan ke keranjang`);
 }
 function changeQty(idx,d) {
@@ -662,23 +662,58 @@ function cartData() {
     return row;
   }).filter(Boolean);
 }
+// ===== KERANJANG PER TOKO (centang toko yang mau di-checkout; ongkir dihitung per toko) =====
+// Centang per produk disimpan di item keranjang (off:true = tidak ikut checkout). Centang toko = centang semua produknya.
+function cartGroups(){
+  const m=new Map();
+  cartData().forEach(p=>{const k=sellerKey(p.seller);if(!m.has(k))m.set(k,{k,name:String(p.seller||"Toko").trim(),all:[]});p.on=!(cart[p.idx]&&cart[p.idx].off);m.get(k).all.push(p);});
+  // SATU KURIR per checkout: rute toko 1 -> toko 2 -> ... -> pembeli. Tiap nota = ongkir pertama tokonya;
+  // tambahan jarak (toko terakhir -> pembeli) masuk ke nota toko terakhir. Total ongkir = rute gabungan.
+  const gs=[...m.values()].map(g=>{const items=g.all.filter(p=>p.on),sub=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0);
+    return {...g,items,sub,on:items.length>0,full:items.length===g.all.length,closed:items.some(p=>allSellersClosed(p))};});
+  const route=shippingRoute(gs.filter(g=>g.on).flatMap(g=>g.items)),lastK=route.last?sellerKey(route.last.name):"";
+  return gs.map(g=>{const last=g.on&&g.k===lastK,base=shippingFeeFor(g.name);
+    return {...g,route,last,base,urut:route.stops.findIndex(x=>sellerKey(x.name)===g.k)+1,fee:g.on?base+(last?route.extra:0):0};});
+}
+const selItems=()=>cartGroups().filter(g=>g.on).flatMap(g=>g.items);
+function setOff(idxs,off){idxs.forEach(i=>{if(cart[i]){if(off)cart[i].off=true;else delete cart[i].off;}});saveCart();renderCart();}
+function toggleProduk(idx){setOff([idx],!(cart[idx]&&cart[idx].off));}
+function toggleToko(k){const g=cartGroups().find(x=>x.k===k);if(g)setOff(g.all.map(p=>p.idx),g.full);}
+function toggleSemuaToko(){const gs=cartGroups(),all=gs.every(g=>g.full);setOff(gs.flatMap(g=>g.all.map(p=>p.idx)),all);}
+function ongkirTeks(g){
+  const r=g.route,multi=r.stops.length>1;
+  if(!g.on)return{v:rupiah(0),s:"tidak dipilih"};
+  if(!g.last)return{v:g.fee>0?rupiah(g.fee):"Gratis",s:`ongkir pertama toko${multi?` • jemputan ke-${g.urut} kurir`:""}`};
+  const pre=multi?`jemputan terakhir • ${rupiah(g.base)} + `:"";
+  if(r.state==="ok")return{v:g.fee>0?rupiah(g.fee):"Gratis",s:`${multi?`jemputan terakhir • `:""}${fmtKm(r.km)} km ke pembeli${r.extra>0?` • ${rupiah(g.base)} + ${rupiah(r.extra)} jarak`:""}`};
+  if(r.state==="nostore")return{v:rupiah(g.fee),s:"lokasi toko belum diatur • admin konfirmasi"};
+  return{v:rupiah(g.fee),s:`${pre?pre.replace(/ \+ $/,"")+" • ":""}+${rupiah(shipPerKm())}/km jika lebih dari ${fmtKm(shipFreeKm())} km • dihitung saat checkout`};
+}
 function renderCart() {
-  const items=cartData(),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),route=shippingRoute(items),shipping=route.fee;
-  document.getElementById("cartItems").innerHTML=items.length?items.map(p=>`
-    <div class="cart-row"><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div><div class="cart-seller">🏪 ${esc(p.seller)}${allSellersClosed(p)?' • <b style="color:#b3261e">Tutup</b>':""}</div></div>
-    <div class="qty"><button onclick="changeQty(${p.idx},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.idx},1)">+</button></div>
-    <button class="cart-remove" type="button" title="Hapus produk" aria-label="Hapus ${p.name} dari keranjang" onclick="removeFromCart(${p.idx})">🗑️</button></div>`).join(""):`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
+  const gs=cartGroups(),sel=gs.filter(g=>g.on),subtotal=sel.reduce((t,g)=>t+g.sub,0),shipping=sel.reduce((t,g)=>t+g.fee,0);
+  const semua=gs.length&&gs.every(g=>g.full);
+  document.getElementById("cartItems").innerHTML=gs.length?(gs.reduce((t,g)=>t+g.all.length,0)>1?`<label class="cg-all"><input type="checkbox" ${semua?"checked":""} data-ind="${sel.length&&!semua?1:""}" onchange="toggleSemuaToko()"> Pilih semua <small>(${sel.reduce((t,g)=>t+g.items.length,0)}/${gs.reduce((t,g)=>t+g.all.length,0)} produk dipilih)</small></label>`:"")
+    +gs.map(g=>{const o=ongkirTeks(g);return `<div class="cg${g.on?"":" off"}">
+    <label class="cg-head"><input type="checkbox" ${g.full?"checked":""} data-ind="${g.on&&!g.full?1:""}" onchange="toggleToko('${esc(g.k).replace(/'/g,"&#39;")}')"><span>🏪 <b>${esc(g.name)}</b>${g.closed?' <em class="cg-tutup">Tutup</em>':""}</span></label>
+    ${g.all.map(p=>`<div class="cart-row${p.on?"":" off"}"><input class="cr-cek" type="checkbox" ${p.on?"checked":""} onchange="toggleProduk(${p.idx})" aria-label="Pilih ${esc(p.name)}"><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div></div>
+      <div class="qty"><button onclick="changeQty(${p.idx},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.idx},1)">+</button></div>
+      <button class="cart-remove" type="button" title="Hapus produk" aria-label="Hapus ${p.name} dari keranjang" onclick="removeFromCart(${p.idx})">🗑️</button></div>`).join("")}
+    <div class="cg-ship"><span>🛵 Ongkir<small>${o.s}</small></span><b>${o.v}</b></div>
+    <div class="cg-sum"><span>Total toko ini</span><b>${rupiah(g.sub+g.fee)}</b></div></div>`}).join("")
+    +(gs.length>1?`<p class="cg-note">ℹ️ Tiap toko jadi <b>nota terpisah</b>, tapi semuanya dijemput & diantar <b>1 kurir</b>${sel.length>1&&sel[0].route.stops.length>1?` (rute: ${sel[0].route.stops.map(x=>esc(x.name)).join(" → ")} → rumah Anda)`:""}. Produk yang tidak dicentang tetap tersimpan di keranjang.</p>`:"")
+    :`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
+  document.querySelectorAll('#cartItems [data-ind="1"]').forEach(x=>{x.indeterminate=true});
   document.getElementById("cartItemLabel").textContent=`${cart.reduce((s,i)=>s+i.qty,0)} item`;
   document.getElementById("cartSubtotal").textContent=rupiah(subtotal);
   document.getElementById("cartShipping").textContent=rupiah(shipping);
-  {const row=document.getElementById("cartShipping").parentElement;let bd=document.getElementById("cartShipBreakdown");
-   if(!bd){bd=document.createElement("div");bd.id="cartShipBreakdown";bd.className="ship-breakdown";row.insertAdjacentElement("afterend",bd);}
-   bd.hidden=!route.stops.length;
-   bd.innerHTML=shipBreakdownHTML(route);}
-  {const tot=document.querySelector("#checkoutForm .checkout-total");if(tot){let cb=document.getElementById("coShipBreakdown");if(!cb){cb=document.createElement("div");cb.id="coShipBreakdown";cb.className="ship-breakdown";tot.insertAdjacentElement("beforebegin",cb);}cb.hidden=!route.stops.length;cb.innerHTML=shipBreakdownHTML(route);}}
+  {const old=document.getElementById("cartShipBreakdown");if(old)old.hidden=true;}
+  {const tot=document.querySelector("#checkoutForm .checkout-total");if(tot){let cb=document.getElementById("coShipBreakdown");if(!cb){cb=document.createElement("div");cb.id="coShipBreakdown";cb.className="ship-breakdown";tot.insertAdjacentElement("beforebegin",cb);}
+    cb.hidden=!sel.length;cb.innerHTML=`<div class="ship-head">${sel.length>1?`${sel.length} toko • ${sel.length} nota • 1 kurir`:"Rincian pesanan"}</div>`+sel.map((g,i)=>{const o=ongkirTeks(g);return `<div class="ship-row"><span>${sel.length>1?`Nota ${i+1} • `:""}🏪 ${esc(g.name)}<small class="ship-sub">Barang ${rupiah(g.sub)} • Ongkir ${o.v} (${o.s})</small></span><b>${rupiah(g.sub+g.fee)}</b></div>`}).join("")
+      +(sel.length>1?`<p class="ship-note">🛵 Satu kurir menjemput ${sel[0].route.stops.map(x=>esc(x.name)).join(" → ")} lalu mengantar ke rumah Anda. ${"QRIS"===String(document.querySelector('#checkoutForm select[name="payment"]')?.value||"")?"Bayar QRIS cukup <b>sekali</b> untuk semua nota.":""}</p>`:"");}}
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
-  document.getElementById("checkoutBtn").disabled=!items.length;
+  document.getElementById("checkoutBtn").disabled=!sel.length;
+  {const b=document.getElementById("checkoutBtn");if(b&&b.dataset.t0===undefined)b.dataset.t0=b.textContent;if(b)b.textContent=gs.length>1&&sel.length?`${b.dataset.t0} (${sel.length} toko)`:b.dataset.t0;}
   renderCekPesan();
 }
 function updateCartCount() {document.getElementById("cartCount").textContent=cart.reduce((s,i)=>s+i.qty,0);}
@@ -845,19 +880,17 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   e.preventDefault();if(!cart.length)return;
   if(!checkoutBuyer){showToast("Silakan masuk sebagai pembeli dulu");return;}
   await Promise.all([loadCloudSettings(),refreshProductStatus()]);
+  if(!cartGroups().some(g=>g.on)){alert("Centang minimal satu produk yang ingin di-checkout.");return;}
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
   {KS_KURIR=await jumlahKurirAktif();if(KS_KURIR===0){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");return;}}
-  const f=new FormData(e.target),items=cartData().map(({idx,...r})=>r),subtotal=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0),route=shippingRoute(items),shipping=route.fee,total=subtotal+shipping;
+  const f=new FormData(e.target),payment=String(f.get("payment")||"");
   const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
   let codTahan=false;
-  if(isCod(f.get("payment"))){
+  if(isCod(payment)){
     const ci=await codInfo(phone);
     if(!ci.boleh){alert(ci.pesan);pilihQrisCheckout();return;}
     codTahan=ci.tahan;
   }
-  const orderCode=await makeUniqueOrderCode();
-  const kodeST=window.KSST?KSST.buatKode():"";
-  const createdAt=new Date().toISOString();
   const _la=document.getElementById("ksMapLat")?.value, _ln=document.getElementById("ksMapLng")?.value;
   const mapLat=String(_la||"").trim()===""?NaN:Number(_la), mapLng=String(_ln||"").trim()===""?NaN:Number(_ln);
   const hasMap=Number.isFinite(mapLat)&&Number.isFinite(mapLng)&&!(mapLat===0&&mapLng===0);
@@ -868,31 +901,32 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const address=mode==="rumah"?checkoutBuyer.alamat:"Titik lokasi saat ini (lihat link Google Maps)";
   const userNote=String(f.get("note")||"").trim();
   const mapToken=hasMap?`__KS_MAP__${mapLat.toFixed(6)},${mapLng.toFixed(6)}__END__`:"";
-  const routeNote=route.stops.length>1?`[Rute kurir: ${route.stops.map((s,i)=>`${i+1}. ${s.name}`).join(" → ")} → Pembeli]`:"";
+  const groups0=cartGroups().filter(g=>g.on),rt=groups0[0]?groups0[0].route:null;
+  const routeNote=rt&&rt.stops.length>1?`[Rute kurir: ${rt.stops.map((x,i)=>`${i+1}. ${x.name}`).join(" → ")} → Pembeli]`:"";
   const orderNote=[userNote,routeNote,mapToken].filter(Boolean).join(" ");
   if(hasMap) localStorage.setItem("kalensari_checkout_location",JSON.stringify({lat:mapLat,lng:mapLng}));
-  // ===== SATU NOTA: kurir diarahkan toko 1 -> toko 2 -> ... -> toko terakhir -> pembeli =====
-  const stops=route.stops,multi=stops.length>1;
-  const bySeller=new Map();items.forEach(p=>{const k=sellerKey(p.seller);if(!bySeller.has(k))bySeller.set(k,[]);bySeller.get(k).push(p);});
+  // ===== PESANAN DIPISAH PER TOKO: tiap toko yang dicentang = 1 nota, 1 kurir, ongkir sendiri =====
+  const groups=groups0.slice().sort((a,b)=>a.urut-b.urut),createdAt=new Date().toISOString();
+  const kodeST=window.KSST?KSST.buatKode():"";
+  const codes=[];for(const g of groups){let c=await makeUniqueOrderCode();while(codes.includes(c))c=await makeUniqueOrderCode();codes.push(c);}
+  const grup=groups.length>1?"G-"+codes[0]:null;
+  const payloads=groups.map((g,i)=>{const items=g.items.map(({idx,on,...r})=>r),subtotal=g.sub,shipping=g.fee;
+    return {order_code:codes[i],created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment,items,subtotal,shipping,total:subtotal+shipping,status:"menunggu",...(grup?{grup}:{}),...(codTahan?{pay_status:"tunggu_wa"}:{})};});
+  const totalAll=payloads.reduce((t,x)=>t+x.total,0);
   const mapText=hasMap?`\nLokasi Maps: ${ksMapsSearch(`${mapLat},${mapLng}`)}`:"";
-  const tokoText=stops.map((s,i)=>{const its=bySeller.get(sellerKey(s.name))||[],sb=its.reduce((t,p)=>t+currentPrice(p)*p.qty,0);
-    return `${multi?`TOKO ${i+1}`:"Toko"}: ${s.name}\n${its.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n")}${multi?`\nSubtotal toko: ${rupiah(sb)}`:""}`;}).join("\n\n");
-  const routeLine=multi?`RUTE KURIR: ${stops.map((s,i)=>`${i+1}. ${s.name}`).join(" → ")} → Pembeli\n\n`:"";
-  const shipDetail=route.state==="ok"
-    ?`ongkir pertama ${rupiah(route.base)}${multi?` (${stops.length} toko)`:""}${route.extra>0?` + jarak ${route.last.name} → pembeli ${fmtKm(route.km)} km: ${rupiah(route.extra)}`:`; jarak ${route.last.name} → pembeli ${fmtKm(route.km)} km masuk gratis`}`
-    :"jarak belum terhitung, mohon konfirmasi";
-  const msg=`Halo KALENSARI STORE, saya ingin memesan:\n\nNOTA • Kode Pesanan: ${orderCode}\n\n${routeLine}${tokoText}\n\nSubtotal: ${rupiah(subtotal)}\nOngkir: ${shipping>0?rupiah(shipping):"Gratis"} (${shipDetail})\nTOTAL BAYAR: ${rupiah(total)}\n\nNama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${f.get("payment")}`;
+  const notaText=groups.map((g,i)=>{const r=g.route,pl=payloads[i];
+    const ship=!g.last?`${pl.shipping>0?rupiah(pl.shipping):"Gratis"} (ongkir pertama toko)`:r.state==="ok"?`${pl.shipping>0?rupiah(pl.shipping):"Gratis"} (jarak ${g.name} → pembeli ${fmtKm(r.km)} km)`:`${rupiah(pl.shipping)} (jarak belum terhitung, mohon konfirmasi)`;
+    return `NOTA ${i+1} • ${codes[i]}\nToko: ${g.name}\n${g.items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n")}\nSubtotal: ${rupiah(pl.subtotal)}\nOngkir: ${ship}\nTotal nota: ${rupiah(pl.total)}`;}).join("\n\n");
+  const msg=`Halo KALENSARI STORE, saya ingin memesan${groups.length>1?` dari ${groups.length} toko (${groups.length} nota, diantar 1 kurir)`:""}:\n\n${groups.length>1&&routeNote?`RUTE KURIR: ${rt.stops.map((x,i)=>`${i+1}. ${x.name}`).join(" → ")} → Pembeli\n\n`:""}${notaText}\n\n${groups.length>1?`TOTAL SEMUA NOTA: ${rupiah(totalAll)}\n\n`:""}Nama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${payment}`;
   const msgWA=kodeST?msg+`\n\n🔑 Kode serah terima: ${kodeST}\n(sebutkan ke kurir hanya saat pesanan sudah diterima)`:msg;
-  const payloads=[{order_code:orderCode,created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment:String(f.get("payment")||""),items,subtotal,shipping,total,status:"menunggu",...(codTahan?{pay_status:"tunggu_wa"}:{})}];
 
   // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi semua nota.
   const local=getLocalOrders(); payloads.forEach((pl,i)=>local.unshift({...pl,id:`local-${Date.now()}-${i}`})); saveLocalOrders(local);
   localStorage.setItem("kalensari_customer_phone",phone);
-  if(kodeST) try{const m=JSON.parse(localStorage.getItem("kalensari_kode_st")||"{}");m[orderCode]=kodeST;localStorage.setItem("kalensari_kode_st",JSON.stringify(m))}catch(e){}
+  if(kodeST) try{const m=JSON.parse(localStorage.getItem("kalensari_kode_st")||"{}");codes.forEach(c=>{m[c]=kodeST});localStorage.setItem("kalensari_kode_st",JSON.stringify(m))}catch(e){}
 
   const result=await saveCloudOrders(payloads);
   if(!result.ok){
-    const codes=payloads.map(x=>x.order_code);
     const rows=getLocalOrders().map(o=>codes.includes(o.order_code)?{...o,sync_error:result.error}:o); saveLocalOrders(rows);
     renderMyOrders();
     alert(`Pesanan tersimpan di perangkat, tetapi BELUM masuk database online.\n\nDetail: ${result.error}\n\nJalankan supabase.sql lalu pastikan RLS orders mengizinkan INSERT.`);
@@ -903,11 +937,14 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const savedMap=new Map((result.data||[]).filter(Boolean).map(r=>[r.order_code,r]));
   const merged=getLocalOrders().map(o=>savedMap.has(o.order_code)?{...o,...savedMap.get(o.order_code),sync_error:null}:o); saveLocalOrders(merged);
   renderMyOrders();
-  if(kodeST) await KSST.daftarkan(orderCode,kodeST);
-  if(String(f.get("payment")||"")==="QRIS"&&QRIS_OTOMATIS) bayarQris(orderCode,msgWA);
+  if(kodeST) for(const c of codes) await KSST.daftarkan(c,kodeST);
+  // satu QRIS untuk semua nota (nominal = total semua nota)
+  if(payment==="QRIS"&&QRIS_OTOMATIS) bayarQris(codes[0],msgWA);
   else window.open(waLink(msgWA),"_blank");
-  cart=[];saveCart();updateCartCount();renderCart();closeModal("checkoutModal");
-  showToast(multi?`✅ Pesanan ${stops.length} toko (1 nota) tersimpan dan dikirim.`:"✅ Pesanan tersimpan dan dikirim."); e.target.reset();
+  // hanya toko yang dicentang yang keluar dari keranjang; toko lain tetap tersimpan
+  const done=new Set(groups.flatMap(g=>g.items.map(p=>p.idx)));cart=cart.filter((i,n)=>!done.has(n));
+  saveCart();updateCartCount();renderCart();closeModal("checkoutModal");
+  showToast(groups.length>1?`✅ ${groups.length} pesanan (per toko) tersimpan dan dikirim.`:"✅ Pesanan tersimpan dan dikirim."); e.target.reset();
   if(codTahan) setTimeout(()=>alert("Ini pesanan COD pertama Anda 🙏\n\nAdmin Kalensari Store akan menghubungi Anda lewat WhatsApp untuk konfirmasi. Setelah dikonfirmasi, pesanan langsung diteruskan ke toko."),400);
   if(window.KSNotif&&CLOUD_CONFIG?.enabled) setTimeout(()=>KSNotif.tawarkan({key:"pembeli_push_"+normalizePhone(phone),ajakan:"🔔 Kabari saya saat pesanan diterima toko & diantar kurir?"}),1500);
 });
@@ -1685,7 +1722,7 @@ async function bayarQris(code,waMsg){
     if(qpCode!==code)return;
     if(d.pay_status==="lunas")return qpLunas(code);
     const q=qrcode(0,"M");q.addData(d.qr);q.make();
-    qpRender(`<span class="eyebrow">KALENSARI STORE • PEMBAYARAN</span><div class="qp-head">QRIS • ${esc(code)}</div>
+    qpRender(`<span class="eyebrow">KALENSARI STORE • PEMBAYARAN</span><div class="qp-head">QRIS • ${Number(d.nota)>1?`${d.nota} nota sekaligus`:esc(code)}</div>
       <div class="qp-total">${rupiah(Number(d.total)||0)}</div>
       <div class="qp-qr"><img alt="QRIS pembayaran ${esc(code)}" src="${q.createDataURL(8,2)}"></div>
       <div class="qp-st" id="qpSt">⏳ Menunggu pembayaran • sisa <b id="qpLeft">-</b></div>
@@ -1856,3 +1893,6 @@ async function petaLacak(box,v,tuju){
   lacakPeta.kur.setLatLng(pos);if(lacakPeta.garis&&tuju)lacakPeta.garis.setLatLngs([pos,[tuju.lat,tuju.lng]]);
   if(!lacakPeta.m.getBounds().pad(-0.1).contains(pos))lacakPeta.m.panTo(pos);
 }
+
+// rincian checkout ikut berubah saat cara bayar diganti (catatan QRIS sekali bayar untuk semua nota)
+document.querySelector('#checkoutForm select[name="payment"]')?.addEventListener("change",()=>renderCart());
