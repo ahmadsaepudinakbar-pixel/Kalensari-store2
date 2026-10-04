@@ -67,6 +67,7 @@ h2.sec{font-size:24px;margin:30px 0 14px}
 .catx{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;border:0;background:var(--red);color:#fff;font-size:13px;cursor:pointer;line-height:1}
 .cat.add{border:2px dashed var(--brown);background:transparent;color:var(--brown)}
 .transbox[hidden]{display:none}.transbox{background:#fff;border:1px solid var(--line);border-radius:22px;padding:18px;margin:6px 0 10px}.transbox p{margin:0 0 12px;color:var(--muted)}.tbtns{display:grid;grid-template-columns:1fr 1fr;gap:12px}.tbtn{display:block;text-align:center;background:var(--green);color:#fff;text-decoration:none;font-weight:700;padding:18px 10px;border-radius:16px}.tbtn span{display:block;font-size:32px;margin-bottom:4px}@media(max-width:420px){.tbtns{grid-template-columns:1fr}}
+.transtop{margin:16px 0 0}.transtop h2{margin:0 0 4px;font-size:20px;color:var(--ink)}.transtop[hidden]{display:none}.transtop .tbtns{grid-template-columns:1fr 1fr}.transtop .tbtn{padding:12px 6px;font-size:14px}.transtop .tbtn span{font-size:26px}
 .subbar{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px}.subc{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 16px;font:inherit;font-weight:700;font-size:14px;color:var(--ink);cursor:pointer}.subc.on{background:var(--brown);border-color:var(--brown);color:#fff}
 .cate{position:absolute;top:6px;left:6px;width:26px;height:26px;border-radius:50%;border:0;background:var(--brown);color:#fff;font-size:13px;cursor:pointer;line-height:1}
 .kimg{width:36px;height:36px;object-fit:cover;border-radius:10px;display:inline-block;vertical-align:middle}.cat .e .kimg{width:34px;height:34px}.ico .kimg{width:100%;height:100%;border-radius:inherit}
@@ -103,6 +104,9 @@ textarea.fld{min-height:90px;resize:vertical}
     <p>Kesehatan, pertanian, garment, kecantikan, service, sampai game. Pilih kategori jasa, lalu hubungi penyedianya langsung lewat WhatsApp.</p>
     <input id="q" class="search" type="search" placeholder="Cari jasa, nama, atau dusun..." autocomplete="off">
   </section>
+
+  <!-- 2. Transportasi Online: kategori khusus, selalu tampil di bawah kolom cari -->
+  <section id="transTop" class="transbox transtop" hidden></section>
 
   <div id="adminbar" class="adminbar" hidden><span>🔧 Mode admin aktif</span><div class="abtns"><button id="addJasaBtn" type="button">➕ Tambah penyedia</button><button id="logoutBtn" type="button">Keluar</button></div></div>
   <button id="catToggle" class="cattoggle" type="button" aria-expanded="false" aria-controls="catPanel"><span>Pilih kategori jasa <small id="catNow"></small></span><span class="arr">▾</span></button>
@@ -214,8 +218,16 @@ function setOpen(o){
   $("catPanel").hidden = !o;
   $("catToggle").setAttribute("aria-expanded", String(o));
 }
+function renderTransTop(){
+  const tc = katByName(TRANS), el = $("transTop");
+  el.hidden = !tc; if(!tc) return;
+  el.innerHTML = `<h2>${katIco(tc)} ${esc(TRANS)}</h2><p>Layanan resmi <b>Kalensari Store</b>, diantar kurir toko. Ongkos dihitung otomatis dari jarak.</p>
+    <div class="tbtns"><a class="tbtn" href="ojek.html?l=ojek"><span>🛵</span>Pesan ojek online</a><a class="tbtn" href="ojek.html?l=paket"><span>📦</span>Kirim paket/barang</a></div>`;
+}
 function renderCats(){
-  const all = [{n:"Semua",e:"✨"}, ...KAT_AKTIF()];
+  renderTransTop();
+  if(kategori === TRANS) kategori = "Semua"; // Transportasi Online sudah punya kotak sendiri di atas
+  const all = [{n:"Semua",e:"✨"}, ...KAT_AKTIF().filter(c => c.n !== TRANS)];
   $("cats").innerHTML = all.map(c => `<div class="catw"><button class="cat${c.n===kategori?" on":""}" data-c="${esc(c.n)}"><span class="e">${katIco(c)}</span>${esc(c.n)}</button>${admin && c.n!=="Semua" ? `<button class="catx" data-del="${esc(c.n)}" aria-label="Hapus ${esc(c.n)}">✕</button><button class="cate" data-edit="${esc(c.n)}" aria-label="Ubah ${esc(c.n)}">✎</button>` : ""}</div>`).join("")
     + (admin ? `<div class="catw"><button class="cat add" id="addCat"><span class="e">➕</span>Tambah kategori</button></div>` : "");
   $("adminbar").hidden = !admin;
