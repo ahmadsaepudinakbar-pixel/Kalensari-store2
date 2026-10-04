@@ -1823,8 +1823,7 @@ function lacakKurir(code){
     const map=document.getElementById("lacakMap"),info=document.getElementById("lacakInfo");if(!map)return;
     if(!v||!v.lat){map.innerHTML='<p>📡 Kurir belum membagikan lokasi.<br><small>Posisi muncul saat kurir membuka aplikasinya dan GPS menyala.</small></p>';info.innerHTML="";return;}
     const k=v.lat+","+v.lng;
-    if(k!==lastKey){lastKey=k;const src=tuju?`https://maps.google.com/maps?saddr=${k}&daddr=${tuju.lat},${tuju.lng}&output=embed`:`https://maps.google.com/maps?q=${k}&z=16&output=embed`;
-      map.innerHTML=`<iframe title="Posisi kurir" src="${src}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;}
+    if(k!==lastKey){lastKey=k;await petaLacak(map,v,tuju);}
     const dtk=Math.max(0,Math.round((Date.now()-Number(v.t||0))/1000)),lalu=dtk<60?dtk+" detik":dtk<3600?Math.round(dtk/60)+" menit":"lebih dari 1 jam";
     const km=tuju?jarak(v,tuju):null;
     info.innerHTML=`<p>🛵 <b>${esc(v.nama||"Kurir")}</b> sedang menuju alamat Anda</p>
@@ -1833,4 +1832,27 @@ function lacakKurir(code){
       <div class="lacak-act">${v.wa?`<a class="btn outline small" target="_blank" rel="noopener" href="https://wa.me/${esc(String(v.wa).replace(/\D/g,""))}">💬 Chat kurir</a>`:""}<a class="btn outline small" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k)}">Buka di Google Maps</a></div>`;
   }
   muat();timer=setInterval(muat,15000);
+}
+// Peta OpenStreetMap (Leaflet, gratis tanpa API key): 🛵 posisi kurir, 🏠 lokasi pembeli
+let leafletSiap=null,lacakPeta=null;
+function muatLeaflet(){
+  if(window.L)return Promise.resolve();if(leafletSiap)return leafletSiap;
+  leafletSiap=new Promise((ok,no)=>{const c=document.createElement("link");c.rel="stylesheet";c.href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";document.head.appendChild(c);
+    const j=document.createElement("script");j.src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";j.onload=ok;j.onerror=()=>{leafletSiap=null;no(new Error("peta gagal dimuat"))};document.head.appendChild(j);});
+  return leafletSiap;
+}
+async function petaLacak(box,v,tuju){
+  try{await muatLeaflet();}catch(e){box.innerHTML=`<p>Peta tidak bisa dimuat.<br><a href="https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}" target="_blank" rel="noopener">Lihat posisi kurir di Google Maps</a></p>`;lacakPeta=null;return;}
+  const ik=(t,c)=>L.divIcon({className:"lacak-pin "+c,html:`<span>${t}</span>`,iconSize:[40,40],iconAnchor:[20,20]});
+  const pos=[v.lat,v.lng];
+  if(!lacakPeta||!box.contains(lacakPeta.el)){
+    box.innerHTML="";const el=document.createElement("div");el.className="lacak-leaflet";box.appendChild(el);
+    const m=L.map(el,{zoomControl:true,attributionControl:true}).setView(pos,16);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(m);
+    const kur=L.marker(pos,{icon:ik("🛵","kurir"),zIndexOffset:1000}).addTo(m);
+    let garis=null;if(tuju){L.marker([tuju.lat,tuju.lng],{icon:ik("🏠","rumah")}).addTo(m);garis=L.polyline([pos,[tuju.lat,tuju.lng]],{color:"#7b3f1d",weight:3,dashArray:"6 8",opacity:.8}).addTo(m);m.fitBounds(L.latLngBounds([pos,[tuju.lat,tuju.lng]]),{padding:[40,40],maxZoom:17});}
+    lacakPeta={el,m,kur,garis};setTimeout(()=>m.invalidateSize(),150);return;
+  }
+  lacakPeta.kur.setLatLng(pos);if(lacakPeta.garis&&tuju)lacakPeta.garis.setLatLngs([pos,[tuju.lat,tuju.lng]]);
+  if(!lacakPeta.m.getBounds().pad(-0.1).contains(pos))lacakPeta.m.panTo(pos);
 }
