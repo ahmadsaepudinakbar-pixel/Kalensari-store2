@@ -1022,7 +1022,7 @@ function renderMyOrders(rows=getLocalOrders()){
     <p><b>${esc(o.customer_name||"")}</b> • ${esc(o.customer_phone||"")}</p>
     <p>${(o.items||[]).map(x=>`${esc(x.name)}${x.seller?` (${esc(x.seller)})`:""} ×${x.qty}`).join(" • ")}</p>
     <strong>${rupiah(o.total||0)}</strong>
-    ${o.status==="dikirim"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="lacakKurir('${esc(o.order_code)}')">📍 Lacak kurir</button>`:""}
+    ${o.status==="dikirim"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="lacakKurir('${esc(o.order_code)}')">🛵 Lacak kurir</button>`:""}
     ${o.pay_status==="tunggu_wa"&&o.status==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
     ${o.pay_status==="lunas"?'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>':QRIS_OTOMATIS&&o.payment==="QRIS"&&o.status!=="dibatalkan"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="bayarQris('${esc(o.order_code)}')">💳 Bayar dengan QRIS</button>`:""}
     ${window.KSST?KSST.html(o):""}
@@ -1810,7 +1810,7 @@ function lacakKurir(code){
   const m=String(o.note||"").match(/__KS_MAP__(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)__END__/),tuju=m?{lat:+m[1],lng:+m[2]}:null;
   document.getElementById("lacakBox")?.remove();
   const ov=document.createElement("div");ov.id="lacakBox";ov.className="lacak-ov";
-  ov.innerHTML=`<div class="lacak-card"><div class="lacak-head"><b>📍 Lacak kurir • ${esc(code)}</b><button type="button" aria-label="Tutup" data-x>✕</button></div>
+  ov.innerHTML=`<div class="lacak-card"><div class="lacak-head"><b>🛵 Lacak kurir • ${esc(code)}</b><button type="button" aria-label="Tutup" data-x>✕</button></div>
     <div id="lacakMap" class="lacak-map"><p>Memuat posisi kurir…</p></div><div id="lacakInfo" class="lacak-info"></div></div>`;
   document.body.appendChild(ov);
   let timer=null,lastKey="";
@@ -1821,7 +1821,7 @@ function lacakKurir(code){
     if(!document.body.contains(ov))return clearInterval(timer);
     let v=null;try{const r=await cloudFetch("store_settings?select=value&key=eq."+encodeURIComponent("lacak_"+code));v=r&&r[0]&&r[0].value;}catch(e){}
     const map=document.getElementById("lacakMap"),info=document.getElementById("lacakInfo");if(!map)return;
-    if(!v||!v.lat){map.innerHTML='<p>🛵 Kurir belum membagikan lokasi.<br><small>Posisi muncul saat kurir membuka aplikasinya dan GPS menyala.</small></p>';info.innerHTML="";return;}
+    if(!v||!v.lat){map.innerHTML='<p>📡 Kurir belum membagikan lokasi.<br><small>Posisi muncul saat kurir membuka aplikasinya dan GPS menyala.</small></p>';info.innerHTML="";return;}
     const k=v.lat+","+v.lng;
     if(k!==lastKey){lastKey=k;const src=tuju?`https://maps.google.com/maps?saddr=${k}&daddr=${tuju.lat},${tuju.lng}&output=embed`:`https://maps.google.com/maps?q=${k}&z=16&output=embed`;
       map.innerHTML=`<iframe title="Posisi kurir" src="${src}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;}
