@@ -912,6 +912,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const routeNote=rt&&rt.stops.length>1?`[Rute kurir: ${rt.stops.map((x,i)=>`${i+1}. ${x.name}`).join(" → ")} → Pembeli]`:"";
   const orderNote=[userNote,routeNote,mapToken].filter(Boolean).join(" ");
   if(hasMap) localStorage.setItem("kalensari_checkout_location",JSON.stringify({lat:mapLat,lng:mapLng}));
+  if(!(await mintaKataSandi(checkoutBuyer.wa)))return;
   // ===== PESANAN DIPISAH PER TOKO: tiap toko yang dicentang = 1 nota, 1 kurir, ongkir sendiri =====
   const groups=groups0.slice().sort((a,b)=>a.urut-b.urut),createdAt=new Date().toISOString();
   const kodeST=window.KSST?KSST.buatKode():"";
@@ -1912,3 +1913,36 @@ document.querySelector('#checkoutForm select[name="payment"]')?.addEventListener
   if(tot&&sub&&!document.getElementById("coFoot")){const f=document.createElement("div");f.id="coFoot";f.className="sticky-foot";tot.parentNode.insertBefore(f,tot);f.appendChild(tot);f.appendChild(sub);}
 })();
 {const t=document.querySelector('#checkoutForm textarea[name="note"]');if(t)t.placeholder="Contoh: dekat musola, gang 1 (opsional)";}
+
+// ===== Tombol checkout: "Konfirmasi Pesanan" + wajib kata sandi (PIN) akun pembeli =====
+{const b=document.querySelector('#checkoutForm button[type="submit"]');if(b)b.textContent="✅ Konfirmasi Pesanan";}
+async function hashPinPembeli(wa,pin){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("kalensari-pembeli:"+wa+":"+pin));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+function mintaKataSandi(wa){
+  return new Promise(selesai=>{
+    document.getElementById("pinBox")?.remove();
+    const ov=document.createElement("div");ov.id="pinBox";ov.className="pin-ov";
+    ov.innerHTML=`<div class="pin-card"><b>🔒 Konfirmasi pesanan</b><p>Masukkan kata sandi (PIN) akun Anda untuk melanjutkan.</p>
+      <input id="pinIn" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="• • • •">
+      <small id="pinErr"></small><div class="pin-act"><button type="button" class="btn light" id="pinBatal">Batal</button><button type="button" class="btn primary" id="pinOk">Konfirmasi</button></div></div>`;
+    document.body.appendChild(ov);
+    const inp=ov.querySelector("#pinIn"),err=ov.querySelector("#pinErr"),ok=ov.querySelector("#pinOk");let salah=0,sibuk=false;
+    const tutup=v=>{ov.remove();selesai(v);};
+    setTimeout(()=>inp.focus(),80);
+    inp.oninput=()=>{inp.value=inp.value.replace(/\D/g,"");err.textContent="";};
+    inp.onkeydown=e=>{if(e.key==="Enter")ok.click();};
+    ov.querySelector("#pinBatal").onclick=()=>tutup(false);
+    ok.onclick=async()=>{
+      if(sibuk)return;const pin=inp.value;if(pin.length<4){err.textContent="Masukkan 4–8 angka kata sandi Anda.";return;}
+      sibuk=true;ok.textContent="Memeriksa…";
+      try{
+        let acc=null;if(CLOUD_CONFIG?.enabled){const r=await cloudFetch("store_settings?select=value&key=eq.pembeli_accounts");acc=r&&r[0]&&r[0].value;}
+        if(!acc)acc=readLS("kalensari_pembeli_accounts",{});
+        const a=acc&&acc[wa];
+        if(a&&a.h===await hashPinPembeli(wa,pin))return tutup(true);
+        salah++;inp.value="";err.textContent=salah>=5?"Kata sandi salah 5x. Coba lagi nanti atau atur ulang lewat akun pembeli.":"Kata sandi salah. Coba lagi.";
+        if(salah>=5)setTimeout(()=>tutup(false),1800);
+      }catch(e){err.textContent="Gagal memeriksa kata sandi. Periksa koneksi lalu coba lagi.";}
+      finally{sibuk=false;ok.textContent="Konfirmasi";}
+    };
+  });
+}
