@@ -902,6 +902,7 @@ function openOrder(id){
   <div class="detail-row"><span>Total</span><b>${rp(o.total)}</b></div>
   ${kurirOf(o)?`<div class="detail-row"><span>Kurir</span><b>${esc(kurirOf(o).nama||'-')} · <a href="https://wa.me/${esc(kurirOf(o).wa)}" target="_blank" rel="noopener" style="color:var(--g2)">WhatsApp</a></b></div>`:(['Diproses'].includes(stLabel(o.status))&&transOf(o)?`<div class="detail-row"><span>Kurir</span><b style="color:var(--orange)">Mencari kurir...</b></div>`:'')}
   ${antarHtml(o)}
+  ${utAdminHtml(o)}
   ${o.status==='gagal'&&o.gagal_alasan?`<div class="detail-row"><span>Alasan gagal</span><b style="text-align:right;max-width:65%;white-space:normal;color:#9b2c1c">${esc(o.gagal_alasan)}</b></div>`:''}
   ${o.pay_status==='tunggu_wa'&&stLabel(o.status)==='Baru'?`<div class="mact" style="margin-top:10px"><a class="btn btn-light" href="${codWaLink(o)}" target="_blank" rel="noopener">💬 WA pembeli</a><button class="btn btn-g" onclick="codKonfirmasi(${Number(o.id)},this)">✔ Konfirmasi COD</button></div>`:''}
   <div class="detail-row" style="border:0"><span>Status sekarang</span>${statusBadge(o)}</div>
@@ -1515,6 +1516,12 @@ async function batalSetor(mark,btn){
    - Checkout menolak COD bila total > maks atau nomor sudah gagal >= maks_gagal (dihitung setelah waktu buka blokir).
    - Pembeli yang belum pernah punya pesanan selesai -> pay_status "tunggu_wa" (disembunyikan dari penjual) sampai admin konfirmasi.
    - Kurir menekan "Gagal antar" -> status "gagal" + gagal_alasan + gagal_at. */
+function utAdminHtml(o){
+  if(!isCodO(o)||!['diproses','dikirim','selesai','gagal'].includes(o.status))return '';
+  const ut=o.uang_toko&&typeof o.uang_toko==='object'?o.uang_toko:{},m=new Map();
+  (Array.isArray(o.items)?o.items:[]).forEach(it=>{const n=String(it.seller||'Toko').trim(),k=n.toLowerCase();if(!m.has(k))m.set(k,{n,v:0});m.get(k).v+=itemPrice(it)*(Number(it.qty)||1)});
+  return [...m.entries()].map(([k,x])=>`<div class="detail-row"><span>💵 Uang barang ke ${esc(x.n)}<br><small style="color:var(--mut)">${rp(x.v)}</small></span><b style="color:${ut[k]?'var(--g2)':'var(--orange)'}">${ut[k]?'✅ Diterima '+fmtDate(ut[k]):'⏳ Belum dikonfirmasi toko'}</b></div>`).join('');
+}
 const COD_DEF={maks:100000,wa_baru:true,maks_gagal:2,buka:{}};
 const codAt=()=>({...COD_DEF,...(S.settings.cod_aturan&&typeof S.settings.cod_aturan==='object'?S.settings.cod_aturan:{})});
 const isCodO=o=>/^cod/i.test(String(o.payment||'').trim());
