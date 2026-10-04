@@ -317,6 +317,7 @@ async function loadCloudSettings(){
       if(r.key==="penjual_members"&&Array.isArray(r.value)){const m={};r.value.forEach(x=>{const nm=sellerKey(x&&(x.toko||x.usaha));if(nm&&validLL(x.latitude,x.longitude))m[nm]={lat:Number(x.latitude),lng:Number(x.longitude)};});sellerLocs=m;localStorage.setItem("kalensari_seller_locs",JSON.stringify(sellerLocs));}
       if(r.key==="seller_schedule"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){sellerSchedule=r.value;localStorage.setItem("kalensari_seller_schedule",JSON.stringify(sellerSchedule));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
+      if(r.key==="penjual_members"&&Array.isArray(r.value)){r.value.forEach(x=>{if(x&&x.id)sellerIdMap[x.id]=sellerKey(x.toko||x.usaha)});}
       if(r.key==="cod_aturan"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){codAturan={...codAturan,...r.value};}
     });
     return true;
@@ -399,7 +400,7 @@ function renderSellerBar(){
   if(!activeSeller){bar.hidden=true;bar.innerHTML="";return;}
   const n=activeSellerName(),closed=sellerClosed(n);
   bar.hidden=false;
-  bar.innerHTML=`<span>🏪 Produk dari <b>${esc(n)}</b>${closed?' <em class="sf-closed">Tutup</em>':""}</span><button type="button" onclick="setSeller('')">× Semua toko</button>`;
+  bar.innerHTML=`<span>${shopFotos[activeSeller]?`<i class="sf-foto" style="background-image:url('${shopFotos[activeSeller]}')"></i>`:"🏪"} Produk dari <b>${esc(n)}</b>${closed?' <em class="sf-closed">Tutup</em>':""}</span><button type="button" onclick="setSeller('')">× Semua toko</button>`;
 }
 // Daftar toko diambil otomatis dari nama penjual di tiap produk (produk multi-penjual masuk ke tiap toko).
 function shopRows(){
@@ -429,13 +430,13 @@ function renderShopList(){
   const q=(document.getElementById("shopSearch")?.value||"").toLowerCase().trim();
   const rows=shopRows().filter(r=>!q||r.name.toLowerCase().includes(q)||r.items.some(x=>x.toLowerCase().includes(q)));
   document.getElementById("shopList").innerHTML=rows.length?rows.map(r=>`<button type="button" class="shop-row${r.k===activeSeller?" active":""}" data-shop="${esc(r.k)}">
-      <span class="shop-ava">${esc(shopInitials(r.name))}</span>
+      ${shopFotos[r.k]?`<span class="shop-ava foto" style="background-image:url('${shopFotos[r.k]}')"></span>`:`<span class="shop-ava">${esc(shopInitials(r.name))}</span>`}
       <span class="shop-info"><b>${esc(r.name)}</b><small>${r.items.length} produk · ${esc(r.items.slice(0,2).join(", "))}${r.items.length>2?", …":""}</small></span>
       <span class="shop-st ${r.closed?"off":"on"}">${r.closed?"Tutup":"Buka"}</span></button>`).join("")
     :`<p class="shop-empty">Toko tidak ditemukan.</p>`;
 }
 function openShopPanel(){
-  const el=ensureShopPanel();const s=el.querySelector("#shopSearch");s.value="";renderShopList();
+  muatFotoToko();const el=ensureShopPanel();const s=el.querySelector("#shopSearch");s.value="";renderShopList();
   el.hidden=false;document.body.classList.add("shop-open");requestAnimationFrame(()=>el.classList.add("show"));
 }
 function closeShopPanel(){
@@ -917,7 +918,7 @@ if(new URLSearchParams(location.search).get("pesanan")){ history.replaceState(nu
 // ?toko=Nama Toko -> langsung tampilkan produk toko itu (dipakai tombol "Lihat Toko Saya" di aplikasi penjual)
 {const tk=new URLSearchParams(location.search).get("toko");if(tk){history.replaceState(null,"",location.pathname);activeSeller=sellerKey(tk);activeCategory="Semua";renderCategories();renderProducts();setTimeout(()=>document.getElementById("products")?.scrollIntoView({behavior:"smooth"}),700);}}
 if(location.hash==="#checkout"){ history.replaceState(null,"",location.pathname); if(cart.length) setTimeout(()=>document.getElementById("checkoutBtn").click(),400); }
-(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
+(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); setTimeout(muatFotoToko,800); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
 
 // ===== ADMIN DASHBOARD V6 =====
 let adminLoggedIn = !!(adminAuth&&adminAuth.refresh_token);
@@ -1781,3 +1782,21 @@ async function codInfo(phone){
   sel.addEventListener("change",cek);
   const tot=document.getElementById("checkoutTotal");if(tot)new MutationObserver(cek).observe(tot,{childList:true,characterData:true,subtree:true});
 })();
+
+
+// ===== FOTO TOKO =====
+// Penjual mengunggah foto dari aplikasi penjual -> store_settings "foto_toko_<id penjual>" = {foto, t, toko}.
+// Ditampilkan di daftar Toko dan di bar "Produk dari ...". Disimpan sementara di perangkat supaya cepat.
+var sellerIdMap={},shopFotos={};
+try{const c=JSON.parse(localStorage.getItem("kalensari_shop_fotos")||"{}");if(c&&typeof c==="object")shopFotos=c;}catch(e){}
+let fotoTokoJalan=null;
+function muatFotoToko(){
+  if(fotoTokoJalan||!CLOUD_CONFIG?.enabled)return fotoTokoJalan;
+  fotoTokoJalan=(async()=>{try{
+    const rows=await cloudFetch("store_settings?select=key,value&key=like.foto_toko_*");if(!Array.isArray(rows))return;
+    const m={};rows.forEach(r=>{const v=r.value||{},id=String(r.key).slice(10),k=sellerIdMap[id]||sellerKey(v.toko);if(k&&v.foto)m[k]=v.foto;});
+    shopFotos=m;try{localStorage.setItem("kalensari_shop_fotos",JSON.stringify(m));}catch(e){}
+    if(document.getElementById("shopPanel")&&!document.getElementById("shopPanel").hidden)renderShopList();
+    if(activeSeller)renderSellerBar();
+  }catch(e){}})();return fotoTokoJalan;
+}
