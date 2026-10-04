@@ -1022,6 +1022,7 @@ function renderMyOrders(rows=getLocalOrders()){
     <p><b>${esc(o.customer_name||"")}</b> • ${esc(o.customer_phone||"")}</p>
     <p>${(o.items||[]).map(x=>`${esc(x.name)}${x.seller?` (${esc(x.seller)})`:""} ×${x.qty}`).join(" • ")}</p>
     <strong>${rupiah(o.total||0)}</strong>
+    ${o.status==="dikirim"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="lacakKurir('${esc(o.order_code)}')">📍 Lacak kurir</button>`:""}
     ${o.pay_status==="tunggu_wa"&&o.status==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
     ${o.pay_status==="lunas"?'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>':QRIS_OTOMATIS&&o.payment==="QRIS"&&o.status!=="dibatalkan"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="bayarQris('${esc(o.order_code)}')">💳 Bayar dengan QRIS</button>`:""}
     ${window.KSST?KSST.html(o):""}
@@ -1799,4 +1800,37 @@ function muatFotoToko(){
     if(document.getElementById("shopPanel")&&!document.getElementById("shopPanel").hidden)renderShopList();
     if(activeSeller)renderSellerBar();
   }catch(e){}})();return fotoTokoJalan;
+}
+
+
+// ===== LACAK KURIR (pembeli) =====
+// Kurir yang sedang mengantar mengirim posisinya ke store_settings "lacak_<kode>" (diperbarui ±15 detik sekali).
+function lacakKurir(code){
+  const o=getLocalOrders().find(x=>x.order_code===code)||{};
+  const m=String(o.note||"").match(/__KS_MAP__(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)__END__/),tuju=m?{lat:+m[1],lng:+m[2]}:null;
+  document.getElementById("lacakBox")?.remove();
+  const ov=document.createElement("div");ov.id="lacakBox";ov.className="lacak-ov";
+  ov.innerHTML=`<div class="lacak-card"><div class="lacak-head"><b>📍 Lacak kurir • ${esc(code)}</b><button type="button" aria-label="Tutup" data-x>✕</button></div>
+    <div id="lacakMap" class="lacak-map"><p>Memuat posisi kurir…</p></div><div id="lacakInfo" class="lacak-info"></div></div>`;
+  document.body.appendChild(ov);
+  let timer=null,lastKey="";
+  const tutup=()=>{clearInterval(timer);ov.remove();};
+  ov.addEventListener("click",e=>{if(e.target===ov||e.target.closest("[data-x]"))tutup();});
+  const jarak=(a,b)=>{const R=6371,r=x=>x*Math.PI/180,dA=r(b.lat-a.lat),dB=r(b.lng-a.lng),h=Math.sin(dA/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dB/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
+  async function muat(){
+    if(!document.body.contains(ov))return clearInterval(timer);
+    let v=null;try{const r=await cloudFetch("store_settings?select=value&key=eq."+encodeURIComponent("lacak_"+code));v=r&&r[0]&&r[0].value;}catch(e){}
+    const map=document.getElementById("lacakMap"),info=document.getElementById("lacakInfo");if(!map)return;
+    if(!v||!v.lat){map.innerHTML='<p>🛵 Kurir belum membagikan lokasi.<br><small>Posisi muncul saat kurir membuka aplikasinya dan GPS menyala.</small></p>';info.innerHTML="";return;}
+    const k=v.lat+","+v.lng;
+    if(k!==lastKey){lastKey=k;const src=tuju?`https://maps.google.com/maps?saddr=${k}&daddr=${tuju.lat},${tuju.lng}&output=embed`:`https://maps.google.com/maps?q=${k}&z=16&output=embed`;
+      map.innerHTML=`<iframe title="Posisi kurir" src="${src}" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;}
+    const dtk=Math.max(0,Math.round((Date.now()-Number(v.t||0))/1000)),lalu=dtk<60?dtk+" detik":dtk<3600?Math.round(dtk/60)+" menit":"lebih dari 1 jam";
+    const km=tuju?jarak(v,tuju):null;
+    info.innerHTML=`<p>🛵 <b>${esc(v.nama||"Kurir")}</b> sedang menuju alamat Anda</p>
+      ${km!=null?`<p>Jarak ke lokasi Anda ± <b>${km<1?Math.round(km*1000)+" m":km.toFixed(1).replace(".",",")+" km"}</b>${km<0.15?" • kurir sudah dekat 🎉":""}</p>`:""}
+      <p class="lacak-t">Diperbarui ${lalu} lalu${dtk>180?" • kurir mungkin sedang tidak membuka aplikasinya":""}</p>
+      <div class="lacak-act">${v.wa?`<a class="btn outline small" target="_blank" rel="noopener" href="https://wa.me/${esc(String(v.wa).replace(/\D/g,""))}">💬 Chat kurir</a>`:""}<a class="btn outline small" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k)}">Buka di Google Maps</a></div>`;
+  }
+  muat();timer=setInterval(muat,15000);
 }

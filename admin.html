@@ -904,6 +904,7 @@ function openOrder(id){
   ${kurirOf(o)?`<div class="detail-row"><span>Kurir</span><b>${esc(kurirOf(o).nama||'-')} · <a href="https://wa.me/${esc(kurirOf(o).wa)}" target="_blank" rel="noopener" style="color:var(--g2)">WhatsApp</a></b></div>`:(['Diproses'].includes(stLabel(o.status))&&transOf(o)?`<div class="detail-row"><span>Kurir</span><b style="color:var(--orange)">Mencari kurir...</b></div>`:'')}
   ${antarHtml(o)}
   ${utAdminHtml(o)}
+  ${(()=>{const v=S.settings['lacak_'+o.order_code];if(o.status!=='dikirim'||!v||!v.lat)return '';const m=Math.round((Date.now()-Number(v.t||0))/60000);return `<div class="detail-row"><span>📍 Posisi kurir<br><small style="color:var(--mut)">diperbarui ${m<1?'baru saja':m+' menit lalu'}</small></span><b><a href="https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}" target="_blank" rel="noopener" style="color:var(--g2)">Lihat di peta</a></b></div>`})()}
   ${o.status==='gagal'&&o.gagal_alasan?`<div class="detail-row"><span>Alasan gagal</span><b style="text-align:right;max-width:65%;white-space:normal;color:#9b2c1c">${esc(o.gagal_alasan)}</b></div>`:''}
   ${o.pay_status==='tunggu_wa'&&stLabel(o.status)==='Baru'?`<div class="mact" style="margin-top:10px"><a class="btn btn-light" href="${codWaLink(o)}" target="_blank" rel="noopener">💬 WA pembeli</a><button class="btn btn-g" onclick="codKonfirmasi(${Number(o.id)},this)">✔ Konfirmasi COD</button></div>`:''}
   <div class="detail-row" style="border:0"><span>Status sekarang</span>${statusBadge(o)}</div>
