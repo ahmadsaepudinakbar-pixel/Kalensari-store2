@@ -1896,3 +1896,12 @@ async function petaLacak(box,v,tuju){
 
 // rincian checkout ikut berubah saat cara bayar diganti (catatan QRIS sekali bayar untuk semua nota)
 document.querySelector('#checkoutForm select[name="payment"]')?.addEventListener("change",()=>renderCart());
+
+// ===== Total nota selalu terlihat: ringkasan + tombol menempel di bawah keranjang & checkout =====
+(function(){
+  const box=document.querySelector("#cartModal .modal-box"),sum=box&&box.querySelector(".summary"),btn=document.getElementById("checkoutBtn");
+  if(box&&sum&&btn&&!document.getElementById("cartFoot")){const f=document.createElement("div");f.id="cartFoot";f.className="sticky-foot";sum.parentNode.insertBefore(f,sum);f.appendChild(sum);f.appendChild(btn);}
+  const form=document.getElementById("checkoutForm"),tot=form&&form.querySelector(".checkout-total"),sub=form&&form.querySelector('button[type="submit"]');
+  if(tot&&sub&&!document.getElementById("coFoot")){const f=document.createElement("div");f.id="coFoot";f.className="sticky-foot";tot.parentNode.insertBefore(f,tot);f.appendChild(tot);f.appendChild(sub);}
+})();
+{const t=document.querySelector('#checkoutForm textarea[name="note"]');if(t)t.placeholder="Contoh: dekat musola, gang 1 (opsional)";}
