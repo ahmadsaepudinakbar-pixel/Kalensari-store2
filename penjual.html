@@ -104,10 +104,16 @@ async function fetchMyOrders(){
 }
 // COD: kurir membayar uang barang ke toko saat mengambil pesanan; toko menekan tombol sebagai bukti.
 const isCodO=o=>/^cod/i.test(String(o.payment||"").trim()),utOf=o=>o&&o.uang_toko&&typeof o.uang_toko==="object"?o.uang_toko:{};
-function utHtml(o,st,sub){if(!isCodO(o)||!["diproses","dikirim","selesai","gagal"].includes(st))return"";const t=utOf(o)[myKey()];
-  return t?`<p style="color:#14502c;font-weight:700;margin-top:8px">✅ Uang barang ${rp(sub)} sudah diterima • ${new Date(t).toLocaleString("id-ID")}</p>`
-  :`<div style="margin-top:8px;background:#fff6e0;border-radius:12px;padding:10px"><small>💵 COD: kurir membayar uang barang <b>${rp(sub)}</b> ke toko saat mengambil pesanan.</small><br><button class="mini g" data-ut="${escH(String(o.id))}" data-sub="${sub}">💵 Uang barang sudah diterima</button></div>`}
+let KACC={};
+async function muatKurirAcc(rows){const need=rows.filter(o=>isCodO(o)&&o.status==="diproses");KACC={};if(!cloudOn()||!need.length)return;
+  try{const r=await cf("store_settings?select=key,value&key=in.("+need.map(o=>encodeURIComponent('"kurir_ord_'+o.order_code+'"')).join(",")+")");(r||[]).forEach(x=>{if(x.value&&x.value.acc)KACC[String(x.key).slice(10)]=x.value.acc})}catch(e){}}
+const kurirSudah=o=>["dikirim","selesai","gagal"].includes(o.status)||!!KACC[o.order_code];
+function utHtml(o,st,sub){if(!isCodO(o)||!["diproses","dikirim","selesai","gagal"].includes(st))return"";const t=utOf(o)[myKey()],k=KACC[o.order_code];
+  if(t)return `<p style="color:#14502c;font-weight:700;margin-top:8px">✅ Uang barang ${rp(sub)} sudah diterima dari kurir • ${new Date(t).toLocaleString("id-ID")}</p>`;
+  if(!kurirSudah(o))return `<div style="margin-top:8px;background:#f3f1ee;border-radius:12px;padding:10px"><small>🛵 <b>Menunggu kurir menerima pesanan.</b> Kurir akan membayar uang barang <b>${rp(sub)}</b> saat mengambil.</small></div>`;
+  return `<div style="margin-top:8px;background:#fff6e0;border-radius:12px;padding:10px"><small>🛵 <b>${k&&k.nama?"Kurir "+escH(k.nama):"Kurir"} sudah menerima pesanan.</b> Kurir membayar uang barang <b>${rp(sub)}</b> saat mengambil.</small><br><button class="mini g" data-ut="${escH(String(o.id))}" data-sub="${sub}">💵 Uang sudah diterima dari kurir</button></div>`}
 async function utTerima(id,sub,btn){const o=ordRows.find(x=>String(x.id)===String(id));if(!o)return;
+  if(!kurirSudah(o)){toast("Tunggu kurir menerima pesanan dulu");return}
   if(!confirm(`Konfirmasi: uang barang ${rp(sub)} untuk pesanan ${o.order_code} sudah Anda terima dari kurir?`))return;btn.disabled=true;
   try{const t=new Date().toISOString();let cur=utOf(o);
     if(cloudOn()){const r=await cf("orders?select=uang_toko&id=eq."+encodeURIComponent(id));cur=r&&r[0]&&r[0].uang_toko&&typeof r[0].uang_toko==="object"?r[0].uang_toko:{};}
@@ -140,7 +146,7 @@ function renderOrders(){
 }
 async function pollOrders(){
   try{
-    ordRows=await fetchMyOrders();
+    ordRows=await fetchMyOrders();await muatKurirAcc(ordRows);
     const kn="kalensari_penjual_known_"+WA,had=localStorage.getItem(kn)!==null,known=new Set(LSget(kn,[]));
     const fresh=ordRows.filter(o=>!known.has(o.order_code));
     if(had&&fresh.length){fresh.forEach(o=>ordNew.add(o.order_code));beep();const f=fresh[0];
