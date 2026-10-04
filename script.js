@@ -1676,9 +1676,10 @@ async function bayarQris(code,waMsg){
       <div class="qp-total">${rupiah(Number(d.total)||0)}</div>
       <div class="qp-qr"><img alt="QRIS pembayaran ${esc(code)}" src="${q.createDataURL(8,2)}"></div>
       <div class="qp-st" id="qpSt">⏳ Menunggu pembayaran • sisa <b id="qpLeft">-</b></div>
-      <small style="display:block;color:#6c5548">Scan dengan GoPay, OVO, DANA, ShopeePay, atau m-banking. Nominal sudah terisi otomatis. Di HP yang sama: tekan lama gambar QR → simpan, lalu pilih dari galeri.</small>
-      <div class="qp-acts"><button class="btn outline" type="button" id="qpCek">↻ Saya sudah bayar, cek sekarang</button><button class="btn light" type="button" id="qpNanti">Bayar nanti (lihat di 📦 Pesanan Saya)</button></div>`);
-    document.getElementById("qpCek").onclick=()=>qpCekSekarang(code,true);document.getElementById("qpNanti").onclick=tutupQris;
+      <small style="display:block;color:#6c5548">Scan dengan GoPay, OVO, DANA, ShopeePay, atau m-banking. Nominal sudah terisi otomatis. Di HP yang sama: tekan <b>Simpan QR</b>, lalu di aplikasi bank/e-wallet pilih Scan → gambar dari galeri.</small>
+      <div class="qp-acts"><button class="btn primary" type="button" id="qpSimpan">⬇️ Simpan QR</button><button class="btn outline" type="button" id="qpCek">↻ Saya sudah bayar, cek sekarang</button><button class="btn light" type="button" id="qpNanti">Bayar nanti (lihat di 📦 Pesanan Saya)</button></div>`);
+    document.getElementById("qpCek").onclick=()=>qpCekSekarang(code,true);
+    document.getElementById("qpSimpan").onclick=()=>simpanQris(q,code,Number(d.total)||0);document.getElementById("qpNanti").onclick=tutupQris;
     const exp=new Date(d.expire).getTime();
     clearInterval(qpTick);qpTick=setInterval(()=>{const l=exp-Date.now(),el=document.getElementById("qpLeft");if(!el)return;
       if(l<=0){clearInterval(qpTick);clearInterval(qpTimer);qpHabis(code);return;}el.textContent=Math.floor(l/60000)+":"+String(Math.floor(l%60000/1000)).padStart(2,"0");},1000);
@@ -1703,4 +1704,24 @@ function qpLunas(code){
 function qpHabis(code){
   clearInterval(qpTimer);clearInterval(qpTick);
   qpRender(`<h2>⌛ Waktu bayar habis</h2><p>QRIS untuk pesanan <b>${esc(code)}</b> sudah tidak berlaku.</p><div class="qp-acts"><button class="btn primary" type="button" onclick="bayarQris('${esc(code)}')">Buat QRIS baru</button><button class="btn light" type="button" onclick="tutupQris()">Tutup</button></div>`);
+}
+
+// Simpan QR sebagai gambar PNG (putih bersih, ada nominal & kode pesanan) supaya bisa dipilih dari galeri di aplikasi bank/e-wallet
+function simpanQris(q,code,total){
+  const n=q.getModuleCount(),cell=Math.max(6,Math.floor(560/n)),qs=n*cell,pad=cell*4,W=qs+pad*2,H=70+pad+qs+pad*0.6+110;
+  const c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");
+  x.fillStyle="#ffffff";x.fillRect(0,0,W,H);
+  x.fillStyle="#7a3e20";x.fillRect(0,0,W,70);
+  x.fillStyle="#ffffff";x.font="bold 30px Arial,sans-serif";x.textAlign="center";x.fillText("KALENSARI STORE • QRIS",W/2,47);
+  x.fillStyle="#140c08";for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))x.fillRect(pad+k*cell,70+pad+r*cell,cell,cell);
+  x.fillStyle="#7a3e20";x.font="bold 44px Arial,sans-serif";x.fillText(rupiah(total),W/2,70+pad+qs+pad*0.6+40);
+  x.fillStyle="#555";x.font="24px Arial,sans-serif";x.fillText("Pesanan "+code+" • berlaku 15 menit",W/2,70+pad+qs+pad*0.6+82);
+  const nama="QRIS-"+code+".png";
+  c.toBlob(b=>{if(!b){showToast("Gagal menyimpan gambar");return;}
+    const f=new File([b],nama,{type:"image/png"});
+    // iPhone: menu bagikan (ada "Simpan Gambar"); Android/komputer: langsung terunduh ke galeri/Download
+    if(navigator.canShare&&navigator.canShare({files:[f]})&&/iPhone|iPad/i.test(navigator.userAgent)){navigator.share({files:[f],title:nama}).catch(()=>unduh(b));}
+    else unduh(b);
+  },"image/png");
+  function unduh(b){const u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=nama;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);showToast("✅ QR disimpan. Buka aplikasi bank/e-wallet → Scan → pilih dari galeri.");}
 }
