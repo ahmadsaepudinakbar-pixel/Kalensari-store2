@@ -896,7 +896,8 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const merged=getLocalOrders().map(o=>savedMap.has(o.order_code)?{...o,...savedMap.get(o.order_code),sync_error:null}:o); saveLocalOrders(merged);
   renderMyOrders();
   if(kodeST) await KSST.daftarkan(orderCode,kodeST);
-  window.open(waLink(msgWA),"_blank");
+  if(String(f.get("payment")||"")==="QRIS"&&QRIS_OTOMATIS) bayarQris(orderCode,msgWA);
+  else window.open(waLink(msgWA),"_blank");
   cart=[];saveCart();updateCartCount();renderCart();closeModal("checkoutModal");
   showToast(multi?`✅ Pesanan ${stops.length} toko (1 nota) tersimpan dan dikirim.`:"✅ Pesanan tersimpan dan dikirim."); e.target.reset();
   if(window.KSNotif&&CLOUD_CONFIG?.enabled) setTimeout(()=>KSNotif.tawarkan({key:"pembeli_push_"+normalizePhone(phone),ajakan:"🔔 Kabari saya saat pesanan diterima toko & diantar kurir?"}),1500);
@@ -1010,6 +1011,7 @@ function renderMyOrders(rows=getLocalOrders()){
     <p><b>${esc(o.customer_name||"")}</b> • ${esc(o.customer_phone||"")}</p>
     <p>${(o.items||[]).map(x=>`${esc(x.name)}${x.seller?` (${esc(x.seller)})`:""} ×${x.qty}`).join(" • ")}</p>
     <strong>${rupiah(o.total||0)}</strong>
+    ${o.pay_status==="lunas"?'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>':QRIS_OTOMATIS&&o.payment==="QRIS"&&o.status!=="dibatalkan"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="bayarQris('${esc(o.order_code)}')">💳 Bayar dengan QRIS</button>`:""}
     ${window.KSST?KSST.html(o):""}
     ${o.sync_error?`<div class="order-hint">⚠️ Belum tersinkron ke database: ${esc(o.sync_error)}</div>`:""}
     ${o.updated_at?`<div class="order-updated">Diperbarui: ${new Date(o.updated_at).toLocaleString("id-ID")}</div>`:""}
@@ -1634,3 +1636,71 @@ body.ks-frame-open{overflow:hidden}`;
     e.preventDefault();window.ksBuka(u.href);
   });
 })();
+
+
+// ===== PEMBAYARAN QRIS OTOMATIS (Duitku lewat Supabase Edge Function "duitku-qris") =====
+// Pembeli memilih "QRIS" saat checkout -> muncul QRIS dengan nominal sesuai total pesanan.
+// Setelah dibayar, status pesanan otomatis "Lunas" (dicek tiap beberapa detik + callback Duitku).
+var QRIS_OTOMATIS=true;   // ubah ke false untuk mematikan QRIS otomatis
+var QRIS_FN="duitku-qris";
+(function(){const o=[...document.querySelectorAll('#checkoutForm select[name="payment"] option')].find(x=>/^qris$/i.test(x.value||x.textContent));
+  if(o&&QRIS_OTOMATIS){o.value="QRIS";o.textContent="QRIS (scan & bayar otomatis)";}})();
+async function qrisApi(body){
+  const base=String(CLOUD_CONFIG?.supabaseUrl||"").replace(/\/$/,"");
+  const r=await fetch(`${base}/functions/v1/${QRIS_FN}`,{method:"POST",headers:{"Content-Type":"application/json",apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:`Bearer ${CLOUD_CONFIG.supabaseAnonKey}`},body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.pesan||("HTTP "+r.status));return d;
+}
+let qrLib=null;
+function muatQrLib(){if(window.qrcode)return Promise.resolve();if(qrLib)return qrLib;
+  qrLib=new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";s.onload=ok;s.onerror=()=>{qrLib=null;no(new Error("Gagal memuat pembuat QR"))};document.head.appendChild(s);});return qrLib;}
+function qrisModal(){
+  let m=document.getElementById("qrisPayModal");if(m)return m;
+  const st=document.createElement("style");st.textContent=`.qp-box{text-align:center}.qp-qr{width:min(300px,100%);margin:10px auto;padding:12px;border:3px solid #7a3e20;border-radius:18px;background:#fff}.qp-qr img{width:100%;height:auto;image-rendering:pixelated;display:block}
+.qp-total{font-size:28px;font-weight:900;color:#7a3e20;margin:4px 0}.qp-st{border-radius:12px;padding:10px 12px;font-weight:700;margin:10px 0;background:#fff5ec;color:#6c5548}.qp-st.ok{background:#e8f7ec;color:#24633a}.qp-st.bad{background:#fdeaea;color:#8b3030}
+.qp-acts{display:grid;gap:8px;margin-top:10px}.qp-head{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;color:#3b2920}`;document.head.appendChild(st);
+  m=document.createElement("div");m.id="qrisPayModal";m.className="modal";m.innerHTML=`<div class="modal-box qp-box"><button class="close" type="button" aria-label="Tutup">×</button><div id="qpBody"></div></div>`;
+  document.body.appendChild(m);m.querySelector(".close").onclick=()=>tutupQris();m.addEventListener("click",e=>{if(e.target===m)tutupQris();});return m;
+}
+let qpTimer=null,qpTick=null,qpCode="",qpWa="";
+function tutupQris(){clearInterval(qpTimer);clearInterval(qpTick);qpCode="";document.getElementById("qrisPayModal")?.classList.remove("show");refreshMyOrders?.();}
+function qpRender(html){document.getElementById("qpBody").innerHTML=html;}
+async function bayarQris(code,waMsg){
+  qrisModal().classList.add("show");qpCode=code;if(waMsg)qpWa=waMsg;
+  qpRender(`<span class="eyebrow">PEMBAYARAN</span><h2 style="margin:6px 0">💳 QRIS</h2><p>Menyiapkan QRIS untuk pesanan <b>${esc(code)}</b>...</p>`);
+  try{
+    const [d]=await Promise.all([qrisApi({aksi:"buat",order_code:code}),muatQrLib()]);
+    if(qpCode!==code)return;
+    if(d.pay_status==="lunas")return qpLunas(code);
+    const q=qrcode(0,"M");q.addData(d.qr);q.make();
+    qpRender(`<span class="eyebrow">KALENSARI STORE • PEMBAYARAN</span><div class="qp-head">QRIS • ${esc(code)}</div>
+      <div class="qp-total">${rupiah(Number(d.total)||0)}</div>
+      <div class="qp-qr"><img alt="QRIS pembayaran ${esc(code)}" src="${q.createDataURL(8,2)}"></div>
+      <div class="qp-st" id="qpSt">⏳ Menunggu pembayaran • sisa <b id="qpLeft">-</b></div>
+      <small style="display:block;color:#6c5548">Scan dengan GoPay, OVO, DANA, ShopeePay, atau m-banking. Nominal sudah terisi otomatis. Di HP yang sama: tekan lama gambar QR → simpan, lalu pilih dari galeri.</small>
+      <div class="qp-acts"><button class="btn outline" type="button" id="qpCek">↻ Saya sudah bayar, cek sekarang</button><button class="btn light" type="button" id="qpNanti">Bayar nanti (lihat di 📦 Pesanan Saya)</button></div>`);
+    document.getElementById("qpCek").onclick=()=>qpCekSekarang(code,true);document.getElementById("qpNanti").onclick=tutupQris;
+    const exp=new Date(d.expire).getTime();
+    clearInterval(qpTick);qpTick=setInterval(()=>{const l=exp-Date.now(),el=document.getElementById("qpLeft");if(!el)return;
+      if(l<=0){clearInterval(qpTick);clearInterval(qpTimer);qpHabis(code);return;}el.textContent=Math.floor(l/60000)+":"+String(Math.floor(l%60000/1000)).padStart(2,"0");},1000);
+    clearInterval(qpTimer);qpTimer=setInterval(()=>qpCekSekarang(code,false),4000);
+  }catch(e){
+    qpRender(`<h2>💳 QRIS</h2><div class="qp-st bad">QRIS otomatis belum bisa dibuat.<br><small>${esc(e.message)}</small></div><p>Pesanan Anda tetap tersimpan. Hubungi toko lewat WhatsApp untuk cara bayar lain.</p><div class="qp-acts"><a class="btn primary" target="_blank" rel="noopener" href="${waLink(qpWa||("Halo KALENSARI STORE, saya ingin membayar pesanan "+code))}">💬 WhatsApp toko</a><button class="btn light" type="button" onclick="tutupQris()">Tutup</button></div>`);
+  }
+}
+async function qpCekSekarang(code,manual){
+  try{const d=await qrisApi({aksi:"cek",order_code:code});if(qpCode!==code)return;
+    if(d.pay_status==="lunas")return qpLunas(code);
+    if(d.pay_status==="kedaluwarsa"||d.pay_status==="gagal")return qpHabis(code);
+    if(manual)showToast("Pembayaran belum diterima. Coba lagi beberapa detik lagi.");
+  }catch(e){if(manual)showToast("Gagal mengecek: "+e.message);}
+}
+function qpLunas(code){
+  clearInterval(qpTimer);clearInterval(qpTick);
+  const rows=getLocalOrders().map(o=>o.order_code===code?{...o,pay_status:"lunas"}:o);saveLocalOrders(rows);renderMyOrders();
+  qpRender(`<div style="font-size:64px">✅</div><h2 style="margin:4px 0">Pembayaran berhasil</h2><p>Pesanan <b>${esc(code)}</b> sudah <b>LUNAS</b> dan diteruskan ke penjual.</p>
+    <div class="qp-acts">${qpWa?`<a class="btn primary" target="_blank" rel="noopener" href="${waLink(qpWa+"\n\n✅ SUDAH DIBAYAR LUNAS lewat QRIS")}">💬 Kirim nota ke WhatsApp</a>`:""}<button class="btn light" type="button" onclick="tutupQris()">Selesai</button></div>`);
+}
+function qpHabis(code){
+  clearInterval(qpTimer);clearInterval(qpTick);
+  qpRender(`<h2>⌛ Waktu bayar habis</h2><p>QRIS untuk pesanan <b>${esc(code)}</b> sudah tidak berlaku.</p><div class="qp-acts"><button class="btn primary" type="button" onclick="bayarQris('${esc(code)}')">Buat QRIS baru</button><button class="btn light" type="button" onclick="tutupQris()">Tutup</button></div>`);
+}
