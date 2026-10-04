@@ -418,7 +418,7 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo Toko','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['lapak','Lapak Barter','tag'],['ulasan','Ulasan Pembeli','check'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo Toko','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['lapak','Lapak Barter','tag'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['pengaturan','Pengaturan','gear']
 ];
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
 let jenisFilter='Semua',route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
@@ -427,7 +427,7 @@ function renderNav(){
   const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
   $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}${k==='persetujuan'&&pendingTotal()?`<span class="cnt" style="background:var(--orange)">${pendingTotal()}</span>`:''}</a>`).join('');
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
-    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','lapak','ulasan','pengaturan','lainnya'].includes(route));
+    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','lapak','ulasan','resetpin','pengaturan','lainnya'].includes(route));
     const dot=k==='lainnya'&&pendingTotal()?`<span style="position:absolute;top:2px;right:calc(50% - 16px);background:var(--orange);color:#fff;font-size:10px;border-radius:99px;min-width:16px;padding:0 4px;font-weight:700">${pendingTotal()}</span>`:'';
     return `<button class="${on?'on':''}" style="position:relative" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}${dot}</button>`}).join('');
   const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
@@ -470,7 +470,7 @@ function sessionExpired(){if(!$('#app').classList.contains('hide')){logout();toa
 
 const TITLES={dashboard:['Dashboard','Ringkasan toko dari data asli'],pesanan:['Pesanan','Kelola semua pesanan masuk'],
   produk:['Produk','Atur produk, harga, dan stok'],kategori:['Kategori','Kelompokkan produk toko'],pelanggan:['Pelanggan','Dihitung dari pesanan yang masuk'],
-  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],cair:['Pencairan Saldo Toko','Saldo penjualan toko (pesanan non-COD selesai) dan permintaan pencairan'],ulasan:['Ulasan Pembeli','Penilaian pembeli untuk tiap toko (tidak tampil di toko)'],lapak:['Lapak Barter','Iklan jual beli & barter warga (pasar.html)'],cod:['COD & Gagal antar','Pengaman COD dan laporan gagal antar kurir'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
+  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],cair:['Pencairan Saldo Toko','Saldo penjualan toko (pesanan non-COD selesai) dan permintaan pencairan'],resetpin:['Reset PIN Warga','Permintaan lupa PIN dari akun Warga Desa'],ulasan:['Ulasan Pembeli','Penilaian pembeli untuk tiap toko (tidak tampil di toko)'],lapak:['Lapak Barter','Iklan jual beli & barter warga (pasar.html)'],cod:['COD & Gagal antar','Pengaman COD dan laporan gagal antar kurir'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
 
 function render(){
   renderNav();
@@ -539,7 +539,7 @@ dashboard(){
       <div class="banner"><svg width="44" height="44" viewBox="0 0 100 100"><path d="M30 34 50 12 70 34" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M10 34h80v10H10zM15 44h70l-7 44H22z" fill="none" stroke="#fff" stroke-width="5"/><text x="50" y="80" text-anchor="middle" font-size="26" font-weight="900" fill="#fff">KS</text></svg><div><b>Kalensari Store</b><small>Belanja makanan &amp; minuman dari warga Kalensari</small></div></div>
       ${topupMenunggu().length?`<div class="card" style="margin-bottom:20px;background:var(--gl);cursor:pointer" onclick="go('kurir')"><b style="color:var(--g)">💰 ${topupMenunggu().length} permintaan isi saldo kurir</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${topupMenunggu().slice(0,3).map(x=>esc(x.nama||'Kurir')+' '+rp(x.jumlah)).join(', ')} · ketuk untuk konfirmasi</div></div>`:''}
       ${laporBuka().length?`<div class="card" style="margin-bottom:20px;background:#fdecea;cursor:pointer" onclick="orderFilter='Dilaporkan';jenisFilter='Semua';go('pesanan')"><b style="color:#c0392b">⚠️ ${laporBuka().length} pesanan dilaporkan belum diterima pembeli</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${laporBuka().slice(0,3).map(o=>esc(orderCode(o))).join(', ')} · ketuk untuk menangani</div></div>`:''}
-      ${pendingTotal()?`<div class="card" style="margin-bottom:20px;background:var(--ol);cursor:pointer" onclick="go('persetujuan')"><b>⏳ ${pendingTotal()} pendaftar menunggu persetujuan</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${GROUPS.map(g=>pendingOf(g.k).length?pendingOf(g.k).length+' '+g.label.toLowerCase():'').filter(Boolean).join(', ')} · ketuk untuk melihat</div></div>`:''}
+      ${Object.values(rpMap()).filter(x=>x&&x.status==='baru').length?`<div class="card" style="margin-bottom:14px;background:#fff3cd;cursor:pointer" onclick="go('resetpin')"><b>🔑 ${Object.values(rpMap()).filter(x=>x&&x.status==='baru').length} warga lupa PIN</b><div class="sm" style="margin-top:4px">Ketuk untuk membuat PIN sementara</div></div>`:''}${pendingTotal()?`<div class="card" style="margin-bottom:20px;background:var(--ol);cursor:pointer" onclick="go('persetujuan')"><b>⏳ ${pendingTotal()} pendaftar menunggu persetujuan</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${GROUPS.map(g=>pendingOf(g.k).length?pendingOf(g.k).length+' '+g.label.toLowerCase():'').filter(Boolean).join(', ')} · ketuk untuk melihat</div></div>`:''}
       <div class="card" style="margin-bottom:20px"><div class="chead"><h3>Aksi Cepat</h3></div><div class="quick">
         <button class="qbtn" style="background:var(--gl);color:var(--g)" onclick="productForm()"><span class="qi" style="background:var(--g2)">${ico('plus')}</span>Tambah Produk</button>
         <button class="qbtn" style="background:var(--bl);color:var(--blue)" onclick="go('pesanan')"><span class="qi" style="background:var(--blue)">${ico('doc')}</span>Kelola Pesanan</button>
@@ -642,11 +642,12 @@ keuangan(){return keuanganPage()},
 cod(){return codPage()},
 lapak(){return lapakPage()},
 ulasan(){return ulasanPage()},
+resetpin(){return resetPinPage()},
 cair(){return cairPage()},
 lainnya(){
   const em=(auth&&auth.email)||'';
   return `<div class="profile-head"><div class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(em||'A'))}</div><div><b style="font-size:18px">Admin</b><div style="opacity:.9;font-size:13px">${esc(em)}</div></div></div>
-  <div class="card menu-list">${MENU.map(([k,l,i])=>`<a onclick="go('${k}')">${ico(i,'color:var(--mut)')}${l}${k==='persetujuan'&&pendingTotal()?` <span class="badge b-Diproses">${pendingTotal()} menunggu</span>`:''}${k==='cair'&&cairTunggu().length?` <span class="badge b-Diproses">${cairTunggu().length} menunggu</span>`:''}${k==='cod'&&codTunggu().length?` <span class="badge b-Diproses">${codTunggu().length} konfirmasi</span>`:''}<span class="ch">${ico('right')}</span></a>`).join('')}
+  <div class="card menu-list">${MENU.map(([k,l,i])=>`<a onclick="go('${k}')">${ico(i,'color:var(--mut)')}${l}${k==='persetujuan'&&pendingTotal()?` <span class="badge b-Diproses">${pendingTotal()} menunggu</span>`:''}${k==='resetpin'&&Object.values(rpMap()).filter(x=>x&&x.status==='baru').length?` <span class="badge b-Diproses">${Object.values(rpMap()).filter(x=>x&&x.status==='baru').length} baru</span>`:''}${k==='cair'&&cairTunggu().length?` <span class="badge b-Diproses">${cairTunggu().length} menunggu</span>`:''}${k==='cod'&&codTunggu().length?` <span class="badge b-Diproses">${codTunggu().length} konfirmasi</span>`:''}<span class="ch">${ico('right')}</span></a>`).join('')}
   <a href="index.html">${ico('store','color:var(--mut)')}Buka Halaman Toko<span class="ch">${ico('right')}</span></a>
   <a onclick="logout()" style="color:var(--red);border:0">${ico('out')}Logout</a></div>`;
 }
@@ -1631,6 +1632,40 @@ async function cairProses(id,status,btn){
 }
 /* ========== LAPAK BARTER (pasar.html) ==========
    Iklan langsung tayang. Admin bisa menyembunyikan / menampilkan / menghapus iklan dan komentar. */
+
+/* ========== RESET PIN WARGA (lupa PIN) ==========
+   Warga mengirim permintaan dari halaman masuk (store_settings "reset_pin"). Admin membuat PIN sementara,
+   mengirimnya ke WhatsApp warga, lalu warga wajib membuat PIN baru setelah masuk. PIN tidak disimpan. */
+let rpQ='';
+const rpMap=()=>S.settings.reset_pin&&typeof S.settings.reset_pin==='object'&&!Array.isArray(S.settings.reset_pin)?S.settings.reset_pin:{};
+function resetPinPage(){
+  const r=rpMap(),baru=Object.entries(r).filter(([,x])=>x&&x.status==='baru').sort((a,b)=>b[1].t-a[1].t),done=Object.entries(r).filter(([,x])=>x&&x.status!=='baru').sort((a,b)=>(b[1].t2||0)-(a[1].t2||0)).slice(0,10);
+  const nm=wa=>{const acc=S.settings.pembeli_accounts||{},id=acc[wa]&&acc[wa].id,m=members('pembeli').find(x=>x.id===id);return m&&m.nama||''};
+  return `<div class="card" style="margin-bottom:14px"><b>🔑 Permintaan lupa PIN (${baru.length})</b><div class="sm" style="margin:2px 0 8px">Pastikan nomor WhatsApp benar milik warga tersebut. PIN sementara dikirim ke nomor yang terdaftar.</div>
+    ${baru.length?baru.map(([wa,x])=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:10px 0;flex-wrap:wrap"><div><b>${esc(x.nama||nm(wa)||'(tanpa nama)')}</b><div class="sm">+${esc(wa)} • ${new Date(x.t).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}</div></div>
+      <div style="display:flex;gap:6px">${waLink(wa)}<button class="btn btn-g" style="padding:8px 12px;font-size:12px" onclick="buatPinSementara('${jsq(wa)}',this)">🔑 Buat PIN sementara</button><button class="btn btn-light" style="padding:8px 12px;font-size:12px" onclick="tolakResetPin('${jsq(wa)}',this)">Abaikan</button></div></div>`).join(''):'<div class="empty" style="padding:14px">Tidak ada permintaan baru</div>'}</div>
+  <div class="card" style="margin-bottom:14px"><b>Reset manual</b><div class="sm" style="margin:2px 0 8px">Untuk warga yang meminta lewat WhatsApp / datang langsung.</div>
+    <div style="display:flex;gap:8px"><input class="inp" id="rpWa" placeholder="Nomor WA warga, mis. 0812..." value="${esc(rpQ)}" oninput="rpQ=this.value" style="flex:1"><button class="btn btn-g" onclick="buatPinSementara(phoneKey(document.getElementById('rpWa').value),this)">🔑 Buat PIN</button></div></div>
+  ${done.length?`<div class="card"><b>Riwayat</b>${done.map(([wa,x])=>`<div class="sm" style="padding:6px 0;border-bottom:1px solid var(--line)">+${esc(wa)} • ${esc(x.nama||nm(wa)||'')} • ${x.status==='selesai'?'PIN sementara dibuat':'diabaikan'} ${x.t2?new Date(x.t2).toLocaleString('id-ID',{dateStyle:'short',timeStyle:'short'}):''}</div>`).join('')}</div>`:''}`;
+}
+async function hashPinWarga(wa,pin){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('kalensari-pembeli:'+wa+':'+pin));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function buatPinSementara(wa,btn){
+  if(!wa||wa.length<9)return toast('Nomor WhatsApp tidak valid');
+  if(!confirm('Buat PIN sementara untuk +'+wa+'? PIN lama warga tidak berlaku lagi.'))return;
+  await busy(btn,async()=>{
+    const acc=await readKey('pembeli_accounts',{});if(!acc||!acc[wa])return toast('Nomor ini belum punya akun Warga Desa');
+    const n=new Uint32Array(1);crypto.getRandomValues(n);const pin=String(100000+n[0]%900000);
+    acc[wa]={...acc[wa],h:await hashPinWarga(wa,pin),tmp:true,reset_at:Date.now()};await setSetting('pembeli_accounts',acc);S.settings.pembeli_accounts=acc;
+    const r=await readKey('reset_pin',{})||{};const m=members('pembeli').find(x=>x.id===acc[wa].id),nama=(m&&m.nama)||(r[wa]&&r[wa].nama)||'';
+    r[wa]={...(r[wa]||{peran:'pembeli',t:Date.now()}),nama,status:'selesai',t2:Date.now()};await setSetting('reset_pin',r);S.settings.reset_pin=r;rpQ='';
+    const teks=`Halo ${nama||'Bapak/Ibu'}, ini admin Kalensari.\nPIN sementara akun Warga Desa Anda: *${pin}*\n\nSilakan masuk dengan nomor WhatsApp ini dan PIN tersebut, lalu buat PIN baru. Jangan berikan PIN ini kepada siapa pun.`;
+    render();
+    modal(`<h3 style="margin:0 0 6px">🔑 PIN sementara dibuat</h3><p class="sm">Untuk ${esc(nama||'warga')} (+${esc(wa)}). PIN ini hanya ditampilkan sekali.</p>
+      <div style="font-size:38px;font-weight:800;letter-spacing:8px;text-align:center;background:#faf6f2;border-radius:14px;padding:14px;margin:10px 0">${pin}</div>
+      <div class="mact"><button class="btn btn-o" onclick="closeModal()">Tutup</button><a class="btn btn-g" style="text-decoration:none" href="https://wa.me/${esc(wa)}?text=${encodeURIComponent(teks)}" target="_blank" rel="noopener">Kirim lewat WhatsApp</a></div>`);
+  });
+}
+async function tolakResetPin(wa,btn){await busy(btn,async()=>{const r=await readKey('reset_pin',{})||{};if(r[wa]){r[wa].status='diabaikan';r[wa].t2=Date.now();}await setSetting('reset_pin',r);S.settings.reset_pin=r;render();toast('Permintaan diabaikan')})}
 
 /* ========== ULASAN PEMBELI (tidak tampil di Kalensari Store) ========== */
 let ULASAN=null,ulsToko='',ulsQ='';

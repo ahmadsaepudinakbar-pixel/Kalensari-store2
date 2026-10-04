@@ -756,7 +756,9 @@ async function loadBuyer(){
   };
   const acc=(await get("pembeli_accounts"))||{}, a=acc[wa]; if(!a) return null;
   const list=await get("pembeli_members"), m=(Array.isArray(list)?list:[]).find(x=>x.id===a.id)||{};
-  return {wa, nama:String(m.nama||"").trim()||"Pembeli", alamat:String(m.alamat||"").trim(), lat:m.latitude, lng:m.longitude};
+  try{localStorage.setItem("kalensari_pembeli_login",JSON.stringify({wa,exp:Date.now()+365*864e5}));}catch(e){}
+  const al=Array.isArray(m.alamat_list)?m.alamat_list:[],u=al.find(x=>x.id===m.alamat_utama)||al[0];
+  return {wa, nama:String(m.nama||"").trim()||"Pembeli", alamat:String(m.alamat||"").trim(), lat:m.latitude, lng:m.longitude, label:u&&u.label||"Rumah", nAlamat:al.length};
 }
 const okCoord=(la,ln)=>{la=Number(la);ln=Number(ln);return Number.isFinite(la)&&Number.isFinite(ln)&&!(la===0&&ln===0);};
 function renderCheckoutBuyer(){
@@ -779,11 +781,11 @@ function setupCheckoutMaps(){
     if(mode==="rumah"){
       const b=checkoutBuyer;
       if(!b||!b.alamat){
-        showToast("Alamat rumah belum diisi. Mengarahkan ke dasbor warga...");
+        showToast("Alamat belum diisi. Mengarahkan ke akun warga...");
         sessionStorage.setItem("kalensari_next","checkout");
         setTimeout(()=>{ksGo("dashboard-pembeli.html");},1200); return;
       }
-      rumah.innerHTML=`<div>${esc(b.alamat)}</div>${okCoord(b.lat,b.lng)?"<small>✅ Titik Google Maps tersimpan</small>":""}`;
+      rumah.innerHTML=`<div><b>${esc(b.label||"Rumah")}</b> • ${esc(b.alamat)}</div>${okCoord(b.lat,b.lng)?"<small>✅ Titik Google Maps tersimpan</small>":""}<small style="display:block;color:#8b6d5c;margin-top:4px">Alamat utama dari akun warga.${b.nAlamat>1?" Ganti alamat utama di <a href=\"dashboard-pembeli.html\">akun</a>.":""}</small>`;
       latEl.value=okCoord(b.lat,b.lng)?Number(b.lat):""; lngEl.value=okCoord(b.lat,b.lng)?Number(b.lng):"";
     } else { latEl.value=gpsLat; lngEl.value=gpsLng; showGps(); }
     renderCart();
@@ -1075,6 +1077,7 @@ let myOrdersLast=null;
 function renderMyOrders(rows=getLocalOrders()){
   const box=document.getElementById("myOrderList"), count=document.getElementById("myOrderCount"); if(!box)return;
   myOrdersLast=rows;
+  if(window.KSPW)KSPW.pasang(box,rows,()=>renderMyOrders(myOrdersLast));
   if(window.KSUlasan){KSUlasan.pasang(box,()=>renderMyOrders(myOrdersLast));KSUlasan.muat(rows).then(baru=>{if(baru&&myOrdersLast===rows)renderMyOrders(rows);});}
   const sorted=[...rows].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   if(count)count.textContent=`${sorted.length} pesanan`;
@@ -1088,6 +1091,7 @@ function renderMyOrders(rows=getLocalOrders()){
     ${o.pay_status==="tunggu_wa"&&o.status==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
     ${o.pay_status==="lunas"?'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>':QRIS_OTOMATIS&&o.payment==="QRIS"&&o.status!=="dibatalkan"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="bayarQris('${esc(o.order_code)}')">💳 Bayar dengan QRIS</button>`:""}
     ${window.KSST?KSST.html(o):""}
+    ${window.KSPW?KSPW.html(o):""}
     ${window.KSUlasan?KSUlasan.html(o):""}
     ${o.sync_error?`<div class="order-hint">⚠️ Belum tersinkron ke database: ${esc(o.sync_error)}</div>`:""}
     ${o.updated_at?`<div class="order-updated">Diperbarui: ${new Date(o.updated_at).toLocaleString("id-ID")}</div>`:""}
@@ -1985,5 +1989,45 @@ function mintaKataSandi(wa){
 })();
 
 // crop.js: semua upload foto di toko (mis. foto produk admin) bisa dipotong dulu
+(function(){if(window.KSPW||document.querySelector('script[src*="pesanan-warga.js"]'))return;const s=document.createElement("script");s.src="pesanan-warga.js";s.onload=()=>{if(myOrdersLast)renderMyOrders(myOrdersLast);};document.head.appendChild(s);})();
 (function(){if(window.KSUlasan||document.querySelector('script[src*="ulasan.js"]'))return;const s=document.createElement("script");s.src="ulasan.js";s.onload=()=>{if(myOrdersLast)renderMyOrders(myOrdersLast);};document.head.appendChild(s);})();
 (function(){if(window.KSCrop||document.querySelector('script[src*="crop.js"]'))return;const s=document.createElement("script");s.src="crop.js";document.head.appendChild(s);})();
+
+// ===== Label pilihan alamat di checkout: "Alamat utama" (alamat dikelola di akun warga) =====
+{const r=document.querySelector('#checkoutForm [name="addrMode"][value="rumah"]');const l=r&&r.closest("label");if(l)[...l.childNodes].forEach(n=>{if(n.nodeType===3&&/Alamat rumah/.test(n.textContent))n.textContent=" 🏠 Alamat utama";});}
+
+// ===== PRODUK FAVORIT ❤️ (disimpan di HP ini) =====
+let favorit=readLS("kalensari_favorit",[]);if(!Array.isArray(favorit))favorit=[];
+let hanyaFavorit=false;
+const isFav=id=>favorit.includes(Number(id));
+function toggleFav(id,ev){if(ev){ev.stopPropagation();ev.preventDefault();}id=Number(id);const on=!isFav(id);favorit=on?[...favorit,id]:favorit.filter(x=>x!==id);localStorage.setItem("kalensari_favorit",JSON.stringify(favorit));
+  document.querySelectorAll(`[data-fav="${id}"]`).forEach(b=>{b.classList.toggle("on",on);b.textContent=on?"❤️":"🤍";});
+  showToast(on?"❤️ Disimpan ke favorit":"Dihapus dari favorit");if(hanyaFavorit)renderProducts();}
+function bukaFavorit(on=true){hanyaFavorit=on;if(on){activeCategory="Semua";activeSeller="";}renderProducts();if(on)document.getElementById("productGrid")?.scrollIntoView({behavior:"smooth",block:"start"});}
+const favBtn=p=>`<button type="button" class="fav-btn${isFav(p.id)?" on":""}" data-fav="${p.id}" aria-label="Favorit" onclick="toggleFav(${p.id},event)">${isFav(p.id)?"❤️":"🤍"}</button>`;
+{const _single=singleCardHTML;singleCardHTML=function(p){return _single(p).replace('<div class="product-img">','<div class="product-img">'+favBtn(p));};
+ const _group=groupCardHTML;groupCardHTML=function(u){return _group(u).replace('<div class="product-img">','<div class="product-img">'+favBtn(u.variants[0]));};
+ const _render=renderProducts;renderProducts=function(){
+   if(!hanyaFavorit)return _render();
+   const keep=products;try{products=products.filter(p=>isFav(p.id)||(groupName(p)&&products.some(x=>isFav(x.id)&&groupName(x).toLowerCase()===groupName(p).toLowerCase())));_render();}finally{products=keep;}
+   const bar=document.getElementById("sellerFilterBar");if(bar){bar.hidden=false;bar.innerHTML=`<span>❤️ Produk favorit saya</span><button type="button" onclick="bukaFavorit(false)">× Semua produk</button>`;}
+   if(!favorit.length)document.getElementById("productGrid").innerHTML='<div class="empty-state"><b>🤍 Belum ada favorit</b>Ketuk ikon hati di foto produk untuk menyimpannya di sini.</div>';
+ };
+ const _setSeller=setSeller;setSeller=function(k){hanyaFavorit=false;return _setSeller(k);};}
+// Menu ☰: tambah "Favorit saya"
+setTimeout(()=>{const m=document.querySelector(".ks-menu");if(m&&!m.querySelector("[data-fav-menu]")){const b=document.createElement("button");b.type="button";b.setAttribute("role","menuitem");b.dataset.favMenu="1";b.innerHTML="❤️ Favorit saya";b.onclick=()=>{m.classList.remove("open");bukaFavorit(true);};m.insertBefore(b,m.children[1]||null);}},0);
+
+// ===== PESAN LAGI dari riwayat =====
+window.ksPesanLagi=function(list,racik){
+  let n=0;const lewat=[];
+  (list||[]).forEach(x=>{const p=products.find(y=>y.id===Number(x.id));if(!p||p.status!=="Show"){lewat.push(p?p.name:"produk lama");return;}
+    const seller=x.seller&&productHasSeller(p,sellerKey(x.seller))?x.seller:(sellerList(p)[0]||p.seller||"");const st=stokOf(p),ada=qtyDiCart(p.id);let q=Number(x.qty)||1;if(st!==null)q=Math.min(q,st-ada);if(q<=0){lewat.push(p.name+" (stok habis)");return;}
+    const c=cart.find(y=>y.id===p.id&&(y.seller||"")===seller&&!y.custom);if(c){c.qty+=q;delete c.off;}else cart.push({id:p.id,qty:q,seller});n++;});
+  saveCart();updateCartCount();renderCart();
+  document.querySelectorAll(".modal.show").forEach(m=>m.classList.remove("show"));
+  if(n)openModal("cartModal");
+  const pesan=[n?`🔁 ${n} produk dimasukkan ke keranjang`:"Tidak ada produk yang bisa dipesan lagi",lewat.length?`Tidak tersedia: ${lewat.join(", ")}`:"",racik&&racik.length?`Pilih ulang topping: ${racik.join(", ")}`:""].filter(Boolean).join(" • ");
+  showToast(pesan);
+};
+if(location.hash==="#keranjang"||location.hash==="#favorit"){const h=location.hash;history.replaceState(null,"",location.pathname+location.search);
+  setTimeout(()=>{if(h==="#favorit")return bukaFavorit(true);try{const r=JSON.parse(sessionStorage.getItem("kalensari_racik_ulang")||"null");sessionStorage.removeItem("kalensari_racik_ulang");if(r&&r.length)setTimeout(()=>showToast("Pilih ulang topping: "+r.join(", ")),1500);}catch(e){}renderCart();openModal("cartModal");},600);}

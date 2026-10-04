@@ -192,6 +192,19 @@ async function render(){
 }
 $("fab").onclick = () => go("#/pasang");
 $("btnSaya").onclick = () => go("#/saya");
+/* komentar baru di iklan saya (penanda, disimpan per HP) */
+const seenKey = wa => "kalensari_lapak_seen_" + wa;
+const seenGet = wa => { try{ return JSON.parse(localStorage.getItem(seenKey(wa)) || "{}") || {}; }catch(e){ return {}; } };
+function seenSet(wa, id){ const m = seenGet(wa); m[id] = Date.now(); try{ localStorage.setItem(seenKey(wa), JSON.stringify(m)); }catch(e){} }
+async function komBaru(wa, ids){
+  if(!ids.length) return {};
+  const batas = new Date(Date.now() - 14*864e5).toISOString(), seen = seenGet(wa);
+  const k = await api(`lapak_komentar?select=iklan_id,created_at&iklan_id=in.(${ids.join(",")})&wa=neq.${encodeURIComponent(wa)}&created_at=gt.${encodeURIComponent(batas)}&limit=500`);
+  const m = {}; (k || []).forEach(x => { if(new Date(x.created_at).getTime() > (seen[x.iklan_id] || 0)) m[x.iklan_id] = (m[x.iklan_id] || 0) + 1; }); return m;
+}
+async function tandaSaya(){ try{ const me = await akun(); if(!me) return; const l = await api(`lapak_iklan?select=id&wa=eq.${encodeURIComponent(me.wa)}&limit=100`); const m = await komBaru(me.wa, (l || []).map(x => x.id)), n = Object.values(m).reduce((a, b) => a + b, 0);
+  const b = $("btnSaya"); if(!b) return; let t = b.querySelector(".kb"); if(!n){ t && t.remove(); return; } if(!t){ t = document.createElement("span"); t.className = "kb"; t.style.cssText = "margin-left:6px;background:#e53935;color:#fff;border-radius:999px;font-size:11px;font-weight:800;padding:1px 7px"; b.appendChild(t); } t.textContent = n; }catch(e){} }
+setTimeout(tandaSaya, 800);
 
 /* ---------- 1. BERANDA ---------- */
 let F = {q:"", jenis:"semua"}, CACHE = null;
@@ -258,6 +271,7 @@ async function detail(id){
   $("bHapus") && ($("bHapus").onclick = async () => { if(!confirm("Hapus iklan ini beserta semua komentarnya?")) return;
     try{ await api(`lapak_iklan?id=eq.${i.id}&wa=eq.${encodeURIComponent(me.wa)}`, {method:"DELETE", headers:{Prefer:"return=minimal"}}); CACHE = null; toast("🗑️ Iklan dihapus"); go("#/saya"); }catch(e){ toast("Gagal menghapus"); } });
   $("komLogin") && ($("komLogin").onclick = () => keLogin("#/i/" + i.id));
+  if(pemilik){ seenSet(me.wa, i.id); setTimeout(tandaSaya, 300); }
   // komentar
   let jumlah = -1;
   const muatKom = async () => {
@@ -338,11 +352,12 @@ async function iklanSaya(){
   v.innerHTML = '<div class="load">Memuat…</div>';
   const l = await api(`lapak_iklan?select=id,created_at,judul,harga,barter,thumb,status&wa=eq.${encodeURIComponent(me.wa)}&order=created_at.desc`);
   const nm = {aktif:"Tayang", selesai:"Sudah laku", disembunyikan:"Disembunyikan admin"};
+  let KB = {}; try{ KB = await komBaru(me.wa, l.map(i => i.id)); }catch(e){}
   v.innerHTML = `<a class="btn" href="#/" style="padding:7px 12px;font-size:13px">← Lapak</a>
     <div class="card"><h2 style="margin:0 0 4px;font-size:19px">📋 Iklan saya</h2><p class="hint" style="margin:0 0 6px">${esc(me.nama)} • ${l.length} iklan</p>
     ${l.length ? l.map(i => `<div class="mine"><div class="ph" style="${i.thumb ? `background-image:url('${i.thumb}')` : ""}">${i.thumb ? "" : "📦"}</div>
       <div><h4>${esc(i.judul)}<span class="st ${i.status}">${nm[i.status] || i.status}</span></h4><small>${i.harga ? rp(i.harga) : ""}${i.harga && i.barter ? " • " : ""}${i.barter ? "Barter" : ""}${!i.harga && !i.barter ? "Nego" : ""} • ${lalu(i.created_at)}</small>
-      <div class="acts"><a class="btn" href="#/i/${i.id}">Lihat</a><a class="btn" href="#/ubah/${i.id}">Ubah</a></div></div></div>`).join("")
+      ${KB[i.id] ? `<div style="margin-top:4px;font-size:12.5px;font-weight:800;color:#c62828">💬 ${KB[i.id]} komentar baru</div>` : ""}<div class="acts"><a class="btn" href="#/i/${i.id}">${KB[i.id] ? "Baca komentar" : "Lihat"}</a><a class="btn" href="#/ubah/${i.id}">Ubah</a></div></div></div>`).join("")
       : '<p class="hint">Anda belum memasang iklan.</p>'}
     <button class="btn p full" style="margin-top:12px" onclick="go('#/pasang')">+ Pasang iklan baru</button></div>`;
 }
