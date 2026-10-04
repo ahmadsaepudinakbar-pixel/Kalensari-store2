@@ -122,7 +122,8 @@ h2{color:#2b2623}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
 .tile{background:#fff;border-radius:18px;padding:16px 8px;text-align:center;box-shadow:0 2px 12px rgba(80,45,20,.08)}
 .tile b{display:block;font-size:28px;color:var(--brown);line-height:1.1}.tile span{font-size:12px;color:var(--muted)}
-.avatar{width:84px;height:84px;margin:0 auto;border-radius:50%;background:#2b2623;color:#f2b705;font-size:36px;font-weight:700;display:grid;place-items:center}
+.avatar{width:84px;height:84px;margin:0 auto;border-radius:50%;background:#2b2623 center/cover no-repeat;color:#f2b705;font-size:36px;font-weight:700;display:grid;place-items:center}
+.av-up{position:relative;cursor:pointer;width:96px;height:96px;border:3px solid #f2b705}.av-up em{position:absolute;right:-4px;bottom:-4px;width:32px;height:32px;border-radius:50%;background:#fff;font-style:normal;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;background:#fff;border-top:3px solid #f2b705;padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px))}
 .nav button{flex:1;border:0;background:none;font:inherit;font-size:12px;font-weight:600;color:#8a7767;padding:6px 0;position:relative;cursor:pointer}
 .nav button span{display:block;font-size:22px;line-height:1.2}.nav button.on{color:var(--brown)}
@@ -147,7 +148,7 @@ h2{color:#2b2623}
   <div id="notifBox" hidden><b>🔔 Notifikasi pesanan</b><p id="notifTxt">Dapatkan pemberitahuan di HP saat ada pesanan masuk, walaupun aplikasi sedang ditutup.</p><button class="mini g" type="button" id="btnNotif">Aktifkan notifikasi</button><button class="mini" type="button" id="btnNotifTest" hidden>Kirim tes</button></div>
   <div id="ringkas" class="tiles" data-tab="home"><div class="tile"><b id="cWait">0</b><span>Menunggu jawaban</span></div><div class="tile"><b id="cMine">0</b><span>Sedang diantar</span></div></div>
   <button class="btn" id="btnLihat" type="button" data-tab="home" style="margin:0 0 14px">Lihat pesanan</button>
-  <section class="box" id="profBox" data-tab="profil" style="text-align:center"><div class="avatar" id="pAv">K</div><h2 id="pNama" style="margin:8px 0 6px"></h2><div id="kodeAkun" style="margin:0 0 12px"></div><div class="tiles" style="margin:0"><div class="tile"><b id="pHari">0</b><span>Hari bergabung</span></div><div class="tile"><b id="pSel">0</b><span>Pesanan selesai</span></div></div></section>
+  <section class="box" id="profBox" data-tab="profil" style="text-align:center"><label class="avatar av-up" id="pAvBox" title="Ganti foto profil"><span id="pAv">K</span><em>📷</em><input type="file" id="avIn" accept="image/*" data-crop="bulat" hidden></label><small id="avHint" style="display:block;color:var(--muted);font-size:12px;margin-top:6px">Ketuk foto untuk mengganti</small><h2 id="pNama" style="margin:8px 0 6px"></h2><div id="kodeAkun" style="margin:0 0 12px"></div><div class="tiles" style="margin:0"><div class="tile"><b id="pHari">0</b><span>Hari bergabung</span></div><div class="tile"><b id="pSel">0</b><span>Pesanan selesai</span></div></div></section>
   <!-- 1. Pesanan untuk diantar -->
   <section class="box" id="ordBox" style="margin-top:0" hidden><h2>Pesanan untuk diantar</h2><p class="hint" style="margin:0">Tiap pesanan ditawarkan ke satu kurir secara acak. Jika tidak ditanggapi, otomatis pindah ke kurir lain.</p><div id="orders"></div><div class="btns"><button class="btn" id="btnRefresh" type="button">🔄 Muat ulang</button></div></section>
 
@@ -183,6 +184,7 @@ h2{color:#2b2623}
 </main>
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
+<script src="crop.js"></script>
 <script src="akun-id.js"></script>
 <script src="notif.js"></script>
 <script>
@@ -382,7 +384,7 @@ async function bukaTopup(){
     <div class="nom">${pil.map(v => `<button type="button" data-v="${v}">${fmtRp(v)}</button>`).join("")}</div>
     <input id="tuJml" class="fld" inputmode="numeric" placeholder="Atau tulis jumlah lain, mis. 30000">
     <div style="background:#fff6dd;border-radius:14px;padding:12px;font-size:13px;margin:4px 0 12px;white-space:pre-line"><b>Cara bayar:</b>\n${esc(BIAYA.caraBayar || "Transfer ke rekening admin atau bayar tunai langsung ke admin, lalu kirim permintaan ini.")}</div>
-    <input type="file" id="tuFile" accept="image/*" hidden>
+    <input type="file" id="tuFile" accept="image/*" data-crop="asli" hidden>
     <button class="mini" type="button" id="tuPilih">📎 Lampirkan bukti transfer (opsional)</button>
     <img id="tuPrev" alt="" style="display:none;width:100%;border-radius:12px;margin-top:8px">
     <button class="mini g" type="button" id="tuKirim" style="width:100%;padding:13px;font-size:16px;margin:12px 0 0">📤 Kirim permintaan isi saldo</button>
@@ -621,6 +623,25 @@ $("orders").addEventListener("click", async e => {
 
 
 
+// ===== Foto profil kurir: dipotong bulat (crop.js), disimpan di store_settings "foto_kurir_<id>" =====
+let FOTO_KURIR = null, FOTO_KURIR_DIMUAT = false;
+function tampilFotoKurir(){ const b = $("pAvBox"); if(!b) return; b.style.backgroundImage = FOTO_KURIR ? `url('${FOTO_KURIR}')` : ""; $("pAv").style.visibility = FOTO_KURIR ? "hidden" : "visible"; }
+window.fotoKurir = async function(){
+  tampilFotoKurir(); if(FOTO_KURIR_DIMUAT || !me) return; FOTO_KURIR_DIMUAT = true;
+  try{ const v = await getSetting("foto_kurir_" + me.id, null); if(v && v.foto){ FOTO_KURIR = v.foto; tampilFotoKurir(); } }catch(e){}
+};
+document.addEventListener("change", async e => {
+  if(!e.target || e.target.id !== "avIn" || !e.target.files || !e.target.files[0] || !me) return;
+  const f = e.target.files[0]; e.target.value = "";
+  try{
+    const foto = await new Promise((ok, no) => { const r = new FileReader(); r.onerror = no; r.onload = () => { const im = new Image(); im.onerror = no;
+      im.onload = () => { const z = Math.min(im.width, im.height), c = document.createElement("canvas"); c.width = c.height = 320;
+        c.getContext("2d").drawImage(im, (im.width - z) / 2, (im.height - z) / 2, z, z, 0, 0, 320, 320); ok(c.toDataURL("image/jpeg", .82)); }; im.src = r.result; }; r.readAsDataURL(f); });
+    await setSetting("foto_kurir_" + me.id, {foto, nama:me.nama || "", t:Date.now()});
+    FOTO_KURIR = foto; tampilFotoKurir(); toast("✅ Foto profil disimpan");
+  }catch(x){ toast("Gagal menyimpan foto"); }
+});
+
 // ===== Lacak kurir: selama status "Dikirim", posisi kurir dikirim tiap ±15 detik ke store_settings "lacak_<kode>" =====
 // Pembeli & admin melihatnya di peta. Hanya berjalan saat aplikasi kurir terbuka. Dihapus saat selesai / gagal antar.
 const LACAK_PREFIX = "lacak_";
@@ -631,7 +652,7 @@ async function lacakKirim(pos){
   const p = {lat:+pos.coords.latitude.toFixed(6), lng:+pos.coords.longitude.toFixed(6), acc:Math.round(pos.coords.accuracy || 0), t:Date.now()};
   if(lacakLast && p.t - lacakLast.t < 15000 && jarakM(lacakLast, p) < 40) return;
   lacakLast = p; lacakErr = "";
-  const rows = lacakCodes.map(code => ({key:LACAK_PREFIX + code, value:{...p, nama:me.nama || "", wa:WA}}));
+  const rows = lacakCodes.map(code => ({key:LACAK_PREFIX + code, value:{...p, nama:me.nama || "", wa:WA, id:me.id}}));
   if(rows.length) try{ await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(rows)}); }catch(e){}
 }
 function lacakSync(mine){
@@ -708,7 +729,7 @@ function serahTerima(code){
     <button class="mini g" id="stOk" type="button" style="width:100%;padding:13px;font-size:16px;margin:0">✅ Selesai — kode benar</button>
     <details id="stFotoBox" style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px"><summary style="cursor:pointer;font-weight:700;color:var(--brown)">📷 ${siapa[0].toUpperCase() + siapa.slice(1)} tidak ada di tempat?</summary>
       <p class="hint" style="margin:6px 0">Foto barang di lokasi (mis. dititipkan ke tetangga / keluarga, atau diletakkan di depan pintu). ${siapa[0].toUpperCase() + siapa.slice(1)} & admin bisa melihat foto ini.</p>
-      <input type="file" id="stFile" accept="image/*" capture="environment" hidden>
+      <input type="file" id="stFile" accept="image/*" capture="environment" data-crop="asli" hidden>
       <button class="mini" id="stPilih" type="button">📷 Ambil foto</button>
       <img id="stPrev" alt="" style="display:none;width:100%;border-radius:12px;margin-top:8px">
       <input id="stKet" class="fld" maxlength="120" placeholder="Dititipkan ke siapa / diletakkan di mana">
@@ -876,7 +897,7 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
   $("nav").onclick=function(e){var b=e.target.closest("button[data-go]"); if(b) show(b.dataset.go)};
   $("btnLihat").onclick=function(){show("pesanan")};
   window.setCounts=function(w,m){ $("cWait").textContent=w; $("cMine").textContent=m; var b=$("nBadge"); b.textContent=w; b.hidden=!w; $("btnLihat").textContent=w?"Lihat "+w+" pesanan untuk Anda":"Lihat pesanan"; };
-  window.renderProf=function(){ if(typeof me==="undefined"||!me) return; var n=me.nama||"Kurir"; $("pNama").textContent=n; $("pAv").textContent=n.charAt(0).toUpperCase();
+  window.renderProf=function(){ if(window.fotoKurir) window.fotoKurir(); if(typeof me==="undefined"||!me) return; var n=me.nama||"Kurir"; $("pNama").textContent=n; $("pAv").textContent=n.charAt(0).toUpperCase();
     $("pHari").textContent=me.joined?Math.max(1,Math.ceil((Date.now()-me.joined)/864e5)):1; $("pSel").textContent=me.selesai||0; show(cur) };
   setTimeout(function(){show("home")},0);
 })();

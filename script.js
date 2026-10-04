@@ -1858,7 +1858,7 @@ function lacakKurir(code){
   ov.innerHTML=`<div class="lacak-card"><div class="lacak-head"><b>🛵 Lacak kurir • ${esc(code)}</b><button type="button" aria-label="Tutup" data-x>✕</button></div>
     <div id="lacakMap" class="lacak-map"><p>Memuat posisi kurir…</p></div><div id="lacakInfo" class="lacak-info"></div></div>`;
   document.body.appendChild(ov);
-  let timer=null,lastKey="";
+  let timer=null,lastKey="",fotoK;
   const tutup=()=>{clearInterval(timer);ov.remove();};
   ov.addEventListener("click",e=>{if(e.target===ov||e.target.closest("[data-x]"))tutup();});
   const jarak=(a,b)=>{const R=6371,r=x=>x*Math.PI/180,dA=r(b.lat-a.lat),dB=r(b.lng-a.lng),h=Math.sin(dA/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dB/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
@@ -1871,7 +1871,8 @@ function lacakKurir(code){
     if(k!==lastKey){lastKey=k;await petaLacak(map,v,tuju);}
     const dtk=Math.max(0,Math.round((Date.now()-Number(v.t||0))/1000)),lalu=dtk<60?dtk+" detik":dtk<3600?Math.round(dtk/60)+" menit":"lebih dari 1 jam";
     const km=tuju?jarak(v,tuju):null;
-    info.innerHTML=`<p>🛵 <b>${esc(v.nama||"Kurir")}</b> sedang menuju alamat Anda</p>
+    if(v.id&&fotoK===undefined){fotoK=null;cloudFetch("store_settings?select=value&key=eq."+encodeURIComponent("foto_kurir_"+v.id)).then(r=>{fotoK=r&&r[0]&&r[0].value&&r[0].value.foto||null;const a=document.getElementById("lacakAv");if(a&&fotoK){a.style.backgroundImage=`url('${fotoK}')`;a.textContent="";}}).catch(()=>{});}
+    info.innerHTML=`<div class="lacak-kurir"><span id="lacakAv" class="lacak-av"${fotoK?` style="background-image:url('${fotoK}')"`:""}>${fotoK?"":"🛵"}</span><p><b>${esc(v.nama||"Kurir")}</b><br>sedang menuju alamat Anda</p></div>
       ${km!=null?`<p>Jarak ke lokasi Anda ± <b>${km<1?Math.round(km*1000)+" m":km.toFixed(1).replace(".",",")+" km"}</b>${km<0.15?" • kurir sudah dekat 🎉":""}</p>`:""}
       <p class="lacak-t">Diperbarui ${lalu} lalu${dtk>180?" • kurir mungkin sedang tidak membuka aplikasinya":""}</p>
       <div class="lacak-act">${v.wa?`<a class="btn outline small" target="_blank" rel="noopener" href="https://wa.me/${esc(String(v.wa).replace(/\D/g,""))}">💬 Chat kurir</a>`:""}<a class="btn outline small" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k)}">Buka di Google Maps</a></div>`;
@@ -1964,3 +1965,6 @@ function mintaKataSandi(wa){
     row.innerHTML=l.map(i=>`<a class="lk-it" href="pasar.html#/i/${i.id}"><div class="lk-ph"${i.thumb?` style="background-image:url('${i.thumb}')"`:""}>${i.thumb?"":"📦"}</div><b>${esc(i.judul)}</b>${tag(i)}</a>`).join("");
   })();
 })();
+
+// crop.js: semua upload foto di toko (mis. foto produk admin) bisa dipotong dulu
+(function(){if(window.KSCrop||document.querySelector('script[src*="crop.js"]'))return;const s=document.createElement("script");s.src="crop.js";document.head.appendChild(s);})();
