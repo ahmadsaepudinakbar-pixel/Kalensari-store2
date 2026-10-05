@@ -477,6 +477,7 @@ function render(){
   renderNav();
   const [t,s]=TITLES[route];$('#pTitle').textContent=t;$('#pSub').textContent=s;
   $('#content').innerHTML=S.loaded||route==='lainnya'?PAGES[route]():'<div class="empty">Memuat data toko...</div>';
+  if(route==='pengaturan'&&QR_TOPUP===null){QR_TOPUP=undefined;muatQrTopup()}
   if(route==='pengaturan'&&window.KSNotif&&$('#admNotif'))KSNotif.kartu($('#admNotif'),{key:'admin_push',token:async()=>{await fresh();return auth.access_token},extra:{email:(auth&&auth.email)||''},judul:'Aktifkan di perangkat ini',ajakan:'Perangkat ini akan berbunyi saat ada pesanan atau pendaftar baru, walaupun halaman admin ditutup.',aktifTeks:'Perangkat ini menerima kabar pesanan & pendaftar baru.'});
 }
 if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(auth&&e.data&&e.data.type==='bunyi-pesanan'&&/^admin-/.test(e.data.tag||'')&&!$('#modalRoot').innerHTML)loadAll(true)});
@@ -1428,9 +1429,22 @@ function biayaCard(){
     <div class="field"><label>Minimal isi saldo (Rp)</label><input class="inp" id="bMin" inputmode="numeric" value="${Number(b.minTopup)||0}"></div>
     <div class="field"><label>Saldo awal kurir baru (Rp) — diberikan otomatis saat kurir disetujui, 0 = tidak ada</label><input class="inp" id="bAwal" inputmode="numeric" value="${Number(b.saldoAwal)||0}"></div>
     <div class="field"><label>Cara bayar (tampil di aplikasi kurir)</label><textarea class="inp" id="bCara" rows="3" placeholder="mis. Transfer BRI 1234567890 a.n. Kalensari Store, atau bayar tunai ke admin">${esc(b.caraBayar||'')}</textarea></div>
+    <div class="field"><label>QRIS untuk isi saldo kurir</label>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div id="qrTopPrev" style="width:110px;height:110px;border:1px dashed var(--line);border-radius:12px;display:grid;place-items:center;background:#faf6f2;overflow:hidden;font-size:12px;color:var(--mut);text-align:center">${QR_TOPUP==null?'Memuat…':QR_TOPUP?`<img src="${QR_TOPUP}" alt="QRIS" style="width:100%;height:100%;object-fit:contain">`:'Belum ada QRIS'}</div>
+      <div style="flex:1;min-width:160px"><small style="color:var(--mut);font-size:12px;display:block;margin-bottom:6px">Muncul di aplikasi kurir setelah kurir memilih nominal. Kurir wajib melampirkan bukti bayar.</small>
+      <input type="file" id="qrTopIn" accept="image/*" data-crop="asli" hidden onchange="unggahQrTopup(this)"><button class="btn btn-light" type="button" onclick="$('#qrTopIn').click()">📷 ${QR_TOPUP?'Ganti':'Unggah'} gambar QRIS</button>
+      ${QR_TOPUP?'<button class="btn btn-light" type="button" style="color:var(--red)" onclick="hapusQrTopup(this)">Hapus</button>':''}</div></div></div>
     <button class="btn btn-g full" onclick="saveBiaya(this)">Simpan Saldo Kurir</button>
     <p class="sm" style="color:var(--mut);font-size:12px;margin-top:10px">Tips: sebelum mengaktifkan, beri kurir saldo awal lewat Daftar Kurir → 💰 Saldo, supaya mereka tetap bisa menerima pesanan.</p></div>`;
 }
+
+/* QRIS isi saldo kurir: store_settings "foto_qris_topup" = {foto, t} (diawali foto_ agar tidak ikut dimuat massal) */
+let QR_TOPUP=null;
+async function muatQrTopup(){try{const v=await readKey('foto_qris_topup',null);QR_TOPUP=v&&v.foto||''}catch(e){QR_TOPUP=''}if(route==='pengaturan')render()}
+async function unggahQrTopup(inp){const f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  try{const foto=await new Promise((ok,no)=>{const r=new FileReader();r.onerror=no;r.onload=()=>{const im=new Image();im.onerror=no;im.onload=()=>{const k=Math.min(1,1100/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.92))};im.src=r.result};r.readAsDataURL(f)});
+    await setSetting('foto_qris_topup',{foto,t:Date.now()});QR_TOPUP=foto;render();toast('✅ QRIS isi saldo disimpan')}catch(e){toast('Gagal menyimpan QRIS: '+String(e.message||e).slice(0,60))}}
+async function hapusQrTopup(btn){if(!confirm('Hapus gambar QRIS isi saldo?'))return;await busy(btn,async()=>{await api('store_settings?key=eq.foto_qris_topup',{method:'DELETE',headers:{Prefer:'return=minimal'}});QR_TOPUP='';render();toast('QRIS dihapus')})}
 function biayaMode(){const p=(document.querySelector('input[name=bMode]:checked')||{}).value==='persen';$('#fPersen').hidden=!p;$('#fNominal').hidden=p}
 async function saveBiaya(btn){
   const mode=(document.querySelector('input[name=bMode]:checked')||{}).value==='persen'?'persen':'nominal',persen=Math.round((parseFloat(String($('#bPersen').value).replace(',','.'))||0)*100)/100,minSaldoV=parseInt($('#bMinSaldo').value,10)||0;

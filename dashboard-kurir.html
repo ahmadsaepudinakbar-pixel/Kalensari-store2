@@ -386,30 +386,48 @@ async function bukaTopup(){
   await muatBiaya();
   const min = Number(BIAYA.minTopup) || 20000, pil = [min, 50000, 100000].filter((v, i, a) => v >= min && a.indexOf(v) === i);
   let wa = ""; try{ wa = String(await getSetting("whatsapp_number", "") || "").replace(/\D/g, "").replace(/^0/, "62"); }catch(e){}
-  const ov = lembar(`<h3 style="margin:0 0 4px;color:var(--brown)">➕ Isi saldo kurir</h3>
+  let qris = ""; const qrisP = getSetting("foto_qris_topup", null).then(v => { qris = v && v.foto || ""; }).catch(() => {});
+  const ov = lembar(`<div id="tuStep1"><h3 style="margin:0 0 4px;color:var(--brown)">➕ Isi saldo kurir</h3>
     <p class="hint" style="margin:0 0 6px">Minimal ${fmtRp(min)}. Saldo dipotong ${potongTeks()} setiap pesanan selesai.</p>
     <div class="nom">${pil.map(v => `<button type="button" data-v="${v}">${fmtRp(v)}</button>`).join("")}</div>
     <input id="tuJml" class="fld" inputmode="numeric" placeholder="Atau tulis jumlah lain, mis. 30000">
-    <div style="background:#fff6dd;border-radius:14px;padding:12px;font-size:13px;margin:4px 0 12px;white-space:pre-line"><b>Cara bayar:</b>\n${esc(BIAYA.caraBayar || "Transfer ke rekening admin atau bayar tunai langsung ke admin, lalu kirim permintaan ini.")}</div>
+    <button class="mini g" type="button" id="tuLanjut" style="width:100%;padding:13px;font-size:16px;margin:6px 0 0" disabled>OK, lanjut bayar</button>
+    <button class="mini" type="button" id="tuBatal" style="width:100%;margin-top:10px">Batal</button></div>
+    <div id="tuStep2" hidden><h3 style="margin:0 0 4px;color:var(--brown)">📱 Bayar dengan QRIS</h3>
+    <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;text-align:center;margin:8px 0">
+      <small class="hint" style="display:block;margin:0">Bayar tepat sebesar</small><b id="tuNom" style="display:block;font-size:28px;color:var(--brown);margin:2px 0 8px"></b>
+      <div id="tuQr"><p class="hint">Memuat QRIS…</p></div>
+      <p class="hint" style="margin:8px 0 0">Buka aplikasi bank / e-wallet (DANA, OVO, GoPay, ShopeePay, m-banking) → <b>Scan QRIS</b> → masukkan nominal di atas → bayar.</p></div>
+    ${BIAYA.caraBayar ? `<div style="background:#fff6dd;border-radius:14px;padding:10px 12px;font-size:13px;margin:0 0 10px;white-space:pre-line"><b>Catatan admin:</b>\n${esc(BIAYA.caraBayar)}</div>` : ""}
+    <p style="margin:12px 0 6px;font-weight:700">📎 Bukti pembayaran <span style="color:#c0392b">(wajib)</span></p>
     <input type="file" id="tuFile" accept="image/*" data-crop="asli" hidden>
-    <button class="mini" type="button" id="tuPilih">📎 Lampirkan bukti transfer (opsional)</button>
-    <img id="tuPrev" alt="" style="display:none;width:100%;border-radius:12px;margin-top:8px">
-    <button class="mini g" type="button" id="tuKirim" style="width:100%;padding:13px;font-size:16px;margin:12px 0 0">📤 Kirim permintaan isi saldo</button>
-    <button class="mini" type="button" id="tuBatal" style="width:100%;margin-top:10px">Batal</button>`);
+    <button class="mini" type="button" id="tuPilih" style="width:100%;padding:12px;border-style:dashed">📷 Unggah screenshot / foto bukti bayar</button>
+    <img id="tuPrev" alt="Bukti bayar" style="display:none;width:100%;border-radius:12px;margin-top:8px;border:1px solid var(--line)">
+    <button class="mini g" type="button" id="tuKirim" style="width:100%;padding:13px;font-size:16px;margin:12px 0 0" disabled>📤 Kirim permintaan isi saldo</button>
+    <button class="mini" type="button" id="tuUbah" style="width:100%;margin-top:10px">← Ubah nominal</button></div>`);
   let jml = 0, bukti = null;
-  const q = s => ov.querySelector(s);
-  ov.querySelectorAll(".nom button").forEach(b => b.onclick = () => { jml = +b.dataset.v; q("#tuJml").value = ""; ov.querySelectorAll(".nom button").forEach(x => x.classList.toggle("on", x === b)); });
-  q("#tuJml").oninput = e => { e.target.value = e.target.value.replace(/\D/g, ""); jml = +e.target.value || 0; ov.querySelectorAll(".nom button").forEach(x => x.classList.remove("on")); };
+  const q = s => ov.querySelector(s), cekLanjut = () => { q("#tuLanjut").disabled = jml < min; q("#tuLanjut").textContent = jml >= min ? "OK, lanjut bayar " + fmtRp(jml) : jml ? "Minimal " + fmtRp(min) : "OK, lanjut bayar"; };
+  ov.querySelectorAll(".nom button").forEach(b => b.onclick = () => { jml = +b.dataset.v; q("#tuJml").value = ""; ov.querySelectorAll(".nom button").forEach(x => x.classList.toggle("on", x === b)); cekLanjut(); });
+  q("#tuJml").oninput = e => { e.target.value = e.target.value.replace(/\D/g, ""); jml = +e.target.value || 0; ov.querySelectorAll(".nom button").forEach(x => x.classList.remove("on")); cekLanjut(); };
   q("#tuBatal").onclick = () => ov.remove();
+  q("#tuLanjut").onclick = async () => {
+    if(jml < min) return toast("Isi saldo minimal " + fmtRp(min));
+    q("#tuStep1").hidden = true; q("#tuStep2").hidden = false; q("#tuNom").textContent = fmtRp(jml); ov.firstElementChild.scrollTop = 0;
+    await qrisP;
+    q("#tuQr").innerHTML = qris ? `<img src="${qris}" alt="QRIS Kalensari" style="width:100%;max-width:300px;border-radius:10px;display:block;margin:0 auto"><a class="mini" download="qris-isi-saldo.jpg" href="${qris}" style="display:inline-block;margin-top:8px">⬇️ Simpan gambar QRIS</a>`
+      : `<p class="hint" style="color:#a35a00;margin:6px 0">QRIS belum dipasang admin. Bayar sesuai catatan admin${wa ? ' atau <a href="https://wa.me/' + wa + '" target="_blank" rel="noopener">tanya admin lewat WhatsApp</a>' : ""}, lalu unggah buktinya.</p>`;
+  };
+  q("#tuUbah").onclick = () => { q("#tuStep2").hidden = true; q("#tuStep1").hidden = false; };
   q("#tuPilih").onclick = () => q("#tuFile").click();
-  q("#tuFile").onchange = async e => { const f = e.target.files[0]; if(!f) return; try{ bukti = await kecilkanFoto(f, 900); q("#tuPrev").src = bukti; q("#tuPrev").style.display = "block"; }catch(err){ toast("Foto tidak bisa dibaca"); } };
+  q("#tuFile").onchange = async e => { const f = e.target.files[0]; if(!f) return; try{ bukti = await kecilkanFoto(f, 900); q("#tuPrev").src = bukti; q("#tuPrev").style.display = "block"; q("#tuPilih").textContent = "🔄 Ganti foto bukti"; q("#tuKirim").disabled = false; }catch(err){ toast("Foto tidak bisa dibaca"); } };
   q("#tuKirim").onclick = async () => {
     if(jml < min) return toast("Isi saldo minimal " + fmtRp(min));
+    if(!bukti) return toast("Lampirkan bukti pembayaran dulu");
     const b = q("#tuKirim"); b.disabled = true; b.textContent = "Mengirim...";
     try{
       await cf("rpc/ajukan_topup", {method:"POST", body:JSON.stringify({p_kurir_id:me.id, p_jumlah:jml, p_bukti:bukti})});
       ov.remove(); toast("✅ Permintaan terkirim. Saldo masuk setelah dikonfirmasi admin."); renderSaldo();
-      if(wa && confirm("Kabari admin lewat WhatsApp?")) window.open("https://wa.me/" + wa + "?text=" + encodeURIComponent(`Halo admin, saya ${me.nama || "kurir"} mengajukan isi saldo kurir ${fmtRp(jml)}. Mohon dikonfirmasi.`), "_blank");
+      if(wa && confirm("Kabari admin lewat WhatsApp?")) window.open("https://wa.me/" + wa + "?text=" + encodeURIComponent(`Halo admin, saya ${me.nama || "kurir"} sudah bayar QRIS isi saldo kurir ${fmtRp(jml)} dan mengunggah buktinya. Mohon dikonfirmasi.`), "_blank");
     }catch(e){ const m = String(e.message || e); toast("Gagal: " + ((m.match(/"message":"([^"]+)"/) || [])[1] || m).slice(0, 90)); b.disabled = false; b.textContent = "📤 Kirim permintaan isi saldo"; }
   };
 }
