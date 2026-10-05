@@ -199,6 +199,7 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
   .tbl-wrap{overflow-x:auto}
 }
 @media(max-width:420px){.donutwrap{flex-direction:column;align-items:stretch}.donut{margin:0 auto}}
+.dash-alert:empty{display:none}.dash-alert{display:grid;gap:10px;margin-bottom:16px}.dash-alert>.card{margin:0!important}
 </style>
 </head>
 <body>
@@ -515,7 +516,12 @@ dashboard(){
   const top=S.products.map(p=>({p,s:sm.get('id:'+p.id)||{qty:0,rev:0}})).filter(x=>x.s.qty>0).sort((a,b)=>b.s.qty-a.s.qty).slice(0,5);
   const today=S.orders.filter(o=>dayKey(o.created_at)===dayKey(new Date()));
   const ch=ordersPerDay(chartDays);
-  return `<div class="grid-dash"><div>
+  return `<div class="dash-alert">
+      ${cairTunggu().length?`<div class="card" style="margin-bottom:14px;background:#fff3cd;cursor:pointer" onclick="go('cair')"><b>💸 ${cairTunggu().length} permintaan pencairan saldo toko</b><div class="sm" style="margin-top:4px">Ketuk untuk memproses pencairan</div></div>`:''}
+      ${topupMenunggu().length?`<div class="card" style="margin-bottom:20px;background:var(--gl);cursor:pointer" onclick="go('kurir')"><b style="color:var(--g)">💰 ${topupMenunggu().length} permintaan isi saldo kurir</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${topupMenunggu().slice(0,3).map(x=>esc(x.nama||'Kurir')+' '+rp(x.jumlah)).join(', ')} · ketuk untuk konfirmasi</div></div>`:''}
+      ${laporBuka().length?`<div class="card" style="margin-bottom:20px;background:#fdecea;cursor:pointer" onclick="orderFilter='Dilaporkan';jenisFilter='Semua';go('pesanan')"><b style="color:#c0392b">⚠️ ${laporBuka().length} pesanan dilaporkan belum diterima pembeli</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${laporBuka().slice(0,3).map(o=>esc(orderCode(o))).join(', ')} · ketuk untuk menangani</div></div>`:''}
+      ${Object.values(rpMap()).filter(x=>x&&x.status==='baru').length?`<div class="card" style="margin-bottom:14px;background:#fff3cd;cursor:pointer" onclick="go('resetpin')"><b>🔑 ${Object.values(rpMap()).filter(x=>x&&x.status==='baru').length} warga lupa PIN</b><div class="sm" style="margin-top:4px">Ketuk untuk membuat PIN sementara</div></div>`:''}${pendingTotal()?`<div class="card" style="margin-bottom:20px;background:var(--ol);cursor:pointer" onclick="go('persetujuan')"><b>⏳ ${pendingTotal()} pendaftar menunggu persetujuan</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${GROUPS.map(g=>pendingOf(g.k).length?pendingOf(g.k).length+' '+g.label.toLowerCase():'').filter(Boolean).join(', ')} · ketuk untuk melihat</div></div>`:''}
+    </div><div class="grid-dash"><div>
     <div class="stats">
       ${stat('Total Pesanan',S.orders.length.toLocaleString('id-ID'),`${S.orders.filter(o=>inDays(o,30)).length} dalam 30 hari`,'bag','#0f7a3d')}
       ${stat('Total Pelanggan',customers().length.toLocaleString('id-ID'),'nomor WA berbeda','users','#3b82f6')}
@@ -537,9 +543,6 @@ dashboard(){
     <div>
       ${gmPeringatan()}
       <div class="banner"><svg width="44" height="44" viewBox="0 0 100 100"><path d="M30 34 50 12 70 34" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/><path d="M10 34h80v10H10zM15 44h70l-7 44H22z" fill="none" stroke="#fff" stroke-width="5"/><text x="50" y="80" text-anchor="middle" font-size="26" font-weight="900" fill="#fff">KS</text></svg><div><b>Kalensari Store</b><small>Belanja makanan &amp; minuman dari warga Kalensari</small></div></div>
-      ${topupMenunggu().length?`<div class="card" style="margin-bottom:20px;background:var(--gl);cursor:pointer" onclick="go('kurir')"><b style="color:var(--g)">💰 ${topupMenunggu().length} permintaan isi saldo kurir</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${topupMenunggu().slice(0,3).map(x=>esc(x.nama||'Kurir')+' '+rp(x.jumlah)).join(', ')} · ketuk untuk konfirmasi</div></div>`:''}
-      ${laporBuka().length?`<div class="card" style="margin-bottom:20px;background:#fdecea;cursor:pointer" onclick="orderFilter='Dilaporkan';jenisFilter='Semua';go('pesanan')"><b style="color:#c0392b">⚠️ ${laporBuka().length} pesanan dilaporkan belum diterima pembeli</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${laporBuka().slice(0,3).map(o=>esc(orderCode(o))).join(', ')} · ketuk untuk menangani</div></div>`:''}
-      ${Object.values(rpMap()).filter(x=>x&&x.status==='baru').length?`<div class="card" style="margin-bottom:14px;background:#fff3cd;cursor:pointer" onclick="go('resetpin')"><b>🔑 ${Object.values(rpMap()).filter(x=>x&&x.status==='baru').length} warga lupa PIN</b><div class="sm" style="margin-top:4px">Ketuk untuk membuat PIN sementara</div></div>`:''}${pendingTotal()?`<div class="card" style="margin-bottom:20px;background:var(--ol);cursor:pointer" onclick="go('persetujuan')"><b>⏳ ${pendingTotal()} pendaftar menunggu persetujuan</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${GROUPS.map(g=>pendingOf(g.k).length?pendingOf(g.k).length+' '+g.label.toLowerCase():'').filter(Boolean).join(', ')} · ketuk untuk melihat</div></div>`:''}
       <div class="card" style="margin-bottom:20px"><div class="chead"><h3>Aksi Cepat</h3></div><div class="quick">
         <button class="qbtn" style="background:var(--gl);color:var(--g)" onclick="productForm()"><span class="qi" style="background:var(--g2)">${ico('plus')}</span>Tambah Produk</button>
         <button class="qbtn" style="background:var(--bl);color:var(--blue)" onclick="go('pesanan')"><span class="qi" style="background:var(--blue)">${ico('doc')}</span>Kelola Pesanan</button>
@@ -630,7 +633,10 @@ pengaturan(){
     <div id="admNotif">${window.KSNotif?'':'<p class="sm">File notif.js belum terunggah.</p>'}</div>
     <p class="sm" style="font-weight:700;margin:14px 0 6px">Jenis notifikasi admin <span style="font-weight:400;color:var(--mut)">(berlaku untuk semua perangkat admin)</span></p>
     <label class="sm" style="display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer"><input type="checkbox" id="anPes" ${admPref().pesanan?'checked':''} onchange="saveAdmPref(this)" style="width:18px;height:18px">🛒 Pesanan baru</label>
-    <label class="sm" style="display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer"><input type="checkbox" id="anDaf" ${admPref().daftar?'checked':''} onchange="saveAdmPref(this)" style="width:18px;height:18px">👤 Pendaftar baru (penjual, kurir, jasa)</label></div>
+    <label class="sm" style="display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer"><input type="checkbox" id="anDaf" ${admPref().daftar?'checked':''} onchange="saveAdmPref(this)" style="width:18px;height:18px">👤 Pendaftar baru (penjual, kurir, jasa)</label>
+    <label class="sm" style="display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer"><input type="checkbox" id="anTop" ${admPref().topup?'checked':''} onchange="saveAdmPref(this)" style="width:18px;height:18px">💰 Kurir minta isi saldo (top up)</label>
+    <label class="sm" style="display:flex;gap:10px;align-items:center;padding:8px 0;cursor:pointer"><input type="checkbox" id="anCair" ${admPref().cair?'checked':''} onchange="saveAdmPref(this)" style="width:18px;height:18px">💸 Toko minta pencairan saldo</label>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-top:6px">Isi saldo & pencairan: dicek tiap 30 detik selama halaman Admin terbuka (boleh di tab lain), lalu HP/komputer berbunyi dan muncul pemberitahuan.</p></div>
   <div class="card"><div class="chead"><h3>Akun Admin</h3></div>
     <div class="detail-row"><span>Email</span><b>${esc((auth&&auth.email)||'-')}</b></div>
     <p class="sm" style="color:var(--mut);font-size:12px;margin:12px 0">Akun ini sama dengan login ⚙️ Admin di toko. Ganti kata sandi atau tambah admin dari Supabase &gt; Authentication &gt; Users dan tabel <code>admins</code>.</p>
@@ -1349,11 +1355,11 @@ async function hapusTempat(i,btn){const t=tempatNow()[i];if(!t||!confirm('Hapus 
   const l=tempatNow().filter((_,k)=>k!==i);await busy(btn,async()=>{await setSetting('transport_places',l);S.settings.transport_places=l;render();toast('Tempat dihapus')})}
 
 /* ========== PENGATURAN ========== */
-function admPref(){const v=S.settings.admin_push&&typeof S.settings.admin_push==='object'?S.settings.admin_push:{};return{pesanan:v.pesanan!==false,daftar:v.daftar!==false}}
+function admPref(){const v=S.settings.admin_push&&typeof S.settings.admin_push==='object'?S.settings.admin_push:{};return{pesanan:v.pesanan!==false,daftar:v.daftar!==false,topup:v.topup!==false,cair:v.cair!==false}}
 async function saveAdmPref(el){
   el.disabled=true;
-  try{const cur=await readKey('admin_push',{});const v={...(cur&&typeof cur==='object'?cur:{}),pesanan:$('#anPes').checked,daftar:$('#anDaf').checked};
-    await setSetting('admin_push',v);S.settings.admin_push=v;toast((el.checked?'🔔 Notifikasi ':'🔕 Notifikasi ')+(el.id==='anPes'?'pesanan baru':'pendaftar baru')+(el.checked?' dinyalakan':' dimatikan'))}
+  try{const cur=await readKey('admin_push',{});const v={...(cur&&typeof cur==='object'?cur:{}),pesanan:$('#anPes').checked,daftar:$('#anDaf').checked,topup:$('#anTop').checked,cair:$('#anCair').checked};
+    await setSetting('admin_push',v);S.settings.admin_push=v;toast((el.checked?'🔔 Notifikasi ':'🔕 Notifikasi ')+({anPes:'pesanan baru',anDaf:'pendaftar baru',anTop:'isi saldo kurir',anCair:'pencairan saldo toko'}[el.id])+(el.checked?' dinyalakan':' dimatikan'))}
   catch(e){el.checked=!el.checked;toast('Gagal menyimpan: '+String(e.message||e).slice(0,80))}
   finally{el.disabled=false}}
 function saldoPanel(){
@@ -1452,6 +1458,34 @@ $('#lPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 if(auth&&auth.refresh_token)enterApp();
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 // Pesanan baru dimuat ulang otomatis tiap 60 detik.
+
+/* ===== PANTAU PERMINTAAN UANG: kurir isi saldo & toko cairkan saldo (selama Admin terbuka) ===== */
+const UANG_SEEN='kalensari_admin_uang_seen';
+let uangAwal=true;
+function uangSeen(){try{return new Set(JSON.parse(localStorage.getItem(UANG_SEEN)||'[]'))}catch(e){return new Set()}}
+function bunyiAdmin(){try{const c=new(window.AudioContext||window.webkitAudioContext)();[[0,988],[.18,1319],[.36,1568]].forEach(([t,f])=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=f;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.22,c.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+.3);o.start(c.currentTime+t);o.stop(c.currentTime+t+.31)})}catch(e){}}
+async function kabarAdmin(judul,isi,tag,ke){
+  bunyiAdmin();toast(judul);
+  try{if(!('Notification' in window)||Notification.permission!=='granted')return;
+    const opt={body:isi,tag,icon:'icons/logo-kalensari.png',badge:'icons/logo-kalensari.png',renotify:true,data:{url:'admin.html'}};
+    const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration().catch(()=>null);
+    if(reg&&reg.showNotification)await reg.showNotification(judul,opt);else{const n=new Notification(judul,opt);n.onclick=()=>{window.focus();go(ke);n.close()}}}catch(e){}
+}
+async function cekPermintaanUang(){
+  if(!auth||$('#app').classList.contains('hide'))return;
+  const pref=admPref();if(!pref.topup&&!pref.cair){uangAwal=false;return}
+  let tp=[],cr=[];
+  try{const [a,b]=await Promise.all([pref.topup?api('kurir_topup?select=id,nama,jumlah,t&status=eq.menunggu&order=t.desc&limit=50').catch(()=>[]):[],pref.cair?readKey('cair_toko',[]).catch(()=>[]):[]]);
+    tp=Array.isArray(a)?a:[];cr=(Array.isArray(b)?b:[]).filter(x=>x&&x.status==='menunggu');}catch(e){return}
+  const seen=uangSeen(),idT=x=>'t'+x.id,idC=x=>'c'+(x.id||x.t||((x.toko||x.nama||'')+x.jumlah));
+  const baruT=tp.filter(x=>!seen.has(idT(x))),baruC=cr.filter(x=>!seen.has(idC(x)));
+  const semua=[...tp.map(idT),...cr.map(idC)];try{localStorage.setItem(UANG_SEEN,JSON.stringify([...new Set([...seen,...semua])].slice(-300)))}catch(e){}
+  if(uangAwal){uangAwal=false;return}  // saat Admin baru dibuka: cukup tampil di beranda, tanpa bunyi
+  if(baruT.length){const x=baruT[0];await kabarAdmin(`💰 ${baruT.length>1?baruT.length+' permintaan':'Permintaan'} isi saldo kurir`,`${x.nama||'Kurir'} minta isi saldo ${rp(x.jumlah)}${baruT.length>1?` dan ${baruT.length-1} lainnya`:''}. Ketuk untuk memproses.`,'ks-topup','kurir');}
+  if(baruC.length){const x=baruC[0];await kabarAdmin(`💸 ${baruC.length>1?baruC.length+' permintaan':'Permintaan'} pencairan saldo toko`,`${x.nama||x.toko||'Toko'} minta cair ${rp(x.jumlah)}${baruC.length>1?` dan ${baruC.length-1} lainnya`:''}. Ketuk untuk memproses.`,'ks-cair','cair');}
+  if(baruT.length||baruC.length)loadAll(true);
+}
+setInterval(cekPermintaanUang,30000);setTimeout(cekPermintaanUang,4000);
 setInterval(()=>{if(auth&&!$('#app').classList.contains('hide')&&!$('#modalRoot').innerHTML&&document.visibilityState==='visible')loadAll(true)},60000);
 
 /* ========== SETORAN QRIS ==========
