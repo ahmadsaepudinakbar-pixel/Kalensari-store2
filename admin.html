@@ -589,10 +589,10 @@ pelanggan(){
   <div class="cards" id="list">${list.map((c,i)=>{const wa=phoneKey(c.wa);return `<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(c.name))}</div><div class="meta"><b>${esc(c.name)}</b> ${kodeChip(kodePembeli(c.wa))}<div class="sm">${esc(c.wa||'-')}</div><div class="sm">${c.orders} pesanan · ${rp(c.spent)}</div></div><div class="right-col">${c.orders>1?'<span class="badge b-Selesai">Langganan</span>':''}${wa?`<a class="more" style="color:var(--g2)" href="https://wa.me/${wa}" target="_blank" rel="noopener" title="Chat WhatsApp">${ico('wa')}</a>`:''}</div></div>`}).join('')||'<div class="empty">Belum ada pelanggan</div>'}</div>`;
 },
 promosi(){
-  const list=S.products.filter(p=>Number(p.sale)>0&&Number(p.sale)<Number(p.price)&&p.name.toLowerCase().includes(q.toLowerCase()));
+  const list=S.products.filter(p=>Number(p.sale)>0&&Number(p.sale)<Number(p.price)&&!(p.sale_until&&Date.parse(p.sale_until)<=Date.now())&&p.name.toLowerCase().includes(q.toLowerCase()));
   return `<div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari produk promo..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-g" onclick="promoForm()">${ico('plus')}Tambah Promo</button></div>
   <p class="sm" style="color:var(--mut);margin:-4px 0 14px">Promo = harga coret. Harga promo langsung tampil di toko pada produk tersebut.</p>
-  <div class="cards" id="list">${list.map(p=>{const pct=Math.round((1-p.sale/p.price)*100);return `<div class="lc"><div class="promo-tag" style="background:#ef4444">-${pct}%</div><div class="meta"><b>${esc(p.name)}</b><div class="sm"><s>${rp(p.price)}</s> → <b style="color:var(--g)">${rp(p.sale)}</b></div><div class="sm">${esc(p.seller||'-')}</div></div><button class="more" onclick="promoMenu(${Number(p.id)})">${ico('dots')}</button></div>`}).join('')||'<div class="empty">Belum ada produk promo</div>'}</div>`;
+  <div class="cards" id="list">${list.map(p=>{const pct=Math.round((1-p.sale/p.price)*100);return `<div class="lc"><div class="promo-tag" style="background:#ef4444">-${pct}%</div><div class="meta"><b>${esc(p.name)}</b><div class="sm"><s>${rp(p.price)}</s> → <b style="color:var(--g)">${rp(p.sale)}</b></div><div class="sm">${esc(p.seller||'-')}${p.sale_until?` · ⏳ ${Math.ceil((Date.parse(p.sale_until)-Date.now())/864e5)} hari lagi`:''}</div></div><button class="more" onclick="promoMenu(${Number(p.id)})">${ico('dots')}</button></div>`}).join('')||'<div class="empty">Belum ada produk promo</div>'}</div>`;
 },
 laporan(){
   const os=S.orders.filter(o=>inDays(o,repDays)),ok=os.filter(o=>!isCancelled(o));
@@ -1069,12 +1069,16 @@ function promoForm(id){
   modal(`<h3>${p?'Ubah':'Tambah'} Promo</h3>
   <div class="field"><label>Produk</label><select class="inp" id="prP" ${p?'disabled':''}>${opts.map(x=>`<option value="${Number(x.id)}" ${p&&Number(p.id)===Number(x.id)?'selected':''}>${esc(x.name)} — ${rp(x.price)}</option>`).join('')}</select></div>
   <div class="field"><label>Harga promo (Rp)</label><input class="inp" id="prS" type="number" min="0" value="${esc(p&&p.sale||'')}"></div>
+  <div class="field"><label>Lama promo (hari)</label><input class="inp" id="prD" type="number" min="1" placeholder="mis. 7 (kosongkan = tanpa batas)" value="${p&&p.sale_until&&Date.parse(p.sale_until)>Date.now()?Math.ceil((Date.parse(p.sale_until)-Date.now())/864e5):''}"></div>
   <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="savePromo(this)">Simpan</button></div>`)}
 async function savePromo(btn){const id=+$('#prP').value,p=getProd(id),s=Number($('#prS').value);
   if(!p)return;if(!(s>0)||s>=Number(p.price))return toast('Harga promo harus lebih kecil dari '+rp(p.price));
-  await busy(btn,async()=>{await patchProd(id,{sale:s});closeModal();if(route!=='promosi')go('promosi');else render();toast('Promo disimpan')})}
+  const dv=$('#prD').value,hari=dv===''?null:Math.round(Number(dv));if(hari!==null&&!(hari>=1&&hari<=365))return toast('Lama promo diisi 1 sampai 365 hari');
+  const sisa=p.sale_until?Math.ceil((Date.parse(p.sale_until)-Date.now())/864e5):null;
+  const until=hari===null?null:(p.sale_until&&Number(p.sale)===s&&sisa===hari?p.sale_until:new Date(Date.now()+hari*864e5).toISOString());
+  await busy(btn,async()=>{await patchProd(id,{sale:s,sale_until:until});closeModal();if(route!=='promosi')go('promosi');else render();toast('Promo disimpan')})}
 function promoMenu(id){const p=getProd(id);modal(`<h3>${esc(p.name)}</h3><div class="mact" style="flex-direction:column"><button class="btn btn-light" onclick="promoForm(${Number(id)})">${ico('edit')}Ubah harga promo</button><button class="btn btn-red" onclick="endPromo(${Number(id)},this)">${ico('trash')}Akhiri promo</button><button class="btn" onclick="closeModal()">Batal</button></div>`)}
-async function endPromo(id,btn){await busy(btn,async()=>{await patchProd(id,{sale:null});closeModal();render();toast('Promo diakhiri')})}
+async function endPromo(id,btn){await busy(btn,async()=>{await patchProd(id,{sale:null,sale_until:null});closeModal();render();toast('Promo diakhiri')})}
 
 
 /* ========== ONGKIR PESANAN TOKO (sama dengan ⚙️ Admin > Ongkir di halaman toko) ========== */

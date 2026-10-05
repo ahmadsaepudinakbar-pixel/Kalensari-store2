@@ -194,10 +194,15 @@ let activeCategory = "Semua";
 const rupiah = n => "Rp" + new Intl.NumberFormat("id-ID").format(n);
 const saveCart = () => localStorage.setItem("kalensari_cart", JSON.stringify(cart));
 const waLink = message => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-const currentPrice = p => p.sale || p.price;
+// Promo aktif = ada harga promo dan (tanpa batas waktu atau belum lewat sale_until)
+const promoOn = p => !!(p && Number(p.sale)>0 && (!p.sale_until || Date.parse(p.sale_until) > Date.now()));
+const promoSisaHari = p => p && p.sale_until ? Math.ceil((Date.parse(p.sale_until)-Date.now())/864e5) : null;
+const currentPrice = p => promoOn(p) ? p.sale : p.price;
 
 function priceHTML(p) {
-  return p.sale ? `<span class="old-price">${rupiah(p.price)}</span>${rupiah(p.sale)}` : rupiah(p.price);
+  if(!promoOn(p)) return rupiah(p.price);
+  const h=promoSisaHari(p);
+  return `<span class="old-price">${rupiah(p.price)}</span>${rupiah(p.sale)}${h!==null?`<small class="promo-sisa">⏳ Promo berakhir ${h<=1?"hari ini":h+" hari lagi"}</small>`:""}`;
 }
 // ===== JAM TERSEDIA PRODUK (diatur dari Admin, waktu WIB) =====
 const STORE_TIME_ZONE="Asia/Jakarta";
@@ -479,7 +484,7 @@ function singleCardHTML(p) {
   return `
    <article class="product${soldOut?" soldout":""}">
   <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
-        ${soldOut?'<span class="soldout-badge">STOK HABIS</span>':p.sale?'<span class="sale-badge">PROMO</span>':''}${isUnggulan(p)?'<span class="ung-badge">⭐ Unggulan</span>':''}
+        ${soldOut?'<span class="soldout-badge">STOK HABIS</span>':promoOn(p)?'<span class="sale-badge">PROMO</span>':''}${isUnggulan(p)?'<span class="ung-badge">⭐ Unggulan</span>':''}
       </div>
       <div class="product-body">
         <h3>${p.name}</h3>
@@ -499,7 +504,7 @@ function groupCardHTML(u) {
   return `
    <article class="product${v.every(isSoldOut)?" soldout":""}">
   <div class="product-img"><img src="${getProductImage(first.image)}" alt="${esc(u.group)}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
-        ${v.every(isSoldOut)?'<span class="soldout-badge">STOK HABIS</span>':v.some(x=>x.sale)?'<span class="sale-badge">PROMO</span>':''}${v.some(isUnggulan)?'<span class="ung-badge">⭐ Unggulan</span>':''}
+        ${v.every(isSoldOut)?'<span class="soldout-badge">STOK HABIS</span>':v.some(promoOn)?'<span class="sale-badge">PROMO</span>':''}${v.some(isUnggulan)?'<span class="ung-badge">⭐ Unggulan</span>':''}
       </div>
       <div class="product-body">
         <h3>${esc(u.group)}</h3>
@@ -940,7 +945,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const kodeST=window.KSST?KSST.buatKode():"";
   const codes=[];for(const g of groups){let c=await makeUniqueOrderCode();while(codes.includes(c))c=await makeUniqueOrderCode();codes.push(c);}
   const grup=groups.length>1?"G-"+codes[0]:null;
-  const payloads=groups.map((g,i)=>{const items=g.items.map(({idx,on,...r})=>r),subtotal=g.sub,shipping=g.fee;
+  const payloads=groups.map((g,i)=>{const items=g.items.map(({idx,on,...r})=>promoOn(r)?r:{...r,sale:null}),subtotal=g.sub,shipping=g.fee;
     return {order_code:codes[i],created_at:createdAt,customer_name:buyerName,customer_phone:phone,customer_phone_normalized:normalizePhone(phone),address,note:orderNote,payment,items,subtotal,shipping,total:subtotal+shipping,status:"menunggu",...(grup?{grup}:{}),...(codTahan?{pay_status:"tunggu_wa"}:{})};});
   const totalAll=payloads.reduce((t,x)=>t+x.total,0);
   const mapText=hasMap?`\nLokasi Maps: ${ksMapsSearch(`${mapLat},${mapLng}`)}`:"";
@@ -1038,7 +1043,7 @@ function saveAdminProduct(i){
     if(parseToppings({toppings:tText}).length<lines.length){showToast("Format topping salah. Gunakan satu baris: Nama | Harga");return;}
   }
   const tLim=Number(document.getElementById(`e-tlimit-${i}`).value);
-  const p=products[i]; p.toppings=tText||null; p.topping_limit=tLim>0?tLim:null; p.open_time=openT||null; p.close_time=closeT||null; p.product_group=document.getElementById(`e-group-${i}`).value.trim()||null; p.variant=document.getElementById(`e-variant-${i}`).value.trim()||null; p.name=document.getElementById(`e-name-${i}`).value.trim(); p.category=document.getElementById(`e-cat-${i}`).value; p.price=Number(document.getElementById(`e-price-${i}`).value)||0; const sale=Number(document.getElementById(`e-sale-${i}`).value); p.sale=sale>0?sale:null; p.seller=document.getElementById(`e-seller-${i}`).value.trim(); p.unit=document.getElementById(`e-unit-${i}`).value.trim(); p.image=document.getElementById(`e-image-${i}`).value.trim(); saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); showToast("Produk berhasil diperbarui");
+  const p=products[i]; p.toppings=tText||null; p.topping_limit=tLim>0?tLim:null; p.open_time=openT||null; p.close_time=closeT||null; p.product_group=document.getElementById(`e-group-${i}`).value.trim()||null; p.variant=document.getElementById(`e-variant-${i}`).value.trim()||null; p.name=document.getElementById(`e-name-${i}`).value.trim(); p.category=document.getElementById(`e-cat-${i}`).value; p.price=Number(document.getElementById(`e-price-${i}`).value)||0; const sale=Number(document.getElementById(`e-sale-${i}`).value); p.sale=sale>0?sale:null; if(!p.sale||(p.sale_until&&Date.parse(p.sale_until)<=Date.now()))p.sale_until=null; p.seller=document.getElementById(`e-seller-${i}`).value.trim(); p.unit=document.getElementById(`e-unit-${i}`).value.trim(); p.image=document.getElementById(`e-image-${i}`).value.trim(); saveProducts(); syncCloudProducts(); renderProducts(); renderCategories(); renderAdminProducts(); showToast("Produk berhasil diperbarui");
 }
 function addAdminProduct(){
   const id=products.length?Math.max(...products.map(p=>p.id))+1:1;
