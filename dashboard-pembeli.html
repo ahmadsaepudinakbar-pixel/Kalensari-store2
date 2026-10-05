@@ -72,6 +72,9 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 .akt{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid #e0a106;border-radius:16px;padding:12px;margin-bottom:10px;cursor:pointer}.akt>span{font-size:24px}.akt div{flex:1;min-width:0}.akt small{display:block;color:var(--muted);font-size:12.5px}.akt b{font-size:15px}.akt i{font-style:normal;font-weight:800;font-size:12px;border-radius:999px;padding:3px 9px;background:#fff3cd;color:#7a4b00;white-space:nowrap}
 .ks-banner{display:flex;align-items:center;gap:12px;margin-top:14px;background:#7b3f1d;color:#fff;border-radius:16px;padding:12px 14px;text-decoration:none}.ks-banner img{width:44px;height:44px;border-radius:50%;background:#fff;object-fit:cover}.ks-banner span{flex:1}.ks-banner b{display:block}.ks-banner small{opacity:.85}.ks-banner i{font-style:normal;font-size:22px}
 .fchips{display:flex;gap:6px;overflow-x:auto;margin:0 0 6px;padding-bottom:2px}.fchips button{flex:none;border:1px solid var(--line);background:var(--chip);border-radius:999px;padding:8px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink)}.fchips button.on{background:var(--brown);border-color:var(--brown);color:#fff}
+.vc-card{display:block;background:linear-gradient(135deg,#7a3e20,#a35a2e);color:#fff;border-radius:20px;padding:18px;margin-bottom:14px}.vc-card small{opacity:.9;font-size:13px}.vc-card b{display:block;font-size:32px;margin:4px 0 6px}.vc-card span{display:block;font-size:13px;opacity:.9}.vc-go{display:inline-block;margin-top:12px;background:#fff;color:#7a3e20;font-weight:800;border-radius:12px;padding:9px 14px;text-decoration:none}
+.aj-kode{display:flex;align-items:center;gap:10px;background:#fff6e0;border:1.5px dashed #e3b85c;border-radius:14px;padding:10px 12px}.aj-kode span{font-size:12px;color:#7a5a20}.aj-kode b{flex:1;font-size:20px;letter-spacing:1px;color:#5b2e1a}
+.vc-m{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #f0e6dc}.vc-m small{display:block;color:#8a7466;font-size:12px}.vc-m .p{color:#14502c}.vc-m .m{color:#a32d2d}.vc-m>b{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -88,6 +91,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
     <div id="homeAktif"></div>
     <div class="grid3">
       <button type="button" class="q" data-go="pesanan"><i>📋</i><span>Pesanan</span><em id="qPes" hidden></em></button>
+      <button type="button" class="q" data-go="saldo"><i>🎟️</i><span>Saldo voucher</span><em id="qSaldo" hidden></em></button>
       <button type="button" class="q" data-go="alamat"><i>📍</i><span>Alamat</span></button>
       <a class="q" href="index.html#favorit"><i>❤️</i><span>Favorit</span><em id="favN" hidden></em></a>
       <a class="q" href="pasar.html#/saya"><i>🔁</i><span>Pasar Warga</span><em id="lpBaru" hidden></em></a>
@@ -96,6 +100,20 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
     </div>
     <section class="box" style="margin-top:14px" id="sumBox" hidden></section>
     <a class="ks-banner" href="index.html"><img src="icons/logo-kalensari.png" alt=""><span><b>Belanja di Kalensari Store</b><small>Makanan, minuman & kebutuhan dari warga</small></span><i>›</i></a>
+  </div>
+
+  <!-- ===== SALDO VOUCHER & AJAK TETANGGA ===== -->
+  <div data-pg="saldo">
+    <section class="vc-card"><small>🎟️ Saldo voucher belanja</small><b id="vcSaldo">…</b><span>Bisa dipakai saat bayar QRIS di Kalensari Store, atau bayar penuh bila saldo cukup.</span><a class="vc-go" href="index.html">🛍️ Belanja pakai saldo</a></section>
+    <section class="box"><h3 style="margin:0 0 6px">👥 Ajak tetangga, dapat saldo</h3>
+      <p class="hint" id="ajInfo" style="margin:0 0 10px">Memuat…</p>
+      <div class="aj-kode"><span>Kode Anda</span><b id="ajKode">-</b><button type="button" class="mini" id="ajSalin">Salin</button></div>
+      <div class="btns"><a class="btn wa" id="ajWa" href="#" target="_blank" rel="noopener">💬 Bagikan lewat WhatsApp</a></div>
+      <p class="hint" id="ajStat" style="margin:10px 0 0"></p>
+      <div id="ajMasuk" hidden style="margin-top:14px;border-top:1px dashed #e3d4c6;padding-top:12px"><b>Punya kode dari tetangga?</b>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><input id="ajIn" class="fld" style="flex:1;min-width:140px;margin:0" placeholder="mis. PB-0012" autocapitalize="characters"><input id="ajPin" class="fld" style="width:110px;margin:0" type="password" inputmode="numeric" maxlength="8" placeholder="PIN Anda"><button type="button" class="btn" id="ajPakai" style="margin:0">Pakai kode</button></div></div>
+    </section>
+    <section class="box"><h3 style="margin:0 0 8px">📜 Riwayat saldo</h3><div id="vcMut"><p class="hint">Memuat…</p></div></section>
   </div>
 
   <!-- ===== PESANAN ===== -->
@@ -316,7 +334,7 @@ async function cekLapak(){
 }
 
 /* ===== HALAMAN (seperti Aplikasi Penjual): Beranda • Pesanan • Alamat • Akun ===== */
-const HAL = {home:["Warga Desa", "Kalensari"], pesanan:["Pesanan Saya", "Riwayat & status pesanan"], alamat:["Alamat Saya", "Alamat antar pesanan"], akun:["Akun Saya", "Data diri, notifikasi & PIN"]};
+const HAL = {home:["Warga Desa", "Kalensari"], saldo:["Saldo Voucher", "Saldo belanja & ajak tetangga"], pesanan:["Pesanan Saya", "Riwayat & status pesanan"], alamat:["Alamat Saya", "Alamat antar pesanan"], akun:["Akun Saya", "Data diri, notifikasi & PIN"]};
 let halNow = "home";
 function bukaHal(h, fokus){
   if(!HAL[h]) h = "home"; halNow = h;
@@ -327,6 +345,7 @@ function bukaHal(h, fokus){
   if(location.hash.slice(1) !== (h === "home" ? "" : h)) history.replaceState(null, "", location.pathname + location.search + (h === "home" ? "" : "#" + h));
   scrollTo(0, 0);
   if(fokus === "notif") setTimeout(() => $("notifSec").scrollIntoView({behavior:"smooth"}), 80);
+  if(h === "saldo" && me) muatVoucher();
 }
 document.addEventListener("click", e => { const b = e.target.closest("[data-go]"); if(!b) return; e.preventDefault(); if(b.dataset.go !== halNow) history.pushState(null, "", location.pathname + location.search + (b.dataset.go === "home" ? "" : "#" + b.dataset.go)); bukaHal(b.dataset.go, b.dataset.fokus); });
 $("ahBack").onclick = () => { history.pushState(null, "", location.pathname + location.search); bukaHal("home"); };
@@ -356,6 +375,65 @@ function saringPesanan(){
 }
 $("oFilter").onclick = e => { const b = e.target.closest("[data-f]"); if(!b) return; oF = b.dataset.f; $("oFilter").querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b)); saringPesanan(); };
 
+// Nota dibatalkan: alasan + status pengembalian dana (QRIS)
+function infoBatal(o){
+  if(o.status !== "dibatalkan") return "";
+  const box = (t, ok) => `<p style="margin:6px 0 0;padding:7px 10px;border-radius:10px;font-size:13.5px;background:${ok ? "#e8f6ee" : "#fdecea"};color:${ok ? "#14502c" : "#8a2116"}">${t}</p>`;
+  const al = o.batal_alasan ? String(o.batal_alasan).replace(/\s*\(dilaporkan kurir.*\)$/, "") : "";
+  let h = al ? box("✖️ Dibatalkan: " + esc(al)) : "";
+  if(o.pay_status === "lunas"){
+    const r = o.refund && typeof o.refund === "object" ? o.refund : null, j = r && r.jumlah != null ? Number(r.jumlah) || 0 : Number(o.total) || 0;
+    h += r && r.status === "saldo" ? box("🎟️ " + fmtRp(j) + " sudah masuk saldo voucher belanja Anda", true)
+      : r && r.status === "selesai" ? box("✅ Dana " + fmtRp(j) + " sudah dikembalikan" + (r.selesai_t ? " (" + new Date(r.selesai_t).toLocaleDateString("id-ID") + ")" : ""), true)
+      : box("💸 Dana " + fmtRp(j) + " akan dikembalikan admin (paling lambat 7 hari kerja).");
+  }
+  return h;
+}
+// ===== SALDO VOUCHER & AJAK TETANGGA (tabel pembeli_saldo / pembeli_mutasi / pembeli_ajak, lihat supabase-voucher-pembeli.sql) =====
+const JENIS_V = {refund:"↩️ Pengembalian", kompensasi:"🎁 Kompensasi", ajak:"👥 Bonus ajak tetangga", ajak_baru:"🎉 Bonus pembeli baru", pakai:"🛒 Dipakai belanja", koreksi:"🛠️ Penyesuaian admin"};
+async function rpc(fn, body){
+  const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
+  const r = await fetch(base + "/rest/v1/rpc/" + fn, {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const t = await r.text(); if(!r.ok){ let m = t; try{ m = JSON.parse(t).message || t; }catch(e){} throw new Error(m); } return t ? JSON.parse(t) : null;
+}
+async function muatSaldoKecil(){
+  try{ const r = await cf("pembeli_saldo?select=saldo&wa=eq." + WA); const v = Number(r && r[0] && r[0].saldo) || 0; $("qSaldo").textContent = v >= 1000 ? Math.floor(v / 1000) + "rb" : v; $("qSaldo").hidden = !v; return v; }catch(e){ return null; }
+}
+async function muatVoucher(){
+  if(!cloudOn()){ $("vcSaldo").textContent = "-"; return; }
+  const kode = me.kode || "", link = "https://kalensari.web.id/akun-pembeli.html" + (kode ? "?ajak=" + encodeURIComponent(kode) : "");
+  $("ajKode").textContent = kode || "(menunggu ID akun)";
+  try{
+    const [s, mut, aj, saya, atur, sel] = await Promise.all([
+      cf("pembeli_saldo?select=saldo&wa=eq." + WA),
+      cf("pembeli_mutasi?select=jumlah,jenis,ket,saldo_akhir,t&wa=eq." + WA + "&order=t.desc&limit=50"),
+      cf("pembeli_ajak?select=status,t&pengundang=eq." + WA),
+      cf("pembeli_ajak?select=status&wa=eq." + WA),
+      getSetting("voucher_aturan", {}).catch(() => ({})),
+      cf("orders?select=id&status=eq.selesai&customer_phone_normalized=eq." + WA + "&limit=1")]);
+    const v = Number(s && s[0] && s[0].saldo) || 0; $("vcSaldo").textContent = fmtRp(v); muatSaldoKecil();
+    const A = {aktif:true, pengundang:5000, baru:5000, min:20000, hari:30, ...((atur && atur.ajak) || {})};
+    $("ajInfo").innerHTML = A.aktif === false ? "Program ajak tetangga sedang tidak aktif."
+      : `Bagikan kode Anda. Saat tetangga yang baru daftar memakai kode Anda dan pesanan pertamanya (minimal ${fmtRp(A.min)}) <b>selesai diantar</b>, Anda dapat <b>${fmtRp(A.pengundang)}</b> dan tetangga Anda dapat <b>${fmtRp(A.baru)}</b> saldo voucher.`;
+    const pesan = `Yuk belanja makanan & minuman dari warga Desa Kalensari di Kalensari Store 🛍️\n\nDaftar pakai kode saya *${kode}* supaya kamu dapat saldo voucher ${fmtRp(A.baru)} setelah pesanan pertama selesai:\n${link}`;
+    $("ajWa").href = "https://wa.me/?text=" + encodeURIComponent(pesan);
+    $("ajSalin").onclick = () => { navigator.clipboard && navigator.clipboard.writeText(kode ? kode + " • " + link : link); toast("Kode & link disalin"); };
+    const ok = (aj || []).filter(x => x.status === "selesai").length, tunggu = (aj || []).filter(x => x.status === "menunggu").length;
+    $("ajStat").textContent = (aj || []).length ? `👥 ${ok} tetangga berhasil • ${tunggu} menunggu pesanan pertama selesai` : "Belum ada tetangga yang memakai kode Anda.";
+    $("ajMasuk").hidden = A.aktif === false || (saya || []).length > 0 || (sel || []).length > 0;
+    $("vcMut").innerHTML = (mut || []).length ? mut.map(m => `<div class="vc-m"><div><b>${esc(JENIS_V[m.jenis] || m.jenis)}</b><small>${esc(m.ket || "")}</small><small>${new Date(m.t).toLocaleString("id-ID", {dateStyle:"medium", timeStyle:"short"})} • saldo ${fmtRp(m.saldo_akhir)}</small></div><b class="${m.jumlah >= 0 ? "p" : "m"}">${m.jumlah >= 0 ? "+" : "−"}${fmtRp(Math.abs(m.jumlah))}</b></div>`).join("")
+      : '<p class="hint">Belum ada riwayat. Saldo voucher bertambah dari pengembalian nota yang batal, kompensasi toko tutup, dan bonus ajak tetangga.</p>';
+  }catch(e){ $("vcSaldo").textContent = "-"; $("vcMut").innerHTML = '<p class="hint">Fitur saldo voucher belum aktif. Minta admin menjalankan <b>supabase-voucher-pembeli.sql</b>.</p>'; $("ajInfo").textContent = ""; }
+}
+$("ajPakai").onclick = async () => {
+  const kode = $("ajIn").value.trim(), pin = $("ajPin").value.trim();
+  if(!kode) return toast("Isi kode dari tetangga Anda");
+  if(!okPin(pin)) return toast("Isi PIN akun Anda (4–8 angka)");
+  $("ajPakai").disabled = true;
+  try{ const r = await rpc("pakai_kode_ajak", {p_wa:WA, p_pin:pin, p_kode:kode}); toast(`✅ Kode dari ${r.nama} dipakai. Bonus ${fmtRp(r.bonus)} masuk setelah pesanan pertama (min. ${fmtRp(r.min)}) selesai.`); $("ajIn").value = ""; $("ajPin").value = ""; muatVoucher(); }
+  catch(e){ toast(e.message || "Gagal memakai kode"); }
+  finally{ $("ajPakai").disabled = false; }
+};
 async function loadOrders(){
   const box = $("orders"); box.innerHTML = '<p class="hint">Memuat...</p>';
   try{
@@ -365,7 +443,7 @@ async function loadOrders(){
     if(window.KSPW) KSPW.pasang(box, rows, loadOrders);
     if(window.KSUlasan){ await KSUlasan.muat(rows); KSUlasan.pasang(box, loadOrders); }
     if(window.KSST){ await KSST.muatInfo(rows.filter(o => o.status === "selesai" && Date.now() - new Date(o.updated_at || o.created_at || 0) < 4*864e5).map(o => o.order_code)); KSST.pasang(box, WA, loadOrders); }
-    box.innerHTML = rows.length ? rows.map(o => `<div class="card" data-st="${esc(o.status || "menunggu")}"><h3>${esc(o.order_code || "Pesanan")} <span class="chip">${esc(SL[o.status] || o.status || "Menunggu")}</span></h3><p>${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
+    box.innerHTML = rows.length ? rows.map(o => `<div class="card" data-st="${esc(o.status || "menunggu")}"><h3>${esc(o.order_code || "Pesanan")} <span class="chip">${esc(SL[o.status] || o.status || "Menunggu")}</span></h3><p>${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>${infoBatal(o)}${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
     saringPesanan();
   }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
 }
@@ -373,7 +451,7 @@ async function loadOrders(){
 (async () => {
   $("warn").hidden = cloudOn();
   if(!WA) return location.replace("akun-" + ROLE + ".html");
-  try{ await load(); loadOrders(); }catch(e){ toast(e.message || "Gagal memuat data"); }
+  try{ await load(); loadOrders(); muatSaldoKecil(); if(halNow === "saldo") muatVoucher(); }catch(e){ toast(e.message || "Gagal memuat data"); }
 })();
 
 </script>

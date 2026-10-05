@@ -419,7 +419,7 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo Toko','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['lapak','Lapak Barter','tag'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo Toko','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['lapak','Lapak Barter','tag'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['pengaturan','Pengaturan','gear']
 ];
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
 let jenisFilter='Semua',route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
@@ -428,7 +428,7 @@ function renderNav(){
   const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
   $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}${k==='persetujuan'&&pendingTotal()?`<span class="cnt" style="background:var(--orange)">${pendingTotal()}</span>`:''}${k==='refund'&&refundTunggu().length?`<span class="cnt" style="background:#ef4444">${refundTunggu().length}</span>`:''}</a>`).join('');
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
-    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','refund','lapak','ulasan','resetpin','pengaturan','lainnya'].includes(route));
+    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','refund','voucher','lapak','ulasan','resetpin','pengaturan','lainnya'].includes(route));
     const dot=k==='lainnya'&&pendingTotal()?`<span style="position:absolute;top:2px;right:calc(50% - 16px);background:var(--orange);color:#fff;font-size:10px;border-radius:99px;min-width:16px;padding:0 4px;font-weight:700">${pendingTotal()}</span>`:'';
     return `<button class="${on?'on':''}" style="position:relative" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}${dot}</button>`}).join('');
   const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
@@ -471,7 +471,7 @@ function sessionExpired(){if(!$('#app').classList.contains('hide')){logout();toa
 
 const TITLES={dashboard:['Dashboard','Ringkasan toko dari data asli'],pesanan:['Pesanan','Kelola semua pesanan masuk'],
   produk:['Produk','Atur produk, harga, dan stok'],kategori:['Kategori','Kelompokkan produk toko'],pelanggan:['Pelanggan','Dihitung dari pesanan yang masuk'],
-  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],cair:['Pencairan Saldo Toko','Saldo penjualan toko (pesanan non-COD selesai) dan permintaan pencairan'],resetpin:['Reset PIN Warga','Permintaan lupa PIN dari akun Warga Desa'],ulasan:['Ulasan Pembeli','Penilaian pembeli untuk tiap toko (tidak tampil di toko)'],lapak:['Lapak Barter','Iklan jual beli & barter warga (pasar.html)'],cod:['COD & Gagal antar','Pengaman COD dan laporan gagal antar kurir'],refund:['Refund & Toko Tutup','Pengembalian dana pembeli dan pelanggaran toko'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
+  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],cair:['Pencairan Saldo Toko','Saldo penjualan toko (pesanan non-COD selesai) dan permintaan pencairan'],resetpin:['Reset PIN Warga','Permintaan lupa PIN dari akun Warga Desa'],ulasan:['Ulasan Pembeli','Penilaian pembeli untuk tiap toko (tidak tampil di toko)'],lapak:['Lapak Barter','Iklan jual beli & barter warga (pasar.html)'],cod:['COD & Gagal antar','Pengaman COD dan laporan gagal antar kurir'],refund:['Refund & Toko Tutup','Pengembalian dana pembeli dan pelanggaran toko'],voucher:['Voucher & Ajak Tetangga','Saldo voucher belanja pembeli, kompensasi & bonus ajak tetangga'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
 
 function render(){
   renderNav();
@@ -1530,7 +1530,7 @@ setInterval(()=>{if(auth&&!$('#app').classList.contains('hide')&&!$('#modalRoot'
    diteruskan ke tiap toko (harga barang) dan tiap kurir (ongkir), lalu admin menandai "sudah disetor".
    Catatan setoran disimpan di store_settings key "setoran_qris": {"KODE|t:nama toko"|"KODE|k:id kurir": waktu} */
 let setTab='toko',setLihat='';
-const isQrisLunas=o=>/^qris/i.test(String(o.payment||''))&&o.pay_status==='lunas';
+const isQrisLunas=o=>/^(qris|saldo)/i.test(String(o.payment||''))&&o.pay_status==='lunas';   // QRIS atau saldo voucher (uang dipegang Kalensari Store)
 const setMap=()=>{const v=S.settings.setoran_qris;return v&&typeof v==='object'&&!Array.isArray(v)?v:{}};
 function setoranData(){
   const toko=new Map(),kurir=new Map(),refund=[],tunggu=[],done=setMap();
@@ -1674,7 +1674,7 @@ const cairTunggu=()=>cairList().filter(x=>x.status==='menunggu');
    store_settings "pelanggaran_toko" = {toko:[{kode,t,ket,nama,potong}]}, "aturan_toko_tutup" = {maks, potong, reset:{toko:iso}} */
 function refundOf(o){return o&&o.refund&&typeof o.refund==='object'?o.refund:null}
 function refundJml(o){const r=refundOf(o);return r&&r.jumlah!=null?Number(r.jumlah)||0:Number(o.total)||0}
-function refundSelesai(o){const r=refundOf(o);return !!(r&&r.status==='selesai')}
+function refundSelesai(o){const r=refundOf(o);return !!(r&&(r.status==='selesai'||r.status==='saldo'))}
 function refundTunggu(){return S.orders.filter(o=>isQrisLunas(o)&&o.status==='dibatalkan'&&!refundSelesai(o))}
 const TT_DEF={maks:3,potong:true,reset:{}};
 function ttAt(){return ({...TT_DEF,...(S.settings.aturan_toko_tutup&&typeof S.settings.aturan_toko_tutup==='object'?S.settings.aturan_toko_tutup:{})})}
@@ -1695,15 +1695,15 @@ PAGES.refund=function(){
     ${tg.length?tg.map(o=>{const r=refundOf(o);return `<div class="detail-row" style="align-items:center;gap:10px;flex-wrap:wrap"><span style="white-space:normal;cursor:pointer" onclick="openOrder(${Number(o.id)})"><b>${esc(orderCode(o))}</b> · ${esc(o.customer_name||'-')} · ${esc(o.customer_phone||'')}<br><small style="color:var(--mut)">${esc(o.batal_alasan||'Dibatalkan setelah dibayar')} · ${ago(o.batal_at||o.updated_at)}</small>${r?`<br><small style="color:var(--mut)">Barang ${rp(r.barang)} + ongkir ${rp(r.ongkir)}${Number(r.ongkir_kurir)>0?` · ongkir jarak ${rp(r.ongkir_kurir)} tetap untuk kurir ${esc((r.kurir&&r.kurir.nama)||'')}`:''}</small>`:''}</span>
       <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><b style="color:#b91c1c">${rp(refundJml(o))}</b><a class="btn btn-light" style="padding:7px 10px" href="${refundWa(o)}" target="_blank" rel="noopener">💬 Minta rekening</a><button class="btn btn-g" style="padding:7px 10px" onclick="refundSudah(${Number(o.id)},this)">✔ Sudah dikembalikan</button></span></div>`}).join('')
       :'<div class="empty" style="padding:14px">Tidak ada refund yang menunggu 👍</div>'}
-    <p class="sm" style="margin:10px 0 0">Kirim uang ke rekening/e-wallet pembeli, lalu tekan "Sudah dikembalikan". Pembeli melihat statusnya di 📦 Pesanan Saya. Batas waktu sesuai Syarat &amp; Ketentuan: 7 hari kerja.</p></div>
-  ${sel.length?`<div class="card"><div class="chead"><h3>✅ Refund selesai</h3><span class="sm">${sel.length} terakhir</span></div>${sel.map(o=>`<div class="detail-row"><span style="white-space:normal">${esc(orderCode(o))} · ${esc(o.customer_name||'-')}<br><small style="color:var(--mut)">${fmtDate(refundOf(o).selesai_t||o.updated_at)}${refundOf(o).ket?' · '+esc(refundOf(o).ket):''}</small></span><b>${rp(refundJml(o))}</b></div>`).join('')}</div>`:''}
+    <p class="sm" style="margin:10px 0 0">Sejak saldo voucher aktif, nota QRIS yang batal otomatis dikembalikan ke saldo voucher pembeli. Yang tampil di sini hanya pesanan lama / yang perlu ditransfer manual. Kirim uang ke rekening/e-wallet pembeli, lalu tekan "Sudah dikembalikan". Pembeli melihat statusnya di 📦 Pesanan Saya. Batas waktu sesuai Syarat &amp; Ketentuan: 7 hari kerja.</p></div>
+  ${sel.length?`<div class="card"><div class="chead"><h3>✅ Refund selesai</h3><span class="sm">${sel.length} terakhir</span></div>${sel.map(o=>`<div class="detail-row"><span style="white-space:normal">${esc(orderCode(o))} · ${esc(o.customer_name||'-')}<br><small style="color:var(--mut)">${refundOf(o).status==='saldo'?'🎟️ Masuk saldo voucher pembeli · '+fmtDate(refundOf(o).saldo_t||o.updated_at):fmtDate(refundOf(o).selesai_t||o.updated_at)}${refundOf(o).ket?' · '+esc(refundOf(o).ket):''}</small></span><b>${rp(refundJml(o))}</b></div>`).join('')}</div>`:''}
   <div class="card"><div class="chead"><h3>🚫 Toko tutup saat kurir datang</h3></div>
     ${tokoRows.length?tokoRows.map(x=>`<div class="detail-row" style="align-items:center;gap:10px;flex-wrap:wrap"><span style="white-space:normal"><b>${esc(x.nama)}</b> · ${x.baru.length}x${x.list.length>x.baru.length?` (total ${x.list.length}x)`:''}${x.pot?` · potongan saldo ${rp(x.pot)}`:''}<br><small style="color:var(--mut)">Terakhir: ${esc((x.list[x.list.length-1]||{}).kode||'')} · ${esc(String((x.list[x.list.length-1]||{}).ket||'').replace(/\s*\(dilaporkan kurir.*\)$/,''))} · ${ago((x.list[x.list.length-1]||{}).t)}</small></span>
       <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="badge ${x.tutup?'b-Batal':'b-Diproses'}">${x.tutup?'Toko ditutup':'Peringatan'}</span><button class="btn btn-light" style="padding:7px 10px" onclick="ttReset('${jsq(x.k)}',this)">${x.tutup?'Buka toko & reset':'Reset hitungan'}</button></span></div>`).join('')
       :'<div class="empty" style="padding:14px">Belum ada laporan toko tutup 👍</div>'}</div>
   <div class="card"><div class="chead"><h3>⚙️ Aturan toko tutup</h3></div>
     <label><span style="${lbl}">Tutup toko otomatis setelah (kali, 0 = tidak pernah)</span><input class="inp" id="ttMaks" type="number" min="0" max="20" value="${Number(A.maks)||0}"></label>
-    <label style="display:flex;gap:10px;align-items:center;margin:12px 0;font-size:14px"><input type="checkbox" id="ttPotong" ${A.potong!==false?'checked':''} style="width:20px;height:20px">Ongkir yang dikembalikan ke pembeli (QRIS) dipotong dari saldo toko</label>
+    <label style="display:flex;gap:10px;align-items:center;margin:12px 0;font-size:14px"><input type="checkbox" id="ttPotong" ${A.potong!==false?'checked':''} style="width:20px;height:20px">Ongkir yang dikembalikan ke pembeli (QRIS) + kompensasi voucher pembeli dipotong dari saldo toko</label>
     <button class="btn btn-g" onclick="ttSimpan(this)">Simpan aturan</button>
     <p class="sm" style="margin:10px 0 0">Saat kurir menekan "🚫 Toko tutup", nota toko itu dibatalkan, nota toko lain tetap diantar, dan toko mendapat 1 catatan pelanggaran.</p></div>`;
 };
@@ -1726,6 +1726,66 @@ async function ttReset(k,btn){
 }
 /* potongan saldo toko dari pelanggaran (ongkir refund QRIS) */
 function potonganToko(k){const l=pelMap()[k];return Array.isArray(l)?l.reduce((t,x)=>t+(Number(x.potong)||0),0):0}
+
+/* ========== SALDO VOUCHER PEMBELI & AJAK TETANGGA (supabase-voucher-pembeli.sql) ==========
+   store_settings "voucher_aturan" = {aktif, kompensasi, ajak:{aktif, pengundang, baru, min, maksBulan, hari}} */
+let VC=null;
+const VC_DEF={aktif:true,kompensasi:2000,ajak:{aktif:true,pengundang:5000,baru:5000,min:20000,maksBulan:10,hari:30}};
+function vcAt(){const v=S.settings.voucher_aturan&&typeof S.settings.voucher_aturan==='object'?S.settings.voucher_aturan:{};return {...VC_DEF,...v,ajak:{...VC_DEF.ajak,...(v.ajak||{})}}}
+async function muatVc(){
+  try{const [sal,mut,aj]=await Promise.all([api('pembeli_saldo?select=wa,saldo,updated_at&saldo=gt.0&order=saldo.desc&limit=100'),api('pembeli_mutasi?select=wa,jumlah,jenis,ket,t&order=t.desc&limit=60'),api('pembeli_ajak?select=*&order=t.desc&limit=60')]);VC={sal,mut,aj,err:''}}
+  catch(e){VC={sal:[],mut:[],aj:[],err:String(e.message||e)}}
+  if(route==='voucher')render();
+}
+function namaWa(wa){const acc=S.settings.pembeli_accounts&&typeof S.settings.pembeli_accounts==='object'?S.settings.pembeli_accounts:{},id=acc[wa]&&acc[wa].id,l=Array.isArray(S.settings.pembeli_members)?S.settings.pembeli_members:[],m=l.find(x=>x&&x.id===id);return m?(m.nama||'')+(m.kode?' · '+m.kode:''):''}
+const JENIS_VC={refund:'↩️ Pengembalian',kompensasi:'🎁 Kompensasi',ajak:'👥 Bonus pengundang',ajak_baru:'🎉 Bonus pembeli baru',pakai:'🛒 Dipakai belanja',koreksi:'🛠️ Koreksi admin'};
+PAGES.voucher=function(){
+  if(VC===null){VC=undefined;muatVc()}
+  const A=vcAt(),lbl='font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:4px',d=VC||{sal:[],mut:[],aj:[]};
+  const total=(d.sal||[]).reduce((t,x)=>t+(Number(x.saldo)||0),0),ajOk=(d.aj||[]).filter(x=>x.status==='selesai').length;
+  const fld=(id,l,v)=>`<label><span style="${lbl}">${l}</span><input class="inp" id="${id}" type="number" min="0" step="500" value="${Number(v)||0}"></label>`;
+  return `${d.err?`<div class="card" style="background:var(--rl)"><b>Fitur belum aktif.</b> Jalankan <b>supabase-voucher-pembeli.sql</b> di Supabase.<div class="sm">${esc(d.err.slice(0,160))}</div></div>`:''}
+  <div class="stats">
+    ${stat('Total saldo voucher pembeli',rp(total),(d.sal||[]).length+' pembeli punya saldo','tag','#8b5cf6')}
+    ${stat('Ajak tetangga berhasil',ajOk,(d.aj||[]).filter(x=>x.status==='menunggu').length+' menunggu pesanan pertama','users','#16a34a')}
+  </div>
+  <div class="card"><div class="chead"><h3>⚙️ Aturan voucher</h3></div>
+    <label style="display:flex;gap:10px;align-items:center;margin:0 0 10px;font-size:14px"><input type="checkbox" id="vcAktif" ${A.aktif!==false?'checked':''} style="width:20px;height:20px">Beri kompensasi saat toko tutup ketika kurir datang</label>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">${fld('vcKomp','Kompensasi toko tutup (Rp)',A.kompensasi)}</div>
+    <p class="sm" style="font-weight:700;margin:16px 0 8px">👥 Ajak tetangga</p>
+    <label style="display:flex;gap:10px;align-items:center;margin:0 0 10px;font-size:14px"><input type="checkbox" id="vcAjAktif" ${A.ajak.aktif!==false?'checked':''} style="width:20px;height:20px">Program ajak tetangga aktif</label>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+      ${fld('vcPeng','Bonus untuk pengundang (Rp)',A.ajak.pengundang)}${fld('vcBaru','Bonus untuk pembeli baru (Rp)',A.ajak.baru)}
+      ${fld('vcMin','Minimal belanja pesanan pertama (Rp)',A.ajak.min)}
+      <label><span style="${lbl}">Maks. bonus pengundang / bulan</span><input class="inp" id="vcMaks" type="number" min="0" value="${Number(A.ajak.maksBulan)||0}"></label>
+      <label><span style="${lbl}">Batas waktu pesanan pertama (hari)</span><input class="inp" id="vcHari" type="number" min="1" value="${Number(A.ajak.hari)||30}"></label>
+    </div>
+    <button class="btn btn-g" style="margin-top:12px" onclick="vcSimpan(this)">Simpan aturan</button>
+    <p class="sm" style="margin:10px 0 0">Saldo voucher hanya bisa dipakai belanja di Kalensari Store dan tidak bisa diisi ulang. Bila pembeli minta uang tunai, transfer manual lalu kurangi saldonya lewat Koreksi di bawah.</p></div>
+  <div class="card"><div class="chead"><h3>🛠️ Koreksi saldo pembeli</h3></div>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+      <label><span style="${lbl}">No. WhatsApp pembeli</span><input class="inp" id="vkWa" inputmode="tel" placeholder="0812xxxx"></label>
+      <label><span style="${lbl}">Jumlah (minus untuk mengurangi)</span><input class="inp" id="vkJml" type="number" placeholder="mis. 5000 atau -15000"></label>
+      <label><span style="${lbl}">Keterangan</span><input class="inp" id="vkKet" placeholder="mis. Ditransfer ke DANA"></label></div>
+    <button class="btn btn-g" style="margin-top:12px" onclick="vcKoreksi(this)">Simpan koreksi</button></div>
+  <div class="card"><div class="chead"><h3>🎟️ Saldo pembeli</h3><button class="btn btn-light" onclick="VC=null;render()">↻</button></div>
+    ${VC===undefined?'<div class="empty" style="padding:14px">Memuat…</div>':(d.sal||[]).length?(d.sal||[]).map(x=>`<div class="detail-row"><span>+${esc(x.wa)}<br><small style="color:var(--mut)">${esc(namaWa(x.wa))}</small></span><b>${rp(x.saldo)}</b></div>`).join(''):'<div class="empty" style="padding:14px">Belum ada pembeli yang punya saldo</div>'}</div>
+  <div class="card"><div class="chead"><h3>📜 Riwayat terbaru</h3></div>
+    ${(d.mut||[]).length?(d.mut||[]).map(m=>`<div class="detail-row"><span style="white-space:normal"><b>${esc(JENIS_VC[m.jenis]||m.jenis)}</b> · +${esc(m.wa)}<br><small style="color:var(--mut)">${esc(m.ket||'')} · ${ago(m.t)}</small></span><b style="color:${m.jumlah>=0?'var(--g2)':'#b91c1c'}">${m.jumlah>=0?'+':'−'}${rp(Math.abs(m.jumlah))}</b></div>`).join(''):'<div class="empty" style="padding:14px">Belum ada riwayat</div>'}</div>
+  <div class="card"><div class="chead"><h3>👥 Ajak tetangga</h3></div>
+    ${(d.aj||[]).length?(d.aj||[]).map(x=>`<div class="detail-row"><span style="white-space:normal"><b>${esc(namaWa(x.pengundang)||'+'+x.pengundang)}</b> mengajak <b>${esc(namaWa(x.wa)||'+'+x.wa)}</b><br><small style="color:var(--mut)">${ago(x.t)}${x.order_code?' · '+esc(x.order_code):''}${x.ket?' · '+esc(x.ket):''}</small></span><span class="badge ${x.status==='selesai'?'b-Selesai':x.status==='menunggu'?'b-Diproses':'b-Batal'}">${esc(x.status)}</span></div>`).join(''):'<div class="empty" style="padding:14px">Belum ada</div>'}</div>`;
+};
+async function vcSimpan(btn){
+  const n=id=>Math.max(0,Math.round(Number($('#'+id).value)||0));
+  const v={aktif:$('#vcAktif').checked,kompensasi:n('vcKomp'),ajak:{aktif:$('#vcAjAktif').checked,pengundang:n('vcPeng'),baru:n('vcBaru'),min:n('vcMin'),maksBulan:n('vcMaks'),hari:Math.max(1,n('vcHari'))}};
+  await busy(btn,async()=>{await setSetting('voucher_aturan',v);S.settings.voucher_aturan=v;render();toast('Aturan voucher disimpan')});
+}
+async function vcKoreksi(btn){
+  const wa=phoneKey($('#vkWa').value),j=Math.round(Number($('#vkJml').value)||0),ket=$('#vkKet').value.trim();
+  if(wa.length<9)return toast('Isi nomor WhatsApp pembeli');if(!j)return toast('Isi jumlah');
+  if(!confirm(`${j>0?'Tambah':'Kurangi'} saldo voucher +${wa} sebesar ${rp(Math.abs(j))}?`))return;
+  await busy(btn,async()=>{await api('rpc/koreksi_saldo_pembeli',{method:'POST',body:JSON.stringify({p_wa:wa,p_jumlah:j,p_ket:ket})});VC=null;render();toast('Saldo diperbarui')});
+}
 function saldoToko(){
   const sq=setMap(),m=new Map(),ensure=(k,n)=>{if(!m.has(k))m.set(k,{k,n,masuk:0,keluar:0,ps:0});return m.get(k)};
   S.orders.filter(o=>o.status==='selesai'&&!isCodO(o)&&!(/^qris/i.test(String(o.payment||''))&&o.pay_status!=='lunas')).forEach(o=>{

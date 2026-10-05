@@ -599,33 +599,23 @@ function tokoTutup(code){
       try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){}
       // COD: ongkir jarak dari nota batal ditagih bersama nota lain
       if(tetap > 0 && !lunas && lain.length){ const x = lain[lain.length - 1], s2 = await readState(x.order_code); await writeState(x.order_code, {...s2, tambahOngkir:(Number(s2.tambahOngkir) || 0) + tetap, tambahDari:code}); }
-      await catatPelanggaran(toko, code, teks, lunas ? balik : 0);
+      // catatan pelanggaran toko, kompensasi & saldo voucher pembeli diproses otomatis oleh database (supabase-voucher-pembeli.sql)
+      let komp = 0; try{ const v = await getSetting("voucher_aturan", {}); komp = v && v.aktif === false ? 0 : Number(v && v.kompensasi != null ? v.kompensasi : 2000) || 0; }catch(e){}
       const num = o.customer_phone_normalized || normPhone(o.customer_phone);
       const tagih = lain.reduce((a, x) => a + (Number(x.total) || 0) + (/^cod/i.test(String(x.payment || "")) ? tambahOngkir(x) : 0), 0) + (!lunas ? tetap : 0);
       const pesan = `Halo ${o.customer_name || "Kak"}, saya ${me.nama || "kurir"} dari Kalensari Store 🙏\n\nMohon maaf, ${toko} ternyata ${alasan.toLowerCase()}, jadi pesanan ${code} dibatalkan.`
         + (lain.length ? `\nPesanan dari ${lain.map(x => tokoNota(x)).join(", ")} tetap saya antar.` : "")
-        + (lunas ? `\n\n💸 Uang ${fmtRp(barang + balik)} akan dikembalikan oleh admin. Admin akan menghubungi Anda.` : lain.length ? `\n\n💵 Yang dibayar saat pesanan sampai: ${fmtRp(tagih)}.` : "");
+        + (lunas ? `\n\n🎟️ Uang ${fmtRp(barang + balik)} sudah otomatis masuk *saldo voucher belanja* Anda di Kalensari Store dan bisa dipakai belanja lagi.` : lain.length ? `\n\n💵 Yang dibayar saat pesanan sampai: ${fmtRp(tagih)}.` : "")
+        + (komp ? `\n🎁 Sebagai permintaan maaf, Anda juga mendapat kompensasi saldo voucher ${fmtRp(komp)}.` : "");
       ov.firstElementChild.innerHTML = `<h3 style="margin:0 0 6px;color:var(--brown)">✅ Nota ${esc(code)} dibatalkan</h3>
         <p class="hint" style="margin:0 0 10px">${lain.length ? "Lanjutkan ke toko berikutnya, lalu antar ke pembeli." : "Tidak ada nota lain dalam antaran ini."}</p>
-        ${lunas ? `<p style="margin:0 0 8px">💸 Refund ke pembeli <b>${fmtRp(barang + balik)}</b> diproses admin.</p>` : lain.length ? `<p style="margin:0 0 8px">💵 Tagih ke pembeli: <b>${fmtRp(tagih)}</b>${tetap ? ` (sudah termasuk ongkir jarak ${fmtRp(tetap)})` : ""}</p>` : ""}
+        ${lunas ? `<p style="margin:0 0 8px">🎟️ <b>${fmtRp(barang + balik)}</b> otomatis masuk saldo voucher pembeli${komp ? ` + kompensasi ${fmtRp(komp)}` : ""}.</p>` : lain.length ? `<p style="margin:0 0 8px">💵 Tagih ke pembeli: <b>${fmtRp(tagih)}</b>${tetap ? ` (sudah termasuk ongkir jarak ${fmtRp(tetap)})` : ""}</p>` : ""}
         <a class="mini g" style="display:block;text-align:center;padding:12px;font-size:15px" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}?text=${encodeURIComponent(pesan)}">💬 Kabari pembeli lewat WhatsApp</a>
         <button class="mini" id="ttOk" type="button" style="width:100%;margin-top:10px">Tutup</button>`;
       ov.querySelector("#ttOk").onclick = () => ov.remove();
       loadOrders();
     }catch(e){ sibuk = false; ov.querySelector("#ttKirim").textContent = "Batalkan nota toko ini"; ov.querySelector("#ttErr").textContent = "Gagal: " + String(e.message || e).slice(0, 90); }
   };
-}
-// Catatan pelanggaran toko (store_settings "pelanggaran_toko") + tutup otomatis sesuai aturan admin ("aturan_toko_tutup")
-async function catatPelanggaran(toko, code, ket, potong){
-  try{
-    const k = sKey(toko), [p0, a0] = await Promise.all([getSetting("pelanggaran_toko", {}), getSetting("aturan_toko_tutup", {})]);
-    const p = p0 && typeof p0 === "object" && !Array.isArray(p0) ? p0 : {}, A = {maks:3, potong:true, reset:{}, ...(a0 && typeof a0 === "object" ? a0 : {})};
-    const list = Array.isArray(p[k]) ? p[k] : [];
-    list.push({kode:code, t:new Date().toISOString(), ket, nama:toko, potong:A.potong ? Number(potong) || 0 : 0});
-    p[k] = list; await setSetting("pelanggaran_toko", p);
-    const sejak = Date.parse((A.reset || {})[k] || "") || 0, n = list.filter(x => Date.parse(x.t) > sejak).length;
-    if(Number(A.maks) > 0 && n >= Number(A.maks)){ const c = await getSetting("closed_sellers", {}) || {}; if(!c[k]){ c[k] = true; await setSetting("closed_sellers", c); } }
-  }catch(e){ console.warn("Catat pelanggaran gagal", e); }
 }
 async function loadOrders(){
   if(busyLoad) return; busyLoad = true;

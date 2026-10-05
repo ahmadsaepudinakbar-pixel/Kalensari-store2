@@ -77,6 +77,8 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
       <label>No. WhatsApp<input id="rWa" class="fld" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx"></label>
       <div class="row2"><label>PIN<input id="rPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="new-password"></label>
       <label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label></div>
+      <label>Kode ajak tetangga <small style="font-weight:400;color:#8a7466">(opsional)</small><input id="rAjak" class="fld" maxlength="20" placeholder="mis. PB-0012" autocapitalize="characters"></label>
+      <p class="hint" id="rAjakInfo" style="margin:-4px 0 6px" hidden>🎉 Anda diajak tetangga. Dapat saldo voucher setelah pesanan pertama selesai diantar.</p>
       <div class="btns"><button class="btn wa" id="btnDaftar" type="button">Buat akun</button></div>
       <p class="hint" style="margin-top:12px">Gunakan nomor WhatsApp yang sama dengan yang Anda pakai saat checkout agar riwayat pesanan muncul.</p>
     </div>
@@ -140,6 +142,7 @@ $("tabMasuk").onclick = () => showTab(true);
 $("tabDaftar").onclick = () => showTab(false);
 const nextUrl = () => { const n = sessionStorage.getItem("kalensari_next") || ""; if(n === "checkout"){ sessionStorage.removeItem("kalensari_next"); return "index.html#checkout"; } if(n.startsWith("url:")){ sessionStorage.removeItem("kalensari_next"); return n.slice(4); } return ""; };
 const go = () => setTimeout(() => { location.href = nextUrl() || ("dashboard-" + ROLE + ".html"); }, 700);
+{ const q = new URLSearchParams(location.search).get("ajak"); if(q){ $("rAjak").value = q.toUpperCase(); $("rAjakInfo").hidden = false; try{ showTab(false); }catch(e){} } }
 $("btnDaftar").onclick = async () => {
   const nama = $("rNama").value.trim(), wa = normPhone($("rWa").value), pin = $("rPin").value, pin2 = $("rPin2").value;
   if(!nama) return toast("Nama wajib diisi");
@@ -154,6 +157,15 @@ $("btnDaftar").onclick = async () => {
     acc[wa] = {h:await hashPin(wa, pin), id};
     await setSetting(ROLE + "_accounts", acc);
     await upsertMember({id, nama, wa, alamat:"", dusun:"", catatan:"", updated:Date.now()});
+    const ajak = $("rAjak").value.trim();
+    if(ajak && cloudOn()){
+      try{
+        const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
+        const r = await fetch(base + "/rest/v1/rpc/pakai_kode_ajak", {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify({p_wa:wa, p_pin:pin, p_kode:ajak})});
+        const t = await r.text(); if(!r.ok){ let m = t; try{ m = JSON.parse(t).message || t; }catch(e){} throw new Error(m); }
+        toast("🎉 Kode ajak dipakai. Bonus masuk setelah pesanan pertama selesai.");
+      }catch(e){ toast("Kode ajak belum bisa dipakai: " + (e.message || e) + ". Bisa dicoba lagi di menu Saldo voucher."); await new Promise(r => setTimeout(r, 1800)); }
+    }
     ingatMasuk(wa);
     toast("Akun dibuat. Mengarahkan ke dashboard...");
     go();

@@ -932,8 +932,13 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const orderNote=[userNote,routeNote,mapToken].filter(Boolean).join(" ");
   if(hasMap) localStorage.setItem("kalensari_checkout_location",JSON.stringify({lat:mapLat,lng:mapLng}));
   // ===== Lanjut pembayaran: pilih QRIS / COD dulu =====
-  const payment=bayarDipilih;bayarDipilih="";
-  if(!payment){bukaPilihBayar();return;}
+  const pilihanBayar=bayarDipilih;bayarDipilih="";
+  if(!pilihanBayar){bukaPilihBayar();return;}
+  const pakaiSaldo=CLOUD_CONFIG?.enabled&&!/^cod/i.test(pilihanBayar)?saldoDipakai:0;saldoDipakai=0;
+  // pesanan dengan saldo voucher disimpan sebagai QRIS dulu; database mengubahnya jadi "Saldo voucher" bila lunas penuh
+  const payment=/^saldo/i.test(pilihanBayar)?"QRIS":pilihanBayar;
+  let pinSaldo="";
+  if(pakaiSaldo>0){pinSaldo=await mintaKataSandi(checkoutBuyer.wa);if(!pinSaldo)return;}
   let codTahan=false;
   if(isCod(payment)){
     const ci=await codInfo(phone);
@@ -942,7 +947,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   }
   const pakaiQris=/^qris/i.test(payment)&&QRIS_OTOMATIS&&!!CLOUD_CONFIG?.enabled;
   // COD: kata sandi sekarang. QRIS: kata sandi diminta setelah pembayaran lunas.
-  if(!pakaiQris&&!(await mintaKataSandi(checkoutBuyer.wa)))return;
+  if(!pakaiQris&&!pinSaldo&&!(await mintaKataSandi(checkoutBuyer.wa)))return;
   // ===== PESANAN DIPISAH PER TOKO: tiap toko yang dicentang = 1 nota, 1 kurir, ongkir sendiri =====
   const groups=groups0.slice().sort((a,b)=>a.urut-b.urut),createdAt=new Date().toISOString();
   const kodeST=window.KSST?KSST.buatKode():"";
@@ -978,7 +983,15 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   if(kodeST) for(const c of codes) await KSST.daftarkan(c,kodeST);
   // satu QRIS untuk semua nota (nominal = total semua nota)
   const sukses={codes,groups:groups.map((g,i)=>({nama:g.name,items:g.items.map(p=>({n:p.name,q:p.qty,h:currentPrice(p)*p.qty})),sub:payloads[i].subtotal,ong:payloads[i].shipping,tot:payloads[i].total})),total:totalAll,payment,kodeST,codTahan,wa:checkoutBuyer.wa,nama:buyerName,address,t:createdAt};
-  if(pakaiQris){KS_SUKSES=sukses;bayarQris(codes[0],msgWA);}
+  let lunasSaldo=false;
+  if(pakaiSaldo>0){
+    try{const r=await pakaiSaldoRpc(checkoutBuyer.wa,pinSaldo,codes,pakaiSaldo);sukses.saldo=pakaiSaldo;sukses.pinOk=true;lunasSaldo=Number(r.sisa)===0;
+      try{const segar=await cloudFetch("orders?select=*&order_code=in.("+codes.map(c=>'"'+c+'"').join(",")+")");const m=new Map((segar||[]).map(x=>[x.order_code,x]));saveLocalOrders(getLocalOrders().map(o=>m.has(o.order_code)?{...o,...m.get(o.order_code)}:o));renderMyOrders();}catch(e){}
+      showToast(`🎟️ Saldo voucher ${rupiah(pakaiSaldo)} dipakai`);}
+    catch(e){alert("Saldo voucher belum bisa dipakai:\n"+e.message+"\n\nSilakan bayar penuh dengan QRIS.");}
+  }
+  if(lunasSaldo)tampilSukses({...sukses,payment:"Saldo voucher",lunas:true});
+  else if(pakaiQris||pakaiSaldo>0){KS_SUKSES=sukses;bayarQris(codes[0],msgWA+(sukses.saldo?`\n🎟️ Dipotong saldo voucher: ${rupiah(sukses.saldo)}`:""));}
   else tampilSukses(sukses);
   // hanya toko yang dicentang yang keluar dari keranjang; toko lain tetap tersimpan
   const done=new Set(groups.flatMap(g=>g.items.map(p=>p.idx)));cart=cart.filter((i,n)=>!done.has(n));
@@ -1093,8 +1106,11 @@ function renderMyOrders(rows=getLocalOrders()){
   myOrdersLast=rows;
   if(window.KSPW)KSPW.pasang(box,rows,()=>renderMyOrders(myOrdersLast));
   if(window.KSUlasan){KSUlasan.pasang(box,()=>renderMyOrders(myOrdersLast));KSUlasan.muat(rows).then(baru=>{if(baru&&myOrdersLast===rows)renderMyOrders(rows);});}
-  const sorted=[...rows].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
-  if(count)count.textContent=`${sorted.length} pesanan`;
+  // Hanya pesanan AKTIF. Selesai / dibatalkan / gagal pindah ke Riwayat di akun pembeli (dashboard-pembeli.html#pesanan).
+  const AKTIF_ST=["menunggu","baru","diproses","dikirim"];
+  const sorted=[...rows].filter(o=>AKTIF_ST.includes(o.status||"menunggu")).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+  const riwayatN=rows.length-sorted.length;
+  if(count)count.textContent=`${sorted.length} aktif`;
   box.innerHTML=sorted.length?sorted.map(o=>`<div class="my-order-card">
     <div class="my-order-head"><div><b>${esc(o.order_code||"Pesanan")}</b><small>${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</small></div><span class="order-status ${o.status==='dibatalkan'?'status-dibatalkan':''}">${statusLabel(o.status)}</span></div>
     ${statusSteps(o.status)}
@@ -1104,14 +1120,16 @@ function renderMyOrders(rows=getLocalOrders()){
     ${o.status==="dikirim"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="lacakKurir('${esc(o.order_code)}')">🛵 Lacak kurir</button>`:""}
     ${o.pay_status==="tunggu_wa"&&o.status==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
     ${o.status==="dibatalkan"?infoBatal(o):""}
-    ${o.pay_status==="lunas"?'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>':QRIS_OTOMATIS&&o.payment==="QRIS"&&o.status!=="dibatalkan"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="bayarQris('${esc(o.order_code)}')">💳 Bayar dengan QRIS</button>`:""}
+    ${Number(o.potong_saldo)>0?`<div class="order-hint">🎟️ Dipotong saldo voucher ${rupiah(o.potong_saldo)}</div>`:""}
+    ${o.pay_status==="lunas"?(/^saldo/i.test(o.payment||"")?'<div class="order-hint success">🎟️ Lunas pakai saldo voucher</div>':'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>'):QRIS_OTOMATIS&&o.payment==="QRIS"&&o.status!=="dibatalkan"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="bayarQris('${esc(o.order_code)}')">💳 Bayar dengan QRIS</button>`:""}
     ${window.KSST?KSST.html(o):""}
     ${window.KSPW?KSPW.html(o):""}
     ${window.KSUlasan?KSUlasan.html(o):""}
     ${o.sync_error?`<div class="order-hint">⚠️ Belum tersinkron ke database: ${esc(o.sync_error)}</div>`:""}
     ${o.updated_at?`<div class="order-updated">Diperbarui: ${new Date(o.updated_at).toLocaleString("id-ID")}</div>`:""}
-  </div>`).join(""):'<div class="empty-state"><b>📦 Belum ada pesanan</b>Pesanan yang Anda buat akan muncul di sini.</div>';
+  </div>`).join("")+riwayatLink(riwayatN):`<div class="empty-state"><b>📦 Tidak ada pesanan aktif</b>Pesanan yang sedang berjalan akan muncul di sini. Pesanan yang sudah selesai atau dibatalkan tersimpan di riwayat akun.</div>${riwayatLink(riwayatN)}`;
 }
+function riwayatLink(n){return n?`<a class="btn outline full riwayat-btn" href="dashboard-pembeli.html#pesanan">📜 Lihat riwayat pesanan (${n})</a>`:"";}
 let pembeliNotif=null,pembeliHP="";
 async function refreshMyOrders(){
   const note=document.getElementById("myOrderSyncNote");
@@ -1976,7 +1994,7 @@ function mintaKataSandi(wa){
         let acc=null;if(CLOUD_CONFIG?.enabled){const r=await cloudFetch("store_settings?select=value&key=eq.pembeli_accounts");acc=r&&r[0]&&r[0].value;}
         if(!acc)acc=readLS("kalensari_pembeli_accounts",{});
         const a=acc&&acc[wa];
-        if(a&&a.h===await hashPinPembeli(wa,pin))return tutup(true);
+        if(a&&a.h===await hashPinPembeli(wa,pin))return tutup(pin);
         salah++;inp.value="";err.textContent=salah>=5?"Kata sandi salah 5x. Coba lagi nanti atau atur ulang lewat akun warga.":"Kata sandi salah. Coba lagi.";
         if(salah>=5)setTimeout(()=>tutup(false),1800);
       }catch(e){err.textContent="Gagal memeriksa kata sandi. Periksa koneksi lalu coba lagi.";}
@@ -2049,23 +2067,43 @@ if(location.hash==="#keranjang"||location.hash==="#favorit"){const h=location.ha
   setTimeout(()=>{if(h==="#favorit")return bukaFavorit(true);try{const r=JSON.parse(sessionStorage.getItem("kalensari_racik_ulang")||"null");sessionStorage.removeItem("kalensari_racik_ulang");if(r&&r.length)setTimeout(()=>showToast("Pilih ulang topping: "+r.join(", ")),1500);}catch(e){}renderCart();openModal("cartModal");},600);}
 
 // ===== CHECKOUT BARU: Konfirmasi alamat → Lanjut pembayaran (QRIS / COD) → kata sandi → ✅ nota berhasil =====
-let bayarDipilih="",KS_SUKSES=null;
+let bayarDipilih="",KS_SUKSES=null,saldoDipakai=0;
+// ===== SALDO VOUCHER BELANJA (tabel pembeli_saldo; dipakai lewat fungsi database pakai_saldo + PIN) =====
+const QRIS_MIN=1000;   // sisa bayar QRIS minimal
+async function muatSaldoVoucher(wa){if(!CLOUD_CONFIG?.enabled||!wa)return 0;try{const r=await cloudFetch("pembeli_saldo?select=saldo&wa=eq."+encodeURIComponent(normalizePhone(wa)));return Number(r&&r[0]&&r[0].saldo)||0;}catch(e){return 0;}}
+// saldo yang dipakai bersama QRIS: sisa bayar QRIS tidak boleh di bawah QRIS_MIN
+function jatahSaldo(saldo,total){let x=Math.min(saldo,total);if(total-x>0&&total-x<QRIS_MIN)x=total-QRIS_MIN;return Math.max(0,x);}
+async function pakaiSaldoRpc(wa,pin,codes,jumlah){const base=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
+  const r=await fetch(base+"/rest/v1/rpc/pakai_saldo",{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({p_wa:normalizePhone(wa),p_pin:pin,p_codes:codes,p_jumlah:jumlah})});
+  const t=await r.text();if(!r.ok){let m=t;try{m=JSON.parse(t).message||t}catch(e){}throw new Error(m);}return t?JSON.parse(t):{};}
 {const m=document.getElementById("checkoutModal");if(m){const ey=m.querySelector(".eyebrow");if(ey)ey.textContent="KONFIRMASI ALAMAT";const nt=m.querySelector(".checkout-note");if(nt)nt.textContent="Periksa alamat pengiriman, lalu lanjut ke pembayaran.";}
  const sel=document.querySelector('#checkoutForm select[name="payment"]');if(sel){[...sel.options].forEach(o=>{if(/transfer/i.test(o.textContent))o.remove();});sel.insertAdjacentHTML("afterbegin",'<option value="" selected>-</option>');sel.value="";const l=sel.closest("label");if(l){l.hidden=true;l.style.display="none";}}
  const b=document.querySelector('#checkoutForm button[type="submit"]');if(b)b.textContent="➡️ Lanjut Pembayaran";}
-function bukaPilihBayar(awal){
+async function bukaPilihBayar(awal){
   document.getElementById("payBox")?.remove();
   const tot=document.getElementById("checkoutTotal")?.textContent||"";
+  const totNum=cartGroups().filter(g=>g.on).reduce((t,g)=>t+g.sub+g.fee,0);
+  const saldo=checkoutBuyer?await muatSaldoVoucher(checkoutBuyer.wa):0;
   const ov=document.createElement("div");ov.id="payBox";ov.className="pay-ov";
   ov.innerHTML=`<div class="pay-card" role="dialog" aria-label="Pilih pembayaran"><span class="eyebrow">LANJUT PEMBAYARAN</span><h3>Pilih cara bayar</h3><div class="pay-tot"><span>Total bayar</span><b>${esc(tot)}</b></div>
+    ${saldo>=totNum&&totNum>0?`<button type="button" class="pay-opt" data-p="Saldo voucher"><i>🎟️</i><span><b>Saldo voucher belanja</b><small>Bayar penuh pakai saldo voucher Anda (${rupiah(saldo)}). Langsung lunas.</small></span><em></em></button>`:""}
     <button type="button" class="pay-opt" data-p="QRIS"><i>📱</i><span><b>QRIS</b><small>Bayar sekarang pakai DANA, OVO, GoPay, ShopeePay atau m-banking. Otomatis lunas.</small></span><em></em></button>
     <button type="button" class="pay-opt" data-p="COD (jika tersedia)"><i>💵</i><span><b>COD (bayar di tempat)</b><small>Bayar tunai ke kurir saat pesanan sampai.</small></span><em></em></button>
+    ${saldo>0&&saldo<totNum?`<label class="pay-saldo" id="paySaldoBox"><input type="checkbox" id="paySaldo" checked><span>🎟️ Pakai saldo voucher <b>${rupiah(saldo)}</b><small id="paySaldoInfo"></small></span></label>`:""}
     <button type="button" class="btn primary full" id="payOk" disabled>Konfirmasi</button><button type="button" class="pay-x" id="payX">Kembali ke alamat</button></div>`;
   document.body.appendChild(ov);
-  let pil="";const pilih=v=>{pil=v;ov.querySelectorAll(".pay-opt").forEach(x=>x.classList.toggle("on",x.dataset.p===v));ov.querySelector("#payOk").disabled=!v;ov.querySelector("#payOk").textContent=v?(/^qris/i.test(v)?"Konfirmasi • bayar dengan QRIS":"Konfirmasi • bayar COD"):"Konfirmasi";};
+  const cb=ov.querySelector("#paySaldo"),info=ov.querySelector("#paySaldoInfo");
+  const pakai=v=>v==="Saldo voucher"?totNum:(cb&&cb.checked&&/^qris/i.test(v||"QRIS")?jatahSaldo(saldo,totNum):0);
+  let pil="";const pilih=v=>{pil=v;ov.querySelectorAll(".pay-opt").forEach(x=>x.classList.toggle("on",x.dataset.p===v));
+    const sv=pakai(v),ok=ov.querySelector("#payOk");ok.disabled=!v;
+    if(cb){const cod=/^cod/i.test(v||"");cb.disabled=cod;ov.querySelector("#paySaldoBox").classList.toggle("off",cod||!cb.checked);
+      info.textContent=cod?"Saldo voucher hanya bisa dipakai dengan QRIS.":cb.checked?`Dipakai ${rupiah(jatahSaldo(saldo,totNum))} • sisa bayar QRIS ${rupiah(totNum-jatahSaldo(saldo,totNum))}`:"Tidak dipakai";}
+    ok.textContent=!v?"Konfirmasi":v==="Saldo voucher"?"Konfirmasi • bayar pakai saldo":/^qris/i.test(v)?(sv?`Konfirmasi • QRIS ${rupiah(totNum-sv)} + saldo`:"Konfirmasi • bayar dengan QRIS"):"Konfirmasi • bayar COD";};
+  if(cb)cb.onchange=()=>pilih(pil);
   ov.querySelectorAll(".pay-opt").forEach(x=>x.onclick=()=>pilih(x.dataset.p));if(awal)pilih(awal);
   ov.onclick=e=>{if(e.target===ov)ov.remove();};ov.querySelector("#payX").onclick=()=>ov.remove();
-  ov.querySelector("#payOk").onclick=()=>{if(!pil)return;bayarDipilih=pil;const sel=document.querySelector('#checkoutForm select[name="payment"]');if(sel){sel.value=pil;try{renderCart();}catch(e){}}ov.remove();document.getElementById("checkoutForm").requestSubmit();};
+  pilih(pil||awal||"");
+  ov.querySelector("#payOk").onclick=()=>{if(!pil)return;bayarDipilih=pil;saldoDipakai=pakai(pil);const sel=document.querySelector('#checkoutForm select[name="payment"]');if(sel){sel.value=pil;try{renderCart();}catch(e){}}ov.remove();document.getElementById("checkoutForm").requestSubmit();};
 }
 // QRIS lunas → minta kata sandi → nota berhasil
 {const _lunas=qpLunas;qpLunas=async function(code){
@@ -2073,17 +2111,17 @@ function bukaPilihBayar(awal){
   const s=KS_SUKSES;KS_SUKSES=null;clearInterval(qpTimer);clearInterval(qpTick);
   saveLocalOrders(getLocalOrders().map(o=>s.codes.includes(o.order_code)?{...o,pay_status:"lunas"}:o));renderMyOrders();
   tutupQris();showToast("💳 Pembayaran diterima");
-  let ok=await mintaKataSandi(s.wa);
+  let ok=s.pinOk||await mintaKataSandi(s.wa);
   while(!ok){if(!confirm("Pembayaran Anda sudah LUNAS ✅\n\nMasukkan kata sandi untuk menyelesaikan dan melihat nota?\n(Batal = lihat nanti di 📦 Pesanan Saya)")){showToast("Pesanan sudah lunas. Nota ada di 📦 Pesanan Saya");return;}ok=await mintaKataSandi(s.wa);}
   tampilSukses({...s,lunas:true});
 };}
 function tampilSukses(s){
   document.getElementById("suksesBox")?.remove();
-  const q=/^qris/i.test(s.payment),ov=document.createElement("div");ov.id="suksesBox";ov.className="ok-ov";
+  const q=/^(qris|saldo)/i.test(s.payment),ov=document.createElement("div");ov.id="suksesBox";ov.className="ok-ov";
   ov.innerHTML=`<div class="ok-card">
     <div class="ok-cek"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54"/><path d="M36 62 L53 79 L86 44"/></svg></div>
     <h2>Pesanan berhasil dibuat!</h2><p class="ok-sub">Terima kasih, <b>${esc(s.nama||"Warga")}</b> 🙏<br>Pesanan Anda sudah diteruskan ke ${s.groups.length>1?s.groups.length+" toko":"toko"} dan akan segera diproses.</p>
-    <div class="ok-bayar ${q?"lunas":""}">${q?"💳 Sudah dibayar <b>LUNAS</b> lewat QRIS":`💵 Bayar tunai <b>${rupiah(s.total)}</b> ke kurir saat pesanan sampai`}</div>
+    <div class="ok-bayar ${q?"lunas":""}">${/^saldo/i.test(s.payment)?"🎟️ Sudah dibayar <b>LUNAS</b> pakai saldo voucher":q?`💳 Sudah dibayar <b>LUNAS</b> lewat QRIS${s.saldo?` + saldo voucher ${rupiah(s.saldo)}`:""}`:`💵 Bayar tunai <b>${rupiah(s.total)}</b> ke kurir saat pesanan sampai`}</div>
     ${s.codTahan?'<div class="ok-info">📞 Ini pesanan COD pertama Anda. Admin akan menghubungi lewat WhatsApp untuk konfirmasi, lalu pesanan diteruskan ke toko.</div>':""}
     <div class="ok-nota"><div class="ok-nh"><b>🧾 NOTA PESANAN</b><small>${new Date(s.t||Date.now()).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div>
       ${s.groups.map((g,i)=>`<div class="ok-g"><div class="ok-gh"><b>${s.groups.length>1?`Nota ${i+1} • `:""}${esc(s.codes[i])}</b><span>🏪 ${esc(g.nama)}</span></div>
@@ -2152,10 +2190,13 @@ function infoBatal(o){
   let h=al?`<div class="order-hint">✖️ Dibatalkan: ${esc(al)}</div>`:"";
   if(o.pay_status==="lunas"){
     const r=o.refund&&typeof o.refund==="object"?o.refund:null,j=r&&Number(r.jumlah)>=0&&r.jumlah!==undefined?Number(r.jumlah):Number(o.total)||0;
-    h+=r&&r.status==="selesai"
+    h+=r&&r.status==="saldo"
+      ?`<div class="order-hint success">🎟️ ${rupiah(j)} sudah masuk saldo voucher belanja Anda. Bisa dipakai belanja lagi.</div>`
+      :r&&r.status==="selesai"
       ?`<div class="order-hint success">✅ Dana ${rupiah(j)} sudah dikembalikan${r.selesai_t?" ("+new Date(r.selesai_t).toLocaleDateString("id-ID")+")":""}</div>`
       :`<div class="order-hint">💸 Dana ${rupiah(j)} akan dikembalikan admin (paling lambat 7 hari kerja). Admin akan menghubungi Anda lewat WhatsApp.</div>`;
   }
+  if(/dilaporkan kurir/i.test(o.batal_alasan||""))h+=`<div class="order-hint success">🎁 Ada kompensasi saldo voucher karena toko tutup. Cek di akun → Saldo voucher.</div>`;
   if(Number(o.ongkir_tetap)>0&&!/^qris/i.test(String(o.payment||"")))h+=`<div class="order-hint">🛵 Ongkir jarak ${rupiah(o.ongkir_tetap)} dibayarkan bersama nota lain yang tetap diantar.</div>`;
   return h;
 }
