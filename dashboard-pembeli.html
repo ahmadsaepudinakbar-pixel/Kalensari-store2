@@ -415,7 +415,8 @@ const IKON_V = {refund:["↩️","#e0efff"], kompensasi:["🎁","#ffe8ef"], ajak
 async function rpc(fn, body){
   const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
   const r = await fetch(base + "/rest/v1/rpc/" + fn, {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify(body)});
-  const t = await r.text(); if(!r.ok){ let m = t; try{ m = JSON.parse(t).message || t; }catch(e){} throw new Error(m); } return t ? JSON.parse(t) : null;
+  const t = await r.text(); if(!r.ok){ let m = t; try{ m = JSON.parse(t).message || t; }catch(e){} throw new Error(m); }
+  const j = t ? JSON.parse(t) : null; if(j && j.ok === false) throw new Error(j.pesan || "Gagal"); return j;
 }
 async function muatSaldoKecil(){
   try{ const r = await cf("pembeli_saldo?select=saldo&wa=eq." + WA); const v = Number(r && r[0] && r[0].saldo) || 0; $("qSaldo").textContent = v >= 1000 ? Math.floor(v / 1000) + "rb" : v; $("qSaldo").hidden = !v; return v; }catch(e){ return null; }

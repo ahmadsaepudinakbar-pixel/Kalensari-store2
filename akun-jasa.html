@@ -250,9 +250,8 @@ $("btnMasuk").onclick = async () => {
   const lk = lockLeft(); if(lk) return toast(`Terlalu banyak percobaan. Coba lagi ${lk} detik lagi.`);
   if(!wa || !pin) return toast("Isi nomor WhatsApp dan PIN");
   try{
-    const acc = (await getSetting("jasa_accounts", {})) || {};
-    const a = acc[wa];
-    if(!a || a.h !== await hashPin(wa, pin)){ failTry(); return toast("Nomor atau PIN salah"); }
+    let a;
+    try{ a = await KSID.masuk("jasa", wa, pin); }catch(er){ if(er.salahPin) failTry(); return toast(er.message); }
     LSset("kalensari_jasa_try", {n:0,t:0});
     sessionStorage.setItem("kalensari_jasa_sess", wa);
     await openDash(wa);
@@ -358,10 +357,7 @@ $("pSimpan").onclick = async () => {
   const o = $("pOld").value, n = $("pNew").value;
   if(!okPin(n)) return toast("PIN baru harus 4–8 angka");
   try{
-    const acc = (await getSetting("jasa_accounts", {})) || {};
-    if(!acc[me.wa] || acc[me.wa].h !== await hashPin(me.wa, o)) return toast("PIN lama salah");
-    acc[me.wa].h = await hashPin(me.wa, n);
-    await setSetting("jasa_accounts", acc);
+    await KSID.gantiPin("jasa", me.wa, o, n);
     $("pOld").value = $("pNew").value = ""; toast("PIN diganti");
   }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
 };

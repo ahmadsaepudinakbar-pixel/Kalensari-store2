@@ -32,5 +32,16 @@
     return '<span class="ks-id" style="display:inline-flex;align-items:center;gap:6px;background:#f4efe9;color:#5b2e1a;border-radius:999px;padding:4px 6px 4px 12px;font:700 13px system-ui,sans-serif;letter-spacing:.5px">🆔 ' + k
       + '<button type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' + k + '\');this.textContent=\'✓\';setTimeout(()=>this.textContent=\'Salin\',1500)" style="border:0;background:#fff;border-radius:999px;padding:3px 10px;font:600 12px system-ui,sans-serif;color:#5b2e1a;cursor:pointer">Salin</button></span>';
   }
-  window.KSID = { keWA: keWA, rapikan: rapikan, lencana: lencana };
+  // Masuk & ganti PIN diperiksa di server (PIN tidak lagi bisa dibaca dari web). Salah 5x = dikunci 15 menit.
+  async function rpcAkun(fn, body) {
+    var base = String(C.supabaseUrl || "").replace(/\/$/, "");
+    var r = await fetch(base + "/rest/v1/rpc/" + fn, { method: "POST", headers: { apikey: C.supabaseAnonKey, Authorization: "Bearer " + C.supabaseAnonKey, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    var t = await r.text(), j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+    if (!r.ok) throw new Error((j && j.message) || "Gagal terhubung ke server (" + r.status + ")");
+    if (!j || j.ok === false) { var er = new Error((j && j.pesan) || "Nomor atau PIN salah"); er.salahPin = true; er.kunci = !!(j && j.kunci); throw er; }
+    return j;
+  }
+  function masuk(peran, wa, pin) { return rpcAkun("masuk_akun", { p_peran: peran, p_wa: wa, p_pin: pin }); }
+  function gantiPin(peran, wa, lama, baru) { return rpcAkun("ganti_pin_akun", { p_peran: peran, p_wa: wa, p_pin_lama: lama, p_pin_baru: baru }); }
+  window.KSID = { keWA: keWA, rapikan: rapikan, lencana: lencana, masuk: masuk, gantiPin: gantiPin };
 })();

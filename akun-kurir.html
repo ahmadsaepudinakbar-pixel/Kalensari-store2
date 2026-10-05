@@ -155,9 +155,8 @@ $("btnMasuk").onclick = async () => {
   const lk = lockLeft(); if(lk) return toast(`Terlalu banyak percobaan. Coba lagi ${lk} detik lagi.`);
   if(!wa || !pin) return toast("Isi nomor WhatsApp dan PIN");
   try{
-    const acc = (await getSetting(ROLE + "_accounts", {})) || {};
-    const a = acc[wa];
-    if(!a || a.h !== await hashPin(wa, pin)){ failTry(); return toast("Nomor atau PIN salah"); }
+    let a;
+    try{ a = await KSID.masuk(ROLE, wa, pin); }catch(er){ if(er.salahPin) failTry(); return toast(er.message); }
     LSset("kalensari_"+ROLE+"_try", {n:0,t:0});
     sessionStorage.setItem(SESS, wa);
     toast("Berhasil masuk...");

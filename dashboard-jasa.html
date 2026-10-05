@@ -268,10 +268,7 @@ $("pSimpan").onclick = async () => {
   const o = $("pOld").value, n = $("pNew").value;
   if(!okPin(n)) return toast("PIN baru harus 4–8 angka");
   try{
-    const acc = (await getSetting("jasa_accounts", {})) || {};
-    if(!acc[me.wa] || acc[me.wa].h !== await hashPin(me.wa, o)) return toast("PIN lama salah");
-    acc[me.wa].h = await hashPin(me.wa, n);
-    await setSetting("jasa_accounts", acc);
+    await KSID.gantiPin("jasa", me.wa, o, n);
     $("pOld").value = $("pNew").value = ""; toast("PIN diganti");
   }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
 };

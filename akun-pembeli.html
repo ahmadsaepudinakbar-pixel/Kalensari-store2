@@ -200,7 +200,7 @@ async function daftarVerifikasi(){
     if(!r || !r.ok){ $("rOtp").value = ""; return toast(r && r.pesan || "Kode salah"); }
     const ajak = $("rAjak").value.trim();
     if(ajak){
-      try{ await rpcAkun("pakai_kode_ajak", {p_wa:wa, p_pin:pin, p_kode:ajak}); toast("🎉 Kode ajak dipakai. Bonus masuk setelah pesanan pertama selesai."); }
+      try{ const rj = await rpcAkun("pakai_kode_ajak", {p_wa:wa, p_pin:pin, p_kode:ajak}); if(rj && rj.ok === false) throw new Error(rj.pesan); toast("🎉 Kode ajak dipakai. Bonus masuk setelah pesanan pertama selesai."); }
       catch(e){ toast("Kode ajak belum bisa dipakai: " + (e.message || e) + ". Bisa dicoba lagi di menu Saldo voucher."); await new Promise(r => setTimeout(r, 1800)); }
     }
     ingatMasuk(wa);
@@ -218,9 +218,8 @@ $("btnMasuk").onclick = async () => {
   const lk = lockLeft(); if(lk) return toast(`Terlalu banyak percobaan. Coba lagi ${lk} detik lagi.`);
   if(!wa || !pin) return toast("Isi nomor WhatsApp dan PIN");
   try{
-    const acc = (await getSetting(ROLE + "_accounts", {})) || {};
-    const a = acc[wa];
-    if(!a || a.h !== await hashPin(wa, pin)){ failTry(); return toast("Nomor atau PIN salah"); }
+    let a;
+    try{ a = await KSID.masuk(ROLE, wa, pin); }catch(er){ if(er.salahPin) failTry(); return toast(er.message); }
     LSset("kalensari_"+ROLE+"_try", {n:0,t:0});
     ingatMasuk(wa);
     if(a.tmp) sessionStorage.setItem("kalensari_pin_tmp", pin);

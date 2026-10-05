@@ -1111,23 +1111,46 @@ function renderMyOrders(rows=getLocalOrders()){
   const sorted=[...rows].filter(o=>AKTIF_ST.includes(o.status||"menunggu")).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
   const riwayatN=rows.length-sorted.length;
   if(count)count.textContent=`${sorted.length} aktif`;
-  box.innerHTML=sorted.length?sorted.map(o=>`<div class="my-order-card">
-    <div class="my-order-head"><div><b>${esc(o.order_code||"Pesanan")}</b><small>${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</small></div><span class="order-status ${o.status==='dibatalkan'?'status-dibatalkan':''}">${statusLabel(o.status)}</span></div>
-    ${statusSteps(o.status)}
-    <p><b>${esc(o.customer_name||"")}</b> • ${esc(o.customer_phone||"")}</p>
-    <p>${(o.items||[]).map(x=>`${esc(x.name)}${x.seller?` (${esc(x.seller)})`:""} ×${x.qty}`).join(" • ")}</p>
-    <strong>${rupiah(o.total||0)}</strong>
-    ${o.status==="dikirim"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="lacakKurir('${esc(o.order_code)}')">🛵 Lacak kurir</button>`:""}
-    ${o.pay_status==="tunggu_wa"&&o.status==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
-    ${o.status==="dibatalkan"?infoBatal(o):""}
+  box.innerHTML=sorted.length?sorted.map(kartuPesanan).join("")+riwayatLink(riwayatN):`<div class="empty-state"><b>📦 Tidak ada pesanan aktif</b>Pesanan yang sedang berjalan akan muncul di sini. Pesanan yang sudah selesai atau dibatalkan tersimpan di riwayat akun.</div>${riwayatLink(riwayatN)}`;
+}
+// ===== Kartu pesanan (tampilan baru) =====
+const IKON_PS={
+  menunggu:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" fill="currentColor"/></svg>',
+  diproses:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>',
+  dikirim:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>',
+  selesai:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 12.5 4 4 8-9"/></svg>'};
+const SVG_ORANG='<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5z"/></svg>';
+const SVG_TAS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>';
+const SVG_TELP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>';
+const SVG_KAL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>';
+const SVG_QR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M17 20h4M20 17v3"/></svg>';
+function kartuPesanan(o){
+  const st=!o.status||o.status==="baru"?"menunggu":o.status,lokal=String(o.id||"").startsWith("local-");
+  const urut=["menunggu","diproses","dikirim","selesai"],idx=urut.indexOf(st);
+  const tgl=new Date(o.created_at||Date.now()),tglTx=tgl.toLocaleDateString("id-ID",{day:"numeric",month:"short"})+", "+tgl.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});
+  const langkah=urut.map((x,i)=>`<div class="ps-step ${st==="dibatalkan"?"x":i<idx?"done":i===idx?"now":""}"><span>${IKON_PS[x]}</span><small>${statusLabel(x)}</small></div>`).join('<i class="ps-line"></i>');
+  const tokoTx=[...new Set((o.items||[]).map(x=>x.seller).filter(Boolean))].join(", ");
+  const item=(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")+(tokoTx?` <span class="ps-toko">(${esc(tokoTx)})</span>`:"");
+  const bisaQris=QRIS_OTOMATIS&&o.payment==="QRIS"&&o.pay_status!=="lunas"&&st!=="dibatalkan"&&!lokal;
+  const aksi=bisaQris?`<button class="ps-aksi" type="button" onclick="bayarQris('${esc(o.order_code)}')">${SVG_QR}<span>Bayar dengan QRIS</span><em>›</em></button>`
+    :st==="dikirim"&&!lokal?`<button class="ps-aksi" type="button" onclick="lacakKurir('${esc(o.order_code)}')"><b>🛵</b><span>Lacak kurir</span><em>›</em></button>`:"";
+  const kode=window.KSST&&KSST.kodeOf?KSST.kodeOf(o.order_code):"";
+  const kodeHtml=kode?`<div class="ps-kode"><div><div class="ps-kode-h"><b>🔑</b>Kode serah terima</div><strong>${esc(kode).split("").join(" ")}</strong><p>Sebutkan kode ini ke kurir <b>hanya saat pesanan sudah Anda terima.</b></p></div></div>`:(window.KSST?KSST.html(o):"");
+  return `<div class="my-order-card ps-card st-${st}">
+    <div class="ps-head"><div class="ps-ico">📦</div><div class="ps-id"><b>${esc(o.order_code||"Pesanan")}</b><small>${SVG_KAL}${tglTx}</small></div><span class="ps-pill"><i></i>${statusLabel(st)}<em>›</em></span></div>
+    <div class="ps-steps">${langkah}</div>
+    <div class="ps-row"><span class="ps-av">${SVG_ORANG}</span><div><b>${esc(o.customer_name||"")}</b><small>${SVG_TELP}${esc(o.customer_phone||"")}</small></div></div>
+    <div class="ps-row"><span class="ps-av ps-av2">${SVG_TAS}</span><div class="ps-item">${item}</div></div>
+    <div class="ps-tot"><strong>${rupiah(o.total||0)}</strong>${aksi}</div>
+    ${o.pay_status==="tunggu_wa"&&st==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
+    ${st==="dibatalkan"?infoBatal(o):""}
     ${Number(o.potong_saldo)>0?`<div class="order-hint">🎟️ Dipotong saldo voucher ${rupiah(o.potong_saldo)}</div>`:""}
-    ${o.pay_status==="lunas"?(/^saldo/i.test(o.payment||"")?'<div class="order-hint success">🎟️ Lunas pakai saldo voucher</div>':'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>'):QRIS_OTOMATIS&&o.payment==="QRIS"&&o.status!=="dibatalkan"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="bayarQris('${esc(o.order_code)}')">💳 Bayar dengan QRIS</button>`:""}
-    ${window.KSST?KSST.html(o):""}
+    ${o.pay_status==="lunas"?(/^saldo/i.test(o.payment||"")?'<div class="order-hint success">🎟️ Lunas pakai saldo voucher</div>':'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>'):""}
+    ${kodeHtml}
     ${window.KSPW?KSPW.html(o):""}
     ${window.KSUlasan?KSUlasan.html(o):""}
     ${o.sync_error?`<div class="order-hint">⚠️ Belum tersinkron ke database: ${esc(o.sync_error)}</div>`:""}
-    ${o.updated_at?`<div class="order-updated">Diperbarui: ${new Date(o.updated_at).toLocaleString("id-ID")}</div>`:""}
-  </div>`).join("")+riwayatLink(riwayatN):`<div class="empty-state"><b>📦 Tidak ada pesanan aktif</b>Pesanan yang sedang berjalan akan muncul di sini. Pesanan yang sudah selesai atau dibatalkan tersimpan di riwayat akun.</div>${riwayatLink(riwayatN)}`;
+  </div>`;
 }
 function riwayatLink(n){return n?`<a class="btn outline full riwayat-btn" href="dashboard-pembeli.html#pesanan">📜 Lihat riwayat pesanan (${n})</a>`:"";}
 let pembeliNotif=null,pembeliHP="";
@@ -1991,12 +2014,12 @@ function mintaKataSandi(wa){
       if(sibuk)return;const pin=inp.value;if(pin.length<4){err.textContent="Masukkan 4–8 angka kata sandi Anda.";return;}
       sibuk=true;ok.textContent="Memeriksa…";
       try{
-        let acc=null;if(CLOUD_CONFIG?.enabled){const r=await cloudFetch("store_settings?select=value&key=eq.pembeli_accounts");acc=r&&r[0]&&r[0].value;}
-        if(!acc)acc=readLS("kalensari_pembeli_accounts",{});
-        const a=acc&&acc[wa];
-        if(a&&a.h===await hashPinPembeli(wa,pin))return tutup(pin);
-        salah++;inp.value="";err.textContent=salah>=5?"Kata sandi salah 5x. Coba lagi nanti atau atur ulang lewat akun warga.":"Kata sandi salah. Coba lagi.";
-        if(salah>=5)setTimeout(()=>tutup(false),1800);
+        const base=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
+        const r=await fetch(base+"/rest/v1/rpc/masuk_akun",{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({p_peran:"pembeli",p_wa:wa,p_pin:pin})});
+        const j=await r.json().catch(()=>null);if(!r.ok)throw new Error("server");
+        if(j&&j.ok)return tutup(pin);
+        salah++;inp.value="";err.textContent=String((j&&j.pesan)||"Kata sandi salah.").replace("Nomor atau PIN salah","Kata sandi salah");
+        if(j&&j.kunci)setTimeout(()=>tutup(false),2500);
       }catch(e){err.textContent="Gagal memeriksa kata sandi. Periksa koneksi lalu coba lagi.";}
       finally{sibuk=false;ok.textContent="Konfirmasi";}
     };
@@ -2075,7 +2098,7 @@ async function muatSaldoVoucher(wa){if(!CLOUD_CONFIG?.enabled||!wa)return 0;try{
 function jatahSaldo(saldo,total){let x=Math.min(saldo,total);if(total-x>0&&total-x<QRIS_MIN)x=total-QRIS_MIN;return Math.max(0,x);}
 async function pakaiSaldoRpc(wa,pin,codes,jumlah){const base=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
   const r=await fetch(base+"/rest/v1/rpc/pakai_saldo",{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({p_wa:normalizePhone(wa),p_pin:pin,p_codes:codes,p_jumlah:jumlah})});
-  const t=await r.text();if(!r.ok){let m=t;try{m=JSON.parse(t).message||t}catch(e){}throw new Error(m);}return t?JSON.parse(t):{};}
+  const t=await r.text();if(!r.ok){let m=t;try{m=JSON.parse(t).message||t}catch(e){}throw new Error(m);}const j=t?JSON.parse(t):{};if(j&&j.ok===false)throw new Error(j.pesan||"Gagal memakai saldo");return j;}
 {const m=document.getElementById("checkoutModal");if(m){const ey=m.querySelector(".eyebrow");if(ey)ey.textContent="KONFIRMASI ALAMAT";const nt=m.querySelector(".checkout-note");if(nt)nt.textContent="Periksa alamat pengiriman, lalu lanjut ke pembayaran.";}
  const sel=document.querySelector('#checkoutForm select[name="payment"]');if(sel){[...sel.options].forEach(o=>{if(/transfer/i.test(o.textContent))o.remove();});sel.insertAdjacentHTML("afterbegin",'<option value="" selected>-</option>');sel.value="";const l=sel.closest("label");if(l){l.hidden=true;l.style.display="none";}}
  const b=document.querySelector('#checkoutForm button[type="submit"]');if(b)b.textContent="➡️ Lanjut Pembayaran";}
