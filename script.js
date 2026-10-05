@@ -2001,17 +2001,18 @@ let favorit=readLS("kalensari_favorit",[]);if(!Array.isArray(favorit))favorit=[]
 let hanyaFavorit=false;
 const isFav=id=>favorit.includes(Number(id));
 function toggleFav(id,ev){if(ev){ev.stopPropagation();ev.preventDefault();}id=Number(id);const on=!isFav(id);favorit=on?[...favorit,id]:favorit.filter(x=>x!==id);localStorage.setItem("kalensari_favorit",JSON.stringify(favorit));
-  document.querySelectorAll(`[data-fav="${id}"]`).forEach(b=>{b.classList.toggle("on",on);b.textContent=on?"❤️":"🤍";});
+  document.querySelectorAll(`[data-fav="${id}"]`).forEach(b=>{b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);b.textContent=favLabel(on);});
   showToast(on?"❤️ Disimpan ke favorit":"Dihapus dari favorit");if(hanyaFavorit)renderProducts();}
 function bukaFavorit(on=true){hanyaFavorit=on;if(on){activeCategory="Semua";activeSeller="";}renderProducts();if(on)document.getElementById("productGrid")?.scrollIntoView({behavior:"smooth",block:"start"});}
-const favBtn=p=>`<button type="button" class="fav-btn${isFav(p.id)?" on":""}" data-fav="${p.id}" aria-label="Favorit" onclick="toggleFav(${p.id},event)">${isFav(p.id)?"❤️":"🤍"}</button>`;
-{const _single=singleCardHTML;singleCardHTML=function(p){return _single(p).replace('<div class="product-img">','<div class="product-img">'+favBtn(p));};
- const _group=groupCardHTML;groupCardHTML=function(u){return _group(u).replace('<div class="product-img">','<div class="product-img">'+favBtn(u.variants[0]));};
+const favLabel=on=>on?"❤️ Favorit saya":"🤍 Simpan ke favorit";
+const favBtn=p=>`<button type="button" class="fav-pill${isFav(p.id)?" on":""}" data-fav="${p.id}" aria-pressed="${isFav(p.id)}" onclick="toggleFav(${p.id},event)">${favLabel(isFav(p.id))}</button>`;
+// Tombol favorit hanya di halaman Detail produk (kartu produk tetap rapi)
+{const _show=showProduct;showProduct=function(id){const r=_show.apply(this,arguments);const box=document.getElementById("productDetail"),h=box&&box.querySelector(".detail h2");const p=detailProduct;if(h&&p&&!box.querySelector(".fav-pill"))h.insertAdjacentHTML("afterend",favBtn(p));return r;};
  const _render=renderProducts;renderProducts=function(){
    if(!hanyaFavorit)return _render();
    const keep=products;try{products=products.filter(p=>isFav(p.id)||(groupName(p)&&products.some(x=>isFav(x.id)&&groupName(x).toLowerCase()===groupName(p).toLowerCase())));_render();}finally{products=keep;}
    const bar=document.getElementById("sellerFilterBar");if(bar){bar.hidden=false;bar.innerHTML=`<span>❤️ Produk favorit saya</span><button type="button" onclick="bukaFavorit(false)">× Semua produk</button>`;}
-   if(!favorit.length)document.getElementById("productGrid").innerHTML='<div class="empty-state"><b>🤍 Belum ada favorit</b>Ketuk ikon hati di foto produk untuk menyimpannya di sini.</div>';
+   if(!favorit.length)document.getElementById("productGrid").innerHTML='<div class="empty-state"><b>🤍 Belum ada favorit</b>Buka <b>Detail</b> produk lalu ketuk 🤍 Simpan ke favorit.</div>';
  };
  const _setSeller=setSeller;setSeller=function(k){hanyaFavorit=false;return _setSeller(k);};}
 // Menu ☰: tambah "Favorit saya"
