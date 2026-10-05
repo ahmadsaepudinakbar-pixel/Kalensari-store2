@@ -115,6 +115,22 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 .vc-m summary i{font-style:normal;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:19px;flex:0 0 38px}.vc-m summary b{flex:1;color:#13314f;font-size:15px}
 .vc-m strong{white-space:nowrap}.vc-m .p{color:#14502c}.vc-m .m{color:#a32d2d}.vc-m summary em{font-style:normal;color:#8aa0b5;font-size:20px;transition:transform .2s}.vc-m[open] summary em{transform:rotate(90deg)}
 .vc-m small{display:block;color:#6b7c8c;font-size:12.5px;padding:0 12px 4px 62px}.vc-m small:last-child{padding-bottom:12px}
+
+.oc-lacak{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;border:0;border-radius:16px;padding:11px 14px;background:linear-gradient(135deg,#6d3a1c,#a0522d);color:#fff;font:inherit;text-align:left;cursor:pointer;box-shadow:0 6px 14px rgba(123,63,29,.28)}
+.oc-lacak span{font-size:24px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;flex:none;animation:lacakDenyut 1.6s ease-in-out infinite}
+.oc-lacak b{font-size:16px}.oc-lacak small{display:block;font-size:12px;opacity:.85;font-weight:400}.oc-lacak b+small{margin-left:0}.oc-lacak em{margin-left:auto;font-style:normal;font-size:24px;font-weight:700}
+.oc-lacak{flex-wrap:wrap}.oc-lacak b{flex:1 1 auto}.oc-lacak small{flex-basis:100%;order:3;padding-left:50px;margin-top:-6px}
+.lacak-ov{position:fixed;inset:0;z-index:10000;background:rgba(30,15,5,.55);display:flex;align-items:flex-end;justify-content:center}
+.lacak-card{background:#fffaf4;width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:14px 14px calc(16px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto}
+.lacak-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:#5b2e1a;font-size:16px}.lacak-head button{border:0;background:none;font-size:22px;cursor:pointer;color:#3b2920}
+.lacak-map{height:300px;border-radius:16px;overflow:hidden;background:#efe4d8;display:flex;align-items:center;justify-content:center;text-align:center;color:#6c5548}.lacak-map p{padding:16px;margin:0}
+.lacak-leaflet{width:100%;height:100%}.lacak-pin{background:none;border:0}
+.lacak-pin span{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;font-size:22px;background:#fff;border:3px solid #7b3f1d;box-shadow:0 2px 8px rgba(0,0,0,.3)}.lacak-pin.rumah span{border-color:#228b4e}.lacak-pin.kurir span{animation:lacakDenyut 1.6s ease-in-out infinite}
+@keyframes lacakDenyut{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}50%{box-shadow:0 0 0 9px rgba(255,255,255,0)}}
+.lacak-info p{margin:8px 2px;font-size:14px;color:#3a2418}.lacak-info .lacak-t{font-size:12px;color:#8a7466}
+.lacak-kurir{display:flex;align-items:center;gap:10px;margin:8px 2px}.lacak-kurir p{margin:0!important}
+.lacak-av{width:46px;height:46px;border-radius:50%;flex:none;background:#f3e3d6 center/cover no-repeat;border:2px solid #f2b705;display:flex;align-items:center;justify-content:center;font-size:22px}
+.lacak-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.lacak-act a{flex:1;text-align:center;text-decoration:none;font-weight:700;font-size:14px;color:var(--brown);border:1.5px solid var(--brown);border-radius:999px;padding:10px 12px;background:#fff}
 </style>
 </head>
 <body>
@@ -508,6 +524,59 @@ function ocGambar(o){
   if(/sayur|buah|beras|telur|minyak|gula|sabun|gas/.test(t)) return "🛒";
   return "🍛";
 }
+let ORD_MAP = {};
+/* ===== LACAK KURIR: posisi kurir dari store_settings "lacak_<kode>" (dikirim aplikasi kurir ±15 detik sekali) ===== */
+function lacakKurir(code){
+  const o = ORD_MAP[code] || {};
+  const m = String(o.note || "").match(/__KS_MAP__(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)__END__/), tuju = m ? {lat:+m[1], lng:+m[2]} : null;
+  document.getElementById("lacakBox")?.remove(); lacakPeta = null;
+  const ov = document.createElement("div"); ov.id = "lacakBox"; ov.className = "lacak-ov";
+  ov.innerHTML = `<div class="lacak-card"><div class="lacak-head"><b>🛵 Lacak kurir • ${esc(code)}</b><button type="button" aria-label="Tutup" data-x>✕</button></div>
+    <div id="lacakMap" class="lacak-map"><p>Memuat posisi kurir…</p></div><div id="lacakInfo" class="lacak-info"></div></div>`;
+  document.body.appendChild(ov);
+  let timer = null, lastKey = "", fotoK;
+  const tutup = () => { clearInterval(timer); ov.remove(); lacakPeta = null; };
+  ov.addEventListener("click", e => { if(e.target === ov || e.target.closest("[data-x]")) tutup(); });
+  const jarak = (a, b) => { const R = 6371, r = x => x * Math.PI / 180, dA = r(b.lat - a.lat), dB = r(b.lng - a.lng), h = Math.sin(dA / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dB / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+  async function muat(){
+    if(!document.body.contains(ov)) return clearInterval(timer);
+    let v = null; try{ const r = await cf("store_settings?select=value&key=eq." + encodeURIComponent("lacak_" + code)); v = r && r[0] && r[0].value; }catch(e){}
+    const map = $("lacakMap"), info = $("lacakInfo"); if(!map) return;
+    if(!v || !v.lat){ map.innerHTML = '<p>📡 Kurir belum membagikan lokasi.<br><small>Posisi muncul saat kurir membuka aplikasinya dan GPS menyala.</small></p>'; info.innerHTML = ""; lacakPeta = null; return; }
+    const k = v.lat + "," + v.lng;
+    if(k !== lastKey){ lastKey = k; await petaLacak(map, v, tuju); }
+    const dtk = Math.max(0, Math.round((Date.now() - Number(v.t || 0)) / 1000)), lalu = dtk < 60 ? dtk + " detik" : dtk < 3600 ? Math.round(dtk / 60) + " menit" : "lebih dari 1 jam";
+    const km = tuju ? jarak(v, tuju) : null;
+    if(v.id && fotoK === undefined){ fotoK = null; cf("store_settings?select=value&key=eq." + encodeURIComponent("foto_kurir_" + v.id)).then(r => { fotoK = r && r[0] && r[0].value && r[0].value.foto || null; const a = $("lacakAv"); if(a && fotoK){ a.style.backgroundImage = `url('${fotoK}')`; a.textContent = ""; } }).catch(() => {}); }
+    info.innerHTML = `<div class="lacak-kurir"><span id="lacakAv" class="lacak-av"${fotoK ? ` style="background-image:url('${fotoK}')"` : ""}>${fotoK ? "" : "🛵"}</span><p><b>${esc(v.nama || "Kurir")}</b><br>sedang menuju alamat Anda</p></div>
+      ${km != null ? `<p>Jarak ke lokasi Anda ± <b>${km < 1 ? Math.round(km * 1000) + " m" : km.toFixed(1).replace(".", ",") + " km"}</b>${km < 0.15 ? " • kurir sudah dekat 🎉" : ""}</p>` : ""}
+      <p class="lacak-t">Diperbarui ${lalu} lalu${dtk > 180 ? " • kurir mungkin sedang tidak membuka aplikasinya" : ""}</p>
+      <div class="lacak-act">${v.wa ? `<a target="_blank" rel="noopener" href="https://wa.me/${esc(String(v.wa).replace(/\D/g, ""))}">💬 Chat kurir</a>` : ""}<a target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k)}">🗺️ Google Maps</a></div>`;
+  }
+  muat(); timer = setInterval(muat, 15000);
+}
+let leafletSiap = null, lacakPeta = null;
+function muatLeaflet(){
+  if(window.L) return Promise.resolve(); if(leafletSiap) return leafletSiap;
+  leafletSiap = new Promise((ok, no) => { const c = document.createElement("link"); c.rel = "stylesheet"; c.href = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"; document.head.appendChild(c);
+    const j = document.createElement("script"); j.src = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"; j.onload = ok; j.onerror = () => { leafletSiap = null; no(new Error("peta gagal dimuat")); }; document.head.appendChild(j); });
+  return leafletSiap;
+}
+async function petaLacak(box, v, tuju){
+  try{ await muatLeaflet(); }catch(e){ box.innerHTML = `<p>Peta tidak bisa dimuat.<br><a href="https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}" target="_blank" rel="noopener">Lihat posisi kurir di Google Maps</a></p>`; lacakPeta = null; return; }
+  const ik = (t, c) => L.divIcon({className:"lacak-pin " + c, html:`<span>${t}</span>`, iconSize:[40, 40], iconAnchor:[20, 20]});
+  const pos = [v.lat, v.lng];
+  if(!lacakPeta || !box.contains(lacakPeta.el)){
+    box.innerHTML = ""; const el = document.createElement("div"); el.className = "lacak-leaflet"; box.appendChild(el);
+    const m = L.map(el, {zoomControl:true, attributionControl:true}).setView(pos, 16);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(m);
+    const kur = L.marker(pos, {icon:ik("🛵", "kurir"), zIndexOffset:1000}).addTo(m);
+    let garis = null; if(tuju){ L.marker([tuju.lat, tuju.lng], {icon:ik("🏠", "rumah")}).addTo(m); garis = L.polyline([pos, [tuju.lat, tuju.lng]], {color:"#7b3f1d", weight:3, dashArray:"6 8", opacity:.8}).addTo(m); m.fitBounds(L.latLngBounds([pos, [tuju.lat, tuju.lng]]), {padding:[40, 40], maxZoom:17}); }
+    lacakPeta = {el, m, kur, garis}; setTimeout(() => m.invalidateSize(), 150); return;
+  }
+  lacakPeta.kur.setLatLng(pos); if(lacakPeta.garis && tuju) lacakPeta.garis.setLatLngs([pos, [tuju.lat, tuju.lng]]);
+  if(!lacakPeta.m.getBounds().pad(-0.1).contains(pos)) lacakPeta.m.panTo(pos);
+}
 async function loadOrders(){
   const box = $("orders"); box.innerHTML = '<p class="hint">Memuat...</p>';
   try{
@@ -517,7 +586,9 @@ async function loadOrders(){
     if(window.KSPW) KSPW.pasang(box, rows, loadOrders);
     if(window.KSUlasan){ await KSUlasan.muat(rows); KSUlasan.pasang(box, loadOrders); }
     if(window.KSST){ await KSST.muatInfo(rows.filter(o => o.status === "selesai" && Date.now() - new Date(o.updated_at || o.created_at || 0) < 4*864e5).map(o => o.order_code)); KSST.pasang(box, WA, loadOrders); }
-    box.innerHTML = rows.length ? rows.map((o, i) => `<div class="card oc c${i % 4}" data-st="${esc(o.status || "menunggu")}"><div class="oc-top"><span class="oc-ic">${OC_IC.tas}</span><div class="oc-main"><div class="oc-h"><b>${esc(o.order_code || "Pesanan")}</b><span class="oc-st s-${esc(o.status || "menunggu")}">${OC_IC[o.status] || OC_IC.menunggu}${esc(SL[o.status] || o.status || "Menunggu")}</span></div><p class="oc-r">${OC_IC.kal}${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p class="oc-r">${OC_IC.item}<span>${itemsText(o)}</span></p><div class="oc-tot"><b>Total ${fmtRp(o.total)}</b>· ${esc(o.payment || "")}</div></div><span class="oc-ill">${ocGambar(o)}</span></div>${infoBatal(o)}${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
+    box.innerHTML = rows.length ? rows.map((o, i) => `<div class="card oc c${i % 4}" data-st="${esc(o.status || "menunggu")}"><div class="oc-top"><span class="oc-ic">${OC_IC.tas}</span><div class="oc-main"><div class="oc-h"><b>${esc(o.order_code || "Pesanan")}</b><span class="oc-st s-${esc(o.status || "menunggu")}">${OC_IC[o.status] || OC_IC.menunggu}${esc(SL[o.status] || o.status || "Menunggu")}</span></div><p class="oc-r">${OC_IC.kal}${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p class="oc-r">${OC_IC.item}<span>${itemsText(o)}</span></p><div class="oc-tot"><b>Total ${fmtRp(o.total)}</b>· ${esc(o.payment || "")}</div></div><span class="oc-ill">${ocGambar(o)}</span></div>${o.status === "dikirim" ? `<button type="button" class="oc-lacak" data-lacak="${esc(o.order_code)}"><span>🛵</span><b>Lacak kurir</b><small>Lihat posisi kurir di peta</small><em>›</em></button>` : ""}${infoBatal(o)}${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
+    ORD_MAP = Object.fromEntries(rows.map(o => [o.order_code, o]));
+    box.querySelectorAll("[data-lacak]").forEach(b => b.onclick = () => lacakKurir(b.dataset.lacak));
     saringPesanan();
   }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
 }
