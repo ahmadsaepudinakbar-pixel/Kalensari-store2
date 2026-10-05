@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#4b2a76">
+<meta name="theme-color" content="#0a3d66">
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <script src="pwa.js" defer></script>
 <title>Warga Desa – Kalensari</title>
 <style>
-:root{--brown:#6a3fa0;--deep:#4b2a76;--ink:#2d1747;--muted:#5f4f74;--bg:#e6dcf3;--line:#d0c1e6;--chip:#f1eafa;--green:#228b4e;--red:#b83c2b}
+:root{--brown:#0f5e9c;--deep:#0a3d66;--ink:#0d2a40;--muted:#4a6276;--bg:#dcebf6;--line:#c3dbee;--chip:#eaf3fb;--green:#228b4e;--red:#b83c2b}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
 .topbar{background:var(--brown);color:#fff;text-align:center;font-size:13px;font-weight:600;padding:10px 12px}
@@ -64,7 +64,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 [data-pg]{display:none}[data-pg].tampil{display:block}
 .bn{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}.bn button{flex:1;position:relative;background:none;border:0;padding:8px 0 9px;font:inherit;font-size:11.5px;color:var(--muted);cursor:pointer}.bn button b{display:block;font-size:21px;font-weight:400}.bn button.on{color:var(--brown);font-weight:700}
 .bn i{position:absolute;top:4px;left:calc(50% + 6px);background:#e53935;color:#fff;font-style:normal;font-size:10.5px;font-weight:800;border-radius:999px;padding:1px 6px}
-.hero2{background:radial-gradient(90% 120% at 100% 0%,rgba(255,255,255,.18),rgba(255,255,255,0) 60%),linear-gradient(135deg,var(--deep),var(--brown));box-shadow:0 10px 24px rgba(75,42,118,.25);color:#fff;border-radius:22px;padding:16px;margin-bottom:12px}.h2top{display:flex;justify-content:space-between;align-items:center;gap:10px}.h2top small{opacity:.85}.h2top b{display:block;font-size:21px;margin-top:2px}
+.hero2{background:radial-gradient(90% 120% at 100% 0%,rgba(255,255,255,.18),rgba(255,255,255,0) 60%),linear-gradient(135deg,var(--deep),var(--brown));box-shadow:0 10px 24px rgba(10,61,102,.25);color:#fff;border-radius:22px;padding:16px;margin-bottom:12px}.h2top{display:flex;justify-content:space-between;align-items:center;gap:10px}.h2top small{opacity:.85}.h2top b{display:block;font-size:21px;margin-top:2px}
 .h2av{width:58px;height:58px;border-radius:50%;background:#FFE27A;color:#7a3e20;display:grid;place-items:center;font-size:26px;font-weight:800;flex:none;border:3px solid rgba(255,255,255,.5)}
 .h2al{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.12);border-radius:14px;padding:10px 12px;margin-top:12px;cursor:pointer}.h2al>span{font-size:20px}.h2al div{flex:1;min-width:0}.h2al small{opacity:.8;font-size:12px}.h2al b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.h2al i{font-style:normal;font-size:20px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.q{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 4px;font:inherit;font-size:13px;font-weight:700;color:var(--ink);text-decoration:none;cursor:pointer}.q i{font-style:normal;font-size:24px;width:44px;height:44px;display:grid;place-items:center;background:var(--chip);border-radius:12px}
@@ -170,6 +170,19 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function suksesPin(judul, isi){
+  document.getElementById("okPin")?.remove();
+  const ov = document.createElement("div"); ov.id = "okPin";
+  ov.style.cssText = "position:fixed;inset:0;z-index:9999;background:rgba(10,30,50,.45);display:grid;place-items:center;padding:20px";
+  ov.innerHTML = `<div style="background:#fff;border-radius:24px;padding:26px 22px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,.25)">
+    <div style="width:68px;height:68px;margin:0 auto 12px;border-radius:50%;background:#e3f6ea;display:grid;place-items:center;font-size:36px">✅</div>
+    <b style="display:block;font-size:20px;color:var(--ink)">${judul}</b>
+    <p style="margin:8px 0 18px;color:var(--muted);font-size:14.5px;line-height:1.5">${isi}</p>
+    <button type="button" style="width:100%;border:0;border-radius:999px;padding:13px;font-weight:800;font-size:15px;color:#fff;background:linear-gradient(135deg,var(--deep),var(--brown));cursor:pointer">Oke, mengerti</button></div>`;
+  ov.querySelector("button").onclick = () => ov.remove();
+  ov.onclick = e => { if(e.target === ov) ov.remove(); };
+  document.body.appendChild(ov);
+}
 function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 3200); }
 const normPhone = v => String(v||"").replace(/\D/g,"").replace(/^0/,"62");
 const okPin = v => /^\d{4,8}$/.test(v);
@@ -261,7 +274,7 @@ $("pSimpan").onclick = async () => {
   if(!okPin(n)) return toast("PIN baru harus 4–8 angka");
   try{
     await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:o, p_pin_baru:n});
-    $("pOld").value = $("pNew").value = ""; toast("PIN berhasil diganti");
+    $("pOld").value = $("pNew").value = ""; suksesPin("PIN berhasil diganti", "Mulai sekarang gunakan PIN baru untuk masuk dan konfirmasi pesanan. Jangan beri tahu PIN Anda kepada siapa pun.");
   }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
 };
 
@@ -273,7 +286,7 @@ $("tSimpan").onclick = async () => {
   try{ let lama = sessionStorage.getItem("kalensari_pin_tmp") || "";
     if(!lama){ lama = prompt("Masukkan PIN sementara dari admin:") || ""; if(!lama) return; }
     await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:lama, p_pin_baru:n}); sessionStorage.removeItem("kalensari_pin_tmp");
-    $("tmpBox").hidden = true; toast("✅ PIN baru tersimpan. Ingat baik-baik ya."); }
+    $("tmpBox").hidden = true; suksesPin("PIN baru tersimpan", "Mulai sekarang gunakan PIN baru untuk masuk dan konfirmasi pesanan. Ingat baik-baik ya."); }
   catch(e){ toast(e.message || "Gagal menyimpan PIN"); } finally{ $("tSimpan").disabled = false; }
 };
 
@@ -411,7 +424,7 @@ function infoBatal(o){
 }
 // ===== SALDO VOUCHER & AJAK TETANGGA (tabel pembeli_saldo / pembeli_mutasi / pembeli_ajak, lihat supabase-voucher-pembeli.sql) =====
 const JENIS_V = {refund:"Pengembalian", kompensasi:"Kompensasi", ajak:"Bonus ajak tetangga", ajak_baru:"Bonus pembeli baru", pakai:"Dipakai belanja", koreksi:"Penyesuaian admin"};
-const IKON_V = {refund:["↩️","#e0efff"], kompensasi:["🎁","#ffe8ef"], ajak:["🧑‍🤝‍🧑","#e3f7e9"], ajak_baru:["🎉","#fff3d6"], pakai:["🛒","#f3e8ff"], koreksi:["🛠️","#eceff3"]};
+const IKON_V = {refund:["↩️","#e0efff"], kompensasi:["🎁","#ffe8ef"], ajak:["🧑‍🤝‍🧑","#e3f7e9"], ajak_baru:["🎉","#fff3d6"], pakai:["🛒","#e3f0fb"], koreksi:["🛠️","#eceff3"]};
 async function rpc(fn, body){
   const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
   const r = await fetch(base + "/rest/v1/rpc/" + fn, {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify(body)});
