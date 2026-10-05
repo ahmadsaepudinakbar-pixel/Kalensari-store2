@@ -624,6 +624,7 @@ pengaturan(){
     <button class="btn btn-g full" onclick="saveWa(this)">Simpan Nomor</button>
     <p class="sm" style="color:var(--mut);font-size:12px;margin-top:14px">Ongkir, jadwal buka penjual, dan persetujuan akun penjual/kurir/jasa diatur dari menu ⚙️ Admin di halaman toko.</p>
     <a class="btn btn-light full" style="margin-top:8px;text-decoration:none" href="index.html">Buka halaman toko</a></div>
+  ${kontakCard()}
   ${ongkirCard()}
   ${tarifCard()}
   ${tempatCard()}
@@ -1455,6 +1456,24 @@ async function saveBiaya(btn){
   if(v.aktif&&!biaya().aktif&&!confirm('Aktifkan potongan saldo?\nKurir yang saldonya kurang dari '+rp(mode==='nominal'?Math.max(minSaldoV,potong):minSaldoV)+' tidak akan mendapat tawaran pesanan sampai mengisi saldo.'))return;
   await busy(btn,async()=>{await setSetting('kurir_biaya',v);S.settings.kurir_biaya=v;render();toast('Pengaturan saldo kurir disimpan')});
 }
+/* ========== KONTAK SUPPORT (tampil di bagian bawah halaman utama; wajib untuk verifikasi Duitku) ==========
+   store_settings "kontak_support" = {email, telp, alamat} */
+const kontakSup=()=>({email:'',telp:'',alamat:'',...(S.settings.kontak_support&&typeof S.settings.kontak_support==='object'?S.settings.kontak_support:{})});
+function kontakCard(){const k=kontakSup();
+  return `<div class="card"><div class="chead"><h3>📇 Kontak Support</h3></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:12px">Tampil di bagian bawah halaman utama toko. Wajib diisi untuk verifikasi payment gateway (Duitku).</p>
+    <div class="field"><label>Email</label><input class="inp" id="ksEmail" type="email" value="${esc(k.email)}" placeholder="nama@gmail.com"></div>
+    <div class="field"><label>Nomor telepon / WhatsApp</label><input class="inp" id="ksTelp" inputmode="tel" value="${esc(k.telp)}" placeholder="08123456789"></div>
+    <div class="field"><label>Alamat usaha</label><textarea class="inp" id="ksAlamat" rows="3" placeholder="Dusun, Desa, Kecamatan, Kabupaten, Provinsi, Kode pos">${esc(k.alamat)}</textarea></div>
+    <button class="btn btn-g full" onclick="saveKontak(this)">Simpan Kontak Support</button></div>`}
+async function saveKontak(btn){
+  const v={email:$('#ksEmail').value.trim(),telp:$('#ksTelp').value.trim(),alamat:$('#ksAlamat').value.trim()};
+  if(!v.email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)){toast('Isi email yang benar');return}
+  if(String(v.telp).replace(/\D/g,'').length<9){toast('Isi nomor telepon yang benar');return}
+  if(v.alamat.length<10){toast('Isi alamat usaha lengkap');return}
+  await busy(btn,async()=>{await setSetting('kontak_support',v);S.settings.kontak_support=v;render();toast('Kontak support disimpan')});
+}
+
 async function saveWa(btn){const n=phoneKey($('#sWa').value);if(n.length<9||n.length>15)return toast('Nomor WhatsApp tidak valid');
   await busy(btn,async()=>{await setSetting('whatsapp_number',n);S.settings.whatsapp_number=n;render();toast('Nomor WhatsApp disimpan')})}
 

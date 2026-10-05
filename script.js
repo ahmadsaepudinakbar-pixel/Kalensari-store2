@@ -319,6 +319,7 @@ async function loadCloudSettings(){
     (Array.isArray(rows)?rows:[]).forEach(r=>{
       if(r.key==="categories"&&Array.isArray(r.value)){customCategories=r.value;localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));}
       if(r.key==="removed_categories"&&Array.isArray(r.value)){removedCategories=r.value;localStorage.setItem("kalensari_removed_categories",JSON.stringify(removedCategories));}
+      if(r.key==="kontak_support"&&r.value&&typeof r.value==="object"){try{localStorage.setItem("kalensari_kontak_support",JSON.stringify(r.value));}catch(e){}tampilKontakSupport(r.value);}
       if(r.key==="whatsapp_number"&&typeof r.value==="string"){const n=normalizePhone(r.value);if(n.length>=9&&n.length<=15){WHATSAPP_NUMBER=n;localStorage.setItem("kalensari_wa_number",JSON.stringify(n));applyWaLinks();}}
       if(r.key==="admin_pin_hash"&&typeof r.value==="string"&&/^[0-9a-f]{64}$/.test(r.value)){adminPinHash=r.value;localStorage.setItem("kalensari_admin_pin_hash",JSON.stringify(adminPinHash));}
       if(r.key==="shipping_fees"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){shippingFees=r.value;localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));}
@@ -2090,3 +2091,13 @@ function tampilSukses(s){
   ov.querySelector("#okKembali").onclick=()=>{tutup();scrollTo({top:0,behavior:"smooth"});};
   ov.querySelector("#okLihat").onclick=()=>{tutup();openModal("myOrdersModal");try{refreshMyOrders();}catch(e){}};
 }
+
+// ===== KONTAK SUPPORT di bagian bawah halaman utama (diisi dari Admin > Pengaturan > Kontak Support) =====
+function tampilKontakSupport(k){
+  if(!k||typeof k!=="object")return;
+  const em=document.getElementById("ksSupEmail"),tl=document.getElementById("ksSupTelp"),al=document.getElementById("ksSupAlamat");
+  if(em&&k.email){em.textContent=k.email;em.href="mailto:"+k.email;}
+  if(tl&&k.telp){const d=String(k.telp).replace(/\D/g,"").replace(/^0/,"62");tl.textContent=k.telp;tl.href="tel:+"+d;}
+  if(al&&k.alamat)al.textContent=k.alamat;
+}
+try{tampilKontakSupport(JSON.parse(localStorage.getItem("kalensari_kontak_support")||"null"));}catch(e){}
