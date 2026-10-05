@@ -906,14 +906,8 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   if(!cartGroups().some(g=>g.on)){alert("Centang minimal satu produk yang ingin di-checkout.");return;}
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
   {KS_KURIR=await jumlahKurirAktif();if(KS_KURIR===0){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");return;}}
-  const f=new FormData(e.target),payment=String(f.get("payment")||"");
+  const f=new FormData(e.target);
   const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
-  let codTahan=false;
-  if(isCod(payment)){
-    const ci=await codInfo(phone);
-    if(!ci.boleh){alert(ci.pesan);pilihQrisCheckout();return;}
-    codTahan=ci.tahan;
-  }
   const _la=document.getElementById("ksMapLat")?.value, _ln=document.getElementById("ksMapLng")?.value;
   const mapLat=String(_la||"").trim()===""?NaN:Number(_la), mapLng=String(_ln||"").trim()===""?NaN:Number(_ln);
   const hasMap=Number.isFinite(mapLat)&&Number.isFinite(mapLng)&&!(mapLat===0&&mapLng===0);
@@ -928,7 +922,18 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const routeNote=rt&&rt.stops.length>1?`[Rute kurir: ${rt.stops.map((x,i)=>`${i+1}. ${x.name}`).join(" → ")} → Pembeli]`:"";
   const orderNote=[userNote,routeNote,mapToken].filter(Boolean).join(" ");
   if(hasMap) localStorage.setItem("kalensari_checkout_location",JSON.stringify({lat:mapLat,lng:mapLng}));
-  if(!(await mintaKataSandi(checkoutBuyer.wa)))return;
+  // ===== Lanjut pembayaran: pilih QRIS / COD dulu =====
+  const payment=bayarDipilih;bayarDipilih="";
+  if(!payment){bukaPilihBayar();return;}
+  let codTahan=false;
+  if(isCod(payment)){
+    const ci=await codInfo(phone);
+    if(!ci.boleh){alert(ci.pesan);bukaPilihBayar("QRIS");return;}
+    codTahan=ci.tahan;
+  }
+  const pakaiQris=/^qris/i.test(payment)&&QRIS_OTOMATIS&&!!CLOUD_CONFIG?.enabled;
+  // COD: kata sandi sekarang. QRIS: kata sandi diminta setelah pembayaran lunas.
+  if(!pakaiQris&&!(await mintaKataSandi(checkoutBuyer.wa)))return;
   // ===== PESANAN DIPISAH PER TOKO: tiap toko yang dicentang = 1 nota, 1 kurir, ongkir sendiri =====
   const groups=groups0.slice().sort((a,b)=>a.urut-b.urut),createdAt=new Date().toISOString();
   const kodeST=window.KSST?KSST.buatKode():"";
@@ -963,13 +968,13 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   renderMyOrders();
   if(kodeST) for(const c of codes) await KSST.daftarkan(c,kodeST);
   // satu QRIS untuk semua nota (nominal = total semua nota)
-  if(payment==="QRIS"&&QRIS_OTOMATIS) bayarQris(codes[0],msgWA);
-  else window.open(waLink(msgWA),"_blank");
+  const sukses={codes,groups:groups.map((g,i)=>({nama:g.name,items:g.items.map(p=>({n:p.name,q:p.qty,h:currentPrice(p)*p.qty})),sub:payloads[i].subtotal,ong:payloads[i].shipping,tot:payloads[i].total})),total:totalAll,payment,kodeST,codTahan,wa:checkoutBuyer.wa,nama:buyerName,address,t:createdAt};
+  if(pakaiQris){KS_SUKSES=sukses;bayarQris(codes[0],msgWA);}
+  else tampilSukses(sukses);
   // hanya toko yang dicentang yang keluar dari keranjang; toko lain tetap tersimpan
   const done=new Set(groups.flatMap(g=>g.items.map(p=>p.idx)));cart=cart.filter((i,n)=>!done.has(n));
   saveCart();updateCartCount();renderCart();closeModal("checkoutModal");
-  showToast(groups.length>1?`✅ ${groups.length} pesanan (per toko) tersimpan dan dikirim.`:"✅ Pesanan tersimpan dan dikirim."); e.target.reset();
-  if(codTahan) setTimeout(()=>alert("Ini pesanan COD pertama Anda 🙏\n\nAdmin Kalensari Store akan menghubungi Anda lewat WhatsApp untuk konfirmasi. Setelah dikonfirmasi, pesanan langsung diteruskan ke toko."),400);
+  e.target.reset();
   if(window.KSNotif&&CLOUD_CONFIG?.enabled) setTimeout(()=>KSNotif.tawarkan({key:"pembeli_push_"+normalizePhone(phone),ajakan:"🔔 Kabari saya saat pesanan diterima toko & diantar kurir?"}),1500);
 });
 
@@ -2032,3 +2037,56 @@ window.ksPesanLagi=function(list,racik){
 };
 if(location.hash==="#keranjang"||location.hash==="#favorit"){const h=location.hash;history.replaceState(null,"",location.pathname+location.search);
   setTimeout(()=>{if(h==="#favorit")return bukaFavorit(true);try{const r=JSON.parse(sessionStorage.getItem("kalensari_racik_ulang")||"null");sessionStorage.removeItem("kalensari_racik_ulang");if(r&&r.length)setTimeout(()=>showToast("Pilih ulang topping: "+r.join(", ")),1500);}catch(e){}renderCart();openModal("cartModal");},600);}
+
+// ===== CHECKOUT BARU: Konfirmasi alamat → Lanjut pembayaran (QRIS / COD) → kata sandi → ✅ nota berhasil =====
+let bayarDipilih="",KS_SUKSES=null;
+{const m=document.getElementById("checkoutModal");if(m){const ey=m.querySelector(".eyebrow");if(ey)ey.textContent="KONFIRMASI ALAMAT";const nt=m.querySelector(".checkout-note");if(nt)nt.textContent="Periksa alamat pengiriman, lalu lanjut ke pembayaran.";}
+ const sel=document.querySelector('#checkoutForm select[name="payment"]');if(sel){[...sel.options].forEach(o=>{if(/transfer/i.test(o.textContent))o.remove();});sel.insertAdjacentHTML("afterbegin",'<option value="" selected>-</option>');sel.value="";const l=sel.closest("label");if(l){l.hidden=true;l.style.display="none";}}
+ const b=document.querySelector('#checkoutForm button[type="submit"]');if(b)b.textContent="➡️ Lanjut Pembayaran";}
+function bukaPilihBayar(awal){
+  document.getElementById("payBox")?.remove();
+  const tot=document.getElementById("checkoutTotal")?.textContent||"";
+  const ov=document.createElement("div");ov.id="payBox";ov.className="pay-ov";
+  ov.innerHTML=`<div class="pay-card" role="dialog" aria-label="Pilih pembayaran"><span class="eyebrow">LANJUT PEMBAYARAN</span><h3>Pilih cara bayar</h3><div class="pay-tot"><span>Total bayar</span><b>${esc(tot)}</b></div>
+    <button type="button" class="pay-opt" data-p="QRIS"><i>📱</i><span><b>QRIS</b><small>Bayar sekarang pakai DANA, OVO, GoPay, ShopeePay atau m-banking. Otomatis lunas.</small></span><em></em></button>
+    <button type="button" class="pay-opt" data-p="COD (jika tersedia)"><i>💵</i><span><b>COD (bayar di tempat)</b><small>Bayar tunai ke kurir saat pesanan sampai.</small></span><em></em></button>
+    <button type="button" class="btn primary full" id="payOk" disabled>Konfirmasi</button><button type="button" class="pay-x" id="payX">Kembali ke alamat</button></div>`;
+  document.body.appendChild(ov);
+  let pil="";const pilih=v=>{pil=v;ov.querySelectorAll(".pay-opt").forEach(x=>x.classList.toggle("on",x.dataset.p===v));ov.querySelector("#payOk").disabled=!v;ov.querySelector("#payOk").textContent=v?(/^qris/i.test(v)?"Konfirmasi • bayar dengan QRIS":"Konfirmasi • bayar COD"):"Konfirmasi";};
+  ov.querySelectorAll(".pay-opt").forEach(x=>x.onclick=()=>pilih(x.dataset.p));if(awal)pilih(awal);
+  ov.onclick=e=>{if(e.target===ov)ov.remove();};ov.querySelector("#payX").onclick=()=>ov.remove();
+  ov.querySelector("#payOk").onclick=()=>{if(!pil)return;bayarDipilih=pil;const sel=document.querySelector('#checkoutForm select[name="payment"]');if(sel){sel.value=pil;try{renderCart();}catch(e){}}ov.remove();document.getElementById("checkoutForm").requestSubmit();};
+}
+// QRIS lunas → minta kata sandi → nota berhasil
+{const _lunas=qpLunas;qpLunas=async function(code){
+  if(!(KS_SUKSES&&KS_SUKSES.codes.includes(code)))return _lunas(code);
+  const s=KS_SUKSES;KS_SUKSES=null;clearInterval(qpTimer);clearInterval(qpTick);
+  saveLocalOrders(getLocalOrders().map(o=>s.codes.includes(o.order_code)?{...o,pay_status:"lunas"}:o));renderMyOrders();
+  tutupQris();showToast("💳 Pembayaran diterima");
+  let ok=await mintaKataSandi(s.wa);
+  while(!ok){if(!confirm("Pembayaran Anda sudah LUNAS ✅\n\nMasukkan kata sandi untuk menyelesaikan dan melihat nota?\n(Batal = lihat nanti di 📦 Pesanan Saya)")){showToast("Pesanan sudah lunas. Nota ada di 📦 Pesanan Saya");return;}ok=await mintaKataSandi(s.wa);}
+  tampilSukses({...s,lunas:true});
+};}
+function tampilSukses(s){
+  document.getElementById("suksesBox")?.remove();
+  const q=/^qris/i.test(s.payment),ov=document.createElement("div");ov.id="suksesBox";ov.className="ok-ov";
+  ov.innerHTML=`<div class="ok-card">
+    <div class="ok-cek"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54"/><path d="M36 62 L53 79 L86 44"/></svg></div>
+    <h2>Pesanan berhasil dibuat!</h2><p class="ok-sub">Terima kasih, <b>${esc(s.nama||"Warga")}</b> 🙏<br>Pesanan Anda sudah diteruskan ke ${s.groups.length>1?s.groups.length+" toko":"toko"} dan akan segera diproses.</p>
+    <div class="ok-bayar ${q?"lunas":""}">${q?"💳 Sudah dibayar <b>LUNAS</b> lewat QRIS":`💵 Bayar tunai <b>${rupiah(s.total)}</b> ke kurir saat pesanan sampai`}</div>
+    ${s.codTahan?'<div class="ok-info">📞 Ini pesanan COD pertama Anda. Admin akan menghubungi lewat WhatsApp untuk konfirmasi, lalu pesanan diteruskan ke toko.</div>':""}
+    <div class="ok-nota"><div class="ok-nh"><b>🧾 NOTA PESANAN</b><small>${new Date(s.t||Date.now()).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div>
+      ${s.groups.map((g,i)=>`<div class="ok-g"><div class="ok-gh"><b>${s.groups.length>1?`Nota ${i+1} • `:""}${esc(s.codes[i])}</b><span>🏪 ${esc(g.nama)}</span></div>
+        ${g.items.map(x=>`<div class="ok-r"><span>${esc(x.n)} ×${x.q}</span><span>${rupiah(x.h)}</span></div>`).join("")}
+        <div class="ok-r m"><span>Ongkir</span><span>${g.ong>0?rupiah(g.ong):"Gratis"}</span></div>${s.groups.length>1?`<div class="ok-r m"><span>Total nota</span><span>${rupiah(g.tot)}</span></div>`:""}</div>`).join("")}
+      <div class="ok-r t"><span>Total ${q?"dibayar":"bayar"}</span><b>${rupiah(s.total)}</b></div>
+      <div class="ok-alamat">📍 Antar ke: ${esc(s.address||"-")}</div>
+      ${s.kodeST?`<div class="ok-kode">🔑 Kode serah terima: <b>${esc(s.kodeST)}</b><small>Sebutkan ke kurir hanya saat pesanan sudah Anda terima.</small></div>`:""}</div>
+    <p class="ok-terima">Terima kasih sudah belanja di <b>Kalensari Store</b>.<br>Dukung usaha warga desa kita! 💛</p>
+    <button type="button" class="btn primary full" id="okKembali">🛍️ Kembali ke Kalensari Store</button>
+    <button type="button" class="ok-lihat" id="okLihat">📦 Lihat status di Pesanan Saya</button></div>`;
+  document.body.appendChild(ov);document.body.classList.add("ok-open");
+  const tutup=()=>{ov.remove();document.body.classList.remove("ok-open");document.querySelectorAll(".modal.show").forEach(m=>m.classList.remove("show"));};
+  ov.querySelector("#okKembali").onclick=()=>{tutup();scrollTo({top:0,behavior:"smooth"});};
+  ov.querySelector("#okLihat").onclick=()=>{tutup();openModal("myOrdersModal");try{refreshMyOrders();}catch(e){}};
+}
