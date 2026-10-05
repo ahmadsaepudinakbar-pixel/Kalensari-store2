@@ -260,9 +260,7 @@ $("pSimpan").onclick = async () => {
   const o = $("pOld").value, n = $("pNew").value;
   if(!okPin(n)) return toast("PIN baru harus 4–8 angka");
   try{
-    const acc = (await getSetting(ROLE + "_accounts", {})) || {};
-    if(!acc[WA] || acc[WA].h !== await hashPin(WA, o)) return toast("PIN lama salah");
-    acc[WA].h = await hashPin(WA, n); await setSetting(ROLE + "_accounts", acc);
+    await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:o, p_pin_baru:n});
     $("pOld").value = $("pNew").value = ""; toast("PIN berhasil diganti");
   }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
 };
@@ -272,8 +270,9 @@ $("tSimpan").onclick = async () => {
   const n = $("tPin").value, n2 = $("tPin2").value;
   if(!okPin(n)) return toast("PIN harus 4–8 angka"); if(n !== n2) return toast("Ulangi PIN tidak sama");
   $("tSimpan").disabled = true;
-  try{ const acc = (await getSetting(ROLE + "_accounts", {})) || {}; if(!acc[WA]) throw new Error("Akun tidak ditemukan");
-    acc[WA].h = await hashPin(WA, n); delete acc[WA].tmp; await setSetting(ROLE + "_accounts", acc);
+  try{ let lama = sessionStorage.getItem("kalensari_pin_tmp") || "";
+    if(!lama){ lama = prompt("Masukkan PIN sementara dari admin:") || ""; if(!lama) return; }
+    await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:lama, p_pin_baru:n}); sessionStorage.removeItem("kalensari_pin_tmp");
     $("tmpBox").hidden = true; toast("✅ PIN baru tersimpan. Ingat baik-baik ya."); }
   catch(e){ toast(e.message || "Gagal menyimpan PIN"); } finally{ $("tSimpan").disabled = false; }
 };

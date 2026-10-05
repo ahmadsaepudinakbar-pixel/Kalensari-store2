@@ -48,7 +48,8 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 [hidden]{display:none!important}
-.card{border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:10px;background:#fffaf2}.card h3{margin:0;font-size:15px}.card p{margin:4px 0;font-size:13px;color:var(--muted)}.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--chip)}.mini{display:inline-block;margin:6px 6px 0 0;font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:12px;border:1px solid var(--brown);background:#fff;color:var(--brown);text-decoration:none;cursor:pointer}.mini.g{background:var(--green);border-color:var(--green);color:#fff}.sw{display:flex;gap:10px;align-items:center;background:var(--chip);padding:12px 14px;border-radius:14px;margin:6px 0 12px;font-weight:600}</style>
+.card{border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:10px;background:#fffaf2}.card h3{margin:0;font-size:15px}.card p{margin:4px 0;font-size:13px;color:var(--muted)}.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--chip)}.mini{display:inline-block;margin:6px 6px 0 0;font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:12px;border:1px solid var(--brown);background:#fff;color:var(--brown);text-decoration:none;cursor:pointer}.mini.g{background:var(--green);border-color:var(--green);color:#fff}.sw{display:flex;gap:10px;align-items:center;background:var(--chip);padding:12px 14px;border-radius:14px;margin:6px 0 12px;font-weight:600}.otp-in{font-size:24px;letter-spacing:8px;text-align:center;font-weight:800}
+</style>
 </head>
 <body>
 <div class="topbar"><a href="index.html">🛍️ KALENSARI STORE • ← Kembali ke toko</a></div>
@@ -66,9 +67,15 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
     </div>
     <div id="fLupa" hidden>
       <h2 style="margin:0 0 4px;font-size:20px">🔑 Lupa PIN</h2>
-      <p class="hint" style="margin:0 0 12px">Masukkan nomor WhatsApp akun Anda. Admin akan mengirim <b>PIN sementara</b> ke nomor WhatsApp tersebut. Setelah masuk, Anda diminta membuat PIN baru.</p>
+      <p class="hint" style="margin:0 0 12px">Masukkan nomor WhatsApp akun Anda. Kami kirim <b>kode verifikasi</b> ke WhatsApp tersebut, lalu Anda bisa membuat PIN baru.</p>
       <label>No. WhatsApp akun<input id="fgWa" class="fld" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx"></label>
-      <div class="btns"><button class="btn wa" id="btnLupa" type="button">Kirim permintaan ke admin</button><button class="btn" id="btnLupaBatal" type="button">Kembali ke Masuk</button></div>
+      <div id="fgOtpBox" hidden style="margin-top:6px;background:#f2f9f4;border:1px solid #cfe9d6;border-radius:14px;padding:12px">
+        <label style="margin-top:0">Kode dari WhatsApp<input id="fgOtp" class="fld otp-in" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="• • • • • •"></label>
+        <div class="row2"><label>PIN baru<input id="fgPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="new-password"></label>
+        <label>Ulangi PIN<input id="fgPin2" class="fld" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label></div>
+        <p class="hint" style="margin:6px 0 0">Tidak menerima kode? <a href="#" id="fgUlang">Kirim ulang</a> <span id="fgTunggu"></span> • <a href="#" id="fgAdmin">Minta bantuan admin</a></p>
+      </div>
+      <div class="btns"><button class="btn wa" id="btnLupa" type="button">📲 Kirim kode verifikasi</button><button class="btn" id="btnLupaBatal" type="button">Kembali ke Masuk</button></div>
       <div id="lupaOk" hidden style="margin-top:14px;background:#e8f6ee;border:1px solid #bfe3cc;border-radius:14px;padding:12px;color:#14502c"><b>✅ Permintaan terkirim</b><p style="margin:4px 0 10px;font-size:14px">Admin akan mengirim PIN sementara ke WhatsApp Anda. Supaya lebih cepat, kabari admin juga:</p><a class="btn wa" id="lupaWa" href="#" target="_blank" rel="noopener" style="text-decoration:none">💬 Kabari admin lewat WhatsApp</a></div>
     </div>
     <div id="fDaftar" hidden>
@@ -79,7 +86,13 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
       <label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label></div>
       <label>Kode ajak tetangga <small style="font-weight:400;color:#8a7466">(opsional)</small><input id="rAjak" class="fld" maxlength="20" placeholder="mis. PB-0012" autocapitalize="characters"></label>
       <p class="hint" id="rAjakInfo" style="margin:-4px 0 6px" hidden>🎉 Anda diajak tetangga. Dapat saldo voucher setelah pesanan pertama selesai diantar.</p>
-      <div class="btns"><button class="btn wa" id="btnDaftar" type="button">Buat akun</button></div>
+      <div id="rOtpBox" hidden style="margin-top:6px;background:#f2f9f4;border:1px solid #cfe9d6;border-radius:14px;padding:12px">
+        <b style="font-size:15px">📲 Masukkan kode dari WhatsApp</b>
+        <p class="hint" id="rOtpInfo" style="margin:4px 0 8px">Kode 6 angka sudah dikirim ke WhatsApp Anda.</p>
+        <input id="rOtp" class="fld otp-in" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="• • • • • •">
+        <p class="hint" style="margin:8px 0 0">Tidak menerima kode? <a href="#" id="rUlang">Kirim ulang</a> <span id="rTunggu"></span></p>
+      </div>
+      <div class="btns"><button class="btn wa" id="btnDaftar" type="button">📲 Kirim kode verifikasi ke WhatsApp</button></div>
       <p class="hint" style="margin-top:12px">Gunakan nomor WhatsApp yang sama dengan yang Anda pakai saat checkout agar riwayat pesanan muncul.</p>
     </div>
   </section>
@@ -143,35 +156,61 @@ $("tabDaftar").onclick = () => showTab(false);
 const nextUrl = () => { const n = sessionStorage.getItem("kalensari_next") || ""; if(n === "checkout"){ sessionStorage.removeItem("kalensari_next"); return "index.html#checkout"; } if(n.startsWith("url:")){ sessionStorage.removeItem("kalensari_next"); return n.slice(4); } return ""; };
 const go = () => setTimeout(() => { location.href = nextUrl() || ("dashboard-" + ROLE + ".html"); }, 700);
 { const q = new URLSearchParams(location.search).get("ajak"); if(q){ $("rAjak").value = q.toUpperCase(); $("rAjakInfo").hidden = false; try{ showTab(false); }catch(e){} } }
-$("btnDaftar").onclick = async () => {
+// ===== OTP WhatsApp (fungsi server "otp-wa" + database supabase-otp-pembeli.sql) =====
+async function rpcAkun(fn, body){
+  const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
+  const r = await fetch(base + "/rest/v1/rpc/" + fn, {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const t = await r.text(); if(!r.ok){ let m = t; try{ m = JSON.parse(t).message || t; }catch(e){} throw new Error(m); } return t ? JSON.parse(t) : null;
+}
+async function kirimOtp(wa, tujuan){
+  const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
+  const r = await fetch(base + "/functions/v1/otp-wa", {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify({wa, tujuan})});
+  const d = await r.json().catch(() => ({})); if(!r.ok || !d.ok) throw new Error(d.pesan || ("Gagal mengirim kode (" + r.status + ")"));
+}
+function hitungMundur(el, link, detik){
+  link.style.pointerEvents = "none"; link.style.opacity = ".5";
+  const t0 = Date.now(), iv = setInterval(() => { const s = detik - Math.floor((Date.now() - t0) / 1000);
+    if(s <= 0){ clearInterval(iv); el.textContent = ""; link.style.pointerEvents = ""; link.style.opacity = ""; } else el.textContent = "(" + s + " detik)"; }, 500);
+}
+document.querySelectorAll(".otp-in").forEach(x => x.oninput = () => { x.value = x.value.replace(/\D/g, "").slice(0, 6); });
+let daftarWa = "";
+async function daftarKirim(){
   const nama = $("rNama").value.trim(), wa = normPhone($("rWa").value), pin = $("rPin").value, pin2 = $("rPin2").value;
   if(!nama) return toast("Nama wajib diisi");
-  if(wa.length < 9 || wa.length > 15) return toast("Nomor WhatsApp tidak valid");
+  if(wa.length < 10 || wa.length > 15) return toast("Nomor WhatsApp tidak valid");
   if(!okPin(pin)) return toast("PIN harus 4–8 angka");
   if(pin !== pin2) return toast("Ulangi PIN tidak sama");
+  if(!cloudOn()) return toast("Database belum aktif");
+  $("btnDaftar").disabled = true; const t = $("btnDaftar").textContent; $("btnDaftar").textContent = "Mengirim kode...";
+  try{
+    await kirimOtp(wa, "daftar"); daftarWa = wa;
+    $("rOtpBox").hidden = false; $("rOtpInfo").innerHTML = "Kode 6 angka sudah dikirim ke WhatsApp <b>+" + wa + "</b>. Berlaku 5 menit.";
+    $("rWa").readOnly = true; $("btnDaftar").textContent = "✅ Verifikasi & buat akun"; $("btnDaftar").dataset.step = "otp";
+    hitungMundur($("rTunggu"), $("rUlang"), 60); setTimeout(() => $("rOtp").focus(), 100); toast("📲 Kode dikirim ke WhatsApp");
+  }catch(e){ $("btnDaftar").textContent = t; toast(e.message || "Gagal mengirim kode"); if(/sudah terdaftar/i.test(e.message)){ showTab(true); $("lWa").value = $("rWa").value; } }
+  finally{ $("btnDaftar").disabled = false; }
+}
+async function daftarVerifikasi(){
+  const nama = $("rNama").value.trim(), pin = $("rPin").value, otp = $("rOtp").value.trim(), wa = daftarWa;
+  if(!okPin(pin) || pin !== $("rPin2").value) return toast("Periksa lagi PIN Anda");
+  if(!/^\d{6}$/.test(otp)) return toast("Masukkan 6 angka kode dari WhatsApp");
   $("btnDaftar").disabled = true;
   try{
-    const acc = (await getSetting(ROLE + "_accounts", {})) || {};
-    if(acc[wa]){ toast("Nomor ini sudah terdaftar. Silakan masuk."); showTab(true); $("lWa").value = $("rWa").value; return; }
-    const id = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
-    acc[wa] = {h:await hashPin(wa, pin), id};
-    await setSetting(ROLE + "_accounts", acc);
-    await upsertMember({id, nama, wa, alamat:"", dusun:"", catatan:"", updated:Date.now()});
+    const r = await rpcAkun("daftar_pembeli", {p_wa:wa, p_nama:nama, p_pin:pin, p_otp:otp});
+    if(!r || !r.ok){ $("rOtp").value = ""; return toast(r && r.pesan || "Kode salah"); }
     const ajak = $("rAjak").value.trim();
-    if(ajak && cloudOn()){
-      try{
-        const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
-        const r = await fetch(base + "/rest/v1/rpc/pakai_kode_ajak", {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify({p_wa:wa, p_pin:pin, p_kode:ajak})});
-        const t = await r.text(); if(!r.ok){ let m = t; try{ m = JSON.parse(t).message || t; }catch(e){} throw new Error(m); }
-        toast("🎉 Kode ajak dipakai. Bonus masuk setelah pesanan pertama selesai.");
-      }catch(e){ toast("Kode ajak belum bisa dipakai: " + (e.message || e) + ". Bisa dicoba lagi di menu Saldo voucher."); await new Promise(r => setTimeout(r, 1800)); }
+    if(ajak){
+      try{ await rpcAkun("pakai_kode_ajak", {p_wa:wa, p_pin:pin, p_kode:ajak}); toast("🎉 Kode ajak dipakai. Bonus masuk setelah pesanan pertama selesai."); }
+      catch(e){ toast("Kode ajak belum bisa dipakai: " + (e.message || e) + ". Bisa dicoba lagi di menu Saldo voucher."); await new Promise(r => setTimeout(r, 1800)); }
     }
     ingatMasuk(wa);
-    toast("Akun dibuat. Mengarahkan ke dashboard...");
+    toast("✅ Akun dibuat. Mengarahkan ke dashboard...");
     go();
   }catch(e){ toast(e.message || "Gagal mendaftar"); }
   finally{ $("btnDaftar").disabled = false; }
-};
+}
+$("btnDaftar").onclick = () => $("btnDaftar").dataset.step === "otp" ? daftarVerifikasi() : daftarKirim();
+$("rUlang").onclick = async e => { e.preventDefault(); if(!daftarWa) return; try{ await kirimOtp(daftarWa, "daftar"); toast("📲 Kode baru dikirim"); hitungMundur($("rTunggu"), $("rUlang"), 60); }catch(err){ toast(err.message); } };
 $("btnMasuk").onclick = async () => {
   const idWa = window.KSID ? await KSID.keWA($("lWa").value, "pembeli") : null;
   if(idWa === "") return toast("ID akun tidak ditemukan. Periksa lagi atau masuk dengan nomor WhatsApp.");
@@ -184,6 +223,7 @@ $("btnMasuk").onclick = async () => {
     if(!a || a.h !== await hashPin(wa, pin)){ failTry(); return toast("Nomor atau PIN salah"); }
     LSset("kalensari_"+ROLE+"_try", {n:0,t:0});
     ingatMasuk(wa);
+    if(a.tmp) sessionStorage.setItem("kalensari_pin_tmp", pin);
     toast(a.tmp ? "Berhasil masuk. Silakan buat PIN baru..." : "Berhasil masuk...");
     go();
   }catch(e){ toast(e.message || "Gagal masuk"); }
@@ -191,23 +231,44 @@ $("btnMasuk").onclick = async () => {
 function showLupa(on){ $("fLupa").hidden = !on; $("fMasuk").hidden = on; $("fDaftar").hidden = true; document.querySelector(".tabs").hidden = on; if(on){ $("fgWa").value = $("lWa").value.replace(/[^\d+]/g,""); $("lupaOk").hidden = true; } else showTab(true); }
 $("lnkLupa").onclick = e => { e.preventDefault(); showLupa(true); };
 $("btnLupaBatal").onclick = () => showLupa(false);
-$("btnLupa").onclick = async () => {
-  const wa = normPhone($("fgWa").value);
-  if(wa.length < 9 || wa.length > 15) return toast("Nomor WhatsApp tidak valid");
-  $("btnLupa").disabled = true;
+let lupaWa = "";
+async function lupaMintaAdmin(){
+  const wa = lupaWa || normPhone($("fgWa").value);
   try{
-    const acc = (await getSetting(ROLE + "_accounts", {})) || {};
-    if(!acc[wa]) return toast("Nomor ini belum terdaftar. Silakan pilih Daftar.");
-    const r = (await getSetting("reset_pin", {})) || {}, list = Array.isArray(await getSetting(ROLE + "_members", [])) ? await getSetting(ROLE + "_members", []) : [];
+    const acc = (await getSetting(ROLE + "_accounts", {})) || {}; if(!acc[wa]) return toast("Nomor ini belum terdaftar.");
+    const r = (await getSetting("reset_pin", {})) || {}, list0 = await getSetting(ROLE + "_members", []), list = Array.isArray(list0) ? list0 : [];
     const m = list.find(x => x.id === acc[wa].id) || {};
-    r[wa] = {peran: ROLE, nama: m.nama || "", t: Date.now(), status: "baru"};
-    await setSetting("reset_pin", r);
+    r[wa] = {peran: ROLE, nama: m.nama || "", t: Date.now(), status: "baru"}; await setSetting("reset_pin", r);
     let adm = ""; try{ adm = normPhone(await getSetting("whatsapp_number", "")); }catch(e){}
-    $("lupaWa").href = adm ? "https://wa.me/" + adm + "?text=" + encodeURIComponent("Halo admin Kalensari, saya lupa PIN akun Warga Desa.\nNama: " + (m.nama || "-") + "\nNo. WA akun: +" + wa + "\nMohon dikirim PIN sementara. Terima kasih.") : "#";
-    $("lupaWa").hidden = !adm; $("lupaOk").hidden = false; toast("Permintaan terkirim ke admin");
+    if(adm) window.open("https://wa.me/" + adm + "?text=" + encodeURIComponent("Halo admin Kalensari, saya lupa PIN akun Warga Desa dan tidak menerima kode verifikasi.\nNama: " + (m.nama || "-") + "\nNo. WA akun: +" + wa + "\nMohon dibantu. Terima kasih."), "_blank");
+    toast("Permintaan terkirim ke admin");
   }catch(e){ toast(e.message || "Gagal mengirim permintaan"); }
+}
+$("btnLupa").onclick = async () => {
+  if($("btnLupa").dataset.step === "otp"){
+    const otp = $("fgOtp").value.trim(), pin = $("fgPin").value;
+    if(!/^\d{6}$/.test(otp)) return toast("Masukkan 6 angka kode dari WhatsApp");
+    if(!okPin(pin)) return toast("PIN harus 4–8 angka"); if(pin !== $("fgPin2").value) return toast("Ulangi PIN tidak sama");
+    $("btnLupa").disabled = true;
+    try{ const r = await rpcAkun("reset_pin_pembeli", {p_wa:lupaWa, p_otp:otp, p_pin:pin});
+      if(!r || !r.ok){ $("fgOtp").value = ""; return toast(r && r.pesan || "Kode salah"); }
+      toast("✅ PIN baru tersimpan. Silakan masuk."); showLupa(false); $("lWa").value = "0" + lupaWa.slice(2); $("lPin").value = ""; $("lPin").focus();
+      $("btnLupa").dataset.step = ""; $("fgOtpBox").hidden = true; $("btnLupa").textContent = "📲 Kirim kode verifikasi"; $("fgWa").readOnly = false;
+    }catch(e){ toast(e.message || "Gagal mengatur PIN"); } finally{ $("btnLupa").disabled = false; }
+    return;
+  }
+  const wa = normPhone($("fgWa").value);
+  if(wa.length < 10 || wa.length > 15) return toast("Nomor WhatsApp tidak valid");
+  if(!cloudOn()) return toast("Database belum aktif");
+  $("btnLupa").disabled = true;
+  try{ await kirimOtp(wa, "lupa"); lupaWa = wa;
+    $("fgOtpBox").hidden = false; $("fgWa").readOnly = true; $("btnLupa").dataset.step = "otp"; $("btnLupa").textContent = "✅ Simpan PIN baru";
+    hitungMundur($("fgTunggu"), $("fgUlang"), 60); setTimeout(() => $("fgOtp").focus(), 100); toast("📲 Kode dikirim ke WhatsApp");
+  }catch(e){ toast(e.message || "Gagal mengirim kode"); }
   finally{ $("btnLupa").disabled = false; }
 };
+$("fgUlang").onclick = async e => { e.preventDefault(); if(!lupaWa) return; try{ await kirimOtp(lupaWa, "lupa"); toast("📲 Kode baru dikirim"); hitungMundur($("fgTunggu"), $("fgUlang"), 60); }catch(err){ toast(err.message); } };
+$("fgAdmin").onclick = e => { e.preventDefault(); lupaMintaAdmin(); };
 $("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
 (() => {
   $("warn").hidden = cloudOn();
