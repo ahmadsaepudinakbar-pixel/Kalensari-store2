@@ -1103,6 +1103,7 @@ function renderMyOrders(rows=getLocalOrders()){
     <strong>${rupiah(o.total||0)}</strong>
     ${o.status==="dikirim"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="lacakKurir('${esc(o.order_code)}')">🛵 Lacak kurir</button>`:""}
     ${o.pay_status==="tunggu_wa"&&o.status==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
+    ${o.status==="dibatalkan"?infoBatal(o):""}
     ${o.pay_status==="lunas"?'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>':QRIS_OTOMATIS&&o.payment==="QRIS"&&o.status!=="dibatalkan"&&!String(o.id||"").startsWith("local-")?`<button class="btn primary small" type="button" onclick="bayarQris('${esc(o.order_code)}')">💳 Bayar dengan QRIS</button>`:""}
     ${window.KSST?KSST.html(o):""}
     ${window.KSPW?KSPW.html(o):""}
@@ -2144,3 +2145,17 @@ async function muatCuaca(){
   }catch(e){console.warn("Cuaca tidak tersedia:",e);}
 }
 setTimeout(muatCuaca,1200);setInterval(muatCuaca,CUACA_SIMPAN);
+
+// ===== Nota dibatalkan: alasan + status pengembalian dana (QRIS) =====
+function infoBatal(o){
+  const al=o.batal_alasan?String(o.batal_alasan).replace(/\s*\(dilaporkan kurir.*\)$/,""):"";
+  let h=al?`<div class="order-hint">✖️ Dibatalkan: ${esc(al)}</div>`:"";
+  if(o.pay_status==="lunas"){
+    const r=o.refund&&typeof o.refund==="object"?o.refund:null,j=r&&Number(r.jumlah)>=0&&r.jumlah!==undefined?Number(r.jumlah):Number(o.total)||0;
+    h+=r&&r.status==="selesai"
+      ?`<div class="order-hint success">✅ Dana ${rupiah(j)} sudah dikembalikan${r.selesai_t?" ("+new Date(r.selesai_t).toLocaleDateString("id-ID")+")":""}</div>`
+      :`<div class="order-hint">💸 Dana ${rupiah(j)} akan dikembalikan admin (paling lambat 7 hari kerja). Admin akan menghubungi Anda lewat WhatsApp.</div>`;
+  }
+  if(Number(o.ongkir_tetap)>0&&!/^qris/i.test(String(o.payment||"")))h+=`<div class="order-hint">🛵 Ongkir jarak ${rupiah(o.ongkir_tetap)} dibayarkan bersama nota lain yang tetap diantar.</div>`;
+  return h;
+}

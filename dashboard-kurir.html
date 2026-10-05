@@ -489,7 +489,7 @@ function orderBody(o){
 function cardOffer(o, end){
   const c = esc(o.order_code);
   return `<div class="card offer"><h3>${c} <span class="chip">${transOf(o) ? (LAYK[transOf(o).layanan] || LAYK.ojek).n : "Baru untuk Anda"}</span></h3>${orderBody(o)}`
-    + (o.grup ? `<p class="hint" style="margin:4px 0;color:#7a4a00">🧾 Antaran gabungan: ${anggota(o).length > 1 ? anggota(o).length + " nota (" + anggota(o).map(x => esc(x.order_code)).join(", ") + ")" : "1 nota"} • nota toko lain yang belum siap otomatis ikut ke Anda.</p>` : "")
+    + (o.grup ? `<p class="hint" style="margin:4px 0;color:#7a4a00">🧾 Antaran gabungan: ${anggota(o).length > 1 ? anggota(o).length + " nota (" + anggota(o).map(x => esc(x.order_code)).join(", ") + ")" : "1 nota"} • semua toko sudah menerima pesanan.</p>` : "")
     + `<p class="hint" style="margin:0">Nomor pembeli tampil setelah pesanan diterima.</p>`
     + `<div class="dua"><button class="tolak" type="button" data-act="tolak" data-code="${c}" aria-label="Tolak">✕</button>`
     + `<button class="terima" type="button" data-act="terima" data-code="${c}">TERIMA <b class="cd" data-end="${end}"></b></button></div></div>`;
@@ -526,21 +526,116 @@ function cardMine0(o){
     + `<p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>`
     + (cleanOrderNote(o.note) ? `<p>📝 ${esc(cleanOrderNote(o.note))}</p>` : "")
     + bayarTokoHtml(o)
+    + (tambahOngkir(o) ? `<p style="margin:4px 0;background:#fff6e0;border-radius:10px;padding:6px 10px;color:#7a4a00">➕ Tagih juga ongkir jarak <b>${fmtRp(tambahOngkir(o))}</b> (dari nota toko yang tutup) • total nota ini <b>${fmtRp((Number(o.total) || 0) + tambahOngkir(o))}</b></p>` : "")
     + `<a class="mini g" href="tel:+${esc(num)}">📞 Telepon pembeli</a>`
     + `<a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}">💬 WhatsApp</a>`
     + `<button class="mini g" type="button" data-act="status" data-code="${esc(o.order_code)}" data-status="${next[0]}">${next[1]}</button>`
     + (o.status === "diproses" ? `<button class="mini" type="button" data-act="lepas" data-code="${esc(o.order_code)}">↩️ Lepas pesanan</button>` : "")
     + (o.status === "dikirim" ? `<button class="mini merah" type="button" data-act="gagal" data-code="${esc(o.order_code)}">❌ Gagal antar</button>` : "")
+    + (o.status === "diproses" ? `<button class="mini merah" type="button" data-act="tutup" data-code="${esc(o.order_code)}">🚫 Toko tutup / tidak bisa diambil</button>` : "")
     + `</div>`;
+}
+// ===== TOKO BELUM MENJAWAB / TOKO TUTUP =====
+// Batas toko menjawab = 15 menit sejak dibayar (QRIS) / dibuat (COD). Nota yang lewat batas dibatalkan otomatis.
+const BATAS_TOKO_MS = 15 * 60000;
+let STATES = {}, SHIPFEE = null, sudahBatal = new Set();
+const belumBayar = o => (/^qris/i.test(String(o.payment || "")) && o.pay_status !== "lunas") || o.pay_status === "tunggu_wa";
+const sKey = n => String(n || "").trim().toLowerCase();
+const tokoNota = o => { const t = tokoOf(o); return t[0] || "Toko"; };
+function grupMenunggu(pend, now){
+  const g = new Set();
+  (Array.isArray(pend) ? pend : []).forEach(o => {
+    if(belumBayar(o)) return;
+    const mulai = Date.parse(o.paid_at || o.created_at || "") || now;
+    if(now - mulai < BATAS_TOKO_MS){ g.add(o.grup); return; }
+    if(sudahBatal.has(o.order_code)) return; sudahBatal.add(o.order_code);
+    batalkanNota(o.order_code, ["menunggu","baru"], {batal_alasan:"Toko tidak menjawab dalam 15 menit"}).catch(() => {});
+  });
+  return g;
+}
+// PATCH aman: bila kolom baru (supabase-toko-tutup.sql) belum ada, tetap batalkan dengan kolom lama.
+async function batalkanNota(code, dari, extra){
+  const t = new Date().toISOString(), url = "orders?order_code=eq." + encodeURIComponent(code) + "&status=in.(" + dari.join(",") + ")";
+  try{ await cf(url, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"dibatalkan", updated_at:t, batal_at:t, ...(extra || {})})}); }
+  catch(e){ if(!/batal_|refund|ongkir_tetap|column/i.test(String(e.message))) throw e;
+    await cf(url, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"dibatalkan", updated_at:t})}); }
+}
+async function ongkirDasar(toko){
+  if(!SHIPFEE) try{ SHIPFEE = await getSetting("shipping_fees", {}) || {}; }catch(e){ SHIPFEE = {}; }
+  const v = SHIPFEE[sKey(toko)], d = Number(SHIPFEE.__default) || 0;
+  return v === undefined || v === null || v === "" ? d : (Number(v) || 0);
+}
+const tambahOngkir = o => { const st = STATES[o.order_code] || {}; return /^cod/i.test(String(o.payment || "")) ? Number(st.tambahOngkir) || 0 : 0; };
+function tokoTutup(code){
+  const o = ORD[code]; if(!o) return;
+  const toko = tokoNota(o);
+  let alasan = "Toko tutup", sibuk = false;
+  const ov = lembar(`<h3 style="margin:0 0 4px;color:#a32d2d">🚫 Pesanan tidak bisa diambil</h3>
+    <p class="hint" style="margin:0 0 10px">Nota <b>${esc(code)}</b> dari <b>${esc(toko)}</b> akan <b>dibatalkan</b>. Nota toko lain tetap Anda antar.</p>
+    <div id="ttAl" class="ga-chips">${["Toko tutup", "Pesanan belum/tidak disiapkan", "Penjual tidak ada di tempat", "Lainnya"].map((a, i) => `<button type="button" class="ga-chip${i ? "" : " on"}" data-v="${esc(a)}">${esc(a)}</button>`).join("")}</div>
+    <input id="ttKet" class="fld" maxlength="120" placeholder="Keterangan singkat (wajib jika pilih Lainnya)" style="margin-top:10px">
+    <p class="hint" style="margin:10px 0 0">Sebelum membatalkan, coba telepon / WA penjual dulu.</p>
+    <p id="ttErr" class="hint" style="color:#c0392b;margin:8px 0 0"></p>
+    <button class="mini merah" id="ttKirim" type="button" style="width:100%;padding:13px;font-size:15px;margin:12px 0 0">Batalkan nota toko ini</button>
+    <button class="mini" id="ttBatal" type="button" style="width:100%;margin-top:10px">Kembali</button>`);
+  ov.querySelector("#ttAl").onclick = e => { const x = e.target.closest(".ga-chip"); if(!x) return; ov.querySelectorAll("#ttAl .ga-chip").forEach(y => y.classList.toggle("on", y === x)); alasan = x.dataset.v; };
+  ov.querySelector("#ttBatal").onclick = () => ov.remove();
+  ov.querySelector("#ttKirim").onclick = async () => {
+    if(sibuk) return;
+    const ket = ov.querySelector("#ttKet").value.trim();
+    if(alasan === "Lainnya" && !ket) return ov.querySelector("#ttErr").textContent = "Tulis keterangannya.";
+    sibuk = true; ov.querySelector("#ttKirim").textContent = "Memproses…";
+    try{
+      const st = await readState(code);
+      if(!st.acc || st.acc.id !== me.id){ ov.remove(); toast("Pesanan ini bukan milik Anda"); return loadOrders(); }
+      const lain = anggota(o).filter(x => x.order_code !== code && ["diproses","dikirim"].includes(x.status));
+      const barang = barangOf(o), kirim = Number(o.shipping) || 0;
+      // ongkir yang dikembalikan = ongkir dasar toko ini; ongkir jarak ke pembeli tetap (kurir tetap mengantar nota lain)
+      const balik = lain.length ? Math.min(kirim, await ongkirDasar(toko)) : kirim, tetap = kirim - balik;
+      const lunas = /^qris/i.test(String(o.payment || "")) && o.pay_status === "lunas", t = new Date().toISOString();
+      const teks = alasan + (ket ? " – " + ket : "") + " (dilaporkan kurir " + (me.nama || WA) + ")";
+      await batalkanNota(code, ["diproses"], {batal_alasan:teks, ongkir_tetap:tetap,
+        refund: lunas ? {jumlah:barang + balik, barang, ongkir:balik, ongkir_kurir:tetap, kurir:{id:me.id, nama:me.nama || "", wa:WA}, status:"menunggu", t} : null});
+      try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){}
+      // COD: ongkir jarak dari nota batal ditagih bersama nota lain
+      if(tetap > 0 && !lunas && lain.length){ const x = lain[lain.length - 1], s2 = await readState(x.order_code); await writeState(x.order_code, {...s2, tambahOngkir:(Number(s2.tambahOngkir) || 0) + tetap, tambahDari:code}); }
+      await catatPelanggaran(toko, code, teks, lunas ? balik : 0);
+      const num = o.customer_phone_normalized || normPhone(o.customer_phone);
+      const tagih = lain.reduce((a, x) => a + (Number(x.total) || 0) + (/^cod/i.test(String(x.payment || "")) ? tambahOngkir(x) : 0), 0) + (!lunas ? tetap : 0);
+      const pesan = `Halo ${o.customer_name || "Kak"}, saya ${me.nama || "kurir"} dari Kalensari Store 🙏\n\nMohon maaf, ${toko} ternyata ${alasan.toLowerCase()}, jadi pesanan ${code} dibatalkan.`
+        + (lain.length ? `\nPesanan dari ${lain.map(x => tokoNota(x)).join(", ")} tetap saya antar.` : "")
+        + (lunas ? `\n\n💸 Uang ${fmtRp(barang + balik)} akan dikembalikan oleh admin. Admin akan menghubungi Anda.` : lain.length ? `\n\n💵 Yang dibayar saat pesanan sampai: ${fmtRp(tagih)}.` : "");
+      ov.firstElementChild.innerHTML = `<h3 style="margin:0 0 6px;color:var(--brown)">✅ Nota ${esc(code)} dibatalkan</h3>
+        <p class="hint" style="margin:0 0 10px">${lain.length ? "Lanjutkan ke toko berikutnya, lalu antar ke pembeli." : "Tidak ada nota lain dalam antaran ini."}</p>
+        ${lunas ? `<p style="margin:0 0 8px">💸 Refund ke pembeli <b>${fmtRp(barang + balik)}</b> diproses admin.</p>` : lain.length ? `<p style="margin:0 0 8px">💵 Tagih ke pembeli: <b>${fmtRp(tagih)}</b>${tetap ? ` (sudah termasuk ongkir jarak ${fmtRp(tetap)})` : ""}</p>` : ""}
+        <a class="mini g" style="display:block;text-align:center;padding:12px;font-size:15px" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}?text=${encodeURIComponent(pesan)}">💬 Kabari pembeli lewat WhatsApp</a>
+        <button class="mini" id="ttOk" type="button" style="width:100%;margin-top:10px">Tutup</button>`;
+      ov.querySelector("#ttOk").onclick = () => ov.remove();
+      loadOrders();
+    }catch(e){ sibuk = false; ov.querySelector("#ttKirim").textContent = "Batalkan nota toko ini"; ov.querySelector("#ttErr").textContent = "Gagal: " + String(e.message || e).slice(0, 90); }
+  };
+}
+// Catatan pelanggaran toko (store_settings "pelanggaran_toko") + tutup otomatis sesuai aturan admin ("aturan_toko_tutup")
+async function catatPelanggaran(toko, code, ket, potong){
+  try{
+    const k = sKey(toko), [p0, a0] = await Promise.all([getSetting("pelanggaran_toko", {}), getSetting("aturan_toko_tutup", {})]);
+    const p = p0 && typeof p0 === "object" && !Array.isArray(p0) ? p0 : {}, A = {maks:3, potong:true, reset:{}, ...(a0 && typeof a0 === "object" ? a0 : {})};
+    const list = Array.isArray(p[k]) ? p[k] : [];
+    list.push({kode:code, t:new Date().toISOString(), ket, nama:toko, potong:A.potong ? Number(potong) || 0 : 0});
+    p[k] = list; await setSetting("pelanggaran_toko", p);
+    const sejak = Date.parse((A.reset || {})[k] || "") || 0, n = list.filter(x => Date.parse(x.t) > sejak).length;
+    if(Number(A.maks) > 0 && n >= Number(A.maks)){ const c = await getSetting("closed_sellers", {}) || {}; if(!c[k]){ c[k] = true; await setSetting("closed_sellers", c); } }
+  }catch(e){ console.warn("Catat pelanggaran gagal", e); }
 }
 async function loadOrders(){
   if(busyLoad) return; busyLoad = true;
   const box = $("orders"); if(!box.innerHTML.trim()) box.innerHTML = '<p class="hint">Memuat...</p>';
   try{
-    const [rows, states, elig] = await Promise.all([fetchOrders("status=in.(diproses,dikirim)"), readStates(), eligibleCouriers(), muatTokoLoc()]);
-    const now = Date.now(); ORD = {}; rows.forEach(o => { ORD[o.order_code] = o; });
+    const [rows, states, elig, pend] = await Promise.all([fetchOrders("status=in.(diproses,dikirim)"), readStates(), eligibleCouriers(), fetchOrders("status=in.(menunggu,baru)&grup=not.is.null").catch(() => []), muatTokoLoc()]);
+    const now = Date.now(); ORD = {}; STATES = states; rows.forEach(o => { ORD[o.order_code] = o; });
+    const tungguToko = grupMenunggu(pend, now);
     const busy = busyIds(rows, states);
-    const mine = [], offers = []; let other = 0;
+    const mine = [], offers = []; let other = 0, tunggu = 0;
     const grp = new Map(); rows.forEach(o => { const k = gk(o); if(!grp.has(k)) grp.set(k, []); grp.get(k).push(o); });
     for(const list of grp.values()){
       list.sort((a, b) => String(a.order_code).localeCompare(String(b.order_code)));
@@ -552,6 +647,8 @@ async function loadOrders(){
         mine.push(...list); continue;
       }
       const rep = list.find(o => o.status === "diproses"); if(!rep){ other += list.length; continue; }
+      // antaran gabungan: kurir baru ditawari setelah SEMUA toko menjawab (menerima / batal)
+      if(rep.grup && tungguToko.has(rep.grup)){ tunggu++; continue; }
       const st = states[rep.order_code] || {};
       const a = assigneeOf(rep, st, eligFor(rep, elig, busy), now);
       if(a && a.id === me.id) offers.push({o:rep, end:slotEnd(rep, st, now), n:list.length}); else other += list.length;
@@ -566,6 +663,7 @@ async function loadOrders(){
     if(offers.length) h += hd(`Menunggu jawaban Anda (${offers.length})`) + offers.map(x => cardOffer(x.o, x.end)).join("");
     if(mine.length) h += hd(`Pesanan saya (${mine.length})`) + mine.map(cardMine).join("");
     if(!offers.length && !mine.length) h += '<p class="hint" style="margin-top:10px">Belum ada pesanan untuk Anda. Biarkan halaman ini terbuka; pesanan baru akan muncul otomatis.</p>';
+    if(tunggu > 0) h += `<p class="hint" style="margin-top:12px">⏳ ${tunggu} antaran gabungan menunggu toko lain menerima pesanan. Kurir ditawari setelah semua toko menjawab.</p>`;
     if(other > 0) h += `<p class="hint" style="margin-top:12px">${other} pesanan lain sedang ditangani / ditawarkan ke kurir lain.</p>`;
     box.innerHTML = h; tick(); lacakSync(mine);
   }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
@@ -655,6 +753,7 @@ $("orders").addEventListener("click", async e => {
     else if(act === "tolak") await alihkan(code, "Pesanan ditolak dan dialihkan ke kurir lain");
     else if(act === "lepas") await alihkan(code, "Pesanan dilepas dan dialihkan ke kurir lain");
     else if(act === "gagal"){ b.disabled = false; return gagalAntar(code); }
+    else if(act === "tutup"){ b.disabled = false; return tokoTutup(code); }
     else if(act === "status"){ if(b.dataset.status === "selesai"){ b.disabled = false; return serahTerima(code); } return await setStatus(code, b.dataset.status); }
   }catch(err){ toast("Gagal: " + String(err.message || err).slice(0, 100)); }
   loadOrders();

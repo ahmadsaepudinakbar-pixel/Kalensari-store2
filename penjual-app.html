@@ -404,12 +404,14 @@ const wibTgl=t=>new Date(t).toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"}
 const masukSaldo=(o,sq)=>o.status==="selesai"&&!isCodO(o)&&!(isQris(o)&&o.pay_status!=="lunas")&&!sq[o.order_code+"|t:"+myK()];
 async function muatSaldo(){
   const k=myK();let rows=O,sq={},cair=[];
-  if(cloud()){const [r,a,b]=await Promise.all([cf("orders?select=id,order_code,status,payment,pay_status,items,created_at,updated_at&status=eq.selesai&order=updated_at.desc&limit=5000"),getS("setoran_qris",{}),getS("cair_toko",[])]);
+  let pel=[];
+  if(cloud()){const [r,a,b,pl]=await Promise.all([cf("orders?select=id,order_code,status,payment,pay_status,items,created_at,updated_at&status=eq.selesai&order=updated_at.desc&limit=5000"),getS("setoran_qris",{}),getS("cair_toko",[]),getS("pelanggaran_toko",{}).catch(()=>({}))]);pel=pl&&Array.isArray(pl[k])?pl[k]:[];
     rows=(r||[]).filter(o=>mineItems(o).length);sq=a&&typeof a==="object"&&!Array.isArray(a)?a:{};cair=Array.isArray(b)?b:[];SETQ=sq;}
   const masuk=rows.filter(o=>masukSaldo(o,sq)).map(o=>({o,v:barangKu(o),t:o.updated_at||o.created_at})).sort((a,b)=>new Date(b.t)-new Date(a.t));
   const mine=cair.filter(x=>x&&x.toko===k).sort((a,b)=>new Date(b.t)-new Date(a.t));
-  const total=masuk.reduce((a,x)=>a+x.v,0),keluar=mine.filter(x=>x.status!=="ditolak").reduce((a,x)=>a+(Number(x.jumlah)||0),0);
-  SALDO={masuk,total,mine,keluar,saldo:Math.max(0,total-keluar),t:Date.now()};return SALDO;
+  const potong=pel.reduce((a,x)=>a+(Number(x.potong)||0),0);
+  const total=masuk.reduce((a,x)=>a+x.v,0),keluar=mine.filter(x=>x.status!=="ditolak").reduce((a,x)=>a+(Number(x.jumlah)||0),0)+potong;
+  SALDO={masuk,total,mine,keluar,potong,pel,saldo:Math.max(0,total-keluar),t:Date.now()};return SALDO;
 }
 function cekCair(S){if(!S)return"Memuat saldo…";
   if(S.mine.some(x=>x.status==="menunggu"))return"Masih ada pencairan yang menunggu diproses admin.";
@@ -418,7 +420,7 @@ function cekCair(S){if(!S)return"Memuat saldo…";
 function saldoKartu(){const S=SALDO;return `<div class="saldo-card" data-k="saldo" onclick="go('saldo')"><small>💳 Saldo penjualan</small><b>${S?rp(S.saldo):"…"}</b><span>Lihat & cairkan ›</span></div>`}
 function saldo(){const S=SALDO;if(!S)return'<p style="color:var(--mu)">Memuat saldo…</p>';const alasan=cekCair(S);
   const stl={menunggu:["⏳ Menunggu diproses","#a35a00"],selesai:["✅ Sudah ditransfer","#14502c"],ditolak:["✖️ Ditolak","#b83c2b"]};
-  return `<div class="saldo-card big"><small>Saldo bisa dicairkan</small><b>${rp(S.saldo)}</b><span>Total masuk ${rp(S.total)} • sudah/sedang dicairkan ${rp(S.keluar)}</span></div>
+  return `<div class="saldo-card big"><small>Saldo bisa dicairkan</small><b>${rp(S.saldo)}</b><span>Total masuk ${rp(S.total)} • sudah/sedang dicairkan ${rp(S.keluar-(S.potong||0))}${S.potong?` • potongan toko tutup ${rp(S.potong)}`:""}</span></div>${S.potong?`<div class="card" style="margin-top:12px;background:#fdecea;border-color:#f5c6c2"><b style="color:#a32d2d">🚫 Potongan karena toko tutup saat kurir datang: ${rp(S.potong)}</b><p style="margin:4px 0 0;font-size:13px">Ongkir yang dikembalikan ke pembeli dipotong dari saldo toko. ${S.pel.filter(x=>Number(x.potong)>0).slice(-5).map(x=>esc(x.kode)+" "+rp(x.potong)).join(" • ")}</p></div>`:""}
   <div class="card" style="margin-top:12px">${alasan?`<p class="warn" style="margin:0">${esc(alasan)}</p>`:`<b>💸 Cairkan saldo</b>
     <label style="display:block;margin-top:8px">Jumlah (minimal ${rp(MIN_CAIR)})<input id="cJml" class="fld" inputmode="numeric" value="${S.saldo}"></label>
     <label style="display:block">Kirim ke (bank / e-wallet, nomor, atas nama)<input id="cRek" class="fld" maxlength="100" placeholder="mis. DANA 0812xxxx a.n. Siti" value="${esc(me.rek||"")}"></label>
@@ -450,7 +452,7 @@ return segar+`<div class="chips">${["semua",...Object.keys(STL)].map(s=>`<button
 bind.orders=()=>{$("oRef")&&($("oRef").onclick=async()=>{$("oRef").textContent="Memuat…";await load(true);if(view==="orders")go("orders")});document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{fo=b.dataset.f;go("orders")});$("sq").onchange=e=>{q=e.target.value;go("orders")};document.querySelectorAll(".row").forEach(r=>r.onclick=()=>go("detail",r.dataset.id))};
 const gO=id=>O.find(o=>String(o.id)===String(id));
 function detail(){const o=gO(arg);if(!o)return"<p>Pesanan tidak ditemukan.</p>";const s=stOf(o),m=mineItems(o);
-return `<div style="display:flex;justify-content:space-between"><div><b style="font-size:19px">${esc(o.order_code)}</b><small style="display:block;color:var(--mu)">${new Date(o.created_at).toLocaleString("id-ID")}</small>${payTag(o)}</div><span class="pill ${s}" style="align-self:start">${STL[s]||s}</span></div>
+return `<div style="display:flex;justify-content:space-between"><div><b style="font-size:19px">${esc(o.order_code)}</b><small style="display:block;color:var(--mu)">${new Date(o.created_at).toLocaleString("id-ID")}</small>${payTag(o)}</div><span class="pill ${s}" style="align-self:start">${STL[s]||s}</span></div>${s==="dibatalkan"&&o.batal_alasan?`<div class="card" style="margin-top:10px;background:#fdecea;border-color:#f5c6c2"><b style="color:#a32d2d">✖️ Dibatalkan: ${esc(o.batal_alasan)}</b>${/kurir/i.test(o.batal_alasan)?'<p style="margin:4px 0 0;font-size:13px">Kurir datang tetapi pesanan tidak bisa diambil. Ini tercatat sebagai pelanggaran toko. Pastikan toko benar-benar buka setelah menerima pesanan, atau tutup toko di Dashboard.</p>':""}</div>`:""}
 <h3>Daftar Produk</h3><div class="card">${m.map(p=>`<div class="ln"><span>${esc(p.name)} ×${p.qty}</span><b>${rp((p.sale||p.price||0)*p.qty)}</b></div>`).join("")}<div class="ln" style="border-top:1px solid var(--ln);margin-top:6px;padding-top:8px"><b>Total Pesanan</b><b>${rp(tot(o))}</b></div></div>
 ${s!=="dibatalkan"?`<button class="btn o" id="nt">🧾 Bagikan / simpan nota</button>`:""}${o.note?`<div class="card" style="margin-top:10px"><small style="color:var(--mu)">📝 Catatan pembeli</small><div>${esc(o.note)}</div></div>`:""}${stokKembaliHtml(o)}
 ${!isOnly(o)?'<p class="warn" style="margin-top:12px">Pesanan gabungan beberapa toko: diproses oleh admin.</p>':s==="menunggu"?`<p class="warn" style="margin-top:12px">⏱ Sisa waktu menanggapi: <b data-exp="${exp(o)}">${mmss(Math.max(0,exp(o)-Date.now()))}</b>. Jika lewat ${LIMIT} menit, pesanan ditolak otomatis.</p><button class="btn" id="ac">Terima & Proses Pesanan</button><button class="btn d" id="rj">Tolak Pesanan</button>`:`<p class="warn" style="margin-top:12px">${({diproses:"Pesanan diterima. Selanjutnya kurir yang mengantar dan mengubah status.",dikirim:"Pesanan sedang diantar kurir.",selesai:"Pesanan selesai diantar.",gagal:"❌ Gagal diantar kurir"+(o.gagal_alasan?": "+esc(o.gagal_alasan):"")+". Hubungi admin bila perlu.",dibatalkan:/^Dibatalkan pembeli/.test(o.gagal_alasan||"")?"✖️ "+esc(o.gagal_alasan):"Pesanan ditolak (atau waktu menanggapi habis)."})[s]||""}</p>`}${utHtml(o)}`}
