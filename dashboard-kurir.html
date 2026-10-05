@@ -226,6 +226,10 @@ async function setSetting(key, value){
   return true;
 }
 async function upsertMember(entry){
+  if(window.KSID && KSID.sesi(ROLE)){   // ubah data sendiri lewat server (pakai sesi)
+    try{ return await KSID.simpan(ROLE, entry); }
+    catch(e){ if(e.sesiHabis){ toast("Sesi berakhir. Silakan masuk lagi."); setTimeout(keluar, 1500); } throw e; }
+  }
   let list = await getSetting(ROLE + "_members", []); if(!Array.isArray(list)) list = [];
   const k = list.findIndex(x => x.id === entry.id);
   if(k >= 0) list[k] = entry; else list.push(entry);
@@ -237,8 +241,8 @@ async function hashPin(wa, pin){
 }
 
 const FIELDS = ["nama","kendaraan","wilayah"];
-let me = null, WA = sessionStorage.getItem(SESS);
-function keluar(){ sessionStorage.removeItem(SESS); location.href = "akun-" + ROLE + ".html"; }
+let me = null, WA = window.KSID && KSID.sesi(ROLE) ? sessionStorage.getItem(SESS) : null;
+function keluar(){ sessionStorage.removeItem(SESS); if(window.KSID) KSID.hapusSesi(ROLE); location.href = "akun-" + ROLE + ".html"; }
 $("btnKeluar").onclick = keluar;
 const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan", gagal:"Gagal antar"};
 function itemsText(o){

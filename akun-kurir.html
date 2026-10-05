@@ -109,6 +109,7 @@ async function setSetting(key, value){
   return true;
 }
 async function upsertMember(entry){
+  if(window.KSID && KSID.sesi(ROLE)) return await KSID.simpan(ROLE, entry);   // ubah data sendiri lewat server (pakai sesi)
   let list = await getSetting(ROLE + "_members", []); if(!Array.isArray(list)) list = [];
   const k = list.findIndex(x => x.id === entry.id);
   if(k >= 0) list[k] = entry; else list.push(entry);
@@ -136,12 +137,14 @@ $("btnDaftar").onclick = async () => {
   if(pin !== pin2) return toast("Ulangi PIN tidak sama");
   $("btnDaftar").disabled = true;
   try{
+    if(window.KSID) KSID.hapusSesi(ROLE);
     const acc = (await getSetting(ROLE + "_accounts", {})) || {};
     if(acc[wa]){ toast("Nomor ini sudah terdaftar. Silakan masuk."); showTab(true); $("lWa").value = $("rWa").value; return; }
     const id = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
     acc[wa] = {h:await hashPin(wa, pin), id};
     await setSetting(ROLE + "_accounts", acc);
     await upsertMember({id, nama, wa, kendaraan:$("rKend").value, wilayah:"", aktif:true, pending:true, updated:Date.now()});
+    await KSID.masuk(ROLE, wa, pin);
     sessionStorage.setItem(SESS, wa);
     toast("Akun dibuat. Mengarahkan ke dashboard...");
     go();
@@ -158,7 +161,7 @@ $("btnMasuk").onclick = async () => {
     let a;
     try{ a = await KSID.masuk(ROLE, wa, pin); }catch(er){ if(er.salahPin) failTry(); return toast(er.message); }
     LSset("kalensari_"+ROLE+"_try", {n:0,t:0});
-    sessionStorage.setItem(SESS, wa);
+    sessionStorage.setItem(SESS, a.wa || wa);
     toast("Berhasil masuk...");
     go();
   }catch(e){ toast(e.message || "Gagal masuk"); }
@@ -167,7 +170,7 @@ $("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
 (() => {
   $("warn").hidden = cloudOn();
   if(location.hash === "#daftar") showTab(false);
-  if(sessionStorage.getItem(SESS)) location.replace("dashboard-" + ROLE + ".html");
+  if(sessionStorage.getItem(SESS) && window.KSID && KSID.sesi(ROLE)) location.replace("dashboard-" + ROLE + ".html");
 })();
 
 </script>

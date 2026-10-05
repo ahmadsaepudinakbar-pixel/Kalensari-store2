@@ -246,11 +246,10 @@ async function setSetting(key, value){
   await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key, value}])});
   return true;
 }
+// Data pembeli hanya bisa diubah lewat server dengan sesi masuk (supabase-keamanan-tahap2a.sql)
 async function upsertMember(entry){
-  let list = await getSetting(ROLE + "_members", []); if(!Array.isArray(list)) list = [];
-  const k = list.findIndex(x => x.id === entry.id);
-  if(k >= 0) list[k] = entry; else list.push(entry);
-  await setSetting(ROLE + "_members", list);
+  try{ const d = await KSID.simpan(ROLE, entry); return d; }
+  catch(e){ if(e.sesiHabis){ toast("Sesi berakhir. Silakan masuk lagi."); setTimeout(keluar, 1500); } throw e; }
 }
 async function hashPin(wa, pin){
   const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("kalensari-" + ROLE + ":" + wa + ":" + pin));
@@ -259,13 +258,13 @@ async function hashPin(wa, pin){
 
 const FIELDS = ["nama"];
 const LOGIN = "kalensari_" + ROLE + "_login";
-let me = null, WA = sessionStorage.getItem(SESS) || (() => { const v = LSget(LOGIN, null); return v && v.wa && v.exp > Date.now() ? v.wa : null; })();
+let me = null, WA = !(window.KSID && KSID.sesi(ROLE)) ? null : sessionStorage.getItem(SESS) || (() => { const v = LSget(LOGIN, null); return v && v.wa && v.exp > Date.now() ? v.wa : null; })();
 if(WA){ sessionStorage.setItem(SESS, WA); LSset(LOGIN, {wa: WA, exp: Date.now() + 365*864e5}); }
 function mapsSearchUrl(lat,lng){ return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`; }
 function validCoord(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180&&!(lat===0&&lng===0)}
 function parseCoord(v){const t=String(v==null?"":v).trim().replace(",",".");return t===""?NaN:Number(t)}
 function parseLatLng(t){t=String(t||"").trim();if(!t)return null;const m=t.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)||t.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)||t.match(/[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i)||t.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/);return m?[Number(String(m[1]).replace(",",".")),Number(String(m[2]).replace(",","."))]:null}
-function keluar(){ sessionStorage.removeItem(SESS); try{ localStorage.removeItem(LOGIN); }catch(e){} location.href = "akun-" + ROLE + ".html"; }
+function keluar(){ sessionStorage.removeItem(SESS); try{ localStorage.removeItem(LOGIN); }catch(e){} if(window.KSID) KSID.hapusSesi(ROLE); location.href = "akun-" + ROLE + ".html"; }
 $("btnKeluar").onclick = keluar;
 const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan", gagal:"Gagal diantar"};
 function itemsText(o){
@@ -277,10 +276,11 @@ async function fetchOrders(q){
   return await cf("orders?select=*&" + q + "&order=created_at.desc&limit=50");
 }
 async function load(){
-  const acc = (await getSetting(ROLE + "_accounts", {})) || {}, a = acc[WA];
-  if(!a){ toast("Akun tidak ditemukan"); return setTimeout(keluar, 1200); }
-  const list = await getSetting(ROLE + "_members", []);
-  me = (Array.isArray(list) ? list : []).find(x => x.id === a.id) || {id:a.id, wa:WA, nama:"", pending:false};
+  let a;
+  try{ a = await KSID.saya(ROLE); }
+  catch(e){ toast(e.sesiHabis ? "Sesi berakhir. Silakan masuk lagi." : (e.message || "Akun tidak ditemukan")); return setTimeout(keluar, 1500); }
+  if(a.wa && a.wa !== WA){ WA = a.wa; sessionStorage.setItem(SESS, WA); LSset(LOGIN, {wa: WA, exp: Date.now() + 365*864e5}); }
+  me = {...(a.data || {}), id:a.id, wa:WA};
   $("dHalo").textContent = "Halo, " + (me.nama || "selamat datang") + " 👋";
   if(window.KSID) $("kodeAkun").innerHTML = KSID.lencana(me.kode);
   FIELDS.forEach(k => { $("f_" + k).value = me[k] || ""; });
@@ -309,7 +309,7 @@ $("pSimpan").onclick = async () => {
   const o = $("pOld").value, n = $("pNew").value;
   if(!okPin(n)) return toast("PIN baru harus 4–8 angka");
   try{
-    await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:o, p_pin_baru:n});
+    const g = await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:o, p_pin_baru:n}); if(g && g.sesi) KSID.setSesi(ROLE, g.sesi);
     $("pOld").value = $("pNew").value = ""; suksesPin("PIN berhasil diganti", "Mulai sekarang gunakan PIN baru untuk masuk dan konfirmasi pesanan. Jangan beri tahu PIN Anda kepada siapa pun.");
   }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
 };
@@ -321,7 +321,7 @@ $("tSimpan").onclick = async () => {
   $("tSimpan").disabled = true;
   try{ let lama = sessionStorage.getItem("kalensari_pin_tmp") || "";
     if(!lama){ lama = prompt("Masukkan PIN sementara dari admin:") || ""; if(!lama) return; }
-    await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:lama, p_pin_baru:n}); sessionStorage.removeItem("kalensari_pin_tmp");
+    const g = await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:lama, p_pin_baru:n}); if(g && g.sesi) KSID.setSesi(ROLE, g.sesi); sessionStorage.removeItem("kalensari_pin_tmp");
     $("tmpBox").hidden = true; suksesPin("PIN baru tersimpan", "Mulai sekarang gunakan PIN baru untuk masuk dan konfirmasi pesanan. Ingat baik-baik ya."); }
   catch(e){ toast(e.message || "Gagal menyimpan PIN"); } finally{ $("tSimpan").disabled = false; }
 };

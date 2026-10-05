@@ -759,12 +759,13 @@ const phoneShow=wa=>String(wa||"").replace(/^62/,"0");
 async function loadBuyer(){
   let wa=null; try{ const v=JSON.parse(localStorage.getItem("kalensari_pembeli_login")||"null"); if(v&&v.wa&&v.exp>Date.now()) wa=v.wa; }catch(e){}
   if(!wa) wa=sessionStorage.getItem("kalensari_pembeli_sess"); if(!wa) return null;
-  const get=async key=>{
-    if(CLOUD_CONFIG?.enabled){ try{ const r=await cloudFetch(`store_settings?select=value&key=eq.${key}`); if(r[0]&&r[0].value!=null) return r[0].value; }catch(e){} }
-    return readLS("kalensari_"+key,null);
-  };
-  const acc=(await get("pembeli_accounts"))||{}, a=acc[wa]; if(!a) return null;
-  const list=await get("pembeli_members"), m=(Array.isArray(list)?list:[]).find(x=>x.id===a.id)||{};
+  // data pembeli dibaca lewat server dengan sesi masuk (data warga tidak lagi terbuka di web)
+  let sesi="";try{sesi=localStorage.getItem("kalensari_sesi_pembeli")||"";}catch(e){}
+  if(!sesi||!CLOUD_CONFIG?.enabled) return null;
+  let j=null;try{const base=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");const r=await fetch(base+"/rest/v1/rpc/akun_saya",{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({p_sesi:sesi,p_peran:"pembeli"})});j=await r.json();}catch(e){return null;}
+  if(!j||!j.ok){if(j&&j.sesi_habis){try{localStorage.removeItem("kalensari_sesi_pembeli");localStorage.removeItem("kalensari_pembeli_login");sessionStorage.removeItem("kalensari_pembeli_sess");}catch(e){}}return null;}
+  if(j.wa) wa=j.wa;
+  const m=j.data||{};
   try{localStorage.setItem("kalensari_pembeli_login",JSON.stringify({wa,exp:Date.now()+365*864e5}));}catch(e){}
   const al=Array.isArray(m.alamat_list)?m.alamat_list:[],u=al.find(x=>x.id===m.alamat_utama)||al[0];
   return {wa, nama:String(m.nama||"").trim()||"Pembeli", alamat:String(m.alamat||"").trim(), lat:m.latitude, lng:m.longitude, label:u&&u.label||"Rumah", nAlamat:al.length};

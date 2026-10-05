@@ -155,6 +155,10 @@ async function setSetting(key, value){
 }
 // Baca data terbaru lalu ubah hanya bagian milik akun ini (agar tidak menimpa akun lain).
 async function upsertMember(entry){
+  if(window.KSID && KSID.sesi("jasa")){   // ubah data sendiri lewat server (pakai sesi)
+    try{ return await KSID.simpan("jasa", entry); }
+    catch(e){ if(e.sesiHabis){ sessionStorage.removeItem("kalensari_jasa_sess"); setTimeout(() => location.replace("akun-jasa.html"), 1500); } throw e; }
+  }
   let list = await getSetting("jasa_members", []); if(!Array.isArray(list)) list = [];
   const k = list.findIndex(x => x.id === entry.id);
   if(k >= 0) list[k] = entry; else list.push(entry);
@@ -272,7 +276,7 @@ $("pSimpan").onclick = async () => {
     $("pOld").value = $("pNew").value = ""; toast("PIN diganti");
   }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
 };
-$("btnKeluar").onclick = () => { sessionStorage.removeItem("kalensari_jasa_sess"); location.href = "akun-jasa.html"; };
+$("btnKeluar").onclick = () => { sessionStorage.removeItem("kalensari_jasa_sess"); if(window.KSID) KSID.hapusSesi("jasa"); location.href = "akun-jasa.html"; };
 
 
 function renderPrev(){
@@ -291,7 +295,7 @@ document.addEventListener("change",e=>{ if(e.target.closest("#dash")) renderPrev
 // ====== MULAI ======
 (async () => {
   $("warn").hidden = cloudOn();
-  const s = sessionStorage.getItem("kalensari_jasa_sess");
+  const s = window.KSID && KSID.sesi("jasa") ? sessionStorage.getItem("kalensari_jasa_sess") : null;
   if(!s){ location.replace("akun-jasa.html"); return; }
   await loadKat();
   try{ await openDash(s); }catch(e){ toast(e.message || "Gagal memuat data"); }

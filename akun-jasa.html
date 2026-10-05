@@ -160,6 +160,10 @@ async function setSetting(key, value){
 }
 // Baca data terbaru lalu ubah hanya bagian milik akun ini (agar tidak menimpa akun lain).
 async function upsertMember(entry){
+  if(window.KSID && KSID.sesi("jasa")){   // ubah data sendiri lewat server (pakai sesi)
+    try{ return await KSID.simpan("jasa", entry); }
+    catch(e){ if(e.sesiHabis){ sessionStorage.removeItem("kalensari_jasa_sess"); setTimeout(() => location.reload(), 1500); } throw e; }
+  }
   let list = await getSetting("jasa_members", []); if(!Array.isArray(list)) list = [];
   const k = list.findIndex(x => x.id === entry.id);
   if(k >= 0){ entry = {...entry, status:list[k].status, pending:list[k].pending, rating:list[k].rating}; list[k] = entry; } // status, persetujuan & rating hanya diubah admin
@@ -229,6 +233,7 @@ $("btnDaftar").onclick = async () => {
   if(pin !== pin2) return toast("Ulangi PIN tidak sama");
   $("btnDaftar").disabled = true;
   try{
+    if(window.KSID) KSID.hapusSesi("jasa");
     const acc = (await getSetting("jasa_accounts", {})) || {};
     if(acc[wa]){ toast("Nomor ini sudah terdaftar. Silakan masuk."); showTab(true); $("lWa").value = $("rWa").value; return; }
     const id = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -236,6 +241,7 @@ $("btnDaftar").onclick = async () => {
     acc[wa] = {h:await hashPin(wa, pin), id};
     await setSetting("jasa_accounts", acc);
     await upsertMember(entry);
+    await KSID.masuk("jasa", wa, pin);
     sessionStorage.setItem("kalensari_jasa_sess", wa);
     toast("Akun dibuat. Lengkapi data jasa Anda.");
     await openDash(wa);
@@ -253,8 +259,8 @@ $("btnMasuk").onclick = async () => {
     let a;
     try{ a = await KSID.masuk("jasa", wa, pin); }catch(er){ if(er.salahPin) failTry(); return toast(er.message); }
     LSset("kalensari_jasa_try", {n:0,t:0});
-    sessionStorage.setItem("kalensari_jasa_sess", wa);
-    await openDash(wa);
+    sessionStorage.setItem("kalensari_jasa_sess", a.wa || wa);
+    await openDash(a.wa || wa);
   }catch(e){ toast(e.message || "Gagal masuk"); }
 };
 $("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
@@ -361,14 +367,14 @@ $("pSimpan").onclick = async () => {
     $("pOld").value = $("pNew").value = ""; toast("PIN diganti");
   }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
 };
-$("btnKeluar").onclick = () => { sessionStorage.removeItem("kalensari_jasa_sess"); me = null; $("dash").hidden = true; $("auth").hidden = false; $("lPin").value = ""; showTab(true); };
+$("btnKeluar").onclick = () => { sessionStorage.removeItem("kalensari_jasa_sess"); if(window.KSID) KSID.hapusSesi("jasa"); me = null; $("dash").hidden = true; $("auth").hidden = false; $("lPin").value = ""; showTab(true); };
 
 // ====== MULAI ======
 (async () => {
   $("warn").hidden = cloudOn();
   await loadKat();
   if(location.hash === "#daftar") showTab(false);
-  const s = sessionStorage.getItem("kalensari_jasa_sess");
+  const s = window.KSID && KSID.sesi("jasa") ? sessionStorage.getItem("kalensari_jasa_sess") : null;
   if(s){ try{ await openDash(s); }catch(e){} }
 })();
 </script>

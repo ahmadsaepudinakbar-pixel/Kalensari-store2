@@ -144,7 +144,7 @@ async function hashPin(wa, pin){
 
 const LOGIN = "kalensari_" + ROLE + "_login";
 function ingatMasuk(wa){ sessionStorage.setItem(SESS, wa); LSset(LOGIN, {wa, exp: Date.now() + 365*864e5}); }
-function sudahMasuk(){ const v = LSget(LOGIN, null); return sessionStorage.getItem(SESS) || (v && v.wa && v.exp > Date.now() ? v.wa : ""); }
+function sudahMasuk(){ if(!window.KSID || !KSID.sesi(ROLE)) return ""; const v = LSget(LOGIN, null); return sessionStorage.getItem(SESS) || (v && v.wa && v.exp > Date.now() ? v.wa : ""); }
 function lockLeft(){ const t = LSget("kalensari_"+ROLE+"_try", {n:0,t:0}); return t.n >= 5 ? Math.max(0, Math.ceil((t.t + 60000 - Date.now())/1000)) : 0; }
 function failTry(){ const t = LSget("kalensari_"+ROLE+"_try", {n:0,t:0}); const n = (Date.now() - t.t > 60000 && t.n >= 5) ? 1 : t.n + 1; LSset("kalensari_"+ROLE+"_try", {n, t:Date.now()}); }
 function showTab(masuk){
@@ -198,6 +198,7 @@ async function daftarVerifikasi(){
   try{
     const r = await rpcAkun("daftar_pembeli", {p_wa:wa, p_nama:nama, p_pin:pin, p_otp:otp});
     if(!r || !r.ok){ $("rOtp").value = ""; return toast(r && r.pesan || "Kode salah"); }
+    KSID.setSesi(ROLE, r.sesi);
     const ajak = $("rAjak").value.trim();
     if(ajak){
       try{ const rj = await rpcAkun("pakai_kode_ajak", {p_wa:wa, p_pin:pin, p_kode:ajak}); if(rj && rj.ok === false) throw new Error(rj.pesan); toast("🎉 Kode ajak dipakai. Bonus masuk setelah pesanan pertama selesai."); }
@@ -221,7 +222,7 @@ $("btnMasuk").onclick = async () => {
     let a;
     try{ a = await KSID.masuk(ROLE, wa, pin); }catch(er){ if(er.salahPin) failTry(); return toast(er.message); }
     LSset("kalensari_"+ROLE+"_try", {n:0,t:0});
-    ingatMasuk(wa);
+    ingatMasuk(a.wa || wa);
     if(a.tmp) sessionStorage.setItem("kalensari_pin_tmp", pin);
     toast(a.tmp ? "Berhasil masuk. Silakan buat PIN baru..." : "Berhasil masuk...");
     go();
@@ -233,13 +234,11 @@ $("btnLupaBatal").onclick = () => showLupa(false);
 let lupaWa = "";
 async function lupaMintaAdmin(){
   const wa = lupaWa || normPhone($("fgWa").value);
+  if(wa.length < 9) return toast("Isi nomor WhatsApp akun Anda");
   try{
-    const acc = (await getSetting(ROLE + "_accounts", {})) || {}; if(!acc[wa]) return toast("Nomor ini belum terdaftar.");
-    const r = (await getSetting("reset_pin", {})) || {}, list0 = await getSetting(ROLE + "_members", []), list = Array.isArray(list0) ? list0 : [];
-    const m = list.find(x => x.id === acc[wa].id) || {};
-    r[wa] = {peran: ROLE, nama: m.nama || "", t: Date.now(), status: "baru"}; await setSetting("reset_pin", r);
+    const r = await KSID.rpc("minta_reset_pin", {p_peran:ROLE, p_wa:wa}), nama = r.nama || "";
     let adm = ""; try{ adm = normPhone(await getSetting("whatsapp_number", "")); }catch(e){}
-    if(adm) window.open("https://wa.me/" + adm + "?text=" + encodeURIComponent("Halo admin Kalensari, saya lupa PIN akun Warga Desa dan tidak menerima kode verifikasi.\nNama: " + (m.nama || "-") + "\nNo. WA akun: +" + wa + "\nMohon dibantu. Terima kasih."), "_blank");
+    if(adm) window.open("https://wa.me/" + adm + "?text=" + encodeURIComponent("Halo admin Kalensari, saya lupa PIN akun Warga Desa dan tidak menerima kode verifikasi.\nNama: " + (nama || "-") + "\nNo. WA akun: +" + wa + "\nMohon dibantu. Terima kasih."), "_blank");
     toast("Permintaan terkirim ke admin");
   }catch(e){ toast(e.message || "Gagal mengirim permintaan"); }
 }

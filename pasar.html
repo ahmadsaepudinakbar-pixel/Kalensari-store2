@@ -136,10 +136,12 @@ async function akun(){
   if(ME !== undefined) return ME;
   const wa = waLogin(); if(!wa){ ME = null; return ME; }
   try{
-    const r = await api("store_settings?select=key,value&key=in.(pembeli_accounts,pembeli_members)"), S = {};
-    (r || []).forEach(x => S[x.key] = x.value);
-    const a = (S.pembeli_accounts || {})[wa]; if(!a){ ME = null; return ME; }
-    const m = (Array.isArray(S.pembeli_members) ? S.pembeli_members : []).find(x => x && x.id === a.id) || {};
+    let sesi = ""; try{ sesi = localStorage.getItem("kalensari_sesi_pembeli") || ""; }catch(e){}
+    if(!sesi){ ME = null; return ME; }
+    const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
+    const res = await fetch(base + "/rest/v1/rpc/akun_saya", {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify({p_sesi:sesi, p_peran:"pembeli"})});
+    const j = await res.json(); if(!j || !j.ok){ ME = null; return ME; }
+    const m = j.data || {};
     ME = {wa, nama:String(m.nama || "").trim() || "Warga", alamat:String(m.dusun || m.alamat || "").trim().slice(0, 60)};
   }catch(e){ ME = null; }
   return ME;
