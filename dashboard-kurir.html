@@ -119,6 +119,12 @@ h2{color:#2b2623}
 /* ===== Menu bawah dan kartu tawaran ===== */
 .wrap{padding-bottom:100px}
 .tabhide{display:none!important}
+.ug{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.ug div{background:#fffaf2;border:1px solid var(--line);border-radius:14px;padding:10px 12px}.ug small{display:block;color:var(--muted);font-size:12px}.ug b{display:block;font-size:19px;margin-top:2px}.ug .net{grid-column:1/-1;background:#e8f6ee;border-color:#bfe3cc}.ug .net b{color:#14502c;font-size:24px}
+.uchip{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.uchip button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink)}.uchip button.on{background:var(--brown);border-color:var(--brown);color:#fff}
+.ubar{display:flex;align-items:flex-end;gap:3px;height:96px;margin-top:6px}.ubar div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}.ubar i{display:block;width:100%;max-width:24px;border-radius:4px 4px 0 0;background:var(--brown)}.ubar i.z{background:var(--line)}
+.cod{background:#fff6e0;border:1px solid #f0d58a;border-radius:16px;padding:12px;margin-top:12px}.cod .r{display:flex;justify-content:space-between;gap:8px;padding:5px 0;font-size:14px}.cod .r.t{border-top:1px dashed #e0c070;margin-top:4px;padding-top:8px;font-size:16px}
+.rw{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}.rw small{display:block;color:var(--muted);font-size:12px}.rw .st{font-size:11px;font-weight:800;border-radius:999px;padding:1px 7px;margin-left:4px}.rw .ok{background:#dff3e6;color:#14502c}.rw .gg{background:#fdecea;color:#8a2116}.rw .jl{background:#e6f0ff;color:#1d4f91}
+
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
 .tile{background:#fff;border-radius:18px;padding:16px 8px;text-align:center;box-shadow:0 2px 12px rgba(80,45,20,.08)}
 .tile b{display:block;font-size:28px;color:var(--brown);line-height:1.1}.tile span{font-size:12px;color:var(--muted)}
@@ -149,6 +155,7 @@ h2{color:#2b2623}
   <div id="ringkas" class="tiles" data-tab="home"><div class="tile"><b id="cWait">0</b><span>Menunggu jawaban</span></div><div class="tile"><b id="cMine">0</b><span>Sedang diantar</span></div></div>
   <button class="btn" id="btnLihat" type="button" data-tab="home" style="margin:0 0 14px">Lihat pesanan</button>
   <section class="box" id="profBox" data-tab="profil" style="text-align:center"><label class="avatar av-up" id="pAvBox" title="Ganti foto profil"><span id="pAv">K</span><em>📷</em><input type="file" id="avIn" accept="image/*" data-crop="bulat" hidden></label><small id="avHint" style="display:block;color:var(--muted);font-size:12px;margin-top:6px">Ketuk foto untuk mengganti</small><h2 id="pNama" style="margin:8px 0 6px"></h2><div id="kodeAkun" style="margin:0 0 12px"></div><div class="tiles" style="margin:0"><div class="tile"><b id="pHari">0</b><span>Hari bergabung</span></div><div class="tile"><b id="pSel">0</b><span>Pesanan selesai</span></div></div></section>
+  <section class="box" id="uangBox" style="margin-top:0"><div id="uangIsi"><p class="hint">Memuat…</p></div></section>
   <!-- 1. Pesanan untuk diantar -->
   <section class="box" id="ordBox" style="margin-top:0" hidden><h2>Pesanan untuk diantar</h2><p class="hint" style="margin:0">Tiap pesanan ditawarkan ke satu kurir secara acak. Jika tidak ditanggapi, otomatis pindah ke kurir lain.</p><div id="orders"></div><div class="btns"><button class="btn" id="btnRefresh" type="button">🔄 Muat ulang</button></div></section>
 
@@ -179,7 +186,7 @@ h2{color:#2b2623}
   </section>
   <!-- 4. Ke Kalensari Store -->
   <a class="ks-link" id="ksLink" href="index.html"><img src="icons/logo-kalensari.png" alt=""><span><b>Ke Kalensari Store</b><small>Belanja &amp; lihat produk warga</small></span><span class="ks-chev">›</span></a>
-  <nav class="nav" id="nav"><button type="button" data-go="home" class="on"><span>🏠</span>Beranda</button><button type="button" data-go="pesanan"><span>📦</span>Pesanan<i id="nBadge" hidden>0</i></button><button type="button" data-go="profil"><span>👤</span>Profil</button></nav>
+  <nav class="nav" id="nav"><button type="button" data-go="home" class="on"><span>🏠</span>Beranda</button><button type="button" data-go="pesanan"><span>📦</span>Pesanan<i id="nBadge" hidden>0</i></button><button type="button" data-go="uang"><span>💰</span>Penghasilan</button><button type="button" data-go="profil"><span>👤</span>Profil</button></nav>
   </div>
 </main>
 <div class="toast" id="toast"></div>
@@ -558,6 +565,14 @@ setInterval(tick, 1000);
 setInterval(() => { if(!document.hidden && me && !me.pending) loadOrders(); }, 20000);
 document.addEventListener("visibilitychange", () => { if(!document.hidden && me && !me.pending){ renderSaldo(); loadOrders(); } });
 
+// ===== Catat kurir pengantar di tabel orders (kolom dari supabase-kurir-riwayat.sql; diabaikan bila belum ada) =====
+let KOLOM_KURIR = true;
+async function catatKurir(codes, extra){
+  if(!KOLOM_KURIR || !codes.length) return;
+  const isi = {kurir_id:me.id, kurir_nama:me.nama || "", kurir_wa:WA, ...(extra || {})};
+  try{ await cf("orders?order_code=in.(" + codes.map(c => '"' + String(c).replace(/"/g, "") + '"').join(",") + ")", {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify(isi)}); }
+  catch(e){ if(/kurir_|diambil_at|selesai_at|column/i.test(String(e.message))) KOLOM_KURIR = false; }
+}
 async function terima(code){
   const o = ORD[code]; if(!o) return;
   const [st, elig0, busy] = await Promise.all([readState(code), eligibleCouriers(), freshBusy()]);
@@ -570,7 +585,9 @@ async function terima(code){
   await writeState(code, {...st, acc});
   const v = await readState(code);
   if(!v.acc || v.acc.id !== me.id) return toast("Pesanan sudah diambil kurir lain");
-  for(const x of anggota(o)) if(x.order_code !== code){ try{ const s2 = await readState(x.order_code); if(!s2.acc) await writeState(x.order_code, {...s2, acc}); }catch(e){} }
+  const ikut = [code];
+  for(const x of anggota(o)) if(x.order_code !== code){ try{ const s2 = await readState(x.order_code); if(!s2.acc){ await writeState(x.order_code, {...s2, acc}); ikut.push(x.order_code); } else if(s2.acc.id === me.id) ikut.push(x.order_code); }catch(e){} }
+  catatKurir(ikut, {diambil_at:new Date().toISOString()});
   toast("Pesanan diterima. Nomor pembeli sudah tampil.");
 }
 async function alihkan(code, pesan){
@@ -581,7 +598,9 @@ async function alihkan(code, pesan){
   if(st.acc){ if(st.acc.id !== me.id) return toast("Pesanan ini bukan milik Anda"); }
   else { const a = assigneeOf(o, st, elig, now); if(!a || a.id !== me.id) return toast("Waktu habis. Pesanan sudah dialihkan."); }
   const sk = nextSkip(o, st, elig, now);
-  for(const x of (st.acc ? anggota(o).filter(y => y.status === "diproses" || y === o) : [o])){ try{ await writeState(x.order_code, {acc:null, skip:sk, base:now}); }catch(e){} }
+  const lepas = st.acc ? anggota(o).filter(y => y.status === "diproses" || y === o) : [o];
+  for(const x of lepas){ try{ await writeState(x.order_code, {acc:null, skip:sk, base:now}); }catch(e){} }
+  if(st.acc && KOLOM_KURIR){ try{ await cf("orders?order_code=in.(" + lepas.map(x => '"' + x.order_code + '"').join(",") + ")&kurir_id=eq." + encodeURIComponent(me.id), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({kurir_id:null, kurir_nama:null, kurir_wa:null, diambil_at:null})}); }catch(e){} }
   toast(pesan);
 }
 async function setStatus(code, status, antar){
@@ -596,6 +615,8 @@ async function setStatus(code, status, antar){
     }
     await cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status, updated_at:new Date().toISOString()})});
     if(status === "selesai"){ try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){} lacakHapus(code); }
+    if(status === "selesai") await catatKurir([code], {selesai_at:new Date().toISOString()});
+    else await catatKurir([code], {});
     if(status === "selesai"){ me.selesai = (me.selesai || 0) + 1; upsertMember(me).catch(() => {}); renderProf(); setTimeout(renderSaldo, 800); }
     toast(status === "selesai" ? "Pesanan selesai" : "Status diperbarui"); loadOrders();
   }catch(e){ toast("Gagal memperbarui status"); loadOrders(); }
@@ -622,6 +643,71 @@ $("orders").addEventListener("click", async e => {
 });
 
 
+
+// ===== PENGHASILAN, RIWAYAT ANTARAN & UANG COD DI TANGAN =====
+let PG = {per:"hari", f:"semua", rows:null, t:0, mut:null, err:""};
+const isCod = o => /^cod/i.test(String(o.payment || "").trim());
+const ongkirOf = o => Number(o.shipping) > 0 ? Number(o.shipping) : (transOf(o) ? Number(o.total) || 0 : 0);
+const barangOf = o => { if(Number(o.subtotal) > 0) return Number(o.subtotal); let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } } return (Array.isArray(it) ? it : []).reduce((t, p) => t + (Number(p.sale) || Number(p.price) || 0) * (Number(p.qty) || 1), 0); };
+const tWaktu = o => new Date(o.selesai_at || o.gagal_at || o.updated_at || o.created_at).getTime();
+const tokoOf = o => { let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } } return [...new Set((Array.isArray(it) ? it : []).map(p => String(p.seller || "").split(",")[0].trim()).filter(Boolean))]; };
+function rentang(){ const n = new Date(), t0 = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
+  return {hari:[t0, "Hari ini", 1], minggu:[t0 - 6*864e5, "7 hari", 7], bulan:[new Date(n.getFullYear(), n.getMonth(), 1).getTime(), "Bulan ini", n.getDate()]}[PG.per]; }
+window.muatPenghasilan = async function(paksa){
+  if(!me || me.pending) return;
+  if(!paksa && PG.rows && Date.now() - PG.t < 60000) return gambarPenghasilan();
+  $("uangIsi").innerHTML = '<p class="hint">Memuat…</p>';
+  try{
+    const sejak = new Date(Date.now() - 45*864e5).toISOString();
+    PG.rows = await cf("orders?select=order_code,created_at,updated_at,status,payment,total,subtotal,shipping,items,uang_toko,selesai_at,diambil_at,gagal_at,gagal_alasan,customer_name&kurir_id=eq." + encodeURIComponent(me.id) + "&created_at=gte." + encodeURIComponent(sejak) + "&order=created_at.desc&limit=500");
+    PG.err = "";
+  }catch(e){ PG.rows = []; PG.err = /kurir_id|column/i.test(String(e.message)) ? "kolom" : "net"; }
+  try{ await muatBiaya(); PG.mut = BIAYA.aktif ? await cf("kurir_mutasi?select=jumlah,jenis,t&kurir_id=eq." + encodeURIComponent(me.id) + "&jenis=eq.potong&t=gte." + encodeURIComponent(new Date(Date.now() - 45*864e5).toISOString()) + "&limit=2000") : []; }catch(e){ PG.mut = []; }
+  PG.t = Date.now(); gambarPenghasilan();
+};
+function gambarPenghasilan(){
+  const box = $("uangIsi"); if(!box) return;
+  if(PG.err === "kolom"){ box.innerHTML = '<h2>💰 Penghasilan</h2><p class="hint">Fitur ini belum aktif. Minta admin menjalankan file <b>supabase-kurir-riwayat.sql</b> di Supabase.</p>'; return; }
+  if(PG.err === "net"){ box.innerHTML = '<h2>💰 Penghasilan</h2><p class="hint">Gagal memuat. Periksa internet lalu <a href="#" onclick="muatPenghasilan(true);return false">coba lagi</a>.</p>'; return; }
+  const [dari, label, hariN] = rentang(), rows = PG.rows || [];
+  const selesai = rows.filter(o => o.status === "selesai" && tWaktu(o) >= dari), gagal = rows.filter(o => o.status === "gagal" && tWaktu(o) >= dari);
+  const ongkir = selesai.reduce((t, o) => t + ongkirOf(o), 0);
+  const potong = (PG.mut || []).filter(m => new Date(m.t).getTime() >= dari).reduce((t, m) => t + Math.abs(Number(m.jumlah) || 0), 0);
+  // grafik per hari
+  const hm = new Map(); for(let i = hariN - 1; i >= 0; i--){ const d = new Date(Date.now() - i*864e5); hm.set(d.toDateString(), 0); }
+  selesai.forEach(o => { const k = new Date(tWaktu(o)).toDateString(); if(hm.has(k)) hm.set(k, hm.get(k) + ongkirOf(o)); });
+  const mx = Math.max(1, ...hm.values());
+  // uang COD di tangan (hari ini)
+  const t0 = new Date(new Date().toDateString()).getTime();
+  const codHari = rows.filter(o => isCod(o) && ["dikirim","selesai","gagal"].includes(o.status) && Math.max(tWaktu(o), new Date(o.diambil_at || 0).getTime()) >= t0);
+  const codSel = codHari.filter(o => o.status === "selesai"), talang = codSel.reduce((t, o) => t + barangOf(o), 0), terima = codSel.reduce((t, o) => t + (Number(o.total) || 0), 0);
+  const dijalan = codHari.filter(o => o.status === "dikirim"), gagalCod = codHari.filter(o => o.status === "gagal");
+  const belumKonf = codHari.reduce((n, o) => { const ut = o.uang_toko && typeof o.uang_toko === "object" ? o.uang_toko : {}; return n + tokoOf(o).filter(t => !ut[t.toLowerCase()]).length; }, 0);
+  const sisa = terima - talang;
+  const list = rows.filter(o => ["selesai","gagal","dikirim","diproses"].includes(o.status) && (PG.f === "semua" || o.status === PG.f)).slice(0, 60);
+  const stc = {selesai:["ok","Selesai"], gagal:["gg","Gagal"], dikirim:["jl","Diantar"], diproses:["jl","Diambil"]};
+  box.innerHTML = `<h2>💰 Penghasilan</h2>
+  <div class="uchip">${[["hari","Hari ini"],["minggu","7 hari"],["bulan","Bulan ini"]].map(([k, t]) => `<button type="button" data-per="${k}" class="${k === PG.per ? "on" : ""}">${t}</button>`).join("")}<button type="button" data-ref style="margin-left:auto">↻</button></div>
+  <div class="ug"><div><small>Antaran selesai</small><b>${selesai.length}</b>${gagal.length ? `<small>${gagal.length} gagal antar</small>` : ""}</div><div><small>Ongkir didapat</small><b>${fmtRp(ongkir)}</b></div>
+    ${BIAYA.aktif ? `<div><small>Potongan aplikasi</small><b style="color:#a32d2d">−${fmtRp(potong)}</b></div><div><small>Rata-rata / antaran</small><b>${fmtRp(selesai.length ? Math.round(ongkir / selesai.length) : 0)}</b></div>` : ""}
+    <div class="net"><small>Penghasilan bersih ${esc(label.toLowerCase())}</small><b>${fmtRp(ongkir - (BIAYA.aktif ? potong : 0))}</b></div></div>
+  ${hariN > 1 ? `<div class="ubar">${[...hm.entries()].map(([d, v]) => `<div title="${esc(d)}: ${fmtRp(v)}"><i class="${v ? "" : "z"}" style="height:${Math.max(v ? 6 : 3, Math.round(v / mx * 100))}%"></i></div>`).join("")}</div><p class="hint" style="display:flex;justify-content:space-between;margin:4px 0 0"><span>${new Date(Date.now() - (hariN - 1)*864e5).toLocaleDateString("id-ID", {day:"numeric", month:"short"})}</span><span>Hari ini</span></p>` : ""}
+  <div class="cod"><b>💵 Uang COD di tangan • hari ini</b>
+    <div class="r"><span>Diterima dari pembeli (${codSel.length} selesai)</span><b>${fmtRp(terima)}</b></div>
+    <div class="r"><span>Sudah dibayar ke toko (uang barang)</span><b style="color:#a32d2d">−${fmtRp(talang)}</b></div>
+    <div class="r t"><span><b>Uang Anda (ongkir COD)</b></span><b style="color:#14502c">${fmtRp(sisa)}</b></div>
+    ${dijalan.length ? `<p class="hint" style="margin:6px 0 0">🛵 ${dijalan.length} pesanan masih diantar: sudah ditalangi ${fmtRp(dijalan.reduce((t, o) => t + barangOf(o), 0))}, tagih <b>${fmtRp(dijalan.reduce((t, o) => t + (Number(o.total) || 0), 0))}</b> ke pembeli.</p>` : ""}
+    ${gagalCod.length ? `<p class="hint" style="margin:6px 0 0;color:#a32d2d">❌ ${gagalCod.length} gagal antar: uang barang ${fmtRp(gagalCod.reduce((t, o) => t + barangOf(o), 0))}. Kembalikan barang ke toko dan minta uangnya kembali.</p>` : ""}
+    ${belumKonf ? `<p class="hint" style="margin:6px 0 0">⏳ ${belumKonf} toko belum menekan "Uang sudah diterima".</p>` : ""}
+    ${!codHari.length ? '<p class="hint" style="margin:6px 0 0">Belum ada antaran COD hari ini.</p>' : ""}</div>
+  <h2 style="margin-top:16px;font-size:18px">📜 Riwayat antaran</h2>
+  <div class="uchip">${[["semua","Semua"],["selesai","Selesai"],["gagal","Gagal"]].map(([k, t]) => `<button type="button" data-f="${k}" class="${k === PG.f ? "on" : ""}">${t}</button>`).join("")}</div>
+  ${list.length ? list.map(o => { const s = stc[o.status] || ["jl", o.status]; return `<div class="rw"><div><b>${esc(o.order_code)}</b><span class="st ${s[0]}">${s[1]}</span><small>${new Date(tWaktu(o)).toLocaleString("id-ID", {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"})} • ${esc(tokoOf(o).join(", ") || (transOf(o) ? (LAYK[transOf(o).layanan] || LAYK.ojek).n : "-"))} • ${isCod(o) ? "COD" : esc(o.payment || "-")}</small>${o.status === "gagal" && o.gagal_alasan ? `<small style="color:#a32d2d">${esc(String(o.gagal_alasan).split(" • ")[0])}</small>` : ""}</div><b style="white-space:nowrap">${o.status === "selesai" ? "+" + fmtRp(ongkirOf(o)) : "—"}</b></div>`; }).join("") : '<p class="hint">Belum ada riwayat antaran.</p>'}
+  <p class="hint" style="margin-top:10px">Riwayat 45 hari terakhir.</p>`;
+  box.querySelectorAll("[data-per]").forEach(b => b.onclick = () => { PG.per = b.dataset.per; gambarPenghasilan(); });
+  box.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { PG.f = b.dataset.f; gambarPenghasilan(); });
+  box.querySelector("[data-ref]").onclick = () => muatPenghasilan(true);
+}
 
 // ===== Foto profil kurir: dipotong bulat (crop.js), disimpan di store_settings "foto_kurir_<id>" =====
 let FOTO_KURIR = null, FOTO_KURIR_DIMUAT = false;
@@ -695,6 +781,7 @@ function gagalAntar(code){
       const now = new Date().toISOString();
       const teks = alasan + (ket ? " – " + ket : "") + " • Barang: " + barang + " • Kurir: " + (me.nama || WA);
       await cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"gagal", gagal_alasan:teks, gagal_at:now, updated_at:now})});
+      await catatKurir([code], {});
       try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){}
       lacakHapus(code);
       ov.remove(); toast("Laporan gagal antar terkirim ke admin"); loadOrders();
@@ -889,10 +976,11 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)}, cur="home";
-  var HOME=[".hd","#stat","#aktifBox","#saldoBox","#notifBox","#ringkas","#btnLihat"], ORD=["#ordBox"], PROF=["#profBox",".accordion-box","#ksLink"];
+  var HOME=[".hd","#stat","#aktifBox","#saldoBox","#notifBox","#ringkas","#btnLihat"], ORD=["#ordBox"], PROF=["#profBox",".accordion-box","#ksLink"], UANG=["#uangBox"];
   function all(l){var r=[];l.forEach(function(q){document.querySelectorAll(q).forEach(function(e){r.push(e)})});return r}
   function show(t){ cur=t;
-    [[HOME,"home"],[ORD,"pesanan"],[PROF,"profil"]].forEach(function(g){all(g[0]).forEach(function(e){e.classList.toggle("tabhide",g[1]!==t)})});
+    if(t==="uang"&&window.muatPenghasilan) window.muatPenghasilan();
+    [[HOME,"home"],[ORD,"pesanan"],[PROF,"profil"],[UANG,"uang"]].forEach(function(g){all(g[0]).forEach(function(e){e.classList.toggle("tabhide",g[1]!==t)})});
     document.querySelectorAll("#nav button").forEach(function(b){b.classList.toggle("on",b.dataset.go===t)}); scrollTo(0,0) }
   $("nav").onclick=function(e){var b=e.target.closest("button[data-go]"); if(b) show(b.dataset.go)};
   $("btnLihat").onclick=function(){show("pesanan")};

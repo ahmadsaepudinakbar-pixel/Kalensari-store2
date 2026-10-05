@@ -388,7 +388,7 @@ function payTag(o){if(o.pay_status==="tunggu_wa")return ' <span style="display:i
 function ago(d){const s=(Date.now()-new Date(d).getTime())/1000;if(s<60)return 'baru saja';if(s<3600)return Math.floor(s/60)+' menit yang lalu';if(s<86400)return Math.floor(s/3600)+' jam yang lalu';if(s<86400*30)return Math.floor(s/86400)+' hari yang lalu';return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}
 const orderCode=o=>o.order_code||('#'+o.id);
 const transOf=o=>{const it=Array.isArray(o.items)?o.items[0]:null;return it&&it.layanan?it:null};
-const kurirOf=o=>{const st=S.settings['kurir_ord_'+o.order_code];return st&&st.acc?st.acc:null};
+const kurirOf=o=>{const st=S.settings['kurir_ord_'+o.order_code];if(st&&st.acc)return st.acc;if(o.kurir_id)return{id:o.kurir_id,nama:o.kurir_nama||'',wa:o.kurir_wa||''};const a=S.settings['antar_'+o.order_code];return a&&a.id?a:null};
 const antarOf=o=>{const a=S.settings['antar_'+o.order_code];return a&&typeof a==='object'?a:null};
 const laporOf=o=>{const l=S.settings['laporan_'+o.order_code];return l&&typeof l==='object'?l:null};
 const laporBuka=()=>S.orders.filter(o=>{const l=laporOf(o);return l&&!l.beres});
