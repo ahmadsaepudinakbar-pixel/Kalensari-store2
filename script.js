@@ -95,7 +95,9 @@ async function loadCloudProducts(){
       const byId=new Map(DEFAULT_PRODUCTS.map(p=>[Number(p.id),{...p}]));
       cloudRows.forEach(p=>byId.set(Number(p.id),{...byId.get(Number(p.id)),...p}));
       products=[...byId.values()].sort((a,b)=>Number(a.id)-Number(b.id));
-      if(products.length>cloudRows.length) await syncCloudProducts();
+      // Hanya admin yang boleh menulis ke tabel produk (supabase-keamanan-produk.sql); pembeli cukup menampilkan.
+      let adm=false;try{adm=!!adminLoggedIn}catch(e){}
+      if(products.length>cloudRows.length&&adm) await syncCloudProducts();
     }
     saveProducts(); cloudReady=true; return true;
   } catch(e){
