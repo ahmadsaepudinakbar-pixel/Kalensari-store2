@@ -104,7 +104,7 @@ details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--bro
     </section>
 
     <section class="box">
-      <div class="step"><span class="num">2</span><b>Mau ke mana?</b></div>
+      <div class="step"><span class="num">2</span><b id="lblB">Mau ke mana?</b></div>
       <div class="ptcard" id="cardB"><span class="dot" style="background:#b83c2b"></span><div><b id="txtB">Belum dipilih</b><small id="subB">Cari nama tempat atau pilih di peta</small></div></div>
       <div id="populer" class="populer" hidden><small>Tujuan populer — ketuk untuk memilih:</small><div id="populerList"></div></div>
       <div class="srch"><input id="cari" class="fld" autocomplete="off" placeholder="🔍 Atau ketik nama tempat, mis. pasar, puskesmas"><div id="hasil" class="hasil"></div></div>
@@ -116,11 +116,12 @@ details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--bro
     <section class="box" id="ringkas" hidden>
       <b>🗺️ Rute Anda</b>
       <div id="map"></div>
-      <p class="hint">🟢 A = jemput · 🔴 B = tujuan. Ketuk "Pilih di peta" di atas untuk mengubah.</p>
+      <p class="hint" id="ruteHint">🟢 A = jemput · 🔴 B = tujuan. Ketuk "Pilih di peta" di atas untuk mengubah.</p>
     </section>
 
     <section class="box">
       <b>👤 Data pemesan</b>
+      <div id="akunInfo" hidden style="margin:8px 0 4px;padding:10px 12px;border-radius:14px;font-size:13.5px;line-height:1.45"></div>
       <div class="row2"><label>Nama<input id="nama" class="fld" maxlength="60" autocomplete="name"></label><label>No. WhatsApp<input id="wa" class="fld" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx" autocomplete="tel"></label></div>
       <div id="paketFields" hidden>
         <label>Barang yang dikirim<input id="barang" class="fld" maxlength="100" placeholder="mis. 1 dus kue, dokumen"></label>
@@ -163,6 +164,7 @@ details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--bro
 <script src="config.js" onerror="void 0"></script>
 <script src="notif.js"></script>
 <script src="serahterima.js"></script>
+<script src="akun-id.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -388,6 +390,8 @@ async function renderAvail(){
 function setLayanan(l){
   layanan = l; document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.l === l));
   $("paketFields").hidden = l !== "paket"; $("lblA").textContent = l === "paket" ? "Barang diambil di mana?" : "Dijemput di mana?";
+  $("lblB").textContent = l === "paket" ? "Barang diantar ke mana?" : "Mau ke mana?";
+  $("ruteHint").firstChild.textContent = l === "paket" ? "🟢 A = ambil barang · 🔴 B = antar ke. Ketuk \"Pilih di peta\" di atas untuk mengubah." : "🟢 A = jemput · 🔴 B = tujuan. Ketuk \"Pilih di peta\" di atas untuk mengubah.";
   $("btnPesan").textContent = l === "paket" ? "📦 Kirim paket sekarang" : "🛵 Pesan ojek sekarang";
   const off = TARIF[l] && TARIF[l].aktif === false; $("offNote").hidden = !off; $("offNote").textContent = off ? `Layanan ${LAY[l].nama} sedang tidak tersedia.` : ""; $("btnPesan").disabled = off;
   renderFare();
@@ -397,13 +401,34 @@ $("paste").onchange = () => { const v = parseLL($("paste").value); if(!v) return
 $("btnGps").onclick = () => { if(!navigator.geolocation) return toast("HP/browser ini tidak mendukung lokasi"); toast("📍 Mengambil lokasi..."); navigator.geolocation.getCurrentPosition(p => setPt("a", p.coords.latitude, p.coords.longitude), e => toast(e.code === 1 ? "Izin lokasi diblokir. Ketuk \"Pilih di peta\"." : "Lokasi tidak tersedia. Ketuk \"Pilih di peta\"."), {enableHighAccuracy:true, timeout:15000, maximumAge:60000}); };
 try{ const s = JSON.parse(localStorage.getItem("kalensari_ojek_pemesan") || "{}"); if(s.nama) $("nama").value = s.nama; if(s.wa) $("wa").value = s.wa; }catch(e){}
 
+// ===== Akun pembeli: pesanan otomatis tercatat di akun (Dashboard Pembeli > Pesanan) =====
+let AKUN = null;
+async function pakaiAkun(){
+  const box = $("akunInfo");
+  if(window.KSID && KSID.sesi("pembeli") && cloudOn()){
+    try{
+      const a = await KSID.saya("pembeli");
+      AKUN = {wa:a.wa, nama:(a.data && a.data.nama) || "", kode:a.kode || ""};
+      if(AKUN.nama) $("nama").value = AKUN.nama;
+      $("wa").value = "0" + String(AKUN.wa).slice(2); $("wa").readOnly = true; $("wa").style.background = "#f4efe9";
+      box.style.cssText += ";background:#e8f6ee;color:#14502c";
+      box.innerHTML = `✅ Masuk sebagai <b>${esc(AKUN.nama || "+" + AKUN.wa)}</b>${AKUN.kode ? " (" + esc(AKUN.kode) + ")" : ""}. Riwayat pengiriman tersimpan di <a href="dashboard-pembeli.html#pesanan" style="color:#14502c;font-weight:700">Dashboard › Pesanan</a>.`;
+      box.hidden = false; return;
+    }catch(e){ AKUN = null; }
+  }
+  box.style.cssText += ";background:#fff6dd;color:#5b3d00";
+  box.innerHTML = `💡 <a href="#" id="akunMasuk" style="color:#7b3f1d;font-weight:700">Masuk akun pembeli</a> supaya riwayat pengiriman tersimpan dan bisa dilihat lagi kapan saja.`;
+  box.hidden = false;
+  $("akunMasuk").onclick = e => { e.preventDefault(); try{ sessionStorage.setItem("kalensari_next", "url:ojek.html" + (layanan === "paket" ? "?l=paket" : "")); }catch(er){} location.href = "akun-pembeli.html"; };
+}
+
 // ===== Pesan =====
 const MAP = p => `__KS_MAP__${p.lat},${p.lng}__END__`;
 $("btnPesan").onclick = async () => {
   if(cloudOn()){ try{ const k = await kurirSiap(); KURIR_NOL = k.total === 0; }catch(e){} }
   if(KURIR_NOL){ renderAvail(); return alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini. Silakan coba lagi beberapa saat lagi."); }
   if(!cloudOn()) return toast("Database online belum aktif");
-  const nama = $("nama").value.trim(), wa = norm($("wa").value), h = hitung();
+  const nama = $("nama").value.trim(), wa = AKUN ? AKUN.wa : norm($("wa").value), h = hitung();
   if(!A) return toast(layanan === "paket" ? "Pilih lokasi ambil barang dulu" : "Pilih lokasi jemput dulu");
   if(!B) return toast("Pilih tujuan dulu");
   if(!nama) return toast("Isi nama Anda");
@@ -425,7 +450,7 @@ $("btnPesan").onclick = async () => {
   const noteParts = [`Tujuan: ${ketB || (B.lat + ", " + B.lng)}`];
   if(paket) noteParts.push(`Barang: ${paket.barang}`, `Penerima: ${paket.penerima} (+${paket.waPenerima})`);
   if(cat) noteParts.push(`Catatan: ${cat}`);
-  const row = {order_code:code, created_at:new Date().toISOString(), customer_name:nama, customer_phone:$("wa").value.trim(), customer_phone_normalized:wa,
+  const row = {order_code:code, created_at:new Date().toISOString(), customer_name:nama, customer_phone:AKUN ? "0" + String(wa).slice(2) : $("wa").value.trim(), customer_phone_normalized:wa,
     address:`${L0.jemput}: ${ketA || (A.lat + ", " + A.lng)} ${MAP(A)}`, note:noteParts.join(" | "), payment:"Tunai ke kurir",
     items:[item], subtotal:h.ongkos, shipping:0, total:h.ongkos, status:"diproses"};
   $("btnPesan").disabled = true; $("btnPesan").textContent = "Mengirim...";
@@ -472,7 +497,10 @@ async function muatLacak(){
       if(o.status === "selesai") await KSST.muatInfo([o.order_code]);
       let hp = ""; try{ hp = norm(JSON.parse(localStorage.getItem("kalensari_ojek_pemesan") || "{}").wa); }catch(e){}
       KSST.pasang($("tST"), hp, muatLacak);
-      $("tST").innerHTML = KSST.html(o).replace("Sebutkan kode ini ke kurir", it.layanan === "paket" ? "Kirim kode ini ke penerima barang; kurir memintanya saat barang diserahkan. Sebutkan ke kurir" : "Sebutkan kode ini ke kurir");
+      const kodeST = KSST.kodeOf(o.order_code), kirimKode = it.layanan === "paket" && it.waPenerima && kodeST && !["selesai", "dibatalkan", "gagal"].includes(o.status)
+        ? `<a class="btn g" target="_blank" rel="noopener" href="https://wa.me/${esc(it.waPenerima)}?text=${encodeURIComponent(`Halo ${it.penerima || ""}, saya kirim paket (${it.barang || "barang"}) lewat kurir Kalensari Store.\nKode serah terima: *${kodeST}*\nSebutkan kode ini ke kurir hanya setelah paket Anda terima. Terima kasih 🙏`)}">🔑 Kirim kode ke WA penerima</a>` : "";
+      $("tST").innerHTML = KSST.html(o).replace("Sebutkan kode ini ke kurir", it.layanan === "paket" ? "Kirim kode ini ke penerima barang; kurir memintanya saat barang diserahkan. Sebutkan ke kurir" : "Sebutkan kode ini ke kurir") + kirimKode
+        + (AKUN ? `<p class="hint" style="text-align:center">Riwayat tersimpan di <a href="dashboard-pembeli.html#pesanan">Dashboard › Pesanan</a></p>` : "");
     }
     if(s === "selesai" || s === "batal"){ clearInterval(lacakTimer); localStorage.removeItem("kalensari_ojek_aktif"); }
   }catch(e){ $("tInfo").textContent = "Gagal memuat status: " + String(e.message || e).slice(0, 60); }
@@ -491,6 +519,7 @@ $("btnBaru").onclick = () => { clearInterval(lacakTimer); lacakKode = null; loca
 // ===== Mulai =====
 (async () => {
   setLayanan(layanan);
+  pakaiAkun();
   await initMap();
   if(cloudOn()) await cekGoogle();
   if(cloudOn()){
