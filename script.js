@@ -489,7 +489,7 @@ function singleCardHTML(p) {
       </div>
       <div class="product-body">
         <h3>${p.name}</h3>
-        <div class="price">${builder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
+        <div class="price">${builder?`Racik sendiri${Number(currentPrice(p))>0?` • mulai ${rupiah(currentPrice(p))}`:""}${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <small>${p.unit}${!soldOut&&stokOf(p)!==null&&stokOf(p)<=5?` • <b class="sisa">Sisa ${stokOf(p)}</b>`:""}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
         ${sClosed?`<small class="hours closed">🔒 ${esc(sellerWhy(p))}</small>`:""}
         <div class="product-actions">
@@ -554,6 +554,39 @@ function parseToppings(p) {
     return m[1].trim()&&Number.isFinite(price)?{name:m[1].trim(),price,img}:null;
   }).filter(Boolean);
 }
+// Kelompok topping: baris diawali "#" jadi judul kelompok, mis. "# 🥬 SAYUR & PELENGKAP".
+// Tambahkan "(pilih 1)" di judul agar pembeli hanya bisa memilih satu, mis. "# 🌶️ LEVEL PEDAS (pilih 1)".
+function toppingGroups(p) {
+  const g=[];let cur=null,i=0;
+  String(p.toppings||"").split(/\r?\n/).forEach(l=>{
+    const t=l.trim();if(!t)return;
+    const h=/^#\s*(.+)$/.exec(t);
+    if(h){cur={judul:h[1].replace(/\(\s*pilih\s*1\s*\)/i,"").trim(),satu:/\(\s*pilih\s*1\s*\)/i.test(h[1]),items:[]};g.push(cur);return;}
+    if(!parseToppings({toppings:t}).length)return;
+    if(!cur){cur={judul:"",satu:false,items:[]};g.push(cur);}
+    cur.items.push(i++);
+  });
+  return g;
+}
+function pilihSatuTopping(i) {
+  const p=detailProduct;if(!p)return;
+  const grp=toppingGroups(p).find(x=>x.items.includes(i));if(!grp)return;
+  const lama={...detailToppings};
+  grp.items.forEach(j=>{delete detailToppings[j];});
+  detailToppings[i]=1;
+  const limit=Number(p.topping_limit)||0;
+  if(limit&&toppingTotal(p)>limit){detailToppings=lama;showToast(`Melebihi batas ${rupiah(limit)} per porsi`);return;}
+  grp.items.forEach(j=>document.getElementById(`tp-${j}`)?.classList.toggle("on",j===i));
+  updateToppingSummary();
+}
+function htmlTopping(p) {
+  const tops=parseToppings(p), grps=toppingGroups(p);
+  const baris=i=>{const t=tops[i];return `<div class="topping-row">${t.img?`<img class="topping-img" src="${esc(t.img)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">`:""}<div class="topping-info"><b>${esc(t.name)}</b><small>${t.price?rupiah(t.price):"Gratis"}</small></div><div class="qty"><button type="button" onclick="changeTopping(${i},-1)" aria-label="Kurangi ${esc(t.name)}">−</button><b id="tq-${i}">0</b><button type="button" onclick="changeTopping(${i},1)" aria-label="Tambah ${esc(t.name)}">+</button></div></div>`;};
+  if(!grps.some(x=>x.judul))return `<div class="topping-list">${tops.map((t,i)=>baris(i)).join("")}</div>`;
+  return grps.map(g=>`<div class="topping-grp">${g.judul?`<div class="topping-gh">${esc(g.judul)}${g.satu?` <small>pilih 1</small>`:""}</div>`:""}`
+    +(g.satu?`<div class="topping-satu">${g.items.map(i=>`<button type="button" id="tp-${i}" class="topping-chip" onclick="pilihSatuTopping(${i})">${esc(tops[i].name)}${tops[i].price?`<small>${rupiah(tops[i].price)}</small>`:""}</button>`).join("")}</div>`
+      :`<div class="topping-list">${g.items.map(baris).join("")}</div>`)+`</div>`).join("");
+}
 let detailProduct=null, detailToppings={};
 function toppingTotal(p) {
   const tl=parseToppings(p);
@@ -602,7 +635,9 @@ function addDetailToCart(id) {
   const tl=detailProduct?parseToppings(detailProduct):[];
   if(tl.length){
     const chosen=Object.entries(detailToppings).filter(([,q])=>q>0).map(([i,q])=>[tl[i].name,tl[i].price,q]);
-    if(!chosen.length){showToast("Pilih minimal 1 topping");return;}
+    const kurang=toppingGroups(detailProduct).find(g=>g.satu&&!g.items.some(i=>detailToppings[i]>0));
+    if(kurang){showToast(`Pilih ${kurang.judul.replace(/^[^A-Za-z0-9]+/,"").toLowerCase()||"pilihan"} dulu`);return;}
+    if(!chosen.some(([,pr])=>pr>0)){showToast("Pilih minimal 1 topping");return;}
     addToCart(id,detailQty,detailSeller,{t:chosen});
   } else addToCart(id,detailQty,detailSeller);
   closeModal("productModal");
@@ -623,12 +658,12 @@ function showProduct(id) {
         <p class="eyebrow">${p.category} • ${p.seller}</p>
         <h2>${isGroup?esc(gname):p.name}</h2>
         ${isGroup?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker">${variants.map(v=>`<button type="button" class="variant-chip${v.id===p.id?" active":""}" onclick="showProduct(${v.id})"><b>${esc(variantLabel(v))}</b><small>${isSoldOut(v)?"Habis":rupiah(currentPrice(v))}</small></button>`).join("")}</div></div>`:""}
-        <div class="price">${isBuilder?`Racik sendiri${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
+        <div class="price">${isBuilder?`Racik sendiri${Number(currentPrice(p))>0?` • mulai ${rupiah(currentPrice(p))}`:""}${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <p>Satuan: ${p.unit}</p>
         <p>${sold?"Stok habis.":sellerShut?sellerWhy(p)+", produk belum bisa dipesan.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
         ${hasHours(p)?`<p class="hours-line${closedNow?" closed":""}">🕒 Tersedia setiap hari pukul ${hoursText(p)}</p>`:""}
         ${unavailable?"":`<div class="seller-pick"><span class="seller-pick-title">Pilih Toko</span><div id="sellerPicker" class="seller-picker">${detailSellers.map((n,i)=>`<button type="button" class="seller-chip${detailSeller===n?" active":""}" onclick="selectDetailSeller(${i})">🏪 ${esc(n)}</button>`).join("")}</div></div>
-        ${isBuilder?`<div class="topping-box"><span class="seller-pick-title">Pilih Topping${tLimit?` <small>(total maks ${rupiah(tLimit)} per porsi)</small>`:""}</span><div class="topping-list">${tops.map((t,i)=>`<div class="topping-row">${t.img?`<img class="topping-img" src="${esc(t.img)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">`:""}<div class="topping-info"><b>${esc(t.name)}</b><small>${rupiah(t.price)}</small></div><div class="qty"><button type="button" onclick="changeTopping(${i},-1)" aria-label="Kurangi ${esc(t.name)}">−</button><b id="tq-${i}">0</b><button type="button" onclick="changeTopping(${i},1)" aria-label="Tambah ${esc(t.name)}">+</button></div></div>`).join("")}</div><div id="toppingTotal" class="topping-total"></div></div>`:""}
+        ${isBuilder?`<div class="topping-box"><span class="seller-pick-title">Pilih Topping${tLimit?` <small>(total maks ${rupiah(tLimit)} per porsi)</small>`:""}</span>${htmlTopping(p)}<div id="toppingTotal" class="topping-total"></div></div>`:""}
         <div class="detail-qty"><span>Jumlah</span><div class="qty"><button type="button" onclick="changeDetailQty(${p.id},-1)" aria-label="Kurangi jumlah">−</button><b id="detailQtyValue">1</b><button type="button" onclick="changeDetailQty(${p.id},1)" aria-label="Tambah jumlah">+</button></div></div>`}
         <button id="detailAddBtn" class="btn primary full" ${unavailable?"disabled":""} onclick="addDetailToCart(${p.id})">🛒 Tambah ke Keranjang</button>
       </div>
@@ -1056,7 +1091,7 @@ function saveAdminProduct(i){
   if(!!openT!==!!closeT){showToast("Isi jam mulai DAN jam selesai, atau kosongkan keduanya");return;}
   const tText=document.getElementById(`e-toppings-${i}`).value.trim();
   if(tText){
-    const lines=tText.split(/\r?\n/).filter(l=>l.trim());
+    const lines=tText.split(/\r?\n/).filter(l=>l.trim()&&!/^#/.test(l.trim()));
     if(parseToppings({toppings:tText}).length<lines.length){showToast("Format topping salah. Gunakan satu baris: Nama | Harga");return;}
   }
   const tLim=Number(document.getElementById(`e-tlimit-${i}`).value);

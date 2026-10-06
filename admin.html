@@ -1011,9 +1011,10 @@ function openOrder(id){
 }
 function antarHtml(o){
   const a=antarOf(o),l=laporOf(o),code=o.order_code;let h='';
-  if(a){const cara=a.cara==='kode'?'✅ kode serah terima cocok':a.cara==='foto'?'📷 dengan foto bukti':'tanpa kode (pesanan lama)';
+  if(a){const cara=a.cara==='kode'?'✅ kode serah terima cocok':a.cara==='foto-lokasi'?`📷📍 foto berlokasi${a.lok&&a.lok.jarak!=null?` · ${a.lok.jarak} m dari tujuan`:''}`:a.cara==='foto'?'📷 dengan foto bukti':'tanpa kode (pesanan lama)';
     h+=`<div class="detail-row"><span>Diserahkan</span><b style="text-align:right;max-width:65%;white-space:normal">${esc(a.nama||'-')}${a.wa?` · <a href="https://wa.me/${esc(phoneKey(a.wa))}" target="_blank" rel="noopener" style="color:var(--g2)">WA</a>`:''}<br><small style="color:var(--mut)">${cara}${a.t?' · '+fmtDate(new Date(a.t).toISOString()):''}</small>${a.ket?`<br><small>“${esc(a.ket)}”</small>`:''}</b></div>`;
-    if(a.cara==='foto')h+=`<button class="btn btn-light full" style="margin:6px 0" onclick="lihatFotoAdm('${esc(code)}')">📷 Lihat foto bukti</button>`;}
+    if(a.cara==='foto'||a.cara==='foto-lokasi')h+=`<button class="btn btn-light full" style="margin:6px 0" onclick="lihatFotoAdm('${esc(code)}')">📷 Lihat foto bukti</button>`;
+    if(a.lok&&Number.isFinite(+a.lok.lat))h+=`<a class="btn btn-light full" style="margin:0 0 6px;text-decoration:none" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${+a.lok.lat},${+a.lok.lng}">📍 Lihat titik foto di peta</a>`;}
   if(l){const hp=phoneKey(l.hp||o.customer_phone);
     h+=`<div style="margin:10px 0;padding:12px;border-radius:12px;background:${l.beres?'var(--gl)':'#fdecea'}"><b style="color:${l.beres?'var(--g)':'#c0392b'}">${l.beres?'✅ Laporan sudah ditangani':'⚠️ Pembeli melapor: pesanan belum diterima'}</b>
       <div class="sm" style="margin-top:4px">${l.t?fmtDate(new Date(l.t).toISOString()):''}${l.ket?` · “${esc(l.ket)}”`:''}</div>
@@ -1075,7 +1076,7 @@ function productForm(id){
   <details style="margin:6px 0 12px" ${p.product_group||p.variant||p.toppings?'open':''}><summary style="cursor:pointer;font-weight:700;padding:6px 0">⚙️ Pengaturan lanjutan (varian, prasmanan)</summary>
     <div class="form-grid" style="gap:10px;margin-top:8px"><div class="field"><label>Nama grup (opsional)</label><input class="inp" id="fGrp" value="${esc(p.product_group||'')}" placeholder="mis. Pecel Lele"></div><div class="field"><label>Nama varian (opsional)</label><input class="inp" id="fVar" value="${esc(p.variant||'')}" placeholder="mis. + Nasi"></div></div>
     ${hint('🧩 Produk dengan Nama Grup yang sama digabung jadi 1 kartu dengan pilihan varian.')}
-    <div class="field" style="margin-top:10px"><label>Topping prasmanan (opsional)</label><textarea class="inp" id="fTop" rows="5" placeholder="Bakso | 1000 | https://link-foto.jpg&#10;Sosis | 1500&#10;Ceker | 2000">${esc(p.toppings||'')}</textarea>
+    <div class="field" style="margin-top:10px"><label>Topping prasmanan (opsional)</label><textarea class="inp" id="fTop" rows="5" placeholder="# 🍢 TOPPING&#10;Bakso | 1000 | https://link-foto.jpg&#10;Sosis | 1500&#10;# 🌶️ LEVEL PEDAS (pilih 1)&#10;Level 0 | 0&#10;Level 1 | 0">${esc(p.toppings||'')}</textarea>
     ${hint('🍲 Satu baris = satu topping: Nama | Harga | URL foto (foto boleh kosong). Bila diisi, produk jadi menu racik dan Harga di atas jadi harga dasar (boleh 0).')}</div>
     <div class="field"><label>Batas belanja per porsi (Rp, opsional)</label><input class="inp" id="fTLim" type="number" min="0" value="${esc(p.topping_limit??'')}" placeholder="mis. 10000"></div>
   </details>
@@ -1087,7 +1088,7 @@ async function fotoProduk(inp){
   try{const d=await resizeImg(f,700);window._fotoData=d;$('#fI').value='';$('#fImgPrev').innerHTML=`<img src="${d}" alt="" style="width:100%;height:100%;object-fit:cover">`;toast('Foto siap disimpan')}
   catch(e){toast('Foto tidak bisa dibaca')}
 }
-const cekTopping=txt=>txt.split(/\r?\n/).map(l=>l.trim()).filter(Boolean).every(l=>{const [n,h]=l.split('|').map(x=>(x||'').trim());return n&&h!==''&&!isNaN(Number(h))&&Number(h)>=0});
+const cekTopping=txt=>txt.split(/\r?\n/).map(l=>l.trim()).filter(l=>l&&!/^#/.test(l)).every(l=>{const [n,h]=l.split('|').map(x=>(x||'').trim());return n&&h!==''&&!isNaN(Number(h))&&Number(h)>=0});
 async function saveProd(id,btn){
   const num=v=>v===''?null:Number(v);
   const top=$('#fTop').value.trim(),tl=Number($('#fTLim').value);
