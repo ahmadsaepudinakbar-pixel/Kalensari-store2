@@ -1046,13 +1046,31 @@ const getProd=id=>S.products.find(x=>Number(x.id)===Number(id));
 /* ===== Ketersediaan topping: sakelar Tersedia / Habis per topping (disimpan sebagai "| habis" di baris topping) ===== */
 const tpBaris=l=>{const t=l.trim();if(!t||/^#/.test(t))return null;const ps=t.split('|').map(x=>x.trim());if(ps.length<2||ps[1]===''||isNaN(Number(ps[1].replace(/[.,]/g,''))))return null;return{nama:ps[0],harga:Number(ps[1].replace(/[.,]/g,'')),habis:ps.slice(2).some(x=>/^habis$/i.test(x))}};
 const tpSet=(l,habis)=>{const ps=l.trim().split('|').map(x=>x.trim()).filter((x,i)=>i<2||!/^habis$/i.test(x));if(habis)ps.push('habis');return ps.join(' | ')};
+/* Foto topping: store_settings "foto_topping_<id produk>" = {foto:{"Nama":"data:image/jpeg..."},t} */
+const FOTO_TP={};
+const tpImgAsli=l=>{const ps=String(l||'').split('|').map(x=>x.trim());return ps.slice(2).find(x=>/^(https?:\/\/|img\/|\.\/|data:image\/)/i.test(x))||''};
+const tpSrc=s0=>/^(https?:|data:)/i.test(s0)?s0:(s0?'./'+s0.replace(/^\.\//,''):'');
+function potongPersegi(file,ukuran){return new Promise((ok,no)=>{const fr=new FileReader();fr.onerror=no;fr.onload=()=>{const im=new Image();im.onerror=no;im.onload=()=>{const z=Math.min(im.width,im.height),c=document.createElement('canvas');c.width=c.height=ukuran;c.getContext('2d').drawImage(im,(im.width-z)/2,(im.height-z)/2,z,z,0,0,ukuran,ukuran);ok(c.toDataURL('image/jpeg',.8))};im.src=fr.result};fr.readAsDataURL(file)})}
+async function fotoToppingAdm(id,i,inp){
+  const f=inp.files&&inp.files[0];if(!f)return;const b=tpBaris(String((getProd(id)||{}).toppings||'').split(/\r?\n/)[i]||'');if(!b)return;const nama=b.nama;
+  try{const foto=await potongPersegi(f,220);const cur=await readKey('foto_topping_'+id,{})||{};const m=cur&&typeof cur.foto==='object'?cur.foto:{};m[nama]=foto;
+    await setSetting('foto_topping_'+id,{foto:m,t:Date.now()});FOTO_TP[id]=m;toast('📷 Foto '+nama+' diganti');aturTopping(id)}
+  catch(e){toast('Gagal mengunggah foto: '+(e.message||e))}
+}
+async function hapusFotoToppingAdm(id,i){
+  const b=tpBaris(String((getProd(id)||{}).toppings||'').split(/\r?\n/)[i]||'');if(!b)return;const nama=b.nama;
+  try{const cur=await readKey('foto_topping_'+id,{})||{};const m=cur&&typeof cur.foto==='object'?cur.foto:{};delete m[nama];await setSetting('foto_topping_'+id,{foto:m,t:Date.now()});FOTO_TP[id]=m;toast('Foto kembali ke bawaan');aturTopping(id)}
+  catch(e){toast('Gagal: '+(e.message||e))}
+}
 function aturTopping(id){
   const p=getProd(id);if(!p)return;const L=String(p.toppings||'').split(/\r?\n/);
+  if(FOTO_TP[id]===undefined){FOTO_TP[id]=null;readKey('foto_topping_'+id,{}).then(v=>{FOTO_TP[id]=(v&&v.foto)||{};if(document.getElementById('tpAdmBox'))aturTopping(id)}).catch(()=>{FOTO_TP[id]={}})}
+  const FM=FOTO_TP[id]||{};
   let h='';L.forEach((l,i)=>{const t=l.trim();if(/^#/.test(t)){h+=`<p class="sm" style="font-weight:800;margin:14px 0 4px;color:var(--tx)">${esc(t.replace(/^#\s*/,'').replace(/\(\s*pilih\s*1\s*\)/i,''))}</p>`;return}
-    const b=tpBaris(l);if(!b)return;
-    h+=`<div class="detail-row" style="align-items:center;gap:10px;padding:10px 0"><span style="flex:1;white-space:normal;${b.habis?'opacity:.55;text-decoration:line-through':''}">${esc(b.nama)} <small style="color:var(--mut)">${b.harga?rp(b.harga):'Gratis'}</small></span>
+    const b=tpBaris(l);if(!b)return;const fu=FM[b.nama],fs=fu||tpSrc(tpImgAsli(l));
+    h+=`<div class="detail-row" style="align-items:center;gap:10px;padding:10px 0"><label title="Ganti foto ${esc(b.nama)}" style="position:relative;flex:none;width:46px;height:46px;border-radius:10px;overflow:hidden;background:var(--bg);display:grid;place-items:center;cursor:pointer;border:1.5px dashed var(--line)">${fs?`<img src="${esc(fs)}" alt="" style="width:100%;height:100%;object-fit:cover;${b.habis?'filter:grayscale(1);opacity:.6':''}">`:'<span style="font-size:18px">📷</span>'}<span style="position:absolute;right:1px;bottom:1px;font-size:11px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;padding:0 3px">✎</span><input type="file" accept="image/*" data-crop="1:1" hidden onchange="fotoToppingAdm(${Number(id)},${i},this)"></label><span style="flex:1;white-space:normal;${b.habis?'opacity:.55;text-decoration:line-through':''}">${esc(b.nama)} <small style="color:var(--mut)">${b.harga?rp(b.harga):'Gratis'}</small>${fu?`<br><a href="#" onclick="event.preventDefault();hapusFotoToppingAdm(${Number(id)},${i})" style="font-size:11px;color:var(--mut)">↺ foto bawaan</a>`:''}</span>
       <button type="button" class="sw ${b.habis?'':'on'}" aria-label="${b.habis?'Habis':'Tersedia'}" onclick="gantiTopping(${Number(id)},${i},this)"></button><small style="width:56px;text-align:right;font-weight:700;color:${b.habis?'var(--red)':'var(--g2)'}">${b.habis?'Habis':'Tersedia'}</small></div>`});
-  modal(`<h3>🍢 Ketersediaan topping</h3><p class="sm" style="color:var(--mut);margin:-8px 0 6px">${esc(p.name)} • ketuk sakelar, langsung tersimpan</p><div id="tpAdmBox">${h}</div><div class="mact"><button class="btn btn-g" onclick="closeModal()">Selesai</button></div>`);
+  modal(`<h3>🍢 Ketersediaan & foto topping</h3><p class="sm" style="color:var(--mut);margin:-8px 0 6px">${esc(p.name)} • ketuk sakelar untuk Tersedia/Habis, ketuk foto 📷 untuk mengganti. Langsung tersimpan.</p><div id="tpAdmBox">${h}</div><div class="mact"><button class="btn btn-g" onclick="closeModal()">Selesai</button></div>`);
 }
 async function gantiTopping(id,i,btn){
   const p=getProd(id);if(!p)return;const L=String(p.toppings||'').split(/\r?\n/),b=tpBaris(L[i]||'');if(!b)return;
@@ -1065,7 +1083,7 @@ async function toggleProd(id,btn){const p=getProd(id);const on=p.status==='Show'
   await busy(btn,async()=>{await patchProd(id,{status:on?'Hidden':'Show'});render();toast(p.name+(on?' disembunyikan':' ditampilkan'))})}
 function productMenu(id){const p=getProd(id);modal(`<h3>${esc(p.name)}</h3><div class="mact" style="flex-direction:column">
   <button class="btn btn-light" onclick="productForm(${Number(id)})">${ico('edit')}Edit produk</button>
-  ${p.toppings?`<button class="btn btn-light" onclick="aturTopping(${Number(id)})">🍢 Ketersediaan topping</button>`:''}
+  ${p.toppings?`<button class="btn btn-light" onclick="aturTopping(${Number(id)})">🍢 Ketersediaan & foto topping</button>`:''}
   <button class="btn btn-light" onclick="setProdStatus(${Number(id)},'${p.status==='Sold Out'?'Show':'Sold Out'}',this)">${p.status==='Sold Out'?'Tandai stok tersedia':'Tandai stok habis'}</button>
   <button class="btn btn-red" onclick="delProd(${Number(id)},this)">${ico('trash')}Hapus produk</button>
   <button class="btn" onclick="closeModal()">Batal</button></div>`)}

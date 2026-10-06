@@ -583,9 +583,24 @@ function pilihSatuTopping(i) {
   grp.items.forEach(j=>document.getElementById(`tp-${j}`)?.classList.toggle("on",j===i));
   updateToppingSummary();
 }
+// Foto topping yang diunggah admin / penjual: store_settings "foto_topping_<id produk>" = {foto:{"Nama topping":"data:image/..."}}.
+// Dimuat saat popup produk dibuka (tidak membebani daftar produk).
+const FOTO_TOPPING={};
+const fotoTopping=(p,t)=>((FOTO_TOPPING[p.id]||{})[t.name])||t.img||"";
+async function muatFotoTopping(p){
+  if(!p||!CLOUD_CONFIG?.enabled)return;
+  try{
+    const r=await cloudFetch("store_settings?select=value&key=eq."+encodeURIComponent("foto_topping_"+p.id));
+    const m=r[0]&&r[0].value&&r[0].value.foto;if(!m||typeof m!=="object")return;
+    FOTO_TOPPING[p.id]=m;
+    if(detailProduct!==p)return;
+    parseToppings(p).forEach((t,i)=>{const f=m[t.name];if(!f)return;const row=document.querySelector(`.topping-row[data-ti="${i}"]`);if(!row)return;
+      let im=row.querySelector(".topping-img");if(!im){im=document.createElement("img");im.className="topping-img";im.alt=t.name;row.prepend(im);}im.src=f;});
+  }catch(e){}
+}
 function htmlTopping(p) {
   const tops=parseToppings(p), grps=toppingGroups(p);
-  const baris=i=>{const t=tops[i];if(t.habis)return `<div class="topping-row habis">${t.img?`<img class="topping-img" src="${esc(t.img)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">`:""}<div class="topping-info"><b>${esc(t.name)}</b><small>${t.price?rupiah(t.price):"Gratis"}</small></div><span class="topping-habis">Habis</span></div>`;return `<div class="topping-row">${t.img?`<img class="topping-img" src="${esc(t.img)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">`:""}<div class="topping-info"><b>${esc(t.name)}</b><small>${t.price?rupiah(t.price):"Gratis"}</small></div><div class="qty"><button type="button" onclick="changeTopping(${i},-1)" aria-label="Kurangi ${esc(t.name)}">−</button><b id="tq-${i}">0</b><button type="button" onclick="changeTopping(${i},1)" aria-label="Tambah ${esc(t.name)}">+</button></div></div>`;};
+  const baris=i=>{const t=tops[i];const fi=fotoTopping(p,t);if(t.habis)return `<div class="topping-row habis" data-ti="${i}">${fi?`<img class="topping-img" src="${esc(fi)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">`:""}<div class="topping-info"><b>${esc(t.name)}</b><small>${t.price?rupiah(t.price):"Gratis"}</small></div><span class="topping-habis">Habis</span></div>`;return `<div class="topping-row" data-ti="${i}">${fi?`<img class="topping-img" src="${esc(fi)}" alt="${esc(t.name)}" loading="lazy" onerror="this.remove()">`:""}<div class="topping-info"><b>${esc(t.name)}</b><small>${t.price?rupiah(t.price):"Gratis"}</small></div><div class="qty"><button type="button" onclick="changeTopping(${i},-1)" aria-label="Kurangi ${esc(t.name)}">−</button><b id="tq-${i}">0</b><button type="button" onclick="changeTopping(${i},1)" aria-label="Tambah ${esc(t.name)}">+</button></div></div>`;};
   if(!grps.some(x=>x.judul))return `<div class="topping-list">${tops.map((t,i)=>baris(i)).join("")}</div>`;
   return grps.map(g=>`<div class="topping-grp">${g.judul?`<div class="topping-gh">${esc(g.judul)}${g.satu?` <small>pilih 1</small>`:""}</div>`:""}`
     +(g.satu?`<div class="topping-satu">${g.items.map(i=>tops[i].habis?`<button type="button" class="topping-chip habis" disabled>${esc(tops[i].name)}<small>Habis</small></button>`:`<button type="button" id="tp-${i}" class="topping-chip" onclick="pilihSatuTopping(${i})">${esc(tops[i].name)}${tops[i].price?`<small>${rupiah(tops[i].price)}</small>`:""}</button>`).join("")}</div>`
@@ -680,7 +695,7 @@ function showProduct(id) {
       </div>
     </div>`;
   openModal("productModal");
-  if(isBuilder)updateToppingSummary();
+  if(isBuilder){updateToppingSummary();muatFotoTopping(p);}
 }
 function addToCart(id,qty=1,seller,custom) {
   const p=products.find(x=>x.id===id); if(!p||p.status!=="Show"){if(p&&isSoldOut(p))showToast(`${p.name} sedang habis`);return;}
