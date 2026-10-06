@@ -152,13 +152,23 @@ async function akun(){
     if(!sesi){ ME = null; return ME; }
     const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
     const res = await fetch(base + "/rest/v1/rpc/akun_saya", {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify({p_sesi:sesi, p_peran:"pembeli"})});
-    const j = await res.json(); if(!j || !j.ok){ ME = null; return ME; }
+    const j = await res.json();
+    if(!j || !j.ok){
+      // sesi sudah tidak berlaku (habis / PIN diganti / masuk di HP lain): hapus tanda masuk lama
+      // supaya halaman akun menampilkan form masuk, bukan bolak-balik ke sini
+      if(j && j.sesi_habis){ try{ localStorage.removeItem("kalensari_sesi_pembeli"); localStorage.removeItem("kalensari_pembeli_login"); sessionStorage.removeItem("kalensari_pembeli_sess"); }catch(e){} }
+      ME = null; return ME;
+    }
     const m = j.data || {};
     ME = {wa, nama:String(m.nama || "").trim() || "Warga", alamat:String(m.dusun || m.alamat || "").trim().slice(0, 60)};
   }catch(e){ ME = null; }
   return ME;
 }
-function keLogin(kembali){ sessionStorage.setItem("kalensari_next", "url:pasar.html" + (kembali || "")); location.href = "akun-pembeli.html"; }
+function keLogin(kembali){
+  // sesi lokal ada tapi tidak diakui server -> buang supaya tidak berputar-putar
+  if(ME === null){ try{ localStorage.removeItem("kalensari_sesi_pembeli"); localStorage.removeItem("kalensari_pembeli_login"); sessionStorage.removeItem("kalensari_pembeli_sess"); }catch(e){} }
+  sessionStorage.setItem("kalensari_next", "url:pasar.html" + (kembali || "")); location.href = "akun-pembeli.html";
+}
 
 /* ---------- foto: diperkecil di HP sebelum disimpan ---------- */
 function kecilkan(file, max, q){
