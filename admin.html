@@ -1107,7 +1107,12 @@ async function gabungGrup(id,btn){
     closeModal();render();toast(`✅ "${nama}" sekarang 1 produk dengan ${anggota.length} varian`);
   });
 }
-async function patchProd(id,data){await api('products?id=eq.'+Number(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(data)});Object.assign(getProd(id)||{},data)}
+/* Simpan produk; bila ada kolom yang belum dibuat di Supabase, kolom itu dilewati (dan diberi tahu) supaya simpan tetap berhasil */
+async function apiProd(path,opt,data){let d=Array.isArray(data)?data.map(x=>({...x})):{...data};const hilang=[];
+  for(let i=0;i<25;i++){try{const r=await api(path,{...opt,body:JSON.stringify(d)});if(hilang.length)toast('⚠️ Kolom '+hilang.join(', ')+' belum ada di Supabase. Jalankan supabase-kolom-produk.sql');return r}
+    catch(e){const m=/Could not find the '([^']+)' column/.exec(String(e.message||e));if(!m)throw e;hilang.push(m[1]);if(Array.isArray(d))d.forEach(x=>delete x[m[1]]);else delete d[m[1]]}}
+  throw new Error('Gagal menyimpan produk')}
+async function patchProd(id,data){await apiProd('products?id=eq.'+Number(id),{method:'PATCH',headers:{Prefer:'return=minimal'}},data);Object.assign(getProd(id)||{},data)}
 async function toggleProd(id,btn){const p=getProd(id);const on=p.status==='Show'||p.status==='Sold Out';
   await busy(btn,async()=>{await patchProd(id,{status:on?'Hidden':'Show'});render();toast(p.name+(on?' disembunyikan':' ditampilkan'))})}
 function productMenu(id){const p=getProd(id);modal(`<h3>${esc(p.name)}</h3><div class="mact" style="flex-direction:column">
@@ -1175,7 +1180,7 @@ async function saveProd(id,btn){
   if(d.sale!=null&&(d.sale<=0||d.sale>=d.price)){toast('Harga promo harus lebih kecil dari harga');return}
   await busy(btn,async()=>{
     if(id){await patchProd(id,d)}
-    else{const nid=Math.max(25,...S.products.map(x=>Number(x.id)||0))+1;const r=await api('products',{method:'POST',body:JSON.stringify({id:nid,...d})});S.products.push(Array.isArray(r)&&r[0]?r[0]:{id:nid,...d})}
+    else{const nid=Math.max(25,...S.products.map(x=>Number(x.id)||0))+1;const r=await apiProd('products',{method:'POST'},{id:nid,...d});S.products.push(Array.isArray(r)&&r[0]?r[0]:{id:nid,...d})}
     closeModal();if(route!=='produk')go('produk');else render();toast('Produk disimpan');
   });
 }
@@ -1191,7 +1196,7 @@ function exportProduk(){
 const KOLOM_PROD=['id','name','price','sale','category','unit','seller','stock','status','image','open_time','close_time','product_group','variant','toppings','topping_limit','min_order','variants'];
 async function upsertProduk(list){
   const rows=list.map(p=>{const o={};KOLOM_PROD.forEach(k=>{if(p[k]!==undefined)o[k]=p[k]});return o}).filter(p=>p.name&&Number(p.id)>0);
-  for(let i=0;i<rows.length;i+=50)await api('products?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+50))});
+  for(let i=0;i<rows.length;i+=50)await apiProd('products?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'}},rows.slice(i,i+50));
   return rows.length;
 }
 async function importProduk(inp){
