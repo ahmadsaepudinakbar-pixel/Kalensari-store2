@@ -13,6 +13,11 @@
 <script src="pwa.js" defer></script>
 <title>Dashboard Kurir – Kalensari Store</title>
 <style>
+.peta-opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:14px;padding:12px;margin:0 0 8px;cursor:pointer;background:#fff}
+.peta-opt input{margin-top:4px;width:18px;height:18px;accent-color:var(--green);flex:none}
+.peta-opt b{color:var(--ink)}.peta-opt em{font-style:normal;font-size:11px;font-weight:800;background:#e3f4e9;color:#14502c;border-radius:99px;padding:2px 8px;margin-left:4px}
+.peta-opt small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.peta-opt:has(input:checked){border-color:var(--green);background:#f0faf3}
 :root{--brown:#7b3f1d;--ink:#3a1f10;--muted:#5c4638;--bg:#e4d3bf;--line:#d3bfa8;--chip:#f5e8d8;--green:#228b4e;--red:#b83c2b}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
@@ -114,6 +119,7 @@ h2{color:#2b2623}
 #btnRefresh{background:#2b2623}
 [data-accordion="dataDiriBody"]::before{content:"🏍️"}
 [data-accordion="keamananBody"]::before{content:"🪖"}
+[data-accordion="petaBody"]::before{content:"🗺️"}
 .accordion-head::before{background:#fff3cc}
 
 /* ===== Menu bawah dan kartu tawaran ===== */
@@ -174,6 +180,18 @@ h2{color:#2b2623}
     </div>
   </section>
 
+  <!-- Pilihan peta navigasi -->
+  <section class="box accordion-box" style="margin-top:14px">
+    <button class="accordion-head" type="button" aria-expanded="false" aria-controls="petaBody" data-accordion="petaBody">
+      <span><h2>Peta navigasi</h2><span class="section-note" id="petaNote">Peta Kalensari (di dalam aplikasi)</span></span><span class="chev">⌄</span>
+    </button>
+    <div class="accordion-body closed" id="petaBody">
+      <p class="hint" style="margin:6px 0 10px">Pilih peta yang dibuka saat menekan tombol 🧭 Navigasi di pesanan.</p>
+      <label class="peta-opt"><input type="radio" name="petaMode" value="dalam"><span><b>🗺️ Peta Kalensari</b> <em>Gratis • Bawaan</em><small>Peta & rute langsung di dalam aplikasi, tidak perlu keluar. Pakai GPS HP, layar tetap menyala.</small></span></label>
+      <label class="peta-opt"><input type="radio" name="petaMode" value="google"><span><b>📍 Google Maps</b><small>Membuka aplikasi Google Maps (keluar dari aplikasi Kalensari).</small></span></label>
+    </div>
+  </section>
+
   <!-- 3. Keamanan akun -->
   <section class="box accordion-box" style="margin-top:14px">
     <button class="accordion-head" type="button" aria-expanded="false" aria-controls="keamananBody" data-accordion="keamananBody">
@@ -194,6 +212,7 @@ h2{color:#2b2623}
 <script src="crop.js"></script>
 <script src="akun-id.js"></script>
 <script src="notif.js"></script>
+<script src="navigasi-kurir.js"></script>
 <script>
 
 const $ = id => document.getElementById(id);
@@ -305,24 +324,36 @@ function tokoUrut(o){
   (Array.isArray(it) ? it : []).forEach(p => String(p.seller || "").split(",").map(x => x.trim()).filter(Boolean).forEach(n => { if(!names.some(y => y.toLowerCase() === n.toLowerCase())) names.push(n); }));
   return names.map(n => ({nama:n, loc:TOKO_LOC[n.toLowerCase()] || null}));
 }
+/* ===== Tombol navigasi: buka peta DI DALAM aplikasi (bawaan, gratis) atau Google Maps (sesuai pilihan kurir) ===== */
+const NAVR = {};
+function navBtn(label, cls, judul, stops){
+  if(!stops.some(x => x && Number.isFinite(+x.lat) && Number.isFinite(+x.lng))) return "";
+  const id = (judul + "|" + label).replace(/[^\w|-]/g, ""); NAVR[id] = {judul, stops};
+  return `<button class="mini ${cls}" type="button" data-nav="${esc(id)}">${label}</button>`;
+}
+function petaUI(){ const m = window.KSNav ? KSNav.mode() : "dalam"; document.querySelectorAll('input[name="petaMode"]').forEach(r => r.checked = r.value === m); const n = $("petaNote"); if(n) n.textContent = m === "google" ? "Google Maps (keluar aplikasi)" : "Peta Kalensari (di dalam aplikasi)"; }
+document.addEventListener("change", e => { if(e.target.name !== "petaMode" || !window.KSNav) return; KSNav.setMode(e.target.value); petaUI(); toast(e.target.value === "google" ? "📍 Navigasi memakai Google Maps" : "🗺️ Navigasi memakai Peta Kalensari"); });
+setTimeout(petaUI, 0);
+document.addEventListener("click", e => { const b = e.target.closest("[data-nav]"); if(!b) return; const n = NAVR[b.dataset.nav]; if(n && window.KSNav) KSNav.buka(n); });
 function mapLinks(o){
   const loc=extractMapLocation(o.note)||extractMapLocation(o.address);
-  const q=loc ? `${loc.lat},${loc.lng}` : String(o.address||"");
-  if(!q.trim()) return `<span class="hint">Lokasi belum diisi</span>`;
-  const view=`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
-  const nav=`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}&travelmode=driving&dir_action=navigate`;
+  if(!loc){
+    const q=String(cleanMapNote(o.address)||"").trim();
+    return q ? `<a class="mini" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}">📍 Cari alamat di peta</a><p class="hint" style="margin:4px 0 0">Titik lokasi pembeli belum ada, hanya alamat tertulis.</p>` : `<span class="hint">Lokasi belum diisi</span>`;
+  }
+  const code = o.order_code || "Pesanan", tel = o.customer_phone_normalized || normPhone(o.customer_phone);
+  const pembeli = {nama:o.customer_name || "Pembeli", e:"🏠", lat:loc.lat, lng:loc.lng, ket:cleanMapNote(o.address || ""), tel};
   const toko = tokoUrut(o), ada = toko.filter(t => t.loc);
   if(o.status === "diproses" && ada.length){
     // belum diambil: rute lengkap lewat semua toko dulu, baru ke pembeli
-    const wp = ada.map(t => `${t.loc.lat},${t.loc.lng}`).join("|");
-    const rute = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(q)}&waypoints=${encodeURIComponent(wp)}&travelmode=driving&dir_action=navigate`;
-    return `<p class="hint" style="margin:6px 0 2px">🗺️ Rute: ${ada.map((t, i) => esc(t.nama)).join(" → ")} → Pembeli</p>`
-      + `<a class="mini g" target="_blank" rel="noopener" href="${rute}">🗺️ Rute lengkap</a>`
-      + ada.map(t => `<a class="mini" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(t.loc.lat + "," + t.loc.lng)}&travelmode=driving&dir_action=navigate">🏪 Ke ${esc(t.nama)}</a>`).join("")
-      + `<a class="mini" target="_blank" rel="noopener" href="${view}">📍 Lokasi pembeli</a>`
+    const st = ada.map(t => ({nama:t.nama, e:"🏪", lat:t.loc.lat, lng:t.loc.lng, ket:"Ambil pesanan"}));
+    return `<p class="hint" style="margin:6px 0 2px">🗺️ Rute: ${ada.map(t => esc(t.nama)).join(" → ")} → Pembeli</p>`
+      + navBtn("🧭 Rute lengkap", "g", code, [...st, pembeli])
+      + ada.map((t, k) => navBtn("🏪 Ke " + esc(t.nama), "", code, [st[k]])).join("")
+      + navBtn("🏠 Ke pembeli", "", code, [pembeli])
       + (ada.length < toko.length ? `<p class="hint" style="margin:4px 0 0">Lokasi ${esc(toko.filter(t => !t.loc).map(t => t.nama).join(", "))} belum diatur penjual.</p>` : "");
   }
-  return `<a class="mini" target="_blank" rel="noopener" href="${view}">📍 Lihat di Google Maps</a><a class="mini g" target="_blank" rel="noopener" href="${nav}">🚗 Navigasi ke pembeli</a>`;
+  return navBtn("🧭 Navigasi ke pembeli", "g", code, [pembeli]);
 }
 
 // ===== Pembagian pesanan otomatis: 1 pesanan = 1 kurir (acak), pindah otomatis bila tidak ditanggapi =====
@@ -469,16 +500,15 @@ const LAYK = {ojek:{e:"🛵", n:"Ojek online", a:"Jemput", jalan:"🛵 Penumpang
 function busyIds(rows, states){ const s = new Set(); rows.forEach(o => { const st = states[o.order_code]; if(st && st.acc && st.acc.id) s.add(st.acc.id); }); return s; }
 const eligFor = (o, elig, busy) => transOf(o) ? elig.filter(m => !busy.has(m.id)) : elig;
 async function freshBusy(){ const states = await readStates(); return busyIds(Object.values(ORD), states); }
-function ptLinks(p){
+function ptLinks(p, judul, nama, e, tel){
   if(!p || !Number.isFinite(+p.lat) || !Number.isFinite(+p.lng)) return "";
-  const q = encodeURIComponent(p.lat + "," + p.lng);
-  return `<a class="mini" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${q}">📍 Peta</a><a class="mini g" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=driving&dir_action=navigate">🚗 Navigasi</a>`;
+  return navBtn("🧭 Navigasi ke " + esc(nama), "g", judul, [{nama, e, lat:+p.lat, lng:+p.lng, ket:p.ket || "", tel}]);
 }
 function transBody(o, full){
   const t = transOf(o), L0 = LAYK[t.layanan] || LAYK.ojek;
   return `<p><b>${L0.e} ${L0.n}</b> • ${String(t.km || "-").replace(".", ",")} km • <b>${fmtRp(o.total)}</b> (tunai)</p>`
-    + `<p>🟢 ${L0.a}: ${esc((t.jemput && t.jemput.ket) || "lihat peta")}</p>${full ? `<div class="map-actions">${ptLinks(t.jemput)}</div>` : ""}`
-    + `<p>🔴 Tujuan: ${esc((t.tujuan && t.tujuan.ket) || "lihat peta")}</p>${full ? `<div class="map-actions">${ptLinks(t.tujuan)}</div>` : ""}`
+    + `<p>🟢 ${L0.a}: ${esc((t.jemput && t.jemput.ket) || "lihat peta")}</p>${full ? `<div class="map-actions">${ptLinks(t.jemput, o.order_code, t.layanan === "paket" ? "lokasi barang" : "penjemputan", t.layanan === "paket" ? "📦" : "🙋", o.customer_phone_normalized || normPhone(o.customer_phone))}</div>` : ""}`
+    + `<p>🔴 Tujuan: ${esc((t.tujuan && t.tujuan.ket) || "lihat peta")}</p>${full ? `<div class="map-actions">${ptLinks(t.tujuan, o.order_code, "tujuan", "🏁", t.layanan === "paket" && t.waPenerima ? t.waPenerima : (o.customer_phone_normalized || normPhone(o.customer_phone)))}${t.jemput && t.tujuan ? navBtn("🗺️ Rute lengkap", "", o.order_code, [{nama:t.layanan === "paket" ? "Ambil barang" : "Jemput", e:t.layanan === "paket" ? "📦" : "🙋", lat:+t.jemput.lat, lng:+t.jemput.lng, ket:t.jemput.ket || "", tel:o.customer_phone_normalized || normPhone(o.customer_phone)}, {nama:"Tujuan", e:"🏁", lat:+t.tujuan.lat, lng:+t.tujuan.lng, ket:t.tujuan.ket || "", tel:t.layanan === "paket" && t.waPenerima ? t.waPenerima : ""}]) : ""}</div>` : ""}`
     + (t.layanan === "paket" ? `<p>📦 ${esc(t.barang || "-")}${full ? ` • Penerima: ${esc(t.penerima || "-")} (+${esc(t.waPenerima || "")})` : ""}</p>` : "")
     + (full && /Catatan:/.test(o.note || "") ? `<p>📝 ${esc(String(o.note).split("Catatan:")[1].trim())}</p>` : "");
 }
