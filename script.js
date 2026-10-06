@@ -1084,6 +1084,11 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
 
   const result=await saveCloudOrders(payloads);
   if(!result.ok){
+    const bt=String(result.error||"").match(/BATAS:\s*([^"]+)/);
+    if(bt){ // dibatasi server (anti pesanan palsu): hapus salinan lokal, pesanan tidak dibuat
+      saveLocalOrders(getLocalOrders().filter(o=>!codes.includes(o.order_code)));renderMyOrders();
+      alert("⏳ Pesanan belum bisa dibuat.\n\n"+bt[1]);return;
+    }
     const rows=getLocalOrders().map(o=>codes.includes(o.order_code)?{...o,sync_error:result.error}:o); saveLocalOrders(rows);
     renderMyOrders();
     alert(`Pesanan tersimpan di perangkat, tetapi BELUM masuk database online.\n\nDetail: ${result.error}\n\nJalankan supabase.sql lalu pastikan RLS orders mengizinkan INSERT.`);

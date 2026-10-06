@@ -351,6 +351,7 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
   <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></symbol>
   <symbol id="i-wa" viewBox="0 0 24 24"><path d="M3 21l1.6-4.8A9 9 0 1 1 8 19.6z"/></symbol>
   <symbol id="i-truck" viewBox="0 0 24 24"><path d="M1 4h13v12H1zM14 8h4l4 4v4h-8"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m8 12 3 3 5-6"/></symbol>
   <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
@@ -410,10 +411,13 @@ async function loadAll(silent){
     S.mapUsage=Array.isArray(mu)?mu:null;
     // saldo kurir (tabel dari supabase-saldo-kurir.sql; kosong bila belum dipasang)
     const sejak=new Date(Date.now()-400*864e5).toISOString();
-    const [ks,kt,km]=await Promise.all([
+    const [ks,kt,km,kc,ku]=await Promise.all([
       api('kurir_saldo?select=kurir_id,saldo').catch(()=>null),
       api('kurir_topup?select=id,kurir_id,nama,wa,jumlah,status,catatan,t,diproses_t&order=t.desc&limit=100').catch(()=>null),
-      api('kurir_mutasi?select=jumlah,t&jenis=eq.potong&t=gt.'+encodeURIComponent(sejak)+'&limit=10000').catch(()=>null)]);
+      api('kurir_mutasi?select=jumlah,t&jenis=eq.potong&t=gt.'+encodeURIComponent(sejak)+'&limit=10000').catch(()=>null),
+      api('kurir_cair?select=*&order=t.desc&limit=100').catch(()=>null),
+      api('kurir_mutasi?select=order_code&jenis=eq.upah&t=gt.'+encodeURIComponent(sejak)+'&limit=10000').catch(()=>null)]);
+    S.kcair=Array.isArray(kc)?kc:null;S.upah=new Set((Array.isArray(ku)?ku:[]).map(x=>x.order_code));
     S.saldo=Array.isArray(ks)?Object.fromEntries(ks.map(x=>[x.kurir_id,Number(x.saldo)||0])):null;
     S.topup=Array.isArray(kt)?kt:[];S.potong=Array.isArray(km)?km:[];
     S.products=Array.isArray(p)?p:[];S.orders=Array.isArray(o)?o:[];
@@ -491,7 +495,7 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo Toko','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['lapak','Lapak Barter','tag'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['lapak','Lapak Barter','tag'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['keamanan','Keamanan & Backup','lock'],['pengaturan','Pengaturan','gear']
 ];
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
 let jenisFilter='Semua',route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
@@ -500,7 +504,7 @@ function renderNav(){
   const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
   $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}${k==='persetujuan'&&pendingTotal()?`<span class="cnt" style="background:var(--orange)">${pendingTotal()}</span>`:''}${k==='refund'&&refundTunggu().length?`<span class="cnt" style="background:#ef4444">${refundTunggu().length}</span>`:''}</a>`).join('');
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
-    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','refund','voucher','lapak','ulasan','resetpin','pengaturan','lainnya'].includes(route));
+    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','refund','voucher','lapak','ulasan','resetpin','keamanan','pengaturan','lainnya'].includes(route));
     const dot=k==='lainnya'&&pendingTotal()?`<span style="position:absolute;top:2px;right:calc(50% - 16px);background:var(--orange);color:#fff;font-size:10px;border-radius:99px;min-width:16px;padding:0 4px;font-weight:700">${pendingTotal()}</span>`:'';
     return `<button class="${on?'on':''}" style="position:relative" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}${dot}</button>`}).join('');
   const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
@@ -525,6 +529,7 @@ async function doLogin(){
     if(!r.ok)throw new Error('cek-admin-gagal');
     if((await r.json())!==true){fetch(`${BASE}/auth/v1/logout`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+sess.access_token}}).catch(()=>{});throw new Error('bukan-admin')}
     saveAuth(sess);$('#lPass').value='';enterApp();
+    api('rpc/admin_catat',{method:'POST',body:JSON.stringify({p_aksi:'masuk',p_info:(navigator.userAgent.match(/\(([^)]+)\)/)||['',''])[1].slice(0,100)})}).catch(()=>{});
   }catch(e){
     const m=String(e.message||e);
     toast(m==='bukan-admin'?'Akun ini bukan admin':m==='cek-admin-gagal'?'Jalankan supabase-admin-auth.sql di Supabase dulu':/invalid|credentials/i.test(m)?'Email atau kata sandi salah':/confirm/i.test(m)?'Email admin belum dikonfirmasi':'Gagal masuk: '+m.slice(0,70));
@@ -543,13 +548,14 @@ function sessionExpired(){if(!$('#app').classList.contains('hide')){logout();toa
 
 const TITLES={dashboard:['Dashboard','Ringkasan toko dari data asli'],pesanan:['Pesanan','Kelola semua pesanan masuk'],
   produk:['Produk','Atur produk, harga, dan stok'],kategori:['Kategori','Kelompokkan produk toko'],pelanggan:['Pelanggan','Dihitung dari pesanan yang masuk'],
-  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],cair:['Pencairan Saldo Toko','Saldo penjualan toko (pesanan non-COD selesai) dan permintaan pencairan'],resetpin:['Reset PIN Warga','Permintaan lupa PIN dari akun Warga Desa'],ulasan:['Ulasan Pembeli','Penilaian pembeli untuk tiap toko (tidak tampil di toko)'],lapak:['Lapak Barter','Iklan jual beli & barter warga (pasar.html)'],cod:['COD & Gagal antar','Pengaman COD dan laporan gagal antar kurir'],refund:['Refund & Toko Tutup','Pengembalian dana pembeli dan pelanggaran toko'],voucher:['Voucher & Ajak Tetangga','Saldo voucher belanja pembeli, kompensasi & bonus ajak tetangga'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
+  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],cair:['Pencairan Saldo','Pencairan saldo kurir & saldo penjualan toko'],resetpin:['Reset PIN Warga','Permintaan lupa PIN dari akun Warga Desa'],ulasan:['Ulasan Pembeli','Penilaian pembeli untuk tiap toko (tidak tampil di toko)'],lapak:['Lapak Barter','Iklan jual beli & barter warga (pasar.html)'],cod:['COD & Gagal antar','Pengaman COD dan laporan gagal antar kurir'],refund:['Refund & Toko Tutup','Pengembalian dana pembeli dan pelanggaran toko'],voucher:['Voucher & Ajak Tetangga','Saldo voucher belanja pembeli, kompensasi & bonus ajak tetangga'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],keamanan:['Keamanan & Backup','Batas pesanan, catatan aktivitas admin, unduh backup data'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
 
 function render(){
   renderNav();
   const [t,s]=TITLES[route];$('#pTitle').textContent=t;$('#pSub').textContent=s;
   $('#content').innerHTML=S.loaded||route==='lainnya'?PAGES[route]():'<div class="empty">Memuat data toko...</div>';
   if(route==='pengaturan'&&QR_TOPUP===null){QR_TOPUP=undefined;muatQrTopup()}
+  if(route==='keamanan'&&LOG.data===null&&!LOG.muat)muatLog();
   if(route==='pengaturan'&&window.KSNotif&&$('#admNotif'))KSNotif.kartu($('#admNotif'),{key:'admin_push',token:async()=>{await fresh();return auth.access_token},extra:{email:(auth&&auth.email)||''},judul:'Aktifkan di perangkat ini',ajakan:'Perangkat ini akan berbunyi saat ada pesanan atau pendaftar baru, walaupun halaman admin ditutup.',aktifTeks:'Perangkat ini menerima kabar pesanan & pendaftar baru.'});
 }
 if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(auth&&e.data&&e.data.type==='bunyi-pesanan'&&/^admin-/.test(e.data.tag||'')&&!$('#modalRoot').innerHTML)loadAll(true)});
@@ -602,6 +608,7 @@ dashboard(){
   const today=S.orders.filter(o=>dayKey(o.created_at)===dayKey(new Date()));
   const ch=ordersPerDay(chartDays);
   return `<div class="dash-alert">
+      ${(S.kcair||[]).filter(x=>x.status==='menunggu').length?`<div class="card" style="margin-bottom:14px;background:#fff3cd;cursor:pointer" onclick="go('cair')"><b>🛵 ${(S.kcair||[]).filter(x=>x.status==='menunggu').length} permintaan pencairan saldo kurir</b><div class="sm" style="margin-top:4px">Ketuk untuk memproses pencairan</div></div>`:''}
       ${cairTunggu().length?`<div class="card" style="margin-bottom:14px;background:#fff3cd;cursor:pointer" onclick="go('cair')"><b>💸 ${cairTunggu().length} permintaan pencairan saldo toko</b><div class="sm" style="margin-top:4px">Ketuk untuk memproses pencairan</div></div>`:''}
       ${topupMenunggu().length?`<div class="card" style="margin-bottom:20px;background:var(--gl);cursor:pointer" onclick="go('kurir')"><b style="color:var(--g)">💰 ${topupMenunggu().length} permintaan isi saldo kurir</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${topupMenunggu().slice(0,3).map(x=>esc(x.nama||'Kurir')+' '+rp(x.jumlah)).join(', ')} · ketuk untuk konfirmasi</div></div>`:''}
       ${laporBuka().length?`<div class="card" style="margin-bottom:20px;background:#fdecea;cursor:pointer" onclick="orderFilter='Dilaporkan';jenisFilter='Semua';go('pesanan')"><b style="color:#c0392b">⚠️ ${laporBuka().length} pesanan dilaporkan belum diterima pembeli</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:4px">${laporBuka().slice(0,3).map(o=>esc(orderCode(o))).join(', ')} · ketuk untuk menangani</div></div>`:''}
@@ -738,6 +745,7 @@ lapak(){return lapakPage()},
 ulasan(){return ulasanPage()},
 resetpin(){return resetPinPage()},
 cair(){return cairPage()},
+keamanan(){return keamananPage()},
 lainnya(){
   const em=(auth&&auth.email)||'';
   return `<div class="profile-head"><div class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(em||'A'))}</div><div><b style="font-size:18px">Admin</b><div style="opacity:.9;font-size:13px">${esc(em)}</div></div></div>
@@ -983,6 +991,11 @@ async function saveSched(name,btn){
 function refreshList(){const tmp=document.createElement('div');tmp.innerHTML=PAGES[route]();const n=tmp.querySelector('#list');if(n&&$('#list'))$('#list').outerHTML=n.outerHTML}
 
 /* ========== AKSI PESANAN ========== */
+async function tandaiLunas(id,btn){
+  const o=S.orders.find(x=>Number(x.id)===Number(id));if(!o)return;
+  if(!confirm(`Tandai ${orderCode(o)} SUDAH DIBAYAR (QRIS) sebesar ${rp(o.total)}?\n\nPastikan uangnya benar-benar sudah masuk. Setelah ini pesanan masuk saldo toko & upah kurir.`))return;
+  await busy(btn,async()=>{const t=new Date().toISOString();await api('orders?id=eq.'+Number(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({pay_status:'lunas',paid_at:o.paid_at||t,updated_at:t})});o.pay_status='lunas';o.paid_at=o.paid_at||t;toast('✅ Pesanan ditandai lunas');openOrder(id);render()});
+}
 function openOrder(id){
   const o=S.orders.find(x=>Number(x.id)===Number(id));if(!o)return;
   const items=Array.isArray(o.items)?o.items:[];const wa=phoneKey(o.customer_phone);const cur=stLabel(o.status);
@@ -1005,6 +1018,7 @@ function openOrder(id){
   ${utAdminHtml(o)}
   ${(()=>{const v=S.settings['lacak_'+o.order_code];if(o.status!=='dikirim'||!v||!v.lat)return '';const m=Math.round((Date.now()-Number(v.t||0))/60000);return `<div class="detail-row"><span>📍 Posisi kurir<br><small style="color:var(--mut)">diperbarui ${m<1?'baru saja':m+' menit lalu'}</small></span><b><a href="https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}" target="_blank" rel="noopener" style="color:var(--g2)">Lihat di peta</a></b></div>`})()}
   ${o.status==='gagal'&&o.gagal_alasan?`<div class="detail-row"><span>Alasan gagal</span><b style="text-align:right;max-width:65%;white-space:normal;color:#9b2c1c">${esc(o.gagal_alasan)}</b></div>`:''}
+  ${/^qris/i.test(String(o.payment||''))&&o.pay_status!=='lunas'&&stLabel(o.status)!=='Batal'?`<div class="card" style="margin-top:10px;background:#fff8ec;border:1px solid #f3dfb8;padding:12px"><b>💳 QRIS belum tercatat lunas</b><div class="sm" style="margin:4px 0 8px">Pakai tombol ini hanya bila Anda sudah memastikan uang pembeli benar-benar masuk ke rekening / QRIS Kalensari Store.</div><button class="btn btn-g" onclick="tandaiLunas(${Number(o.id)},this)">✔ Tandai QRIS sudah dibayar</button></div>`:''}
   ${o.pay_status==='tunggu_wa'&&stLabel(o.status)==='Baru'?`<div class="mact" style="margin-top:10px"><a class="btn btn-light" href="${codWaLink(o)}" target="_blank" rel="noopener">💬 WA pembeli</a><button class="btn btn-g" onclick="codKonfirmasi(${Number(o.id)},this)">✔ Konfirmasi COD</button></div>`:''}
   <div class="detail-row" style="border:0"><span>Status sekarang</span>${statusBadge(o)}</div>
   <p style="font-size:12px;color:var(--mut);margin:14px 0 8px;font-weight:600">Ubah status</p>
@@ -1711,7 +1725,7 @@ function setoranData(){
     items.forEach(it=>{const n=String(it.seller||'Tanpa toko').split(',')[0].trim(),k=sKey(n);by.set(k,{n,amt:((by.get(k)||{}).amt||0)+itemPrice(it)*(Number(it.qty)||1)})});
     by.forEach((v,k)=>{const m=memberToko(v.n);add(toko,k,v.n,m&&m.wa,o,v.amt,o.order_code+'|t:'+k)});
     const ship=Number(o.shipping)||0,kr=kurirOf(o);
-    if(ship>0)add(kurir,kr?String(kr.id||kr.wa||kr.nama):'?',kr?(kr.nama||'Kurir'):'Belum ada kurir',kr&&kr.wa,o,ship,o.order_code+'|k:'+(kr?String(kr.id||kr.wa||kr.nama):'?'));
+    if(ship>0&&!(S.upah&&S.upah.has(o.order_code)))add(kurir,kr?String(kr.id||kr.wa||kr.nama):'?',kr?(kr.nama||'Kurir'):'Belum ada kurir',kr&&kr.wa,o,ship,o.order_code+'|k:'+(kr?String(kr.id||kr.wa||kr.nama):'?'));
   });
   return {toko:[...toko.values()],kurir:[...kurir.values()],refund,tunggu};
 }
@@ -1967,11 +1981,25 @@ function saldoToko(){
   Object.keys(pelMap()).forEach(k=>{const v=potonganToko(k);if(v>0){const l=pelMap()[k];const g=ensure(k,(l[l.length-1]||{}).nama||k);g.keluar+=v;g.potong=v}});
   return [...m.values()].map(g=>({...g,saldo:g.masuk-g.keluar})).sort((a,b)=>b.saldo-a.saldo);
 }
+function kurirCairHtml(){
+  if(S.kcair===null)return `<div class="card"><div class="chead"><h3>🛵 Pencairan saldo kurir</h3></div><div class="sm">Fitur belum aktif. Jalankan <b>supabase-upah-kurir-qris.sql</b> di Supabase.</div></div>`;
+  const l=S.kcair||[],tg=l.filter(x=>x.status==='menunggu'),riw=l.filter(x=>x.status!=='menunggu').slice(0,15);
+  const wa=x=>`https://wa.me/${phoneKey(x.wa)}?text=${encodeURIComponent(`Assalamualaikum ${x.nama||''}, pencairan saldo kurir Kalensari Store sebesar ${rp(x.jumlah)} (dipotong biaya admin bank ${rp(x.biaya)}, diterima ${rp(x.diterima)}) sudah kami transfer ke ${x.rek}. Terima kasih 🙏`)}`;
+  return `<div class="card"><div class="chead"><h3>🛵 Pencairan saldo kurir</h3><span class="sm">${tg.length}</span></div>
+    ${tg.length?tg.map(x=>`<div class="detail-row" style="align-items:center;gap:10px;flex-wrap:wrap"><span style="white-space:normal"><b>${esc(x.nama||'Kurir')}</b> · <b style="color:var(--g2)">Transfer ${rp(x.diterima)}</b><br><small style="color:var(--mut)">Saldo dipotong ${rp(x.jumlah)} • biaya admin bank ${rp(x.biaya)}<br>Ke: ${esc(x.rek||'-')}<br>${fmtDate(x.t)}</small></span>
+      <span style="display:flex;gap:6px;flex-wrap:wrap"><a class="btn btn-light" style="padding:7px 10px" href="${wa(x)}" target="_blank" rel="noopener">💬 WA</a><button class="btn btn-g" style="padding:7px 10px" onclick="kurirCairProses(${Number(x.id)},true,this)">✅ Sudah ditransfer</button><button class="btn btn-red" style="padding:7px 10px" onclick="kurirCairProses(${Number(x.id)},false,this)">Tolak</button></span></div>`).join(''):'<div class="empty" style="padding:14px">Tidak ada permintaan pencairan kurir</div>'}
+    <p class="sm" style="margin:10px 0 0">Saldo kurir berisi deposit + upah ongkir pesanan QRIS (otomatis). Saldo sudah dipotong saat kurir mengajukan; bila ditolak, saldo dikembalikan.</p>
+    ${riw.length?`<p class="sm" style="font-weight:700;margin:12px 0 4px">Riwayat</p>`+riw.map(x=>`<div class="detail-row"><span style="white-space:normal">${esc(x.nama||'Kurir')} · ${rp(x.jumlah)} <small style="color:var(--mut)">(diterima ${rp(x.diterima)})</small><br><small style="color:var(--mut)">${esc(x.rek||'')} · ${fmtDate(x.diproses_t||x.t)}${x.catatan?' · '+esc(x.catatan):''}</small></span><span class="badge ${x.status==='selesai'?'b-Selesai':'b-Batal'}">${x.status==='selesai'?'Ditransfer':'Ditolak'}</span></div>`).join(''):''}</div>`;
+}
+async function kurirCairProses(id,ok,btn){
+  let cat='';if(!ok){cat=prompt('Alasan ditolak (mis. nomor rekening salah):','');if(cat===null)return}else if(!confirm('Pastikan uangnya SUDAH Anda transfer. Tandai selesai?'))return;
+  await busy(btn,async()=>{await api('rpc/kurir_cair_proses',{method:'POST',body:JSON.stringify({p_id:Number(id),p_selesai:ok,p_catatan:cat})});const x=(S.kcair||[]).find(y=>Number(y.id)===Number(id));if(x){x.status=ok?'selesai':'ditolak';x.catatan=cat;x.diproses_t=new Date().toISOString()}render();toast(ok?'Pencairan kurir ditandai sudah ditransfer':'Pencairan ditolak, saldo kurir dikembalikan')});
+}
 function cairPage(){
   const tg=cairTunggu().sort((a,b)=>new Date(a.t)-new Date(b.t)),st=saldoToko(),sMap=new Map(st.map(g=>[g.k,g]));
   const riw=cairList().filter(x=>x.status!=='menunggu').sort((a,b)=>new Date(b.diproses_t||b.t)-new Date(a.diproses_t||a.t)).slice(0,30);
   const wa=x=>`https://wa.me/${phoneKey(x.wa)}?text=${encodeURIComponent(`Assalamualaikum ${x.nama}, pencairan saldo penjualan Kalensari Store sebesar ${rp(x.jumlah)}${x.biaya?` (dipotong biaya admin bank ${rp(x.biaya)}, diterima ${rp(x.diterima)})`:''} sudah kami transfer ke ${x.rek}. Terima kasih 🙏`)}`;
-  return `<div class="stats">
+  return kurirCairHtml()+`<div class="stats">
     ${stat('Menunggu dicairkan',rp(tg.reduce((t,x)=>t+(Number(x.jumlah)||0),0)),tg.length+' permintaan','rp','#f97316')}
     ${stat('Total saldo toko',rp(st.reduce((t,g)=>t+Math.max(0,g.saldo),0)),'belum dicairkan','bag','#0f7a3d')}
     ${stat('Sudah ditransfer',rp(cairList().filter(x=>x.status==='selesai').reduce((t,x)=>t+(Number(x.jumlah)||0),0)),'semua waktu','check','#3b82f6')}</div>
@@ -1985,6 +2013,82 @@ function cairPage(){
     ${st.length?`<div class="tbl-wrap"><table><tr><th>Toko</th><th>Masuk</th><th>Dicairkan</th><th>Saldo</th></tr>${st.map(g=>`<tr><td>${esc(g.n)}<br><small style="color:var(--mut)">${g.ps} pesanan</small></td><td>${rp(g.masuk)}</td><td>${rp(g.keluar)}</td><td><b style="color:${g.saldo>=20000?'var(--g2)':'inherit'}">${rp(g.saldo)}</b></td></tr>`).join('')}</table></div>`:'<div class="empty" style="padding:14px">Belum ada saldo toko</div>'}</div>
   <div class="card"><div class="chead"><h3>📜 Riwayat pencairan</h3></div>
     ${riw.length?riw.map(x=>`<div class="detail-row"><span style="white-space:normal">${esc(x.nama||x.toko)} · ${rp(x.jumlah)}${x.biaya?` <small style="color:var(--mut)">(diterima ${rp(x.diterima)})</small>`:''}<br><small style="color:var(--mut)">${esc(x.rek||'')} · ${fmtDate(x.diproses_t||x.t)}${x.catatan?' · '+esc(x.catatan):''}</small></span><span class="badge ${x.status==='selesai'?'b-Selesai':'b-Batal'}">${x.status==='selesai'?'Ditransfer':'Ditolak'}</span></div>`).join(''):'<div class="empty" style="padding:14px">Belum ada riwayat</div>'}</div>`;
+}
+/* ========== KEAMANAN & BACKUP ==========
+   Butuh supabase-keamanan-tambahan.sql: batas pesanan (store_settings "batas_pesanan"),
+   catatan aktivitas admin (tabel admin_log), catatan masuk/backup (rpc admin_catat). */
+const LOG={data:null,muat:false,err:'',tabel:'Semua'};
+const BATAS_DEF={aktif:true,perJam:5,perHari:15,per10Menit:60};
+function batasPesanan(){const v=S.settings.batas_pesanan;return {...BATAS_DEF,...(v&&typeof v==='object'?v:{})}}
+async function muatLog(){LOG.muat=true;LOG.err='';
+  try{LOG.data=await api('admin_log?select=*&order=t.desc&limit=300')}
+  catch(e){LOG.data=[];LOG.err=/admin_log|PGRST205|does not exist/i.test(String(e.message))?'Jalankan supabase-keamanan-tambahan.sql di Supabase dulu.':String(e.message).slice(0,120)}
+  LOG.muat=false;if(route==='keamanan')render()}
+const LOG_NAMA={products:'Produk',orders:'Pesanan',store_settings:'Pengaturan',kurir_cair:'Pencairan kurir',kurir_topup:'Isi saldo kurir',kurir_saldo:'Saldo kurir',pembeli_saldo:'Saldo pembeli',ulasan:'Ulasan',admin:'Admin'};
+const LOG_AKSI={tambah:['➕','Tambah','#16a34a'],ubah:['✏️','Ubah','#2563eb'],hapus:['🗑️','Hapus','#dc2626'],masuk:['🔑','Masuk','#7c3aed'],backup:['💾','Unduh backup','#0f766e']};
+function logIsi(x){
+  const v=x.isi;if(!v||typeof v!=='object')return '';
+  const tampil=a=>{if(a==null)return '<i style="color:var(--mut)">kosong</i>';const t=typeof a==='string'?a:JSON.stringify(a);return esc(t.length>90?t.slice(0,90)+'…':t)};
+  const ent=Object.entries(v).filter(([k])=>!['created_at','id'].includes(k)||x.aksi!=='ubah').slice(0,8);
+  return `<div class="sm" style="margin-top:4px;color:var(--mut);line-height:1.5;word-break:break-word">${ent.map(([k,a])=>x.aksi==='ubah'&&Array.isArray(a)&&a.length===2?`<b style="color:var(--txt,inherit)">${esc(k)}</b>: ${tampil(a[0])} → ${tampil(a[1])}`:`<b style="color:var(--txt,inherit)">${esc(k)}</b>: ${tampil(a)}`).join('<br>')}${Object.keys(v).length>8?'<br>…':''}</div>`;
+}
+function keamananPage(){
+  const b=batasPesanan(),l=Array.isArray(LOG.data)?LOG.data:[],tabs=['Semua',...new Set(l.map(x=>x.tabel))];
+  const lf=LOG.tabel==='Semua'?l:l.filter(x=>x.tabel===LOG.tabel);
+  const inp=(id,v,lbl)=>`<label style="flex:1;min-width:120px"><span class="sm" style="display:block;font-weight:600;margin-bottom:4px">${lbl}</span><input class="inp" id="${id}" type="number" min="1" value="${esc(v)}"></label>`;
+  return `<div class="form-grid">
+  <div class="card"><div class="chead"><h3>🛡️ Batas pesanan (anti pesanan palsu)</h3></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:10px">Server menolak pesanan bila satu nomor WhatsApp memesan terlalu sering, atau toko kebanjiran pesanan dalam waktu singkat. Belanja dari beberapa toko sekaligus dihitung 1 kali. Admin tidak terkena batas.</p>
+    <label class="sm" style="display:flex;gap:10px;align-items:center;padding:6px 0 10px;cursor:pointer"><input type="checkbox" id="btAktif" ${b.aktif!==false?'checked':''} style="width:18px;height:18px">Aktifkan batas pesanan</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">${inp('btJam',b.perJam,'Maks. per nomor / 1 jam')}${inp('btHari',b.perHari,'Maks. per nomor / hari')}${inp('bt10',b.per10Menit,'Maks. semua toko / 10 menit')}</div>
+    <button class="btn btn-g full" style="margin-top:12px" onclick="simpanBatas(this)">Simpan batas</button></div>
+  <div class="card"><div class="chead"><h3>💾 Backup data</h3></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:10px">Unduh salinan semua data (produk, pesanan, pengaturan, akun mitra, saldo, pencairan, ulasan, lapak) dalam satu file. Simpan di Google Drive / laptop. Disarankan <b>seminggu sekali</b>.</p>
+    <button class="btn btn-g full" id="bkBtn" onclick="unduhBackup(this)">${ico('dl')}Unduh Backup Sekarang</button>
+    <p class="sm" id="bkInfo" style="color:var(--mut);font-size:12px;margin-top:8px">${(()=>{try{const t=localStorage.getItem('ks_backup_t');return t?'Backup terakhir dari perangkat ini: '+fmtDate(Number(t)):'Belum pernah backup dari perangkat ini.'}catch(e){return ''}})()}</p>
+    <p class="sm" style="color:#b45309;font-size:12px;margin-top:6px">⚠️ File backup berisi data pribadi pembeli & mitra. Jangan dibagikan ke siapa pun.</p></div>
+  </div>
+  <div class="card"><div class="chead"><h3>📜 Catatan aktivitas admin</h3><button class="btn btn-light" style="padding:6px 10px" onclick="LOG.data=null;muatLog();render()">↻ Muat ulang</button></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:10px">Semua perubahan yang dilakukan akun admin tercatat otomatis oleh server (siapa, kapan, apa yang berubah) dan tidak bisa dihapus dari aplikasi. Disimpan 180 hari.</p>
+    ${LOG.data===null?'<div class="empty" style="padding:14px">Memuat catatan...</div>':LOG.err?`<div class="empty" style="padding:14px">⚠️ ${esc(LOG.err)}</div>`:
+    `<div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${tabs.map(t=>`<button class="btn ${LOG.tabel===t?'btn-g':'btn-light'}" style="padding:5px 10px;font-size:12px" onclick="LOG.tabel='${esc(t)}';render()">${esc(LOG_NAMA[t]||t)}</button>`).join('')}</div>
+    ${lf.length?lf.map(x=>{const a=LOG_AKSI[x.aksi]||['•',x.aksi,'#64748b'];return `<div class="detail-row" style="display:block;padding:10px 0"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><span style="white-space:normal"><b style="color:${a[2]}">${a[0]} ${esc(a[1])}</b> · ${esc(LOG_NAMA[x.tabel]||x.tabel)}${x.kunci?` <b>${esc(x.kunci)}</b>`:''}</span><small style="color:var(--mut);white-space:nowrap">${fmtDate(x.t)}</small></div><div class="sm" style="color:var(--mut)">${esc(x.email||'-')}</div>${logIsi(x)}</div>`}).join(''):'<div class="empty" style="padding:14px">Belum ada aktivitas tercatat</div>'}`}
+  </div>`;
+}
+async function simpanBatas(btn){
+  const n=(id,d)=>Math.max(1,Math.round(Number($('#'+id).value)||d));
+  const v={aktif:$('#btAktif').checked,perJam:n('btJam',5),perHari:n('btHari',15),per10Menit:Math.max(5,n('bt10',60))};
+  await busy(btn,async()=>{await setSetting('batas_pesanan',v);S.settings.batas_pesanan=v;LOG.data=null;render();toast(v.aktif?`Batas disimpan: ${v.perJam}/jam, ${v.perHari}/hari per nomor`:'Batas pesanan dimatikan')});
+}
+async function ambilSemua(tabel,urut){
+  const hasil=[];
+  for(let dari=0;dari<200000;dari+=1000){
+    const r=await api(`${tabel}?select=*${urut?'&order='+urut:''}&limit=1000&offset=${dari}`);
+    if(!Array.isArray(r))break;hasil.push(...r);if(r.length<1000)break;
+  }
+  return hasil;
+}
+async function unduhBackup(btn){
+  const TABEL=[['products','id.asc'],['orders','id.asc'],['store_settings','key.asc'],['ulasan',''],['pembeli_saldo',''],['pembeli_mutasi',''],['pembeli_ajak',''],
+    ['kurir_saldo',''],['kurir_mutasi',''],['kurir_topup',''],['kurir_cair',''],['lapak_iklan',''],['lapak_komentar',''],['admin_log','t.desc']];
+  const info=$('#bkInfo'),data={},gagal=[];
+  await busy(btn,async()=>{
+    for(const [t,u] of TABEL){
+      if(info)info.textContent=`Mengambil ${t}...`;
+      try{let r=await ambilSemua(t,u);if(t==='store_settings')r=r.filter(x=>!/^(foto|lacak)_/.test(x.key));data[t]=r}
+      catch(e){gagal.push(t)}
+    }
+    const jumlah=Object.fromEntries(Object.entries(data).map(([k,v])=>[k,v.length]));
+    const isi={aplikasi:'Kalensari Store',dibuat:new Date().toISOString(),oleh:(auth&&auth.email)||'',jumlah,data};
+    const tgl=new Date(Date.now()+7*36e5).toISOString().slice(0,16).replace('T','_').replace(':','');
+    const blob=new Blob([JSON.stringify(isi)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=`kalensari-backup-${tgl}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
+    try{localStorage.setItem('ks_backup_t',String(Date.now()))}catch(e){}
+    api('rpc/admin_catat',{method:'POST',body:JSON.stringify({p_aksi:'backup',p_info:`${jumlah.orders||0} pesanan, ${jumlah.products||0} produk`})}).catch(()=>{});
+    const mb=(blob.size/1048576).toFixed(1);
+    if(info)info.textContent=`✅ Backup diunduh (${mb} MB): ${jumlah.orders||0} pesanan, ${jumlah.products||0} produk${gagal.length?` · dilewati: ${gagal.join(', ')}`:''}`;
+    toast('Backup diunduh');LOG.data=null;
+  });
 }
 function biayaCair(){const v=S.settings.biaya_cair,n=Number(v&&typeof v==='object'?v.admin:v);return v!=null&&n>=0?Math.round(n):2500}
 async function simpanBiayaCair(btn){const n=Math.max(0,Math.round(Number($('#bcIn').value)||0));await busy(btn,async()=>{await setSetting('biaya_cair',{admin:n});S.settings.biaya_cair={admin:n};render();toast('Biaya admin bank disimpan: '+rp(n))})}

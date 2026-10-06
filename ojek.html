@@ -462,7 +462,7 @@ $("btnPesan").onclick = async () => {
     if(window.KSST && layanan !== "paket") await KSST.daftarkan(code, KSST.buatKode());   // paket: bukti = foto berlokasi dari kurir
     toast("✅ Pesanan terkirim, mencari kurir...");
     lacak(code);
-  }catch(e){ toast("Gagal mengirim pesanan: " + String(e.message || e).slice(0, 80)); }
+  }catch(e){ const m = String(e.message || e), bt = m.match(/BATAS:\s*([^"]+)/); if(bt) alert("⏳ " + bt[1].replace(/\\n/g, " ")); else toast("Gagal mengirim pesanan: " + m.slice(0, 80)); }
   finally{ setLayanan(layanan); }
 };
 
