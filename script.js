@@ -2142,21 +2142,21 @@ async function bukaPilihBayar(awal){
 function tampilSukses(s){
   document.getElementById("suksesBox")?.remove();
   const q=/^(qris|saldo)/i.test(s.payment),ov=document.createElement("div");ov.id="suksesBox";ov.className="ok-ov";
-  ov.innerHTML=`<div class="ok-card">
-    <div class="ok-cek"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54"/><path d="M36 62 L53 79 L86 44"/></svg></div>
+  ov.innerHTML=`<div class="ok-card ok-v2"><span class="ok-daun l" aria-hidden="true"></span><span class="ok-daun r" aria-hidden="true"></span>
+    <div class="ok-cek"><i class="ok-cf" aria-hidden="true"></i><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54"/><path d="M36 62 L53 79 L86 44"/></svg></div>
     <h2>Pesanan berhasil dibuat!</h2><p class="ok-sub">Terima kasih, <b>${esc(s.nama||"Warga")}</b> 🙏<br>Pesanan Anda sudah diteruskan ke ${s.groups.length>1?s.groups.length+" toko":"toko"} dan akan segera diproses.</p>
-    <div class="ok-bayar ${q?"lunas":""}">${/^saldo/i.test(s.payment)?"🎟️ Sudah dibayar <b>LUNAS</b> pakai saldo voucher":q?`💳 Sudah dibayar <b>LUNAS</b> lewat QRIS${s.saldo?` + saldo voucher ${rupiah(s.saldo)}`:""}`:`💵 Bayar tunai <b>${rupiah(s.total)}</b> ke kurir saat pesanan sampai`}</div>
+    <div class="ok-bayar ${q?"lunas":""}"><span class="ok-bi" aria-hidden="true">${q?"✅":"💵"}</span><span>${/^saldo/i.test(s.payment)?"Sudah dibayar <b>LUNAS</b> pakai saldo voucher":q?`Sudah dibayar <b>LUNAS</b> lewat QRIS${s.saldo?` + saldo voucher ${rupiah(s.saldo)}`:""}`:`Bayar tunai <b>${rupiah(s.total)}</b> ke kurir saat pesanan sampai`}</span></div>
     ${s.codTahan?'<div class="ok-info">📞 Ini pesanan COD pertama Anda. Admin akan menghubungi lewat WhatsApp untuk konfirmasi, lalu pesanan diteruskan ke toko.</div>':""}
-    <div class="ok-nota"><div class="ok-nh"><b>🧾 NOTA PESANAN</b><small>${new Date(s.t||Date.now()).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div>
+    <div class="ok-nota"><div class="ok-nh"><b><span class="ok-ni" aria-hidden="true">📄</span>NOTA PESANAN</b><small>📅 ${new Date(s.t||Date.now()).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small></div>
       ${s.groups.map((g,i)=>`<div class="ok-g"><div class="ok-gh"><b>${s.groups.length>1?`Nota ${i+1} • `:""}${esc(s.codes[i])}</b><span>🏪 ${esc(g.nama)}</span></div>
         ${g.items.map(x=>`<div class="ok-r"><span>${esc(x.n)} ×${x.q}</span><span>${rupiah(x.h)}</span></div>`).join("")}
         <div class="ok-r m"><span>Ongkir</span><span>${g.ong>0?rupiah(g.ong):"Gratis"}</span></div>${s.groups.length>1?`<div class="ok-r m"><span>Total nota</span><span>${rupiah(g.tot)}</span></div>`:""}</div>`).join("")}
-      <div class="ok-r t"><span>Total ${q?"dibayar":"bayar"}</span><b>${rupiah(s.total)}</b></div>
-      <div class="ok-alamat">📍 Antar ke: ${esc(s.address||"-")}</div>
-      ${s.kodeST?`<div class="ok-kode">🔑 Kode serah terima: <b>${esc(s.kodeST)}</b><small>Sebutkan ke kurir hanya saat pesanan sudah Anda terima.</small></div>`:""}</div>
-    <p class="ok-terima">Terima kasih sudah belanja di <b>Kalensari Store</b>.<br>Dukung usaha warga desa kita! 💛</p>
-    <button type="button" class="btn primary full" id="okKembali">🛍️ Kembali ke Kalensari Store</button>
-    <button type="button" class="ok-lihat" id="okLihat">📦 Lihat status di Pesanan Saya</button></div>`;
+      <div class="ok-r t"><span><i aria-hidden="true">👛</i>Total ${q?"dibayar":"bayar"}</span><b>${rupiah(s.total)}</b></div>
+      <div class="ok-alamat"><i aria-hidden="true">📍</i><span><b>Antar ke:</b> ${esc(s.address||"-")}</span></div>
+      ${s.kodeST?`<div class="ok-kode"><i aria-hidden="true">🔑</i><span>Kode serah terima: <b>${esc(s.kodeST)}</b><small>Sebutkan ke kurir hanya saat pesanan sudah Anda terima.</small></span></div>`:""}</div>
+    <p class="ok-terima"><em>Terima kasih sudah belanja di</em><b>Kalensari Store</b><small>Dukung usaha warga desa kita! 💚</small></p>
+    <button type="button" class="btn primary full ok-kembali" id="okKembali">🛍️ Kembali ke Kalensari Store <span aria-hidden="true">→</span></button>
+    <button type="button" class="ok-lihat" id="okLihat">📦 Lihat status di Pesanan Saya <span aria-hidden="true">→</span></button><div class="ok-desa" aria-hidden="true"></div></div>`;
   document.body.appendChild(ov);document.body.classList.add("ok-open");
   const tutup=()=>{ov.remove();document.body.classList.remove("ok-open");document.querySelectorAll(".modal.show").forEach(m=>m.classList.remove("show"));};
   ov.querySelector("#okKembali").onclick=()=>{tutup();scrollTo({top:0,behavior:"smooth"});};

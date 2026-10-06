@@ -13,6 +13,44 @@
 <script src="pwa.js" defer></script>
 <title>Dashboard Kurir – Kalensari Store</title>
 <style>
+/* ===== Desain kartu pesanan kurir ===== */
+.ob-hero{position:relative;overflow:hidden;display:flex;gap:12px;align-items:flex-start;margin:-6px -6px 4px;padding:16px 14px 22px;border-radius:18px;background:linear-gradient(180deg,#e6f3fb 0%,#f3f8ec 62%,#fffaf0 100%)}
+.ob-hero::before{content:"";position:absolute;left:-10%;right:-10%;bottom:-38px;height:70px;border-radius:50%;background:radial-gradient(ellipse at 30% 0,#bfe0a5,#9fcf86 60%,transparent 61%);opacity:.55}
+.ob-hero h2{margin:0 0 4px!important;font-size:24px!important;color:#14502c!important;font-weight:900;line-height:1.1}
+.ob-hero p{margin:0;font-size:13px;color:#3e4a3c;line-height:1.4;position:relative;z-index:1;padding-right:36px}
+.ob-ic{position:relative;flex:none;width:46px;height:46px;display:grid;place-items:center;font-size:26px;z-index:1}.ob-ic i{position:absolute;bottom:-4px;font-style:normal;font-size:24px}
+.ob-masjid{position:absolute;right:6px;bottom:4px;font-size:42px;opacity:.45;filter:saturate(.6) hue-rotate(60deg)}
+.ob-pill{display:inline-flex;align-items:center;gap:8px;margin:14px 0 2px!important;padding:8px 16px 8px 10px;border-radius:999px;background:linear-gradient(90deg,#ffd76a,#ffe9a8);color:#3a2a06!important;font-size:16px!important;font-weight:800;box-shadow:0 3px 8px rgba(160,110,0,.18)}
+.ob-pill span{font-size:20px}
+.card.km{background:#fff;border:1px solid #efe4d2;border-left:5px solid #f2b628;border-radius:20px;padding:14px;box-shadow:0 4px 14px rgba(91,44,18,.07)}
+.km-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}.km-h b{font-size:19px;color:#2a1a0e;letter-spacing:.2px}
+.km-ic{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#2e9d5b,#1c7a43);display:grid;place-items:center;font-size:19px;box-shadow:0 3px 8px rgba(28,122,67,.3)}
+.km-st{font-size:13px;font-weight:800;padding:5px 12px;border-radius:999px;background:#fff1c6;color:#3a2a06}.km-st.s-dikirim{background:#e4efff;color:#1d4f91}
+.card.km .km-r{display:flex;gap:10px;align-items:flex-start;margin:6px 0;font-size:14.5px!important;color:#2f2117!important}.km-r i{font-style:normal;width:22px;text-align:center;flex:none}
+.card.km .map-actions{margin:8px 0 10px;display:flex;flex-wrap:wrap;gap:8px}
+.card.km .map-actions .mini{margin:0;border-radius:14px;padding:10px 14px;font-size:14px;font-weight:700;background:#fff;border:1.5px solid #cfe5d6;color:#14502c}
+.card.km .map-actions .mini.g{flex:1 1 100%;display:flex;align-items:center;gap:10px;padding:14px 18px;font-size:17px;border:0;color:#fff;background:linear-gradient(135deg,#25a35a,#167a3f);box-shadow:0 4px 12px rgba(22,122,63,.3)}
+.card.km .map-actions .mini.g::after{content:"›";margin-left:auto;font-size:22px;line-height:1}
+.card.km .map-actions .hint{flex-basis:100%;margin:0!important}
+.km-tot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0;padding:10px 12px;border-radius:14px;background:#eef8f0}
+.km-tot span{width:26px;height:26px;border-radius:50%;background:#1f8f4c;color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px}.km-tot b{font-size:18px;color:#14502c}.km-tot small{color:#3e4a3c;font-size:13.5px}
+.km-cod{display:flex;gap:12px;align-items:flex-start;margin:8px 0;padding:12px;border-radius:16px;background:#fff8e3;border:1px solid #f3dfa5}
+.km-cod-ic{flex:none;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#d9a221,#a87410);display:grid;place-items:center;font-size:20px}
+.km-cod>div{flex:1;min-width:0}.km-cod-t{display:block;font-size:16px;color:#2a1a0e;margin-bottom:2px}
+.card.km .km-cod-r{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:2px 0;font-size:14px!important;color:#3a2a1a!important}
+.km-cod-r .tg{color:#b26a00;font-weight:800}.km-cod-r .ok{color:#14502c;font-weight:800}
+.card.km .km-cod-tg{margin:2px 0 0;font-size:13.5px!important;color:#3a2a1a!important}
+.km-plus{margin:6px 0;background:#fff6e0;border-radius:12px;padding:8px 10px;color:#7a4a00!important}
+.km-dua{display:flex;gap:10px;margin-top:10px}.km-dua .km-btn{flex:1;margin-top:0;white-space:nowrap;font-size:15px;padding:13px 10px}
+.km-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:10px;padding:13px 14px;border-radius:16px;font:inherit;font-size:15.5px;font-weight:800;text-decoration:none;cursor:pointer;border:1.5px solid transparent;background:#fff}
+.km-btn span{font-size:18px}.km-btn em{margin-left:auto;font-style:normal;font-size:22px;line-height:1}
+.km-btn.g,.km-btn.w{background:linear-gradient(135deg,#25a35a,#167a3f);color:#fff;box-shadow:0 4px 12px rgba(22,122,63,.28)}
+.km-btn.w{justify-content:flex-start}
+.km-btn.o{border-color:#1f8f4c;color:#14502c}
+.km-btn.b{width:auto;padding:11px 18px;border-color:#7fb3ea;color:#1d4f91;justify-content:flex-start}
+.km-btn.r{border-color:#f1b0a8;background:#fff3f2;color:#b3261e;justify-content:flex-start;font-size:15px}
+.km-wa{width:20px;height:20px;border-radius:50%;background:#25d366 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23fff' d='M17.5 14.4c-.3-.1-1.7-.8-2-.9s-.5-.1-.7.1-.8.9-.9 1.1-.3.2-.6.1a7.4 7.4 0 0 1-3.7-3.2c-.3-.5.3-.4.8-1.4.1-.2 0-.3 0-.5l-.9-2.1c-.2-.5-.4-.5-.6-.5h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.7-.7 1.9-1.4s.2-1.2.2-1.3-.2-.2-.5-.3z'/%3E%3C/svg%3E") center/16px no-repeat;flex:none}
+#btnRefresh{background:#232a33!important;color:#fff!important;border-radius:16px!important;font-weight:800!important;border:0!important}
 .peta-opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:14px;padding:12px;margin:0 0 8px;cursor:pointer;background:#fff}
 .peta-opt input{margin-top:4px;width:18px;height:18px;accent-color:var(--green);flex:none}
 .peta-opt b{color:var(--ink)}.peta-opt em{font-style:normal;font-size:11px;font-weight:800;background:#e3f4e9;color:#14502c;border-radius:99px;padding:2px 8px;margin-left:4px}
@@ -163,7 +201,7 @@ h2{color:#2b2623}
   <section class="box" id="profBox" data-tab="profil" style="text-align:center"><label class="avatar av-up" id="pAvBox" title="Ganti foto profil"><span id="pAv">K</span><em>📷</em><input type="file" id="avIn" accept="image/*" data-crop="bulat" hidden></label><small id="avHint" style="display:block;color:var(--muted);font-size:12px;margin-top:6px">Ketuk foto untuk mengganti</small><h2 id="pNama" style="margin:8px 0 6px"></h2><div id="kodeAkun" style="margin:0 0 12px"></div><div class="tiles" style="margin:0"><div class="tile"><b id="pHari">0</b><span>Hari bergabung</span></div><div class="tile"><b id="pSel">0</b><span>Pesanan selesai</span></div></div></section>
   <section class="box" id="uangBox" style="margin-top:0"><div id="uangIsi"><p class="hint">Memuat…</p></div></section>
   <!-- 1. Pesanan untuk diantar -->
-  <section class="box" id="ordBox" style="margin-top:0" hidden><h2>Pesanan untuk diantar</h2><p class="hint" style="margin:0">Tiap pesanan ditawarkan ke satu kurir secara acak. Jika tidak ditanggapi, otomatis pindah ke kurir lain.</p><div id="orders"></div><div class="btns"><button class="btn" id="btnRefresh" type="button">🔄 Muat ulang</button></div></section>
+  <section class="box" id="ordBox" style="margin-top:0" hidden><div class="ob-hero"><span class="ob-ic" aria-hidden="true">❤️<i>🤲</i></span><div><h2>Pesanan untuk diantar</h2><p>Tiap pesanan ditawarkan ke satu kurir secara acak. Jika tidak ditanggapi, otomatis pindah ke kurir lain.</p></div><span class="ob-masjid" aria-hidden="true">🕌</span></div><div id="orders"></div><div class="btns"><button class="btn" id="btnRefresh" type="button">🔄 Muat ulang</button></div></section>
 
   <!-- 2. Data diri -->
   <section class="box accordion-box" style="margin-top:14px">
@@ -314,7 +352,7 @@ async function muatTokoLoc(){
   if(Date.now() - TOKO_LOC_T < 300000) return;
   try{ const l = await getSetting("penjual_members", []); const m = {};
     (Array.isArray(l) ? l : []).forEach(x => { const n = x && (x.toko || x.usaha), la = Number(x && x.latitude), ln = Number(x && x.longitude);
-      if(n && Number.isFinite(la) && Number.isFinite(ln) && !(la === 0 && ln === 0)) m[String(n).trim().toLowerCase()] = {lat:la, lng:ln, nama:n}; });
+      if(n && Number.isFinite(la) && Number.isFinite(ln) && !(la === 0 && ln === 0)) m[String(n).trim().toLowerCase()] = {lat:la, lng:ln, nama:n, wa:normPhone(x.wa || x.whatsapp || "")}; });
     TOKO_LOC = m; TOKO_LOC_T = Date.now(); }catch(e){}
 }
 function tokoUrut(o){
@@ -342,11 +380,11 @@ function mapLinks(o){
     return q ? `<a class="mini" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}">📍 Cari alamat di peta</a><p class="hint" style="margin:4px 0 0">Titik lokasi pembeli belum ada, hanya alamat tertulis.</p>` : `<span class="hint">Lokasi belum diisi</span>`;
   }
   const code = o.order_code || "Pesanan", tel = o.customer_phone_normalized || normPhone(o.customer_phone);
-  const pembeli = {nama:o.customer_name || "Pembeli", e:"🏠", lat:loc.lat, lng:loc.lng, ket:cleanMapNote(o.address || ""), tel};
+  const pembeli = {nama:o.customer_name || "Pembeli", e:"🏠", lat:loc.lat, lng:loc.lng, ket:cleanMapNote(o.address || ""), tel, peran:"pembeli"};
   const toko = tokoUrut(o), ada = toko.filter(t => t.loc);
   if(o.status === "diproses" && ada.length){
     // belum diambil: rute lengkap lewat semua toko dulu, baru ke pembeli
-    const st = ada.map(t => ({nama:t.nama, e:"🏪", lat:t.loc.lat, lng:t.loc.lng, ket:"Ambil pesanan"}));
+    const st = ada.map(t => ({nama:t.nama, e:"🏪", lat:t.loc.lat, lng:t.loc.lng, ket:"Ambil pesanan", tel:t.loc.wa || "", peran:"toko"}));
     return `<p class="hint" style="margin:6px 0 2px">🗺️ Rute: ${ada.map(t => esc(t.nama)).join(" → ")} → Pembeli</p>`
       + navBtn("🧭 Rute lengkap", "g", code, [...st, pembeli])
       + ada.map((t, k) => navBtn("🏪 Ke " + esc(t.nama), "", code, [st[k]])).join("")
@@ -500,15 +538,15 @@ const LAYK = {ojek:{e:"🛵", n:"Ojek online", a:"Jemput", jalan:"🛵 Penumpang
 function busyIds(rows, states){ const s = new Set(); rows.forEach(o => { const st = states[o.order_code]; if(st && st.acc && st.acc.id) s.add(st.acc.id); }); return s; }
 const eligFor = (o, elig, busy) => transOf(o) ? elig.filter(m => !busy.has(m.id)) : elig;
 async function freshBusy(){ const states = await readStates(); return busyIds(Object.values(ORD), states); }
-function ptLinks(p, judul, nama, e, tel){
+function ptLinks(p, judul, nama, e, tel, peran){
   if(!p || !Number.isFinite(+p.lat) || !Number.isFinite(+p.lng)) return "";
-  return navBtn("🧭 Navigasi ke " + esc(nama), "g", judul, [{nama, e, lat:+p.lat, lng:+p.lng, ket:p.ket || "", tel}]);
+  return navBtn("🧭 Navigasi ke " + esc(nama), "g", judul, [{nama, e, lat:+p.lat, lng:+p.lng, ket:p.ket || "", tel, peran:peran || "pemesan"}]);
 }
 function transBody(o, full){
   const t = transOf(o), L0 = LAYK[t.layanan] || LAYK.ojek;
   return `<p><b>${L0.e} ${L0.n}</b> • ${String(t.km || "-").replace(".", ",")} km • <b>${fmtRp(o.total)}</b> (tunai)</p>`
-    + `<p>🟢 ${L0.a}: ${esc((t.jemput && t.jemput.ket) || "lihat peta")}</p>${full ? `<div class="map-actions">${ptLinks(t.jemput, o.order_code, t.layanan === "paket" ? "lokasi barang" : "penjemputan", t.layanan === "paket" ? "📦" : "🙋", o.customer_phone_normalized || normPhone(o.customer_phone))}</div>` : ""}`
-    + `<p>🔴 Tujuan: ${esc((t.tujuan && t.tujuan.ket) || "lihat peta")}</p>${full ? `<div class="map-actions">${ptLinks(t.tujuan, o.order_code, "tujuan", "🏁", t.layanan === "paket" && t.waPenerima ? t.waPenerima : (o.customer_phone_normalized || normPhone(o.customer_phone)))}${t.jemput && t.tujuan ? navBtn("🗺️ Rute lengkap", "", o.order_code, [{nama:t.layanan === "paket" ? "Ambil barang" : "Jemput", e:t.layanan === "paket" ? "📦" : "🙋", lat:+t.jemput.lat, lng:+t.jemput.lng, ket:t.jemput.ket || "", tel:o.customer_phone_normalized || normPhone(o.customer_phone)}, {nama:"Tujuan", e:"🏁", lat:+t.tujuan.lat, lng:+t.tujuan.lng, ket:t.tujuan.ket || "", tel:t.layanan === "paket" && t.waPenerima ? t.waPenerima : ""}]) : ""}</div>` : ""}`
+    + `<p>🟢 ${L0.a}: ${esc((t.jemput && t.jemput.ket) || "lihat peta")}</p>${full ? `<div class="map-actions">${ptLinks(t.jemput, o.order_code, t.layanan === "paket" ? "lokasi barang" : "penjemputan", t.layanan === "paket" ? "📦" : "🙋", o.customer_phone_normalized || normPhone(o.customer_phone), "pemesan")}</div>` : ""}`
+    + `<p>🔴 Tujuan: ${esc((t.tujuan && t.tujuan.ket) || "lihat peta")}</p>${full ? `<div class="map-actions">${ptLinks(t.tujuan, o.order_code, "tujuan", "🏁", t.layanan === "paket" && t.waPenerima ? t.waPenerima : (o.customer_phone_normalized || normPhone(o.customer_phone)), t.layanan === "paket" ? "penerima" : "penumpang")}${t.jemput && t.tujuan ? navBtn("🗺️ Rute lengkap", "", o.order_code, [{nama:t.layanan === "paket" ? "Ambil barang" : "Jemput", e:t.layanan === "paket" ? "📦" : "🙋", lat:+t.jemput.lat, lng:+t.jemput.lng, ket:t.jemput.ket || "", tel:o.customer_phone_normalized || normPhone(o.customer_phone), peran:"pemesan"}, {nama:"Tujuan", e:"🏁", lat:+t.tujuan.lat, lng:+t.tujuan.lng, ket:t.tujuan.ket || "", tel:t.layanan === "paket" && t.waPenerima ? t.waPenerima : (o.customer_phone_normalized || normPhone(o.customer_phone)), peran:t.layanan === "paket" ? "penerima" : "penumpang"}]) : ""}</div>` : ""}`
     + (t.layanan === "paket" ? `<p>📦 ${esc(t.barang || "-")}${full ? ` • Penerima: ${esc(t.penerima || "-")} (+${esc(t.waPenerima || "")})` : ""}</p>` : "")
     + (full && /Catatan:/.test(o.note || "") ? `<p>📝 ${esc(String(o.note).split("Catatan:")[1].trim())}</p>` : "");
 }
@@ -533,38 +571,34 @@ function bayarTokoHtml(o){
   const m = new Map(); (Array.isArray(it) ? it : []).forEach(p => { const n = String(p.seller || "Toko").trim(), k = n.toLowerCase(); if(!m.has(k)) m.set(k, {n, v:0}); m.get(k).v += (Number(p.sale) || Number(p.price) || 0) * (Number(p.qty) || 1); });
   if(!m.size) return "";
   const ut = o.uang_toko && typeof o.uang_toko === "object" ? o.uang_toko : {};
-  return `<div style="background:#fff6e0;border-radius:12px;padding:8px 10px;margin:6px 0"><p style="margin:0 0 4px;color:#7a4a00"><b>💵 Bayar dulu ke toko (COD)</b></p>`
-    + [...m.entries()].map(([k, x]) => `<p style="margin:2px 0;display:flex;justify-content:space-between;gap:8px"><span>${esc(x.n)} • <b>${fmtRp(x.v)}</b></span><span style="font-weight:700;color:${ut[k] ? "#14502c" : "#a35a00"}">${ut[k] ? "✅ Diterima toko" : "⏳ Belum dikonfirmasi"}</span></p>`).join("")
-    + `<p style="margin:4px 0 0;font-size:12px">Tagih ke pembeli: <b>${fmtRp(o.total)}</b></p></div>`;
+  return `<div class="km-cod"><span class="km-cod-ic">💵</span><div><b class="km-cod-t">Bayar dulu ke toko (COD)</b>`
+    + [...m.entries()].map(([k, x]) => `<p class="km-cod-r"><span>${esc(x.n)} • <b>${fmtRp(x.v)}</b></span><span class="${ut[k] ? "ok" : "tg"}">${ut[k] ? "✅ Diterima toko" : "⏳ Belum dikonfirmasi"}</span></p>`).join("")
+    + `<p class="km-cod-tg">Tagih ke pembeli: <b>${fmtRp(o.total)}</b></p></div></div>`;
 }
 function cardMine(o){ const h = cardMine0(o); return o.status === "dikirim" ? h.replace(/<\/div>\s*$/, lacakInd() + "</div>") : h; }
 function cardMine0(o){
-  const tr = transOf(o);
-  const next = o.status === "diproses" ? ["dikirim", tr ? (LAYK[tr.layanan] || LAYK.ojek).jalan : "🛵 Tandai sedang dikirim"] : ["selesai", tr ? "✅ Sudah sampai tujuan" : "✅ Tandai selesai"];
+  const tr = transOf(o), num = o.customer_phone_normalized || normPhone(o.customer_phone);
+  const next = o.status === "diproses" ? ["dikirim", tr ? (LAYK[tr.layanan] || LAYK.ojek).jalan : "Tandai sedang dikirim", "🛵"] : ["selesai", tr ? "Sudah sampai tujuan" : "Tandai selesai", "✅"];
+  const stIk = {diproses:"🕑", dikirim:"🛵", menunggu:"⏳", baru:"⏳"}[o.status] || "🕑";
+  const kepala = `<div class="km-h"><span class="km-ic">${tr ? (tr.layanan === "paket" ? "📦" : "🛵") : "🛍️"}</span><b>${esc(o.order_code)}</b><span class="km-st s-${esc(o.status)}">${stIk} ${esc(SL[o.status] || o.status)}</span></div>`
+    + `<p class="km-r"><i>👤</i><span>${esc(o.customer_name || "Pembeli")}${o.customer_phone ? " • " + esc(o.customer_phone) : ""}</span></p>`;
+  const tombol = `<div class="km-dua"><a class="km-btn g" href="tel:+${esc(num)}"><span>📞</span>Telepon ${tr ? "pemesan" : "pembeli"}</a><a class="km-btn o" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}"><span class="km-wa"></span>WhatsApp</a></div>`
+    + (tr && tr.layanan === "paket" && tr.waPenerima ? `<a class="km-btn o" target="_blank" rel="noopener" href="https://wa.me/${esc(tr.waPenerima)}"><span class="km-wa"></span>WhatsApp penerima</a>` : "")
+    + `<button class="km-btn w" type="button" data-act="status" data-code="${esc(o.order_code)}" data-status="${next[0]}"><span>${next[2]}</span>${next[1].replace(/^\S+\s(?=[A-Z])/, "")}<em>›</em></button>`
+    + (o.status === "diproses" ? `<button class="km-btn b" type="button" data-act="lepas" data-code="${esc(o.order_code)}"><span>↩️</span>Lepas pesanan</button>` : "");
   if(tr){
-    const num = o.customer_phone_normalized || normPhone(o.customer_phone);
-    return `<div class="card"><h3>${esc(o.order_code)} <span class="chip">${esc(SL[o.status] || o.status)}</span></h3>`
-      + `<p><b>${esc(o.customer_name || "")}</b> • ${esc(o.customer_phone || "")}</p>` + transBody(o, true)
-      + `<a class="mini g" href="tel:+${esc(num)}">📞 Telepon pemesan</a><a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}">💬 WhatsApp</a>`
-      + (tr.layanan === "paket" && tr.waPenerima ? `<a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(tr.waPenerima)}">💬 WA penerima</a>` : "")
-      + `<button class="mini g" type="button" data-act="status" data-code="${esc(o.order_code)}" data-status="${next[0]}">${next[1]}</button>`
-      + (o.status === "diproses" ? `<button class="mini" type="button" data-act="lepas" data-code="${esc(o.order_code)}">↩️ Lepas pesanan</button>` : "")
-      + `</div>`;
+    return `<div class="card km">${kepala}${transBody(o, true)}${tombol}</div>`;
   }
-  const num = o.customer_phone_normalized || normPhone(o.customer_phone);
-  return `<div class="card"><h3>${esc(o.order_code)} <span class="chip">${esc(SL[o.status] || o.status)}</span></h3>`
-    + `<p><b>${esc(o.customer_name || "")}</b> • ${esc(o.customer_phone || "")}</p>`
-    + `<p>📍 ${esc(cleanMapNote(o.address || "-"))}</p><div class="map-actions">${mapLinks(o)}</div>`
-    + `<p>${itemsText(o)}</p><p><b>Total ${fmtRp(o.total)}</b> • ${esc(o.payment || "")}</p>`
-    + (cleanOrderNote(o.note) ? `<p>📝 ${esc(cleanOrderNote(o.note))}</p>` : "")
+  return `<div class="card km">${kepala}`
+    + `<p class="km-r"><i>📍</i><span>${esc(cleanMapNote(o.address || "-"))}</span></p><div class="map-actions">${mapLinks(o)}</div>`
+    + `<p class="km-r"><i>📦</i><span>${itemsText(o)}</span></p>`
+    + `<div class="km-tot"><span>$</span><b>Total ${fmtRp(o.total)}</b><small>• ${esc(o.payment || "")}</small></div>`
+    + (cleanOrderNote(o.note) ? `<p class="km-r"><i>📝</i><span>${esc(cleanOrderNote(o.note))}</span></p>` : "")
     + bayarTokoHtml(o)
-    + (tambahOngkir(o) ? `<p style="margin:4px 0;background:#fff6e0;border-radius:10px;padding:6px 10px;color:#7a4a00">➕ Tagih juga ongkir jarak <b>${fmtRp(tambahOngkir(o))}</b> (dari nota toko yang tutup) • total nota ini <b>${fmtRp((Number(o.total) || 0) + tambahOngkir(o))}</b></p>` : "")
-    + `<a class="mini g" href="tel:+${esc(num)}">📞 Telepon pembeli</a>`
-    + `<a class="mini" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}">💬 WhatsApp</a>`
-    + `<button class="mini g" type="button" data-act="status" data-code="${esc(o.order_code)}" data-status="${next[0]}">${next[1]}</button>`
-    + (o.status === "diproses" ? `<button class="mini" type="button" data-act="lepas" data-code="${esc(o.order_code)}">↩️ Lepas pesanan</button>` : "")
-    + (o.status === "dikirim" ? `<button class="mini merah" type="button" data-act="gagal" data-code="${esc(o.order_code)}">❌ Gagal antar</button>` : "")
-    + (o.status === "diproses" ? `<button class="mini merah" type="button" data-act="tutup" data-code="${esc(o.order_code)}">🚫 Toko tutup / tidak bisa diambil</button>` : "")
+    + (tambahOngkir(o) ? `<p class="km-plus">➕ Tagih juga ongkir jarak <b>${fmtRp(tambahOngkir(o))}</b> (dari nota toko yang tutup) • total nota ini <b>${fmtRp((Number(o.total) || 0) + tambahOngkir(o))}</b></p>` : "")
+    + tombol
+    + (o.status === "dikirim" ? `<button class="km-btn r" type="button" data-act="gagal" data-code="${esc(o.order_code)}"><span>❌</span>Gagal antar</button>` : "")
+    + (o.status === "diproses" ? `<button class="km-btn r" type="button" data-act="tutup" data-code="${esc(o.order_code)}"><span>🚫</span>Toko tutup / tidak bisa diambil</button>` : "")
     + `</div>`;
 }
 // ===== TOKO BELUM MENJAWAB / TOKO TUTUP =====
@@ -678,7 +712,7 @@ async function loadOrders(){
     const codes = offers.map(x => x.o.order_code);
     if(seenOffers && codes.some(c => !seenOffers.has(c))){ toast("🔔 Ada pesanan baru untuk Anda"); bunyi(); try{ navigator.vibrate && navigator.vibrate([250,120,250]); }catch(e){} }
     seenOffers = new Set(codes); setCounts(offers.length, mine.length);
-    const hd = t => `<h3 style="margin:14px 0 0;font-size:15px;color:var(--brown)">${t}</h3>`;
+    const hd = t => `<h3 class="ob-pill"><span>${/^Menunggu/.test(t) ? "🔔" : "📦"}</span>${t}</h3>`;
     let h = "";
     if(BIAYA.aktif && SALDO !== null && SALDO < minSaldo()) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda kurang. Isi saldo di Beranda agar bisa menerima tawaran pesanan.</p>';
     if(me.aktif === false) h += '<p class="hint" style="margin-top:10px">⚠️ Anda sedang tidak siap menerima antaran. Centang "Saya siap menerima antaran" di atas agar pesanan bisa ditawarkan kepada Anda.</p>';
