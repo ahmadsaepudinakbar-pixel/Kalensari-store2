@@ -173,6 +173,26 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 #orders .oc.lipat > :not(.oc-top):not(.oc-tg){display:none!important}
 #orders .oc.lipat .oc-main > .oc-r ~ .oc-r,#orders .oc.lipat .oc-main > .kr-rute,#orders .oc.lipat .oc-ill{display:none}
 #orders .oc.lipat .oc-tot{margin-top:6px}
+
+/* v49 kartu pesanan yang dilipat dibuat ringkas */
+#orders .oc.lipat{padding:9px 10px 9px 10px;margin-top:8px;border-radius:16px;border-left-width:5px}
+#orders .oc.lipat .oc-top{gap:10px;align-items:center}
+#orders .oc.lipat .oc-ic{width:34px;height:34px;box-shadow:none}#orders .oc.lipat .oc-ic svg{width:18px;height:18px}
+#orders .oc.lipat .oc-h{gap:6px;padding-right:34px}#orders .oc.lipat .oc-h b{font-size:15px}
+#orders .oc.lipat .oc-st{font-size:11px;padding:2px 8px}#orders .oc.lipat .oc-st svg{width:12px;height:12px}
+#orders .oc.lipat .oc-main{display:grid;grid-template-columns:auto 1fr;column-gap:8px;align-items:center}
+#orders .oc.lipat .oc-h{grid-column:1/-1}
+#orders .oc.lipat .oc-r{margin:2px 0 0!important;font-size:12.5px!important;gap:5px}#orders .oc.lipat .oc-r svg{width:13px;height:13px}
+#orders .oc.lipat .oc-tot{margin:2px 0 0;padding:0;background:none;font-size:0;justify-self:end}#orders .oc.lipat .oc-main{padding-right:36px}#orders .oc.lipat .oc-r{white-space:nowrap}#orders .oc.lipat .oc-h{padding-right:0}
+#orders .oc.lipat .oc-tot b{font-size:13px;padding:2px 9px}
+#orders .oc.lipat .oc-tg{top:50%;margin-top:-15px;width:30px;height:30px}#orders .oc.lipat .oc-tg svg{width:16px;height:16px}
+
+/* v49b foto produk di kartu pesanan */
+.oc-ic.ft{position:relative;border-radius:14px;background:#fff;overflow:visible;padding:0;border:2px solid var(--c)}
+.oc-ic.ft img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
+.oc-ic.ft em{position:absolute;right:-6px;bottom:-6px;background:var(--c);color:#fff;font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:1px 6px;border:2px solid #fff}
+#orders .oc .oc-ic.ft{width:56px;height:56px}
+#orders .oc.lipat .oc-ic.ft{width:42px;height:42px;border-radius:12px}#orders .oc.lipat .oc-ic.ft img{border-radius:10px}
 </style>
 </head>
 <body>
@@ -625,6 +645,17 @@ const OC_IC = {
   item:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 11a8 8 0 0 1 16 0zM3.5 14.5h17M5 18h14"/></svg>'
 };
 OC_IC.baru = OC_IC.menunggu; OC_IC.gagal = OC_IC.dibatalkan;
+/* Foto produk pada kartu pesanan: dari data barang di pesanan, atau dicari dari daftar produk */
+let FOTO_P = {};
+const itemsOf = o => { let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } } return Array.isArray(it) ? it : []; };
+const fotoPertama = v => { const x = String(v || "").split(/\s*(?:\r?\n|\s\|\s)\s*/)[0].trim(); if(!x) return ""; if(/^(https?:|data:image)/i.test(x)) return x; if(/^(\.\/)?img\//i.test(x)) return "./" + x.replace(/^\.\//, ""); return ""; };
+const jmlJenis = o => itemsOf(o).length;
+function fotoPesanan(o){ for(const it of itemsOf(o)){ const f = fotoPertama(it.image) || FOTO_P["i" + it.id] || FOTO_P["n" + String(it.name || "").toLowerCase()]; if(f) return f; } return ""; }
+async function muatFotoProduk(rows){
+  const perlu = rows.some(o => !trOf(o) && itemsOf(o).some(it => !fotoPertama(it.image) && !FOTO_P["i" + it.id]));
+  if(!perlu || !cloudOn()) return;
+  try{ const p = await cf("products?select=id,name,image&limit=1000"); (p || []).forEach(x => { const f = fotoPertama(x.image); if(f){ FOTO_P["i" + x.id] = f; FOTO_P["n" + String(x.name || "").toLowerCase()] = f; } }); }catch(e){}
+}
 function ocGambar(o){
   const t = itemsText(o).toLowerCase();
   if(/jus|es |es$|teh|kopi|susu|minum|soda|boba|cendol|dawet/.test(t)) return "🥤";
@@ -740,12 +771,12 @@ async function loadOrders(){
   try{
     const a = await fetchOrders("customer_phone_normalized=eq." + WA), b = await fetchOrders("customer_phone=eq.0" + WA.slice(2)).catch(() => []);
     const rows = [...new Map([...a, ...b].map(o => [o.order_code || o.id, o])).values()].sort((x, y) => new Date(y.created_at||0) - new Date(x.created_at||0));
-    await muatKurirOrd(rows);
+    await muatKurirOrd(rows); await muatFotoProduk(rows);
     ringkasan(rows.filter(o => !trOf(o))); berandaPesanan(rows);
     if(window.KSPW) KSPW.pasang(box, rows, loadOrders);
     if(window.KSUlasan){ await KSUlasan.muat(rows); KSUlasan.pasang(box, loadOrders); }
     if(window.KSST){ await KSST.muatInfo(rows.filter(o => o.status === "selesai" && Date.now() - new Date(o.updated_at || o.created_at || 0) < 4*864e5).map(o => o.order_code)); KSST.pasang(box, WA, loadOrders); }
-    box.innerHTML = rows.length ? rows.map((o, i) => trOf(o) ? kartuKirim(o) : `<div class="card oc c${i % 4}" data-st="${esc(o.status || "menunggu")}"><div class="oc-top"><span class="oc-ic">${OC_IC.tas}</span><div class="oc-main"><div class="oc-h"><b>${esc(o.order_code || "Pesanan")}</b><span class="oc-st s-${esc(o.status || "menunggu")}">${OC_IC[o.status] || OC_IC.menunggu}${esc(SL[o.status] || o.status || "Menunggu")}</span></div><p class="oc-r">${OC_IC.kal}${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p class="oc-r">${OC_IC.item}<span>${itemsText(o)}</span></p><div class="oc-tot"><b>Total ${fmtRp(o.total)}</b>· ${esc(o.payment || "")}</div></div><span class="oc-ill">${ocGambar(o)}</span></div>${o.status === "dikirim" ? `<button type="button" class="oc-lacak" data-lacak="${esc(o.order_code)}"><span>🛵</span><b>Lacak kurir</b><small>Lihat posisi kurir di peta</small><em>›</em></button>` : ""}${infoBatal(o)}${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
+    box.innerHTML = rows.length ? rows.map((o, i) => trOf(o) ? kartuKirim(o) : `<div class="card oc c${i % 4}" data-st="${esc(o.status || "menunggu")}"><div class="oc-top"><span class="oc-ic${fotoPesanan(o) ? " ft" : ""}">${fotoPesanan(o) ? `<img src="${esc(fotoPesanan(o))}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('ft');this.outerHTML=OC_IC.tas">${jmlJenis(o) > 1 ? `<em>+${jmlJenis(o) - 1}</em>` : ""}` : OC_IC.tas}</span><div class="oc-main"><div class="oc-h"><b>${esc(o.order_code || "Pesanan")}</b><span class="oc-st s-${esc(o.status || "menunggu")}">${OC_IC[o.status] || OC_IC.menunggu}${esc(SL[o.status] || o.status || "Menunggu")}</span></div><p class="oc-r">${OC_IC.kal}${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p class="oc-r">${OC_IC.item}<span>${itemsText(o)}</span></p><div class="oc-tot"><b>Total ${fmtRp(o.total)}</b>· ${esc(o.payment || "")}</div></div><span class="oc-ill">${ocGambar(o)}</span></div>${o.status === "dikirim" ? `<button type="button" class="oc-lacak" data-lacak="${esc(o.order_code)}"><span>🛵</span><b>Lacak kurir</b><small>Lihat posisi kurir di peta</small><em>›</em></button>` : ""}${infoBatal(o)}${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
     ORD_MAP = Object.fromEntries(rows.map(o => [o.order_code, o]));
     lipatPesanan(box, rows);
     box.querySelectorAll("[data-lacak]").forEach(b => b.onclick = () => lacakKurir(b.dataset.lacak));
