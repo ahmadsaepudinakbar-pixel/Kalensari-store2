@@ -129,6 +129,18 @@ async function api(path, opt = {}){
   return t ? JSON.parse(t) : [];
 }
 
+/* Tulis lapak lewat fungsi server (supabase-keamanan-ulasan-lapak.sql): pemilik dicek dari sesi akun.
+   Bila fungsi belum dipasang, pakai cara lama. */
+function sesiPembeli(){ try{ return localStorage.getItem("kalensari_sesi_pembeli") || ""; }catch(e){ return ""; } }
+async function rpcLapak(fn, body, caraLama){
+  const r = await fetch(`${BASE}/rest/v1/rpc/${fn}`, {method:"POST", headers:{apikey:CFG.supabaseAnonKey, Authorization:"Bearer " + CFG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify({p_sesi:sesiPembeli(), ...body})});
+  const t = await r.text(); let j = null; try{ j = t ? JSON.parse(t) : null; }catch(e){}
+  if(r.ok) return j;
+  const m = String((j && j.message) || t || r.status);
+  if((r.status === 404 || /Could not find the function|PGRST202/i.test(m)) && caraLama) return caraLama();
+  throw new Error(m.replace(/^SESI:\s*/, ""));
+}
+
 /* ---------- akun pembeli ---------- */
 let ME = undefined;
 function waLogin(){ try{ const v = JSON.parse(localStorage.getItem("kalensari_pembeli_login") || "null"); if(v && v.wa && v.exp > Date.now()) return v.wa; }catch(e){} return sessionStorage.getItem("kalensari_pembeli_sess") || null; }
@@ -267,11 +279,11 @@ async function detail(id){
     gal.querySelectorAll("img").forEach(im => im.onclick = () => { const lb = document.createElement("div"); lb.className = "lb"; lb.innerHTML = `<img src="${im.src}" alt=""><button aria-label="Tutup">✕</button>`; lb.onclick = () => lb.remove(); document.body.appendChild(lb); });
   }
   // aksi pemilik
-  const ubahStatus = async (st, pesan) => { try{ await api(`lapak_iklan?id=eq.${i.id}&wa=eq.${encodeURIComponent(me.wa)}`, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:st, updated_at:new Date().toISOString()})}); CACHE = null; toast(pesan); render(); }catch(e){ toast("Gagal: " + String(e.message).slice(0, 80)); } };
+  const ubahStatus = async (st, pesan) => { try{ await rpcLapak("lapak_simpan", {p_id:i.id, p_data:{status:st}}, () => api(`lapak_iklan?id=eq.${i.id}&wa=eq.${encodeURIComponent(me.wa)}`, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:st, updated_at:new Date().toISOString()})})); CACHE = null; toast(pesan); render(); }catch(e){ toast("Gagal: " + String(e.message).slice(0, 80)); } };
   $("bLaku") && ($("bLaku").onclick = () => ubahStatus("selesai", "✅ Ditandai sudah laku"));
   $("bAktif") && ($("bAktif").onclick = () => ubahStatus("aktif", "Iklan aktif lagi"));
   $("bHapus") && ($("bHapus").onclick = async () => { if(!confirm("Hapus iklan ini beserta semua komentarnya?")) return;
-    try{ await api(`lapak_iklan?id=eq.${i.id}&wa=eq.${encodeURIComponent(me.wa)}`, {method:"DELETE", headers:{Prefer:"return=minimal"}}); CACHE = null; toast("🗑️ Iklan dihapus"); go("#/saya"); }catch(e){ toast("Gagal menghapus"); } });
+    try{ await rpcLapak("lapak_hapus", {p_id:i.id}, () => api(`lapak_iklan?id=eq.${i.id}&wa=eq.${encodeURIComponent(me.wa)}`, {method:"DELETE", headers:{Prefer:"return=minimal"}})); CACHE = null; toast("🗑️ Iklan dihapus"); go("#/saya"); }catch(e){ toast("Gagal menghapus"); } });
   $("komLogin") && ($("komLogin").onclick = () => keLogin("#/i/" + i.id));
   if(pemilik){ seenSet(me.wa, i.id); setTimeout(tandaSaya, 300); }
   // komentar
@@ -285,7 +297,7 @@ async function detail(id){
       return `<div class="cm"><div class="av ${ow ? "ow" : ""}">${esc(inisial(k.nama))}</div><div><div class="nm">${esc(k.nama || "Warga")}${ow ? "<em>Pemilik</em>" : ""}<span class="tm">${lalu(k.created_at)}</span></div><p>${esc(k.isi)}</p>${bisa ? `<button class="del" data-del="${k.id}">Hapus</button>` : ""}</div></div>`; }).join("")
       : '<p class="hint" style="margin:4px 0 2px">Belum ada komentar. Jadilah yang pertama bertanya!</p>';
     document.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => { if(!confirm("Hapus komentar ini?")) return;
-      try{ await api(`lapak_komentar?id=eq.${b.dataset.del}`, {method:"DELETE", headers:{Prefer:"return=minimal"}}); jumlah = -1; muatKom(); }catch(e){ toast("Gagal menghapus komentar"); } });
+      try{ await rpcLapak("lapak_komentar_hapus", {p_id:Number(b.dataset.del)}, () => api(`lapak_komentar?id=eq.${b.dataset.del}`, {method:"DELETE", headers:{Prefer:"return=minimal"}})); jumlah = -1; muatKom(); }catch(e){ toast("Gagal menghapus komentar"); } });
   };
   await muatKom(); pollKom = setInterval(muatKom, 15000);
   const kirim = $("komKirim");
@@ -293,7 +305,7 @@ async function detail(id){
     const isi = $("komIn").value.trim(); if(!isi) return toast("Tulis komentar dulu");
     const t = Number(sessionStorage.getItem("lapak_kom_t") || 0); if(Date.now() - t < 8000) return toast("Tunggu sebentar sebelum berkomentar lagi");
     kirim.disabled = true;
-    try{ await api("lapak_komentar", {method:"POST", headers:{Prefer:"return=minimal"}, body:JSON.stringify([{iklan_id:i.id, wa:me.wa, nama:me.nama, isi:isi.slice(0, 500)}])});
+    try{ await rpcLapak("lapak_komentar_kirim", {p_iklan:i.id, p_isi:isi.slice(0, 500)}, () => api("lapak_komentar", {method:"POST", headers:{Prefer:"return=minimal"}, body:JSON.stringify([{iklan_id:i.id, wa:me.wa, nama:me.nama, isi:isi.slice(0, 500)}])}));
       sessionStorage.setItem("lapak_kom_t", Date.now()); $("komIn").value = ""; jumlah = -1; CACHE = null; await muatKom();
       const lst = $("komList").lastElementChild; lst && lst.scrollIntoView({behavior:"smooth", block:"center"}); }
     catch(e){ toast("Gagal mengirim: " + String(e.message).slice(0, 80)); }
@@ -340,8 +352,11 @@ async function formIklan(id){
     try{
       const data = {judul, kondisi, harga, barter, foto, thumb:await kotak(foto[0], 320), nama:me.nama, alamat:me.alamat, updated_at:new Date().toISOString()};
       let baru;
-      if(id){ await api(`lapak_iklan?id=eq.${id}&wa=eq.${encodeURIComponent(me.wa)}`, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify(data)}); baru = id; }
-      else { const r = await api("lapak_iklan", {method:"POST", body:JSON.stringify([{...data, wa:me.wa, status:"aktif"}])}); baru = r && r[0] && r[0].id; }
+      const {nama:_n, alamat:_a, updated_at:_u, ...isiAman} = data;
+      const h = await rpcLapak("lapak_simpan", {p_id:id ? Number(id) : null, p_data:isiAman}, async () => {
+        if(id){ await api(`lapak_iklan?id=eq.${id}&wa=eq.${encodeURIComponent(me.wa)}`, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify(data)}); return {id}; }
+        const r = await api("lapak_iklan", {method:"POST", body:JSON.stringify([{...data, wa:me.wa, status:"aktif"}])}); return {id:r && r[0] && r[0].id}; });
+      baru = h && h.id;
       CACHE = null; toast(id ? "💾 Iklan diperbarui" : "📢 Iklan tayang!"); go(baru ? "#/i/" + baru : "#/");
     }catch(e){ err.textContent = "Gagal menyimpan: " + String(e.message).slice(0, 120); b.disabled = false; b.textContent = id ? "💾 Simpan perubahan" : "📢 Tayangkan iklan"; }
   };

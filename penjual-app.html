@@ -465,7 +465,7 @@ function bindPesananBaru(){document.querySelectorAll("[data-pbl]").forEach(b=>b.
   document.querySelectorAll("[data-pbt]").forEach(b=>b.onclick=async()=>{const o=gO(b.dataset.pbt);if(!o)return;if(exp(o)<=Date.now()){toast("Waktu menanggapi sudah habis");return go("home")}b.disabled=true;b.textContent="Memproses…";if(await terimaPesanan(b.dataset.pbt))go("detail",b.dataset.pbt);else go("home")})}
 /* ===== ULASAN PEMBELI (hanya untuk penjual & admin, tidak tampil di Kalensari Store) ===== */
 let ULS=null,ULS_T=0,ulsF="semua",ulsEdit=null;
-async function muatUlasan(){try{const r=await cf("ulasan?select=*&toko=eq."+encodeURIComponent(myK())+"&sembunyi=eq.false&order=created_at.desc&limit=300");ULS=Array.isArray(r)?r:[]}catch(e){ULS={err:String(e.message||e)}}ULS_T=Date.now()}
+async function muatUlasan(){try{const r=await cf("ulasan?select=id,created_at,order_code,toko,toko_nama,bintang,isi,nama,balasan,balas_at,sembunyi&toko=eq."+encodeURIComponent(myK())+"&sembunyi=eq.false&order=created_at.desc&limit=300");ULS=Array.isArray(r)?r:[]}catch(e){ULS={err:String(e.message||e)}}ULS_T=Date.now()}
 const bintangT=n=>"★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n);
 const namaDepan=n=>{const t=String(n||"Pembeli").trim().split(/\s+/);return t.length>1&&/^(bu|pak|ibu|bapak|mas|mbak|teh|kang|a)$/i.test(t[0])?t[0]+" "+t[1]:t[0]};
 function ulasan(){if(!ULS)return '<p style="color:var(--mu);text-align:center;margin-top:30px">Memuat ulasan…</p>';
@@ -487,7 +487,7 @@ bind.ulasan=()=>{if(!ULS||Date.now()-ULS_T>60000)muatUlasan().then(()=>{if(view=
   document.querySelectorAll("[data-ue]").forEach(b=>b.onclick=()=>{ulsEdit=+b.dataset.ue;go("ulasan")});
   document.querySelectorAll("[data-uo]").forEach(b=>b.onclick=()=>{const o=O.find(x=>x.order_code===b.dataset.uo);o?go("detail",String(o.id)):toast("Pesanan sudah lama, tidak ada di daftar")});
   document.querySelectorAll("[data-ur]").forEach(b=>b.onclick=async()=>{const id=+b.dataset.ur,t=$("ut"+id).value.trim();if(!t)return toast("Tulis balasan dulu");b.disabled=true;b.textContent="Mengirim…";
-    try{const now=new Date().toISOString();await cf("ulasan?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({balasan:t,balas_at:now})});const x=ULS.find(y=>y.id===id);if(x){x.balasan=t;x.balas_at=now}ulsEdit=null;toast("✅ Balasan terkirim");go("ulasan")}
+    try{const now=new Date().toISOString();await KSPesanan.baca("ulasan_balas",{p_sesi:KSPesanan.sesi("penjual"),p_id:id,p_balasan:t},()=>cf("ulasan?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({balasan:t,balas_at:now})}));const x=ULS.find(y=>y.id===id);if(x){x.balasan=t;x.balas_at=now}ulsEdit=null;toast("✅ Balasan terkirim");go("ulasan")}
     catch(e){b.disabled=false;b.textContent="💬 Kirim balasan";toast("Gagal: "+String(e.message||e).slice(0,60))}})};
 /* beranda */
 function pillToko(){let x;try{x=statusToko()}catch(e){return""}if(!x||x.st==="muat")return"";const on=x.st==="buka"||(x.st!=="admin"&&x.st!=="manual"&&x.st!=="jadwal");return `<span class="hd-pill ${on?"on":"off"}">${IK.toko}<i></i>${on?"Buka":"Tutup"}</span>`}
