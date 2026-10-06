@@ -230,6 +230,23 @@ update public.store_settings s
  where s.key in ('penjual_members', 'kurir_members') and jsonb_typeof(s.value) = 'array'
    and exists (select 1 from jsonb_array_elements(s.value) e where jsonb_typeof(e) = 'object' and (e ? 'rek' or e ? 'rekN'));
 
+-- Pembeli boleh menerima kembali HANYA baris pesanan yang baru saja ia buat (dalam permintaan yang sama).
+-- Supabase meminta balikan baris saat INSERT; tanpa ini muncul error
+-- "new row violates row-level security policy for table orders". Pesanan orang lain tetap tidak bisa dibaca.
+create or replace function public.ks_tandai_baru()
+returns trigger language plpgsql as $$
+begin
+  perform set_config('ks.pesanan_baru', coalesce(current_setting('ks.pesanan_baru', true), '') || '|' || new.id || '|', true);
+  return new;
+end $$;
+drop trigger if exists ks_tandai_baru on public.orders;
+create trigger ks_tandai_baru before insert on public.orders
+  for each row execute function public.ks_tandai_baru();
+drop policy if exists "orders_baru_kembali" on public.orders;
+create policy "orders_baru_kembali" on public.orders for select to anon, authenticated
+  using (coalesce(current_setting('request.method', true), 'POST') = 'POST'
+         and strpos(coalesce(current_setting('ks.pesanan_baru', true), ''), '|' || id || '|') > 0);
+
 -- Cek: pesanan hanya bisa dibaca admin; saldo hanya admin
 select 'orders' as tabel, polname, case polcmd when 'r' then 'baca' when 'a' then 'buat' when 'w' then 'ubah' when 'd' then 'hapus' else polcmd::text end as aksi
   from pg_policy where polrelid = 'public.orders'::regclass
