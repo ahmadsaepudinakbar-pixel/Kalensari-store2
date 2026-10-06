@@ -71,12 +71,12 @@ window.KSPW = (function () {
 
   // Pesan lagi: [{id, qty, seller}] → keranjang. Produk racik (topping) perlu dipilih ulang di toko.
   function pesanLagi(o) {
-    const it = items(o), racik = it.filter(x => x.toppings), list = it.filter(x => !x.toppings && x.id != null).map(x => ({ id: Number(x.id), qty: Number(x.qty) || 1, seller: String(x.seller || "").split(",")[0].trim() }));
+    const it = items(o), racik = it.filter(x => x.toppings), list = it.filter(x => !x.toppings && x.id != null).map(x => ({ id: Number(x.id), qty: Number(x.qty) || 1, seller: String(x.seller || "").split(",")[0].trim(), ...(x.varian ? { v: x.varian } : {}) }));
     if (!list.length && racik.length) { toast("Produk racik/topping perlu dipilih ulang di toko"); }
     if (typeof window.ksPesanLagi === "function") return window.ksPesanLagi(list, racik.map(x => String(x.name || "").split(" (")[0]));
     try {
       const cart = JSON.parse(localStorage.getItem("kalensari_cart") || "[]");
-      list.forEach(x => { const c = cart.find(y => y.id === x.id && (y.seller || "") === x.seller && !y.custom); if (c) { c.qty += x.qty; delete c.off; } else cart.push(x); });
+      list.forEach(x => { const v = x.v; delete x.v; const c = cart.find(y => y.id === x.id && (y.seller || "") === x.seller && (v ? (y.custom && y.custom.v === v && !y.custom.t) : !y.custom)); if (c) { c.qty += x.qty; delete c.off; } else cart.push(v ? { ...x, custom: { v } } : x); });
       localStorage.setItem("kalensari_cart", JSON.stringify(cart));
       if (racik.length) sessionStorage.setItem("kalensari_racik_ulang", JSON.stringify(racik.map(x => String(x.name || "").split(" (")[0])));
     } catch (e) { }

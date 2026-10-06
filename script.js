@@ -108,7 +108,7 @@ async function syncCloudProducts(){
   if(!CLOUD_CONFIG?.enabled) return false;
   // Sinkron aman: simpan/perbarui dulu (upsert), baru hapus produk yang sudah dihapus admin.
   const upsert={method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"}};
-  const EXTRA=["open_time","close_time","product_group","variant","toppings","topping_limit","min_order"];
+  const EXTRA=["open_time","close_time","product_group","variant","toppings","topping_limit","min_order","variants"];
   try {
     const rows=products.map(p=>{const r={...p};EXTRA.forEach(k=>{r[k]=p[k]??null;});return r;});
     // Jika ada kolom tambahan yang belum dibuat di Supabase, simpan tanpa kolom itu saja agar sinkron lain tidak rusak.
@@ -198,9 +198,19 @@ const waLink = message => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComp
 // Promo aktif = ada harga promo dan (tanpa batas waktu atau belum lewat sale_until)
 const promoOn = p => !!(p && Number(p.sale)>0 && (!p.sale_until || Date.parse(p.sale_until) > Date.now()));
 const promoSisaHari = p => p && p.sale_until ? Math.ceil((Date.parse(p.sale_until)-Date.now())/864e5) : null;
-const currentPrice = p => promoOn(p) ? p.sale : p.price;
+// ===== VARIAN DI DALAM PRODUK: kolom "variants", satu baris = "Nama varian | Harga | habis (opsional)" =====
+function parseVariants(p) {
+  return String((p&&p.variants)||"").split(/\r?\n/).map(l=>{
+    const ps=l.split("|").map(x=>x.trim());if(ps.length<2||!ps[0])return null;
+    const price=Number(String(ps[1]).replace(/[^\d]/g,""));if(!Number.isFinite(price)||ps[1]==="")return null;
+    return {name:ps[0],price,habis:ps.slice(2).some(x=>/^habis$/i.test(x))};
+  }).filter(Boolean);
+}
+const hasVariants=p=>parseVariants(p).length>0;
+const currentPrice = p => { const vs=parseVariants(p); if(vs.length){const ok=vs.filter(v=>!v.habis);return Math.min(...(ok.length?ok:vs).map(v=>v.price));} return promoOn(p) ? p.sale : p.price; };
 
 function priceHTML(p) {
+  {const vs=parseVariants(p);if(vs.length){const ok=vs.filter(v=>!v.habis),pr=(ok.length?ok:vs).map(v=>v.price),mn=Math.min(...pr),mx=Math.max(...pr);return mn===mx?rupiah(mn):`Mulai ${rupiah(mn)}`;}}
   if(!promoOn(p)) return rupiah(p.price);
   const h=promoSisaHari(p);
   return `<span class="old-price">${rupiah(p.price)}</span>${rupiah(p.sale)}${h!==null?`<small class="promo-sisa">⏳ Promo berakhir ${h<=1?"hari ini":h+" hari lagi"}</small>`:""}`;
@@ -359,7 +369,7 @@ async function saveStoreSettings(){
   }
 }
 // Status produk: "Show" = tampil, "Sold Out" = stok habis (tampil tapi tidak bisa dibeli), selain itu (mis. "Hidden" / "Out of Stock" lama) = disembunyikan.
-const isSoldOut=p=>p&&p.status==="Sold Out";
+const isSoldOut=p=>p&&(p.status==="Sold Out"||(hasVariants(p)&&parseVariants(p).every(v=>v.habis)));
 const isVisible=p=>p&&(p.status==="Show"||p.status==="Sold Out");
 const statusKind=p=>p.status==="Show"?"show":p.status==="Sold Out"?"sold":"hidden";
 async function refreshProductStatus(){
@@ -481,7 +491,7 @@ function closeShopPanel(){
 const groupName=p=>String(p.product_group||"").trim();
 const variantLabel=p=>String(p.variant||"").trim()||p.name;
 function singleCardHTML(p) {
-  const builder=parseToppings(p).length>0, tLimit=Number(p.topping_limit)||0, sClosed=allSellersClosed(p), soldOut=isSoldOut(p);
+  const builder=parseToppings(p).length>0, tLimit=Number(p.topping_limit)||0, sClosed=allSellersClosed(p), soldOut=isSoldOut(p), nVar=parseVariants(p).length;
   return `
    <article class="product${soldOut?" soldout":""}">
   <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
@@ -490,11 +500,11 @@ function singleCardHTML(p) {
       <div class="product-body">
         <h3>${p.name}</h3>
         <div class="price">${builder?`Racik sendiri${Number(currentPrice(p))>0?` • mulai ${rupiah(currentPrice(p))}`:""}${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
-        <small>${p.unit}${!soldOut&&stokOf(p)!==null&&stokOf(p)<=5?` • <b class="sisa">Sisa ${stokOf(p)}</b>`:""}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
+        <small>${nVar?`${nVar} pilihan varian`:p.unit}${!soldOut&&stokOf(p)!==null&&stokOf(p)<=5?` • <b class="sisa">Sisa ${stokOf(p)}</b>`:""}</small><small class="seller">👤 ${p.seller}</small>${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
         ${sClosed?`<small class="hours closed">🔒 ${esc(sellerWhy(p))}</small>`:""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
-          ${builder?`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="showProduct(${p.id})">${soldOut?"Stok Habis":"Pilih Topping"}</button>`:`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="addToCart(${p.id})">${soldOut?"Stok Habis":"+ Keranjang"}</button>`}
+          ${builder||nVar?`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="showProduct(${p.id})">${soldOut?"Stok Habis":builder?"Pilih Topping":"Pilih Varian"}</button>`:`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="addToCart(${p.id})">${soldOut?"Stok Habis":"+ Keranjang"}</button>`}
         </div>
       </div>
     </article>`;
@@ -609,7 +619,7 @@ function htmlTopping(p) {
 let detailProduct=null, detailToppings={};
 function toppingTotal(p) {
   const tl=parseToppings(p);
-  return (Number(currentPrice(p))||0)+Object.entries(detailToppings).reduce((t,[i,q])=>t+(tl[i]?tl[i].price*q:0),0);
+  return hargaDasar(p)+Object.entries(detailToppings).reduce((t,[i,q])=>t+(tl[i]?tl[i].price*q:0),0);
 }
 function updateToppingSummary() {
   const p=detailProduct;if(!p)return;
@@ -636,7 +646,14 @@ function changeTopping(i,d) {
 }
 
 // Pilihan jumlah (pcs) dan nama toko/penjual di popup Detail produk.
-let detailQty=1, detailSeller="", detailSellers=[];
+let detailQty=1, detailSeller="", detailSellers=[], detailVarian=-1;
+const hargaDasar=p=>{const vs=parseVariants(p);return vs.length&&detailProduct===p&&vs[detailVarian]?vs[detailVarian].price:(Number(currentPrice(p))||0);};
+function pilihVarian(i){
+  const p=detailProduct,vs=parseVariants(p);if(!vs[i])return;if(vs[i].habis){showToast(`${vs[i].name} sedang habis`);return;}
+  detailVarian=i;document.querySelectorAll("#varianPicker .variant-chip").forEach((b,k)=>b.classList.toggle("active",k===i));document.getElementById("varianPicker")?.classList.remove("need");
+  const pr=document.getElementById("detailPrice");if(pr&&!parseToppings(p).length)pr.textContent=rupiah(vs[i].price);
+  if(parseToppings(p).length)updateToppingSummary();else{const b=document.getElementById("detailAddBtn");if(b)b.textContent=`🛒 Tambah ke Keranjang • ${rupiah(vs[i].price)}`;}
+}
 const sellerList = p => String(p.seller||"").split(",").map(x=>x.trim()).filter(Boolean);
 function changeDetailQty(id,d) {
   detailQty=Math.max(1,Math.min(99,detailQty+d));
@@ -648,6 +665,9 @@ function selectDetailSeller(i) {
   document.getElementById("sellerPicker")?.classList.remove("need");
 }
 function addDetailToCart(id) {
+  const pvs=detailProduct?parseVariants(detailProduct):[];
+  if(pvs.length&&!pvs[detailVarian]){document.getElementById("varianPicker")?.classList.add("need");document.getElementById("varianPicker")?.scrollIntoView({behavior:"smooth",block:"center"});showToast("Pilih varian dulu");return;}
+  const vNama=pvs.length?pvs[detailVarian].name:null;
   if(!detailSeller){
     document.getElementById("sellerPicker")?.classList.add("need");
     showToast("Pilih nama toko dulu");return;
@@ -660,8 +680,8 @@ function addDetailToCart(id) {
     if(!chosen.some(([,pr])=>pr>0)){showToast("Pilih minimal 1 topping");return;}
     const minO=Number(detailProduct.min_order)||0, tot=toppingTotal(detailProduct);
     if(minO&&tot<minO){showToast(`Minimal order ${rupiah(minO)} per porsi. Tambah topping ${rupiah(minO-tot)} lagi`);document.getElementById("toppingTotal")?.scrollIntoView({behavior:"smooth",block:"center"});return;}
-    addToCart(id,detailQty,detailSeller,{t:chosen});
-  } else addToCart(id,detailQty,detailSeller);
+    addToCart(id,detailQty,detailSeller,vNama?{t:chosen,v:vNama}:{t:chosen});
+  } else addToCart(id,detailQty,detailSeller,vNama?{v:vNama}:undefined);
   closeModal("productModal");
 }
 function gantiFotoDetail(btn,src) {
@@ -671,6 +691,7 @@ function gantiFotoDetail(btn,src) {
 function showProduct(id) {
   const p=products.find(x=>x.id===id);
   detailProduct=p;detailToppings={};
+  const pv=parseVariants(p);detailVarian=pv.filter(v=>!v.habis).length===1?pv.findIndex(v=>!v.habis):-1;
   detailQty=1;detailSellers=openSellerList(p);detailSeller=detailSellers.length===1?detailSellers[0]:(detailSellers.find(n=>activeSeller&&sellerKey(n)===activeSeller)||"");
   const gname=groupName(p);
   const variants=gname?products.filter(x=>isVisible(x)&&groupName(x).toLowerCase()===gname.toLowerCase()):[];
@@ -684,7 +705,7 @@ function showProduct(id) {
         <p class="eyebrow">${p.category} • ${p.seller}</p>
         <h2>${isGroup?esc(gname):p.name}</h2>
         ${isGroup?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker">${variants.map(v=>`<button type="button" class="variant-chip${v.id===p.id?" active":""}" onclick="showProduct(${v.id})"><b>${esc(variantLabel(v))}</b><small>${isSoldOut(v)?"Habis":rupiah(currentPrice(v))}</small></button>`).join("")}</div></div>`:""}
-        <div class="price">${isBuilder?`Racik sendiri${Number(currentPrice(p))>0?` • mulai ${rupiah(currentPrice(p))}`:""}${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>${isBuilder&&Number(p.min_order)>0?`<p class="tp-min-info">🧾 Minimal order <b>${rupiah(p.min_order)}</b> per porsi</p>`:""}
+        <div class="price" id="detailPrice">${isBuilder?`Racik sendiri${Number(currentPrice(p))>0?` • mulai ${rupiah(currentPrice(p))}`:""}${tLimit?` • maks ${rupiah(tLimit)}`:""}`:pv[detailVarian]?rupiah(pv[detailVarian].price):priceHTML(p)}</div>${pv.length?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker" id="varianPicker">${pv.map((v,i)=>`<button type="button" class="variant-chip${i===detailVarian?" active":""}${v.habis?" habis":""}" ${v.habis?"disabled":""} onclick="pilihVarian(${i})"><b>${esc(v.name)}</b><small>${v.habis?"Habis":rupiah(v.price)}</small></button>`).join("")}</div></div>`:""}${isBuilder&&Number(p.min_order)>0?`<p class="tp-min-info">🧾 Minimal order <b>${rupiah(p.min_order)}</b> per porsi</p>`:""}
         <p>Satuan: ${p.unit}</p>
         <p>${sold?"Stok habis.":sellerShut?sellerWhy(p)+", produk belum bisa dipesan.":closedNow?"Saat ini di luar jam tersedia.":"Produk tersedia untuk dipesan."}</p>
         ${hasHours(p)?`<p class="hours-line${closedNow?" closed":""}">🕒 Tersedia setiap hari pukul ${hoursText(p)}</p>`:""}
@@ -703,6 +724,7 @@ function addToCart(id,qty=1,seller,custom) {
   if(allSellersClosed(p)){showToast("Penjual sedang tutup");return;}
   if(seller&&sellerClosed(seller)){showToast(`${seller} sedang tutup`);return;}
   if(!custom&&parseToppings(p).length){showProduct(id);showToast("Pilih topping dulu");return;}
+  if(!(custom&&custom.v)&&hasVariants(p)){showProduct(id);showToast("Pilih varian dulu");return;}
   if(seller===undefined){
     // Produk dengan lebih dari satu toko: minta pelanggan memilih toko di popup Detail.
     const list=openSellerList(p);
@@ -713,9 +735,9 @@ function addToCart(id,qty=1,seller,custom) {
   }
   qty=Math.max(1,parseInt(qty)||1);
   {const st=stokOf(p),ada=qtyDiCart(id);if(st!==null&&ada+qty>st){if(st-ada<=0){showToast(`Stok ${p.name} tinggal ${st}${ada?`, sudah ${ada} di keranjang`:""}`);return;}qty=st-ada;showToast(`Stok ${p.name} tinggal ${st}`);}}
-  const sig=custom?JSON.stringify(custom.t):"";
-  const item=cart.find(x=>x.id===id&&(x.seller||"")===seller&&(x.custom?JSON.stringify(x.custom.t):"")===sig); if(item){item.qty+=qty;delete item.off;} else cart.push(custom?{id,qty,seller,custom}:{id,qty,seller});
-  saveCart();updateCartCount();renderCart();showToast(`${qty>1?qty+"× ":""}${p.name} (${seller}) ditambahkan ke keranjang`);
+  const sig=custom?JSON.stringify([custom.v||"",custom.t||[]]):"";
+  const item=cart.find(x=>x.id===id&&(x.seller||"")===seller&&(x.custom?JSON.stringify([x.custom.v||"",x.custom.t||[]]):"")===sig); if(item){item.qty+=qty;delete item.off;} else cart.push(custom?{id,qty,seller,custom}:{id,qty,seller});
+  saveCart();updateCartCount();renderCart();showToast(`${qty>1?qty+"× ":""}${p.name}${custom&&custom.v?" ("+custom.v+")":""} • ${seller} ditambahkan ke keranjang`);
 }
 function changeQty(idx,d) {
   const item=cart[idx];if(!item)return;
@@ -735,14 +757,22 @@ function cartData() {
   return cart.map((i,idx)=>{
     const p=products.find(x=>x.id===i.id);if(!p)return null;
     const row={...p,qty:i.qty,seller:i.seller||p.seller,idx};
-    if(i.custom){
+    if(!i.custom&&hasVariants(p)){row.varHilang=true;row.name=`${p.name} (pilih varian)`;row.variants=null;}
+    else if(i.custom&&i.custom.v&&!i.custom.t){
+      // Item dengan varian: harga varian terbaru dari Admin/penjual
+      const v=parseVariants(p).find(x=>x.name===i.custom.v);
+      row.name=`${p.name} (${i.custom.v})`;row.price=v?v.price:0;row.sale=null;row.variants=null;row.varian=i.custom.v;
+      if(!v)row.varHilang=true;else if(v.habis)row.varHabis=true;
+    } else if(i.custom){
       // Item racik sendiri: harga = harga dasar + topping (harga topping terbaru dari Admin), nama memuat daftar topping.
       const tl=parseToppings(p);
       const habis=i.custom.t.filter(([n])=>{const cur=tl.find(x=>x.name===n);return cur&&cur.habis;});
       if(habis.length){i.custom.t=i.custom.t.filter(([n])=>!habis.some(h=>h[0]===n));setTimeout(()=>{saveCart();showToast(`⚠️ Topping ${habis.map(h=>h[0]).join(", ")} sedang habis, dikeluarkan dari ${p.name}`);},0);}
       const parts=i.custom.t.map(([n,pr,q])=>{const cur=tl.find(x=>x.name===n);return {n,pr:cur?cur.price:pr,q};});
-      row.name=`${p.name} (${parts.map(x=>x.q>1?`${x.n} x${x.q}`:x.n).join(", ")})`;
-      row.price=(Number(currentPrice(p))||0)+parts.reduce((t,x)=>t+x.pr*x.q,0);
+      const vv=i.custom.v?parseVariants(p).find(x=>x.name===i.custom.v):null;
+      row.name=`${p.name} (${[i.custom.v,...parts.map(x=>x.q>1?`${x.n} x${x.q}`:x.n)].filter(Boolean).join(", ")})`;
+      row.price=(i.custom.v?(vv?vv.price:0):(Number(currentPrice(p))||0))+parts.reduce((t,x)=>t+x.pr*x.q,0);row.variants=null;if(i.custom.v)row.varian=i.custom.v;
+      if(i.custom.v&&!vv)row.varHilang=true;else if(vv&&vv.habis)row.varHabis=true;
       if(Number(p.min_order)>0&&row.price<Number(p.min_order))row.kurangMin=Number(p.min_order)-row.price;
       row.sale=null;
     }
@@ -787,7 +817,7 @@ function renderCart() {
   document.getElementById("cartItems").innerHTML=gs.length?(gs.reduce((t,g)=>t+g.all.length,0)>1?`<label class="cg-all"><input type="checkbox" ${semua?"checked":""} data-ind="${sel.length&&!semua?1:""}" onchange="toggleSemuaToko()"> Pilih semua <small>(${sel.reduce((t,g)=>t+g.items.length,0)}/${gs.reduce((t,g)=>t+g.all.length,0)} produk dipilih)</small></label>`:"")
     +gs.slice().sort((a,b)=>(b.on-a.on)||(a.urut-b.urut)).map(g=>{const o=ongkirTeks(g);return `<div class="cg${g.on?"":" off"}">
     <label class="cg-head"><input type="checkbox" ${g.full?"checked":""} data-ind="${g.on&&!g.full?1:""}" onchange="toggleToko('${esc(g.k).replace(/'/g,"&#39;")}')"><span>🏪 <b>${esc(g.name)}</b>${g.closed?' <em class="cg-tutup">Tutup</em>':""}</span></label>
-    ${g.all.map(p=>`<div class="cart-row${p.on?"":" off"}"><input class="cr-cek" type="checkbox" ${p.on?"checked":""} onchange="toggleProduk(${p.idx})" aria-label="Pilih ${esc(p.name)}"><div class="cr-foto">${p.image?`<img src="${getProductImage(p.image)}" alt="" loading="lazy" onerror="this.remove()">`:""}<span>🍽️</span></div><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div></div>
+    ${g.all.map(p=>`<div class="cart-row${p.on?"":" off"}"><input class="cr-cek" type="checkbox" ${p.on?"checked":""} onchange="toggleProduk(${p.idx})" aria-label="Pilih ${esc(p.name)}"><div class="cr-foto">${p.image?`<img src="${getProductImage(p.image)}" alt="" loading="lazy" onerror="this.remove()">`:""}<span>🍽️</span></div><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div>${p.varHabis||p.varHilang?`<small style="display:block;color:#b3261e;font-weight:700">⚠️ Varian ${p.varHilang?"sudah tidak dijual":"sedang habis"} — hapus item ini</small>`:p.kurangMin?`<small style="display:block;color:#b33d00;font-weight:700">⚠️ Kurang ${rupiah(p.kurangMin)} dari minimal order</small>`:""}</div>
       <div class="qty"><button onclick="changeQty(${p.idx},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.idx},1)">+</button></div>
       <button class="cart-remove" type="button" title="Hapus produk" aria-label="Hapus ${p.name} dari keranjang" onclick="removeFromCart(${p.idx})">🗑️</button></div>`).join("")}
     <div class="cg-ship"><span>🛵 Ongkir<small>${o.s}</small></span><b>${o.v}</b></div>
@@ -929,6 +959,8 @@ document.getElementById("clearCartBtn").onclick=()=>{
 document.getElementById("checkoutBtn").onclick=async()=>{
   {const al=await cekBisaPesan(); if(al.length){alert("Pesanan belum bisa dibuat:\n\n"+teksAlasan(al));return;}}
   if(!cart.length) return;
+  {const vh=cartData().filter(x=>(x.varHabis||x.varHilang)&&cart[x.idx]&&!cart[x.idx].off);
+   if(vh.length){alert("Pesanan belum bisa dibuat:\n\n"+vh.map(x=>`• ${x.name}: varian ${x.varHilang?"sudah tidak dijual":"sedang habis"}`).join("\n")+"\n\nHapus item itu dari keranjang atau pilih varian lain.");return;}}
   {const km=cartData().filter(x=>x.kurangMin&&cart[x.idx]&&!cart[x.idx].off);
    if(km.length){alert("Pesanan belum bisa dibuat:\n\n"+km.map(x=>`• ${x.name}: ${rupiah(x.price)}, kurang ${rupiah(x.kurangMin)} dari minimal order ${rupiah(x.price+x.kurangMin)}`).join("\n")+"\n\nHapus lalu racik ulang dengan topping tambahan.");return;}}
   const b=await loadBuyer();
@@ -2154,6 +2186,8 @@ window.ksPesanLagi=function(list,racik){
   let n=0;const lewat=[];
   (list||[]).forEach(x=>{const p=products.find(y=>y.id===Number(x.id));if(!p||p.status!=="Show"){lewat.push(p?p.name:"produk lama");return;}
     const seller=x.seller&&productHasSeller(p,sellerKey(x.seller))?x.seller:(sellerList(p)[0]||p.seller||"");const st=stokOf(p),ada=qtyDiCart(p.id);let q=Number(x.qty)||1;if(st!==null)q=Math.min(q,st-ada);if(q<=0){lewat.push(p.name+" (stok habis)");return;}
+    if(hasVariants(p)){const v=parseVariants(p).find(y=>y.name===x.v);if(!v||v.habis){lewat.push(p.name+(x.v?` (${x.v})`:"")+" — pilih varian ulang");return;}
+      const c=cart.find(y=>y.id===p.id&&(y.seller||"")===seller&&y.custom&&y.custom.v===x.v&&!y.custom.t);if(c){c.qty+=q;delete c.off;}else cart.push({id:p.id,qty:q,seller,custom:{v:x.v}});n++;return;}
     const c=cart.find(y=>y.id===p.id&&(y.seller||"")===seller&&!y.custom);if(c){c.qty+=q;delete c.off;}else cart.push({id:p.id,qty:q,seller});n++;});
   saveCart();updateCartCount();renderCart();
   document.querySelectorAll(".modal.show").forEach(m=>m.classList.remove("show"));
