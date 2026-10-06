@@ -5,14 +5,15 @@
 --
 -- Harga dasar Rp3.000 = kuah seblak + bumbu dasar (wajib). Topping dihitung sesuai pilihan.
 -- Baris "# ..." = judul kelompok. "(pilih 1)" = pembeli memilih salah satu (Level pedas, gratis).
--- Setelah dijalankan: buka Admin > Produk > Seblak Prasmanan untuk mengisi NAMA TOKO (penjual) & FOTO.
+-- Toko penjual: Teh Liya. Foto bisa ditambahkan lewat Admin > Produk > Seblak Prasmanan.
 -- =====================================================================
 alter table public.products add column if not exists toppings text;
 alter table public.products add column if not exists topping_limit integer;
 
--- Bila "Seblak Prasmanan" sudah ada: daftar topping & harga dasarnya diperbarui (toko & foto tidak diubah).
+-- Bila "Seblak Prasmanan" sudah ada: toko, daftar topping & harga dasarnya diperbarui (foto tidak diubah).
 update public.products
    set price = 3000, sale = null, unit = '1 porsi • kuah seblak + bumbu dasar, pilih topping sesukamu',
+       seller = 'Teh Liya',
        toppings = '# 🥬 SAYUR & PELENGKAP
 Sawi | 1000
 Kol | 1000
@@ -59,7 +60,7 @@ insert into public.products (id, name, price, sale, category, unit, seller, stat
 select coalesce((select max(id) from public.products), 0) + 1,
        'Seblak Prasmanan', 3000, null, 'Makanan',
        '1 porsi • kuah seblak + bumbu dasar, pilih topping sesukamu',
-       'Isi nama toko', 'Show', null,
+       'Teh Liya', 'Show', null,
 '# 🥬 SAYUR & PELENGKAP
 Sawi | 1000
 Kol | 1000
