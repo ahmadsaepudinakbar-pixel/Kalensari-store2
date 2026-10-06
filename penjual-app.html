@@ -150,6 +150,8 @@ a.q,a.m{text-decoration:none;color:inherit;display:flex}.q.q-ks{background:var(-
 .pb,.cod-d{border-width:3px;animation:ksGaris 1.2s ease-in-out infinite}
 @keyframes ksGaris{0%,100%{border-color:#ff9f00;box-shadow:0 0 0 0 rgba(255,159,0,0),0 0 14px 2px rgba(255,170,0,.85)}50%{border-color:#fff7a8;box-shadow:0 0 0 0 rgba(255,159,0,0),0 0 0 0 rgba(255,170,0,0)}}
 @media (prefers-reduced-motion:reduce){.pb,.cod-d{animation:none;border-color:#ff9f00}}
+
+.pf select.pf-sel{-webkit-appearance:none;appearance:none;cursor:pointer;color:var(--ink)}.pf select.pf-sel.kosong{color:#8a9a90}.pf select.pf-sel option{color:var(--ink)}
 </style></head><body>
 <section id="auth"><div class="logo" style="width:120px;height:120px"><img src="icons/logo-kalensari.png" alt="Kalensari Store"></div><h1>Kalensari Store</h1><p>Bersama dalam setiap manisnya hari</p>
 <div id="lf" hidden style="text-align:left"><label>No. WhatsApp atau ID akun<input id="lw" class="fld" type="text" inputmode="text" autocapitalize="characters" placeholder="08xxxxxxxxxx atau PJ0001"></label><label>PIN<input id="lp" class="fld" type="password" inputmode="numeric" maxlength="8"></label><button class="btn" id="go">Masuk</button></div>
@@ -664,7 +666,7 @@ ${pfL("stok","Stok",`<input id="fs" class="fld" type="number" inputmode="numeric
 ${pfL("promo","Harga promo",`<div class="pf-rp"><span>Rp</span><input id="fp" class="fld" type="number" inputmode="numeric" placeholder="Kosongkan" value="${Number(p.sale)>0?p.sale:""}"></div>`,"(opsional)")}
 </div>
 ${pfL("hari","Lama promo",`<input id="fpd" class="fld" type="number" inputmode="numeric" min="1" placeholder="mis. 7 (kosongkan = tanpa batas)" value="${Number(p.sale)>0&&promoSisa(p)>0?promoSisa(p):""}">`,"(hari)")}
-${pfL("kat","Kategori <i>*</i>",`<div class="pf-dd"><input id="fk" class="fld" list="cl" placeholder="Pilih atau ketik kategori" value="${esc(p.category||"")}"><datalist id="cl">${cats.map(c=>`<option value="${esc(c)}">`).join("")}</datalist></div>`)}
+${pfL("kat","Kategori <i>*</i>",`<div class="pf-dd"><select id="fk" class="fld pf-sel${p.category?"":" kosong"}" onchange="this.classList.toggle('kosong',!this.value)"><option value="">Pilih kategori</option>${[...new Set([...cats,...(p.category?[p.category]:[])])].map(c=>`<option value="${esc(c)}"${c===p.category?" selected":""}>${esc(c)}</option>`).join("")}</select></div>`)}
 ${pfL("sat","Satuan",`<div class="pf-dd"><input id="fu" class="fld" list="sl" placeholder="mis. 1 porsi" value="${esc(p.unit||"")}"><datalist id="sl">${SAT.map(c=>`<option value="${c}">`).join("")}</datalist></div>`)}
 ${pfL("desk","Deskripsi",`<textarea id="fd" class="fld" placeholder="Ceritakan rasa, isi, atau ukuran produk">${esc(p.description||"")}</textarea>`,"(opsional)")}</div>
 <div class="pf-c"><div class="pf-h">${IKF(FI.var)}Varian <small>(opsional)</small></div><p class="pf-n">Mis. <b>Biasa</b> Rp15.000, <b>+ Nasi</b> Rp20.000. Pembeli memilih salah satu. Kalau diisi, kolom Harga di atas tidak dipakai.</p>
