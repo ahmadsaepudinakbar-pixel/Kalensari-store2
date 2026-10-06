@@ -550,7 +550,7 @@ function parseToppings(p) {
     const m=/^(.+?)\s*[|=]\s*(?:rp\.?\s*)?([\d.,]+)\s*(?:\|\s*(\S+))?\s*$/i.exec(l.trim());
     if(!m)return null;
     const price=Number(m[2].replace(/[.,]/g,""));
-    const img=/^https?:\/\//i.test(m[3]||"")?m[3]:"";
+    const img=/^(https?:\/\/|img\/|\.\/)/i.test(m[3]||"")?m[3]:"";
     return m[1].trim()&&Number.isFinite(price)?{name:m[1].trim(),price,img}:null;
   }).filter(Boolean);
 }
@@ -642,6 +642,10 @@ function addDetailToCart(id) {
   } else addToCart(id,detailQty,detailSeller);
   closeModal("productModal");
 }
+function gantiFotoDetail(btn,src) {
+  const m=document.getElementById("detailMainImg");if(m){m.style.display="";m.src=src;}
+  btn.parentElement.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b===btn));
+}
 function showProduct(id) {
   const p=products.find(x=>x.id===id);
   detailProduct=p;detailToppings={};
@@ -653,7 +657,7 @@ function showProduct(id) {
   const sold=p.status!=="Show", closedNow=!sold&&!isInHours(p), sellerShut=!sold&&allSellersClosed(p), unavailable=sold||closedNow||sellerShut;
   document.getElementById("productDetail").innerHTML=`
     <div class="detail">
-      <div class="detail-img"><img src="${getProductImage(p.image)}" alt="${p.name}" onerror="this.style.display='none'"></div>
+      <div class="detail-img">${(()=>{const fs=productImages(p);return `<img id="detailMainImg" src="${getProductImage(fs[0]||"")}" alt="${p.name}" onerror="this.style.display='none'" onload="this.style.objectFit=this.naturalHeight>this.naturalWidth*1.15?'contain':'cover'"${fs.length>1?` onclick="window.open(this.src,'_blank')" style="cursor:zoom-in" title="Ketuk untuk memperbesar"`:""}>`+(fs.length>1?`<div class="detail-thumbs">${fs.map((f,k)=>`<button type="button" class="${k?"":"on"}" onclick="gantiFotoDetail(this,'${esc(getProductImage(f))}')" aria-label="Foto ${k+1}"><img src="${esc(getProductImage(f))}" alt="" loading="lazy"></button>`).join("")}</div>`:"");})()}</div>
       <div>
         <p class="eyebrow">${p.category} • ${p.seller}</p>
         <h2>${isGroup?esc(gname):p.name}</h2>
@@ -1292,8 +1296,16 @@ function applyWaLinks(){
   setupHeroButtons();
   document.getElementById("waFloat")?.setAttribute("href",q("Halo KALENSARI STORE, saya ingin memesan."));
 }
+// Satu produk boleh punya beberapa foto: pisahkan dengan " | " atau baris baru di kolom foto.
+// Foto pertama dipakai di kartu produk, semua foto tampil sebagai galeri di popup detail.
+function productImages(p) {
+  return String((p && p.image) || "").split(/\s*(?:\r?\n|\s\|\s)\s*/).map(x => x.trim()).filter(Boolean);
+}
 function getProductImage(imagePath) {
   if (!imagePath) return "";
+  imagePath = String(imagePath).split(/\s*(?:\r?\n|\s\|\s)\s*/)[0].trim();
+  // foto yang disimpan di repo GitHub (mis. img/seblak/foto.jpg) dipakai langsung
+  if (/^(\.\/|\/|img\/|icons\/|data:image\/)/i.test(imagePath)) return imagePath;
 
   if (
     imagePath.startsWith("http://") ||

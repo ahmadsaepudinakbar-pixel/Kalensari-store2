@@ -428,7 +428,8 @@ function allCats(){
   return [...new Set([...BASE_CATS,...customCats(),...used])].filter(c=>!removedCats().includes(c)||used.has(c));
 }
 const catEmoji=c=>/minum|jus|es |kopi|teh/i.test(c)?'🥤':/makan|nasi|mie|kue|jajan/i.test(c)?'🍛':'🏷️';
-const prodThumb=(p,size)=>p&&p.image?`<img src="${esc(p.image)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" loading="lazy" onerror="this.replaceWith(document.createTextNode('${catEmoji(p.category||'')}'))">`:catEmoji((p&&p.category)||'');
+const fotoUtama=v=>String(v||'').split(/\s*(?:\r?\n|\s\|\s)\s*/)[0].trim();
+const prodThumb=(p,size)=>p&&p.image?`<img src="${esc(fotoUtama(p.image))}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" loading="lazy" onerror="this.replaceWith(document.createTextNode('${catEmoji(p.category||'')}'))">`:catEmoji((p&&p.category)||'');
 
 // Penjualan per produk dihitung dari pesanan yang tidak dibatalkan.
 function soldMap(orders=S.orders){
