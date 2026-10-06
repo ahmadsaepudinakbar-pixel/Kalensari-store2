@@ -5,7 +5,7 @@
 --                   supabase-keamanan-akun.sql, supabase-keamanan-tahap2a.sql
 --
 -- Perubahan:
---  * Tetangga mendaftar memakai kode ajak (PB-xxxx / nomor WA pengundang). Begitu kode OTP
+--  * Tetangga mendaftar memakai kode ajak (PB0012 / nomor WA pengundang). Begitu kode OTP
 --    WhatsApp benar dan akun berhasil dibuat, bonus pengundang LANGSUNG masuk saldo voucher.
 --  * Semua dicek di server (fungsi daftar_pembeli), tidak bisa dipicu dari halaman web.
 --  * 1 nomor WA hanya bisa sekali diajak, tidak bisa memakai kode sendiri,
@@ -39,7 +39,7 @@ begin
     return jsonb_build_object('ok', false, 'pesan', 'Program ajak tetangga sedang tidak aktif');
   end if;
 
-  -- kode = ID akun (PB-0012) atau nomor WA pengundang
+  -- kode = ID akun (PB0012) atau nomor WA pengundang
   v_peng := public.ks_id_ke_wa('pembeli', kode);
   if v_peng is null then v_peng := public.ks_wa(kode); end if;
   if coalesce(v_peng, '') = '' or not coalesce((select value ? v_peng from public.store_settings where key = 'pembeli_accounts'), false) then
