@@ -92,7 +92,7 @@ function notify(t,b){if(!("Notification" in window)||Notification.permission!=="
   const fb=()=>{try{new Notification(t,opt)}catch(e){}};
   if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(r=>r?r.showNotification(t,opt):fb()).catch(fb);else fb()}
 async function fetchMyOrders(){
-  const rows=cloudOn()?await cf("orders?select=*&order=created_at.desc&limit=200"):LSget("kalensari_orders",[]);
+  const rows=cloudOn()?await KSPesanan.baca("pesanan_toko",{p_sesi:KSPesanan.sesi("penjual"),p_limit:200},()=>cf("orders?select=*&order=created_at.desc&limit=200")):LSget("kalensari_orders",[]);
   const k=myKey();if(!k)return[];
   // pesanan QRIS yang belum dibayar ditahan (belum diteruskan ke penjual)
   return (Array.isArray(rows)?rows:[]).filter(o=>Array.isArray(o.items)&&o.items.some(p=>sKey(p.seller)===k)&&!(/^qris/i.test(String(o.payment||""))&&o.pay_status!=="lunas")&&o.pay_status!=="tunggu_wa");

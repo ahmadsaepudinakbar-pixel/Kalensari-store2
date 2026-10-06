@@ -32,5 +32,20 @@
     try { return await panggil("cair_ajukan", { p_sesi: sesi, p_jumlah: jumlah, p_rek: rek }); }
     catch (e) { if (!e.tidakAda || !caraLama) throw e; await caraLama(); return { ok: true, lama: true }; }
   }
-  window.KSPesanan = { aksi: aksi, cair: cair };
+  /* Baca data lewat fungsi server (supabase-keamanan-baca.sql). Bila fungsi belum ada, pakai caraLama(). */
+  var adaBaca = {};
+  async function baca(fn, body, caraLama) {
+    if (adaBaca[fn] !== false) {
+      try { var j = await panggil(fn, body || {}); adaBaca[fn] = true; return j; }
+      catch (e) { if (!e.tidakAda || !caraLama) throw e; adaBaca[fn] = false; }
+    }
+    return caraLama();
+  }
+  function sesi(peran) { return (window.KSID && KSID.sesi(peran)) || (function () { try { return localStorage.getItem("kalensari_sesi_" + peran) || ""; } catch (e) { return ""; } })(); }
+  /* Tulis catatan kurir (kurir_ord_ / antar_ / foto_ / lacak_) lewat server; value null = hapus */
+  async function kurirSimpan(key, value, caraLama) {
+    try { return await panggil("kurir_simpan", { p_sesi: sesi("kurir"), p_key: key, p_value: value }); }
+    catch (e) { if (!e.tidakAda || !caraLama) throw e; return caraLama(); }
+  }
+  window.KSPesanan = { aksi: aksi, cair: cair, baca: baca, sesi: sesi, kurirSimpan: kurirSimpan };
 })();

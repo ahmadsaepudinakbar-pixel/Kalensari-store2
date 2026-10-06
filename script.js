@@ -18,12 +18,16 @@ const makeOrderCode = (awal = "KS") => {
   const r = new Uint32Array(3); crypto.getRandomValues(r);
   return `${awal}-${tgl}-${[...r].map(x => KODE_HURUF[x % KODE_HURUF.length]).join("")}`;
 };
+/* Baca pesanan lewat fungsi server (supabase-keamanan-baca.sql); bila belum ada, cara lama */
+const bacaAman=(fn,body,lama)=>window.KSPesanan?KSPesanan.baca(fn,body,lama):lama();
+const sesiPembeli=()=>{try{return localStorage.getItem("kalensari_sesi_pembeli")||""}catch(e){return""}};
+const pesananKode=codes=>bacaAman("pesanan_kode",{p_kode:codes},()=>cloudFetch("orders?select=*&order_code=in.("+codes.map(c=>'"'+String(c).replace(/"/g,"")+'"').join(",")+")"));
 // Pastikan nomor belum dipakai (sangat jarang terjadi, tapi dicek agar tidak dobel)
 async function makeUniqueOrderCode(){
   let c = makeOrderCode();
   if(!CLOUD_CONFIG?.enabled) return c;
   for(let i = 0; i < 5; i++){
-    try{ const r = await cloudFetch("orders?select=order_code&order_code=eq." + encodeURIComponent(c)); if(!Array.isArray(r) || !r.length) return c; }catch(e){ return c; }
+    try{ const r = await pesananKode([c]); if(!Array.isArray(r) || !r.length) return c; }catch(e){ return c; }
     c = makeOrderCode();
   }
   return c;
@@ -143,23 +147,32 @@ function updateCloudStatus(text){const el=document.getElementById("cloudStatus")
 async function saveCloudOrder(payload){
   if(!CLOUD_CONFIG?.enabled) return {ok:false,error:"Database online belum aktif."};
   try {
-    const data=await cloudFetch("orders",{method:"POST",body:JSON.stringify(payload)});
-    cloudReady=true; return {ok:true,data:Array.isArray(data)?data[0]:data};
+    await cloudFetch("orders",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(payload)});
+    cloudReady=true; return {ok:true,data:payload};
   } catch(e){ console.error("Supabase orders gagal:",e); return {ok:false,error:String(e.message||e)}; }
 }
 async function saveCloudOrders(list){
   if(!CLOUD_CONFIG?.enabled) return {ok:false,error:"Database online belum aktif."};
   try {
-    const data=await cloudFetch("orders",{method:"POST",body:JSON.stringify(list)});
-    cloudReady=true; return {ok:true,data:Array.isArray(data)?data:[data]};
+    await cloudFetch("orders",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify(list)});
+    cloudReady=true; return {ok:true,data:Array.isArray(list)?list:[list]};
   } catch(e){ console.error("Supabase orders gagal:",e); return {ok:false,error:String(e.message||e)}; }
 }
 async function loadCloudOrders(){
   if(!CLOUD_CONFIG?.enabled) return [];
   return await cloudFetch("orders?select=*&order=created_at.desc&limit=100");
 }
-async function loadMyCloudOrders(phone){
-  if(!CLOUD_CONFIG?.enabled || !phone) return [];
+async function loadMyCloudOrders(phone,codes){
+  if(!CLOUD_CONFIG?.enabled) return [];
+  // Aman: dengan akun pembeli -> semua pesanan sendiri; tanpa akun -> hanya pesanan di HP ini (pakai kode)
+  if(window.KSPesanan){
+    const ss=sesiPembeli();
+    try{
+      if(ss){const r=await KSPesanan.baca("pesanan_saya",{p_sesi:ss},()=>null);if(r)return r;}
+      else{const r=await KSPesanan.baca("pesanan_kode",{p_kode:(codes||[]).slice(0,30)},()=>null);if(r)return r;}
+    }catch(e){if(!/fungsi|function/i.test(String(e.message)))throw e;}
+  }
+  if(!phone) return [];
   const raw=String(phone).trim();
   const normalized=normalizePhone(raw);
   const candidates=[raw,normalized].filter(Boolean);
@@ -1087,7 +1100,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   let lunasSaldo=false;
   if(pakaiSaldo>0){
     try{const r=await pakaiSaldoRpc(checkoutBuyer.wa,pinSaldo,codes,pakaiSaldo);sukses.saldo=pakaiSaldo;sukses.pinOk=true;lunasSaldo=Number(r.sisa)===0;
-      try{const segar=await cloudFetch("orders?select=*&order_code=in.("+codes.map(c=>'"'+c+'"').join(",")+")");const m=new Map((segar||[]).map(x=>[x.order_code,x]));saveLocalOrders(getLocalOrders().map(o=>m.has(o.order_code)?{...o,...m.get(o.order_code)}:o));renderMyOrders();}catch(e){}
+      try{const segar=await pesananKode(codes);const m=new Map((segar||[]).map(x=>[x.order_code,x]));saveLocalOrders(getLocalOrders().map(o=>m.has(o.order_code)?{...o,...m.get(o.order_code)}:o));renderMyOrders();}catch(e){}
       showToast(`🎟️ Saldo voucher ${rupiah(pakaiSaldo)} dipakai`);}
     catch(e){alert("Saldo voucher belum bisa dipakai:\n"+e.message+"\n\nSilakan bayar penuh dengan QRIS.");}
   }
@@ -1274,7 +1287,7 @@ async function refreshMyOrders(){
     if(note){note.textContent="📱 Menampilkan pesanan di perangkat ini.";note.className="order-sync-note offline";}
     return;
   }
-  if(!phone){
+  if(!phone&&!sesiPembeli()&&!local.length){
     if(identity) identity.hidden=false;
     if(note){note.textContent="🔎 Masukkan nomor WhatsApp yang dipakai saat checkout agar Pesanan Saya sama di HP dan komputer.";note.className="order-sync-note offline";}
     return;
@@ -1282,7 +1295,7 @@ async function refreshMyOrders(){
   if(identity) identity.hidden=true;
   if(window.KSNotif){ pembeliHP=phone; if(!pembeliNotif) pembeliNotif=KSNotif.kartu(document.getElementById("ksNotifPembeli"),{key:()=>pembeliHP?"pembeli_push_"+pembeliHP:"",judul:"🔔 Kabari saya lewat notifikasi",ajakan:"Dapatkan pemberitahuan saat pesanan diterima toko, diantar kurir, dan selesai.",aktifTeks:"Anda akan diberi tahu saat status pesanan berubah."}); else pembeliNotif.refresh(); }
   try {
-    const remote=await loadMyCloudOrders(phone);
+    const remote=await loadMyCloudOrders(phone,local.map(o=>o.order_code).filter(Boolean));
     const map=new Map(local.map(o=>[o.order_code||o.id,o]));
     remote.forEach(o=>map.set(o.order_code||o.id,{...map.get(o.order_code||o.id),...o,sync_error:null}));
     const rows=[...map.values()].sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
@@ -1982,7 +1995,7 @@ let codRiwayat={hp:"",t:0,data:null};
 async function riwayatCod(phone){
   const hp=normalizePhone(phone);
   if(codRiwayat.hp===hp&&Date.now()-codRiwayat.t<60000)return codRiwayat.data;
-  let rows=[];try{rows=await cloudFetch(`orders?select=status,payment,gagal_at,updated_at&customer_phone_normalized=eq.${encodeURIComponent(hp)}&status=in.(selesai,gagal)`);}catch(e){rows=null;}
+  let rows=[];try{rows=await bacaAman("cod_riwayat",{p_wa:hp},()=>cloudFetch(`orders?select=status,payment,gagal_at,updated_at&customer_phone_normalized=eq.${encodeURIComponent(hp)}&status=in.(selesai,gagal)`));}catch(e){rows=null;}
   codRiwayat={hp,t:Date.now(),data:Array.isArray(rows)?rows:null};return codRiwayat.data;
 }
 async function codInfo(phone){
@@ -2204,7 +2217,7 @@ if(location.hash==="#keranjang"||location.hash==="#favorit"){const h=location.ha
 let bayarDipilih="",KS_SUKSES=null,saldoDipakai=0;
 // ===== SALDO VOUCHER BELANJA (tabel pembeli_saldo; dipakai lewat fungsi database pakai_saldo + PIN) =====
 const QRIS_MIN=1000;   // sisa bayar QRIS minimal
-async function muatSaldoVoucher(wa){if(!CLOUD_CONFIG?.enabled||!wa)return 0;try{const r=await cloudFetch("pembeli_saldo?select=saldo&wa=eq."+encodeURIComponent(normalizePhone(wa)));return Number(r&&r[0]&&r[0].saldo)||0;}catch(e){return 0;}}
+async function muatSaldoVoucher(wa){if(!CLOUD_CONFIG?.enabled||!wa)return 0;try{const ss=sesiPembeli();if(ss&&window.KSPesanan){const j=await KSPesanan.baca("saldo_saya",{p_sesi:ss,p_peran:"pembeli"},()=>null);if(j)return Number(j.saldo)||0;}const r=await cloudFetch("pembeli_saldo?select=saldo&wa=eq."+encodeURIComponent(normalizePhone(wa)));return Number(r&&r[0]&&r[0].saldo)||0;}catch(e){return 0;}}
 // saldo yang dipakai bersama QRIS: sisa bayar QRIS tidak boleh di bawah QRIS_MIN
 function jatahSaldo(saldo,total){let x=Math.min(saldo,total);if(total-x>0&&total-x<QRIS_MIN)x=total-QRIS_MIN;return Math.max(0,x);}
 async function pakaiSaldoRpc(wa,pin,codes,jumlah){const base=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");

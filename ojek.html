@@ -365,7 +365,7 @@ $("populerList").addEventListener("click", e => { const b = e.target.closest("[d
 
 // ===== Ketersediaan kurir (aktif & tidak sedang mengantar) =====
 async function kurirSiap(){
-  const [mem, st, rows] = await Promise.all([getSetting("kurir_members", []), cf("store_settings?select=key,value&key=like.kurir_ord_*"), cf("orders?select=order_code&status=in.(diproses,dikirim)&limit=200")]);
+  const [mem, st, rows] = await Promise.all([getSetting("kurir_members", []), cf("store_settings?select=key,value&key=like.kurir_ord_*"), KSPesanan.baca("pesanan_aktif_kode", {}, () => cf("orders?select=order_code&status=in.(diproses,dikirim)&limit=200")).then(r => (r || []).map(x => typeof x === "string" ? {order_code:x} : x))]);
   const aktifKode = new Set((rows || []).map(o => o.order_code)), sibuk = new Set();
   (st || []).forEach(r => { const code = r.key.slice("kurir_ord_".length), v = r.value || {}; if(v.acc && v.acc.id && aktifKode.has(code)) sibuk.add(v.acc.id); });
   let siap = (Array.isArray(mem) ? mem : []).filter(m => m && m.id && m.pending !== true && m.aktif !== false);
@@ -445,7 +445,7 @@ $("btnPesan").onclick = async () => {
   const H = "23456789ABCDEFGHJKMNPQRSTUVWXYZ", buat = () => { const d = new Date(Date.now() + 7 * 3600 * 1000), r = new Uint32Array(3); crypto.getRandomValues(r);
     return `${L0.kode}-${String(d.getUTCDate()).padStart(2, "0")}${String(d.getUTCMonth() + 1).padStart(2, "0")}-${[...r].map(x => H[x % H.length]).join("")}`; };
   let code = buat();
-  for(let i = 0; i < 5; i++){ try{ const ada = await cf("orders?select=order_code&order_code=eq." + encodeURIComponent(code)); if(!ada.length) break; }catch(e){ break; } code = buat(); }
+  for(let i = 0; i < 5; i++){ try{ const ada = await KSPesanan.baca("pesanan_kode", {p_kode:[code]}, () => cf("orders?select=order_code&order_code=eq." + encodeURIComponent(code))); if(!ada.length) break; }catch(e){ break; } code = buat(); }
   const item = {name:L0.nama, qty:1, price:h.ongkos, layanan, km:h.km, jemput:{...A, ket:ketA}, tujuan:{...B, ket:ketB}, ...(paket || {})};
   const noteParts = [`Tujuan: ${ketB || (B.lat + ", " + B.lng)}`];
   if(paket) noteParts.push(`Barang: ${paket.barang}`, `Penerima: ${paket.penerima} (+${paket.waPenerima})`);
@@ -481,7 +481,7 @@ if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("messa
 async function muatLacak(){
   if(!lacakKode) return;
   try{
-    const [rows, st] = await Promise.all([cf("orders?select=order_code,status,total,items,created_at,updated_at&order_code=eq." + encodeURIComponent(lacakKode)), cf("store_settings?select=value&key=eq." + encodeURIComponent("kurir_ord_" + lacakKode))]);
+    const [rows, st] = await Promise.all([KSPesanan.baca("pesanan_kode", {p_kode:[lacakKode]}, () => cf("orders?select=order_code,status,total,items,created_at,updated_at&order_code=eq." + encodeURIComponent(lacakKode))), cf("store_settings?select=value&key=eq." + encodeURIComponent("kurir_ord_" + lacakKode))]);
     const o = rows[0]; if(!o){ $("tInfo").textContent = "Pesanan tidak ditemukan."; return; }
     const it = (o.items || [])[0] || {}, L0 = LAY[it.layanan] || LAY.ojek, acc = st[0] && st[0].value && st[0].value.acc;
     const s = o.status === "dibatalkan" ? "batal" : o.status === "selesai" ? "selesai" : o.status === "dikirim" ? "jalan" : acc ? "menuju" : "cari";

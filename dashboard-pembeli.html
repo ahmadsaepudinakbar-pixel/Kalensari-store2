@@ -333,6 +333,18 @@ function itemsText(o){
   let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } }
   return (Array.isArray(it) ? it : []).map(i => esc(i.name || i.nama || "Item") + " ×" + (i.qty || 1)).join(", ") || "-";
 }
+/* ===== Baca data pribadi lewat server (supabase-keamanan-baca.sql); bila belum dipasang, cara lama ===== */
+async function pesananSaya(){
+  return KSPesanan.baca("pesanan_saya", {p_sesi:KSPesanan.sesi(ROLE)}, async () => {
+    const a = await fetchOrders("customer_phone_normalized=eq." + WA), b = await fetchOrders("customer_phone=eq.0" + WA.slice(2)).catch(() => []);
+    return [...a, ...b]; });
+}
+async function saldoSaya(){
+  return KSPesanan.baca("saldo_saya", {p_sesi:KSPesanan.sesi(ROLE), p_peran:"pembeli"}, async () => {
+    const [s, mut, aj, saya] = await Promise.all([cf("pembeli_saldo?select=saldo&wa=eq." + WA), cf("pembeli_mutasi?select=id,jumlah,jenis,ket,saldo_akhir,t&wa=eq." + WA + "&order=id.desc&limit=100"),
+      cf("pembeli_ajak?select=status,t&pengundang=eq." + WA), cf("pembeli_ajak?select=status&wa=eq." + WA)]);
+    return {saldo:Number(s && s[0] && s[0].saldo) || 0, mutasi:mut || [], diajak:aj || [], saya:saya || []}; });
+}
 async function fetchOrders(q){
   if(!cloudOn()) throw new Error("Pesanan hanya tampil bila database online aktif.");
   return await cf("orders?select=*&" + q + "&order=created_at.desc&limit=50");
@@ -532,21 +544,16 @@ async function rpc(fn, body){
   const j = t ? JSON.parse(t) : null; if(j && j.ok === false) throw new Error(j.pesan || "Gagal"); return j;
 }
 async function muatSaldoKecil(){
-  try{ const r = await cf("pembeli_saldo?select=saldo&wa=eq." + WA); const v = Number(r && r[0] && r[0].saldo) || 0; $("qSaldo").textContent = v >= 1000 ? Math.floor(v / 1000) + "rb" : v; $("qSaldo").hidden = !v; return v; }catch(e){ return null; }
+  try{ const r = await saldoSaya(); const v = Number(r && r.saldo) || 0; $("qSaldo").textContent = v >= 1000 ? Math.floor(v / 1000) + "rb" : v; $("qSaldo").hidden = !v; return v; }catch(e){ return null; }
 }
 async function muatVoucher(){
   if(!cloudOn()){ $("vcSaldo").textContent = "-"; return; }
   const kode = me.kode || "", link = "https://kalensari.web.id/akun-pembeli.html" + (kode ? "?ajak=" + encodeURIComponent(kode) : "");
   $("ajKode").textContent = kode || "(menunggu ID akun)";
   try{
-    const [s, mut, aj, saya, atur, sel] = await Promise.all([
-      cf("pembeli_saldo?select=saldo&wa=eq." + WA),
-      cf("pembeli_mutasi?select=jumlah,jenis,ket,saldo_akhir,t&wa=eq." + WA + "&order=t.desc&limit=50"),
-      cf("pembeli_ajak?select=status,t&pengundang=eq." + WA),
-      cf("pembeli_ajak?select=status&wa=eq." + WA),
-      getSetting("voucher_aturan", {}).catch(() => ({})),
-      cf("orders?select=id&status=eq.selesai&customer_phone_normalized=eq." + WA + "&limit=1")]);
-    const v = Number(s && s[0] && s[0].saldo) || 0; $("vcSaldo").textContent = fmtRp(v); muatSaldoKecil();
+    const [ss, atur, semua] = await Promise.all([saldoSaya(), getSetting("voucher_aturan", {}).catch(() => ({})), pesananSaya().catch(() => [])]);
+    const mut = (ss.mutasi || []).slice(0, 50), aj = ss.diajak || [], saya = ss.saya || [], sel = (semua || []).filter(o => o.status === "selesai").slice(0, 1);
+    const v = Number(ss.saldo) || 0; $("vcSaldo").textContent = fmtRp(v); muatSaldoKecil();
     const A = {aktif:true, pengundang:2000, baru:5000, min:20000, hari:30, ...((atur && atur.ajak) || {})};
     $("ajInfo").innerHTML = A.aktif === false ? "Program ajak tetangga sedang tidak aktif."
       : `Bagikan kode Anda. Begitu tetangga <b>daftar akun baru</b> memakai kode Anda dan kode OTP WhatsApp-nya berhasil, Anda <b>langsung dapat ${fmtRp(A.pengundang)}</b> saldo voucher.` + (Number(A.baru) > 0 ? ` Tetangga Anda dapat <b>${fmtRp(A.baru)}</b> setelah pesanan pertamanya (minimal ${fmtRp(A.min)}) selesai diantar.` : "");
@@ -568,7 +575,7 @@ async function cekSambut(){
   if(!WA || document.querySelector(".nb-ov") || LSget(SB_KEY(), false)) return;
   let baru = null; try{ baru = JSON.parse(localStorage.getItem("kalensari_sambut_" + WA) || "null"); }catch(e){}
   let jml = 0;
-  if(cloudOn()){ try{ const r = await cf("pembeli_mutasi?select=jumlah,t&wa=eq." + WA + "&jenis=eq.sambut&limit=1"); if(r.length){ jml = Number(r[0].jumlah) || 0; if(!baru && Date.now() - new Date(r[0].t).getTime() > 14*864e5) jml = 0; } }catch(e){} }
+  if(cloudOn()){ try{ const r = ((await saldoSaya()).mutasi || []).filter(m => m.jenis === "sambut").slice(0, 1); if(r.length){ jml = Number(r[0].jumlah) || 0; if(!baru && Date.now() - new Date(r[0].t).getTime() > 14*864e5) jml = 0; } }catch(e){} }
   if(!jml && !baru) return;
   tampilSambut(jml || Number(baru && baru.sambut) || 0);
 }
@@ -595,7 +602,7 @@ async function cekBonusAjak(){
   if(!cloudOn() || !WA || nbSibuk || document.querySelector(".nb-ov")) return;
   nbSibuk = true;
   try{
-    const rows = await cf("pembeli_mutasi?select=id,jumlah,ket,t&wa=eq." + WA + "&jenis=eq.ajak&jumlah=gt.0&order=id.desc&limit=20");
+    const rows = ((await saldoSaya()).mutasi || []).filter(m => m.jenis === "ajak" && Number(m.jumlah) > 0).sort((a, b) => Number(b.id) - Number(a.id)).slice(0, 20);
     if(!rows.length) return;
     let lihat = LSget(NB_KEY(), null);
     if(lihat == null){                         // pertama kali: tampilkan yang masuk 3 hari terakhir saja
@@ -769,8 +776,8 @@ async function petaLacak(box, v, tuju){
 async function loadOrders(){
   const box = $("orders"); box.innerHTML = '<p class="hint">Memuat...</p>';
   try{
-    const a = await fetchOrders("customer_phone_normalized=eq." + WA), b = await fetchOrders("customer_phone=eq.0" + WA.slice(2)).catch(() => []);
-    const rows = [...new Map([...a, ...b].map(o => [o.order_code || o.id, o])).values()].sort((x, y) => new Date(y.created_at||0) - new Date(x.created_at||0));
+    const ab = await pesananSaya();
+    const rows = [...new Map(ab.map(o => [o.order_code || o.id, o])).values()].sort((x, y) => new Date(y.created_at||0) - new Date(x.created_at||0));
     await muatKurirOrd(rows); await muatFotoProduk(rows);
     ringkasan(rows.filter(o => !trOf(o))); berandaPesanan(rows);
     if(window.KSPW) KSPW.pasang(box, rows, loadOrders);

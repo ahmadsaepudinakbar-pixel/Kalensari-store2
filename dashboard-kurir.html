@@ -374,6 +374,8 @@ function itemsText(o){
   let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } }
   return (Array.isArray(it) ? it : []).map(i => esc(i.name || i.nama || "Item") + " ×" + (i.qty || 1)).join(", ") || "-";
 }
+/* Baca pesanan lewat server (supabase-keamanan-baca.sql): mode aktif / tunggu / riwayat. Bila belum dipasang, cara lama. */
+const pesananKurir = (mode, lama, sejak) => KSPesanan.baca("pesanan_kurir", {p_sesi:KSPesanan.sesi(ROLE), p_mode:mode, ...(sejak ? {p_sejak:sejak} : {})}, lama);
 async function fetchOrders(q){
   if(!cloudOn()) throw new Error("Pesanan hanya tampil bila database online aktif.");
   return await cf("orders?select=*&" + q + "&order=created_at.desc&limit=50");
@@ -477,7 +479,7 @@ async function readState(code){
   return (r[0] && r[0].value) || {};
 }
 async function writeState(code, st){
-  await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key:ORD_PREFIX + code, value:st}])});
+  await KSPesanan.kurirSimpan(ORD_PREFIX + code, st, () => cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key:ORD_PREFIX + code, value:st}])}));
 }
 function h32(str){ let h = 2166136261; for(let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 16; h = Math.imul(h, 2246822507); h ^= h >>> 13; h = Math.imul(h, 3266489909); h ^= h >>> 16; return h >>> 0; }
 async function eligibleCouriers(){
@@ -493,6 +495,14 @@ const minSaldo = () => BIAYA.mode === "persen" ? (Number(BIAYA.minSaldo) || 1000
 const potongTeks = () => BIAYA.mode === "persen" ? `${String(Number(BIAYA.persen) || 0).replace(".", ",")}% dari ongkir` : fmtRp(BIAYA.potong);
 async function muatBiaya(){ try{ const b = await getSetting("kurir_biaya", null); BIAYA = {aktif:false, potong:1000, minTopup:20000, minSaldo:1000, caraBayar:"", ...(b && typeof b === "object" ? b : {})}; }catch(e){} return BIAYA; }
 async function saldoSemua(){ try{ const r = await cf("kurir_saldo?select=kurir_id,saldo"); const m = {}; (r || []).forEach(x => { m[x.kurir_id] = Number(x.saldo) || 0; }); return m; }catch(e){ return null; } }
+async function saldoSayaK(sejak){
+  return KSPesanan.baca("saldo_saya", {p_sesi:KSPesanan.sesi(ROLE), p_peran:"kurir", ...(sejak ? {p_sejak:sejak} : {})}, async () => {
+    const id = encodeURIComponent(me.id);
+    const [r, p, m] = await Promise.all([cf("kurir_saldo?select=saldo&kurir_id=eq." + id), cf("kurir_topup?select=id,jumlah,status,t,catatan,diproses_t&kurir_id=eq." + id + "&order=t.desc&limit=5"),
+      cf("kurir_mutasi?select=id,jumlah,jenis,ket,saldo_akhir,t&kurir_id=eq." + id + "&t=gte." + encodeURIComponent(sejak || new Date(Date.now() - 60*864e5).toISOString()) + "&order=t.desc&limit=2000").catch(() => [])]);
+    let c = null; try{ c = await cf("kurir_cair?select=id,jumlah,diterima,status,t,catatan,diproses_t&kurir_id=eq." + id + "&order=t.desc&limit=5"); }catch(e){}
+    return {saldo:r[0] ? Number(r[0].saldo) || 0 : 0, topup:p || [], mutasi:m || [], cair:c}; });
+}
 async function renderSaldo(){
   const box = $("saldoBox"); if(!box || !me) return;
   await muatBiaya();
@@ -500,9 +510,8 @@ async function renderSaldo(){
   let s = 0, req = [], cair = [];
   try{
     const id = encodeURIComponent(me.id);
-    const [r, p] = await Promise.all([cf("kurir_saldo?select=saldo&kurir_id=eq." + id), cf("kurir_topup?select=id,jumlah,status,t,catatan,diproses_t&kurir_id=eq." + id + "&order=t.desc&limit=5")]);
-    s = r[0] ? Number(r[0].saldo) || 0 : 0; req = p || [];
-    try{ cair = await cf("kurir_cair?select=id,jumlah,diterima,status,t,catatan,diproses_t&kurir_id=eq." + id + "&order=t.desc&limit=5") || []; }catch(e){ cair = null; }
+    const j = await saldoSayaK();
+    s = Number(j.saldo) || 0; req = j.topup || []; cair = j.cair === undefined ? null : j.cair;
     CAIRK = cair;
   }catch(e){ box.hidden = true; return; }
   SALDO = s; const kurang = s < minSaldo();
@@ -529,6 +538,7 @@ function lembar(html){
 }
 /* ===== Pencairan saldo kurir (supabase-upah-kurir-qris.sql) ===== */
 let CAIRK = null;
+const rekHPk = () => { try{ return JSON.parse(localStorage.getItem("kalensari_rek_kurir") || "{}") || {}; }catch(e){ return {}; } };
 async function bukaCair(){
   await muatBiaya();
   let biaya = 2500; try{ const v = await getSetting("biaya_cair", null); const n = Number(v && typeof v === "object" ? v.admin : v); if(v != null && n >= 0) biaya = Math.round(n); }catch(e){}
@@ -541,9 +551,9 @@ async function bukaCair(){
     <p class="hint" style="margin:0 0 10px">Saldo ${fmtRp(saldo)} • bisa dicairkan ${fmtRp(maks)}. Minimal ${fmtRp(MIN)}, 1x sehari, dipotong biaya admin bank ${fmtRp(biaya)}.</p>
     ${alasan ? `<p class="hint" style="background:#fff3cd;border-radius:12px;padding:10px 12px;color:#5a4300">${esc(alasan)}</p><button class="mini" id="crTutup" type="button" style="width:100%;margin-top:10px">Tutup</button>` : `
     <label>Jumlah<input id="crJ" class="fld" inputmode="numeric" value="${maks}"></label>
-    <label>1. Kirim ke (bank / e-wallet)<input id="crB" class="fld" list="crBL" maxlength="30" placeholder="Pilih atau ketik, mis. DANA / BRI" value="${esc(me.rekB || "")}"><datalist id="crBL">${["DANA","OVO","GoPay","ShopeePay","LinkAja","BRI","BNI","BCA","Mandiri","BSI","BJB","SeaBank","Bank Jago","Blu BCA"].map(x => `<option value="${x}">`).join("")}</datalist></label>
-    <label>2. Nomor rekening / e-wallet<input id="crN" class="fld" inputmode="numeric" maxlength="25" placeholder="mis. 081234567890" value="${esc(me.rekN || "")}"></label>
-    <label>3. Atas nama<input id="crA" class="fld" maxlength="50" placeholder="Nama pemilik rekening / e-wallet" value="${esc(me.rekA || "")}"></label>
+    <label>1. Kirim ke (bank / e-wallet)<input id="crB" class="fld" list="crBL" maxlength="30" placeholder="Pilih atau ketik, mis. DANA / BRI" value="${esc(rekHPk().b || "")}"><datalist id="crBL">${["DANA","OVO","GoPay","ShopeePay","LinkAja","BRI","BNI","BCA","Mandiri","BSI","BJB","SeaBank","Bank Jago","Blu BCA"].map(x => `<option value="${x}">`).join("")}</datalist></label>
+    <label>2. Nomor rekening / e-wallet<input id="crN" class="fld" inputmode="numeric" maxlength="25" placeholder="mis. 081234567890" value="${esc(rekHPk().n || "")}"></label>
+    <label>3. Atas nama<input id="crA" class="fld" maxlength="50" placeholder="Nama pemilik rekening / e-wallet" value="${esc(rekHPk().a || "")}"></label>
     <div class="cr-box" id="crRin">${rinci(maks)}</div>
     <p class="hint" style="background:#fff3cd;border-radius:12px;padding:10px 12px;color:#5a4300;margin:10px 0">⚠️ Periksa lagi nama bank / e-wallet, nomor, dan nama pemilik. Uang yang ditransfer ke nomor yang salah <b>tidak bisa dikembalikan</b>.</p>
     <label style="display:flex;gap:10px;align-items:flex-start;font-size:13.5px;font-weight:600"><input type="checkbox" id="crOk" style="width:20px;height:20px;flex:none"> Saya sudah memeriksa jumlah dan tujuan transfer, semuanya benar.</label>
@@ -570,7 +580,7 @@ async function bukaCair(){
       const r = await fetch(base + "/rest/v1/rpc/kurir_cair_ajukan", {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify({p_sesi:KSID.sesi(ROLE), p_jumlah:j, p_rek:rek})});
       const t = await r.text(); let x = null; try{ x = JSON.parse(t); }catch(e){}
       if(!r.ok) throw new Error(String((x && x.message) || t).replace(/^SESI:\s*/, ""));
-      if(me.rek !== rek){ Object.assign(me, {rek, rekB:rb, rekN:rn, rekA:ra}); upsertMember(me).catch(() => {}); }
+      try{ localStorage.setItem("kalensari_rek_kurir", JSON.stringify({b:rb, n:rn, a:ra})); }catch(e){}
       ov.remove(); toast("✅ Pencairan diajukan. Admin akan mentransfer " + fmtRp(j - biaya)); renderSaldo();
     }catch(e){ Y.disabled = false; segar(); toast("Gagal: " + String(e.message || e).slice(0, 100)); }
   };
@@ -628,7 +638,7 @@ async function bukaRiwayat(){
   const ov = lembar(`<h3 style="margin:0 0 8px;color:var(--brown)">📜 Riwayat saldo</h3><div id="rwIsi"><p class="hint">Memuat...</p></div><button class="mini" type="button" id="rwTutup" style="width:100%;margin-top:12px">Tutup</button>`);
   ov.querySelector("#rwTutup").onclick = () => ov.remove();
   try{
-    const r = await cf("kurir_mutasi?select=jumlah,jenis,ket,saldo_akhir,t&kurir_id=eq." + encodeURIComponent(me.id) + "&order=t.desc&limit=50");
+    const r = ((await saldoSayaK()).mutasi || []).slice(0, 50);
     ov.querySelector("#rwIsi").innerHTML = r.length ? r.map(x => `<div class="mut"><div>${esc(x.ket || x.jenis)}<br><small class="hint">${new Date(x.t).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})} • saldo ${fmtRp(x.saldo_akhir)}</small></div><b class="${x.jumlah >= 0 ? "p" : "m"}">${x.jumlah >= 0 ? "+" : "−"}${fmtRp(Math.abs(x.jumlah))}</b></div>`).join("") : '<p class="hint">Belum ada riwayat.</p>';
   }catch(e){ ov.querySelector("#rwIsi").innerHTML = '<p class="hint">Gagal memuat riwayat.</p>'; }
 }
@@ -805,7 +815,7 @@ function tokoTutup(code){
       const teks = alasan + (ket ? " – " + ket : "") + " (dilaporkan kurir " + (me.nama || WA) + ")";
       await batalkanNota(code, ["diproses"], {batal_alasan:teks, ongkir_tetap:tetap,
         refund: lunas ? {jumlah:barang + balik, barang, ongkir:balik, ongkir_kurir:tetap, kurir:{id:me.id, nama:me.nama || "", wa:WA}, status:"menunggu", t} : null});
-      try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){}
+      try{ await KSPesanan.kurirSimpan(ORD_PREFIX + code, null, () => cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"})); }catch(e){}
       // COD: ongkir jarak dari nota batal ditagih bersama nota lain
       if(tetap > 0 && !lunas && lain.length){ const x = lain[lain.length - 1], s2 = await readState(x.order_code); await writeState(x.order_code, {...s2, tambahOngkir:(Number(s2.tambahOngkir) || 0) + tetap, tambahDari:code}); }
       // catatan pelanggaran toko, kompensasi & saldo voucher pembeli diproses otomatis oleh database (supabase-voucher-pembeli.sql)
@@ -830,7 +840,7 @@ async function loadOrders(){
   if(busyLoad) return; busyLoad = true;
   const box = $("orders"); if(!box.innerHTML.trim()) box.innerHTML = '<p class="hint">Memuat...</p>';
   try{
-    const [rows, states, elig, pend] = await Promise.all([fetchOrders("status=in.(diproses,dikirim)"), readStates(), eligibleCouriers(), fetchOrders("status=in.(menunggu,baru)&grup=not.is.null").catch(() => []), muatTokoLoc()]);
+    const [rows, states, elig, pend] = await Promise.all([pesananKurir("aktif", () => fetchOrders("status=in.(diproses,dikirim)")), readStates(), eligibleCouriers(), pesananKurir("tunggu", () => fetchOrders("status=in.(menunggu,baru)&grup=not.is.null")).catch(() => []), muatTokoLoc()]);
     const now = Date.now(); ORD = {}; STATES = states; rows.forEach(o => { ORD[o.order_code] = o; });
     const tungguToko = grupMenunggu(pend, now);
     const busy = busyIds(rows, states);
@@ -924,12 +934,12 @@ async function setStatus(code, status, antar){
     if(!st.acc || st.acc.id !== me.id){ toast("Pesanan ini bukan milik Anda"); return loadOrders(); }
     if(status === "selesai" && antar){
       // catat siapa & bagaimana pesanan diserahkan (dibaca pembeli, admin, dan notifikasi)
-      const tulis = (key, value) => cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key, value}])});
+      const tulis = (key, value) => KSPesanan.kurirSimpan(key, value, () => cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key, value}])}));
       if(antar.foto) await tulis("foto_" + code, {foto:antar.foto, t:Date.now(), ...(antar.lok ? {lok:antar.lok} : {})});
       await tulis("antar_" + code, {id:me.id, nama:me.nama || "", wa:WA, cara:antar.cara, ket:antar.ket || "", t:Date.now(), ...(antar.lok ? {lok:antar.lok} : {})});
     }
     await KSPesanan.aksi("kurir", code, "status", {status}, () => cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status, updated_at:new Date().toISOString()})}));
-    if(status === "selesai"){ try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){} lacakHapus(code); }
+    if(status === "selesai"){ try{ await KSPesanan.kurirSimpan(ORD_PREFIX + code, null, () => cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"})); }catch(e){} lacakHapus(code); }
     if(status === "selesai") await catatKurir([code], {selesai_at:new Date().toISOString()});
     else await catatKurir([code], {});
     if(status === "selesai"){ me.selesai = (me.selesai || 0) + 1; upsertMember(me).catch(() => {}); renderProf(); setTimeout(renderSaldo, 800); }
@@ -975,10 +985,10 @@ window.muatPenghasilan = async function(paksa){
   $("uangIsi").innerHTML = '<p class="hint">Memuat…</p>';
   try{
     const sejak = new Date(Date.now() - 45*864e5).toISOString();
-    PG.rows = await cf("orders?select=*&kurir_id=eq." + encodeURIComponent(me.id) + "&created_at=gte." + encodeURIComponent(sejak) + "&order=created_at.desc&limit=500");
+    PG.rows = await pesananKurir("riwayat", () => cf("orders?select=*&kurir_id=eq." + encodeURIComponent(me.id) + "&created_at=gte." + encodeURIComponent(sejak) + "&order=created_at.desc&limit=500"), sejak);
     PG.err = "";
   }catch(e){ PG.rows = []; PG.err = /kurir_id|column/i.test(String(e.message)) ? "kolom" : "net"; }
-  try{ await muatBiaya(); PG.mut = BIAYA.aktif ? await cf("kurir_mutasi?select=jumlah,jenis,t&kurir_id=eq." + encodeURIComponent(me.id) + "&jenis=eq.potong&t=gte." + encodeURIComponent(new Date(Date.now() - 45*864e5).toISOString()) + "&limit=2000") : []; }catch(e){ PG.mut = []; }
+  try{ await muatBiaya(); PG.mut = BIAYA.aktif ? ((await saldoSayaK(new Date(Date.now() - 45*864e5).toISOString())).mutasi || []).filter(m => m.jenis === "potong") : []; }catch(e){ PG.mut = []; }
   PG.t = Date.now(); gambarPenghasilan();
 };
 function gambarPenghasilan(){
@@ -1055,7 +1065,7 @@ async function lacakKirim(pos){
   if(lacakLast && p.t - lacakLast.t < 15000 && jarakM(lacakLast, p) < 40) return;
   lacakLast = p; lacakErr = "";
   const rows = lacakCodes.map(code => ({key:LACAK_PREFIX + code, value:{...p, nama:me.nama || "", wa:WA, id:me.id}}));
-  if(rows.length) try{ await cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify(rows)}); }catch(e){}
+  for(const r of rows) try{ await KSPesanan.kurirSimpan(r.key, r.value, () => cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([r])})); }catch(e){}
 }
 function lacakSync(mine){
   lacakCodes = (mine || []).filter(o => o.status === "dikirim").map(o => o.order_code);
@@ -1066,7 +1076,7 @@ function lacakSync(mine){
     document.querySelectorAll(".lacak-ind").forEach(el => { el.outerHTML = lacakInd(); });
   }, {enableHighAccuracy:true, maximumAge:10000, timeout:30000});
 }
-function lacakHapus(code){ cf("store_settings?key=eq." + encodeURIComponent(LACAK_PREFIX + code), {method:"DELETE"}).catch(() => {}); }
+function lacakHapus(code){ KSPesanan.kurirSimpan(LACAK_PREFIX + code, null, () => cf("store_settings?key=eq." + encodeURIComponent(LACAK_PREFIX + code), {method:"DELETE"})).catch(() => {}); }
 
 // ===== Gagal antar: kurir wajib pilih alasan. Dipakai admin untuk memblokir COD pembeli yang sering gagal =====
 const ALASAN_GAGAL = ["Pembeli menolak", "Tidak ada di rumah", "Nomor tidak bisa dihubungi", "Alamat tidak ditemukan", "Lainnya"];
@@ -1098,7 +1108,7 @@ function gagalAntar(code){
       const teks = alasan + (ket ? " – " + ket : "") + " • Barang: " + barang + " • Kurir: " + (me.nama || WA);
       await KSPesanan.aksi("kurir", code, "gagal", {alasan:teks}, () => cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"gagal", gagal_alasan:teks, gagal_at:now, updated_at:now})}));
       await catatKurir([code], {});
-      try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){}
+      try{ await KSPesanan.kurirSimpan(ORD_PREFIX + code, null, () => cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"})); }catch(e){}
       lacakHapus(code);
       ov.remove(); toast("Laporan gagal antar terkirim ke admin"); loadOrders();
     }catch(e){ sibuk = false; $("gaKirim").textContent = "Laporkan gagal antar"; $("gaErr").textContent = "Gagal mengirim: " + String(e.message || e).slice(0, 120); }
