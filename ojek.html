@@ -164,7 +164,7 @@ details.more{margin-top:12px}details.more summary{cursor:pointer;color:var(--bro
 <script src="config.js" onerror="void 0"></script>
 <script src="notif.js"></script>
 <script src="serahterima.js"></script>
-<script src="akun-id.js"></script>
+<script src="akun-id.js"></script><script src="pesanan-aman.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -459,7 +459,7 @@ $("btnPesan").onclick = async () => {
     catch(e){ if(/customer_phone_normalized/.test(String(e.message))){ delete row.customer_phone_normalized; await cf("orders", {method:"POST", headers:{Prefer:"return=minimal"}, body:JSON.stringify(row)}); } else throw e; }
     localStorage.setItem("kalensari_ojek_pemesan", JSON.stringify({nama, wa:$("wa").value.trim()}));
     localStorage.setItem("kalensari_ojek_aktif", code);
-    if(window.KSST) await KSST.daftarkan(code, KSST.buatKode());
+    if(window.KSST && layanan !== "paket") await KSST.daftarkan(code, KSST.buatKode());   // paket: bukti = foto berlokasi dari kurir
     toast("✅ Pesanan terkirim, mencari kurir...");
     lacak(code);
   }catch(e){ toast("Gagal mengirim pesanan: " + String(e.message || e).slice(0, 80)); }
@@ -497,9 +497,7 @@ async function muatLacak(){
       if(o.status === "selesai") await KSST.muatInfo([o.order_code]);
       let hp = ""; try{ hp = norm(JSON.parse(localStorage.getItem("kalensari_ojek_pemesan") || "{}").wa); }catch(e){}
       KSST.pasang($("tST"), hp, muatLacak);
-      const kodeST = KSST.kodeOf(o.order_code), kirimKode = it.layanan === "paket" && it.waPenerima && kodeST && !["selesai", "dibatalkan", "gagal"].includes(o.status)
-        ? `<a class="btn g" target="_blank" rel="noopener" href="https://wa.me/${esc(it.waPenerima)}?text=${encodeURIComponent(`Halo ${it.penerima || ""}, saya kirim paket (${it.barang || "barang"}) lewat kurir Kalensari Store.\nKode serah terima: *${kodeST}*\nSebutkan kode ini ke kurir hanya setelah paket Anda terima. Terima kasih 🙏`)}">🔑 Kirim kode ke WA penerima</a>` : "";
-      $("tST").innerHTML = KSST.html(o).replace("Sebutkan kode ini ke kurir", it.layanan === "paket" ? "Kirim kode ini ke penerima barang; kurir memintanya saat barang diserahkan. Sebutkan ke kurir" : "Sebutkan kode ini ke kurir") + kirimKode
+      $("tST").innerHTML = KSST.html(o)
         + (AKUN ? `<p class="hint" style="text-align:center">Riwayat tersimpan di <a href="dashboard-pembeli.html#pesanan">Dashboard › Pesanan</a></p>` : "");
     }
     if(s === "selesai" || s === "batal"){ clearInterval(lacakTimer); localStorage.removeItem("kalensari_ojek_aktif"); }
@@ -510,7 +508,8 @@ $("btnBatal").onclick = async () => {
   try{
     const st = await cf("store_settings?select=value&key=eq." + encodeURIComponent("kurir_ord_" + lacakKode));
     if(st[0] && st[0].value && st[0].value.acc) return toast("Kurir sudah menerima pesanan. Hubungi kurir untuk membatalkan."), muatLacak();
-    await cf("orders?order_code=eq." + encodeURIComponent(lacakKode) + "&status=eq.diproses", {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"dibatalkan", updated_at:new Date().toISOString()})});
+    const h = await KSPesanan.aksi("tamu", lacakKode, "batal_ojek", {}, () => cf("orders?order_code=eq." + encodeURIComponent(lacakKode) + "&status=eq.diproses", {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"dibatalkan", updated_at:new Date().toISOString()})}));
+    if(!h.lama && !h.jumlah) return toast("Pesanan tidak bisa dibatalkan lagi"), muatLacak();
     toast("Pesanan dibatalkan"); muatLacak();
   }catch(e){ toast("Gagal membatalkan"); }
 };

@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="manifest-kurir.webmanifest">
 <meta name="theme-color" content="#7b3f1d">
 <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="icons/kurir-apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Kalensari">
+<meta name="apple-mobile-web-app-title" content="Kurir KS">
 <script src="pwa.js" defer></script>
 <title>Dashboard Kurir – Kalensari Store</title>
 <style>
@@ -249,6 +249,7 @@ body{background-color:#f4ebdf;background-image:none}
 .nav{border-top:1px solid #eedfcb;box-shadow:0 -4px 16px rgba(91,44,18,.07)}.nav button{color:#9a877a;font-size:13px}.nav button span{color:#9a877a;height:30px;display:grid;place-items:center}
 .nav button.on,.nav button.on span{color:#7b3f1d}.nav button.on::after{content:"";position:absolute;left:18%;right:18%;bottom:-4px;height:4px;border-radius:4px;background:#7b3f1d}
 @media (max-width:370px){.ly-g{grid-template-columns:1fr 1fr}.sd-bd{width:58%}}
+@media (display-mode: standalone){.topbar{display:none}.wrap{padding-top:calc(12px + env(safe-area-inset-top,0px))}}
 </style>
 </head>
 <body>
@@ -314,7 +315,7 @@ body{background-color:#f4ebdf;background-image:none}
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
 <script src="crop.js"></script>
-<script src="akun-id.js"></script>
+<script src="akun-id.js"></script><script src="pesanan-aman.js"></script>
 <script src="notif.js"></script>
 <script src="navigasi-kurir.js"></script>
 <script>
@@ -706,9 +707,12 @@ function grupMenunggu(pend, now){
 // PATCH aman: bila kolom baru (supabase-toko-tutup.sql) belum ada, tetap batalkan dengan kolom lama.
 async function batalkanNota(code, dari, extra){
   const t = new Date().toISOString(), url = "orders?order_code=eq." + encodeURIComponent(code) + "&status=in.(" + dari.join(",") + ")";
-  try{ await cf(url, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"dibatalkan", updated_at:t, batal_at:t, ...(extra || {})})}); }
+  const lama = async () => { try{ await cf(url, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"dibatalkan", updated_at:t, batal_at:t, ...(extra || {})})}); }
   catch(e){ if(!/batal_|refund|ongkir_tetap|column/i.test(String(e.message))) throw e;
-    await cf(url, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"dibatalkan", updated_at:t})}); }
+    await cf(url, {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"dibatalkan", updated_at:t})}); } };
+  const x = extra || {};
+  if(dari.includes("diproses")) return KSPesanan.aksi("kurir", code, "batal_toko", {alasan:x.batal_alasan, ongkir_tetap:x.ongkir_tetap, refund:x.refund}, lama);
+  return KSPesanan.aksi("kurir", code, "batal_telat", {}, lama);
 }
 async function ongkirDasar(toko){
   if(!SHIPFEE) try{ SHIPFEE = await getSetting("shipping_fees", {}) || {}; }catch(e){ SHIPFEE = {}; }
@@ -826,7 +830,7 @@ let KOLOM_KURIR = true;
 async function catatKurir(codes, extra){
   if(!KOLOM_KURIR || !codes.length) return;
   const isi = {kurir_id:me.id, kurir_nama:me.nama || "", kurir_wa:WA, ...(extra || {})};
-  try{ await cf("orders?order_code=in.(" + codes.map(c => '"' + String(c).replace(/"/g, "") + '"').join(",") + ")", {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify(isi)}); }
+  try{ await KSPesanan.aksi("kurir", codes, "catat", extra || {}, () => cf("orders?order_code=in.(" + codes.map(c => '"' + String(c).replace(/"/g, "") + '"').join(",") + ")", {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify(isi)})); }
   catch(e){ if(/kurir_|diambil_at|selesai_at|column/i.test(String(e.message))) KOLOM_KURIR = false; }
 }
 async function terima(code){
@@ -856,7 +860,7 @@ async function alihkan(code, pesan){
   const sk = nextSkip(o, st, elig, now);
   const lepas = st.acc ? anggota(o).filter(y => y.status === "diproses" || y === o) : [o];
   for(const x of lepas){ try{ await writeState(x.order_code, {acc:null, skip:sk, base:now}); }catch(e){} }
-  if(st.acc && KOLOM_KURIR){ try{ await cf("orders?order_code=in.(" + lepas.map(x => '"' + x.order_code + '"').join(",") + ")&kurir_id=eq." + encodeURIComponent(me.id), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({kurir_id:null, kurir_nama:null, kurir_wa:null, diambil_at:null})}); }catch(e){} }
+  if(st.acc && KOLOM_KURIR){ try{ await KSPesanan.aksi("kurir", lepas.map(x => x.order_code), "lepas", {}, () => cf("orders?order_code=in.(" + lepas.map(x => '"' + x.order_code + '"').join(",") + ")&kurir_id=eq." + encodeURIComponent(me.id), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({kurir_id:null, kurir_nama:null, kurir_wa:null, diambil_at:null})})); }catch(e){} }
   toast(pesan);
 }
 async function setStatus(code, status, antar){
@@ -869,7 +873,7 @@ async function setStatus(code, status, antar){
       if(antar.foto) await tulis("foto_" + code, {foto:antar.foto, t:Date.now(), ...(antar.lok ? {lok:antar.lok} : {})});
       await tulis("antar_" + code, {id:me.id, nama:me.nama || "", wa:WA, cara:antar.cara, ket:antar.ket || "", t:Date.now(), ...(antar.lok ? {lok:antar.lok} : {})});
     }
-    await cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status, updated_at:new Date().toISOString()})});
+    await KSPesanan.aksi("kurir", code, "status", {status}, () => cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status, updated_at:new Date().toISOString()})}));
     if(status === "selesai"){ try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){} lacakHapus(code); }
     if(status === "selesai") await catatKurir([code], {selesai_at:new Date().toISOString()});
     else await catatKurir([code], {});
@@ -916,7 +920,7 @@ window.muatPenghasilan = async function(paksa){
   $("uangIsi").innerHTML = '<p class="hint">Memuat…</p>';
   try{
     const sejak = new Date(Date.now() - 45*864e5).toISOString();
-    PG.rows = await cf("orders?select=order_code,created_at,updated_at,status,payment,total,subtotal,shipping,items,uang_toko,selesai_at,diambil_at,gagal_at,gagal_alasan,customer_name&kurir_id=eq." + encodeURIComponent(me.id) + "&created_at=gte." + encodeURIComponent(sejak) + "&order=created_at.desc&limit=500");
+    PG.rows = await cf("orders?select=*&kurir_id=eq." + encodeURIComponent(me.id) + "&created_at=gte." + encodeURIComponent(sejak) + "&order=created_at.desc&limit=500");
     PG.err = "";
   }catch(e){ PG.rows = []; PG.err = /kurir_id|column/i.test(String(e.message)) ? "kolom" : "net"; }
   try{ await muatBiaya(); PG.mut = BIAYA.aktif ? await cf("kurir_mutasi?select=jumlah,jenis,t&kurir_id=eq." + encodeURIComponent(me.id) + "&jenis=eq.potong&t=gte." + encodeURIComponent(new Date(Date.now() - 45*864e5).toISOString()) + "&limit=2000") : []; }catch(e){ PG.mut = []; }
@@ -924,7 +928,7 @@ window.muatPenghasilan = async function(paksa){
 };
 function gambarPenghasilan(){
   const box = $("uangIsi"); if(!box) return;
-  if(PG.err === "kolom"){ box.innerHTML = '<h2>💰 Penghasilan</h2><p class="hint">Fitur ini belum aktif. Minta admin menjalankan file <b>supabase-kurir-riwayat.sql</b> di Supabase.</p>'; return; }
+  if(PG.err === "kolom"){ box.innerHTML = '<h2>💰 Penghasilan</h2><p class="hint">Fitur ini belum aktif. Minta admin menjalankan file <b>supabase-keuangan-kurir.sql</b> di Supabase.</p>'; return; }
   if(PG.err === "net"){ box.innerHTML = '<h2>💰 Penghasilan</h2><p class="hint">Gagal memuat. Periksa internet lalu <a href="#" onclick="muatPenghasilan(true);return false">coba lagi</a>.</p>'; return; }
   const [dari, label, hariN] = rentang(), rows = PG.rows || [];
   const selesai = rows.filter(o => o.status === "selesai" && tWaktu(o) >= dari), gagal = rows.filter(o => o.status === "gagal" && tWaktu(o) >= dari);
@@ -1037,7 +1041,7 @@ function gagalAntar(code){
       if(!st.acc || st.acc.id !== me.id){ ov.remove(); toast("Pesanan ini bukan milik Anda"); return loadOrders(); }
       const now = new Date().toISOString();
       const teks = alasan + (ket ? " – " + ket : "") + " • Barang: " + barang + " • Kurir: " + (me.nama || WA);
-      await cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"gagal", gagal_alasan:teks, gagal_at:now, updated_at:now})});
+      await KSPesanan.aksi("kurir", code, "gagal", {alasan:teks}, () => cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"gagal", gagal_alasan:teks, gagal_at:now, updated_at:now})}));
       await catatKurir([code], {});
       try{ await cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"}); }catch(e){}
       lacakHapus(code);
@@ -1343,7 +1347,7 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
   window.setCounts=function(w,m){ $("cWait").textContent=w; $("cMine").textContent=m; var b=$("nBadge"); b.textContent=w; b.hidden=!w; $("lihatTx").textContent=w?"Lihat "+w+" pesanan untuk Anda":"Lihat pesanan"; };
   window.renderProf=function(){ if(window.fotoKurir) window.fotoKurir(); if(typeof me==="undefined"||!me) return; var n=me.nama||"Kurir"; $("pNama").textContent=n; $("pAv").textContent=n.charAt(0).toUpperCase();
     $("pHari").textContent=me.joined?Math.max(1,Math.ceil((Date.now()-me.joined)/864e5)):1; $("pSel").textContent=me.selesai||0; show(cur) };
-  setTimeout(function(){show("home")},0);
+  setTimeout(function(){var h=(location.hash||"").slice(1); show(["pesanan","uang","profil"].indexOf(h)>=0?h:"home")},0);
 })();
 </script>
 </body>

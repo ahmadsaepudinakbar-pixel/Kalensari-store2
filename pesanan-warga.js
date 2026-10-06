@@ -58,8 +58,12 @@ window.KSPW = (function () {
       if (sibuk || !al) return; sibuk = true; q(".kspw-go").textContent = "Membatalkan…";
       try {
         const now = new Date().toISOString();
-        const r = await cf("orders?order_code=eq." + encodeURIComponent(o.order_code) + "&and=(or(status.is.null,status.in.(baru,menunggu)),or(pay_status.is.null,pay_status.neq.lunas))", { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ status: "dibatalkan", gagal_alasan: "Dibatalkan pembeli: " + al, updated_at: now }) })
+        const lama = async () => { const r = await cf("orders?order_code=eq." + encodeURIComponent(o.order_code) + "&and=(or(status.is.null,status.in.(baru,menunggu)),or(pay_status.is.null,pay_status.neq.lunas))", { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ status: "dibatalkan", gagal_alasan: "Dibatalkan pembeli: " + al, updated_at: now }) })
           .catch(async e => { if (/gagal_alasan/.test(String(e.message))) return cf("orders?order_code=eq." + encodeURIComponent(o.order_code) + "&and=(or(status.is.null,status.in.(baru,menunggu)),or(pay_status.is.null,pay_status.neq.lunas))", { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ status: "dibatalkan", updated_at: now }) }); throw e; });
+          if (!Array.isArray(r) || !r.length) throw new Error("tidak-bisa"); };
+        let r = [1];
+        try { const h = window.KSPesanan ? await KSPesanan.aksi("tamu", o.order_code, "batal_pembeli", { alasan: al }, lama) : (await lama(), { jumlah: 1 }); if (!h.jumlah) r = []; }
+        catch (e) { if (e.message !== "tidak-bisa") throw e; r = []; }
         ov.remove();
         if (!Array.isArray(r) || !r.length) { toast("Pesanan tidak bisa dibatalkan: toko sudah menerimanya atau sudah dibayar."); }
         else { Object.assign(o, { status: "dibatalkan", gagal_alasan: "Dibatalkan pembeli: " + al, updated_at: now }); toast("Pesanan " + o.order_code + " dibatalkan"); }

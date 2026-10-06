@@ -48,7 +48,7 @@
 </section>
 </main><div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
-<script src="akun-id.js"></script>
+<script src="akun-id.js"></script><script src="pesanan-aman.js"></script>
 <script src="notif.js"></script><script>
 const $=id=>document.getElementById(id);function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("show"),3200)}
 const normPhone=v=>String(v||"").replace(/\D/g,"").replace(/^0/,"62"),okPin=v=>/^\d{4,8}$/.test(v);const ROLE="penjual",SESS="kalensari_penjual_sess";
@@ -111,9 +111,8 @@ async function utTerima(id,sub,btn){const o=ordRows.find(x=>String(x.id)===Strin
   if(!kurirSudah(o)){toast("Tunggu kurir menerima pesanan dulu");return}
   if(!confirm(`Konfirmasi: uang barang ${rp(sub)} untuk pesanan ${o.order_code} sudah Anda terima dari kurir?`))return;btn.disabled=true;
   try{const t=new Date().toISOString();let cur=utOf(o);
-    if(cloudOn()){const r=await cf("orders?select=uang_toko&id=eq."+encodeURIComponent(id));cur=r&&r[0]&&r[0].uang_toko&&typeof r[0].uang_toko==="object"?r[0].uang_toko:{};}
     const v={...cur,[myKey()]:t};
-    if(cloudOn())await cf("orders?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({uang_toko:v})});
+    if(cloudOn())await KSPesanan.aksi("penjual",o.order_code,"uang_toko",{},async()=>{const r=await cf("orders?select=uang_toko&id=eq."+encodeURIComponent(id));const c=r&&r[0]&&r[0].uang_toko&&typeof r[0].uang_toko==="object"?r[0].uang_toko:{};await cf("orders?id=eq."+encodeURIComponent(id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({uang_toko:{...c,[myKey()]:t}})})});
     o.uang_toko=v;renderOrders();toast("✅ Tercatat: uang barang sudah diterima")}catch(e){btn.disabled=false;toast("Gagal: "+String(e.message||e).slice(0,80))}}
 function ordCard(o){
   const k=myKey(),mine=o.items.filter(p=>sKey(p.seller)===k),only=mine.length===o.items.length;
@@ -134,7 +133,8 @@ function renderOrders(){
   list.innerHTML=ordRows.length?ordRows.slice(0,50).map(ordCard).join(""):'<p class="hint">Belum ada pesanan untuk toko Anda.</p>';
   list.querySelectorAll("button[data-ut]").forEach(b=>b.onclick=()=>utTerima(b.dataset.ut,Number(b.dataset.sub)||0,b));
   list.querySelectorAll("button[data-a]").forEach(sel=>sel.onclick=async()=>{if(sel.dataset.a==="dibatalkan"&&!confirm("Tolak pesanan ini? Tidak bisa dibatalkan."))return;sel.value=sel.dataset.a;
-    try{if(cloudOn())await cf("orders?id=eq."+encodeURIComponent(sel.dataset.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:sel.value,updated_at:new Date().toISOString()})});
+    try{if(cloudOn()){const ro=ordRows.find(o=>String(o.id)===sel.dataset.id)||{},ak={diproses:"terima",dibatalkan:"tolak"}[sel.value];if(!ak)throw new Error("Status ini diubah oleh kurir");
+        const h=await KSPesanan.aksi("penjual",ro.order_code,ak,{},()=>cf("orders?id=eq."+encodeURIComponent(sel.dataset.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:sel.value,updated_at:new Date().toISOString()})}));if(!h.lama&&!h.jumlah)throw new Error("Pesanan ini sudah berubah status")}
       else{const loc=LSget("kalensari_orders",[]).map(o=>String(o.id)===sel.dataset.id?{...o,status:sel.value,updated_at:new Date().toISOString()}:o);LSset("kalensari_orders",loc)}
       const r=ordRows.find(o=>String(o.id)===sel.dataset.id);if(r)r.status=sel.value;renderOrders();toast("✅ Status: "+STL[sel.value])}
     catch(e){toast("Gagal mengubah status: "+(e.message||e))}});
