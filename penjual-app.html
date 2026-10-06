@@ -107,6 +107,18 @@ a.q,a.m{text-decoration:none;color:inherit;display:flex}.q.q-ks{background:var(-
 .pf-add{display:block;width:100%;margin-top:6px;padding:11px;border-radius:12px;border:2px dashed var(--b2);background:#f2faf5;color:var(--b);font-weight:700;font-size:14px;cursor:pointer}
 .pf .tp .fld{margin:0}.pf .tp.vr{grid-template-columns:1fr 84px 70px 30px}
 .pf-sv{display:flex;align-items:center;justify-content:center;gap:8px;padding:16px;font-size:16.5px;border-radius:16px;background:linear-gradient(135deg,var(--b2),var(--b));border:0;box-shadow:0 6px 16px rgba(15,77,56,.25)}.pf-sv svg{width:20px;height:20px}
+
+/* v41 pencairan */
+.cr-rinci{background:#f6faf7;border:1px dashed var(--ln);border-radius:12px;padding:8px 12px;margin:2px 0 4px;font-size:14px}.cr-t{border-top:1px solid var(--ln);margin-top:4px;padding-top:6px}
+.cr-ov{position:fixed;inset:0;z-index:200;background:rgba(10,30,20,.55);display:flex;align-items:flex-end;justify-content:center;animation:crF .2s}
+.cr-box{background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto;animation:crU .25s cubic-bezier(.2,.9,.3,1.1)}
+.cr-ic{width:56px;height:56px;border-radius:50%;background:#e3f4e8;display:grid;place-items:center;font-size:28px;margin:0 auto 6px}.cr-box h3{margin:4px 0 2px;text-align:center;font-size:18px}.cr-sub{margin:0 0 12px;text-align:center;color:var(--mu);font-size:13px}
+.cr-list{background:#f6faf7;border-radius:14px;padding:8px 12px;font-size:14px}.cr-list .ln{padding:5px 0}
+.cr-rek{margin-top:10px;border:2px solid var(--b2);border-radius:14px;padding:10px 12px;background:#f2faf5}.cr-rek small{display:block;color:var(--mu);font-size:12px}.cr-rek b{font-size:16px;word-break:break-word}
+.cr-warn{margin:12px 0 8px;background:#fff3cd;border-radius:12px;padding:10px 12px;font-size:13px;color:#5a4300;line-height:1.45}
+.cr-cek{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;font-weight:600;margin:6px 0 4px;cursor:pointer}.cr-cek input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--b2)}
+.cr-bt{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}.cr-bt .btn{margin-top:8px}.cr-bt .btn:disabled{opacity:.45;cursor:not-allowed}
+@keyframes crF{from{opacity:0}}@keyframes crU{from{transform:translateY(40px)}}
 </style></head><body>
 <section id="auth"><div class="logo" style="width:120px;height:120px"><img src="icons/logo-kalensari.png" alt="Kalensari Store"></div><h1>Kalensari Store</h1><p>Bersama dalam setiap manisnya hari</p>
 <div id="lf" hidden style="text-align:left"><label>No. WhatsApp atau ID akun<input id="lw" class="fld" type="text" inputmode="text" autocapitalize="characters" placeholder="08xxxxxxxxxx atau PJ0001"></label><label>PIN<input id="lp" class="fld" type="password" inputmode="numeric" maxlength="8"></label><button class="btn" id="go">Masuk</button></div>
@@ -431,8 +443,8 @@ function uang(){
   const R=uRange(),[dari]=R[uPer],inR=o=>new Date(o.created_at).getTime()>=dari;
   const semua=O.filter(inR),ok=semua.filter(o=>["diproses","dikirim","selesai"].includes(stOf(o))),gagal=semua.filter(o=>["dibatalkan","gagal"].includes(stOf(o)));
   const k=myK(),sq=SETQ||{},jual=ok.reduce((a,o)=>a+barangKu(o),0);
-  const cara={qris:{t:0,sudah:0},cod:{t:0,sudah:0},lain:{t:0}};
-  ok.forEach(o=>{const v=barangKu(o);if(isQris(o)){cara.qris.t+=v;if(sq[o.order_code+"|t:"+k]||o.status==="selesai")cara.qris.sudah+=v}else if(isCodO(o)){cara.cod.t+=v;if(utOf(o)[k])cara.cod.sudah+=v}else cara.lain.t+=v});
+  const cara={non:{t:0,saldo:0,tunggu:0,belum_lunas:0,setor:0},cod:{t:0,sudah:0}};
+  ok.forEach(o=>{const v=barangKu(o),u=uangSt(o,sq);if(isCodO(o)){cara.cod.t+=v;if(u==="cod_ok")cara.cod.sudah+=v}else{cara.non.t+=v;cara.non[u]=(cara.non[u]||0)+v}});
   const pm=new Map();ok.forEach(o=>mineItems(o).forEach(p=>{const n=p.name||"Produk";const x=pm.get(n)||{q:0,v:0};x.q+=Number(p.qty)||1;x.v+=hargaU(p)*(Number(p.qty)||1);pm.set(n,x)}));
   const top=[...pm.entries()].sort((a,b)=>b[1].q-a[1].q).slice(0,5);
   const hariN=uPer==="hari"?1:uPer==="7"?7:uPer==="bulan"?new Date().getDate():30,hm=new Map();
@@ -444,20 +456,20 @@ function uang(){
   <div class="two"><div class="card"><small style="color:var(--mu)">Penjualan barang</small><b style="display:block;font-size:20px;margin-top:4px">${rp(jual)}</b></div>
   <div class="card"><small style="color:var(--mu)">Pesanan berhasil</small><b style="display:block;font-size:20px;margin-top:4px">${ok.length}</b><small style="color:var(--mu)">rata-rata ${rp(ok.length?Math.round(jual/ok.length):0)}</small></div></div>
   <h3>💵 Uang masuk ke toko</h3><div class="card">
-  ${ln("QRIS",rp(cara.qris.t))}${cara.qris.t?ln("&nbsp;&nbsp;✅ Masuk saldo",rp(cara.qris.sudah),"#14502c")+(cara.qris.t-cara.qris.sudah>0?ln("&nbsp;&nbsp;⏳ Masuk saldo setelah selesai diantar",rp(cara.qris.t-cara.qris.sudah),"#a35a00"):""):""}
+  ${ln("QRIS / saldo voucher",rp(cara.non.t))}${cara.non.t?(cara.non.saldo?ln("&nbsp;&nbsp;✅ Masuk saldo",rp(cara.non.saldo),"#14502c"):"")+(cara.non.tunggu?ln("&nbsp;&nbsp;⏳ Masuk saldo setelah selesai diantar",rp(cara.non.tunggu),"#a35a00"):"")+(cara.non.belum_lunas?ln("&nbsp;&nbsp;⚠️ QRIS belum lunas (tidak masuk saldo)",rp(cara.non.belum_lunas),"#b83c2b"):"")+(cara.non.setor?ln("&nbsp;&nbsp;📤 Sudah disetor manual oleh admin",rp(cara.non.setor),"#5b6e65"):""):""}
   ${ln("COD (dibayar kurir)",rp(cara.cod.t))}${cara.cod.t?ln("&nbsp;&nbsp;✅ Sudah diterima dari kurir",rp(cara.cod.sudah),"#14502c")+sisa(cara.cod.t,cara.cod.sudah):""}
-  ${cara.lain.t?ln("Cara bayar lain",rp(cara.lain.t)):""}
   <div class="ln" style="border-top:1px solid var(--ln);margin-top:6px;padding-top:8px"><b>Total penjualan</b><b>${rp(jual)}</b></div>
-  ${SETQ===null&&cara.qris.t?'<small style="color:var(--mu)">Memuat catatan setoran QRIS…</small>':""}</div>
+  ${SETQ===null&&cara.non.t?'<small style="color:var(--mu)">Memuat catatan setoran QRIS…</small>':""}</div>
+  ${saldoRingkas()}
   <h3>📈 Penjualan per hari</h3><div class="card"><div style="display:flex;align-items:flex-end;gap:3px;height:120px">${[...hm.entries()].map(([d,v])=>`<div title="${d}: ${rp(v)}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%"><div style="width:100%;max-width:26px;height:${Math.max(v?6:2,Math.round(v/mx*100))}%;background:${v?"var(--b2)":"var(--ln)"};border-radius:4px 4px 0 0"></div></div>`).join("")}</div>
   <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mu);margin-top:4px"><span>${[...hm.keys()][0].slice(5).split("-").reverse().join("/")}</span><span>${[...hm.keys()].pop().slice(5).split("-").reverse().join("/")}</span></div></div>
   <h3>🏆 Produk terlaris</h3><div class="card">${top.length?top.map(([n,x],i)=>ln(`${i+1}. ${esc(n)} <small style="color:var(--mu)">×${x.q}</small>`,rp(x.v))).join(""):'<small style="color:var(--mu)">Belum ada penjualan di periode ini.</small>'}</div>
   ${langgananHtml(ok)}
-  <h3>🧾 Rincian pesanan</h3><div class="card">${ok.length?ok.slice(0,40).map(o=>{const q=isQris(o),c=isCodO(o),st=q?(sq[o.order_code+"|t:"+k]||o.status==="selesai"?"✅ masuk saldo":"⏳ menunggu selesai"):c?(utOf(o)[k]?"✅ diterima":"⏳ belum diterima"):"";
+  <h3>🧾 Rincian pesanan</h3><div class="card">${ok.length?ok.slice(0,40).map(o=>{const q=isQris(o),c=isCodO(o),st=({saldo:"✅ masuk saldo",tunggu:"⏳ masuk saldo setelah selesai",belum_lunas:"⚠️ QRIS belum lunas",setor:"📤 disetor manual",cod_ok:"✅ diterima",cod_belum:"⏳ belum diterima"})[uangSt(o,sq)]||"";
     return `<div class="ln u-row" data-id="${esc(String(o.id))}" style="cursor:pointer"><span>${esc(o.order_code)}<small style="display:block;color:var(--mu)">${new Date(o.created_at).toLocaleDateString("id-ID",{day:"numeric",month:"short"})} • ${q?"QRIS":c?"COD":esc(o.payment||"-")} ${st}</small></span><b>${rp(barangKu(o))}</b></div>`}).join(""):'<small style="color:var(--mu)">Belum ada pesanan.</small>'}</div>
   ${gagal.length?`<p style="font-size:12px;color:var(--mu);margin:10px 2px">Tidak dihitung: ${gagal.length} pesanan ditolak / gagal diantar.</p>`:""}
   <p style="font-size:12px;color:var(--mu);margin:10px 2px 20px">Ongkir tidak dihitung karena milik kurir. Pesanan yang belum diterima toko juga belum dihitung.</p>`}
-bind.uang=()=>{document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{uPer=b.dataset.u;go("uang")});document.querySelectorAll(".u-row").forEach(r=>r.onclick=()=>go("detail",r.dataset.id));
+bind.uang=()=>{if(!SALDO||Date.now()-SALDO.t>20000)muatSaldo().then(()=>{if(view==="uang")go("uang")}).catch(()=>{});$("uSaldo")&&($("uSaldo").onclick=()=>go("saldo"));document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{uPer=b.dataset.u;go("uang")});document.querySelectorAll(".u-row").forEach(r=>r.onclick=()=>go("detail",r.dataset.id));
   if(SETQ===null&&cloud())getS("setoran_qris",{}).then(v=>{SETQ=v&&typeof v==="object"&&!Array.isArray(v)?v:{};if(view==="uang")go("uang")}).catch(()=>{SETQ={}})};
 /* ===== SALDO PENJUALAN =====
    Pesanan NON-COD (QRIS lunas / transfer) yang sudah SELESAI diantar kurir -> uang barang masuk saldo toko.
@@ -465,13 +477,21 @@ bind.uang=()=>{document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{u
    Permintaan disimpan di store_settings "cair_toko" lalu diproses (ditransfer) admin.
    Pesanan yang dulu sudah disetor manual lewat menu Setoran QRIS (catatan "setoran_qris") tidak dihitung lagi. */
 const MIN_CAIR=20000;
+let BIAYA_CAIR=2500;   // biaya admin bank tiap pencairan (admin bisa ubah: store_settings "biaya_cair" = {admin:2500})
+/* Status uang satu pesanan untuk toko ini — dipakai Saldo DAN Laporan agar angkanya selalu sama */
+function uangSt(o,sq){const k=myK();
+  if(isCodO(o))return utOf(o)[k]?"cod_ok":"cod_belum";
+  if(sq&&sq[o.order_code+"|t:"+k])return "setor";
+  if(isQris(o)&&o.pay_status!=="lunas")return "belum_lunas";
+  if(o.status!=="selesai")return "tunggu";
+  return "saldo"}
 let SALDO=null;
 const wibTgl=t=>new Date(t).toLocaleDateString("en-CA",{timeZone:"Asia/Jakarta"});
-const masukSaldo=(o,sq)=>o.status==="selesai"&&!isCodO(o)&&!(isQris(o)&&o.pay_status!=="lunas")&&!sq[o.order_code+"|t:"+myK()];
+const masukSaldo=(o,sq)=>uangSt(o,sq)==="saldo";
 async function muatSaldo(){
   const k=myK();let rows=O,sq={},cair=[];
   let pel=[];
-  if(cloud()){const [r,a,b,pl]=await Promise.all([cf("orders?select=id,order_code,status,payment,pay_status,items,created_at,updated_at&status=eq.selesai&order=updated_at.desc&limit=5000"),getS("setoran_qris",{}),getS("cair_toko",[]),getS("pelanggaran_toko",{}).catch(()=>({}))]);pel=pl&&Array.isArray(pl[k])?pl[k]:[];
+  if(cloud()){const [r,a,b,pl,bc]=await Promise.all([cf("orders?select=id,order_code,status,payment,pay_status,items,created_at,updated_at&status=eq.selesai&order=updated_at.desc&limit=5000"),getS("setoran_qris",{}),getS("cair_toko",[]),getS("pelanggaran_toko",{}).catch(()=>({})),getS("biaya_cair",null).catch(()=>null)]);{const n=Number(bc&&typeof bc==="object"?bc.admin:bc);if(bc!=null&&n>=0)BIAYA_CAIR=Math.round(n)}pel=pl&&Array.isArray(pl[k])?pl[k]:[];
     rows=(r||[]).filter(o=>mineItems(o).length);sq=a&&typeof a==="object"&&!Array.isArray(a)?a:{};cair=Array.isArray(b)?b:[];SETQ=sq;}
   const masuk=rows.filter(o=>masukSaldo(o,sq)).map(o=>({o,v:barangKu(o),t:o.updated_at||o.created_at})).sort((a,b)=>new Date(b.t)-new Date(a.t));
   const mine=cair.filter(x=>x&&x.toko===k).sort((a,b)=>new Date(b.t)-new Date(a.t));
@@ -479,6 +499,24 @@ async function muatSaldo(){
   const total=masuk.reduce((a,x)=>a+x.v,0),keluar=mine.filter(x=>x.status!=="ditolak").reduce((a,x)=>a+(Number(x.jumlah)||0),0)+potong;
   SALDO={masuk,total,mine,keluar,potong,pel,saldo:Math.max(0,total-keluar),t:Date.now()};return SALDO;
 }
+function cairRinci(j){const ok=j>=MIN_CAIR;return `<div class="ln"><span>Jumlah dicairkan</span><b>${rp(j)}</b></div><div class="ln"><span>Biaya admin bank</span><b style="color:#b83c2b">−${rp(BIAYA_CAIR)}</b></div><div class="ln cr-t"><span>Yang Anda terima</span><b style="color:#14502c">${ok?rp(j-BIAYA_CAIR):"–"}</b></div>`}
+/* Lembar konfirmasi: tampilkan rincian lengkap, penjual wajib mencentang sebelum tombol aktif */
+function yakinCair(j,rek,saldo){return new Promise(res=>{const ov=document.createElement("div");ov.className="cr-ov";
+  ov.innerHTML=`<div class="cr-box" role="dialog" aria-modal="true"><div class="cr-ic">💸</div><h3>Periksa sebelum mencairkan</h3><p class="cr-sub">Pastikan semua data di bawah ini sudah benar.</p>
+  <div class="cr-list"><div class="ln"><span>Saldo sekarang</span><b>${rp(saldo)}</b></div><div class="ln"><span>Jumlah dicairkan</span><b>${rp(j)}</b></div><div class="ln"><span>Biaya admin bank</span><b style="color:#b83c2b">−${rp(BIAYA_CAIR)}</b></div>
+  <div class="ln cr-t"><span>Uang yang Anda terima</span><b style="color:#14502c">${rp(j-BIAYA_CAIR)}</b></div><div class="ln"><span>Sisa saldo setelah cair</span><b>${rp(Math.max(0,saldo-j))}</b></div></div>
+  <div class="cr-rek"><small>Ditransfer ke</small><b>${esc(rek)}</b></div>
+  <p class="cr-warn">⚠️ Periksa lagi nama bank / e-wallet, nomor, dan nama pemilik. Uang yang sudah ditransfer ke nomor yang salah <b>tidak bisa dikembalikan</b>. Pencairan hanya bisa 1x sehari.</p>
+  <label class="cr-cek"><input type="checkbox" id="crOk"> Saya sudah memeriksa jumlah dan tujuan transfer, semuanya benar.</label>
+  <div class="cr-bt"><button type="button" class="btn o" id="crNo">Periksa lagi</button><button type="button" class="btn" id="crYa" disabled>Ya, cairkan ${rp(j-BIAYA_CAIR)}</button></div></div>`;
+  document.body.appendChild(ov);const tutup=v=>{ov.remove();res(v)};
+  ov.querySelector("#crOk").onchange=e=>{ov.querySelector("#crYa").disabled=!e.target.checked};
+  ov.querySelector("#crNo").onclick=()=>tutup(false);ov.querySelector("#crYa").onclick=()=>tutup(true);ov.onclick=e=>{if(e.target===ov)tutup(false)}})}
+function saldoRingkas(){const S=SALDO;if(!S)return'<h3>💳 Saldo penjualan</h3><div class="card"><small style="color:var(--mu)">Memuat saldo…</small></div>';
+  const ln=(a,b,c)=>`<div class="ln"><span>${a}</span><b${c?` style="color:${c}"`:""}>${b}</b></div>`,cair=S.keluar-(S.potong||0);
+  return `<h3>💳 Saldo penjualan <small style="font-weight:400;color:var(--mu)">(semua waktu)</small></h3><div class="card">${ln("Total masuk saldo",rp(S.total),"#14502c")}${cair?ln("Sudah / sedang dicairkan","−"+rp(cair),"#b83c2b"):""}${S.potong?ln("Potongan toko tutup","−"+rp(S.potong),"#b83c2b"):""}
+  <div class="ln" style="border-top:1px solid var(--ln);margin-top:6px;padding-top:8px"><b>Saldo sekarang</b><b>${rp(S.saldo)}</b></div><small style="color:var(--mu)">Sama dengan saldo di Beranda. Pesanan masuk saldo setelah selesai diantar dan pembayarannya lunas.</small>
+  <button type="button" class="btn o" id="uSaldo" style="margin-top:10px;padding:11px">Lihat &amp; cairkan saldo ›</button></div>`}
 function cekCair(S){if(!S)return"Memuat saldo…";
   if(S.mine.some(x=>x.status==="menunggu"))return"Masih ada pencairan yang menunggu diproses admin.";
   if(S.mine.some(x=>x.status!=="ditolak"&&wibTgl(x.t)===wibTgl(Date.now())))return"Pencairan hanya bisa 1x sehari. Coba lagi besok.";
@@ -490,21 +528,23 @@ function saldo(){const S=SALDO;if(!S)return'<p style="color:var(--mu)">Memuat sa
   <div class="card" style="margin-top:12px">${alasan?`<p class="warn" style="margin:0">${esc(alasan)}</p>`:`<b>💸 Cairkan saldo</b>
     <label style="display:block;margin-top:8px">Jumlah (minimal ${rp(MIN_CAIR)})<input id="cJml" class="fld" inputmode="numeric" value="${S.saldo}"></label>
     <label style="display:block">Kirim ke (bank / e-wallet, nomor, atas nama)<input id="cRek" class="fld" maxlength="100" placeholder="mis. DANA 0812xxxx a.n. Siti" value="${esc(me.rek||"")}"></label>
+    <div class="cr-rinci" id="cRinci">${cairRinci(S.saldo)}</div>
     <button class="btn" id="cBtn">💸 Ajukan pencairan</button>`}
-    <small style="display:block;color:var(--mu);margin-top:8px">Pencairan bisa 1x sehari, minimal ${rp(MIN_CAIR)}. Admin akan mentransfer ke rekening / e-wallet Anda.</small></div>
-  <h3>📤 Riwayat pencairan</h3><div class="card">${S.mine.length?S.mine.slice(0,20).map(x=>{const[l,c]=stl[x.status]||[x.status,"inherit"];return `<div class="ln"><span>${new Date(x.t).toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}<small style="display:block;color:${c}">${l}${x.catatan?" • "+esc(x.catatan):""}</small></span><b>${rp(x.jumlah)}</b></div>`}).join(""):'<small style="color:var(--mu)">Belum pernah mencairkan saldo.</small>'}</div>
+    <small style="display:block;color:var(--mu);margin-top:8px">Pencairan bisa 1x sehari, minimal ${rp(MIN_CAIR)}. Setiap pencairan dipotong <b>biaya admin bank ${rp(BIAYA_CAIR)}</b>. Admin akan mentransfer ke rekening / e-wallet Anda.</small></div>
+  <h3>📤 Riwayat pencairan</h3><div class="card">${S.mine.length?S.mine.slice(0,20).map(x=>{const[l,c]=stl[x.status]||[x.status,"inherit"];return `<div class="ln"><span>${new Date(x.t).toLocaleString("id-ID",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}<small style="display:block;color:${c}">${l}${x.catatan?" • "+esc(x.catatan):""}</small>${x.biaya?`<small style="display:block;color:var(--mu)">Diterima ${rp(x.diterima)} • biaya admin bank ${rp(x.biaya)}</small>`:""}</span><b>${rp(x.jumlah)}</b></div>`}).join(""):'<small style="color:var(--mu)">Belum pernah mencairkan saldo.</small>'}</div>
   <h3>📥 Saldo masuk</h3><div class="card">${S.masuk.length?S.masuk.slice(0,30).map(x=>`<div class="ln u-row" data-id="${esc(String(x.o.id))}" style="cursor:pointer"><span>${esc(x.o.order_code)}<small style="display:block;color:var(--mu)">${new Date(x.t).toLocaleDateString("id-ID",{day:"numeric",month:"short"})} • ${isQris(x.o)?"QRIS":esc(x.o.payment||"-")} • selesai diantar</small></span><b style="color:#14502c">+${rp(x.v)}</b></div>`).join(""):'<small style="color:var(--mu)">Belum ada. Saldo bertambah setiap pesanan non-COD selesai diantar kurir.</small>'}</div>
   <p style="font-size:12px;color:var(--mu);margin:10px 2px 20px">Pesanan COD tidak masuk saldo karena uangnya langsung dibayar kurir saat mengambil pesanan.</p>`}
 bind.saldo=()=>{document.querySelectorAll(".u-row").forEach(r=>r.onclick=()=>go("detail",r.dataset.id));
   if(!SALDO||Date.now()-SALDO.t>20000)muatSaldo().then(()=>{if(view==="saldo")go("saldo")}).catch(e=>toast("Gagal memuat saldo"));
-  $("cJml")&&($("cJml").oninput=e=>{e.target.value=e.target.value.replace(/\D/g,"")});
+  $("cJml")&&($("cJml").oninput=e=>{e.target.value=e.target.value.replace(/\D/g,"");$("cRinci").innerHTML=cairRinci(Number(e.target.value)||0)});
   $("cBtn")&&($("cBtn").onclick=async()=>{const b=$("cBtn"),j=Number($("cJml").value)||0,rek=$("cRek").value.trim();
-    if(j<MIN_CAIR)return toast("Minimal pencairan "+rp(MIN_CAIR));if(!rek)return toast("Isi tujuan transfer dulu");
+    if(j<MIN_CAIR)return toast("Minimal pencairan "+rp(MIN_CAIR));if(j<=BIAYA_CAIR)return toast("Jumlah harus lebih besar dari biaya admin bank");if(!rek||rek.length<8)return toast("Isi tujuan transfer lengkap: bank/e-wallet, nomor, atas nama");
     b.disabled=true;b.textContent="Mengecek saldo…";
     try{const S=await muatSaldo(),al=cekCair(S);if(al){toast(al);return go("saldo")}if(j>S.saldo){toast("Jumlah melebihi saldo "+rp(S.saldo));return go("saldo")}
-      if(!confirm(`Cairkan ${rp(j)} ke ${rek}?`)){b.disabled=false;b.textContent="💸 Ajukan pencairan";return}
+      if(!(await yakinCair(j,rek,S.saldo))){b.disabled=false;b.textContent="💸 Ajukan pencairan";return}
+      b.textContent="Mengirim…";
       let l=await getS("cair_toko",[]);if(!Array.isArray(l))l=[];
-      l.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),toko:myK(),nama:me.toko||me.usaha||"",wa:WA,jumlah:j,rek,t:new Date().toISOString(),status:"menunggu"});
+      l.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),toko:myK(),nama:me.toko||me.usaha||"",wa:WA,jumlah:j,biaya:BIAYA_CAIR,diterima:j-BIAYA_CAIR,rek,t:new Date().toISOString(),status:"menunggu"});
       await setS("cair_toko",l);if(me.rek!==rek){me.rek=rek;saveMe().catch(()=>{})}
       SALDO=null;await muatSaldo();toast("✅ Pencairan diajukan. Admin akan segera mentransfer.");go("saldo")}
     catch(e){toast("Gagal: "+String(e.message||e).slice(0,80));b.disabled=false;b.textContent="💸 Ajukan pencairan"}})};
