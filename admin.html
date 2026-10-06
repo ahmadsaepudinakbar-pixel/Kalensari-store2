@@ -1043,11 +1043,29 @@ async function setStatus(id,s,btn){
 
 /* ========== AKSI PRODUK ========== */
 const getProd=id=>S.products.find(x=>Number(x.id)===Number(id));
+/* ===== Ketersediaan topping: sakelar Tersedia / Habis per topping (disimpan sebagai "| habis" di baris topping) ===== */
+const tpBaris=l=>{const t=l.trim();if(!t||/^#/.test(t))return null;const ps=t.split('|').map(x=>x.trim());if(ps.length<2||ps[1]===''||isNaN(Number(ps[1].replace(/[.,]/g,''))))return null;return{nama:ps[0],harga:Number(ps[1].replace(/[.,]/g,'')),habis:ps.slice(2).some(x=>/^habis$/i.test(x))}};
+const tpSet=(l,habis)=>{const ps=l.trim().split('|').map(x=>x.trim()).filter((x,i)=>i<2||!/^habis$/i.test(x));if(habis)ps.push('habis');return ps.join(' | ')};
+function aturTopping(id){
+  const p=getProd(id);if(!p)return;const L=String(p.toppings||'').split(/\r?\n/);
+  let h='';L.forEach((l,i)=>{const t=l.trim();if(/^#/.test(t)){h+=`<p class="sm" style="font-weight:800;margin:14px 0 4px;color:var(--tx)">${esc(t.replace(/^#\s*/,'').replace(/\(\s*pilih\s*1\s*\)/i,''))}</p>`;return}
+    const b=tpBaris(l);if(!b)return;
+    h+=`<div class="detail-row" style="align-items:center;gap:10px;padding:10px 0"><span style="flex:1;white-space:normal;${b.habis?'opacity:.55;text-decoration:line-through':''}">${esc(b.nama)} <small style="color:var(--mut)">${b.harga?rp(b.harga):'Gratis'}</small></span>
+      <button type="button" class="sw ${b.habis?'':'on'}" aria-label="${b.habis?'Habis':'Tersedia'}" onclick="gantiTopping(${Number(id)},${i},this)"></button><small style="width:56px;text-align:right;font-weight:700;color:${b.habis?'var(--red)':'var(--g2)'}">${b.habis?'Habis':'Tersedia'}</small></div>`});
+  modal(`<h3>🍢 Ketersediaan topping</h3><p class="sm" style="color:var(--mut);margin:-8px 0 6px">${esc(p.name)} • ketuk sakelar, langsung tersimpan</p><div id="tpAdmBox">${h}</div><div class="mact"><button class="btn btn-g" onclick="closeModal()">Selesai</button></div>`);
+}
+async function gantiTopping(id,i,btn){
+  const p=getProd(id);if(!p)return;const L=String(p.toppings||'').split(/\r?\n/),b=tpBaris(L[i]||'');if(!b)return;
+  L[i]=tpSet(L[i],!b.habis);btn.disabled=true;
+  try{await patchProd(id,{toppings:L.join('\n')});toast(`${b.nama} ${b.habis?'tersedia lagi':'ditandai habis'}`);aturTopping(id)}
+  catch(e){btn.disabled=false;toast('Gagal menyimpan: '+(e.message||e))}
+}
 async function patchProd(id,data){await api('products?id=eq.'+Number(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify(data)});Object.assign(getProd(id)||{},data)}
 async function toggleProd(id,btn){const p=getProd(id);const on=p.status==='Show'||p.status==='Sold Out';
   await busy(btn,async()=>{await patchProd(id,{status:on?'Hidden':'Show'});render();toast(p.name+(on?' disembunyikan':' ditampilkan'))})}
 function productMenu(id){const p=getProd(id);modal(`<h3>${esc(p.name)}</h3><div class="mact" style="flex-direction:column">
   <button class="btn btn-light" onclick="productForm(${Number(id)})">${ico('edit')}Edit produk</button>
+  ${p.toppings?`<button class="btn btn-light" onclick="aturTopping(${Number(id)})">🍢 Ketersediaan topping</button>`:''}
   <button class="btn btn-light" onclick="setProdStatus(${Number(id)},'${p.status==='Sold Out'?'Show':'Sold Out'}',this)">${p.status==='Sold Out'?'Tandai stok tersedia':'Tandai stok habis'}</button>
   <button class="btn btn-red" onclick="delProd(${Number(id)},this)">${ico('trash')}Hapus produk</button>
   <button class="btn" onclick="closeModal()">Batal</button></div>`)}
@@ -1079,7 +1097,9 @@ function productForm(id){
     ${hint('🧩 Produk dengan Nama Grup yang sama digabung jadi 1 kartu dengan pilihan varian.')}
     <div class="field" style="margin-top:10px"><label>Topping prasmanan (opsional)</label><textarea class="inp" id="fTop" rows="5" placeholder="# 🍢 TOPPING&#10;Bakso | 1000 | https://link-foto.jpg&#10;Sosis | 1500&#10;# 🌶️ LEVEL PEDAS (pilih 1)&#10;Level 0 | 0&#10;Level 1 | 0">${esc(p.toppings||'')}</textarea>
     ${hint('🍲 Satu baris = satu topping: Nama | Harga | URL foto (foto boleh kosong). Bila diisi, produk jadi menu racik dan Harga di atas jadi harga dasar (boleh 0).')}</div>
-    <div class="field"><label>Batas belanja per porsi (Rp, opsional)</label><input class="inp" id="fTLim" type="number" min="0" value="${esc(p.topping_limit??'')}" placeholder="mis. 10000"></div>
+    <div class="form-grid" style="gap:10px"><div class="field"><label>Batas belanja per porsi (Rp, opsional)</label><input class="inp" id="fTLim" type="number" min="0" value="${esc(p.topping_limit??'')}" placeholder="mis. 25000"></div>
+    <div class="field"><label>Minimal order per porsi (Rp, opsional)</label><input class="inp" id="fMin" type="number" min="0" value="${esc(p.min_order??'')}" placeholder="mis. 15000"></div></div>
+    ${hint('🔴 Tambahkan <b>| habis</b> di akhir baris topping yang sedang kosong, atau pakai menu <b>🍢 Ketersediaan topping</b> di daftar produk.')}
   </details>
   <div class="mact">${id?`<button class="btn btn-red" onclick="hapusProd(${Number(id)},this)">Hapus</button>`:''}<button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveProd(${Number(id)||0},this)">Simpan</button></div>`);
   window._fotoData=p.image&&String(p.image).startsWith('data:')?p.image:null;
@@ -1092,9 +1112,9 @@ async function fotoProduk(inp){
 const cekTopping=txt=>txt.split(/\r?\n/).map(l=>l.trim()).filter(l=>l&&!/^#/.test(l)).every(l=>{const [n,h]=l.split('|').map(x=>(x||'').trim());return n&&h!==''&&!isNaN(Number(h))&&Number(h)>=0});
 async function saveProd(id,btn){
   const num=v=>v===''?null:Number(v);
-  const top=$('#fTop').value.trim(),tl=Number($('#fTLim').value);
+  const top=$('#fTop').value.trim(),tl=Number($('#fTLim').value),mo=Number(($('#fMin')||{}).value);
   const d={name:$('#fN').value.trim(),price:Number($('#fP').value),sale:num($('#fSale').value),category:$('#fC').value,unit:$('#fU').value.trim()||null,seller:$('#fSel').value.trim()||null,stock:num($('#fS').value),image:window._fotoData||$('#fI').value.trim()||null,status:$('#fSt').value,
-    product_group:$('#fGrp').value.trim()||null,variant:$('#fVar').value.trim()||null,toppings:top||null,topping_limit:tl>0?tl:null,open_time:null,close_time:null};
+    product_group:$('#fGrp').value.trim()||null,variant:$('#fVar').value.trim()||null,toppings:top||null,topping_limit:tl>0?tl:null,...(top?{min_order:mo>0?mo:null}:{}),open_time:null,close_time:null};
   if(!d.name||!(d.price>0||(top&&d.price>=0))){toast('Nama dan harga wajib diisi');return}
   if(top&&!cekTopping(top)){toast('Format topping salah. Satu baris: Nama | Harga');return}
   if(d.sale!=null&&(d.sale<=0||d.sale>=d.price)){toast('Harga promo harus lebih kecil dari harga');return}
@@ -1113,7 +1133,7 @@ function exportProduk(){
   const blob=new Blob([JSON.stringify(S.products,null,2)],{type:'application/json'});const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);a.download='kalensari-products-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast('File produk diunduh');
 }
-const KOLOM_PROD=['id','name','price','sale','category','unit','seller','stock','status','image','open_time','close_time','product_group','variant','toppings','topping_limit'];
+const KOLOM_PROD=['id','name','price','sale','category','unit','seller','stock','status','image','open_time','close_time','product_group','variant','toppings','topping_limit','min_order'];
 async function upsertProduk(list){
   const rows=list.map(p=>{const o={};KOLOM_PROD.forEach(k=>{if(p[k]!==undefined)o[k]=p[k]});return o}).filter(p=>p.name&&Number(p.id)>0);
   for(let i=0;i<rows.length;i+=50)await api('products?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(rows.slice(i,i+50))});
