@@ -1730,7 +1730,7 @@ function potonganToko(k){const l=pelMap()[k];return Array.isArray(l)?l.reduce((t
 /* ========== SALDO VOUCHER PEMBELI & AJAK TETANGGA (supabase-voucher-pembeli.sql) ==========
    store_settings "voucher_aturan" = {aktif, kompensasi, ajak:{aktif, pengundang, baru, min, maksBulan, hari}} */
 let VC=null;
-const VC_DEF={aktif:true,kompensasi:2000,ajak:{aktif:true,pengundang:5000,baru:5000,min:20000,maksBulan:10,hari:30}};
+const VC_DEF={aktif:true,kompensasi:2000,ajak:{aktif:true,pengundang:2000,baru:5000,min:20000,maksBulan:10,hari:30}};
 function vcAt(){const v=S.settings.voucher_aturan&&typeof S.settings.voucher_aturan==='object'?S.settings.voucher_aturan:{};return {...VC_DEF,...v,ajak:{...VC_DEF.ajak,...(v.ajak||{})}}}
 async function muatVc(){
   try{const [sal,mut,aj]=await Promise.all([api('pembeli_saldo?select=wa,saldo,updated_at&saldo=gt.0&order=saldo.desc&limit=100'),api('pembeli_mutasi?select=wa,jumlah,jenis,ket,t&order=t.desc&limit=60'),api('pembeli_ajak?select=*&order=t.desc&limit=60')]);VC={sal,mut,aj,err:''}}
@@ -1742,7 +1742,7 @@ const JENIS_VC={refund:'↩️ Pengembalian',kompensasi:'🎁 Kompensasi',ajak:'
 PAGES.voucher=function(){
   if(VC===null){VC=undefined;muatVc()}
   const A=vcAt(),lbl='font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:4px',d=VC||{sal:[],mut:[],aj:[]};
-  const total=(d.sal||[]).reduce((t,x)=>t+(Number(x.saldo)||0),0),ajOk=(d.aj||[]).filter(x=>x.status==='selesai').length;
+  const total=(d.sal||[]).reduce((t,x)=>t+(Number(x.saldo)||0),0),ajOk=(d.aj||[]).filter(x=>x.status==='selesai'||x.status==='cair').length;
   const fld=(id,l,v)=>`<label><span style="${lbl}">${l}</span><input class="inp" id="${id}" type="number" min="0" step="500" value="${Number(v)||0}"></label>`;
   return `${d.err?`<div class="card" style="background:var(--rl)"><b>Fitur belum aktif.</b> Jalankan <b>supabase-voucher-pembeli.sql</b> di Supabase.<div class="sm">${esc(d.err.slice(0,160))}</div></div>`:''}
   <div class="stats">
@@ -1755,7 +1755,7 @@ PAGES.voucher=function(){
     <p class="sm" style="font-weight:700;margin:16px 0 8px">👥 Ajak tetangga</p>
     <label style="display:flex;gap:10px;align-items:center;margin:0 0 10px;font-size:14px"><input type="checkbox" id="vcAjAktif" ${A.ajak.aktif!==false?'checked':''} style="width:20px;height:20px">Program ajak tetangga aktif</label>
     <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
-      ${fld('vcPeng','Bonus untuk pengundang (Rp)',A.ajak.pengundang)}${fld('vcBaru','Bonus untuk pembeli baru (Rp)',A.ajak.baru)}
+      ${fld('vcPeng','Bonus pengundang (Rp) • cair saat tetangga daftar & OTP',A.ajak.pengundang)}${fld('vcBaru','Bonus pembeli baru (Rp) • setelah pesanan pertama',A.ajak.baru)}
       ${fld('vcMin','Minimal belanja pesanan pertama (Rp)',A.ajak.min)}
       <label><span style="${lbl}">Maks. bonus pengundang / bulan</span><input class="inp" id="vcMaks" type="number" min="0" value="${Number(A.ajak.maksBulan)||0}"></label>
       <label><span style="${lbl}">Batas waktu pesanan pertama (hari)</span><input class="inp" id="vcHari" type="number" min="1" value="${Number(A.ajak.hari)||30}"></label>
@@ -1773,7 +1773,7 @@ PAGES.voucher=function(){
   <div class="card"><div class="chead"><h3>📜 Riwayat terbaru</h3></div>
     ${(d.mut||[]).length?(d.mut||[]).map(m=>`<div class="detail-row"><span style="white-space:normal"><b>${esc(JENIS_VC[m.jenis]||m.jenis)}</b> · +${esc(m.wa)}<br><small style="color:var(--mut)">${esc(m.ket||'')} · ${ago(m.t)}</small></span><b style="color:${m.jumlah>=0?'var(--g2)':'#b91c1c'}">${m.jumlah>=0?'+':'−'}${rp(Math.abs(m.jumlah))}</b></div>`).join(''):'<div class="empty" style="padding:14px">Belum ada riwayat</div>'}</div>
   <div class="card"><div class="chead"><h3>👥 Ajak tetangga</h3></div>
-    ${(d.aj||[]).length?(d.aj||[]).map(x=>`<div class="detail-row"><span style="white-space:normal"><b>${esc(namaWa(x.pengundang)||'+'+x.pengundang)}</b> mengajak <b>${esc(namaWa(x.wa)||'+'+x.wa)}</b><br><small style="color:var(--mut)">${ago(x.t)}${x.order_code?' · '+esc(x.order_code):''}${x.ket?' · '+esc(x.ket):''}</small></span><span class="badge ${x.status==='selesai'?'b-Selesai':x.status==='menunggu'?'b-Diproses':'b-Batal'}">${esc(x.status)}</span></div>`).join(''):'<div class="empty" style="padding:14px">Belum ada</div>'}</div>`;
+    ${(d.aj||[]).length?(d.aj||[]).map(x=>`<div class="detail-row"><span style="white-space:normal"><b>${esc(namaWa(x.pengundang)||'+'+x.pengundang)}</b> mengajak <b>${esc(namaWa(x.wa)||'+'+x.wa)}</b><br><small style="color:var(--mut)">${ago(x.t)}${x.order_code?' · '+esc(x.order_code):''}${x.ket?' · '+esc(x.ket):''}</small></span><span class="badge ${x.status==='selesai'||x.status==='cair'?'b-Selesai':x.status==='menunggu'?'b-Diproses':'b-Batal'}">${esc(x.status==='cair'?'bonus cair':x.status)}</span></div>`).join(''):'<div class="empty" style="padding:14px">Belum ada</div>'}</div>`;
 };
 async function vcSimpan(btn){
   const n=id=>Math.max(0,Math.round(Number($('#'+id).value)||0));

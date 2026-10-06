@@ -67,6 +67,20 @@ h2{margin:0 0 4px;color:var(--brown)}
 hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
+.nb-ov{position:fixed;inset:0;z-index:9000;background:rgba(58,31,16,.55);display:flex;align-items:center;justify-content:center;padding:16px;animation:nbF .2s ease}
+.nb-card{background:#fff;border-radius:26px;max-width:360px;width:100%;padding:24px 20px 18px;text-align:center;box-shadow:0 18px 40px rgba(58,31,16,.3);animation:nbU .3s cubic-bezier(.2,.9,.3,1.2)}
+.nb-ik{font-size:46px;line-height:1}
+.nb-card h3{margin:10px 0 2px;font-size:18px;color:var(--deep)}
+.nb-jml{font-size:30px;font-weight:800;color:var(--green);margin:4px 0 8px}
+.nb-list{list-style:none;margin:0 0 12px;padding:0;text-align:left;max-height:180px;overflow:auto}
+.nb-list li{background:var(--chip);border-radius:12px;padding:8px 10px;margin:6px 0;font-size:13.5px;color:var(--ink)}
+.nb-list li b{color:var(--green)}
+.nb-list li small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.nb-card p{margin:0 0 14px;font-size:13.5px;color:var(--muted)}
+.nb-btns{display:flex;gap:8px}
+.nb-btns button{flex:1;border:0;border-radius:14px;padding:12px;font-weight:700;font-size:14px;cursor:pointer}
+.nb-ok{background:var(--brown);color:#fff}.nb-lihat{background:var(--chip);color:var(--deep)}
+@keyframes nbF{from{opacity:0}}@keyframes nbU{from{transform:translateY(24px) scale(.96);opacity:0}}
 [hidden]{display:none!important}
 .card{border:1.5px solid #c9ad90;border-left:5px solid var(--brown);border-radius:16px;padding:12px 12px 12px 14px;margin-top:12px;background:#fff;box-shadow:0 3px 10px rgba(91,44,18,.10)}.card h3{margin:0;font-size:15px}.card p{margin:4px 0;font-size:13px;color:var(--muted)}.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--chip)}.mini{display:inline-block;margin:6px 6px 0 0;font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:12px;border:1px solid var(--brown);background:#fff;color:var(--brown);text-decoration:none;cursor:pointer}.mini.g{background:var(--green);border-color:var(--green);color:#fff}.sw{display:flex;gap:10px;align-items:center;background:var(--chip);padding:12px 14px;border-radius:14px;margin:6px 0 12px;font-weight:600}
 .al{border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:10px;background:#fffaf2}.al.u{border:2px solid var(--green);background:#f3fbf5}.al b{font-size:15px}.al p{margin:4px 0;font-size:14px;color:var(--muted)}
@@ -483,19 +497,58 @@ async function muatVoucher(){
       getSetting("voucher_aturan", {}).catch(() => ({})),
       cf("orders?select=id&status=eq.selesai&customer_phone_normalized=eq." + WA + "&limit=1")]);
     const v = Number(s && s[0] && s[0].saldo) || 0; $("vcSaldo").textContent = fmtRp(v); muatSaldoKecil();
-    const A = {aktif:true, pengundang:5000, baru:5000, min:20000, hari:30, ...((atur && atur.ajak) || {})};
+    const A = {aktif:true, pengundang:2000, baru:5000, min:20000, hari:30, ...((atur && atur.ajak) || {})};
     $("ajInfo").innerHTML = A.aktif === false ? "Program ajak tetangga sedang tidak aktif."
-      : `Bagikan kode Anda. Saat tetangga yang baru daftar memakai kode Anda dan pesanan pertamanya (minimal ${fmtRp(A.min)}) <b>selesai diantar</b>, Anda dapat <b>${fmtRp(A.pengundang)}</b> dan tetangga Anda dapat <b>${fmtRp(A.baru)}</b> saldo voucher.`;
-    const pesan = `Yuk belanja makanan & minuman dari warga Desa Kalensari di Kalensari Store 🛍️\n\nDaftar pakai kode saya *${kode}* supaya kamu dapat saldo voucher ${fmtRp(A.baru)} setelah pesanan pertama selesai:\n${link}`;
+      : `Bagikan kode Anda. Begitu tetangga <b>daftar akun baru</b> memakai kode Anda dan kode OTP WhatsApp-nya berhasil, Anda <b>langsung dapat ${fmtRp(A.pengundang)}</b> saldo voucher.` + (Number(A.baru) > 0 ? ` Tetangga Anda dapat <b>${fmtRp(A.baru)}</b> setelah pesanan pertamanya (minimal ${fmtRp(A.min)}) selesai diantar.` : "");
+    const pesan = `Yuk belanja makanan & minuman dari warga Desa Kalensari di Kalensari Store 🛍️\n\nDaftar pakai kode saya *${kode}*` + (Number(A.baru) > 0 ? ` supaya kamu dapat saldo voucher ${fmtRp(A.baru)} setelah pesanan pertama selesai` : "") + `:\n${link}`;
     $("ajWa").href = "https://wa.me/?text=" + encodeURIComponent(pesan);
     $("ajSalin").onclick = () => { navigator.clipboard && navigator.clipboard.writeText(kode ? kode + " • " + link : link); toast("Kode & link disalin"); };
-    const ok = (aj || []).filter(x => x.status === "selesai").length, tunggu = (aj || []).filter(x => x.status === "menunggu").length;
-    $("ajStat").textContent = (aj || []).length ? `👥 ${ok} tetangga berhasil • ${tunggu} menunggu pesanan pertama selesai` : "Belum ada tetangga yang memakai kode Anda.";
+    const ok = (aj || []).filter(x => x.status === "selesai" || x.status === "cair").length, tunggu = (aj || []).filter(x => x.status === "menunggu").length;
+    $("ajStat").textContent = (aj || []).length ? `👥 ${ok} tetangga berhasil bergabung` + (tunggu ? ` • ${tunggu} menunggu pesanan pertama selesai` : "") : "Belum ada tetangga yang memakai kode Anda.";
     $("ajMasuk").hidden = A.aktif === false || (saya || []).length > 0 || (sel || []).length > 0;
     $("vcMut").innerHTML = (mut || []).length ? mut.map(m => { const ik = IKON_V[m.jenis] || ["🎟️","#eef2f6"]; return `<details class="vc-m"><summary><i style="background:${ik[1]}">${ik[0]}</i><b>${esc(JENIS_V[m.jenis] || m.jenis)}</b><strong class="${m.jumlah >= 0 ? "p" : "m"}">${m.jumlah >= 0 ? "+" : "−"}${fmtRp(Math.abs(m.jumlah))}</strong><em>›</em></summary><small>${esc(m.ket || "")}</small><small>${new Date(m.t).toLocaleString("id-ID", {dateStyle:"medium", timeStyle:"short"})} • saldo ${fmtRp(m.saldo_akhir)}</small></details>`; }).join("")
       : '<p class="hint">Belum ada riwayat. Saldo voucher bertambah dari pengembalian nota yang batal, kompensasi toko tutup, dan bonus ajak tetangga.</p>';
   }catch(e){ $("vcSaldo").textContent = "-"; $("vcMut").innerHTML = '<p class="hint">Fitur saldo voucher belum aktif. Minta admin menjalankan <b>supabase-voucher-pembeli.sql</b>.</p>'; $("ajInfo").textContent = ""; }
 }
+/* ===== NOTIFIKASI BONUS AJAK TETANGGA (tampil di dashboard, bukan WhatsApp) =====
+   Bonus pengundang tercatat di pembeli_mutasi (jenis "ajak") begitu tetangga daftar & OTP berhasil
+   (supabase-ajak-cair-otp.sql). Dashboard menampilkan popup untuk bonus yang belum dilihat. */
+const NB_KEY = () => "kalensari_bonus_dilihat_" + WA;
+let nbSibuk = false;
+async function cekBonusAjak(){
+  if(!cloudOn() || !WA || nbSibuk || document.querySelector(".nb-ov")) return;
+  nbSibuk = true;
+  try{
+    const rows = await cf("pembeli_mutasi?select=id,jumlah,ket,t&wa=eq." + WA + "&jenis=eq.ajak&jumlah=gt.0&order=id.desc&limit=20");
+    if(!rows.length) return;
+    let lihat = LSget(NB_KEY(), null);
+    if(lihat == null){                         // pertama kali: tampilkan yang masuk 3 hari terakhir saja
+      const batas = Date.now() - 3*864e5, lama = rows.filter(m => new Date(m.t).getTime() < batas);
+      lihat = lama.length ? Math.max(...lama.map(m => Number(m.id))) : 0;
+      LSset(NB_KEY(), lihat);
+    }
+    const baru = rows.filter(m => Number(m.id) > Number(lihat)).reverse();
+    if(baru.length) tampilBonusAjak(baru);
+  }catch(e){}
+  finally{ nbSibuk = false; }
+}
+function tampilBonusAjak(list){
+  const total = list.reduce((t, m) => t + (Number(m.jumlah) || 0), 0);
+  const ov = document.createElement("div"); ov.className = "nb-ov"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
+  ov.innerHTML = `<div class="nb-card"><div class="nb-ik">🎉</div><h3>${list.length > 1 ? list.length + " tetangga bergabung!" : "Tetangga Anda bergabung!"}</h3>
+    <div class="nb-jml">+${fmtRp(total)}</div>
+    <ul class="nb-list">${list.map(m => `<li><b>+${fmtRp(m.jumlah)}</b> • ${esc(String(m.ket || "Bonus ajak tetangga").replace(/^Bonus ajak tetangga:\s*/, ""))}<small>${new Date(m.t).toLocaleString("id-ID", {dateStyle:"medium", timeStyle:"short"})}</small></li>`).join("")}</ul>
+    <p>Saldo voucher sudah masuk dan bisa langsung dipakai belanja. Ajak tetangga lain, makin banyak makin hemat 🛒</p>
+    <div class="nb-btns"><button type="button" class="nb-lihat">Lihat saldo</button><button type="button" class="nb-ok">Oke, mantap</button></div></div>`;
+  const tutup = ke => { LSset(NB_KEY(), Math.max(...list.map(m => Number(m.id)))); ov.remove(); muatSaldoKecil(); if(ke){ if(halNow !== "saldo") history.pushState(null, "", location.pathname + location.search + "#saldo"); bukaHal("saldo"); } else if(halNow === "saldo") muatVoucher(); };
+  ov.querySelector(".nb-ok").onclick = () => tutup(false);
+  ov.querySelector(".nb-lihat").onclick = () => tutup(true);
+  ov.onclick = e => { if(e.target === ov) tutup(false); };
+  document.body.appendChild(ov);
+  try{ navigator.vibrate && navigator.vibrate([60, 40, 60]); }catch(e){}
+}
+setInterval(() => { if(document.visibilityState === "visible") cekBonusAjak(); }, 30000);
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") cekBonusAjak(); });
 $("ajPakai").onclick = async () => {
   const kode = $("ajIn").value.trim(), pin = $("ajPin").value.trim();
   if(!kode) return toast("Isi kode dari tetangga Anda");
@@ -596,7 +649,7 @@ async function loadOrders(){
 (async () => {
   $("warn").hidden = cloudOn();
   if(!WA) return location.replace("akun-" + ROLE + ".html");
-  try{ await load(); loadOrders(); muatSaldoKecil(); if(halNow === "saldo") muatVoucher(); }catch(e){ toast(e.message || "Gagal memuat data"); }
+  try{ await load(); loadOrders(); muatSaldoKecil(); if(halNow === "saldo") muatVoucher(); cekBonusAjak(); }catch(e){ toast(e.message || "Gagal memuat data"); }
 })();
 
 </script>

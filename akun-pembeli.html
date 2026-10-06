@@ -85,7 +85,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
       <div class="row2"><label>PIN<input id="rPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="new-password"></label>
       <label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label></div>
       <label>Kode ajak tetangga <small style="font-weight:400;color:#8a7466">(opsional)</small><input id="rAjak" class="fld" maxlength="20" placeholder="mis. PB-0012" autocapitalize="characters"></label>
-      <p class="hint" id="rAjakInfo" style="margin:-4px 0 6px" hidden>🎉 Anda diajak tetangga. Dapat saldo voucher setelah pesanan pertama selesai diantar.</p>
+      <p class="hint" id="rAjakInfo" style="margin:-4px 0 6px" hidden>🎉 Anda diajak tetangga. Setelah akun berhasil dibuat, tetangga Anda langsung dapat bonus saldo.</p>
       <div id="rOtpBox" hidden style="margin-top:6px;background:#f2f9f4;border:1px solid #cfe9d6;border-radius:14px;padding:12px">
         <b style="font-size:15px">📲 Masukkan kode dari WhatsApp</b>
         <p class="hint" id="rOtpInfo" style="margin:4px 0 8px">Kode 6 angka sudah dikirim ke WhatsApp Anda.</p>
@@ -196,13 +196,24 @@ async function daftarVerifikasi(){
   if(!/^\d{6}$/.test(otp)) return toast("Masukkan 6 angka kode dari WhatsApp");
   $("btnDaftar").disabled = true;
   try{
-    const r = await rpcAkun("daftar_pembeli", {p_wa:wa, p_nama:nama, p_pin:pin, p_otp:otp});
+    const ajak = $("rAjak").value.trim();
+    // Kode ajak ikut diperiksa server bersama OTP: begitu OTP benar & akun dibuat, bonus pengundang langsung cair
+    // (supabase-ajak-cair-otp.sql). Bila SQL itu belum dijalankan, pakai cara lama.
+    let r, caraLama = false;
+    try{ r = await rpcAkun("daftar_pembeli", ajak ? {p_wa:wa, p_nama:nama, p_pin:pin, p_otp:otp, p_ajak:ajak} : {p_wa:wa, p_nama:nama, p_pin:pin, p_otp:otp}); }
+    catch(e){
+      if(!ajak || !/p_ajak|could not find|schema cache/i.test(e.message || "")) throw e;
+      caraLama = true; r = await rpcAkun("daftar_pembeli", {p_wa:wa, p_nama:nama, p_pin:pin, p_otp:otp});
+    }
     if(!r || !r.ok){ $("rOtp").value = ""; return toast(r && r.pesan || "Kode salah"); }
     KSID.setSesi(ROLE, r.sesi);
-    const ajak = $("rAjak").value.trim();
-    if(ajak){
+    if(ajak && caraLama){
       try{ const rj = await rpcAkun("pakai_kode_ajak", {p_wa:wa, p_pin:pin, p_kode:ajak}); if(rj && rj.ok === false) throw new Error(rj.pesan); toast("🎉 Kode ajak dipakai. Bonus masuk setelah pesanan pertama selesai."); }
       catch(e){ toast("Kode ajak belum bisa dipakai: " + (e.message || e) + ". Bisa dicoba lagi di menu Saldo voucher."); await new Promise(r => setTimeout(r, 1800)); }
+    } else if(ajak && r.ajak){
+      if(r.ajak.ok){ toast("🎉 Kode ajak berhasil dipakai." + (r.ajak.bonus_pengundang > 0 ? " Tetangga Anda langsung dapat bonus saldo." : "") + (r.ajak.baru > 0 ? " Anda dapat " + fmtRp(r.ajak.baru) + " setelah pesanan pertama selesai." : "")); }
+      else { toast("Kode ajak tidak dipakai: " + (r.ajak.pesan || "kode tidak valid") + ". Akun Anda tetap berhasil dibuat."); }
+      await new Promise(r => setTimeout(r, 1800));
     }
     ingatMasuk(wa);
     toast("✅ Akun dibuat. Mengarahkan ke dashboard...");
