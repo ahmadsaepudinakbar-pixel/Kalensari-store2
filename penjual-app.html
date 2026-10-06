@@ -114,7 +114,7 @@ a.q,a.m{text-decoration:none;color:inherit;display:flex}.q.q-ks{background:var(-
 .cr-box{background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto;animation:crU .25s cubic-bezier(.2,.9,.3,1.1)}
 .cr-ic{width:56px;height:56px;border-radius:50%;background:#e3f4e8;display:grid;place-items:center;font-size:28px;margin:0 auto 6px}.cr-box h3{margin:4px 0 2px;text-align:center;font-size:18px}.cr-sub{margin:0 0 12px;text-align:center;color:var(--mu);font-size:13px}
 .cr-list{background:#f6faf7;border-radius:14px;padding:8px 12px;font-size:14px}.cr-list .ln{padding:5px 0}
-.cr-rek{margin-top:10px;border:2px solid var(--b2);border-radius:14px;padding:10px 12px;background:#f2faf5}.cr-rek small{display:block;color:var(--mu);font-size:12px}.cr-rek b{font-size:16px;word-break:break-word}
+.cr-rek{margin-top:10px;border:2px solid var(--b2);border-radius:14px;padding:10px 12px;background:#f2faf5}.cr-rek small{display:block;color:var(--mu);font-size:12px}.cr-rk{display:flex;justify-content:space-between;gap:10px;padding:3px 0;font-size:14px}.cr-rk span{color:var(--mu);font-size:12.5px}.cr-rk b{text-align:right}.cr-rek>b{font-size:16px;word-break:break-word}
 .cr-warn{margin:12px 0 8px;background:#fff3cd;border-radius:12px;padding:10px 12px;font-size:13px;color:#5a4300;line-height:1.45}
 .cr-cek{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;font-weight:600;margin:6px 0 4px;cursor:pointer}.cr-cek input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--b2)}
 .cr-bt{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}.cr-bt .btn{margin-top:8px}.cr-bt .btn:disabled{opacity:.45;cursor:not-allowed}
@@ -493,6 +493,11 @@ bind.uang=()=>{if(!SALDO||Date.now()-SALDO.t>20000)muatSaldo().then(()=>{if(view
    Permintaan disimpan di store_settings "cair_toko" lalu diproses (ditransfer) admin.
    Pesanan yang dulu sudah disetor manual lewat menu Setoran QRIS (catatan "setoran_qris") tidak dihitung lagi. */
 const MIN_CAIR=20000;
+const REK_BANK=["DANA","OVO","GoPay","ShopeePay","LinkAja","BRI","BNI","BCA","Mandiri","BSI","BJB","SeaBank","Bank Jago","Blu BCA"];
+/* Tujuan transfer: 3 kolom terpisah -> satu teks "DANA • 0812xxxx • a.n. Siti" */
+function rekBaca(){const b=($("cBank").value||"").trim(),n=($("cNo").value||"").replace(/[^\d]/g,""),a=($("cNama").value||"").replace(/\s+/g," ").trim();
+  if(!b)return{err:"Pilih bank / e-wallet tujuan"};if(n.length<6)return{err:"Isi nomor rekening / e-wallet dengan benar"};if(a.length<3)return{err:"Isi nama pemilik rekening / e-wallet"};
+  return{b,n,a,teks:`${b} • ${n} • a.n. ${a}`}}
 let BIAYA_CAIR=2500;   // biaya admin bank tiap pencairan (admin bisa ubah: store_settings "biaya_cair" = {admin:2500})
 /* Status uang satu pesanan untuk toko ini — dipakai Saldo DAN Laporan agar angkanya selalu sama */
 function uangSt(o,sq){const k=myK();
@@ -521,7 +526,7 @@ function yakinCair(j,rek,saldo){return new Promise(res=>{const ov=document.creat
   ov.innerHTML=`<div class="cr-box" role="dialog" aria-modal="true"><div class="cr-ic">💸</div><h3>Periksa sebelum mencairkan</h3><p class="cr-sub">Pastikan semua data di bawah ini sudah benar.</p>
   <div class="cr-list"><div class="ln"><span>Saldo sekarang</span><b>${rp(saldo)}</b></div><div class="ln"><span>Jumlah dicairkan</span><b>${rp(j)}</b></div><div class="ln"><span>Biaya admin bank</span><b style="color:#b83c2b">−${rp(BIAYA_CAIR)}</b></div>
   <div class="ln cr-t"><span>Uang yang Anda terima</span><b style="color:#14502c">${rp(j-BIAYA_CAIR)}</b></div><div class="ln"><span>Sisa saldo setelah cair</span><b>${rp(Math.max(0,saldo-j))}</b></div></div>
-  <div class="cr-rek"><small>Ditransfer ke</small><b>${esc(rek)}</b></div>
+  <div class="cr-rek"><small>Ditransfer ke</small><div class="cr-rk"><span>Bank / e-wallet</span><b>${esc(rek.b)}</b></div><div class="cr-rk"><span>Nomor</span><b>${esc(rek.n)}</b></div><div class="cr-rk"><span>Atas nama</span><b>${esc(rek.a)}</b></div></div>
   <p class="cr-warn">⚠️ Periksa lagi nama bank / e-wallet, nomor, dan nama pemilik. Uang yang sudah ditransfer ke nomor yang salah <b>tidak bisa dikembalikan</b>. Pencairan hanya bisa 1x sehari.</p>
   <label class="cr-cek"><input type="checkbox" id="crOk"> Saya sudah memeriksa jumlah dan tujuan transfer, semuanya benar.</label>
   <div class="cr-bt"><button type="button" class="btn o" id="crNo">Periksa lagi</button><button type="button" class="btn" id="crYa" disabled>Ya, cairkan ${rp(j-BIAYA_CAIR)}</button></div></div>`;
@@ -543,7 +548,9 @@ function saldo(){const S=SALDO;if(!S)return'<p style="color:var(--mu)">Memuat sa
   return `<div class="saldo-card big"><small>Saldo bisa dicairkan</small><b>${rp(S.saldo)}</b><span>Total masuk ${rp(S.total)} • sudah/sedang dicairkan ${rp(S.keluar-(S.potong||0))}${S.potong?` • potongan toko tutup ${rp(S.potong)}`:""}</span></div>${S.potong?`<div class="card" style="margin-top:12px;background:#fdecea;border-color:#f5c6c2"><b style="color:#a32d2d">🚫 Potongan karena toko tutup saat kurir datang: ${rp(S.potong)}</b><p style="margin:4px 0 0;font-size:13px">Ongkir yang dikembalikan ke pembeli dipotong dari saldo toko. ${S.pel.filter(x=>Number(x.potong)>0).slice(-5).map(x=>esc(x.kode)+" "+rp(x.potong)).join(" • ")}</p></div>`:""}
   <div class="card" style="margin-top:12px">${alasan?`<p class="warn" style="margin:0">${esc(alasan)}</p>`:`<b>💸 Cairkan saldo</b>
     <label style="display:block;margin-top:8px">Jumlah (minimal ${rp(MIN_CAIR)})<input id="cJml" class="fld" inputmode="numeric" value="${S.saldo}"></label>
-    <label style="display:block">Kirim ke (bank / e-wallet, nomor, atas nama)<input id="cRek" class="fld" maxlength="100" placeholder="mis. DANA 0812xxxx a.n. Siti" value="${esc(me.rek||"")}"></label>
+    <label style="display:block">1. Kirim ke (bank / e-wallet)<input id="cBank" class="fld" list="cBankL" maxlength="30" placeholder="Pilih atau ketik, mis. DANA / BRI" value="${esc(me.rekB||"")}"><datalist id="cBankL">${REK_BANK.map(x=>`<option value="${x}">`).join("")}</datalist></label>
+    <label style="display:block">2. Nomor rekening / e-wallet<input id="cNo" class="fld" inputmode="numeric" maxlength="25" placeholder="mis. 081234567890" value="${esc(me.rekN||"")}"></label>
+    <label style="display:block">3. Atas nama<input id="cNama" class="fld" maxlength="50" placeholder="Nama pemilik rekening / e-wallet" value="${esc(me.rekA||"")}"></label>
     <div class="cr-rinci" id="cRinci">${cairRinci(S.saldo)}</div>
     <button class="btn" id="cBtn">💸 Ajukan pencairan</button>`}
     <small style="display:block;color:var(--mu);margin-top:8px">Pencairan bisa 1x sehari, minimal ${rp(MIN_CAIR)}. Setiap pencairan dipotong <b>biaya admin bank ${rp(BIAYA_CAIR)}</b>. Admin akan mentransfer ke rekening / e-wallet Anda.</small></div>
@@ -553,16 +560,16 @@ function saldo(){const S=SALDO;if(!S)return'<p style="color:var(--mu)">Memuat sa
 bind.saldo=()=>{document.querySelectorAll(".u-row").forEach(r=>r.onclick=()=>go("detail",r.dataset.id));
   if(!SALDO||Date.now()-SALDO.t>20000)muatSaldo().then(()=>{if(view==="saldo")go("saldo")}).catch(e=>toast("Gagal memuat saldo"));
   $("cJml")&&($("cJml").oninput=e=>{e.target.value=e.target.value.replace(/\D/g,"");$("cRinci").innerHTML=cairRinci(Number(e.target.value)||0)});
-  $("cBtn")&&($("cBtn").onclick=async()=>{const b=$("cBtn"),j=Number($("cJml").value)||0,rek=$("cRek").value.trim();
-    if(j<MIN_CAIR)return toast("Minimal pencairan "+rp(MIN_CAIR));if(j<=BIAYA_CAIR)return toast("Jumlah harus lebih besar dari biaya admin bank");if(!rek||rek.length<8)return toast("Isi tujuan transfer lengkap: bank/e-wallet, nomor, atas nama");
+  $("cBtn")&&($("cBtn").onclick=async()=>{const b=$("cBtn"),j=Number($("cJml").value)||0,R=rekBaca(),rek=R.teks||"";
+    if(j<MIN_CAIR)return toast("Minimal pencairan "+rp(MIN_CAIR));if(j<=BIAYA_CAIR)return toast("Jumlah harus lebih besar dari biaya admin bank");if(R.err)return toast(R.err);
     b.disabled=true;b.textContent="Mengecek saldo…";
     try{const S=await muatSaldo(),al=cekCair(S);if(al){toast(al);return go("saldo")}if(j>S.saldo){toast("Jumlah melebihi saldo "+rp(S.saldo));return go("saldo")}
-      if(!(await yakinCair(j,rek,S.saldo))){b.disabled=false;b.textContent="💸 Ajukan pencairan";return}
+      if(!(await yakinCair(j,R,S.saldo))){b.disabled=false;b.textContent="💸 Ajukan pencairan";return}
       b.textContent="Mengirim…";
       const lama=async()=>{let l=await getS("cair_toko",[]);if(!Array.isArray(l))l=[];
         l.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),toko:myK(),nama:me.toko||me.usaha||"",wa:WA,jumlah:j,biaya:BIAYA_CAIR,diterima:j-BIAYA_CAIR,rek,t:new Date().toISOString(),status:"menunggu"});
         await setS("cair_toko",l)};
-      if(cloud())await KSPesanan.cair(j,rek,lama);else await lama();if(me.rek!==rek){me.rek=rek;saveMe().catch(()=>{})}
+      if(cloud())await KSPesanan.cair(j,rek,lama);else await lama();if(me.rek!==rek||me.rekA!==R.a){Object.assign(me,{rek,rekB:R.b,rekN:R.n,rekA:R.a});saveMe().catch(()=>{})}
       SALDO=null;await muatSaldo();toast("✅ Pencairan diajukan. Admin akan segera mentransfer.");go("saldo")}
     catch(e){toast("Gagal: "+String(e.message||e).slice(0,80));b.disabled=false;b.textContent="💸 Ajukan pencairan"}})};
 /* ===== NOTIFIKASI PESANAN (pindahan dari halaman penjual.html) ===== */

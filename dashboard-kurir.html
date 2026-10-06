@@ -250,6 +250,7 @@ body{background-color:#f4ebdf;background-image:none}
 .nav button.on,.nav button.on span{color:#7b3f1d}.nav button.on::after{content:"";position:absolute;left:18%;right:18%;bottom:-4px;height:4px;border-radius:4px;background:#7b3f1d}
 @media (max-width:370px){.ly-g{grid-template-columns:1fr 1fr}.sd-bd{width:58%}}
 @media (display-mode: standalone){.topbar{display:none}.wrap{padding-top:calc(12px + env(safe-area-inset-top,0px))}}
+.sd-rw.sd-cr{border-color:#228b4e;color:#14502c;background:#f2faf5}.cr-box{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:8px 12px;font-size:14px}.cr-l{display:flex;justify-content:space-between;padding:4px 0}.cr-l.cr-t{border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
 </style>
 </head>
 <body>
@@ -496,11 +497,13 @@ async function renderSaldo(){
   const box = $("saldoBox"); if(!box || !me) return;
   await muatBiaya();
   if(!BIAYA.aktif || me.pending){ box.hidden = true; SALDO = null; return; }
-  let s = 0, req = [];
+  let s = 0, req = [], cair = [];
   try{
     const id = encodeURIComponent(me.id);
     const [r, p] = await Promise.all([cf("kurir_saldo?select=saldo&kurir_id=eq." + id), cf("kurir_topup?select=id,jumlah,status,t,catatan,diproses_t&kurir_id=eq." + id + "&order=t.desc&limit=5")]);
     s = r[0] ? Number(r[0].saldo) || 0 : 0; req = p || [];
+    try{ cair = await cf("kurir_cair?select=id,jumlah,diterima,status,t,catatan,diproses_t&kurir_id=eq." + id + "&order=t.desc&limit=5") || []; }catch(e){ cair = null; }
+    CAIRK = cair;
   }catch(e){ box.hidden = true; return; }
   SALDO = s; const kurang = s < minSaldo();
   box.hidden = false; box.className = kurang ? "habis" : "";
@@ -510,8 +513,12 @@ async function renderSaldo(){
     + req.filter(x => x.status === "menunggu").map(x => `<p class="sd-st"><i>⏳</i><span>Isi saldo ${fmtRp(x.jumlah)} menunggu konfirmasi admin.</span></p>`).join("")
     + req.filter(x => x.status === "ditolak" && baru(x)).map(x => `<p class="sd-st r"><i>❌</i><span>Isi saldo ${fmtRp(x.jumlah)} ditolak${x.catatan ? ": " + esc(x.catatan) : ""}.</span></p>`).join("")
     + req.filter(x => x.status === "diterima" && baru(x)).slice(0, 1).map(x => `<p class="sd-st ok"><i class="ck">✓</i><span>Isi saldo ${fmtRp(x.jumlah)} sudah masuk.</span></p>`).join("")
+    + (cair || []).filter(x => x.status === "menunggu").map(x => `<p class="sd-st"><i>⏳</i><span>Pencairan ${fmtRp(x.jumlah)} menunggu ditransfer admin (diterima ${fmtRp(x.diterima)}).</span></p>`).join("")
+    + (cair || []).filter(x => x.status === "selesai" && baru(x)).slice(0, 1).map(x => `<p class="sd-st ok"><i class="ck">✓</i><span>Pencairan ${fmtRp(x.diterima)} sudah ditransfer.</span></p>`).join("")
+    + (cair || []).filter(x => x.status === "ditolak" && baru(x)).slice(0, 1).map(x => `<p class="sd-st r"><i>❌</i><span>Pencairan ditolak${x.catatan ? ": " + esc(x.catatan) : ""}. Saldo dikembalikan.</span></p>`).join("")
+    + (cair !== null ? `<button class="sd-rw sd-cr" type="button" id="btnCair"><span>💸 Cairkan saldo</span><em>›</em></button>` : "")
     + `<button class="sd-rw" type="button" id="btnRiwayat"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M18 7V5.5A2.5 2.5 0 0 0 15.5 3H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-8a3 3 0 0 0-3-3zM5 5h10.5a.5.5 0 0 1 .5.5V7H5a1 1 0 0 1 0-2zm12 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg><span>Riwayat saldo</span><em>›</em></button></div><svg class="sd-ilu" viewBox="0 0 170 140" aria-hidden="true"><ellipse cx="88" cy="124" rx="78" ry="13" fill="#f3e3cf"/><path d="M22 120c-14-16-12-40 8-50 6 18 6 36-8 50z" fill="#4f9d3f"/><path d="M28 122c4-22 20-34 40-30-6 18-20 28-40 30z" fill="#6cb85a"/><path d="M152 70c-2-20 6-38 14-46 6 16 2 36-14 46z" fill="#5aa94a"/><path d="M150 96c-10-14-8-32 2-40 8 14 8 30-2 40z" fill="#78c262"/><path d="M151 110V58" stroke="#4f9d3f" stroke-width="2.5" fill="none"/><g transform="rotate(-9 82 72)"><rect x="34" y="34" width="96" height="70" rx="12" fill="#5b2c12"/><rect x="44" y="26" width="70" height="22" rx="4" fill="#f5f8f2"/><rect x="50" y="30" width="44" height="3" rx="1.5" fill="#ead6bf"/></g><rect x="30" y="46" width="98" height="70" rx="13" fill="#8a4a22"/><rect x="30" y="46" width="98" height="70" rx="13" fill="none" stroke="#5b2c12" stroke-width="3"/><path d="M36 52h86" stroke="#c48a5a" stroke-width="2" stroke-dasharray="4 4"/><g transform="translate(60 66)" fill="none" stroke="#fbeedd" stroke-width="3" stroke-linejoin="round"><path d="M3 10h30l-4 22H7z"/><path d="M10 10l6-9M26 10l-6-9"/></g><text x="78" y="93" font-size="15" font-weight="900" fill="#fff" text-anchor="middle" font-family="system-ui,sans-serif">KS</text><g><ellipse cx="128" cy="122" rx="20" ry="7" fill="#d9930c"/><rect x="108" y="108" width="40" height="14" fill="#f0b429"/><ellipse cx="128" cy="108" rx="20" ry="7" fill="#f7cc55" stroke="#d9930c" stroke-width="1.5"/><ellipse cx="96" cy="126" rx="15" ry="5.5" fill="#d9930c"/><rect x="81" y="118" width="30" height="8" fill="#f0b429"/><ellipse cx="96" cy="118" rx="15" ry="5.5" fill="#f7cc55" stroke="#d9930c" stroke-width="1.5"/></g><circle cx="134" cy="78" r="22" fill="#f6c343" stroke="#d9930c" stroke-width="3"/><circle cx="134" cy="78" r="16" fill="none" stroke="#fbe08f" stroke-width="2"/><text x="134" y="85" font-size="17" font-weight="900" fill="#fff" text-anchor="middle" font-family="system-ui,sans-serif" stroke="#c98a0a" stroke-width=".6">Rp</text></svg>`;
-  $("btnTopup").onclick = bukaTopup; $("btnRiwayat").onclick = bukaRiwayat;
+  $("btnTopup").onclick = bukaTopup; $("btnRiwayat").onclick = bukaRiwayat; $("btnCair") && ($("btnCair").onclick = bukaCair);
 }
 function lembar(html){
   const ov = document.createElement("div");
@@ -519,6 +526,54 @@ function lembar(html){
   ov.innerHTML = `<div style="background:#fffaf2;width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto">${html}</div>`;
   ov.onclick = e => { if(e.target === ov) ov.remove(); };
   document.body.appendChild(ov); return ov;
+}
+/* ===== Pencairan saldo kurir (supabase-upah-kurir-qris.sql) ===== */
+let CAIRK = null;
+async function bukaCair(){
+  await muatBiaya();
+  let biaya = 2500; try{ const v = await getSetting("biaya_cair", null); const n = Number(v && typeof v === "object" ? v.admin : v); if(v != null && n >= 0) biaya = Math.round(n); }catch(e){}
+  const saldo = SALDO || 0, sisa = Math.max(0, Number(BIAYA.minSaldo) || 0), maks = Math.max(0, saldo - sisa), MIN = 20000;
+  const tunggu = (CAIRK || []).some(x => x.status === "menunggu");
+  const hariIni = (CAIRK || []).some(x => x.status !== "ditolak" && new Date(x.t).toLocaleDateString("en-CA", {timeZone:"Asia/Jakarta"}) === new Date().toLocaleDateString("en-CA", {timeZone:"Asia/Jakarta"}));
+  const alasan = tunggu ? "Masih ada pencairan yang menunggu ditransfer admin." : hariIni ? "Pencairan hanya bisa 1x sehari. Coba lagi besok." : maks < MIN ? `Saldo yang bisa dicairkan minimal ${fmtRp(MIN)}. Sekarang ${fmtRp(maks)} (sisakan ${fmtRp(sisa)} untuk potongan pesanan).` : "";
+  const rinci = j => `<div class="cr-l"><span>Jumlah dicairkan</span><b>${fmtRp(j)}</b></div><div class="cr-l"><span>Biaya admin bank</span><b style="color:#b83c2b">−${fmtRp(biaya)}</b></div><div class="cr-l cr-t"><span>Yang Anda terima</span><b style="color:#14502c">${j >= MIN ? fmtRp(j - biaya) : "–"}</b></div><div class="cr-l"><span>Sisa saldo</span><b>${fmtRp(Math.max(0, saldo - j))}</b></div>`;
+  const ov = lembar(`<h3 style="margin:0 0 4px;color:var(--brown)">💸 Cairkan saldo</h3>
+    <p class="hint" style="margin:0 0 10px">Saldo ${fmtRp(saldo)} • bisa dicairkan ${fmtRp(maks)}. Minimal ${fmtRp(MIN)}, 1x sehari, dipotong biaya admin bank ${fmtRp(biaya)}.</p>
+    ${alasan ? `<p class="hint" style="background:#fff3cd;border-radius:12px;padding:10px 12px;color:#5a4300">${esc(alasan)}</p><button class="mini" id="crTutup" type="button" style="width:100%;margin-top:10px">Tutup</button>` : `
+    <label>Jumlah<input id="crJ" class="fld" inputmode="numeric" value="${maks}"></label>
+    <label>1. Kirim ke (bank / e-wallet)<input id="crB" class="fld" list="crBL" maxlength="30" placeholder="Pilih atau ketik, mis. DANA / BRI" value="${esc(me.rekB || "")}"><datalist id="crBL">${["DANA","OVO","GoPay","ShopeePay","LinkAja","BRI","BNI","BCA","Mandiri","BSI","BJB","SeaBank","Bank Jago","Blu BCA"].map(x => `<option value="${x}">`).join("")}</datalist></label>
+    <label>2. Nomor rekening / e-wallet<input id="crN" class="fld" inputmode="numeric" maxlength="25" placeholder="mis. 081234567890" value="${esc(me.rekN || "")}"></label>
+    <label>3. Atas nama<input id="crA" class="fld" maxlength="50" placeholder="Nama pemilik rekening / e-wallet" value="${esc(me.rekA || "")}"></label>
+    <div class="cr-box" id="crRin">${rinci(maks)}</div>
+    <p class="hint" style="background:#fff3cd;border-radius:12px;padding:10px 12px;color:#5a4300;margin:10px 0">⚠️ Periksa lagi nama bank / e-wallet, nomor, dan nama pemilik. Uang yang ditransfer ke nomor yang salah <b>tidak bisa dikembalikan</b>.</p>
+    <label style="display:flex;gap:10px;align-items:flex-start;font-size:13.5px;font-weight:600"><input type="checkbox" id="crOk" style="width:20px;height:20px;flex:none"> Saya sudah memeriksa jumlah dan tujuan transfer, semuanya benar.</label>
+    <button class="mini g" id="crYa" type="button" disabled style="width:100%;padding:13px;font-size:15px;margin-top:12px;opacity:.5">Ajukan pencairan</button>
+    <button class="mini" id="crTutup" type="button" style="width:100%;margin-top:10px">Batal</button>`}`);
+  ov.querySelector("#crTutup").onclick = () => ov.remove();
+  if(alasan) return;
+  const J = ov.querySelector("#crJ"), Y = ov.querySelector("#crYa"), OK = ov.querySelector("#crOk");
+  const segar = () => { const j = Number(J.value) || 0; ov.querySelector("#crRin").innerHTML = rinci(j); Y.textContent = j >= MIN ? "Ya, cairkan " + fmtRp(j - biaya) : "Ajukan pencairan"; };
+  J.oninput = () => { J.value = J.value.replace(/\D/g, ""); segar(); };
+  OK.onchange = () => { Y.disabled = !OK.checked; Y.style.opacity = OK.checked ? 1 : .5; };
+  segar();
+  Y.onclick = async () => {
+    const j = Number(J.value) || 0, rb = ov.querySelector("#crB").value.trim(), rn = ov.querySelector("#crN").value.replace(/[^\d]/g, ""), ra = ov.querySelector("#crA").value.replace(/\s+/g, " ").trim(), rek = `${rb} • ${rn} • a.n. ${ra}`;
+    if(j < MIN) return toast("Minimal pencairan " + fmtRp(MIN));
+    if(j > maks) return toast("Maksimal " + fmtRp(maks));
+    if(!rb) return toast("Pilih bank / e-wallet tujuan");
+    if(rn.length < 6) return toast("Isi nomor rekening / e-wallet dengan benar");
+    if(ra.length < 3) return toast("Isi nama pemilik rekening / e-wallet");
+    if(!confirm(`Cairkan ${fmtRp(j)} (diterima ${fmtRp(j - biaya)}) ke:\n${rb}\nNomor: ${rn}\nAtas nama: ${ra}\n\nSudah benar?`)) return;
+    Y.disabled = true; Y.textContent = "Mengirim…";
+    try{
+      const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
+      const r = await fetch(base + "/rest/v1/rpc/kurir_cair_ajukan", {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify({p_sesi:KSID.sesi(ROLE), p_jumlah:j, p_rek:rek})});
+      const t = await r.text(); let x = null; try{ x = JSON.parse(t); }catch(e){}
+      if(!r.ok) throw new Error(String((x && x.message) || t).replace(/^SESI:\s*/, ""));
+      if(me.rek !== rek){ Object.assign(me, {rek, rekB:rb, rekN:rn, rekA:ra}); upsertMember(me).catch(() => {}); }
+      ov.remove(); toast("✅ Pencairan diajukan. Admin akan mentransfer " + fmtRp(j - biaya)); renderSaldo();
+    }catch(e){ Y.disabled = false; segar(); toast("Gagal: " + String(e.message || e).slice(0, 100)); }
+  };
 }
 async function bukaTopup(){
   await muatBiaya();
