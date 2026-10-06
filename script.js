@@ -2252,7 +2252,7 @@ async function bukaPilihBayar(awal){
 function tampilSukses(s){
   document.getElementById("suksesBox")?.remove();
   const q=/^(qris|saldo)/i.test(s.payment),ov=document.createElement("div");ov.id="suksesBox";ov.className="ok-ov";
-  ov.innerHTML=`<div class="ok-card ok-v2"><span class="ok-daun l" aria-hidden="true"></span><span class="ok-daun r" aria-hidden="true"></span>
+  ov.innerHTML=`<button type="button" class="ok-x" id="okX" aria-label="Tutup dan kembali ke toko">✕</button><div class="ok-card ok-v2"><span class="ok-daun l" aria-hidden="true"></span><span class="ok-daun r" aria-hidden="true"></span>
     <div class="ok-cek"><i class="ok-cf" aria-hidden="true"></i><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54"/><path d="M36 62 L53 79 L86 44"/></svg></div>
     <h2>Pesanan berhasil dibuat!</h2><p class="ok-sub">Terima kasih, <b>${esc(s.nama||"Warga")}</b> 🙏<br>Pesanan Anda sudah diteruskan ke ${s.groups.length>1?s.groups.length+" toko":"toko"} dan akan segera diproses.</p>
     <div class="ok-bayar ${q?"lunas":""}"><span class="ok-bi" aria-hidden="true">${q?"✅":"💵"}</span><span>${/^saldo/i.test(s.payment)?"Sudah dibayar <b>LUNAS</b> pakai saldo voucher":q?`Sudah dibayar <b>LUNAS</b> lewat QRIS${s.saldo?` + saldo voucher ${rupiah(s.saldo)}`:""}`:`Bayar tunai <b>${rupiah(s.total)}</b> ke kurir saat pesanan sampai`}</span></div>
@@ -2270,6 +2270,7 @@ function tampilSukses(s){
   document.body.appendChild(ov);document.body.classList.add("ok-open");
   const tutup=()=>{ov.remove();document.body.classList.remove("ok-open");document.querySelectorAll(".modal.show").forEach(m=>m.classList.remove("show"));};
   ov.querySelector("#okKembali").onclick=()=>{tutup();scrollTo({top:0,behavior:"smooth"});};
+  ov.querySelector("#okX").onclick=()=>{tutup();scrollTo({top:0,behavior:"smooth"});};
   ov.querySelector("#okLihat").onclick=()=>{tutup();openModal("myOrdersModal");try{refreshMyOrders();}catch(e){}};
 }
 

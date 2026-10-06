@@ -119,6 +119,37 @@ a.q,a.m{text-decoration:none;color:inherit;display:flex}.q.q-ks{background:var(-
 .cr-cek{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;font-weight:600;margin:6px 0 4px;cursor:pointer}.cr-cek input{width:20px;height:20px;flex:none;margin-top:1px;accent-color:var(--b2)}
 .cr-bt{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}.cr-bt .btn{margin-top:8px}.cr-bt .btn:disabled{opacity:.45;cursor:not-allowed}
 @keyframes crF{from{opacity:0}}@keyframes crU{from{transform:translateY(40px)}}
+
+/* v47 pop-up pesanan baru & uang COD di beranda */
+.pp-ov{position:fixed;inset:0;z-index:300;background:rgba(10,30,20,.62);display:flex;align-items:center;justify-content:center;padding:18px;animation:ppF .2s}
+.pp-box{background:#fff;width:100%;max-width:400px;border-radius:26px;padding:22px 18px 18px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);animation:ppU .3s cubic-bezier(.2,.9,.3,1.2);max-height:92vh;overflow:auto}
+.pp-ic{width:76px;height:76px;margin:0 auto 6px;border-radius:50%;background:#fff3cd;display:grid;place-items:center;font-size:40px;animation:ppG 1s ease-in-out infinite}
+.pp-box h2{margin:4px 0 6px;font-size:22px;color:#14251a}
+.pp-t{display:inline-block;background:#fff3cd;color:#8a5a00;border-radius:999px;padding:6px 14px;font-size:14px;margin-bottom:12px}.pp-t b{font-size:16px}
+.pp-c{background:#f6faf7;border:1px solid var(--ln);border-radius:16px;padding:10px 12px;text-align:left;margin-bottom:12px}
+.pp-k{display:flex;justify-content:space-between;gap:8px;align-items:center;padding-bottom:6px;border-bottom:1px dashed var(--ln);margin-bottom:4px}.pp-k b{font-size:16px}.pp-k span{font-size:13px;font-weight:700;color:var(--b2)}
+.pp-r{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:3px 0}.pp-tot{border-top:1px solid var(--ln);margin-top:4px;padding-top:6px}.pp-tot b{font-size:17px;color:#14502c}
+.pp-box .pp-ya{font-size:17px;padding:15px;margin-top:0;background:var(--ok);border-color:var(--ok)}
+.pp-a{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pp-a .btn{margin-top:8px;padding:12px}.pp-n{font-size:13px;color:var(--mu)}
+@keyframes ppF{from{opacity:0}}@keyframes ppU{from{transform:scale(.9);opacity:0}}@keyframes ppG{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}}
+@media (prefers-reduced-motion:reduce){.pp-ic{animation:none}}
+.cod-d{background:#fff8e6;border:2px solid #f0c55a;border-radius:18px;padding:12px 14px;margin:0 0 12px}
+.cod-dh{display:flex;gap:10px;align-items:flex-start;margin-bottom:6px}.cod-dh>span{font-size:28px;line-height:1}.cod-dh b{display:block;font-size:16px;color:#5a3a00}.cod-dh small{display:block;font-size:12.5px;color:#7a5a20;margin-top:2px}
+.cod-r{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;background:#fff;border-radius:14px;padding:10px 12px;margin-top:8px}
+.cod-r b{font-size:15px}.cod-r small{display:block;font-size:12px;color:var(--mu)}.cod-r strong{font-size:17px;color:#14502c}.cod-r .btn{grid-column:1/-1;margin-top:4px;padding:11px;background:var(--ok);border-color:var(--ok)}
+
+/* v48 kolom notifikasi kuning stabilo */
+.pb,.cod-d{background:#fff47a;border:2px solid #e3c800;color:#2b2400}
+@keyframes pbk{0%,100%{box-shadow:0 0 0 0 rgba(255,230,0,.75)}50%{box-shadow:0 0 0 9px rgba(255,230,0,0)}}
+.pb-h b,.cod-dh b{color:#2b2400}.pb-h em{background:#fff;color:#2b2400}
+.pb-i,.cod-dh small{color:#4a4000}.pb-i b{color:#1e1a00}
+.pb-a .btn.o{background:#fff}.pb-more{color:#5a4d00}
+.cod-r{border:1px solid #e3c800}
+
+/* v48b garis kolom notifikasi berkedip terang-redup */
+.pb,.cod-d{border-width:3px;animation:ksGaris 1.2s ease-in-out infinite}
+@keyframes ksGaris{0%,100%{border-color:#ff9f00;box-shadow:0 0 0 0 rgba(255,159,0,0),0 0 14px 2px rgba(255,170,0,.85)}50%{border-color:#fff7a8;box-shadow:0 0 0 0 rgba(255,159,0,0),0 0 0 0 rgba(255,170,0,0)}}
+@media (prefers-reduced-motion:reduce){.pb,.cod-d{animation:none;border-color:#ff9f00}}
 </style></head><body>
 <section id="auth"><div class="logo" style="width:120px;height:120px"><img src="icons/logo-kalensari.png" alt="Kalensari Store"></div><h1>Kalensari Store</h1><p>Bersama dalam setiap manisnya hari</p>
 <div id="lf" hidden style="text-align:left"><label>No. WhatsApp atau ID akun<input id="lw" class="fld" type="text" inputmode="text" autocapitalize="characters" placeholder="08xxxxxxxxxx atau PJ0001"></label><label>PIN<input id="lp" class="fld" type="password" inputmode="numeric" maxlength="8"></label><button class="btn" id="go">Masuk</button></div>
@@ -191,7 +222,7 @@ const promoSisa=p=>p&&p.sale_until?Math.ceil((Date.parse(p.sale_until)-Date.now(
 const promoHabis=p=>!!(p&&p.sale_until&&Date.parse(p.sale_until)<=Date.now());
 async function akhiriPromoHabis(){for(const p of P.filter(x=>Number(x.sale)>0&&promoHabis(x))){try{await prodSimpan(p.id,{sale:null,sale_until:null});p.sale=null;p.sale_until=null}catch(e){}}}
 async function load(poll){try{const [pr,or,ct]=await Promise.all([cloud()?cf("products?select=*&order=id.desc"):LG("kalensari_products",[]),cloud()?cf("orders?select=*&order=created_at.desc&limit=200"):LG("kalensari_orders",[]),getS("categories",[])]);P=pr.filter(p=>mine(p.seller));akhiriPromoHabis();O=or.filter(o=>mineItems(o).length&&!belumBayar(o));LAST_LOAD=Date.now();await muatKurirAcc(O);cats=[...new Set(["Makanan","Minuman",...(ct||[]),...pr.map(p=>p.category)].filter(Boolean))];
-const codes=O.map(o=>o.order_code);if(known&&poll){const n=codes.filter(c=>!known.includes(c));if(n.length){beep();toast("🔔 "+n.length+" pesanan baru")}}known=codes;expireOld();if(poll&&["home","orders"].includes(view))go(view,arg)}catch(e){if(!poll)toast("Gagal memuat: "+(e.message||e).toString().slice(0,80))}}
+const codes=O.map(o=>o.order_code);if(known&&poll){const n=codes.filter(c=>!known.includes(c));if(n.length){beep();toast("🔔 "+n.length+" pesanan baru")}}known=codes;expireOld();if(poll&&["home","orders"].includes(view))go(view,arg);popupPesanan()}catch(e){if(!poll)toast("Gagal memuat: "+(e.message||e).toString().slice(0,80))}}
 const tried=new Set();async function expireOld(){for(const o of O.filter(o=>base(o)==="menunggu"&&exp(o)<=Date.now()&&isOnly(o)&&!tried.has(o.id))){tried.add(o.id);try{if(cloud())await KSPesanan.aksi("penjual",o.order_code,"kedaluwarsa",{},()=>cf("orders?id=eq."+encodeURIComponent(o.id)+"&status=in.(baru,menunggu)",{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"dibatalkan",updated_at:new Date().toISOString()})}));o.status="dibatalkan"}catch{}}}
 const mmss=l=>Math.floor(l/60000)+":"+String(Math.floor(l%60000/1000)).padStart(2,"0");
 setInterval(()=>{const els=[...document.querySelectorAll("[data-exp]")];if(!els.length)return;let done=false;els.forEach(e=>{const l=e.dataset.exp-Date.now();if(l<=0)done=true;else e.textContent=mmss(l)});if(done){expireOld();go(view,arg)}},1000);
@@ -375,6 +406,30 @@ function langgananHtml(ok){const m=new Map();ok.forEach(o=>{const k=String(o.cus
   const l=[...m.values()].sort((a,b)=>b.c-a.c||b.v-a.v).slice(0,5),ulang=[...m.values()].filter(x=>x.c>1).length;
   return `<h3>💛 Pelanggan langganan</h3><div class="card">${l.length?l.map((x,i)=>`<div class="ln"><span>${i+1}. ${esc(String(x.n).slice(0,30))}<small style="display:block;color:var(--mu)">${x.c}× belanja • terakhir ${new Date(x.t).toLocaleDateString("id-ID",{day:"numeric",month:"short"})}</small></span><b>${rp(x.v)}</b></div>`).join("")+`<small style="display:block;color:var(--mu);margin-top:6px">${m.size} pembeli • ${ulang} belanja lebih dari sekali</small>`:'<small style="color:var(--mu)">Belum ada pembeli di periode ini.</small>'}</div>`}
 /* ===== KARTU PESANAN BARU di atas Beranda ===== */
+/* ===== Uang COD dari kurir: tampil di Beranda supaya mudah dicari ===== */
+function codTungguList(){const k=myK();return O.filter(o=>isCodO(o)&&["diproses","dikirim","selesai"].includes(base(o))&&kurirSudah(o)&&!utOf(o)[k]&&Date.now()-new Date(o.created_at).getTime()<7*864e5)}
+function codDashHtml(){const l=codTungguList();if(!l.length)return"";
+  return `<div class="cod-d"><div class="cod-dh"><span>💵</span><div><b>Terima uang COD dari kurir</b><small>Kurir membayar uang barang saat mengambil pesanan. Tekan tombol setelah uangnya Anda terima.</small></div></div>
+  ${l.map(o=>{const sub=mineItems(o).reduce((a,p)=>a+(p.sale||p.price||0)*p.qty,0),kr=KACC[o.order_code];return `<div class="cod-r"><div><b>${esc(o.order_code)}</b><small>${kr&&kr.nama?"🛵 "+esc(kr.nama)+" • ":""}${esc(STL[base(o)]||base(o))}</small></div><strong>${rp(sub)}</strong><button class="btn grn" data-codut="${esc(String(o.id))}">✅ Sudah diterima</button></div>`}).join("")}</div>`}
+/* ===== Pop-up pesanan baru di tengah layar ===== */
+const POP_LIHAT=new Set(JSON.parse(sessionStorage.getItem("ks_pop_lihat")||"[]"));
+function popupPesanan(){if(document.querySelector(".pp-ov"))return;
+  const o=O.filter(x=>stOf(x)==="menunggu"&&exp(x)>Date.now()&&!POP_LIHAT.has(x.order_code)).sort((a,b)=>exp(a)-exp(b))[0];if(!o)return;
+  POP_LIHAT.add(o.order_code);try{sessionStorage.setItem("ks_pop_lihat",JSON.stringify([...POP_LIHAT].slice(-50)))}catch(e){}
+  const m=mineItems(o),n=m.reduce((t,p)=>t+(Number(p.qty)||1),0),ov=document.createElement("div");ov.className="pp-ov";
+  ov.innerHTML=`<div class="pp-box" role="alertdialog" aria-modal="true"><div class="pp-ic">🔔</div><h2>Pesanan baru masuk!</h2>
+  <div class="pp-t">⏱ Tanggapi dalam <b data-exp="${exp(o)}">${mmss(Math.max(0,exp(o)-Date.now()))}</b></div>
+  <div class="pp-c"><div class="pp-k"><b>${esc(o.order_code)}</b><span>${isQris(o)?"💳 QRIS lunas":isCodO(o)?"💵 COD":esc(o.payment||"")}</span></div>
+  ${m.slice(0,5).map(p=>`<div class="pp-r"><span>${esc(p.name)} ×${p.qty}</span><span>${rp((p.sale||p.price||0)*p.qty)}</span></div>`).join("")}${m.length>5?`<div class="pp-r"><span>+${m.length-5} barang lain</span><span></span></div>`:""}
+  <div class="pp-r pp-tot"><span>${n} barang</span><b>${rp(tot(o))}</b></div></div>
+  ${isOnly(o)?`<button class="btn grn pp-ya">✅ Terima pesanan</button>`:'<p class="pp-n">Pesanan gabungan beberapa toko: diproses oleh admin.</p>'}
+  <div class="pp-a"><button class="btn o pp-det">👀 Lihat detail</button><button class="btn o pp-x">Nanti</button></div></div>`;
+  document.body.appendChild(ov);beep();try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}catch(e){}
+  const tutup=()=>{ov.remove();setTimeout(popupPesanan,400)};
+  ov.querySelector(".pp-x").onclick=tutup;
+  ov.querySelector(".pp-det").onclick=()=>{ov.remove();go("detail",o.id)};
+  const ya=ov.querySelector(".pp-ya");if(ya)ya.onclick=async()=>{if(exp(o)<=Date.now()){toast("Waktu menanggapi sudah habis");return tutup()}ya.disabled=true;ya.textContent="Memproses…";const ok=await terimaPesanan(o.id);ov.remove();if(ok)go("detail",o.id);else go(view,arg)};
+  const cek=setInterval(()=>{if(!document.body.contains(ov))return clearInterval(cek);if(exp(o)<=Date.now()||stOf(gO(o.id)||o)!=="menunggu"){clearInterval(cek);ov.remove()}},1000)}
 function pesananBaruHtml(){const l=O.filter(o=>stOf(o)==="menunggu").sort((a,b)=>exp(a)-exp(b));if(!l.length)return"";
   return l.slice(0,2).map(o=>{const m=mineItems(o),n=m.reduce((t,p)=>t+(Number(p.qty)||1),0);return `<div class="pb"><div class="pb-h"><b>🔔 Pesanan baru!</b><em>⏱ <span data-exp="${exp(o)}">${mmss(Math.max(0,exp(o)-Date.now()))}</span></em></div>
   <div class="pb-i"><b>${esc(o.order_code)}</b> • ${n} barang • <b>${rp(tot(o))}</b> • ${isQris(o)?"QRIS lunas":isCodO(o)?"COD":esc(o.payment||"")}<br>${esc(m.slice(0,3).map(p=>p.name+" ×"+p.qty).join(", "))}${m.length>3?", …":""}</div>
@@ -430,7 +485,7 @@ const ILUS_TOKO='<svg class="hero-ilus" viewBox="0 0 160 110" aria-hidden="true"
 function sembunyiSaldo(){try{return localStorage.getItem("kalensari_pj_saldo_sembunyi")==="1"}catch(e){return false}}
 function home(){const c=s=>O.filter(o=>stOf(o)===s).length,td=O.filter(o=>new Date(o.created_at).toDateString()===new Date().toDateString()),om=td.filter(o=>!["dibatalkan","gagal"].includes(stOf(o))).reduce((t,o)=>t+tot(o),0),S=SALDO,hide=sembunyiSaldo();
 const tile=(k,i,t)=>`<div class="q2" data-k="${k}"><i>${i}</i><span>${t}</span></div>`;
-return `${pesananBaruHtml()}${me.pending?'<div class="warn">⏳ Akun menunggu persetujuan admin.</div>':""}${cloud()?"":'<div class="warn">⚠️ Database online belum aktif (mode uji coba).</div>'}
+return `${pesananBaruHtml()}${codDashHtml()}${me.pending?'<div class="warn">⏳ Akun menunggu persetujuan admin.</div>':""}${cloud()?"":'<div class="warn">⚠️ Database online belum aktif (mode uji coba).</div>'}
 <div class="hero">${ILUS_TOKO}<div class="hero-top"><div class="hero-sapa"><small>👋 Halo, ${esc(me.nama||"Penjual")}</small><b>Selamat Datang</b><p>Semangat terus, semoga hari ini banyak pesanan!</p></div><label class="hero-foto" title="Ganti foto toko" style="${FOTO_TOKO?`background-image:url('${FOTO_TOKO}')`:""}">${FOTO_TOKO?"":"<span>📷<br>Foto toko</span>"}<em>✎</em><input type="file" id="hfIn" accept="image/*" hidden></label></div>
   <div class="hero-saldo" data-k="saldo"><div class="hs-l"><small>${IK.dompet} Saldo penjualan <button type="button" id="eyeS" aria-label="Tampilkan/sembunyikan saldo">${hide?IK.mataX:IK.mata}</button></small><b>${hide?"Rp •••••":S?rp(S.saldo):"…"}</b>${S&&S.saldo>=MIN_CAIR&&!cekCair(S)&&!hide?'<em>Bisa dicairkan</em>':""}</div><span class="hs-go">${IK.panah}</span></div>
   <div class="hero-btn"><button data-k="saldo">💸 Cairkan</button><button data-k="uang">📊 Laporan</button><button data-k="orders">📋 Pesanan</button></div></div>
@@ -444,7 +499,7 @@ async function muatFotoToko(){if(FOTO_DIMUAT)return;FOTO_DIMUAT=true;try{FOTO_TO
 function pilihFotoToko(f){if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=async()=>{const z=Math.min(im.width,im.height),c=document.createElement("canvas");c.width=c.height=320;
   c.getContext("2d").drawImage(im,(im.width-z)/2,(im.height-z)/2,z,z,0,0,320,320);const foto=c.toDataURL("image/jpeg",.82);
   try{await setS("foto_toko_"+me.id,{foto,t:Date.now(),toko:me.toko||me.usaha||""});FOTO_TOKO=foto;LS("kalensari_fototoko_"+me.id,foto);toast("✅ Foto toko disimpan • tampil di Kalensari Store");go("home")}catch(e){toast("Gagal menyimpan foto")}};im.src=r.result};r.readAsDataURL(f)}
-bind.home=()=>{bindPesananBaru();$("eyeS")&&($("eyeS").onclick=e=>{e.stopPropagation();try{localStorage.setItem("kalensari_pj_saldo_sembunyi",sembunyiSaldo()?"0":"1")}catch(x){}go("home")});$("menuAll")&&($("menuAll").onclick=()=>drawer());bindBukaTutup();document.querySelectorAll(".low [data-pid]").forEach(e=>e.onclick=()=>go("form",e.dataset.pid));$("hfIn")&&($("hfIn").onchange=e=>pilihFotoToko(e.target.files[0]));if(!FOTO_DIMUAT)muatFotoToko().then(()=>{if(view==="home"&&FOTO_TOKO)go("home")});document.querySelectorAll("#v [data-k]").forEach(e=>e.onclick=()=>go(e.dataset.k));document.querySelectorAll(".stats2 [data-f]").forEach(e=>e.onclick=()=>{fo=e.dataset.f;go("orders")});if(!SALDO||Date.now()-SALDO.t>60000)muatSaldo().then(()=>{if(view==="home")go("home")}).catch(()=>{})};
+bind.home=()=>{bindPesananBaru();document.querySelectorAll("[data-codut]").forEach(b=>b.onclick=async()=>{await utTerima(b.dataset.codut,b);if(view==="detail")go("home")});$("eyeS")&&($("eyeS").onclick=e=>{e.stopPropagation();try{localStorage.setItem("kalensari_pj_saldo_sembunyi",sembunyiSaldo()?"0":"1")}catch(x){}go("home")});$("menuAll")&&($("menuAll").onclick=()=>drawer());bindBukaTutup();document.querySelectorAll(".low [data-pid]").forEach(e=>e.onclick=()=>go("form",e.dataset.pid));$("hfIn")&&($("hfIn").onchange=e=>pilihFotoToko(e.target.files[0]));if(!FOTO_DIMUAT)muatFotoToko().then(()=>{if(view==="home"&&FOTO_TOKO)go("home")});document.querySelectorAll("#v [data-k]").forEach(e=>e.onclick=()=>go(e.dataset.k));document.querySelectorAll(".stats2 [data-f]").forEach(e=>e.onclick=()=>{fo=e.dataset.f;go("orders")});if(!SALDO||Date.now()-SALDO.t>60000)muatSaldo().then(()=>{if(view==="home")go("home")}).catch(()=>{})};
 /* ===== LAPORAN KEUANGAN TOKO =====
    Hanya uang BARANG milik toko ini (ongkir milik kurir tidak dihitung).
    Dihitung dari pesanan yang sudah diterima toko (Diproses, Dikirim, Selesai). Ditolak / gagal antar tidak dihitung.

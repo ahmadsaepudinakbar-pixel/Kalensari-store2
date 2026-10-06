@@ -45,7 +45,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui
 .oc-st.s-diproses{background:#e3edff;color:#1f55c0}.oc-st.s-dikirim{background:#e8e4ff;color:#4b3bb5}.oc-st.s-selesai{background:#e1f5e7;color:#1d7a40}.oc-st.s-dibatalkan,.oc-st.s-gagal{background:#fde4e4;color:#b42323}
 .oc-r{display:flex;align-items:center;gap:8px;margin:6px 0 0!important;font-size:14px!important;color:#5c4638!important}.oc-r svg{width:16px;height:16px;flex:none;color:#6b5444}
 .oc-tot{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:rgba(255,255,255,.75);border-radius:999px;padding:3px 12px 3px 3px;font-size:13px;color:#6b5444}
-.oc-tot b{background:#ffe3e1;color:#c62828;border-radius:999px;padding:4px 11px;font-size:15px}
+.oc-tot b{background:#ffe3e1;color:#c62828;border-radius:999px;padding:4px 11px;font-size:15px;white-space:nowrap}
 .oc-ill{position:absolute;right:4px;bottom:-6px;font-size:64px;line-height:1;opacity:.16;pointer-events:none;filter:saturate(.6)}
 #orders .oc .kspw{margin-top:12px}#orders .oc .kspw button{border-radius:999px;padding:11px 12px;font-size:15px;border-color:#7b3f1d;color:#7b3f1d}
 #orders .oc .kspw .batal{border-color:#e5484d;color:#d32f2f;background:#fff5f5}#orders .oc .kspw .ulang{background:var(--brown);border-color:var(--brown);color:#fff}
@@ -156,6 +156,23 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 .lacak-kurir{display:flex;align-items:center;gap:10px;margin:8px 2px}.lacak-kurir p{margin:0!important}
 .lacak-av{width:46px;height:46px;border-radius:50%;flex:none;background:#f3e3d6 center/cover no-repeat;border:2px solid #f2b705;display:flex;align-items:center;justify-content:center;font-size:22px}
 .lacak-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.lacak-act a{flex:1;text-align:center;text-decoration:none;font-weight:700;font-size:14px;color:var(--brown);border:1.5px solid var(--brown);border-radius:999px;padding:10px 12px;background:#fff}
+
+/* v47 warna garis sesuai status + pesanan selesai bisa dilipat */
+#orders .card.oc[data-st="menunggu"],#orders .card.oc[data-st="baru"]{--c:#e08a00;--t:#fff7e6}
+#orders .card.oc[data-st="diproses"]{--c:#2f6fe0;--t:#eef4ff}
+#orders .card.oc[data-st="dikirim"]{--c:#7c3aed;--t:#f5efff}
+#orders .card.oc[data-st="selesai"]{--c:#2f9e55;--t:#eef8f0}
+#orders .card.oc[data-st="dibatalkan"],#orders .card.oc[data-st="gagal"]{--c:#c0392b;--t:#fdf0ee}
+#orders .oc[data-st="dibatalkan"] .oc-tot b,#orders .oc[data-st="gagal"] .oc-tot b{background:#eee;color:#7a6556;text-decoration:line-through}
+#orders .oc[data-st="selesai"] .oc-tot b{background:#e1f5e7;color:#1d7a40}
+.oc-tg{position:absolute;top:10px;right:10px;z-index:2;width:34px;height:34px;border-radius:50%;border:1px solid #eadccb;background:#fff;color:#5b2c12;cursor:pointer;display:grid;place-items:center;transition:transform .2s}
+.oc-tg svg{width:18px;height:18px}
+#orders .oc.bisa-lipat .oc-h{padding-right:40px}
+#orders .oc.bisa-lipat:not(.lipat) .oc-tg{transform:rotate(180deg)}
+#orders .oc.lipat{padding-bottom:12px;cursor:pointer}
+#orders .oc.lipat > :not(.oc-top):not(.oc-tg){display:none!important}
+#orders .oc.lipat .oc-main > .oc-r ~ .oc-r,#orders .oc.lipat .oc-main > .kr-rute,#orders .oc.lipat .oc-ill{display:none}
+#orders .oc.lipat .oc-tot{margin-top:6px}
 </style>
 </head>
 <body>
@@ -643,6 +660,22 @@ function kartuKirim(o){
     <div class="kr-act">${aktif ? `<a class="g" href="ojek.html?lacak=${encodeURIComponent(o.order_code)}">📍 Buka status pengiriman</a>` : ""}${acc && acc.wa && aktif ? `<a target="_blank" rel="noopener" href="https://wa.me/${esc(String(acc.wa).replace(/\D/g, ""))}">💬 Chat kurir</a>` : ""}${!aktif ? `<a href="ojek.html${pk ? "?l=paket" : ""}">${pk ? "📦 Kirim paket lagi" : "🛵 Pesan ojek lagi"}</a>` : ""}</div>
     ${infoBatal(o)}${window.KSST ? KSST.html(o) : ""}</div>`;
 }
+/* Pesanan yang sudah selesai / batal / gagal dilipat (bisa dibuka-tutup) */
+const OC_BUKA = new Set();
+function lipatPesanan(box, rows){
+  const sel = ["selesai", "dibatalkan", "gagal"];
+  [...box.querySelectorAll(".card.oc")].forEach((c, i) => {
+    const o = rows[i]; if(!o || !sel.includes(o.status)) return;
+    const k = o.order_code || String(i);
+    c.classList.add("bisa-lipat"); c.classList.toggle("lipat", !OC_BUKA.has(k));
+    const b = document.createElement("button"); b.type = "button"; b.className = "oc-tg"; b.setAttribute("aria-label", "Buka / tutup detail pesanan");
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+    const ubah = () => { const t = c.classList.toggle("lipat"); if(t) OC_BUKA.delete(k); else OC_BUKA.add(k); };
+    b.onclick = e => { e.stopPropagation(); ubah(); };
+    c.prepend(b);
+    c.addEventListener("click", e => { if(c.classList.contains("lipat") && !e.target.closest("a,button")) ubah(); });
+  });
+}
 async function muatKurirOrd(rows){
   const kode = rows.filter(o => trOf(o) && AKTIF.includes(o.status || "menunggu")).map(o => o.order_code).filter(Boolean);
   KURIR_ORD = {}; if(!kode.length) return;
@@ -714,6 +747,7 @@ async function loadOrders(){
     if(window.KSST){ await KSST.muatInfo(rows.filter(o => o.status === "selesai" && Date.now() - new Date(o.updated_at || o.created_at || 0) < 4*864e5).map(o => o.order_code)); KSST.pasang(box, WA, loadOrders); }
     box.innerHTML = rows.length ? rows.map((o, i) => trOf(o) ? kartuKirim(o) : `<div class="card oc c${i % 4}" data-st="${esc(o.status || "menunggu")}"><div class="oc-top"><span class="oc-ic">${OC_IC.tas}</span><div class="oc-main"><div class="oc-h"><b>${esc(o.order_code || "Pesanan")}</b><span class="oc-st s-${esc(o.status || "menunggu")}">${OC_IC[o.status] || OC_IC.menunggu}${esc(SL[o.status] || o.status || "Menunggu")}</span></div><p class="oc-r">${OC_IC.kal}${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p class="oc-r">${OC_IC.item}<span>${itemsText(o)}</span></p><div class="oc-tot"><b>Total ${fmtRp(o.total)}</b>· ${esc(o.payment || "")}</div></div><span class="oc-ill">${ocGambar(o)}</span></div>${o.status === "dikirim" ? `<button type="button" class="oc-lacak" data-lacak="${esc(o.order_code)}"><span>🛵</span><b>Lacak kurir</b><small>Lihat posisi kurir di peta</small><em>›</em></button>` : ""}${infoBatal(o)}${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
     ORD_MAP = Object.fromEntries(rows.map(o => [o.order_code, o]));
+    lipatPesanan(box, rows);
     box.querySelectorAll("[data-lacak]").forEach(b => b.onclick = () => lacakKurir(b.dataset.lacak));
     saringPesanan();
   }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
