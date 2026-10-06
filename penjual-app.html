@@ -152,6 +152,31 @@ a.q,a.m{text-decoration:none;color:inherit;display:flex}.q.q-ks{background:var(-
 @media (prefers-reduced-motion:reduce){.pb,.cod-d{animation:none;border-color:#ff9f00}}
 
 .pf select.pf-sel{-webkit-appearance:none;appearance:none;cursor:pointer;color:var(--ink)}.pf select.pf-sel.kosong{color:#8a9a90}.pf select.pf-sel option{color:var(--ink)}
+
+/* v51 kartu pesanan penjual (seperti halaman pesanan pembeli, garis bawah berwarna sesuai status) */
+.oc2{--c:#e08a00;display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid var(--ln);border-bottom:5px solid var(--c);border-radius:18px;padding:12px;margin:0 0 10px;cursor:pointer;box-shadow:0 3px 10px rgba(15,77,56,.06);position:relative}
+.oc2.s-diproses{--c:#2f6fe0}.oc2.s-dikirim{--c:#7c3aed}.oc2.s-selesai{--c:#2f9e55}.oc2.s-dibatalkan,.oc2.s-gagal{--c:#c0392b}
+.oc2-f{position:relative;flex:none;width:58px;height:58px;border-radius:14px;background:#f2f6f3;display:grid;place-items:center;font-size:26px}
+.oc2-f img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:14px}.oc2-f img+i{display:none}.oc2-f i{font-style:normal}
+.oc2-f em{position:absolute;right:-6px;bottom:-6px;background:var(--c);color:#fff;font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:1px 6px;border:2px solid #fff;z-index:1}
+.oc2-m{flex:1;min-width:0;padding-right:14px}.oc2-h{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.oc2-h b{font-size:16px}
+.oc2-st{font-size:11.5px;font-weight:800;border-radius:999px;padding:2px 9px;background:#fff1c9;color:#a35f00}
+.oc2.s-diproses .oc2-st{background:#e3edff;color:#1f55c0}.oc2.s-dikirim .oc2-st{background:#ece6ff;color:#4b3bb5}.oc2.s-selesai .oc2-st{background:#e1f5e7;color:#1d7a40}.oc2.s-dibatalkan .oc2-st,.oc2.s-gagal .oc2-st{background:#fde4e4;color:#b42323}
+.oc2-m small{display:block;color:var(--mu);font-size:12.5px;margin-top:3px}.oc2-it{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oc2-b{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--mu)}.oc2-t{background:#eef8f0;color:#14502c;border-radius:999px;padding:2px 10px;font-size:14px}
+.oc2.s-dibatalkan .oc2-t,.oc2.s-gagal .oc2-t{background:#eee;color:#7a6556;text-decoration:line-through}
+.oc2-w{color:#9a5a00!important;font-weight:600}.oc2-ch{position:absolute;right:12px;top:50%;margin-top:-12px;font-style:normal;font-size:22px;color:#9aa8a0}
+
+/* v51b pesanan yang sudah selesai/ditolak: ringkas, garis tipis, di bawah */
+.oc2.kecil{padding:8px 10px;gap:10px;align-items:center;border-bottom-width:2px;border-radius:14px;margin-bottom:8px;box-shadow:none}
+.oc2.kecil .oc2-f{width:40px;height:40px;border-radius:10px;font-size:18px}.oc2.kecil .oc2-f img{border-radius:10px}
+.oc2.kecil .oc2-f em{font-size:10px;padding:0 5px;right:-5px;bottom:-5px}
+.oc2.kecil .oc2-h b{font-size:14.5px}.oc2.kecil .oc2-st{font-size:10.5px;padding:1px 7px}
+.oc2.kecil .oc2-it,.oc2.kecil .oc2-b>span:not(.oc2-t),.oc2.kecil .oc2-b>:not(.oc2-t){display:none}
+.oc2.kecil .oc2-m{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:8px}
+.oc2.kecil .oc2-h{grid-column:1/-1}.oc2.kecil .oc2-m small{margin-top:2px;font-size:12px;white-space:nowrap}
+.oc2.kecil .oc2-b{margin:2px 0 0;justify-self:end}.oc2.kecil .oc2-t{font-size:12.5px;padding:1px 8px}
+.oc2.kecil .oc2-ch{font-size:18px;margin-top:-10px}
 </style></head><body>
 <section id="auth"><div class="logo" style="width:120px;height:120px"><img src="icons/logo-kalensari.png" alt="Kalensari Store"></div><h1>Kalensari Store</h1><p>Bersama dalam setiap manisnya hari</p>
 <div id="lf" hidden style="text-align:left"><label>No. WhatsApp atau ID akun<input id="lw" class="fld" type="text" inputmode="text" autocapitalize="characters" placeholder="08xxxxxxxxxx atau PJ0001"></label><label>PIN<input id="lp" class="fld" type="password" inputmode="numeric" maxlength="8"></label><button class="btn" id="go">Masuk</button></div>
@@ -635,9 +660,18 @@ function notif(){return `<div class="card"><b>🔔 Notifikasi pesanan</b><p styl
 bind.notif=()=>{const b=$("ntBox");if(!b)return;if(window.KSNotif)KSNotif.kartu(b,{key:"penjual_push_"+me.id,extra:{nama:me.toko||me.usaha||""},judul:"🔔 Aktifkan notifikasi pesanan",ajakan:"Supaya HP berbunyi saat ada pesanan masuk, walaupun aplikasi sedang ditutup.",aktifTeks:"HP ini akan berbunyi saat ada pesanan masuk untuk toko Anda, walaupun aplikasi ditutup."});else b.innerHTML='<p style="font-size:13px;color:var(--mu)">Notifikasi belum tersedia di perangkat ini.</p>'};
 /* pesanan */
 function orders(){const segar=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px"><small style="color:var(--mu)">Dicek otomatis tiap 25 detik${LAST_LOAD?` • terakhir ${new Date(LAST_LOAD).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}`:""}</small><button id="oRef" style="border:1px solid var(--ln);background:#fff;border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;font-weight:700;color:var(--b);cursor:pointer">↻ Perbarui</button></div>`;const l=O.filter(o=>(fo==="semua"||stOf(o)===fo)&&(!q||String(o.order_code).toLowerCase().includes(q.toLowerCase())));
-return segar+`<div class="chips">${["semua",...Object.keys(STL)].map(s=>`<button data-f="${s}" class="${s===fo?"on":""}">${s==="semua"?"Semua":STL[s]}</button>`).join("")}</div><input id="sq" class="fld" style="margin-top:0" placeholder="🔍 Cari nomor pesanan..." value="${esc(q)}">${l.length?l.map(o=>`<div class="row" data-id="${esc(o.id)}"><div class="g"><b>${esc(o.order_code)}</b><small>${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small><small>${mineItems(o).length} produk | ${rp(tot(o))}</small>${payTag(o)}${stOf(o)==="menunggu"?`<small style="color:#9a5a00">⏱ Sisa <b data-exp="${exp(o)}">${mmss(Math.max(0,exp(o)-Date.now()))}</b></small>`:""}</div><span class="pill ${stOf(o)}">${STL[stOf(o)]||stOf(o)}</span>›</div>`).join(""):'<p style="color:var(--mu);text-align:center;margin-top:30px">Belum ada pesanan.</p>'}`}
-bind.orders=()=>{$("oRef")&&($("oRef").onclick=async()=>{$("oRef").textContent="Memuat…";await load(true);if(view==="orders")go("orders")});document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{fo=b.dataset.f;go("orders")});$("sq").onchange=e=>{q=e.target.value;go("orders")};document.querySelectorAll(".row").forEach(r=>r.onclick=()=>go("detail",r.dataset.id))};
+return segar+`<div class="chips">${["semua",...Object.keys(STL)].map(s=>`<button data-f="${s}" class="${s===fo?"on":""}">${s==="semua"?"Semua":STL[s]}</button>`).join("")}</div><input id="sq" class="fld" style="margin-top:0" placeholder="🔍 Cari nomor pesanan..." value="${esc(q)}">${l.length?[...l.filter(o=>!SELESAI_ST.includes(stOf(o))),...l.filter(o=>SELESAI_ST.includes(stOf(o)))].map(o=>{const st=stOf(o),m=mineItems(o),f=fotoOrd(o),n=m.length;return `<div class="oc2 s-${esc(st)}${SELESAI_ST.includes(st)?" kecil":""}" data-id="${esc(o.id)}"><span class="oc2-f">${f?`<img src="${esc(f)}" alt="" loading="lazy" onerror="this.remove()">`:""}<i>🛍️</i>${n>1?`<em>+${n-1}</em>`:""}</span>
+  <div class="oc2-m"><div class="oc2-h"><b>${esc(o.order_code)}</b><span class="oc2-st">${SI[st]||""} ${STL[st]||st}</span></div>
+  <small>📅 ${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</small>
+  <small class="oc2-it">${esc(m.map(p=>p.name+" ×"+(p.qty||1)).join(", "))}</small>
+  <div class="oc2-b"><b class="oc2-t">${rp(tot(o))}</b>${payTag(o)||`<span>${isQris(o)?"QRIS":isCodO(o)?"COD":esc(o.payment||"")}</span>`}</div>
+  ${st==="menunggu"?`<small class="oc2-w">⏱ Sisa <b data-exp="${exp(o)}">${mmss(Math.max(0,exp(o)-Date.now()))}</b></small>`:""}</div><em class="oc2-ch">›</em></div>`}).join(""):'<p style="color:var(--mu);text-align:center;margin-top:30px">Belum ada pesanan.</p>'}`}
+bind.orders=()=>{$("oRef")&&($("oRef").onclick=async()=>{$("oRef").textContent="Memuat…";await load(true);if(view==="orders")go("orders")});document.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{fo=b.dataset.f;go("orders")});$("sq").onchange=e=>{q=e.target.value;go("orders")};document.querySelectorAll(".oc2").forEach(r=>r.onclick=()=>go("detail",r.dataset.id))};
 const gO=id=>O.find(o=>String(o.id)===String(id));
+const SELESAI_ST=["selesai","dibatalkan","gagal"];
+/* foto produk yang terjual di pesanan */
+const fotoSatu=v=>{const x=String(v||"").split(/\s*(?:\r?\n|\s\|\s)\s*/)[0].trim();if(!x)return"";if(/^(https?:|data:image)/i.test(x))return x;if(/^(\.\/)?img\//i.test(x))return"./"+x.replace(/^\.\//,"");return""};
+function fotoOrd(o){for(const it of mineItems(o)){const p=P.find(x=>String(x.id)===String(it.id))||P.find(x=>K(x.name)===K(it.name));const f=fotoSatu(it.image)||(p&&fotoSatu(p.image));if(f)return f}return""}
 function detail(){const o=gO(arg);if(!o)return"<p>Pesanan tidak ditemukan.</p>";const s=stOf(o),m=mineItems(o);
 return `<div style="display:flex;justify-content:space-between"><div><b style="font-size:19px">${esc(o.order_code)}</b><small style="display:block;color:var(--mu)">${new Date(o.created_at).toLocaleString("id-ID")}</small>${payTag(o)}</div><span class="pill ${s}" style="align-self:start">${STL[s]||s}</span></div>${s==="dibatalkan"&&o.batal_alasan?`<div class="card" style="margin-top:10px;background:#fdecea;border-color:#f5c6c2"><b style="color:#a32d2d">✖️ Dibatalkan: ${esc(o.batal_alasan)}</b>${/kurir/i.test(o.batal_alasan)?'<p style="margin:4px 0 0;font-size:13px">Kurir datang tetapi pesanan tidak bisa diambil. Ini tercatat sebagai pelanggaran toko. Pastikan toko benar-benar buka setelah menerima pesanan, atau tutup toko di Dashboard.</p>':""}</div>`:""}
 <h3>Daftar Produk</h3><div class="card">${m.map(p=>`<div class="ln"><span>${esc(p.name)} ×${p.qty}</span><b>${rp((p.sale||p.price||0)*p.qty)}</b></div>`).join("")}<div class="ln" style="border-top:1px solid var(--ln);margin-top:6px;padding-top:8px"><b>Total Pesanan</b><b>${rp(tot(o))}</b></div></div>
