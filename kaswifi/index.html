@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b7a75">
+<title>Bendot Net</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  html,body{margin:0;height:100%;background:#eef2f4;font-family:system-ui,sans-serif}
+  @media (prefers-color-scheme:dark){html,body{background:#0f181d;color:#e6eef1}}
+  iframe{position:fixed;inset:0;width:100%;height:100%;border:0}
+  .muat{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:#5b6b75}
+  .muat img{width:72px;height:72px;border-radius:18px;display:block;margin:0 auto 14px}
+  .muat b{display:block;color:#0b7a75;font-size:1.1rem;margin-bottom:4px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+  <div class="muat" id="muat"><div><img src="icons/icon-192.png" alt=""><b>Bendot Net</b><span id="teks">Memuat…</span></div></div>
+  <iframe id="app" title="Bendot Net" allow="clipboard-write; camera" hidden></iframe>
+<script>
+/* ===== PENGATURAN: tempel link Aplikasi web Apps Script (berakhiran /exec) ===== */
+const LINK_APP = "https://script.google.com/macros/s/AKfycby9u4UU2apKXPBMK90AvZFmmVGCZatS_9ayeJ9SixtTRQyLfomx6ML07dPQBtUklfe-/exec";
+/* =============================================================================== */
+const f = document.getElementById("app"), teks = document.getElementById("teks");
+if(!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(LINK_APP)){
+  teks.textContent = "Link aplikasi belum diisi. Buka kaswifi/index.html lalu isi LINK_APP.";
+} else if(!navigator.onLine){
+  teks.textContent = "Tidak ada internet. Nyalakan data / WiFi lalu buka lagi.";
+  addEventListener("online", () => location.reload());
+} else {
+  f.onload = () => { f.hidden = false; document.getElementById("muat").hidden = true; };
+  f.src = LINK_APP;
+}
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>
