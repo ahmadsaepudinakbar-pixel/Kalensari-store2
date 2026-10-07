@@ -182,7 +182,7 @@ a.q,a.m{text-decoration:none;color:inherit;display:flex}.q.q-ks{background:var(-
 <div id="lf" hidden style="text-align:left"><label>No. WhatsApp atau ID akun<input id="lw" class="fld" type="text" inputmode="text" autocapitalize="characters" placeholder="08xxxxxxxxxx atau PJ0001"></label><label>PIN<input id="lp" class="fld" type="password" inputmode="numeric" maxlength="8"></label><button class="btn" id="go">Masuk</button></div>
 <button class="btn" id="bm">Masuk</button><a class="btn o" href="penjual.html">Daftar</a><p style="margin-top:20px;font-size:13px">Aplikasi Penjual - Kalensari Store</p></section>
 <div id="app" hidden><header id="hd"></header><main id="v"></main><nav id="nav"></nav><div id="dr" hidden></div></div><div id="toast"></div>
-<script src="config.js" onerror="void 0"></script><script src="crop.js"></script><script src="akun-id.js"></script><script src="pesanan-aman.js"></script><script src="notif.js"></script><script>
+<script src="config.js" onerror="void 0"></script><script src="crop.js"></script><script src="akun-id.js"></script><script src="pesanan-aman.js"></script><script src="notif.js"></script><script src="hapus-akun.js"></script><script>
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID"),K=s=>String(s||"").trim().toLowerCase();
 const toast=t=>{const e=$("toast");e.textContent=t;e.classList.add("s");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("s"),3000)};
 const cloud=()=>window.CLOUD_CONFIG&&CLOUD_CONFIG.enabled&&CLOUD_CONFIG.supabaseUrl&&CLOUD_CONFIG.supabaseAnonKey;
@@ -286,12 +286,13 @@ function toko(){
   <button class="btn o" id="sManB">💾 Simpan dari koordinat</button>
   <p style="color:var(--mu);font-size:13px;margin:8px 0 0">Cara: buka Google Maps, tekan lama titik toko, lalu salin angka koordinat yang muncul di bagian atas.</p></div>
   <div class="card" style="margin-top:12px"><b>🔐 Ganti PIN</b><div class="two" style="margin-top:10px"><label>PIN lama<input id="sPo" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>PIN baru<input id="sPn" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div><button class="btn o" id="sPin">Simpan PIN baru</button></div>
+  <div id="ksHapusAkun"></div>
   <div style="height:16px"></div>`;
 }
 function locView(){const a=pCoord(me.latitude),b=pCoord(me.longitude),ok=okCoord(a,b);$("sLoc").textContent=ok?"✅ Lokasi toko sudah tersimpan.":"Belum ada lokasi tersimpan.";$("sMap").hidden=!ok;if(ok)$("sMap").onclick=()=>window.open(mapsUrl(a,b),"_blank","noopener")}
 async function saveLoc(a,b){if(!okCoord(a,b))return toast("Koordinat tidak valid (tidak boleh kosong atau 0,0).");if(!inID(a,b))return toast("Titik di luar Indonesia. Cek apakah latitude dan longitude tertukar.");const old=[me.latitude,me.longitude];me.latitude=Number(a.toFixed(6));me.longitude=Number(b.toFixed(6));try{await saveMe();locView();toast("✅ Lokasi toko berhasil disimpan")}catch(e){[me.latitude,me.longitude]=old;toast("Gagal menyimpan lokasi: "+String(e.message||e).slice(0,60))}}
 bind.toko=()=>{
-  locView();bindJadwal();bindBukaTutup();
+  locView();bindJadwal();bindBukaTutup();window.KSHapus&&KSHapus.pasang($("ksHapusAkun"),"penjual");
   $("sSave").onclick=async()=>{const nama=$("sNama").value.trim(),tk=$("sToko").value.replace(/\s+/g," ").trim();if(!nama||!tk)return toast("Nama pemilik dan nama toko wajib diisi");
     const oldT=me.toko||me.usaha||"",rename=K(oldT)!==K(tk)&&oldT;
     if(rename&&!confirm(`Ganti nama toko dari "${oldT}" ke "${tk}"? ${P.length} produk Anda ikut dipindah ke nama baru.`))return;
