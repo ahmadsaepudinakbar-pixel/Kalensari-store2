@@ -87,7 +87,7 @@ const T0=document.title;let ordTimer=null,ordRows=[],ordNew=new Set(),audioCtx=n
 const myKey=()=>sKey(me&&(me.toko||me.usaha));
 function unlockAudio(){try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume()}catch(e){}}
 ["pointerdown","touchend","keydown"].forEach(ev=>document.addEventListener(ev,unlockAudio,{once:true,passive:true}));
-function beep(){try{unlockAudio();if(!audioCtx)return;[[0,880],[.2,1175],[.4,880]].forEach(([t,f])=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain(),s=audioCtx.currentTime+t;o.frequency.value=f;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.3,s+.02);g.gain.exponentialRampToValueAtTime(.0001,s+.3);o.start(s);o.stop(s+.32)})}catch(e){}}
+function beep(){if(document.hidden)return;try{unlockAudio();if(!audioCtx)return;[[0,880],[.2,1175],[.4,880]].forEach(([t,f])=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain(),s=audioCtx.currentTime+t;o.frequency.value=f;o.connect(g);g.connect(audioCtx.destination);g.gain.setValueAtTime(.0001,s);g.gain.exponentialRampToValueAtTime(.3,s+.02);g.gain.exponentialRampToValueAtTime(.0001,s+.3);o.start(s);o.stop(s+.32)})}catch(e){}}
 function notify(t,b){if(!("Notification" in window)||Notification.permission!=="granted")return;const opt={body:b,icon:"icons/icon-192.png",tag:"ks-order",renotify:true};
   const fb=()=>{try{new Notification(t,opt)}catch(e){}};
   if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(r=>r?r.showNotification(t,opt):fb()).catch(fb);else fb()}

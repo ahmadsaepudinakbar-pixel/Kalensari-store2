@@ -243,7 +243,7 @@ async function boot(){const acc=await getS("penjual_accounts",{}),a=acc[WA];if(!
 let NB=null,NBC=null;let LAST_LOAD=0;
 if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("message",e=>{if(me&&e.data&&e.data.type==="bunyi-pesanan"&&e.data.tag==="ks-pesanan")load(true)});
 document.addEventListener("visibilitychange",()=>{if(!document.hidden&&NBC)NBC.refresh()});
-function beep(){try{const c=new(window.AudioContext||window.webkitAudioContext)();[[0,880],[.2,1175]].forEach(([t,f])=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=f;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.2,c.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+.25);o.start(c.currentTime+t);o.stop(c.currentTime+t+.26)})}catch{}}
+function beep(){if(document.hidden)return;try{const c=new(window.AudioContext||window.webkitAudioContext)();[[0,880],[.2,1175]].forEach(([t,f])=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=f;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.2,c.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+.25);o.start(c.currentTime+t);o.stop(c.currentTime+t+.26)})}catch{}}
 // ===== LAMA PROMO (hari): kolom products.sale_until. Promo otomatis berakhir saat waktunya habis. =====
 const promoSisa=p=>p&&p.sale_until?Math.ceil((Date.parse(p.sale_until)-Date.now())/864e5):null;
 const promoHabis=p=>!!(p&&p.sale_until&&Date.parse(p.sale_until)<=Date.now());

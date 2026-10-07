@@ -1682,7 +1682,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 const UANG_SEEN='kalensari_admin_uang_seen';
 let uangAwal=true;
 function uangSeen(){try{return new Set(JSON.parse(localStorage.getItem(UANG_SEEN)||'[]'))}catch(e){return new Set()}}
-function bunyiAdmin(){try{const c=new(window.AudioContext||window.webkitAudioContext)();[[0,988],[.18,1319],[.36,1568]].forEach(([t,f])=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=f;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.22,c.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+.3);o.start(c.currentTime+t);o.stop(c.currentTime+t+.31)})}catch(e){}}
+function bunyiAdmin(){if(document.hidden)return;try{const c=new(window.AudioContext||window.webkitAudioContext)();[[0,988],[.18,1319],[.36,1568]].forEach(([t,f])=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=f;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.22,c.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+.3);o.start(c.currentTime+t);o.stop(c.currentTime+t+.31)})}catch(e){}}
 async function kabarAdmin(judul,isi,tag,ke){
   bunyiAdmin();toast(judul);
   try{if(!('Notification' in window)||Notification.permission!=='granted')return;
