@@ -333,6 +333,8 @@ function kartuBukaTutup(){const x=statusToko(),atur=`<a data-k="toko" class="bt-
 async function tokoAtur(jenis,val,caraLama){const sesi=window.KSID&&KSID.sesi("penjual");if(cloud()&&sesi){try{return await prodRpc("toko_atur",{p_sesi:sesi,p_jenis:jenis,p_value:val})}catch(e){if(!e.tidakAda)throw e}}return caraLama()}
 /* Simpan foto toko / topping lewat server (supabase-foto-aman.sql). Bila SQL itu belum dijalankan, pakai cara lama. */
 async function fotoSimpan(jenis,ref,val,caraLama){const sesi=window.KSID&&KSID.sesi("penjual");if(cloud()&&sesi){try{return await prodRpc("foto_simpan",{p_sesi:sesi,p_peran:"penjual",p_jenis:jenis,p_ref:String(ref||""),p_value:val})}catch(e){if(!e.tidakAda)throw e}}return caraLama()}
+/* Fungsi server lain milik penjual (supabase-keamanan-sisa.sql); bila belum dijalankan, pakai cara lama */
+async function tokoRpc(fn,body,caraLama){const sesi=window.KSID&&KSID.sesi("penjual");if(cloud()&&sesi){try{return await prodRpc(fn,{p_sesi:sesi,...body})}catch(e){if(!e.tidakAda)throw e}}return caraLama()}
 async function setTutup(tutup,btn){const k=myKey();if(!k)return toast("Isi nama toko dulu di Pengaturan toko");
   if(tutup&&!confirm("Tutup toko sekarang?\n\nProduk Anda tidak bisa dipesan sampai Anda menekan \"Buka toko sekarang\"."))return;
   btn.disabled=true;btn.textContent="Menyimpan...";
@@ -382,7 +384,7 @@ async function stokUbah(o,arah){const q=new Map();mineItems(o).forEach(p=>{if(p.
     await prodSimpan(r.id,b);
     const lp=P.find(x=>String(x.id)===String(r.id));if(lp)Object.assign(lp,b);n++}
   return n}
-async function catatStok(o,f){const log=ob(await getS("stoklog_"+me.id,{})),now=Date.now();for(const k in log)if(now-(log[k].p||0)>60*864e5)delete log[k];log[o.order_code]={...(log[o.order_code]||{}),[f]:now};await setS("stoklog_"+me.id,log);STOKLOG=log}
+async function catatStok(o,f){await tokoRpc("stok_catat",{p_kode:o.order_code,p_f:f},async()=>{const log=ob(await getS("stoklog_"+me.id,{})),now=Date.now();for(const k in log)if(now-(log[k].p||0)>60*864e5)delete log[k];log[o.order_code]={...(log[o.order_code]||{}),[f]:now};await setS("stoklog_"+me.id,log)});STOKLOG=ob(await getS("stoklog_"+me.id,{}))}
 async function terimaPesanan(id){const o=gO(id);if(!o)return false;
   try{const now=new Date().toISOString(),b={status:"diproses",updated_at:now};
     if(cloud()){let n=1;const h=await KSPesanan.aksi("penjual",o.order_code,"terima",{},async()=>{const r=await cf("orders?id=eq."+encodeURIComponent(id)+"&or=(status.is.null,status.in.(baru,menunggu))",{method:"PATCH",headers:{Prefer:"return=representation"},body:JSON.stringify(b)});n=Array.isArray(r)?r.length:0});
@@ -407,7 +409,7 @@ async function muatUng(){UNG=ob(await getS("unggulan_toko",{}))}
 const unggulanKu=()=>(UNG&&Array.isArray(UNG[myK()])?UNG[myK()]:[]).map(String);
 async function toggleUng(id){const cur=ob(await getS("unggulan_toko",{})),k=myK();let l=(Array.isArray(cur[k])?cur[k]:[]).map(String).filter(x=>P.some(p=>String(p.id)===x));id=String(id);
   if(l.includes(id))l=l.filter(x=>x!==id);else{if(l.length>=MAX_UNG)return toast("Maksimal "+MAX_UNG+" produk unggulan. Lepas bintang produk lain dulu.");l.push(id)}
-  if(l.length)cur[k]=l;else delete cur[k];await setS("unggulan_toko",cur);UNG=cur;toast(l.includes(id)?"⭐ Jadi produk unggulan":"Bintang dilepas");go("prods")}
+  if(l.length)cur[k]=l;else delete cur[k];await tokoRpc("toko_unggulan",{p_ids:l},()=>setS("unggulan_toko",cur));UNG=ob(await getS("unggulan_toko",{}));toast(l.includes(id)?"⭐ Jadi produk unggulan":"Bintang dilepas");go("prods")}
 
 /* ===== NOTA PESANAN (gambar) ===== */
 async function buatNota(o){const m=mineItems(o),W=720,pad=36,c=document.createElement("canvas"),x=c.getContext("2d");

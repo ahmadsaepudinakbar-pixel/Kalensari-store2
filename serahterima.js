@@ -91,7 +91,11 @@
     var ket = prompt("Pesanan " + code + " belum Anda terima?\nCeritakan singkat masalahnya (boleh dikosongkan):", "");
     if (ket === null) return false;
     var a = (INFO[code] || {}).antar || null;
-    await cf("store_settings?on_conflict=key", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify([{ key: "laporan_" + code, value: { t: Date.now(), hp: hp || "", ket: String(ket).slice(0, 300), kurir: a ? { id: a.id, nama: a.nama, wa: a.wa, cara: a.cara } : null, beres: false } }]) });
+    // lewat server (supabase-keamanan-sisa.sql): nomor pemesan dicek, data kurir diambil dari server
+    var lewat = false;
+    try { await cf("rpc/lapor_pesanan", { method: "POST", body: JSON.stringify({ p_kode: code, p_hp: hp || "", p_ket: String(ket).slice(0, 300) }) }); lewat = true; }
+    catch (e) { var m = String(e.message || e); if (!/PGRST202|Could not find the function|^404$/.test(m)) { var j = null; try { j = JSON.parse(m); } catch (x) {} throw new Error((j && j.message) || m); } }
+    if (!lewat) await cf("store_settings?on_conflict=key", { method: "POST", headers: { Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify([{ key: "laporan_" + code, value: { t: Date.now(), hp: hp || "", ket: String(ket).slice(0, 300), kurir: a ? { id: a.id, nama: a.nama, wa: a.wa, cara: a.cara } : null, beres: false } }]) });
     INFO[code] = INFO[code] || {}; INFO[code].laporan = { t: Date.now(), beres: false };
     return true;
   }
