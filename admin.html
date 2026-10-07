@@ -2158,7 +2158,15 @@ function ulasanPage(){
 async function ulsSembunyi(id,v,btn){await busy(btn,async()=>{await api('ulasan?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({sembunyi:v})});const x=ULASAN.find(y=>y.id===id);if(x)x.sembunyi=v;render();toast(v?'Ulasan disembunyikan dari penjual':'Ulasan ditampilkan lagi ke penjual')})}
 async function ulsHapus(id,btn){if(!confirm('Hapus ulasan ini? Pembeli bisa memberi ulasan lagi untuk pesanan tersebut.'))return;await busy(btn,async()=>{await api('ulasan?id=eq.'+id,{method:'DELETE',headers:{Prefer:'return=minimal'}});ULASAN=ULASAN.filter(y=>y.id!==id);render();toast('Ulasan dihapus')})}
 let LAPAK=null,lapakQ='',lapakLihat=0;
-async function muatLapak(){try{const [i,k]=await Promise.all([api('lapak_iklan?select=id,created_at,wa,nama,alamat,judul,kondisi,harga,barter,thumb,status&order=created_at.desc&limit=300'),api('lapak_komentar?select=id,iklan_id,created_at,nama,wa,isi&order=created_at.desc&limit=2000')]);LAPAK={i,k}}catch(e){LAPAK={err:String(e.message||e)}}if(route==='lapak')render()}
+async function muatLapak(){try{const [i,k,r]=await Promise.all([api('lapak_iklan?select=id,created_at,wa,nama,alamat,judul,kondisi,harga,barter,thumb,status&order=created_at.desc&limit=300'),api('lapak_komentar?select=id,iklan_id,created_at,nama,wa,isi&order=created_at.desc&limit=2000'),api('lapak_laporan?select=*&order=created_at.desc&limit=500').catch(()=>[])]);LAPAK={i,k,r:Array.isArray(r)?r:[]}}catch(e){LAPAK={err:String(e.message||e)}}if(route==='lapak')render()}
+/* Laporan warga (supabase-lapak-lapor.sql): iklan/komentar yang dilaporkan, diperiksa admin */
+function lapakLaporanHtml(){const L=(LAPAK.r||[]).filter(x=>!x.beres);if(!L.length)return'';
+  const judul=id=>{const x=LAPAK.i.find(y=>y.id===id);return x?x.judul:'(iklan dihapus)'};
+  return `<div class="card" style="margin-bottom:14px;border:1.5px solid #f3b4ae"><div class="chead"><h3>🚩 Laporan warga (${L.length})</h3></div><div class="sm" style="color:var(--mut);margin:-4px 0 8px">Iklan yang dilaporkan 3 warga otomatis disembunyikan, komentar otomatis dihapus. Periksa lalu tandai beres.</div>
+    ${L.map(x=>`<div style="border-bottom:1px solid var(--line);padding:8px 0"><b>${x.komentar_id?'💬 Komentar':'📦 Iklan'}</b> · <span class="badge b-Batal">${esc(x.alasan)}</span> · <span class="sm">${ago(x.created_at)}</span>
+      <div class="sm" style="margin-top:3px">${x.komentar_id?`“${esc(x.isi||'')}” di iklan <b>${esc(judul(x.iklan_id))}</b>`:`<b>${esc(x.isi||judul(x.iklan_id))}</b>`}${x.ket?`<br>Keterangan: ${esc(x.ket)}`:''}<br><span style="color:var(--mut)">Pelapor: ${esc(x.pelapor_nama||'Warga')} · +${esc(x.pelapor_wa)}</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><a class="btn btn-light" style="padding:6px 10px" href="pasar.html#/i/${x.iklan_id}" target="_blank" rel="noopener">Lihat</a><button class="btn btn-light" style="padding:6px 10px" onclick="lapakLihat=${x.iklan_id};render()">Buka di daftar</button><button class="btn btn-g" style="padding:6px 10px" onclick="lapakBeres(${x.id},this)">✓ Tandai beres</button></div></div>`).join('')}</div>`}
+async function lapakBeres(id,btn){await busy(btn,async()=>{await api('lapak_laporan?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({beres:true})});const x=(LAPAK.r||[]).find(y=>y.id===id);if(x)x.beres=true;render();toast('Laporan ditandai beres')})}
 function lapakPage(){
   if(!LAPAK){muatLapak();return '<div class="empty">Memuat lapak...</div>'}
   if(LAPAK.err)return `<div class="card"><b>Tabel lapak belum siap.</b><p class="sm">Jalankan <code>supabase-lapak.sql</code> di Supabase SQL Editor.</p><small style="color:var(--mut)">${esc(LAPAK.err.slice(0,160))}</small></div>`;
@@ -2166,11 +2174,12 @@ function lapakPage(){
   const l=LAPAK.i.filter(x=>!q||[x.judul,x.nama,x.alamat,x.barter].join(' ').toLowerCase().includes(q));
   const n=s=>LAPAK.i.filter(x=>x.status===s).length;
   return `<div class="stats">${stat('Iklan tayang',n('aktif'),'aktif di pasar','tag','#0f7a3d')}${stat('Sudah laku',n('selesai'),'ditandai pemilik','check','#3b82f6')}${stat('Disembunyikan',n('disembunyikan'),'oleh admin','x','#ef4444')}${stat('Komentar',LAPAK.k.length,'semua iklan','doc','#f97316')}</div>
+  ${lapakLaporanHtml()}
   <div class="card"><div class="chead"><h3>🔁 Iklan</h3><button class="btn btn-light" onclick="LAPAK=null;render()">↻ Muat ulang</button></div>
     <input class="inp" placeholder="Cari judul / pemilik..." value="${esc(lapakQ)}" oninput="lapakQ=this.value;clearTimeout(window._lq);window._lq=setTimeout(render,300)" style="margin-bottom:10px">
     ${l.length?l.map(x=>{const ks=kom(x.id),open=lapakLihat===x.id;return `<div style="border-bottom:1px solid var(--line);padding:10px 0">
       <div style="display:flex;gap:10px;align-items:center"><div style="width:52px;height:52px;border-radius:10px;background:#f3e3d6 center/cover;flex:none;${x.thumb?`background-image:url('${x.thumb}')`:''}"></div>
-      <div style="flex:1;min-width:0"><b>${esc(x.judul)}</b> <span class="badge ${x.status==='aktif'?'b-Selesai':x.status==='selesai'?'b-Dikirim':'b-Batal'}">${x.status==='aktif'?'Tayang':x.status==='selesai'?'Laku':'Disembunyikan'}</span>
+      <div style="flex:1;min-width:0"><b>${esc(x.judul)}</b> ${(()=>{const n=(LAPAK.r||[]).filter(r=>r.iklan_id===x.id&&!r.beres).length;return n?`<span class="badge b-Batal">🚩 ${n}</span> `:''})()}<span class="badge ${x.status==='aktif'?'b-Selesai':x.status==='selesai'?'b-Dikirim':'b-Batal'}">${x.status==='aktif'?'Tayang':x.status==='selesai'?'Laku':'Disembunyikan'}</span>
         <div class="sm" style="color:var(--mut)">${esc(x.nama)} · +${esc(x.wa)} · ${x.harga?rp(x.harga):''}${x.harga&&x.barter?' · ':''}${x.barter?'Barter: '+esc(x.barter):''}${!x.harga&&!x.barter?'Nego':''} · ${ago(x.created_at)}</div></div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
         <a class="btn btn-light" style="padding:6px 10px" href="pasar.html#/i/${x.id}" target="_blank" rel="noopener">Lihat</a>
