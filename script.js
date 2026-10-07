@@ -772,6 +772,8 @@ function cartData() {
   return cart.map((i,idx)=>{
     const p=products.find(x=>x.id===i.id);if(!p)return null;
     const row={...p,qty:i.qty,seller:i.seller||p.seller,idx};
+    // pilihan varian & topping dikirim rapi supaya server bisa menghitung ulang harga (supabase-harga-server.sql)
+    row.pilihan=i.custom?{v:i.custom.v||null,t:(i.custom.t||[]).map(([n,,q])=>[n,q])}:null;
     if(!i.custom&&hasVariants(p)){row.varHilang=true;row.name=`${p.name} (pilih varian)`;row.variants=null;}
     else if(i.custom&&i.custom.v&&!i.custom.t){
       // Item dengan varian: harga varian terbaru dari Admin/penjual
@@ -1084,7 +1086,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
 
   const result=await saveCloudOrders(payloads);
   if(!result.ok){
-    const bt=String(result.error||"").match(/BATAS:\s*([^"]+)/);
+    const bt=String(result.error||"").match(/(?:BATAS|HARGA):\s*([^"]+)/);
     if(bt){ // dibatasi server (anti pesanan palsu): hapus salinan lokal, pesanan tidak dibuat
       saveLocalOrders(getLocalOrders().filter(o=>!codes.includes(o.order_code)));renderMyOrders();
       alert("⏳ Pesanan belum bisa dibuat.\n\n"+bt[1]);return;
