@@ -1341,6 +1341,11 @@ async function changeOrderStatus(id,status){
 }
 document.getElementById("myOrdersBtn")?.addEventListener("click",()=>{renderMyOrders();openModal("myOrdersModal");refreshMyOrders();});
 document.getElementById("refreshMyOrdersBtn")?.addEventListener("click",refreshMyOrders);
+// Selama jendela "Pesanan Saya" terbuka, status diperbarui sendiri (mis. kurir menandai selesai) tanpa perlu menekan Muat ulang
+{const ordTerbuka=()=>document.visibilityState==="visible"&&document.getElementById("myOrdersModal")?.classList.contains("show");
+ setInterval(()=>{if(ordTerbuka())refreshMyOrders();},30000);
+ document.addEventListener("visibilitychange",()=>{if(ordTerbuka())refreshMyOrders();});
+ if("serviceWorker" in navigator)navigator.serviceWorker.addEventListener("message",e=>{if(e.data&&e.data.type==="bunyi-pesanan"&&ordTerbuka())refreshMyOrders();});}
 document.getElementById("saveCustomerPhoneBtn")?.addEventListener("click",()=>{
   const input=document.getElementById("customerOrderPhone");
   const phone=normalizePhone(input?.value||"");

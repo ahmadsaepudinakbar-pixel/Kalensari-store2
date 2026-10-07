@@ -774,11 +774,18 @@ async function petaLacak(box, v, tuju){
   lacakPeta.kur.setLatLng(pos); if(lacakPeta.garis && tuju) lacakPeta.garis.setLatLngs([pos, [tuju.lat, tuju.lng]]);
   if(!lacakPeta.m.getBounds().pad(-0.1).contains(pos)) lacakPeta.m.panTo(pos);
 }
-async function loadOrders(){
-  const box = $("orders"); box.innerHTML = '<p class="hint">Memuat...</p>';
+// diam = pembaruan otomatis di belakang layar: tanpa tulisan "Memuat...", dan tampilan hanya digambar ulang bila ada status yang berubah
+let ORD_SIG = "", ORD_SIBUK = false;
+async function loadOrders(diam){
+  const box = $("orders");
+  if(diam === true){ if(ORD_SIBUK) return; } else box.innerHTML = '<p class="hint">Memuat...</p>';
+  ORD_SIBUK = true;
   try{
     const ab = await pesananSaya();
     const rows = [...new Map(ab.map(o => [o.order_code || o.id, o])).values()].sort((x, y) => new Date(y.created_at||0) - new Date(x.created_at||0));
+    const sig = rows.map(o => [o.order_code, o.status, o.pay_status, o.kurir_id, o.total].join(":")).join("|");
+    if(diam === true && sig === ORD_SIG) return;
+    ORD_SIG = sig;
     await muatKurirOrd(rows); await muatFotoProduk(rows);
     ringkasan(rows.filter(o => !trOf(o))); berandaPesanan(rows);
     if(window.KSPW) KSPW.pasang(box, rows, loadOrders);
@@ -789,8 +796,16 @@ async function loadOrders(){
     lipatPesanan(box, rows);
     box.querySelectorAll("[data-lacak]").forEach(b => b.onclick = () => lacakKurir(b.dataset.lacak));
     saringPesanan();
-  }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
+  }catch(e){ if(diam !== true) box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
+  finally{ ORD_SIBUK = false; }
 }
+// Status pesanan ikut berubah sendiri (mis. kurir menandai selesai) tanpa perlu muat ulang halaman:
+//  - tiap 20 detik selama halaman terbuka & masih ada pesanan berjalan
+//  - saat aplikasi dibuka kembali dari belakang layar
+//  - saat ada notifikasi pesanan masuk ke HP ini
+setInterval(() => { if(document.visibilityState === "visible" && Object.values(ORD_MAP).some(o => AKTIF.includes(o.status || "menunggu"))) loadOrders(true); }, 20000);
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && WA) loadOrders(true); });
+if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(e.data && e.data.type === "bunyi-pesanan" && WA) loadOrders(true); });
 
 (async () => {
   $("warn").hidden = cloudOn();
