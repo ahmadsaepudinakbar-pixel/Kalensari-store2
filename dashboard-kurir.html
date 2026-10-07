@@ -1049,10 +1049,22 @@ document.addEventListener("change", async e => {
     const foto = await new Promise((ok, no) => { const r = new FileReader(); r.onerror = no; r.onload = () => { const im = new Image(); im.onerror = no;
       im.onload = () => { const z = Math.min(im.width, im.height), c = document.createElement("canvas"); c.width = c.height = 320;
         c.getContext("2d").drawImage(im, (im.width - z) / 2, (im.height - z) / 2, z, z, 0, 0, 320, 320); ok(c.toDataURL("image/jpeg", .82)); }; im.src = r.result; }; r.readAsDataURL(f); });
-    await setSetting("foto_kurir_" + me.id, {foto, nama:me.nama || "", t:Date.now()});
+    await fotoKurirSimpan(foto);
     FOTO_KURIR = foto; tampilFotoKurir(); toast("✅ Foto profil disimpan");
-  }catch(x){ toast("Gagal menyimpan foto"); }
+  }catch(x){ toast("Gagal menyimpan foto: " + String(x && x.message || x).slice(0, 60)); }
 });
+// Simpan foto profil lewat server (supabase-foto-aman.sql); bila SQL belum dijalankan, pakai cara lama
+async function fotoKurirSimpan(foto){
+  const sesi = window.KSPesanan ? KSPesanan.sesi("kurir") : "";
+  if(cloudOn() && sesi){
+    const r = await fetch(String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "") + "/rest/v1/rpc/foto_simpan", {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify({p_sesi:sesi, p_peran:"kurir", p_jenis:"kurir", p_ref:"", p_value:{foto, nama:me.nama || ""}})});
+    if(r.ok) return;
+    const t = await r.text(); let j = null; try{ j = JSON.parse(t); }catch(e){}
+    const m = String((j && (j.message || j.hint)) || t || r.status);
+    if(!(r.status === 404 || /Could not find the function|PGRST202/i.test(m))) throw new Error(m.replace(/^SESI:\s*/, ""));
+  }
+  await setSetting("foto_kurir_" + me.id, {foto, nama:me.nama || "", t:Date.now()});
+}
 
 // ===== Lacak kurir: selama status "Dikirim", posisi kurir dikirim tiap ±15 detik ke store_settings "lacak_<kode>" =====
 // Pembeli & admin melihatnya di peta. Hanya berjalan saat aplikasi kurir terbuka. Dihapus saat selesai / gagal antar.
