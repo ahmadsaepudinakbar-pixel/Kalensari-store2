@@ -2155,22 +2155,13 @@ function mintaKataSandi(wa){
   });
 }
 
-// ===== KARTU LAPAK BARTER di bawah daftar produk (3 iklan terbaru dari pasar.html) =====
+// ===== TOMBOL LAPAK BARTER di bawah daftar produk (ringkas, tanpa daftar iklan) =====
 (function(){
   if(document.getElementById("lapakCard"))return;
   const ref=document.querySelector(".wa-banner")||document.querySelector("footer");if(!ref)return;
   const sec=document.createElement("section");sec.className="container";sec.id="lapakCard";
-  sec.innerHTML=`<div class="lk"><a class="lk-top" href="pasar.html"><div class="lk-ic">🔁</div><div><h3>Lapak Barter Kalensari</h3><p>Punya barang tak terpakai? Jual atau tukar dengan warga lain.</p></div></a>
-    <div class="lk-row" id="lapakRow"><div class="lk-kosong">Memuat iklan terbaru…</div></div>
-    <div class="lk-btn"><a class="w" href="pasar.html">Lihat lapak →</a><a class="o" href="pasar.html#/pasang">+ Pasang iklan</a></div></div>`;
+  sec.innerHTML=`<a class="lk-tombol" href="pasar.html"><span aria-hidden="true">🔁</span>Lapak Barter<i aria-hidden="true">›</i></a>`;
   ref.parentNode.insertBefore(sec,ref);
-  const row=sec.querySelector("#lapakRow");
-  const tag=i=>i.harga?`<span class="j">${rupiah(i.harga)}</span>`:i.barter?`<span class="b">🔁 Barter</span>`:`<span class="n">Nego</span>`;
-  (async()=>{
-    let l=[];try{if(CLOUD_CONFIG?.enabled)l=await cloudFetch("lapak_iklan?select=id,judul,harga,barter,thumb&status=eq.aktif&order=created_at.desc&limit=3");}catch(e){l=null;}
-    if(!Array.isArray(l)||!l.length){row.innerHTML=`<div class="lk-kosong">${l===null?"Lapak sedang disiapkan.":"Belum ada iklan. Jadilah yang pertama memasang barang!"}</div>`;return;}
-    row.innerHTML=l.map(i=>`<a class="lk-it" href="pasar.html#/i/${i.id}"><div class="lk-ph"${i.thumb?` style="background-image:url('${i.thumb}')"`:""}>${i.thumb?"":"📦"}</div><b>${esc(i.judul)}</b>${tag(i)}</a>`).join("");
-  })();
 })();
 
 // crop.js: semua upload foto di toko (mis. foto produk admin) bisa dipotong dulu
