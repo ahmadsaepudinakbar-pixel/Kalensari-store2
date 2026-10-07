@@ -1336,6 +1336,16 @@ const b64u8 = b => { const p = "=".repeat((4 - b.length % 4) % 4), r = atob((b +
 function kunciSama(sub){ try{ const k = sub.options && sub.options.applicationServerKey; if(!k) return true; const x = new Uint8Array(k), y = b64u8(VAPID_KEY); return x.length === y.length && x.every((v, i) => v === y[i]); }catch(e){ return true; } }
 async function pushReg(){ return (await navigator.serviceWorker.getRegistration()) || await navigator.serviceWorker.register("sw.js"); }
 async function savePushSub(sub){
+  // lewat server (supabase-notif-aman.sql); bila fungsi belum ada, pakai cara lama
+  const sesi = window.KSPesanan ? KSPesanan.sesi("kurir") : "";
+  if(cloudOn() && sesi){
+    const j0 = sub.toJSON();
+    const r = await fetch(String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "") + "/rest/v1/rpc/notif_langganan", {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify({p_sesi:sesi, p_peran:"kurir", p_sub:{endpoint:j0.endpoint, keys:j0.keys || {}}, p_extra:{nama:me.nama || ""}})});
+    if(r.ok) return;
+    const t = await r.text(); let j = null; try{ j = JSON.parse(t); }catch(e){}
+    const m = String((j && (j.message || j.hint)) || t || r.status);
+    if(!(r.status === 404 || /Could not find the function|PGRST202/i.test(m))) throw new Error(m.replace(/^SESI:\s*/, ""));
+  }
   const key = PUSH_KEY + me.id;
   let cur = []; try{ const r = await cf("store_settings?select=value&key=eq." + encodeURIComponent(key)); cur = (r[0] && r[0].value && r[0].value.subs) || []; }catch(e){}
   const j = sub.toJSON(); cur = cur.filter(x => x.endpoint !== j.endpoint); cur.push(j);

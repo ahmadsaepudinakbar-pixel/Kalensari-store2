@@ -36,7 +36,23 @@
     return s;
   }
   function hdr(token) { var k = C.supabaseAnonKey; return { apikey: k, Authorization: "Bearer " + (token || k), "Content-Type": "application/json" }; }
+  /* Pembeli / penjual / kurir / jasa: simpan lewat fungsi server notif_langganan (supabase-notif-aman.sql).
+     Hasil: true = sudah lewat server, false = fungsi belum ada (pakai cara lama). Admin tetap cara lama (pakai token admin). */
+  var adaRpc = true;
+  async function lewatServer(key, sub, extra, hapus) {
+    var m = /^(pembeli|penjual|kurir|jasa)_push_(.+)$/.exec(key || "");
+    if (!m || !adaRpc) return false;
+    var sesi = ""; try { sesi = (window.KSID && KSID.sesi(m[1])) || localStorage.getItem("kalensari_sesi_" + m[1]) || ""; } catch (e) {}
+    var js = sub.toJSON ? sub.toJSON() : sub;
+    var r = await fetch(BASE + "/rest/v1/rpc/notif_langganan", { method: "POST", headers: hdr(), body: JSON.stringify({ p_sesi: sesi, p_peran: m[1], p_sub: { endpoint: js.endpoint, keys: js.keys || {} }, p_extra: extra || {}, p_hapus: !!hapus, p_wa: m[1] === "pembeli" ? m[2] : null }) });
+    if (r.ok) return true;
+    var t = await r.text(), j = null; try { j = JSON.parse(t); } catch (e) {}
+    var msg = String((j && (j.message || j.hint)) || t || r.status);
+    if (r.status === 404 || /Could not find the function|PGRST202/i.test(msg)) { adaRpc = false; return false; }
+    throw new Error(msg.replace(/^SESI:\s*/, ""));
+  }
   async function simpan(key, sub, extra, token) {
+    if (!token && await lewatServer(key, sub, extra, false)) { try { localStorage.setItem("ks_notif_" + key, "1"); } catch (e) {} return; }
     var h = hdr(token), cur = [], lama = {};
     try {
       var r0 = await fetch(BASE + "/rest/v1/store_settings?select=value&key=eq." + encodeURIComponent(key), { headers: h });
@@ -61,6 +77,7 @@
   async function matikan(key, token) {
     var h = hdr(token), s = null;
     try { s = await langgananSaatIni(); } catch (e) {}
+    if (s && !token && await lewatServer(key, s, null, true)) s = null;
     if (s) {
       var r0 = await fetch(BASE + "/rest/v1/store_settings?select=value&key=eq." + encodeURIComponent(key), { headers: h });
       var j = await r0.json(), lama = (j[0] && j[0].value && typeof j[0].value === "object") ? j[0].value : {};
