@@ -297,7 +297,7 @@ bind.toko=()=>{
     if(rename&&!confirm(`Ganti nama toko dari "${oldT}" ke "${tk}"? ${P.length} produk Anda ikut dipindah ke nama baru.`))return;
     const b=$("sSave");b.disabled=true;b.textContent="Menyimpan...";
     try{
-      if(rename)await pindahKunci(K(oldT),K(tk));
+      if(rename)await pindahKunci(K(oldT),K(tk),tk);
       if(rename&&cloud()){let lama=!PROD_RPC||!(window.KSID&&KSID.sesi("penjual"));if(!lama){try{await prodRpc("produk_ganti_toko",{p_sesi:KSID.sesi("penjual"),p_baru:tk})}catch(e){if(!e.tidakAda)throw e;PROD_RPC=false;lama=true}}
         if(lama){for(const p of P){const sel=String(p.seller||"").split(",").map(x=>x.trim()).map(x=>K(x)===K(oldT)?tk:x).join(", ");await cf("products?id=eq."+encodeURIComponent(p.id),{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({seller:sel})});p.seller=sel}}}
       Object.assign(me,{nama,toko:tk,usaha:tk,dusun:$("sDusun").value.trim(),updated:Date.now()});
@@ -329,14 +329,16 @@ function kartuBukaTutup(){const x=statusToko(),atur=`<a data-k="toko" class="bt-
   if(x.st==="manual")return `<div class="bt off"><div class="bt-h"><span class="bt-ic">${IK.silang}</span><div><b>Toko sedang TUTUP</b><small>Ditutup sejak ${new Date(x.t).toLocaleString("id-ID",{weekday:"long",hour:"2-digit",minute:"2-digit"})}. Pembeli belum bisa memesan.</small></div></div>${jadwalBuka(x.s)?"":`<small>Catatan: menurut jadwal, toko juga sedang di luar jam buka (${esc(teksJadwal(x.s))}).</small>`}<button class="btn grn" id="btBuka">🟢 Buka toko sekarang</button>${atur}</div>`;
   if(x.st==="jadwal")return `<div class="bt jd"><b>🕒 Tutup sesuai jadwal</b><small>${esc(x.why)}${(x.s.off||[]).length?" • libur "+[1,2,3,4,5,6,0].filter(d=>x.s.off.includes(d)).map(d=>HARI[d]).join(", "):""}</small><small>Toko otomatis buka lagi sesuai jadwal.</small>${atur}</div>`;
   return `<div class="bt on"><div class="bt-h" data-k="toko"><span class="bt-ic">${IK.cek}</span><div><b>Toko sedang BUKA</b><small>Pembeli bisa memesan • ${esc(teksJadwal(x.s))}</small></div>${IK.kanan}</div><button class="btn red" id="btTutup"><i class="dot"></i>Tutup toko sekarang</button>${atur}</div>`}
+/* Tutup/buka toko, jadwal & ganti nama lewat server (supabase-keamanan-pengaturan.sql). Bila SQL itu belum dijalankan, pakai cara lama. */
+async function tokoAtur(jenis,val,caraLama){const sesi=window.KSID&&KSID.sesi("penjual");if(cloud()&&sesi){try{return await prodRpc("toko_atur",{p_sesi:sesi,p_jenis:jenis,p_value:val})}catch(e){if(!e.tidakAda)throw e}}return caraLama()}
 async function setTutup(tutup,btn){const k=myKey();if(!k)return toast("Isi nama toko dulu di Pengaturan toko");
   if(tutup&&!confirm("Tutup toko sekarang?\n\nProduk Anda tidak bisa dipesan sampai Anda menekan \"Buka toko sekarang\"."))return;
   btn.disabled=true;btn.textContent="Menyimpan...";
-  try{const cur=ob(await getS("tutup_toko",{}));if(tutup)cur[k]={t:new Date().toISOString(),id:me.id};else delete cur[k];await setS("tutup_toko",cur);JAD.tutup=cur;toast(tutup?"🔴 Toko ditutup":"🟢 Toko dibuka kembali")}
+  try{await tokoAtur("tutup",{tutup:!!tutup},async()=>{const cur=ob(await getS("tutup_toko",{}));if(tutup)cur[k]={t:new Date().toISOString(),id:me.id};else delete cur[k];await setS("tutup_toko",cur)});JAD.tutup=ob(await getS("tutup_toko",{}));toast(tutup?"🔴 Toko ditutup":"🟢 Toko dibuka kembali")}
   catch(e){toast("Gagal menyimpan: "+String(e.message||e).slice(0,60))}go(view)}
 function bindBukaTutup(){$("btTutup")&&($("btTutup").onclick=e=>setTutup(true,e.target));$("btBuka")&&($("btBuka").onclick=e=>setTutup(false,e.target));if(!JAD||Date.now()-JAD.t>60000)muatJadwal().then(()=>{if(["home","toko"].includes(view))go(view)}).catch(()=>{})}
 // pindahkan data per toko saat nama toko diganti
-async function pindahKunci(lama,baru){for(const key of ["seller_schedule","tutup_toko","closed_sellers","shipping_fees"]){const cur=ob(await getS(key,{}));if(!(lama in cur))continue;cur[baru]=cur[lama];delete cur[lama];await setS(key,cur)}JAD=null}
+async function pindahKunci(lama,baru,namaBaru){await tokoAtur("pindah",{baru:namaBaru||baru},async()=>{for(const key of ["seller_schedule","tutup_toko","closed_sellers","shipping_fees"]){const cur=ob(await getS(key,{}));if(!(lama in cur))continue;cur[baru]=cur[lama];delete cur[lama];await setS(key,cur)}});JAD=null}
 /* jadwal buka toko (diisi penjual, langsung dipakai Kalensari Store) */
 let JF=null;
 function kartuJadwal(){if(!JAD)return '<b>🕒 Jam buka & hari libur</b><p style="color:var(--mu)">Memuat…</p>';
@@ -359,8 +361,8 @@ function bindJadwal(){const c=$("jdCard");if(!c)return;
     if(JF.on&&(!JF.o||!JF.c||JF.o===JF.c))return toast("Jam buka dan jam tutup harus diisi dan tidak boleh sama");
     if(JF.off.length===7)return toast("Tidak bisa libur 7 hari. Pakai tombol Tutup toko di Beranda.");
     const b=e.target;b.disabled=true;b.textContent="Menyimpan...";
-    try{const cur=ob(await getS("seller_schedule",{})),rec={off:JF.off.slice().sort(),h:JF.h.slice()};if(JF.on){rec.o=JF.o;rec.c=JF.c}
-      if(!rec.o&&!rec.off.length&&!rec.h.length)delete cur[k];else cur[k]=rec;await setS("seller_schedule",cur);JAD.sched=cur;
+    try{const rec={off:JF.off.slice().sort(),h:JF.h.slice()};if(JF.on){rec.o=JF.o;rec.c=JF.c}const kosong=!rec.o&&!rec.off.length&&!rec.h.length;
+      await tokoAtur("jadwal",kosong?null:rec,async()=>{const cur=ob(await getS("seller_schedule",{}));if(kosong)delete cur[k];else cur[k]=rec;await setS("seller_schedule",cur)});JAD.sched=ob(await getS("seller_schedule",{}));
       if(JF.on){me.buka=JF.o;me.tutup=JF.c;try{await saveMe()}catch{}}
       toast("✅ Jadwal disimpan • langsung berlaku di Kalensari Store");JF=null;c.innerHTML=kartuJadwal();bindJadwal()}
     catch(err){toast("Gagal menyimpan: "+String(err.message||err).slice(0,60));b.disabled=false;b.textContent="💾 Simpan jadwal"}});}
