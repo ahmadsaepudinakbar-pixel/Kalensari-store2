@@ -1237,6 +1237,7 @@ function renderMyOrders(rows=getLocalOrders()){
   const riwayatN=rows.length-sorted.length;
   if(count)count.textContent=`${sorted.length} aktif`;
   box.innerHTML=sorted.length?sorted.map(kartuPesanan).join("")+riwayatLink(riwayatN):`<div class="empty-state"><b>📦 Tidak ada pesanan aktif</b>Pesanan yang sedang berjalan akan muncul di sini. Pesanan yang sudah selesai atau dibatalkan tersimpan di riwayat akun.</div>${riwayatLink(riwayatN)}`;
+  if(window.KSPW&&KSPW.grupPasang)KSPW.grupPasang(box,rows);   // ringkasan multi toko (diproses / menunggu / batal + voucher)
 }
 // ===== Kartu pesanan (tampilan baru) =====
 const IKON_PS={

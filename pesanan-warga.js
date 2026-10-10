@@ -1,5 +1,6 @@
 /* KALENSARI • Tombol pesanan untuk warga (KSPW)
-   - "Batalkan pesanan": hanya selama status Menunggu (belum diterima toko) dan belum dibayar QRIS.
+   - "Batalkan pesanan": selama status Menunggu (belum diterima toko). Bila sudah dibayar, uang nota itu kembali sebagai saldo voucher.
+   - Banner multi toko: ringkasan nota per checkout (toko yang diproses, yang masih menunggu, yang batal + voucher).
    - "Pesan lagi": isi pesanan lama dimasukkan ke keranjang (produk yang masih dijual).
    Pemakaian: html += KSPW.html(pesanan);  KSPW.pasang(kotak, daftarPesanan, renderUlang); */
 window.KSPW = (function () {
@@ -13,9 +14,59 @@ window.KSPW = (function () {
   const st = o => !o.status || o.status === "baru" ? "menunggu" : o.status;
   const lokal = o => String(o.id || "").startsWith("local-");
   const lunas = o => o.pay_status === "lunas";
-  const bisaBatal = o => st(o) === "menunggu" && !lokal(o) && !lunas(o);
+  const bisaBatal = o => st(o) === "menunggu" && !lokal(o) && o.pay_status !== "verifikasi";
+  const rp = n => "Rp" + (Number(n) || 0).toLocaleString("id-ID");
+  const uangKembali = o => lunas(o) ? (Number(o.total) || 0) + (Number(o.potong_saldo) || 0) : (Number(o.potong_saldo) || 0);
   const items = o => { let it = o.items; if (typeof it === "string") { try { it = JSON.parse(it); } catch (e) { it = []; } } return Array.isArray(it) ? it : []; };
   function toast(t) { if (typeof window.showToast === "function") return window.showToast(t); if (typeof window.toast === "function") return window.toast(t); alert(t); }
+
+
+  // ===== Ringkasan multi toko: 1 checkout ke banyak toko = beberapa nota yang berdiri sendiri =====
+  const tokoNama = o => String((items(o)[0] || {}).seller || "Toko").split(",")[0].trim() || "Toko";
+  const sisaMenit = o => { const t = Date.parse(o.paid_at || o.created_at || ""); return isNaN(t) ? null : Math.max(0, Math.ceil((t + 15 * 60000 - Date.now()) / 60000)); };
+  const mulaiHitung = o => !(/^qris/i.test(String(o.payment || "")) && !lunas(o)) && o.pay_status !== "tunggu_wa";
+  function grupRingkas(rows) {
+    const m = new Map();
+    (rows || []).forEach(o => { if (o && o.grup) { if (!m.has(o.grup)) m.set(o.grup, []); m.get(o.grup).push(o); } });
+    const out = [];
+    m.forEach((list, grup) => {
+      if (list.length < 2) return;
+      const s = x => st(x);
+      const ok = list.filter(o => ["diproses", "dikirim", "selesai"].includes(s(o)));
+      const tunggu = list.filter(o => s(o) === "menunggu");
+      const batal = list.filter(o => s(o) === "dibatalkan");
+      if (!list.some(o => ["menunggu", "diproses", "dikirim"].includes(s(o)))) return;   // sudah beres semua
+      const kembali = batal.reduce((t, o) => t + uangKembali(o), 0);
+      out.push({ grup, ok, tunggu, batal, kembali });
+    });
+    return out;
+  }
+  function grupHtml(rows) {
+    css();
+    return grupRingkas(rows).map(g => {
+      const nm = l => l.map(tokoNama).filter((v, i, a) => a.indexOf(v) === i).join(", ");
+      const baris = [];
+      if (g.ok.length) baris.push(`✅ <b>${esc(nm(g.ok))}</b> sudah menerima dan ${g.tunggu.length ? "pesanannya langsung diproses" : "sedang disiapkan / dikirim ke Anda"}.`);
+      if (g.tunggu.length) {
+        const w = g.tunggu.filter(mulaiHitung).map(sisaMenit).filter(x => x !== null), sisa = w.length ? Math.min(...w) : null;
+        baris.push(`⏳ <b>${esc(nm(g.tunggu))}</b> masih menunggu${sisa !== null ? ` (maks. ${sisa} menit lagi, lalu otomatis batal)` : ""}. Nota ini bisa Anda batalkan sendiri; toko lain tidak ikut batal.`);
+      }
+      if (g.batal.length) baris.push(`✖️ <b>${esc(nm(g.batal))}</b> dibatalkan.${g.kembali > 0 ? ` Harga produk + ongkir toko tersebut, <b>${rp(g.kembali)}</b>, dikembalikan sebagai <b>saldo voucher belanja</b> (cek Akun → Saldo voucher).` : ""}`);
+      return `<div class="kspw-grup" data-kspw-grup="${esc(g.grup)}"><b>🧾 Pesanan dari ${g.ok.length + g.tunggu.length + g.batal.length} toko</b>${baris.map(x => `<p>${x}</p>`).join("")}</div>`;
+    }).join("");
+  }
+  // Pasang banner di atas daftar + beri 1x pemberitahuan saat semua toko sudah menjawab dan ada yang batal
+  function grupPasang(box, rows) {
+    if (!box) return;
+    box.querySelectorAll(".kspw-grup").forEach(x => x.remove());
+    const h = grupHtml(rows); if (h) box.insertAdjacentHTML("afterbegin", h);
+    grupRingkas(rows).forEach(g => {
+      if (g.tunggu.length || !g.ok.length || !g.batal.length) return;
+      const k = "ks_mt_info_" + g.grup;
+      try { if (localStorage.getItem(k)) return; localStorage.setItem(k, "1"); } catch (e) { return; }
+      toast("🛵 Pesanan Anda diproses dari toko yang menerima." + (g.kembali > 0 ? " Uang toko yang batal (" + rp(g.kembali) + ") kembali sebagai saldo voucher." : ""));
+    });
+  }
 
   function css() {
     if (document.getElementById("kspwCss")) return;
@@ -25,7 +76,7 @@ window.KSPW = (function () {
 .kspw-ov{position:fixed;inset:0;background:rgba(30,15,5,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center}.kspw-card{background:#fff;width:min(460px,100%);border-radius:22px 22px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));color:#3a1f10}
 @media(min-width:560px){.kspw-ov{align-items:center}.kspw-card{border-radius:22px}}.kspw-card h3{margin:0 0 4px}.kspw-card p{margin:0 0 12px;color:#7a6454;font-size:14px}
 .kspw-al{display:flex;flex-direction:column;gap:6px}.kspw-al button{text-align:left;padding:11px 12px;border:1.5px solid #e6d8c8;border-radius:12px;background:#fff;font:inherit;cursor:pointer}.kspw-al button.on{border-color:#c0392b;background:#fdecea;font-weight:700}
-.kspw-go{display:block;width:100%;margin-top:12px;padding:13px;border:0;border-radius:14px;background:#c0392b;color:#fff;font:inherit;font-weight:800;cursor:pointer}.kspw-go:disabled{opacity:.5}.kspw-x{display:block;width:100%;margin-top:8px;padding:10px;border:0;background:none;color:#7a6454;font:inherit;cursor:pointer}`;
+.kspw-go{display:block;width:100%;margin-top:12px;padding:13px;border:0;border-radius:14px;background:#c0392b;color:#fff;font:inherit;font-weight:800;cursor:pointer}.kspw-grup{background:#fff8ec;border:1.5px solid #f0d9b0;border-radius:14px;padding:10px 12px;margin:0 0 12px;color:#4a2b17;font-size:13.5px}.kspw-grup p{margin:6px 0 0}.kspw-go:disabled{opacity:.5}.kspw-x{display:block;width:100%;margin-top:8px;padding:10px;border:0;background:none;color:#7a6454;font:inherit;cursor:pointer}`;
     document.head.appendChild(s);
   }
 
@@ -33,11 +84,12 @@ window.KSPW = (function () {
     if (!o || !o.order_code) return "";
     css();
     const b = [];
-    if (bisaBatal(o)) b.push(`<button type="button" class="batal" data-kspw-batal="${esc(o.order_code)}">✖ Batalkan pesanan</button>`);
+    if (bisaBatal(o)) b.push(`<button type="button" class="batal" data-kspw-batal="${esc(o.order_code)}">${lunas(o) ? "✖ Batalkan • uang jadi voucher" : "✖ Batalkan pesanan"}</button>`);
     if (items(o).length && st(o) !== "menunggu") b.push(`<button type="button" class="ulang" data-kspw-ulang="${esc(o.order_code)}">🔁 Pesan lagi</button>`);
     let note = "";
     if (st(o) === "dibatalkan" && /^Dibatalkan pembeli/.test(o.gagal_alasan || "")) note = `<div class="kspw-note">${esc(o.gagal_alasan)}</div>`;
-    else if (st(o) === "menunggu" && lunas(o)) note = `<div class="kspw-note" style="background:#f7f1ea;color:#5b4636">Sudah dibayar QRIS. Untuk membatalkan, hubungi admin.</div>`;
+    else if (st(o) === "menunggu" && lunas(o)) note = `<div class="kspw-note" style="background:#f7f1ea;color:#5b4636">Sudah dibayar. Bisa dibatalkan selama toko belum menerima; ${rp(uangKembali(o))} (produk + ongkir) kembali sebagai saldo voucher.</div>`;
+    else if (st(o) === "menunggu" && o.pay_status === "verifikasi") note = `<div class="kspw-note" style="background:#f7f1ea;color:#5b4636">Pembayaran sedang diperiksa admin, belum bisa dibatalkan.</div>`;
     return note + (b.length ? `<div class="kspw">${b.join("")}</div>` : "");
   }
 
@@ -46,7 +98,7 @@ window.KSPW = (function () {
     css();
     let al = "", sibuk = false;
     const ov = document.createElement("div"); ov.className = "kspw-ov";
-    ov.innerHTML = `<div class="kspw-card"><h3>Batalkan ${esc(o.order_code)}?</h3><p>Pesanan bisa dibatalkan selama toko belum menerimanya. Pilih alasannya:</p>
+    ov.innerHTML = `<div class="kspw-card"><h3>Batalkan ${esc(o.order_code)}?</h3><p>Pesanan bisa dibatalkan selama toko belum menerimanya.${uangKembali(o) > 0 ? ` <b>${rp(uangKembali(o))}</b> (produk + ongkir nota ini) otomatis kembali sebagai <b>saldo voucher</b>.` : ""}${o.grup ? " Toko lain di pesanan yang sama tetap diproses." : ""} Pilih alasannya:</p>
       <div class="kspw-al">${ALASAN.map(a => `<button type="button">${esc(a)}</button>`).join("")}</div>
       <button type="button" class="kspw-go" disabled>Ya, batalkan pesanan</button><button type="button" class="kspw-x">Tidak jadi</button></div>`;
     document.body.appendChild(ov);
@@ -65,7 +117,7 @@ window.KSPW = (function () {
         try { const h = window.KSPesanan ? await KSPesanan.aksi("tamu", o.order_code, "batal_pembeli", { alasan: al }, lama) : (await lama(), { jumlah: 1 }); if (!h.jumlah) r = []; }
         catch (e) { if (e.message !== "tidak-bisa") throw e; r = []; }
         ov.remove();
-        if (!Array.isArray(r) || !r.length) { toast("Pesanan tidak bisa dibatalkan: toko sudah menerimanya atau sudah dibayar."); }
+        if (!Array.isArray(r) || !r.length) { toast("Pesanan tidak bisa dibatalkan: toko sudah menerimanya atau pembayaran sedang diperiksa."); }
         else { Object.assign(o, { status: "dibatalkan", gagal_alasan: "Dibatalkan pembeli: " + al, updated_at: now }); toast("Pesanan " + o.order_code + " dibatalkan"); }
         try { const L = JSON.parse(localStorage.getItem("kalensari_orders") || "[]"); localStorage.setItem("kalensari_orders", JSON.stringify(L.map(x => x.order_code === o.order_code ? { ...x, status: o.status, gagal_alasan: o.gagal_alasan } : x))); } catch (e) { }
         if (typeof selesai === "function") selesai();
@@ -97,5 +149,5 @@ window.KSPW = (function () {
       if (b.dataset.kspwBatal) batal(o, () => box._kspwRender && box._kspwRender()); else pesanLagi(o);
     });
   }
-  return { html, pasang, bisaBatal };
+  return { html, pasang, bisaBatal, grupHtml, grupPasang };
 })();
