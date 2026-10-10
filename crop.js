@@ -154,11 +154,21 @@
     const files = [...(inp.files || [])];
     if(!files.length || !files.every(f => /^image\//.test(f.type) && !/gif|svg/.test(f.type))) return;
     e.stopImmediatePropagation(); e.preventDefault();
+    // SALIN SEMUA FOTO KE MEMORI DULU. Di Android, foto pilihan dari galeri hanya "pinjaman" dari penyimpanan HP;
+    // foto ke-2 dst. sering tidak terbaca lagi bila baru dibuka setelah foto pertama selesai dipotong.
+    const salin = async f => {
+      try{ return new File([await f.arrayBuffer()], f.name || "foto.jpg", {type:f.type, lastModified:f.lastModified || Date.now()}); }catch(e1){}
+      try{ const buf = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => no(r.error); r.readAsArrayBuffer(f); });
+        return new File([buf], f.name || "foto.jpg", {type:f.type, lastModified:f.lastModified || Date.now()}); }catch(e2){ return null; }
+    };
+    const salinan = []; let gagal = 0;
+    for(const f of files){ const c = await salin(f); if(c) salinan.push(c); else gagal++; }
     const dt = new DataTransfer();
-    for(let i = 0; i < files.length; i++){
-      const hasil = await potong(files[i], {rasio:mode || "1:1", kunci:mode === "bulat", judul:files.length > 1 ? `Foto ${i + 1} dari ${files.length} • geser & cubit untuk mengatur` : ""});
+    for(let i = 0; i < salinan.length; i++){
+      const hasil = await potong(salinan[i], {rasio:mode || "1:1", kunci:mode === "bulat", judul:salinan.length > 1 ? `Foto ${i + 1} dari ${salinan.length} • geser & cubit untuk mengatur` : ""});
       if(hasil) dt.items.add(hasil);
     }
+    if(gagal) alert(gagal + " foto tidak bisa dibaca dari galeri dan dilewati. Coba pilih ulang fotonya (satu per satu) bila perlu.");
     if(!dt.files.length){ inp.value = ""; return; }                            // semua dibatalkan
     inp.files = dt.files; inp.__ksCrop = true;
     inp.dispatchEvent(new Event("change", {bubbles:true}));
