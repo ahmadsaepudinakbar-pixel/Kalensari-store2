@@ -212,7 +212,8 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
       <button type="button" class="q" data-go="saldo"><i>🎟️</i><span>Saldo voucher</span><em id="qSaldo" hidden></em></button>
       <button type="button" class="q" data-go="alamat"><i>📍</i><span>Alamat</span></button>
       <a class="q" href="index.html#favorit"><i>❤️</i><span>Favorit</span><em id="favN" hidden></em></a>
-      <a class="q" href="pasar.html#/saya"><i>🔁</i><span>Pasar Warga</span><em id="lpBaru" hidden></em></a>
+      <a class="q" href="pasar.html#/saya"><i>🔁</i><span>Lapak Barter</span><em id="lpBaru" hidden></em></a>
+      <button type="button" class="q" id="qJasa"><i>🛠️</i><span>Jasa saya</span></button>
       <button type="button" class="q" data-go="akun" data-fokus="notif"><i>🔔</i><span>Notifikasi</span></button>
       <button type="button" class="q" data-go="akun"><i>👤</i><span>Akun & PIN</span></button>
     </div>
@@ -260,7 +261,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 <nav class="bn" id="bn" hidden><button type="button" data-go="home" class="on"><b>🏠</b>Beranda</button><button type="button" data-go="pesanan"><b>📋</b>Pesanan<i id="bnPes" hidden></i></button><button type="button" data-go="alamat"><b>📍</b>Alamat</button><button type="button" data-go="akun"><b>👤</b>Akun</button></nav>
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
-<script src="akun-id.js"></script><script src="pesanan-aman.js"></script><script src="hapus-akun.js"></script><script>window.KSHapus&&KSHapus.pasang(document.getElementById("ksHapusAkun"),"pembeli")</script>
+<script src="akun-id.js"></script><script src="akun-satu.js"></script><script src="pesanan-aman.js"></script><script src="hapus-akun.js"></script><script>window.KSHapus&&KSHapus.pasang(document.getElementById("ksHapusAkun"),"pembeli")</script>
 <script src="notif.js"></script>
 <script src="serahterima.js"></script>
 <script src="ulasan.js"></script>
@@ -327,7 +328,7 @@ function mapsSearchUrl(lat,lng){ return `https://www.google.com/maps/search/?api
 function validCoord(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&lat>=-90&&lat<=90&&lng>=-180&&lng<=180&&!(lat===0&&lng===0)}
 function parseCoord(v){const t=String(v==null?"":v).trim().replace(",",".");return t===""?NaN:Number(t)}
 function parseLatLng(t){t=String(t||"").trim();if(!t)return null;const m=t.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)||t.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)||t.match(/[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i)||t.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/);return m?[Number(String(m[1]).replace(",",".")),Number(String(m[2]).replace(",","."))]:null}
-function keluar(){ sessionStorage.removeItem(SESS); try{ localStorage.removeItem(LOGIN); }catch(e){} if(window.KSID) KSID.hapusSesi(ROLE); location.href = "akun-" + ROLE + ".html"; }
+function keluar(){ sessionStorage.removeItem(SESS); try{ localStorage.removeItem(LOGIN); }catch(e){} if(window.KSID) KSID.hapusSesi(ROLE); if(window.KSSatu) KSSatu.keluarSemua(); location.href = "akun-" + ROLE + ".html"; }
 $("btnKeluar").onclick = keluar;
 const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan", gagal:"Gagal diantar"};
 function itemsText(o){
@@ -369,6 +370,7 @@ async function load(){
   $("bn").hidden = false; heroUpdate();
   try{ const f = LSget("kalensari_favorit", []); if(Array.isArray(f) && f.length){ $("favN").textContent = f.length; $("favN").hidden = false; } }catch(e){}
   cekLapak();
+  { const bj = $("qJasa"); if(bj) bj.onclick = () => window.KSSatu ? KSSatu.bukaJasa(WA, me && me.nama) : toast("Fitur jasa belum siap"); }
   
   $("dash").hidden = false;
 }

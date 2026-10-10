@@ -62,6 +62,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
     <div id="fMasuk">
       <label>No. WhatsApp atau ID akun<input id="lWa" class="fld" type="text" inputmode="text" autocapitalize="characters" placeholder="08xxxxxxxxxx atau PB0001" autocomplete="username"></label>
       <label>PIN<input id="lPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="current-password"></label>
+      <p class="hint">Satu akun untuk belanja, penyedia jasa, dan lapak barter.</p>
       <div class="btns"><button class="btn wa" id="btnMasuk" type="button">Masuk</button></div>
       <p style="text-align:center;margin:14px 0 0"><a href="#" id="lnkLupa" style="color:var(--brown);font-weight:700">Lupa PIN?</a></p>
     </div>
@@ -99,7 +100,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 </main>
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
-<script src="akun-id.js"></script>
+<script src="akun-id.js"></script><script src="akun-satu.js"></script>
 <script>
 
 const $ = id => document.getElementById(id);
@@ -235,6 +236,7 @@ $("btnMasuk").onclick = async () => {
     try{ a = await KSID.masuk(ROLE, wa, pin); }catch(er){ if(er.salahPin) failTry(); return toast(er.message); }
     LSset("kalensari_"+ROLE+"_try", {n:0,t:0});
     ingatMasuk(a.wa || wa);
+    if(window.KSSatu) await KSSatu.diam(a.wa || wa, pin);   // satu akun: ikut masuk ke profil jasa bila ada
     if(a.tmp) sessionStorage.setItem("kalensari_pin_tmp", pin);
     toast(a.tmp ? "Berhasil masuk. Silakan buat PIN baru..." : "Berhasil masuk...");
     go();
