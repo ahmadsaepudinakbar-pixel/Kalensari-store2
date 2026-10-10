@@ -1741,6 +1741,15 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
   const m=document.createElement("div");m.className="ks-menu";m.setAttribute("role","menu");
   m.innerHTML=`<a role="menuitem" href="pasar.html" style="background:#fff6ec;color:#5b2e1a;margin-bottom:4px">🔁 Lapak Barter <span style="margin-left:auto;background:#faeeda;color:#633806;font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px">Baru</span></a><a role="menuitem" href="akun-pembeli.html"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true" style="flex:none;vertical-align:middle"><circle cx="20" cy="20" r="20" fill="#FFE27A"/><path d="M5 34c1-6 5-9 9-9s8 3 9 9z" fill="#4FC3A1"/><path d="M17 34c1-7 5-10 9-10s8 3 9 10z" fill="#FF8A5C"/><path d="M11 36c1-6 5-9 9-9s8 3 9 9z" fill="#5AA9F0"/><circle cx="12" cy="19" r="5" fill="#FFD3A8" stroke="#7a3e20" stroke-width="1"/><circle cx="28" cy="18" r="5.5" fill="#F7C39A" stroke="#7a3e20" stroke-width="1"/><circle cx="20" cy="22" r="5.5" fill="#FFDDB8" stroke="#7a3e20" stroke-width="1"/><path d="M17.8 23.5q2.2 2 4.4 0M9.8 20.3q2.2 1.8 4.4 0M25.8 19.5q2.2 1.8 4.4 0" stroke="#7a3e20" stroke-width="1.1" fill="none" stroke-linecap="round"/><circle cx="18.3" cy="21" r=".8" fill="#5b2e1a"/><circle cx="21.7" cy="21" r=".8" fill="#5b2e1a"/><circle cx="10.6" cy="18" r=".7" fill="#5b2e1a"/><circle cx="13.4" cy="18" r=".7" fill="#5b2e1a"/><circle cx="26.6" cy="17.2" r=".7" fill="#5b2e1a"/><circle cx="29.4" cy="17.2" r=".7" fill="#5b2e1a"/><path d="M14.5 17q5.5-6 11 0" fill="#5b2e1a" opacity=".85"/></svg> Warga Desa</a><a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" href="akun-jasa.html">🤝 Penyedia Jasa</a><a role="menuitem" href="akun-kurir.html">🛵 Kurir</a>`;
   document.body.appendChild(m);
+  // Mode Desktop / Seluler (hanya di layar HP): tampilan situs dilebarkan seperti di komputer. Pilihan diingat di HP ini.
+  if(screen.width<900){
+    const dk=(()=>{try{return localStorage.getItem("kalensari_desktop")==="1"}catch(e){return false}})();
+    const sep=document.createElement("div");sep.style.cssText="height:1px;background:#eadfd6;margin:4px 8px";
+    const b=document.createElement("button");b.type="button";b.setAttribute("role","menuitem");b.dataset.modeDesktop="1";
+    b.innerHTML=dk?"📱 Mode Seluler":"🖥️ Mode Desktop";
+    b.onclick=()=>{try{localStorage.setItem("kalensari_desktop",dk?"0":"1")}catch(e){}location.reload();};
+    m.appendChild(sep);m.appendChild(b);
+  }
   const close=()=>{m.classList.remove("open");btn.setAttribute("aria-expanded","false");};
   const place=()=>{const r=btn.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.left=Math.max(8,Math.min(r.left,innerWidth-m.offsetWidth-8))+"px";};
   btn.onclick=e=>{e.stopPropagation();const open=!m.classList.contains("open");if(open){m.classList.add("open");place();}else m.classList.remove("open");btn.setAttribute("aria-expanded",String(open));};
