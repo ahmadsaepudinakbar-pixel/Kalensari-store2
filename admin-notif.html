@@ -157,7 +157,7 @@ function render(){
     <div style="margin-top:6px"><b>${esc(x.nama||'Pembeli')}</b> · ${esc(x.kode.join(', '))}</div>
     <div class="amt">${rp(x.total)}</div><div class="mut">Klaim bayar ${fmt(x.t)}${x.ids.length>1?' · '+x.ids.length+' nota':''}</div>
     <div id="bk-${esc(x.key)}"></div>
-    <div class="row"><button class="btn lt" onclick="bukti('${esc(x.key)}')">🧾 Bukti</button>${x.wa?`<a class="btn lt" style="text-decoration:none;text-align:center" href="https://wa.me/${wk(x.wa)}" target="_blank" rel="noopener">💬 WA</a>`:''}<button class="btn" onclick="accQris('${esc(x.key)}',this)">✅ Sudah masuk, ACC</button></div></div>`).join(''):'<div class="empty">Tidak ada pembayaran QRIS yang menunggu 🎉</div>';
+    <div class="row"><button class="btn lt" onclick="bukti('${esc(x.key)}')">🧾 Bukti</button>${x.wa?`<a class="btn lt" style="text-decoration:none;text-align:center" href="https://wa.me/${wk(x.wa)}" target="_blank" rel="noopener">💬 WA</a>`:''}<button class="btn red" onclick="tolakQris('${esc(x.key)}',this)">✖ Tolak</button><button class="btn" onclick="accQris('${esc(x.key)}',this)">✅ Sudah masuk, ACC</button></div></div>`).join(''):'<div class="empty">Tidak ada pembayaran QRIS yang menunggu 🎉</div>';
   else if(tab==='topup')L.innerHTML=D.topup.length?D.topup.map(x=>`<div class="card"><b>${esc(x.nama||'Kurir')}</b> minta isi saldo
     <div class="amt">${rp(x.jumlah)}</div><div class="mut">${fmt(x.t)}</div><div id="bk-${esc(x.key)}"></div>
     <div class="row"><button class="btn lt" onclick="buktiTopup(${x.id},'${esc(x.key)}')">🧾 Bukti</button><button class="btn red" onclick="topup(${x.id},false,this)">Tolak</button><button class="btn" onclick="topup(${x.id},true,this)">✅ ACC</button></div></div>`).join(''):'<div class="empty">Tidak ada permintaan isi saldo 🎉</div>';
@@ -185,6 +185,24 @@ async function accQris(key,btn){
     if(x.grup){try{const sib=await api('orders?select=id&grup=eq.'+encodeURIComponent(x.grup)+'&payment=ilike.qris*&pay_status=neq.lunas&status=neq.dibatalkan');sib.forEach(s=>{if(!ids.includes(s.id))ids.push(s.id)})}catch(e){}}
     for(const id of ids)await api('orders?id=eq.'+Number(id),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({pay_status:'lunas',paid_at:t,updated_at:t})});
     toast('✅ QRIS ditandai lunas');await muat();
+  });
+}
+async function tolakQris(key,btn){
+  const x=D.qris.find(y=>y.key===key);if(!x)return;
+  const al=prompt(`Tolak pembayaran QRIS ${x.kode.join(', ')} (${rp(x.total)})?\n\nPesanan akan DIBATALKAN. Tulis alasan (mis. uang belum masuk / nominal tidak sesuai):`,'Uang belum masuk');
+  if(al===null)return;
+  const alasan=('Pembayaran QRIS ditolak admin'+(al.trim()?': '+al.trim():'')).slice(0,120);
+  await lock(btn,async()=>{
+    const t=new Date().toISOString();let ids=x.ids.slice();
+    if(x.grup){try{const sib=await api('orders?select=id&grup=eq.'+encodeURIComponent(x.grup)+'&payment=ilike.qris*&pay_status=neq.lunas&status=neq.dibatalkan');sib.forEach(s=>{if(!ids.includes(s.id))ids.push(s.id)})}catch(e){}}
+    let ok=0,lewat=0;
+    for(const id of ids){
+      // pay_status=neq.lunas: bila sudah terlanjur lunas (mis. lunas otomatis), jangan dibatalkan
+      const r=await api('orders?id=eq.'+Number(id)+'&pay_status=neq.lunas',{method:'PATCH',body:JSON.stringify({status:'dibatalkan',pay_status:'ditolak',batal_alasan:alasan,batal_at:t,updated_at:t})});
+      if(Array.isArray(r)&&r.length)ok++;else lewat++;
+    }
+    toast(ok?('✖ QRIS ditolak, pesanan dibatalkan'+(lewat?` (${lewat} nota sudah lunas, dilewati)`:'')):'Tidak ada yang dibatalkan: pesanan sudah lunas / diproses.');
+    await muat();
   });
 }
 async function topup(id,ok,btn){
