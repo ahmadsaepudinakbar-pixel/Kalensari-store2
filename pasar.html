@@ -366,7 +366,7 @@ async function detail(id){
   const i = r && r[0]; if(!i || (i.status === "disembunyikan" && !(me && me.wa === i.wa))){ v.innerHTML = '<div class="empty">Iklan tidak ditemukan atau sudah dihapus.<br><br><a class="btn" href="#/">← Kembali ke lapak</a></div>'; return; }
   const pemilik = me && me.wa === i.wa, foto = Array.isArray(i.foto) ? i.foto.filter(Boolean) : [];
   const hrgTeks = i.harga ? rp(i.harga) : i.barter ? "Barter" : "Nego";
-  const inisial = String(i.nama || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase() || "?";
+  const inisPenjual = inisial(i.nama);
   const baru = i.status === "aktif" && Date.now() - new Date(i.created_at).getTime() < 864e5;
   const labels = `<div class="lbl">${i.status === "selesai" ? '<i class="s">Sudah laku</i>' : ""}${baru ? "<i>BARU</i>" : ""}${i.barter ? '<i class="b">🔁 Bisa barter</i>' : ""}${!i.harga && !i.barter ? '<i class="n">Nego</i>' : ""}</div>`;
   v.innerHTML = `<a class="btn" href="#/" style="padding:7px 12px;font-size:13px">← Lapak</a>
@@ -376,7 +376,7 @@ async function detail(id){
       ${i.harga ? `<div class="d-hrg">${rp(i.harga)}</div>` : i.barter ? '<div class="d-hrg b">🔁 Barter</div>' : '<div class="d-hrg n">🤝 Nego</div>'}
       ${i.barter ? `<div class="d-bar">🔁 Barter dengan <b>${esc(i.barter)}</b></div>` : ""}
       <div class="chips2">${i.kondisi ? `<span>🏷️ ${esc(i.kondisi)}</span>` : ""}<span>🕒 ${lalu(i.created_at)}</span></div>
-      <div class="sel"><div class="av">${esc(inisial)}</div><div><b>${esc(i.nama)}</b>${i.alamat ? `<small>📍 ${esc(i.alamat)}</small>` : ""}</div></div>
+      <div class="sel"><div class="av">${esc(inisPenjual)}</div><div><b>${esc(i.nama)}</b>${i.alamat ? `<small>📍 ${esc(i.alamat)}</small>` : ""}</div></div>
       ${pemilik ? `<div class="own"><a class="btn" href="#/ubah/${i.id}">✏️ Ubah</a>${i.status === "aktif" ? `<button class="btn" id="bLaku">✅ Tandai sudah laku</button>` : `<button class="btn" id="bAktif">↩️ Aktifkan lagi</button>`}<button class="btn r" id="bHapus">🗑️ Hapus</button></div>` : ""}
       ${!pemilik ? `<p class="hint" style="margin-top:10px">💬 Tanya, tawar harga, atau tawarkan barang barter lewat komentar di bawah.</p><button class="lpr-i" id="bLapor" type="button">🚩 Laporkan iklan ini</button>` : ""}
     </div>
