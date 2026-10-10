@@ -1,0 +1,39 @@
+ADMIN NOTIF • KALENSARI STORE
+=============================
+
+Aplikasi kecil khusus admin: satu layar berisi 3 antrean + tombol ACC.
+  💳 QRIS        -> pesanan yang pembelinya menekan "Saya sudah bayar" (pay_status = verifikasi)
+  💰 Isi Saldo   -> permintaan isi saldo kurir (kurir_topup)
+  💸 Pencairan   -> pencairan saldo toko (cair_toko) + pencairan saldo kurir (kurir_cair)
+
+Tombol ACC memakai perintah yang SAMA persis dengan admin.html
+(tandai lunas, rpc/proses_topup, rpc/kurir_cair_proses, cair_toko), jadi data
+tetap konsisten dan tidak ada tabel baru.
+
+FILE (unggah ke GitHub, satu folder dengan index.html)
+------------------------------------------------------
+  BARU  admin-notif.html
+  BARU  manifest-adminnotif.webmanifest
+  (memakai config.js, notif.js, pwa.js, sw.js, folder icons/ yang SUDAH ada)
+
+PEMASANGAN DI HP ADMIN
+----------------------
+1) Buka  https://kalensari.web.id/admin-notif.html  di Chrome HP admin.
+2) Masuk dengan email & sandi admin Supabase (yang sama dengan menu Admin).
+3) Tekan "Aktifkan notifikasi" lalu izinkan.
+4) Menu titik tiga Chrome > "Instal aplikasi" / "Tambahkan ke layar utama".
+   (iPhone: Bagikan > Tambah ke Layar Utama, lalu buka dari ikon itu.)
+
+CARA KERJA NOTIFIKASI
+---------------------
+- Aplikasi terbuka / di latar belakang : dicek tiap 15 detik, berbunyi + getar + lencana angka.
+- Aplikasi DITUTUP total : butuh push dari server (fungsi "kirim-notif" + trigger
+  database). Untuk isi saldo kurir ini sudah ada (trigger ks_notif_topup).
+  QRIS "verifikasi" & pencairan perlu trigger tambahan -> lihat catatan di bawah.
+
+CATATAN
+-------
+- Fungsi notif_colek() dan Edge Function kirim-notif TIDAK ada di zip yang diunggah.
+  Kirim isinya agar trigger untuk QRIS & pencairan bisa dibuat dengan benar.
+- Kunci langganan HP admin tersimpan di store_settings "admin_push" (sama dengan menu
+  Admin > Pengaturan), jadi HP yang sama tidak perlu didaftarkan dua kali.
