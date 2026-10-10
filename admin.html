@@ -461,7 +461,7 @@ const fmtDay=d=>d.toLocaleDateString('id-ID',{day:'2-digit',month:'short'});
 const fmtTime=d=>new Date(d).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
 const fmtDate=d=>new Date(d).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 // Tanda pembayaran QRIS otomatis (Duitku)
-function payTag(o){if(o.pay_status==="verifikasi")return ' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#e3eefc;color:#1d4f91;vertical-align:middle">🔎 Cek pembayaran</span>';if(o.pay_status==="tunggu_wa")return ' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#fff1d6;color:#9a5a00;vertical-align:middle">📞 Tunggu konfirmasi WA</span>';if(o.pay_status==="ok_wa")return ' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#dcf2e3;color:#14502c;vertical-align:middle">✔ COD dikonfirmasi</span>';if(!/^qris/i.test(String(o.payment||"")))return "";return o.pay_status==="lunas"?' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#dcf2e3;color:#14502c;vertical-align:middle">💳 Lunas</span>':' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#fff1d6;color:#9a5a00;vertical-align:middle">⏳ Belum dibayar</span>'}
+function payTag(o){if(o.pay_status==="lunas"&&o.pay_auto)return ' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#fff1d6;color:#9a5a00;vertical-align:middle">⚡ Lunas otomatis</span>';if(o.pay_status==="verifikasi")return ' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#e3eefc;color:#1d4f91;vertical-align:middle">🔎 Cek pembayaran</span>';if(o.pay_status==="tunggu_wa")return ' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#fff1d6;color:#9a5a00;vertical-align:middle">📞 Tunggu konfirmasi WA</span>';if(o.pay_status==="ok_wa")return ' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#dcf2e3;color:#14502c;vertical-align:middle">✔ COD dikonfirmasi</span>';if(!/^qris/i.test(String(o.payment||"")))return "";return o.pay_status==="lunas"?' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#dcf2e3;color:#14502c;vertical-align:middle">💳 Lunas</span>':' <span style="display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#fff1d6;color:#9a5a00;vertical-align:middle">⏳ Belum dibayar</span>'}
 function ago(d){const s=(Date.now()-new Date(d).getTime())/1000;if(s<60)return 'baru saja';if(s<3600)return Math.floor(s/60)+' menit yang lalu';if(s<86400)return Math.floor(s/3600)+' jam yang lalu';if(s<86400*30)return Math.floor(s/86400)+' hari yang lalu';return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}
 const orderCode=o=>o.order_code||('#'+o.id);
 const transOf=o=>{const it=Array.isArray(o.items)?o.items[0]:null;return it&&it.layanan?it:null};
@@ -1026,6 +1026,7 @@ function openOrder(id){
   ${(()=>{const v=S.settings['lacak_'+o.order_code];if(o.status!=='dikirim'||!v||!v.lat)return '';const m=Math.round((Date.now()-Number(v.t||0))/60000);return `<div class="detail-row"><span>📍 Posisi kurir<br><small style="color:var(--mut)">diperbarui ${m<1?'baru saja':m+' menit lalu'}</small></span><b><a href="https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}" target="_blank" rel="noopener" style="color:var(--g2)">Lihat di peta</a></b></div>`})()}
   ${o.status==='gagal'&&o.gagal_alasan?`<div class="detail-row"><span>Alasan gagal</span><b style="text-align:right;max-width:65%;white-space:normal;color:#9b2c1c">${esc(o.gagal_alasan)}</b></div>`:''}
   ${/^qris/i.test(String(o.payment||''))&&o.pay_status!=='lunas'&&stLabel(o.status)!=='Batal'?`<div class="card" style="margin-top:10px;background:#fff8ec;border:1px solid #f3dfb8;padding:12px"><b>${o.pay_status==='verifikasi'?'🔎 Pembeli mengaku sudah bayar QRIS • cek mutasi':'💳 QRIS belum tercatat lunas'}</b><div class="sm" style="margin:4px 0 8px">Pakai tombol ini hanya bila Anda sudah memastikan uang pembeli benar-benar masuk ke rekening / QRIS Kalensari Store.</div><button class="btn btn-g" onclick="tandaiLunas(${Number(o.id)},this)">✔ Tandai QRIS sudah dibayar</button></div>`:''}
+  ${o.pay_status==='lunas'&&o.pay_auto?`<div class="card" style="margin-top:10px;background:#fff8ec;border:1px solid #f3dfb8;padding:12px"><b>⚡ Dilunaskan otomatis</b><div class="sm" style="margin-top:4px">Admin belum menanggapi klaim bayar pembeli, jadi sistem melunaskan otomatis. Cek mutasi QRIS; bila uang tidak masuk, batalkan pesanan ini.</div></div>`:''}
   ${o.pay_status==='tunggu_wa'&&stLabel(o.status)==='Baru'?`<div class="mact" style="margin-top:10px"><a class="btn btn-light" href="${codWaLink(o)}" target="_blank" rel="noopener">💬 WA pembeli</a><button class="btn btn-g" onclick="codKonfirmasi(${Number(o.id)},this)">✔ Konfirmasi COD</button></div>`:''}
   <div class="detail-row" style="border:0"><span>Status sekarang</span>${statusBadge(o)}</div>
   <p style="font-size:12px;color:var(--mut);margin:14px 0 8px;font-weight:600">Ubah status</p>
@@ -1634,8 +1635,9 @@ function biayaCard(){
 
 /* ===== QRIS PEMBAYARAN PESANAN (QRIS statis, nominal terisi otomatis) =====
    store_settings "qris_statis" = {raw, aktif, nama, t}. Hanya admin yang bisa mengubah; pembeli hanya membaca. */
-let QRS=null,QRS_LIB=null;
-async function muatQrs(){try{const v=await readKey('qris_statis',null);QRS=v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch(e){QRS={}}if(route==='pengaturan')render()}
+let QRS=null,QRS_LIB=null,QRA=null;
+async function muatQrs(){try{const a=await readKey('qris_auto',null);QRA=a&&typeof a==='object'&&!Array.isArray(a)?a:{aktif:false,menit:2}}catch(e){QRA={aktif:false,menit:2}}
+  try{const v=await readKey('qris_statis',null);QRS=v&&typeof v==='object'&&!Array.isArray(v)?v:{}}catch(e){QRS={}}if(route==='pengaturan')render()}
 function qrisStatisCard(){
   if(QRS==null||!window.QRISStatis)return `<div class="card"><div class="chead"><h3>📱 QRIS Pembayaran Pesanan</h3></div><p class="sm" style="color:var(--mut)">${window.QRISStatis?'Memuat…':'File qris-statis.js belum terunggah ke GitHub.'}</p></div>`;
   const q=QRS,c=q.raw?QRISStatis.cek(q.raw):null;
@@ -1650,6 +1652,11 @@ function qrisStatisCard(){
       <small style="color:var(--mut);font-size:12px">Scan QR uji dengan aplikasi bank/e-wallet untuk memastikan nama merchant &amp; nominal benar (tidak perlu dibayar). Coba juga dengan beberapa aplikasi.</small></div>
     <div id="qsPrev" style="text-align:center"></div>
     <button class="btn btn-g full" type="button" onclick="qsSimpan(this)" style="margin-top:8px">Simpan QRIS</button>
+    <div style="border-top:1px solid var(--line);margin:16px 0 4px;padding-top:12px"><b>⚡ Lunas otomatis bila admin belum menanggapi</b>
+      <p class="sm" style="color:var(--mut);font-size:12px;margin:4px 0 8px">Jika pembeli sudah menekan “Saya sudah bayar” dan admin belum menanggapi dalam waktu ini, pesanan <b>otomatis dilunaskan</b> dan diteruskan ke penjual. Pesanan QRIS yang belum diklaim bayar tetap dibatalkan setelah 15 menit. COD tidak terpengaruh. <b>Risiko:</b> pembeli yang menekan tombol tanpa membayar akan lolos; cek mutasi untuk pesanan berlabel “⚡ Lunas otomatis”.</p>
+      <label class="sm" style="display:flex;gap:10px;align-items:center;padding:4px 0;cursor:pointer"><input type="checkbox" id="qaAktif" ${(QRA||{}).aktif?'checked':''} style="width:18px;height:18px">Aktifkan lunas otomatis</label>
+      <div class="field"><label>Tunggu tanggapan admin (menit, 1–60)</label><input class="inp" id="qaMenit" type="number" min="1" max="60" inputmode="numeric" value="${Math.min(60,Math.max(1,Number((QRA||{}).menit)||2))}"><small style="color:var(--mut);font-size:12px">Dicek tiap menit, jadi jeda sebenarnya sekitar N sampai N+1 menit.</small></div>
+      <button class="btn btn-g full" type="button" onclick="qaSimpan(this)">Simpan pengaturan otomatis</button></div>
     ${q.raw?'<button class="btn btn-light full" type="button" style="color:var(--red);margin-top:8px" onclick="qsHapus(this)">Hapus QRIS</button>':''}
     <p class="sm" style="color:var(--mut);font-size:12px;margin-top:10px">Catatan: pastikan QRIS statis milik merchant yang sah agar uang masuk &amp; ada riwayat mutasi. Pesanan yang belum dibayar dibatalkan otomatis setelah 15 menit.</p></div>`;
 }
@@ -1684,6 +1691,9 @@ async function qsUji(){
 async function qsSimpan(btn){
   const raw=QRISStatis.bersihkan($('#qsRaw').value),c=QRISStatis.cek(raw);if(!c.ok)return toast(c.pesan);
   await busy(btn,async()=>{const v={raw,aktif:$('#qsAktif').checked,nama:c.nama||'',t:Date.now()};await setSetting('qris_statis',v);QRS=v;S.settings.qris_statis=v;render();toast('✅ QRIS disimpan'+(v.aktif?' & aktif':' (belum diaktifkan)'))})}
+async function qaSimpan(btn){
+  const menit=Math.min(60,Math.max(1,Math.round(Number($('#qaMenit').value)||2))),aktif=$('#qaAktif').checked;
+  await busy(btn,async()=>{const v={aktif,menit};await setSetting('qris_auto',v);QRA=v;S.settings.qris_auto=v;render();toast(aktif?`✅ Aktif: lunas otomatis setelah ${menit} menit tanpa tanggapan admin`:'Lunas otomatis dimatikan')})}
 async function qsHapus(btn){if(!confirm('Hapus QRIS pembayaran? Pembeli tidak bisa memilih QRIS sampai Anda mengisi lagi.'))return;
   await busy(btn,async()=>{await api('store_settings?key=eq.qris_statis',{method:'DELETE',headers:{Prefer:'return=minimal'}});QRS={};delete S.settings.qris_statis;render();toast('QRIS dihapus')})}
 
