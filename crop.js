@@ -143,6 +143,48 @@
   }
   function esc(t){ return String(t).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
+  // ===== FOTO HEIC (bawaan kamera iPhone & beberapa HP) =====
+  // Hanya Safari yang bisa membuka HEIC. Di browser lain foto HEIC diubah dulu jadi JPG memakai pustaka heic2any
+  // (dimuat otomatis hanya bila ada foto HEIC, jadi halaman biasa tidak jadi berat).
+  const adaHeic = f => /hei[cf]/i.test(f.type || "") || /\.hei[cf]$/i.test(f.name || "");
+  const HEIC_SRC = [
+    "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js",
+    "https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js"
+  ];
+  let heicLib = null;
+  function muatHeic(){
+    if(window.heic2any) return Promise.resolve(window.heic2any);
+    if(heicLib) return heicLib;
+    heicLib = new Promise((ok, no) => {
+      let i = 0;
+      const coba = () => {
+        if(i >= HEIC_SRC.length){ heicLib = null; return no(new Error("Pustaka HEIC gagal dimuat")); }
+        const sc = document.createElement("script"); sc.src = HEIC_SRC[i++];
+        sc.onload = () => window.heic2any ? ok(window.heic2any) : coba();
+        sc.onerror = () => { sc.remove(); coba(); };
+        document.head.appendChild(sc);
+      };
+      coba();
+    });
+    return heicLib;
+  }
+  async function heicKeJpg(f){
+    try{ await bacaGambar(f); return f; }catch(e){}                            // browser ini bisa membuka HEIC sendiri (mis. Safari)
+    const h = await muatHeic();
+    let r = await h({blob:f, toType:"image/jpeg", quality:.9});
+    if(Array.isArray(r)) r = r[0];
+    const nama = String(f.name || "foto").replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([r], nama, {type:"image/jpeg", lastModified:Date.now()});
+  }
+  function info(teks){
+    let d = document.getElementById("ksc-info");
+    if(!teks){ if(d) d.remove(); return; }
+    if(!d){ d = document.createElement("div"); d.id = "ksc-info";
+      d.style.cssText = "position:fixed;left:50%;top:20px;transform:translateX(-50%);z-index:100001;background:#3a1f10;color:#fff;padding:10px 16px;border-radius:12px;font:600 14px system-ui,sans-serif;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.35)";
+      document.body.appendChild(d); }
+    d.textContent = teks;
+  }
+
   // ===== otomatis untuk semua <input type="file"> foto =====
   let bisaGanti = true; try{ new DataTransfer(); }catch(e){ bisaGanti = false; }
   document.addEventListener("change", async e => {
@@ -152,7 +194,7 @@
     const mode = (inp.dataset.crop || "").toLowerCase();
     if(mode === "off") return;
     const files = [...(inp.files || [])];
-    if(!files.length || !files.every(f => /^image\//.test(f.type) && !/gif|svg/.test(f.type))) return;
+    if(!files.length || !files.every(f => adaHeic(f) || (/^image\//.test(f.type) && !/gif|svg/.test(f.type)))) return;
     e.stopImmediatePropagation(); e.preventDefault();
     // SALIN SEMUA FOTO KE MEMORI DULU. Di Android, foto pilihan dari galeri hanya "pinjaman" dari penyimpanan HP;
     // foto ke-2 dst. sering tidak terbaca lagi bila baru dibuka setelah foto pertama selesai dipotong.
@@ -161,14 +203,23 @@
       try{ const buf = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = () => no(r.error); r.readAsArrayBuffer(f); });
         return new File([buf], f.name || "foto.jpg", {type:f.type, lastModified:f.lastModified || Date.now()}); }catch(e2){ return null; }
     };
-    const salinan = []; let gagal = 0;
-    for(const f of files){ const c = await salin(f); if(c) salinan.push(c); else gagal++; }
+    const salinan = []; let gagal = 0, gagalHeic = 0;
+    for(const f of files){
+      let c = await salin(f);
+      if(c && adaHeic(c)){
+        info("⏳ Mengubah foto HEIC ke JPG…");
+        try{ c = await heicKeJpg(c); }catch(err){ c = null; gagalHeic++; }
+        info("");
+      }
+      if(c) salinan.push(c); else if(!adaHeic(f)) gagal++;
+    }
     const dt = new DataTransfer();
     for(let i = 0; i < salinan.length; i++){
       const hasil = await potong(salinan[i], {rasio:mode || "1:1", kunci:mode === "bulat", judul:salinan.length > 1 ? `Foto ${i + 1} dari ${salinan.length} • geser & cubit untuk mengatur` : ""});
       if(hasil) dt.items.add(hasil);
     }
     if(gagal) alert(gagal + " foto tidak bisa dibaca dari galeri dan dilewati. Coba pilih ulang fotonya (satu per satu) bila perlu.");
+    if(gagalHeic) alert(gagalHeic + " foto HEIC tidak bisa diubah otomatis (pastikan internet aktif lalu coba lagi). Alternatif: ubah pengaturan kamera ke format JPG / \"Paling Kompatibel\", atau kirim foto lewat WhatsApp lalu pilih dari sana.");
     if(!dt.files.length){ inp.value = ""; return; }                            // semua dibatalkan
     inp.files = dt.files; inp.__ksCrop = true;
     inp.dispatchEvent(new Event("change", {bubbles:true}));
