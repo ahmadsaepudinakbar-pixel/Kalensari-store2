@@ -992,6 +992,13 @@ async function saveSched(name,btn){
     await setSetting('seller_schedule',m);S.settings.seller_schedule=m;closeModal();render();toast('Jadwal '+name+' disimpan')})}
 function refreshList(){const tmp=document.createElement('div');tmp.innerHTML=PAGES[route]();const n=tmp.querySelector('#list');if(n&&$('#list'))$('#list').outerHTML=n.outerHTML}
 
+async function muatBukti(el){
+  const box=document.getElementById('buktiBox');if(!box)return;
+  try{
+    const k=box.dataset.kode,r=await api('bukti_bayar?select=id,foto,created_at,nominal&order_codes=cs.'+encodeURIComponent('{"'+k+'"}')+'&order=id.desc&limit=1');
+    box.innerHTML=r.length?`<b>🧾 Bukti transfer</b> <span class="sm">(${new Date(r[0].created_at).toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'})}${r[0].nominal?' • total nota '+rp(r[0].nominal):''})</span><br><img src="${r[0].foto}" alt="Bukti transfer" style="max-width:100%;max-height:260px;border-radius:10px;margin-top:6px;cursor:zoom-in;border:1px solid var(--line)" onclick="this.style.maxHeight=this.style.maxHeight==='none'?'260px':'none'">`:'<span style="color:#b83c2b">Belum ada bukti transfer yang diunggah.</span>';
+  }catch(e){box.textContent='Bukti belum bisa dimuat (jalankan supabase-bukti-bayar.sql).'}
+}
 /* ========== AKSI PESANAN ========== */
 async function tandaiLunas(id,btn){
   const o=S.orders.find(x=>Number(x.id)===Number(id));if(!o)return;
@@ -1025,7 +1032,7 @@ function openOrder(id){
   ${utAdminHtml(o)}
   ${(()=>{const v=S.settings['lacak_'+o.order_code];if(o.status!=='dikirim'||!v||!v.lat)return '';const m=Math.round((Date.now()-Number(v.t||0))/60000);return `<div class="detail-row"><span>📍 Posisi kurir<br><small style="color:var(--mut)">diperbarui ${m<1?'baru saja':m+' menit lalu'}</small></span><b><a href="https://www.google.com/maps/search/?api=1&query=${v.lat},${v.lng}" target="_blank" rel="noopener" style="color:var(--g2)">Lihat di peta</a></b></div>`})()}
   ${o.status==='gagal'&&o.gagal_alasan?`<div class="detail-row"><span>Alasan gagal</span><b style="text-align:right;max-width:65%;white-space:normal;color:#9b2c1c">${esc(o.gagal_alasan)}</b></div>`:''}
-  ${/^qris/i.test(String(o.payment||''))&&o.pay_status!=='lunas'&&stLabel(o.status)!=='Batal'?`<div class="card" style="margin-top:10px;background:#fff8ec;border:1px solid #f3dfb8;padding:12px"><b>${o.pay_status==='verifikasi'?'🔎 Pembeli mengaku sudah bayar QRIS • cek mutasi':'💳 QRIS belum tercatat lunas'}</b><div class="sm" style="margin:4px 0 8px">Pakai tombol ini hanya bila Anda sudah memastikan uang pembeli benar-benar masuk ke rekening / QRIS Kalensari Store.</div><button class="btn btn-g" onclick="tandaiLunas(${Number(o.id)},this)">✔ Tandai QRIS sudah dibayar</button></div>`:''}
+  ${/^qris/i.test(String(o.payment||''))&&o.pay_status!=='lunas'&&stLabel(o.status)!=='Batal'?`<div class="card" style="margin-top:10px;background:#fff8ec;border:1px solid #f3dfb8;padding:12px"><b>${o.pay_status==='verifikasi'?'🔎 Bukti transfer terkirim • cek mutasi lalu tandai lunas':'💳 QRIS belum tercatat lunas'}</b><div class="sm" style="margin:4px 0 8px">Pakai tombol ini hanya bila Anda sudah memastikan uang pembeli benar-benar masuk ke rekening / QRIS Kalensari Store.</div><div id="buktiBox" data-kode="${esc(orderCode(o))}" class="sm" style="margin:0 0 8px;color:var(--mut)">Memuat bukti transfer…</div><img alt="" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" style="display:none" onload="muatBukti(this)"><button class="btn btn-g" onclick="tandaiLunas(${Number(o.id)},this)">✔ Tandai QRIS sudah dibayar</button></div>`:''}
   ${o.pay_status==='lunas'&&o.pay_auto?`<div class="card" style="margin-top:10px;background:#fff8ec;border:1px solid #f3dfb8;padding:12px"><b>⚡ Dilunaskan otomatis</b><div class="sm" style="margin-top:4px">Admin belum menanggapi klaim bayar pembeli, jadi sistem melunaskan otomatis. Cek mutasi QRIS; bila uang tidak masuk, batalkan pesanan ini.</div></div>`:''}
   ${o.pay_status==='tunggu_wa'&&stLabel(o.status)==='Baru'?`<div class="mact" style="margin-top:10px"><a class="btn btn-light" href="${codWaLink(o)}" target="_blank" rel="noopener">💬 WA pembeli</a><button class="btn btn-g" onclick="codKonfirmasi(${Number(o.id)},this)">✔ Konfirmasi COD</button></div>`:''}
   <div class="detail-row" style="border:0"><span>Status sekarang</span>${statusBadge(o)}</div>

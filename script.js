@@ -1258,7 +1258,7 @@ function kartuPesanan(o){
   const tokoTx=[...new Set((o.items||[]).map(x=>x.seller).filter(Boolean))].join(", ");
   const item=(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")+(tokoTx?` <span class="ps-toko">(${esc(tokoTx)})</span>`:"");
   const bisaQris=(QRIS_OTOMATIS||modeStatis())&&o.payment==="QRIS"&&o.pay_status!=="lunas"&&st!=="dibatalkan"&&!lokal;
-  const aksi=bisaQris?`<button class="ps-aksi" type="button" onclick="bayarQris('${esc(o.order_code)}')">${SVG_QR}<span>Bayar dengan QRIS</span><em>›</em></button>`
+  const aksi=bisaQris?`<button class="ps-aksi" type="button" onclick="bayarQris('${esc(o.order_code)}')">${SVG_QR}<span>${o.pay_status==="verifikasi"?"Lihat status pembayaran":"Bayar & upload bukti"}</span><em>›</em></button>`
     :st==="dikirim"&&!lokal?`<button class="ps-aksi" type="button" onclick="lacakKurir('${esc(o.order_code)}')"><b>🛵</b><span>Lacak kurir</span><em>›</em></button>`:"";
   const kode=window.KSST&&KSST.kodeOf?KSST.kodeOf(o.order_code):"";
   const kodeHtml=kode?`<div class="ps-kode"><div><div class="ps-kode-h"><b>🔑</b>Kode serah terima</div><strong>${esc(kode).split("").join(" ")}</strong><p>Sebutkan kode ini ke kurir <b>hanya saat pesanan sudah Anda terima.</b></p></div></div>`:(window.KSST?KSST.html(o):"");
@@ -1268,6 +1268,7 @@ function kartuPesanan(o){
     <div class="ps-row"><span class="ps-av">${SVG_ORANG}</span><div><b>${esc(o.customer_name||"")}</b><small>${SVG_TELP}${esc(o.customer_phone||"")}</small></div></div>
     <div class="ps-row"><span class="ps-av ps-av2">${SVG_TAS}</span><div class="ps-item">${item}</div></div>
     <div class="ps-tot"><strong>${rupiah(o.total||0)}</strong>${aksi}</div>
+    ${o.pay_status==="verifikasi"&&st==="menunggu"?'<div class="order-hint">🔎 Bukti transfer terkirim • menunggu verifikasi admin</div>':(bisaQris&&st==="menunggu"?'<div class="order-hint">⚠️ Belum berhasil: unggah bukti transfer dalam 15 menit sejak pesan, atau pesanan dibatalkan otomatis</div>':"")}
     ${o.pay_status==="tunggu_wa"&&st==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
     ${st==="dibatalkan"?infoBatal(o):""}
     ${Number(o.potong_saldo)>0?`<div class="order-hint">🎟️ Dipotong saldo voucher ${rupiah(o.potong_saldo)}</div>`:""}
@@ -2016,6 +2017,38 @@ async function qsKlaim(codes){
   const r=await fetch(base+"/rest/v1/rpc/qris_klaim",{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({p_codes:codes})});
   if(!r.ok)throw new Error("HTTP "+r.status);return r.json().catch(()=>0);
 }
+// ===== BUKTI TRANSFER WAJIB: foto dikecilkan lalu dikirim ke server (supabase-bukti-bayar.sql) =====
+function kompresBukti(file){
+  return new Promise((ok,gagal)=>{
+    if(!file||!/^image\//.test(file.type||""))return gagal(new Error("Pilih file foto (JPG/PNG)"));
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onerror=()=>{URL.revokeObjectURL(url);gagal(new Error("Foto tidak bisa dibaca"));};
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      let sisi=1280,q=0.8,out="";
+      for(let i=0;i<8;i++){
+        const k=Math.min(1,sisi/Math.max(img.width,img.height)),c=document.createElement("canvas");
+        c.width=Math.max(1,Math.round(img.width*k));c.height=Math.max(1,Math.round(img.height*k));
+        const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);
+        out=c.toDataURL("image/jpeg",q);
+        if(out.length<=650000)return ok(out);
+        q=Math.max(0.45,q-0.1);sisi=Math.round(sisi*0.85);
+      }
+      gagal(new Error("Foto terlalu besar, coba foto/screenshot lain"));
+    };
+    img.src=url;
+  });
+}
+async function qsBukti(codes,foto){
+  const base=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
+  const r=await fetch(base+"/rest/v1/rpc/bukti_bayar_kirim",{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({p_codes:codes,p_foto:foto})});
+  const t=await r.text();let j=null;try{j=t?JSON.parse(t):null;}catch(e){}
+  if(!r.ok){
+    if(r.status===404||/Could not find the function|PGRST202/i.test(t))throw new Error("Fitur bukti transfer belum aktif di server (jalankan supabase-bukti-bayar.sql)");
+    throw new Error(String((j&&(j.message||j.hint))||t||r.status));
+  }
+  return j;
+}
 async function qsSegarkan(semua){
   try{const seg=await pesananKode(semua);if(Array.isArray(seg)&&seg.length){const m=new Map(seg.map(x=>[x.order_code,x]));saveLocalOrders(getLocalOrders().map(o=>m.has(o.order_code)?{...o,...m.get(o.order_code)}:o));}}catch(e){}
   return getLocalOrders().filter(o=>semua.includes(o.order_code));
@@ -2054,19 +2087,55 @@ async function bayarStatis(code,waMsg){
       <div class="qp-qr"><img id="qsImg" alt="QRIS pembayaran ${esc(code)}" src="${q.createDataURL(8,2)}"></div>
       <small id="qsKet" style="display:block;color:#6c5548">Penerima: <b>${esc(merchant)}</b>. Nominal sudah terisi otomatis, jangan diubah.</small>
       <div class="qp-st" id="qpSt">${stHtml()}</div>
-      <small style="display:block;color:#6c5548">Scan dengan GoPay, OVO, DANA, ShopeePay, atau m-banking. Di HP yang sama: tekan <b>Simpan QR</b>, lalu di aplikasi bank/e-wallet pilih Scan → gambar dari galeri. Setelah membayar, tekan tombol hijau di bawah dan kirim bukti ke admin.</small>
+      <small style="display:block;color:#6c5548">Scan dengan GoPay, OVO, DANA, ShopeePay, atau m-banking. Di HP yang sama: tekan <b>Simpan QR</b>, lalu di aplikasi bank/e-wallet pilih Scan → gambar dari galeri. Setelah membayar, <b>unggah foto bukti transfer</b> di bawah. Pesanan belum berhasil sebelum bukti terkirim.</small>
       <div class="qp-acts"><button class="btn primary" type="button" id="qpSimpan">⬇️ Simpan QR</button>
-      <a class="btn outline" target="_blank" rel="noopener" id="qsSudah" href="${waLink(pesanWa)}">✅ Saya sudah bayar • kirim bukti ke admin</a>
+      <div id="qsBukti" style="border:2px dashed #c9a27a;border-radius:14px;padding:12px;background:#fffaf4;text-align:left">
+        <b style="display:block;margin-bottom:4px">📎 Wajib: unggah bukti transfer</b>
+        <small style="display:block;color:#8a2116;margin-bottom:8px">Pesanan Anda <b>belum berhasil</b> sampai bukti terkirim. Tanpa bukti, pesanan dibatalkan otomatis dalam 15 menit.</small>
+        <input type="file" id="qsFile" accept="image/*" hidden>
+        <img id="qsPrev" alt="Pratinjau bukti" hidden style="display:none;max-width:100%;max-height:200px;border-radius:10px;margin:0 auto 8px">
+        <button class="btn outline" type="button" id="qsPilih" style="width:100%">📷 Pilih foto bukti transfer</button>
+        <button class="btn primary" type="button" id="qsKirim" disabled style="width:100%;margin-top:8px">⬆️ Kirim bukti &amp; selesaikan pesanan</button>
+      </div>
+      <a class="btn light" target="_blank" rel="noopener" href="${waLink(pesanWa)}">💬 Ada kendala? Hubungi admin</a>
       <button class="btn light" type="button" id="qsLain">QR tidak bisa dipindai?</button>
-      <button class="btn light" type="button" id="qpNanti">Bayar nanti (lihat di 📦 Pesanan Saya)</button></div>`);
+      <button class="btn light" type="button" id="qpNanti">Upload nanti (pesanan belum berhasil)</button></div>`);
     document.getElementById("qpSimpan").onclick=()=>simpanQris(q,code,nominal);
     document.getElementById("qpNanti").onclick=tutupQris;
     document.getElementById("qsLain").onclick=()=>{manual=!manual;
       document.getElementById("qsImg").src=(manual?qs:q).createDataURL(8,2);
       document.getElementById("qsKet").innerHTML=manual?`QRIS biasa (tanpa nominal). Setelah scan, <b>ketik nominal ${rupiah(nominal)}</b> dengan teliti.`:`Penerima: <b>${esc(merchant)}</b>. Nominal sudah terisi otomatis, jangan diubah.`;
       document.getElementById("qsLain").textContent=manual?"Kembali ke QR bernominal":"QR tidak bisa dipindai?";};
-    const tampilVerif=()=>{if(verif)return;verif=true;const st=document.getElementById("qpSt");if(st)st.innerHTML=stHtml();clearInterval(qpTick);};
-    document.getElementById("qsSudah").addEventListener("click",()=>{qsKlaim(kodeAktif).then(()=>tampilVerif()).catch(()=>showToast("Catatan belum tersimpan di server. Tetap kirim bukti ke admin lewat WhatsApp."));});   // tidak menahan pembukaan WhatsApp
+    let tampil=false;
+    const tampilVerif=()=>{
+      if(tampil)return;tampil=true;verif=true;clearInterval(qpTick);
+      qpRender(`<div style="font-size:60px">🔎</div><h2 style="margin:4px 0">Bukti transfer terkirim</h2>
+        <p>Pesanan <b>${esc(kodeAktif.join(", "))}</b> sekarang <b>menunggu verifikasi admin</b>.</p>
+        <div class="qp-st">⏳ Admin akan memeriksa pembayaran Anda. Pesanan diteruskan ke toko setelah pembayaran dikonfirmasi. Halaman ini otomatis berubah saat sudah lunas.</div>
+        <div class="qp-acts"><button class="btn primary" type="button" id="qvLihat">📦 Lihat Pesanan Saya</button><button class="btn light" type="button" id="qvTutup">Tutup</button></div>`);
+      document.getElementById("qvTutup").onclick=tutupQris;
+      document.getElementById("qvLihat").onclick=()=>{tutupQris();document.getElementById("myOrdersBtn")?.click();};
+    };
+    let fotoBukti="";
+    const fi=document.getElementById("qsFile"),bK=document.getElementById("qsKirim"),pr=document.getElementById("qsPrev"),bP=document.getElementById("qsPilih");
+    bP.onclick=()=>fi.click();
+    fi.onchange=async()=>{
+      const f=fi.files&&fi.files[0];if(!f)return;bK.disabled=true;bP.disabled=true;bP.textContent="Memproses foto…";
+      try{fotoBukti=await kompresBukti(f);pr.src=fotoBukti;pr.hidden=false;pr.style.display="block";bK.disabled=false;bP.textContent="🔄 Ganti foto";}
+      catch(e){fotoBukti="";pr.hidden=true;pr.style.display="none";bP.textContent="📷 Pilih foto bukti transfer";showToast(e.message||"Foto tidak bisa dibaca");}
+      finally{bP.disabled=false;}
+    };
+    bK.onclick=async()=>{
+      if(!fotoBukti)return showToast("Pilih foto bukti transfer dulu");
+      bK.disabled=true;bP.disabled=true;bK.textContent="Mengirim bukti…";
+      try{
+        await qsBukti(kodeAktif,fotoBukti);
+        saveLocalOrders(getLocalOrders().map(o=>kodeAktif.includes(o.order_code)?{...o,pay_status:"verifikasi"}:o));
+        try{renderMyOrders();}catch(e){}
+        tampilVerif();
+      }catch(e){bK.disabled=false;bP.disabled=false;bK.innerHTML="⬆️ Kirim bukti &amp; selesaikan pesanan";showToast("Bukti belum terkirim: "+(e.message||"coba lagi"));}
+    };
+    if(verif)tampilVerif();   // bukti sudah pernah dikirim: langsung tampilkan status verifikasi
     clearInterval(qpTick);
     qpTick=setInterval(()=>{const el=document.getElementById("qpLeft");if(verif||!el)return;const l=exp-Date.now();
       if(l<=0){clearInterval(qpTick);clearInterval(qpTimer);qsHabis(code);return;}el.textContent=Math.floor(l/60000)+":"+String(Math.floor(l%60000/1000)).padStart(2,"0");},1000);
