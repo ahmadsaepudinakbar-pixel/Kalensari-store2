@@ -60,11 +60,12 @@ self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : "" }; }
   const title = d.title || "Kalensari Store";
+  const adm = /admin-notif/.test((d.url || "") + " " + (d.tag || ""));   // push untuk aplikasi Admin Notif memakai logo adminnotif
   e.waitUntil(Promise.all([
     self.registration.showNotification(title, {
       body: d.body || "Ada kabar baru untuk Anda.",
-      icon: "icons/icon-192.png",
-      badge: "icons/icon-192.png",
+      icon: adm ? "icons/adminnotif-192.png" : "icons/icon-192.png",
+      badge: adm ? "icons/adminnotif-192.png" : "icons/icon-192.png",
       tag: d.tag || "kalensari",
       renotify: true,
       requireInteraction: /pesanan-baru|ks-pesanan/.test(d.tag || ""),
