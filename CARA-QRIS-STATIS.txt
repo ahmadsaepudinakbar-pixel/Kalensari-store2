@@ -1,0 +1,62 @@
+QRIS STATIS • NOMINAL TERISI OTOMATIS (tanpa Duitku)
+====================================================
+
+Pembeli memilih QRIS -> muncul QR dengan nominal sudah terisi (tidak mengetik).
+Pembayaran dicek MANUAL oleh admin. Halaman pembeli otomatis berubah "Lunas"
+begitu admin menekan "Tandai QRIS sudah dibayar".
+
+FILE YANG BERUBAH / BARU (unggah ke GitHub, ganti yang lama)
+------------------------------------------------------------
+  BARU    qris-statis.js              (pembuat QR bernominal; wajib ikut diunggah)
+  GANTI   script.js
+  GANTI   index.html
+  GANTI   admin.html
+  BARU    supabase-qris-statis.sql    (jalankan di Supabase, lihat langkah 1)
+
+LANGKAH PEMASANGAN
+------------------
+1) Supabase > SQL Editor > New query > tempel isi supabase-qris-statis.sql > Run.
+   (Aman diulang. Butuh pg_cron aktif, sama seperti pembatalan otomatis 15 menit.)
+2) Unggah file di atas ke GitHub (qris-statis.js harus satu folder dengan index.html).
+3) Buka Admin > Pengaturan > "QRIS Pembayaran Pesanan":
+     - Tempel teks QRIS statis toko (diawali 000201), ATAU tekan
+       "Baca teks dari gambar QRIS" lalu pilih foto/screenshot QRIS toko.
+       Tips: teks QRIS juga bisa didapat dengan memindai QRIS toko memakai
+       aplikasi pemindai QR / Google Lens lalu menyalin hasilnya.
+     - Pastikan tertulis "QRIS valid" beserta nama merchant.
+     - Tekan "Buat QR uji", scan dengan aplikasi bank/e-wallet untuk memastikan
+       nama merchant & nominal benar (tidak perlu dibayar). Coba 2-3 aplikasi.
+     - Centang "Aktifkan", lalu "Simpan QRIS".
+4) Coba satu pesanan sungguhan dengan nominal kecil.
+
+ALUR HARIAN ADMIN
+-----------------
+  Pembeli bayar -> tekan "Saya sudah bayar" -> kirim bukti ke WhatsApp admin.
+  Admin: cek mutasi/notifikasi uang masuk -> buka pesanan (label "Cek pembayaran")
+  -> tekan "Tandai QRIS sudah dibayar".
+  Jika 1 QR membayar beberapa nota (pesanan dari beberapa toko), semua nota
+  satu grup ditandai lunas sekaligus.
+
+ATURAN WAKTU
+------------
+  - Belum dibayar: pesanan dibatalkan otomatis 15 menit setelah dibuat.
+  - Pembeli menekan "Saya sudah bayar": tidak dibatalkan 15 menit; admin punya
+    waktu 3 jam untuk memeriksa. Lewat 3 jam tanpa konfirmasi -> dibatalkan.
+  - Setelah lunas, penjual mendapat pesanan dan batas jawab toko 15 menit
+    dihitung dari waktu lunas (sama seperti sebelumnya).
+
+BALIK KE QRIS OTOMATIS DUITKU
+-----------------------------
+  Di script.js ubah  var QRIS_OTOMATIS=false;  menjadi  true.
+
+CATATAN PENTING
+---------------
+  - QR bernominal dibuat sendiri dari QRIS statis toko (bukan QRIS dinamis resmi
+    dari bank). Mayoritas aplikasi menerimanya, tetapi tidak dijamin semuanya.
+    Pembeli selalu punya tombol "QR tidak bisa dipindai?" yang menampilkan QRIS
+    biasa (nominal diketik manual).
+  - Kode unik (tambahan Rp1-99) sengaja TIDAK dipasang: membuat uang masuk tidak
+    sama dengan total pesanan dan mengacaukan saldo toko/laporan. Pencocokan
+    memakai kode pesanan di pesan WhatsApp + nominal + jam.
+  - Teks QRIS disimpan di pengaturan toko dan terbaca publik oleh situs (sama
+    seperti QRIS yang biasa dipajang di warung); hanya admin yang bisa mengubah.

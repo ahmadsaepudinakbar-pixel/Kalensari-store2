@@ -361,7 +361,9 @@ async function loadCloudSettings(){
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
       if(r.key==="penjual_members"&&Array.isArray(r.value)){r.value.forEach(x=>{if(x&&x.id)sellerIdMap[x.id]=sellerKey(x.toko||x.usaha)});}
       if(r.key==="cod_aturan"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){codAturan={...codAturan,...r.value};}
+      if(r.key==="qris_statis"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){QRIS_STATIS=r.value;try{localStorage.setItem("kalensari_qris_statis",JSON.stringify(r.value));}catch(e){}}
     });
+    if(!(rows||[]).some(r=>r.key==="qris_statis")&&Array.isArray(rows)){QRIS_STATIS=null;try{localStorage.removeItem("kalensari_qris_statis");}catch(e){}}
     return true;
   }catch(e){console.error("Supabase pengaturan toko:",e);return false;}
 }
@@ -1062,6 +1064,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
     codTahan=ci.tahan;
   }
   const pakaiQris=/^qris/i.test(payment)&&QRIS_OTOMATIS&&!!CLOUD_CONFIG?.enabled;
+  const pakaiStatis=/^qris/i.test(payment)&&!QRIS_OTOMATIS&&modeStatis()&&!!CLOUD_CONFIG?.enabled;   // QRIS statis: kata sandi diminta sekarang (seperti COD)
   // COD: kata sandi sekarang. QRIS: kata sandi diminta setelah pembayaran lunas.
   if(!pakaiQris&&!pinSaldo&&!(await mintaKataSandi(checkoutBuyer.wa)))return;
   // ===== PESANAN DIPISAH PER TOKO: tiap toko yang dicentang = 1 nota, 1 kurir, ongkir sendiri =====
@@ -1104,6 +1107,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   if(kodeST) for(const c of codes) await KSST.daftarkan(c,kodeST);
   // satu QRIS untuk semua nota (nominal = total semua nota)
   const sukses={codes,groups:groups.map((g,i)=>({nama:g.name,items:g.items.map(p=>({n:p.name,q:p.qty,h:currentPrice(p)*p.qty})),sub:payloads[i].subtotal,ong:payloads[i].shipping,tot:payloads[i].total})),total:totalAll,payment,kodeST,codTahan,wa:checkoutBuyer.wa,nama:buyerName,address,t:createdAt};
+  if(pakaiStatis)sukses.pinOk=true;   // kata sandi sudah dimasukkan di atas; jangan diminta lagi saat lunas
   let lunasSaldo=false;
   if(pakaiSaldo>0){
     try{const r=await pakaiSaldoRpc(checkoutBuyer.wa,pinSaldo,codes,pakaiSaldo);sukses.saldo=pakaiSaldo;sukses.pinOk=true;lunasSaldo=Number(r.sisa)===0;
@@ -1112,7 +1116,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
     catch(e){alert("Saldo voucher belum bisa dipakai:\n"+e.message+"\n\nSilakan bayar penuh dengan QRIS.");}
   }
   if(lunasSaldo)tampilSukses({...sukses,payment:"Saldo voucher",lunas:true});
-  else if(pakaiQris||pakaiSaldo>0){KS_SUKSES=sukses;bayarQris(codes[0],msgWA+(sukses.saldo?`\n🎟️ Dipotong saldo voucher: ${rupiah(sukses.saldo)}`:""));}
+  else if(pakaiQris||pakaiStatis||pakaiSaldo>0){KS_SUKSES=sukses;bayarQris(codes[0],msgWA+(sukses.saldo?`\n🎟️ Dipotong saldo voucher: ${rupiah(sukses.saldo)}`:""));}
   else tampilSukses(sukses);
   // hanya toko yang dicentang yang keluar dari keranjang; toko lain tetap tersimpan
   const done=new Set(groups.flatMap(g=>g.items.map(p=>p.idx)));cart=cart.filter((i,n)=>!done.has(n));
@@ -1252,7 +1256,7 @@ function kartuPesanan(o){
   const langkah=urut.map((x,i)=>`<div class="ps-step ${st==="dibatalkan"?"x":i<idx?"done":i===idx?"now":""}"><span>${IKON_PS[x]}</span><small>${statusLabel(x)}</small></div>`).join('<i class="ps-line"></i>');
   const tokoTx=[...new Set((o.items||[]).map(x=>x.seller).filter(Boolean))].join(", ");
   const item=(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")+(tokoTx?` <span class="ps-toko">(${esc(tokoTx)})</span>`:"");
-  const bisaQris=QRIS_OTOMATIS&&o.payment==="QRIS"&&o.pay_status!=="lunas"&&st!=="dibatalkan"&&!lokal;
+  const bisaQris=(QRIS_OTOMATIS||modeStatis())&&o.payment==="QRIS"&&o.pay_status!=="lunas"&&st!=="dibatalkan"&&!lokal;
   const aksi=bisaQris?`<button class="ps-aksi" type="button" onclick="bayarQris('${esc(o.order_code)}')">${SVG_QR}<span>Bayar dengan QRIS</span><em>›</em></button>`
     :st==="dikirim"&&!lokal?`<button class="ps-aksi" type="button" onclick="lacakKurir('${esc(o.order_code)}')"><b>🛵</b><span>Lacak kurir</span><em>›</em></button>`:"";
   const kode=window.KSST&&KSST.kodeOf?KSST.kodeOf(o.order_code):"";
@@ -1911,7 +1915,9 @@ body.ks-frame-open{overflow:hidden}`;
 // ===== PEMBAYARAN QRIS OTOMATIS (Duitku lewat Supabase Edge Function "duitku-qris") =====
 // Pembeli memilih "QRIS" saat checkout -> muncul QRIS dengan nominal sesuai total pesanan.
 // Setelah dibayar, status pesanan otomatis "Lunas" (dicek tiap beberapa detik + callback Duitku).
-var QRIS_OTOMATIS=true;   // ubah ke false untuk mematikan QRIS otomatis
+var QRIS_OTOMATIS=false;  // true = QRIS otomatis Duitku (butuh Edge Function duitku-qris). false = pakai QRIS statis toko (nominal terisi otomatis, dicek admin)
+var QRIS_STATIS=null;     // diisi dari Admin > Pengaturan > "QRIS Pembayaran Pesanan" (store_settings: qris_statis)
+try{const c=JSON.parse(localStorage.getItem("kalensari_qris_statis")||"null");if(c&&typeof c==="object")QRIS_STATIS=c;}catch(e){}
 var QRIS_FN="duitku-qris";
 (function(){const o=[...document.querySelectorAll('#checkoutForm select[name="payment"] option')].find(x=>/^qris$/i.test(x.value||x.textContent));
   if(o&&QRIS_OTOMATIS){o.value="QRIS";o.textContent="QRIS (scan & bayar otomatis)";}})();
@@ -1995,6 +2001,87 @@ function simpanQris(q,code,total){
   },"image/png");
   function unduh(b){const u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=nama;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000);showToast("✅ QR disimpan. Buka aplikasi bank/e-wallet → Scan → pilih dari galeri.");}
 }
+
+
+// ===== QRIS STATIS • NOMINAL TERISI OTOMATIS (tanpa Duitku) =====
+// QRIS statis toko (Admin > Pengaturan) diubah di perangkat pembeli menjadi QR bernominal (lihat qris-statis.js).
+// Pembayaran dicek MANUAL oleh admin ("Tandai QRIS sudah dibayar"); halaman ini mengecek status tiap 5 detik
+// dan otomatis berubah ke "Lunas" begitu admin menandai.
+function modeStatis(){try{return !QRIS_OTOMATIS&&!!QRIS_STATIS&&QRIS_STATIS.aktif!==false&&!!window.QRISStatis&&QRISStatis.cek(QRIS_STATIS.raw).ok;}catch(e){return false;}}
+const QS_BATAS_MENIT=15;   // sama dengan pembatalan otomatis server (pesanan belum dibayar dibatalkan setelah 15 menit)
+function qsKodeGrup(code){const all=getLocalOrders(),o=all.find(x=>x.order_code===code);return o&&o.grup?all.filter(x=>x.grup===o.grup).map(x=>x.order_code):[code];}
+async function qsKlaim(codes){
+  const base=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
+  const r=await fetch(base+"/rest/v1/rpc/qris_klaim",{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({p_codes:codes})});
+  if(!r.ok)throw new Error("HTTP "+r.status);return r.json().catch(()=>0);
+}
+async function qsSegarkan(semua){
+  try{const seg=await pesananKode(semua);if(Array.isArray(seg)&&seg.length){const m=new Map(seg.map(x=>[x.order_code,x]));saveLocalOrders(getLocalOrders().map(o=>m.has(o.order_code)?{...o,...m.get(o.order_code)}:o));}}catch(e){}
+  return getLocalOrders().filter(o=>semua.includes(o.order_code));
+}
+function qsHabis(code){
+  clearInterval(qpTimer);clearInterval(qpTick);
+  qpRender(`<h2>⌛ Waktu bayar habis</h2><p>Pesanan <b>${esc(code)}</b> dibatalkan otomatis karena belum dibayar dalam ${QS_BATAS_MENIT} menit.</p><div class="qp-st">Kalau Anda sudah terlanjur membayar, kirim bukti bayar ke admin lewat WhatsApp. Kami bantu.</div><div class="qp-acts"><a class="btn primary" target="_blank" rel="noopener" href="${waLink("Halo admin KALENSARI STORE, saya sudah membayar QRIS untuk pesanan "+code+" tetapi pesanan terlanjur dibatalkan. Bukti bayar saya lampirkan di chat ini.")}">💬 Kirim bukti ke admin</a><button class="btn light" type="button" onclick="tutupQris()">Tutup</button></div>`);
+  try{refreshMyOrders?.();}catch(e){}
+}
+async function bayarStatis(code,waMsg){
+  qrisModal().classList.add("show");qpCode=code;if(waMsg)qpWa=waMsg;
+  clearInterval(qpTimer);clearInterval(qpTick);
+  qpRender(`<span class="eyebrow">PEMBAYARAN</span><h2 style="margin:6px 0">💳 QRIS</h2><p>Menyiapkan QRIS untuk pesanan <b>${esc(code)}</b>...</p>`);
+  try{
+    await muatQrLib();
+    const semua=qsKodeGrup(code),rows=await qsSegarkan(semua);
+    if(qpCode!==code)return;
+    if(rows.length&&rows.every(o=>o.pay_status==="lunas"))return qpLunas(code);
+    const aktif=rows.filter(o=>o.status!=="dibatalkan"&&o.pay_status!=="lunas");
+    if(!aktif.length)return qsHabis(code);
+    let nominal=aktif.reduce((t,o)=>t+(Number(o.total)||0),0);
+    const S=KS_SUKSES&&KS_SUKSES.codes&&KS_SUKSES.codes.includes(code)?KS_SUKSES:null;
+    if(S&&S.saldo&&Math.abs(nominal-S.total)<1)nominal-=S.saldo;     // data server belum memuat potongan saldo voucher
+    if(!(nominal>0)){tutupQris();return;}
+    const kodeAktif=aktif.map(o=>o.order_code),teks=QRISStatis.buat(QRIS_STATIS.raw,nominal);
+    const q=qrcode(0,"M");q.addData(teks);q.make();
+    const qs=qrcode(0,"M");qs.addData(QRISStatis.bersihkan(QRIS_STATIS.raw));qs.make();
+    const merchant=QRISStatis.cek(QRIS_STATIS.raw).nama||"Kalensari Store";
+    const nama=aktif[0].customer_name||"";
+    const pesanWa=`Halo admin KALENSARI STORE, saya sudah membayar pesanan lewat QRIS.\n\nPesanan: ${kodeAktif.join(", ")}\nNominal: ${rupiah(nominal)}${nama?"\nNama: "+nama:""}\n\nBukti pembayaran saya lampirkan di chat ini.`;
+    let verif=aktif.every(o=>o.pay_status==="verifikasi"),manual=false;
+    const exp=(Date.parse(aktif[0].created_at)||Date.now())+QS_BATAS_MENIT*60000;
+    const stHtml=()=>verif?`🔎 Pembayaran Anda sedang diperiksa admin. Halaman ini otomatis berubah saat sudah lunas.`:`⏳ Menunggu pembayaran • sisa <b id="qpLeft">-</b>`;
+    qpRender(`<span class="eyebrow">KALENSARI STORE • PEMBAYARAN</span><div class="qp-head">QRIS • ${aktif.length>1?aktif.length+" nota sekaligus":esc(code)}</div>
+      <div class="qp-total">${rupiah(nominal)}</div>
+      <div class="qp-qr"><img id="qsImg" alt="QRIS pembayaran ${esc(code)}" src="${q.createDataURL(8,2)}"></div>
+      <small id="qsKet" style="display:block;color:#6c5548">Penerima: <b>${esc(merchant)}</b>. Nominal sudah terisi otomatis, jangan diubah.</small>
+      <div class="qp-st" id="qpSt">${stHtml()}</div>
+      <small style="display:block;color:#6c5548">Scan dengan GoPay, OVO, DANA, ShopeePay, atau m-banking. Di HP yang sama: tekan <b>Simpan QR</b>, lalu di aplikasi bank/e-wallet pilih Scan → gambar dari galeri. Setelah membayar, tekan tombol hijau di bawah dan kirim bukti ke admin.</small>
+      <div class="qp-acts"><button class="btn primary" type="button" id="qpSimpan">⬇️ Simpan QR</button>
+      <a class="btn outline" target="_blank" rel="noopener" id="qsSudah" href="${waLink(pesanWa)}">✅ Saya sudah bayar • kirim bukti ke admin</a>
+      <button class="btn light" type="button" id="qsLain">QR tidak bisa dipindai?</button>
+      <button class="btn light" type="button" id="qpNanti">Bayar nanti (lihat di 📦 Pesanan Saya)</button></div>`);
+    document.getElementById("qpSimpan").onclick=()=>simpanQris(q,code,nominal);
+    document.getElementById("qpNanti").onclick=tutupQris;
+    document.getElementById("qsLain").onclick=()=>{manual=!manual;
+      document.getElementById("qsImg").src=(manual?qs:q).createDataURL(8,2);
+      document.getElementById("qsKet").innerHTML=manual?`QRIS biasa (tanpa nominal). Setelah scan, <b>ketik nominal ${rupiah(nominal)}</b> dengan teliti.`:`Penerima: <b>${esc(merchant)}</b>. Nominal sudah terisi otomatis, jangan diubah.`;
+      document.getElementById("qsLain").textContent=manual?"Kembali ke QR bernominal":"QR tidak bisa dipindai?";};
+    const tampilVerif=()=>{if(verif)return;verif=true;const st=document.getElementById("qpSt");if(st)st.innerHTML=stHtml();clearInterval(qpTick);};
+    document.getElementById("qsSudah").addEventListener("click",()=>{qsKlaim(kodeAktif).then(()=>tampilVerif()).catch(()=>showToast("Catatan belum tersimpan di server. Tetap kirim bukti ke admin lewat WhatsApp."));});   // tidak menahan pembukaan WhatsApp
+    clearInterval(qpTick);
+    qpTick=setInterval(()=>{const el=document.getElementById("qpLeft");if(verif||!el)return;const l=exp-Date.now();
+      if(l<=0){clearInterval(qpTick);clearInterval(qpTimer);qsHabis(code);return;}el.textContent=Math.floor(l/60000)+":"+String(Math.floor(l%60000/1000)).padStart(2,"0");},1000);
+    clearInterval(qpTimer);
+    qpTimer=setInterval(async()=>{
+      if(qpCode!==code){clearInterval(qpTimer);return;}
+      const r=await qsSegarkan(semua);if(qpCode!==code||!r.length)return;
+      if(r.every(o=>o.pay_status==="lunas"))return qpLunas(code);
+      if(r.every(o=>o.status==="dibatalkan"))return qsHabis(code);
+      if(r.some(o=>o.pay_status==="verifikasi"))tampilVerif();
+    },5000);
+  }catch(e){
+    qpRender(`<h2>💳 QRIS</h2><div class="qp-st bad">QRIS belum bisa dibuat.<br><small>${esc(e.message)}</small></div><p>Pesanan Anda tetap tersimpan. Hubungi toko lewat WhatsApp untuk cara bayar lain.</p><div class="qp-acts"><a class="btn primary" target="_blank" rel="noopener" href="${waLink(qpWa||("Halo KALENSARI STORE, saya ingin membayar pesanan "+code))}">💬 WhatsApp toko</a><button class="btn light" type="button" onclick="tutupQris()">Tutup</button></div>`);
+  }
+}
+{const _bq=bayarQris;bayarQris=function(code,waMsg){return !QRIS_OTOMATIS&&modeStatis()?bayarStatis(code,waMsg):_bq(code,waMsg);};}
 
 
 // ===== PENGAMAN COD =====
@@ -2237,7 +2324,7 @@ async function bukaPilihBayar(awal){
   const ov=document.createElement("div");ov.id="payBox";ov.className="pay-ov";
   ov.innerHTML=`<div class="pay-card" role="dialog" aria-label="Pilih pembayaran"><span class="eyebrow">LANJUT PEMBAYARAN</span><h3>Pilih cara bayar</h3><div class="pay-tot"><span>Total bayar</span><b>${esc(tot)}</b></div>
     ${saldo>=totNum&&totNum>0?`<button type="button" class="pay-opt" data-p="Saldo voucher"><i>🎟️</i><span><b>Saldo voucher belanja</b><small>Bayar penuh pakai saldo voucher Anda (${rupiah(saldo)}). Langsung lunas.</small></span><em></em></button>`:""}
-    <button type="button" class="pay-opt" data-p="QRIS"><i>📱</i><span><b>QRIS</b><small>Bayar sekarang pakai DANA, OVO, GoPay, ShopeePay atau m-banking. Otomatis lunas.</small></span><em></em></button>
+    <button type="button" class="pay-opt" data-p="QRIS"${QRIS_OTOMATIS||modeStatis()?"":' disabled style="opacity:.5"'}><i>📱</i><span><b>QRIS</b><small>${QRIS_OTOMATIS?"Bayar sekarang pakai DANA, OVO, GoPay, ShopeePay atau m-banking. Otomatis lunas.":modeStatis()?"Scan pakai DANA, OVO, GoPay, ShopeePay atau m-banking. Nominal terisi otomatis; lunas setelah dicek admin.":"Belum diaktifkan admin saat ini. Pilih COD atau coba lagi nanti."}</small></span><em></em></button>
     <button type="button" class="pay-opt" data-p="COD (jika tersedia)"><i>💵</i><span><b>COD (bayar di tempat)</b><small>Bayar tunai ke kurir saat pesanan sampai.</small></span><em></em></button>
     ${saldo>0&&saldo<totNum?`<label class="pay-saldo" id="paySaldoBox"><input type="checkbox" id="paySaldo" checked><span>🎟️ Pakai saldo voucher <b>${rupiah(saldo)}</b><small id="paySaldoInfo"></small></span></label>`:""}
     <button type="button" class="btn primary full" id="payOk" disabled>Konfirmasi</button><button type="button" class="pay-x" id="payX">Kembali ke alamat</button></div>`;
