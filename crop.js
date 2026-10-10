@@ -50,6 +50,20 @@
     return c;
   }
 
+  // Layar potong harus pas dengan area yang TERLIHAT. Bila halaman sedang di-zoom (mis. Mode Desktop di HP, atau dicubit),
+  // overlay "fixed" biasa jadi lebih lebar/tinggi dari layar -> bingkai terpotong & tombol hilang. Di sini overlay
+  // disesuaikan ke visualViewport dan diskalakan balik agar ukuran tombol/tulisan tetap normal.
+  function pas(el){
+    const v = window.visualViewport; if(!v) return;
+    const sc = v.scale || 1;
+    if(Math.abs(sc - 1) < 0.02 && Math.abs(v.offsetLeft) < 1 && Math.abs(v.offsetTop) < 1){
+      ["inset","left","top","width","height","transform","transformOrigin"].forEach(k => el.style[k] = ""); return;
+    }
+    el.style.inset = "auto"; el.style.left = v.offsetLeft + "px"; el.style.top = v.offsetTop + "px";
+    el.style.width = (v.width * sc) + "px"; el.style.height = (v.height * sc) + "px";
+    el.style.transformOrigin = "0 0"; el.style.transform = "scale(" + (1 / sc) + ")";
+  }
+
   function potong(file, opsi = {}){
     return new Promise(async selesai => {
       let im; try{ im = await bacaGambar(file); }catch(e){ selesai(file); return; }
@@ -63,13 +77,14 @@
           .map(k => `<button type="button" data-r="${k}" class="${k === mode ? "on" : ""}">${k === "asli" ? "Asli" : k === "bulat" ? "⭕ Bulat" : k}</button>`).join("")}</div>
           <div class="ksc-zoom">➖<input type="range" min="0" max="100" value="0" aria-label="Zoom">➕</div>
           <div class="ksc-act"><button class="ksc-b1" data-a="batal" type="button">Batal</button><button class="ksc-b1" data-a="lewati" type="button">Tanpa potong</button><button class="ksc-b2" data-a="ok" type="button">✅ Pakai foto</button></div></div>`;
-      document.body.appendChild(el);
+      document.body.appendChild(el); pas(el);
       const stage = el.querySelector(".ksc-st"), cv = stage.querySelector("canvas"), g = cv.getContext("2d"), zoom = el.querySelector("input[type=range]");
+      const kv = () => { const r = stage.getBoundingClientRect(); return r.width ? stage.offsetWidth / r.width : 1; };
       let W = 0, H = 0, dpr = 1, F = {x:0, y:0, w:0, h:0}, s = 1, sMin = 1, ox = 0, oy = 0;
       const rasio = () => mode === "asli" ? src.width / src.height : RASIO[mode];
       function ukur(){
-        const r = stage.getBoundingClientRect(); dpr = Math.min(2, window.devicePixelRatio || 1);
-        W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr;
+        dpr = Math.min(2, window.devicePixelRatio || 1);
+        W = stage.offsetWidth; H = stage.offsetHeight; cv.width = W * dpr; cv.height = H * dpr;
       }
       function bingkai(){
         const m = 22, a = rasio(); let fw = W - m * 2, fh = fw / a;
@@ -97,21 +112,22 @@
       }
       function zoomKe(ns, cx, cy){ const ix = (cx - ox) / s, iy = (cy - oy) / s; s = ns; ox = cx - ix * s; oy = cy - iy * s; jepit(); zoom.value = Math.round((s / sMin - 1) / 5 * 100); gambar(); }
       ukur(); bingkai();
-      const onRes = () => { ukur(); bingkai(); }; window.addEventListener("resize", onRes);
+      const onRes = () => { pas(el); ukur(); bingkai(); }; window.addEventListener("resize", onRes);
+      const onVV = () => pas(el); if(window.visualViewport){ visualViewport.addEventListener("resize", onVV); visualViewport.addEventListener("scroll", onVV); }
       // geser & cubit
       const P = new Map(); let jarak0 = 0, s0 = 1;
       stage.addEventListener("pointerdown", e => { stage.setPointerCapture(e.pointerId); P.set(e.pointerId, {x:e.clientX, y:e.clientY});
         if(P.size === 2){ const [a, b] = [...P.values()]; jarak0 = Math.hypot(a.x - b.x, a.y - b.y); s0 = s; } });
-      stage.addEventListener("pointermove", e => { if(!P.has(e.pointerId)) return; const p = P.get(e.pointerId), dx = e.clientX - p.x, dy = e.clientY - p.y;
+      stage.addEventListener("pointermove", e => { if(!P.has(e.pointerId)) return; const p = P.get(e.pointerId), c = kv(), dx = (e.clientX - p.x) * c, dy = (e.clientY - p.y) * c;
         p.x = e.clientX; p.y = e.clientY;
         if(P.size === 1){ ox += dx; oy += dy; jepit(); gambar(); }
-        else if(P.size === 2){ const [a, b] = [...P.values()], r = stage.getBoundingClientRect(); zoomKe(s0 * Math.hypot(a.x - b.x, a.y - b.y) / (jarak0 || 1), (a.x + b.x) / 2 - r.left, (a.y + b.y) / 2 - r.top); } });
+        else if(P.size === 2){ const [a, b] = [...P.values()], r = stage.getBoundingClientRect(), c = kv(); zoomKe(s0 * Math.hypot(a.x - b.x, a.y - b.y) / (jarak0 || 1), ((a.x + b.x) / 2 - r.left) * c, ((a.y + b.y) / 2 - r.top) * c); } });
       const lepas = e => { P.delete(e.pointerId); if(P.size === 1){ jarak0 = 0; } };
       stage.addEventListener("pointerup", lepas); stage.addEventListener("pointercancel", lepas);
-      stage.addEventListener("wheel", e => { e.preventDefault(); const r = stage.getBoundingClientRect(); zoomKe(s * (e.deltaY < 0 ? 1.1 : 1 / 1.1), e.clientX - r.left, e.clientY - r.top); }, {passive:false});
+      stage.addEventListener("wheel", e => { e.preventDefault(); const r = stage.getBoundingClientRect(); const c = kv(); zoomKe(s * (e.deltaY < 0 ? 1.1 : 1 / 1.1), (e.clientX - r.left) * c, (e.clientY - r.top) * c); }, {passive:false});
       zoom.oninput = () => zoomKe(sMin * (1 + zoom.value / 100 * 5), F.x + F.w / 2, F.y + F.h / 2);
       el.querySelectorAll("[data-r]").forEach(b => b.onclick = () => { mode = b.dataset.r; el.querySelectorAll("[data-r]").forEach(x => x.classList.toggle("on", x === b)); bingkai(); });
-      const tutup = hasil => { window.removeEventListener("resize", onRes); el.remove(); selesai(hasil); };
+      const tutup = hasil => { window.removeEventListener("resize", onRes); if(window.visualViewport){ visualViewport.removeEventListener("resize", onVV); visualViewport.removeEventListener("scroll", onVV); } el.remove(); selesai(hasil); };
       el.querySelector('[data-a="putar"]').onclick = () => { putar = (putar + 1) % 4; src = sumber(im, putar); bingkai(); };
       el.querySelector('[data-a="batal"]').onclick = () => tutup(null);
       el.querySelector('[data-a="lewati"]').onclick = () => tutup(file);
