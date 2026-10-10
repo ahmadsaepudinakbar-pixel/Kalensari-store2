@@ -270,6 +270,15 @@ const shippingFeeFor=n=>{const v=shippingFees[sellerKey(n)],d=Number(shippingFee
 // ===== ONGKIR = ongkir pertama toko + tambahan per KM (jarak garis lurus toko TERAKHIR di rute -> titik pembeli) =====
 // Titik toko diambil dari lokasi yang disimpan penjual (penjual_members.latitude/longitude, dicocokkan lewat nama toko).
 let sellerLocs=readLS("kalensari_seller_locs",{});
+let sellerLocsOk=false; // true setelah daftar penjual (beserta titik lokasinya) berhasil dimuat dari server
+// Toko di keranjang (yang dicentang) yang BELUM punya titik lokasi -> checkout tidak boleh dilanjutkan.
+function tokoTanpaTitik(){
+  if(!CLOUD_CONFIG?.enabled)return [];
+  if(!(sellerLocsOk||Object.keys(sellerLocs).length))return []; // data lokasi belum termuat: jangan memblokir keliru
+  const n=new Map();
+  cartGroups().filter(g=>g.on).forEach(g=>{const l=sellerLocs[g.k];if(!(l&&validLL(l.lat,l.lng)))n.set(g.k,g.name);});
+  return [...n.values()];
+}
 const SHIP_FREE_KM=2, SHIP_PER_KM=2500; // bawaan; bisa diubah di Admin > Ongkir
 const shipFreeKm=()=>{const v=shippingFees.__freeKm;return(v===undefined||v===null||v==="")?SHIP_FREE_KM:Math.max(0,Number(v)||0);};
 const shipPerKm=()=>{const v=shippingFees.__perKm;return(v===undefined||v===null||v==="")?SHIP_PER_KM:Math.max(0,Number(v)||0);};
@@ -354,7 +363,7 @@ async function loadCloudSettings(){
       if(r.key==="whatsapp_number"&&typeof r.value==="string"){const n=normalizePhone(r.value);if(n.length>=9&&n.length<=15){WHATSAPP_NUMBER=n;localStorage.setItem("kalensari_wa_number",JSON.stringify(n));applyWaLinks();}}
       if(r.key==="admin_pin_hash"&&typeof r.value==="string"&&/^[0-9a-f]{64}$/.test(r.value)){adminPinHash=r.value;localStorage.setItem("kalensari_admin_pin_hash",JSON.stringify(adminPinHash));}
       if(r.key==="shipping_fees"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){shippingFees=r.value;localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));}
-      if(r.key==="penjual_members"&&Array.isArray(r.value)){const m={};r.value.forEach(x=>{const nm=sellerKey(x&&(x.toko||x.usaha));if(nm&&validLL(x.latitude,x.longitude))m[nm]={lat:Number(x.latitude),lng:Number(x.longitude)};});sellerLocs=m;localStorage.setItem("kalensari_seller_locs",JSON.stringify(sellerLocs));}
+      if(r.key==="penjual_members"&&Array.isArray(r.value)){const m={};r.value.forEach(x=>{const nm=sellerKey(x&&(x.toko||x.usaha));if(nm&&validLL(x.latitude,x.longitude))m[nm]={lat:Number(x.latitude),lng:Number(x.longitude)};});sellerLocs=m;sellerLocsOk=true;localStorage.setItem("kalensari_seller_locs",JSON.stringify(sellerLocs));}
       if(r.key==="seller_schedule"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){sellerSchedule=r.value;localStorage.setItem("kalensari_seller_schedule",JSON.stringify(sellerSchedule));}
       if(r.key==="unggulan_toko"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){unggulanToko=r.value;localStorage.setItem("kalensari_unggulan_toko",JSON.stringify(unggulanToko));}
       if(r.key==="tutup_toko"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){tutupToko=r.value;localStorage.setItem("kalensari_tutup_toko",JSON.stringify(tutupToko));}
@@ -949,6 +958,7 @@ function alasanTidakBisaPesan(){
   if(habis.length) a.push(`📦 Stok habis: <b>${esc(habis.join(", "))}</b>. Hapus dari keranjang untuk melanjutkan.`);
   const jam=closed.filter(p=>p.status==="Show"&&!allSellersClosed(p)&&!isInHours(p));
   if(jam.length) a.push(`🕒 Belum waktunya: ${jam.map(p=>`<b>${esc(p.name)}</b> (tersedia ${esc(hoursText(p))})`).join(", ")}.`);
+  {const tt=tokoTanpaTitik();if(tt.length)a.push(`📍 Toko <b>${esc(tt.join(", "))}</b> belum memiliki titik lokasi, jadi ongkir & rute kurir belum bisa dihitung. Hapus/hilangkan centang produknya, atau coba lagi setelah penjual mengatur lokasi tokonya.`);}
   if(KS_KURIR===0) a.push("🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");
   return a;
 }
@@ -1032,6 +1042,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   await Promise.all([loadCloudSettings(),refreshProductStatus()]);
   if(!cartGroups().some(g=>g.on)){alert("Centang minimal satu produk yang ingin di-checkout.");return;}
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
+  {const tt=tokoTanpaTitik();if(tt.length){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n📍 Toko "+tt.join(", ")+" belum memiliki titik lokasi, jadi ongkir & rute kurir belum bisa dihitung. Hapus produk toko itu dari keranjang, atau coba lagi setelah penjual mengatur lokasi tokonya.");return;}}
   {KS_KURIR=await jumlahKurirAktif();if(KS_KURIR===0){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");return;}}
   const f=new FormData(e.target);
   const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
