@@ -93,6 +93,10 @@ a{color:inherit}
 .gal::-webkit-scrollbar{display:none}
 .gal img{flex:0 0 100%;width:100%;aspect-ratio:1/1;object-fit:cover;scroll-snap-align:center;cursor:zoom-in;display:block}
 .gal .noimg{flex:0 0 100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;font-size:54px}
+.pip{position:fixed;left:10px;top:calc(var(--hh,64px) + 8px);z-index:35;width:84px;height:84px;border-radius:14px;background:#efe4d8 center/cover no-repeat;border:2px solid #fff;box-shadow:0 6px 18px rgba(60,30,10,.35);cursor:zoom-in;opacity:0;transform:translateY(-10px) scale(.85);transform-origin:top left;pointer-events:none;transition:opacity .22s ease,transform .22s ease}
+.pip.on{opacity:1;transform:none;pointer-events:auto}
+.pip button{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;border:0;background:var(--b);color:#fff;font-size:12px;line-height:1;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.3);padding:0}
+.pip .pn{position:absolute;left:4px;bottom:4px;background:rgba(0,0,0,.55);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:999px}
 .dots{display:flex;justify-content:center;gap:6px;margin:8px 0 0}
 .dots i{width:7px;height:7px;border-radius:50%;background:#d6c1ae}.dots i.on{background:var(--b2)}
 .d-title{font-size:20px;margin:12px 0 6px;line-height:1.3}
@@ -259,8 +263,10 @@ function tags(i){
 let pollKom = null;
 function go(h){ if(location.hash === h) render(); else location.hash = h; }
 window.addEventListener("hashchange", render);
+let pipObs = null;
+function bersihPip(){ if(pipObs){ pipObs.disconnect(); pipObs = null; } const e = document.getElementById("pip"); if(e) e.remove(); }
 async function render(){
-  clearInterval(pollKom); pollKom = null;
+  clearInterval(pollKom); pollKom = null; bersihPip();
   const h = location.hash || "#/", v = $("v"); let m;
   const home = h === "#/" || h === "#" || h === "";
   $("fab").hidden = !home; $("bannerBox").hidden = !home; v.style.paddingTop = home ? "0" : "";
@@ -339,7 +345,7 @@ async function detail(id){
   const i = r && r[0]; if(!i || (i.status === "disembunyikan" && !(me && me.wa === i.wa))){ v.innerHTML = '<div class="empty">Iklan tidak ditemukan atau sudah dihapus.<br><br><a class="btn" href="#/">← Kembali ke lapak</a></div>'; return; }
   const pemilik = me && me.wa === i.wa, foto = Array.isArray(i.foto) ? i.foto.filter(Boolean) : [];
   v.innerHTML = `<a class="btn" href="#/" style="padding:7px 12px;font-size:13px">← Lapak</a>
-    <div style="margin-top:10px"><div class="gal" id="gal">${foto.length ? foto.map((f, n) => `<img src="${f}" alt="Foto ${n + 1}" data-n="${n}">`).join("") : '<div class="noimg">📦</div>'}</div>
+    <div style="margin-top:10px" id="galBox"><div class="gal" id="gal">${foto.length ? foto.map((f, n) => `<img src="${f}" alt="Foto ${n + 1}" data-n="${n}">`).join("") : '<div class="noimg">📦</div>'}</div>
     ${foto.length > 1 ? `<div class="dots">${foto.map((_, n) => `<i class="${n ? "" : "on"}"></i>`).join("")}</div>` : ""}</div>
     <div class="card"><h2 class="d-title" style="margin-top:0">${esc(i.judul)}${i.status !== "aktif" ? ` <span class="st ${i.status}">${i.status === "selesai" ? "Sudah laku" : "Disembunyikan"}</span>` : ""}</h2>
       <div class="row"><span>Pemilik</span><b>${esc(i.nama)}${i.alamat ? " • " + esc(i.alamat) : ""}</b></div>
@@ -357,7 +363,22 @@ async function detail(id){
   // galeri
   const gal = $("gal");
   if(gal && foto.length){
-    gal.onscroll = () => { const n = Math.round(gal.scrollLeft / gal.clientWidth); document.querySelectorAll(".dots i").forEach((d, k) => d.classList.toggle("on", k === n)); };
+    let fotoKe = 0, pip = null;
+    gal.onscroll = () => { const n = Math.round(gal.scrollLeft / gal.clientWidth); document.querySelectorAll(".dots i").forEach((d, k) => d.classList.toggle("on", k === n));
+      fotoKe = n; if(pip){ pip.style.backgroundImage = `url('${foto[n]}')`; const pn = pip.querySelector(".pn"); if(pn) pn.textContent = (n + 1) + "/" + foto.length; } };
+    // foto mengecil jadi pop-up kiri atas saat halaman di-scroll ke bawah (biar bisa komentar sambil lihat foto)
+    pip = document.createElement("div"); pip.id = "pip"; pip.className = "pip"; pip.title = "Ketuk untuk memperbesar";
+    pip.style.backgroundImage = `url('${foto[0]}')`;
+    pip.innerHTML = `${foto.length > 1 ? `<span class="pn">1/${foto.length}</span>` : ""}<button type="button" aria-label="Tutup foto kecil">✕</button>`;
+    document.body.appendChild(pip);
+    let ditutup = false;
+    pip.querySelector("button").onclick = e => { e.stopPropagation(); ditutup = true; pip.classList.remove("on"); };
+    pip.onclick = () => { const lb = document.createElement("div"); lb.className = "lb"; lb.innerHTML = `<img src="${foto[fotoKe]}" alt=""><button aria-label="Tutup">✕</button>`; lb.onclick = () => lb.remove(); document.body.appendChild(lb); };
+    const tinggiHeader = (document.querySelector(".top") || {}).offsetHeight || 64;
+    if("IntersectionObserver" in window){
+      pipObs = new IntersectionObserver(es => { const e = es[0]; pip.classList.toggle("on", !ditutup && !e.isIntersecting && e.boundingClientRect.bottom < tinggiHeader + 10); }, {rootMargin:`-${tinggiHeader}px 0px 0px 0px`});
+      pipObs.observe($("galBox"));
+    }
     gal.querySelectorAll("img").forEach(im => im.onclick = () => { const lb = document.createElement("div"); lb.className = "lb"; lb.innerHTML = `<img src="${im.src}" alt=""><button aria-label="Tutup">✕</button>`; lb.onclick = () => lb.remove(); document.body.appendChild(lb); });
   }
   // aksi pemilik
