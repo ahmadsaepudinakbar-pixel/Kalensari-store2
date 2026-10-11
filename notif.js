@@ -8,7 +8,20 @@
   var ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone;
 
-  function didukung() { return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && !!VAPID && !!BASE; }
+  /* ===== Aplikasi Android (WebView): token FCM dari jembatan window.KalensariApp =====
+     Token disimpan sebagai "langganan" berawalan FCM_AWAL supaya memakai jalur simpan yang sama
+     (fungsi server notif_langganan). Fungsi kirim-notif mengenali awalan ini dan mengirim lewat FCM. */
+  var NATIVE = !!(window.KalensariApp && typeof window.KalensariApp.token === "function");
+  var FCM_AWAL = "https://fcm.kalensari.invalid/";
+  function tokenNative() { try { return String(window.KalensariApp.token() || ""); } catch (e) { return ""; } }
+  function subNative() {
+    var tk = tokenNative(); if (!tk) return null;
+    var js = { endpoint: FCM_AWAL + tk, keys: { p256dh: "fcm-native-perangkat-android", auth: "fcm-native-app" } };
+    return { endpoint: js.endpoint, keys: js.keys, toJSON: function () { return js; } };
+  }
+
+  function didukung() {
+    if (NATIVE) return !!BASE; return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && !!VAPID && !!BASE; }
   function b64u8(b) { var p = "=".repeat((4 - b.length % 4) % 4), r = atob((b + p).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(r, function (c) { return c.charCodeAt(0); }); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
 
@@ -26,11 +39,16 @@
     } catch (e) { return true; }
   }
   async function langgananSaatIni() {
+    if (NATIVE) return subNative();
     var r = await reg(), s = await r.pushManager.getSubscription();
     if (s && !kunciSama(s)) { try { await s.unsubscribe(); } catch (e) {} s = null; }   // kunci server berganti -> daftar ulang
     return s;
   }
   async function berlangganan() {
+    if (NATIVE) {
+      for (var i = 0; i < 20; i++) { var n = subNative(); if (n) return n; await new Promise(function (r) { setTimeout(r, 500); }); }
+      throw new Error("Token notifikasi belum siap. Tutup lalu buka lagi aplikasi.");
+    }
     var s = await langgananSaatIni();
     if (!s) s = await (await reg()).pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u8(VAPID) });
     return s;
@@ -68,7 +86,7 @@
   }
   async function aktifkan(key, opt) {
     opt = opt || {};
-    var perm = await Notification.requestPermission();
+    var perm = NATIVE ? "granted" : await Notification.requestPermission();
     if (perm !== "granted") throw new Error("Izin notifikasi tidak diberikan");
     var s = await berlangganan();
     await simpan(key, s, opt.extra, typeof opt.token === "function" ? await opt.token() : opt.token);
@@ -100,6 +118,10 @@
   }
   async function status(key) {
     if (!didukung()) return ios && !standalone ? "ios" : "tidak";
+    if (NATIVE) {
+      var mt = false; try { mt = localStorage.getItem("ks_notif_" + key) === "0"; } catch (e) {}
+      return subNative() && !mt ? "aktif" : "belum";
+    }
     if (Notification.permission === "denied") return "diblokir";
     if (Notification.permission !== "granted") return "belum";
     var s = null; try { s = await langgananSaatIni(); } catch (e) {}
