@@ -559,6 +559,33 @@ function groupCardHTML(u) {
       </div>
     </article>`;
 }
+// ===== REKOMENDASI MENU MENURUT WAKTU (pagi / siang / sore / malam, jam WIB) =====
+// Hanya mengubah URUTAN di tampilan bawaan "Acak": menu yang cocok dengan waktu sekarang naik ke atas (tetap teracak di antara mereka).
+// Dicocokkan dari kata di nama produk. Produk lain tidak disembunyikan.
+const KS_WAKTU={
+  pagi:{ik:"🌅",nama:"pagi",aj:"sarapan dulu, yuk!",re:/uduk|lontong|ketupat|bubur|nasi kuning|nasi pecel|pecel|sarapan|lupis|lopis|getuk|serabi|lemper|risoles|bakpao|donat|roti|kue|jajan|gorengan|bakwan|mendoan|pisang goreng|telur|dadar|omelet|kopi|\bteh\b|susu|wedang|jahe|bandrek|jus/},
+  siang:{ik:"☀️",nama:"siang",aj:"waktunya makan siang!",re:/nasi|ayam|ikan|lele|geprek|lalap|rames|padang|soto|rawon|gado|sayur|\bsop\b|\bsup\b|bakso|mie ayam|\bmie\b|pindang|pecel|es teh|es jeruk|\bes\b|jus|segar|cendol|dawet/},
+  sore:{ik:"🌇",nama:"sore",aj:"waktunya ngemil sore!",re:/gorengan|cireng|cilok|bakso|seblak|martabak|siomay|batagor|pempek|tahu|tempe|pisang goreng|bakwan|mendoan|kue|jajan|cemilan|keripik|roti|donat|kopi|\bteh\b|boba|thai ?tea|cendol|dawet|ronde|\bes\b|jus|sosis|nugget|kentang/},
+  malam:{ik:"🌙",nama:"malam",aj:"makan malam, yuk!",re:/nasi goreng|nasi|mie goreng|\bmie\b|bakso|sate|soto|\bsop\b|\bsup\b|iga|bebek|ayam bakar|ayam goreng|seblak|martabak|terang bulan|roti bakar|wedang|jahe|bandrek|sekoteng|ronde|kopi|ketoprak|tongseng|gulai|kuah/}
+};
+function waktuIni(){const j=new Date(Date.now()+new Date().getTimezoneOffset()*6e4+7*36e5).getHours();return j>=5&&j<11?"pagi":j>=11&&j<15?"siang":j>=15&&j<18?"sore":"malam";}
+// Menu "khas" satu waktu (mis. bubur = sarapan, nasi goreng = malam) hanya naik di waktu itu saja.
+const KS_WAKTU_KHAS={
+  pagi:/uduk|lontong|ketupat|bubur|nasi kuning|sarapan|lupis|lopis|getuk|serabi|lemper|bakpao/,
+  sore:/cireng|cilok|siomay|batagor|pempek|boba|thai ?tea|keripik|cemilan|sosis|nugget|kentang/,
+  malam:/nasi goreng|mie goreng|sate|sekoteng|terang bulan|bandrek|ketoprak|tongseng|roti bakar/
+};
+function cocokWaktu(p,w){
+  const t=` ${p.name||""} ${groupName?groupName(p)||"":""} `.toLowerCase(),k=Object.keys(KS_WAKTU_KHAS).find(x=>KS_WAKTU_KHAS[x].test(t));
+  if(k)return KS_WAKTU[k]===w?1:0;
+  return w.re.test(t)?1:0;
+}
+function tampilWaktuBar(w,jml){
+  let bar=document.getElementById("waktuBar");
+  if(!w||!jml){if(bar)bar.hidden=true;return;}
+  if(!bar){const grid=document.getElementById("productGrid");if(!grid)return;bar=document.createElement("div");bar.id="waktuBar";bar.className="waktu-bar";grid.insertAdjacentElement("beforebegin",bar);}
+  bar.hidden=false;bar.innerHTML=`<span>${w.ik}</span><div><b>Cocok untuk ${w.nama} ini</b><small>${jml} menu pilihan ${w.nama} ada di paling atas • ${w.aj}</small></div>`;
+}
 function renderProducts() {
   const q=document.getElementById("searchInput").value.toLowerCase().trim();
   const sort=document.getElementById("sortSelect").value;
@@ -567,6 +594,9 @@ function renderProducts() {
   if(activeCategory==="Semua"&&!activeSeller&&!["priceAsc","price-low","priceDesc","price-high","name"].includes(sort)) list.sort((a,b)=>shuffleKey(groupName(a)||a.id)-shuffleKey(groupName(b)||b.id)||Number(a.id)-Number(b.id));
   // Menu menurut cuaca: hanya di tampilan bawaan "Semua" (tanpa pencarian & tanpa urutan pilihan pembeli)
   if(activeCategory==="Semua"&&!activeSeller&&!q&&!["priceAsc","price-low","priceDesc","price-high","name"].includes(sort)&&KS_CUACA&&KS_CUACA.mode!=="biasa"){const mau=KS_CUACA.mode==="panas"?"dingin":"hangat";list=list.map((p,i)=>[p,i]).sort((a,b)=>(jenisMenu(b[0])===mau)-(jenisMenu(a[0])===mau)||a[1]-b[1]).map(x=>x[0]);}
+  {const bawaan=activeCategory==="Semua"&&!activeSeller&&!q&&!["priceAsc","price-low","priceDesc","price-high","name"].includes(sort);
+    if(bawaan){const w=KS_WAKTU[waktuIni()];list=list.map((p,i)=>[p,i]).sort((a,b)=>cocokWaktu(b[0],w)-cocokWaktu(a[0],w)||a[1]-b[1]).map(x=>x[0]);tampilWaktuBar(w,new Set(list.filter(p=>cocokWaktu(p,w)).map(p=>groupName(p)||p.id)).size);}
+    else tampilWaktuBar(null,0);}
   if(sort==="priceAsc" || sort==="price-low") list.sort((a,b)=>currentPrice(a)-currentPrice(b));
   if(sort==="priceDesc" || sort==="price-high") list.sort((a,b)=>currentPrice(b)-currentPrice(a));
   if(sort==="name") list.sort((a,b)=>a.name.localeCompare(b.name,"id"));
@@ -2548,3 +2578,6 @@ function renderBannerHujan(){
 }
 if(document.body)renderBannerHujan();else document.addEventListener("DOMContentLoaded",renderBannerHujan);
 setInterval(()=>{try{if(hujanOn()!==!!document.getElementById("ksHujanBar"))renderBannerHujan();}catch(e){}},5000);
+
+// Ganti rekomendasi otomatis bila halaman dibiarkan terbuka dan waktu makan berganti (cek tiap 5 menit)
+{let _w=waktuIni();setInterval(()=>{try{const n=waktuIni();if(n!==_w){_w=n;renderProducts();}}catch(e){}},300000);}
