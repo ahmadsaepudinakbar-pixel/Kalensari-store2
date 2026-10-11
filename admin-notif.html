@@ -32,6 +32,7 @@ header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius
 .ksn{border-radius:16px;padding:12px 14px;background:#fffaf2;box-shadow:0 2px 10px rgba(80,45,20,.08);margin:10px 0;font-size:14px}
 .ksn b{display:block;margin-bottom:4px}.ksn p{margin:0 0 8px;color:#6b5546}.ksn.ok{background:#e9f7ee}.ksn.ok p{margin:0;color:#14502c}
 .ksn .ksb{display:flex;gap:8px;flex-wrap:wrap}.ksn button{border:0;border-radius:12px;padding:9px 14px;font-weight:600;font:inherit;background:#228b4e;color:#fff}.ksn button.ks2{background:#fff;color:#5b2e1a;border:1px solid #e3d3c3}
+.nada summary{cursor:pointer;font-weight:700;color:var(--br2)}.nada .mut{margin:6px 0}.nada select{margin-top:8px}
 </style>
 </head>
 <body>
@@ -50,6 +51,24 @@ header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius
   <header><h1>🔔 Admin Notif<small id="who"></small></h1><button id="rf">⟳ Muat</button><button id="out">Keluar</button></header>
   <div class="wrap">
     <div id="notifBox"></div>
+    <details class="card nada" id="nadaCard">
+      <summary>🔊 Nada notifikasi</summary>
+      <div class="mut">Berlaku saat aplikasi sedang terbuka. Pilih nada bawaan atau suara dari HP (mp3, m4a, ogg, wav).</div>
+      <select class="inp" id="nadaPil">
+        <option value="default">Default (ting-ting-ting)</option>
+        <option value="bel">Bel panjang</option>
+        <option value="sirine">Sirine</option>
+        <option value="kustom">Suara dari HP saya…</option>
+      </select>
+      <input type="file" id="nadaFile" accept="audio/*" class="hide">
+      <div class="mut" id="nadaInfo"></div>
+      <div class="row">
+        <button class="btn lt" id="nadaPilih" type="button">📂 Pilih file suara</button>
+        <button class="btn lt" id="nadaTes" type="button">▶ Coba bunyikan</button>
+        <button class="btn red" id="nadaReset" type="button">Kembalikan default</button>
+      </div>
+      <div class="mut">Saat aplikasi ditutup / layar mati, suara ditentukan Android: Pengaturan → Aplikasi → Admin Notif → Pemberitahuan → Suara.</div>
+    </details>
     <div class="tabs">
       <button class="tab on" data-t="qris">💳 QRIS<i id="bq" class="hide">0</i></button>
       <button class="tab" data-t="topup">💰 Isi Saldo<i id="bt" class="hide">0</i></button>
@@ -132,7 +151,65 @@ async function muat(manual){
   busyLoad=false;
 }
 function seen(){try{return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)||'[]'))}catch(e){return new Set()}}
-function bunyi(){try{const c=new(window.AudioContext||window.webkitAudioContext)();[[0,988],[.18,1319],[.36,1568]].forEach(([t,f])=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=f;o.connect(g);g.connect(c.destination);g.gain.setValueAtTime(.25,c.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+.3);o.start(c.currentTime+t);o.stop(c.currentTime+t+.32)})}catch(e){}try{navigator.vibrate&&navigator.vibrate([300,120,300])}catch(e){}}
+/* ===== nada notifikasi (bisa diganti) ===== */
+const NADA_KEY='kalensari_adminnotif_nada';
+let nadaPref=(()=>{try{return JSON.parse(localStorage.getItem(NADA_KEY)||'{}')||{}}catch(e){return{}}})();
+const nadaSimpan=()=>{try{localStorage.setItem(NADA_KEY,JSON.stringify(nadaPref))}catch(e){}};
+const NADA_MAX=8*1024*1024, NADA_DETIK=15;
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('ks_adminnotif',1);r.onupgradeneeded=()=>r.result.createObjectStore('nada');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function idbGet(k){const d=await idb();return new Promise((res,rej)=>{const q=d.transaction('nada').objectStore('nada').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}
+async function idbSet(k,v){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction('nada','readwrite');t.objectStore('nada').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
+async function idbDel(k){const d=await idb();return new Promise((res,rej)=>{const t=d.transaction('nada','readwrite');t.objectStore('nada').delete(k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
+const NADA_BAWAAN={
+  default:{tipe:'sine',n:[[0,988,.3],[.18,1319,.3],[.36,1568,.3]]},
+  bel:{tipe:'sine',n:[[0,660,.7],[.8,660,.7],[1.6,660,.7]]},
+  sirine:{tipe:'square',g:.12,n:[[0,700,.25],[.25,900,.25],[.5,700,.25],[.75,900,.25],[1,700,.25],[1.25,900,.25]]}
+};
+function beep(jenis){
+  const d=NADA_BAWAAN[jenis]||NADA_BAWAAN.default,c=new(window.AudioContext||window.webkitAudioContext)(),g0=d.g||.25;
+  d.n.forEach(([t,f,l])=>{const o=c.createOscillator(),g=c.createGain();o.type=d.tipe;o.frequency.value=f;o.connect(g);g.connect(c.destination);
+    g.gain.setValueAtTime(g0,c.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+l);o.start(c.currentTime+t);o.stop(c.currentTime+t+l+.02)});
+}
+let nadaAudio=null,nadaUrl=null,nadaTimer=null;
+async function mainkanKustom(){
+  const b=await idbGet('file');if(!b)return false;
+  try{nadaAudio&&nadaAudio.pause()}catch(e){}
+  if(nadaUrl)URL.revokeObjectURL(nadaUrl);
+  nadaUrl=URL.createObjectURL(b);nadaAudio=new Audio(nadaUrl);nadaAudio.volume=1;
+  await nadaAudio.play();
+  clearTimeout(nadaTimer);nadaTimer=setTimeout(()=>{try{nadaAudio.pause()}catch(e){}},NADA_DETIK*1000);
+  return true;
+}
+async function mainkan(p){if(p==='kustom'){if(await mainkanKustom())return;throw new Error('tidak ada file')}beep(p)}
+function bunyi(){
+  try{navigator.vibrate&&navigator.vibrate([300,120,300])}catch(e){}
+  mainkan(nadaPref.pilih||'default').catch(()=>{try{beep('default')}catch(e){}});
+}
+function nadaTampil(){
+  $('#nadaPil').value=nadaPref.pilih||'default';
+  $('#nadaInfo').textContent=nadaPref.pilih==='kustom'?('File: '+(nadaPref.nama||'(belum dipilih)')+' · diputar maks. '+NADA_DETIK+' detik'):'';
+}
+function nadaInit(){
+  $('#nadaPil').onchange=async e=>{
+    const v=e.target.value;
+    if(v==='kustom'){let ada=false;try{ada=!!(await idbGet('file'))}catch(x){}
+      if(!ada){e.target.value=nadaPref.pilih||'default';$('#nadaFile').click();return}}
+    nadaPref.pilih=v;nadaSimpan();nadaTampil();mainkan(v).catch(()=>toast('Nada belum bisa diputar'));
+  };
+  $('#nadaPilih').onclick=()=>$('#nadaFile').click();
+  $('#nadaFile').onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+    if(!/^audio\//.test(f.type)&&!/\.(mp3|m4a|aac|ogg|oga|wav|opus|flac)$/i.test(f.name)){toast('Pilih file suara (mp3, m4a, ogg, wav)');return}
+    if(f.size>NADA_MAX){toast('File terlalu besar (maks. 8 MB)');return}
+    try{await idbSet('file',f);try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(x){}
+      nadaPref={pilih:'kustom',nama:f.name};nadaSimpan();nadaTampil();toast('✅ Nada disimpan');
+      mainkan('kustom').catch(()=>toast('File tersimpan, tapi belum bisa diputar. Coba format mp3.'));
+    }catch(x){toast('Gagal menyimpan suara')}
+  };
+  $('#nadaTes').onclick=()=>mainkan(nadaPref.pilih||'default').catch(()=>toast('Nada belum bisa diputar'));
+  $('#nadaReset').onclick=async()=>{try{await idbDel('file')}catch(x){}nadaPref={};nadaSimpan();try{nadaAudio&&nadaAudio.pause()}catch(x){}nadaTampil();toast('Kembali ke nada default')};
+  nadaTampil();
+}
 async function kabari(){
   const all=[...D.qris,...D.topup,...D.cair],s=seen(),baru=all.filter(x=>!s.has(x.key));
   try{localStorage.setItem(SEEN_KEY,JSON.stringify([...new Set([...s,...all.map(x=>x.key)])].slice(-400)))}catch(e){}
@@ -234,6 +311,7 @@ function start(){
 setInterval(()=>{if(auth&&!$('#app').classList.contains('hide'))muat()},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&auth)muat()});
 if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='bunyi-pesanan'){bunyi();muat()}});
+nadaInit();
 if(auth&&auth.refresh_token)start();else showLogin();
 </script>
 </body>
