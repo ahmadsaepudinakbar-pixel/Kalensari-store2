@@ -196,6 +196,11 @@ h2{color:#2b2623}
 .wrap{padding-bottom:100px}
 .tabhide{display:none!important}
 .ug{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.ug div{background:#fffaf2;border:1px solid var(--line);border-radius:14px;padding:10px 12px}.ug small{display:block;color:var(--muted);font-size:12px}.ug b{display:block;font-size:19px;margin-top:2px}.ug .net{grid-column:1/-1;background:#e8f6ee;border-color:#bfe3cc}.ug .net b{color:#14502c;font-size:24px}
+.sem{background:linear-gradient(135deg,#fff7e0,#fffaf2);border:1.5px solid #f0d58a;border-radius:16px;padding:12px 14px;margin:0 0 16px}.sem-top{display:flex;justify-content:space-between;align-items:center;gap:8px}.sem-top button,.sem-tip button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font:inherit;font-size:12px;font-weight:700;color:#7a3e20;cursor:pointer}
+.sem-num{display:flex;align-items:baseline;gap:6px;margin:6px 0 4px}.sem-num b{font-size:34px;line-height:1;color:#14502c}.sem-num span{color:#6b5a4c;font-size:14px}.sem-num em{margin-left:auto;font-style:normal;font-weight:800;color:#7a3e20}
+.sem-bar{height:12px;border-radius:99px;background:#eadfcd;overflow:hidden}.sem-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#f4b400,#2e9b57);transition:width .5s}.sem-msg{margin:8px 0 0;font-size:14px}
+.sem-sep{height:1px;background:#ecdcae;margin:12px 0 10px}.sem-rank{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;margin-top:5px;background:#fff}.sem-rank.me{background:#e7f6ec;border:1px solid #9fd6b3}.sem-rank em{margin-left:auto;font-style:normal;font-size:13px;color:#6b5a4c}
+.sem-tip{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 9px;border-radius:10px;background:#fff;margin-top:5px}.sem-tip small{display:block;color:#7b6a5c;font-size:12px}.sem-ok{color:#14502c;font-weight:700;font-size:12px;white-space:nowrap}
 .uchip{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.uchip button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink)}.uchip button.on{background:var(--brown);border-color:var(--brown);color:#fff}
 .ubar{display:flex;align-items:flex-end;gap:3px;height:96px;margin-top:6px}.ubar div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%}.ubar i{display:block;width:100%;max-width:24px;border-radius:4px 4px 0 0;background:var(--brown)}.ubar i.z{background:var(--line)}
 .cod{background:#fff6e0;border:1px solid #f0d58a;border-radius:16px;padding:12px;margin-top:12px}.cod .r{display:flex;justify-content:space-between;gap:8px;padding:5px 0;font-size:14px}.cod .r.t{border-top:1px dashed #e0c070;margin-top:4px;padding-top:8px;font-size:16px}
@@ -990,8 +995,41 @@ window.muatPenghasilan = async function(paksa){
     PG.err = "";
   }catch(e){ PG.rows = []; PG.err = /kurir_id|column/i.test(String(e.message)) ? "kolom" : "net"; }
   try{ await muatBiaya(); PG.mut = BIAYA.aktif ? ((await saldoSayaK(new Date(Date.now() - 45*864e5).toISOString())).mutasi || []).filter(m => m.jenis === "potong") : []; }catch(e){ PG.mut = []; }
+  try{ await muatSemangat(); }catch(e){}
   PG.t = Date.now(); gambarPenghasilan();
 };
+// ===== SEMANGAT KURIR: target harian, kurir terbaik minggu ini, tip dari pembeli =====
+let SEM = {terbaik:null, tip:null};
+const targetKey = () => "ks_target_kurir_" + (me && me.id);
+const targetHarian = () => { const v = Math.round(Number(LSget(targetKey(), 10))); return v >= 1 && v <= 100 ? v : 10; };
+async function muatSemangat(){
+  try{ SEM.terbaik = await cf("rpc/kurir_terbaik_minggu", {method:"POST", body:"{}"}); }catch(e){ SEM.terbaik = null; }
+  try{ SEM.tip = await cf("kurir_tip?select=*&kurir_id=eq." + encodeURIComponent(me.id) + "&order=created_at.desc&limit=40"); }catch(e){ SEM.tip = null; }
+}
+function semangatHtml(rows){
+  const t0 = new Date(new Date().toDateString()).getTime();
+  const sel = (rows || []).filter(o => o.status === "selesai");
+  const hari = sel.filter(o => tWaktu(o) >= t0), n = hari.length, tgt = targetHarian();
+  const pct = Math.min(100, Math.round(n / tgt * 100)), rp = hari.reduce((t, o) => t + ongkirOf(o), 0);
+  const msg = n === 0 ? "Belum ada antaran hari ini. Ayo semangat! 💪" : n < tgt ? `Tinggal <b>${tgt - n}</b> antaran lagi menuju target 🔥` : n === tgt ? "🎉 <b>Target hari ini tercapai!</b> Mantap!" : `🎉 Target tercapai, <b>+${n - tgt}</b> antaran bonus! Luar biasa!`;
+  let h = `<div class="sem"><div class="sem-top"><b>🎯 Target hari ini</b><button type="button" data-target>Ubah target</button></div>
+    <div class="sem-num"><b>${n}</b><span>/ ${tgt} antaran</span><em>${fmtRp(rp)}</em></div>
+    <div class="sem-bar"><i style="width:${pct}%"></i></div><p class="sem-msg">${msg}</p>`;
+  if(Array.isArray(SEM.terbaik)){
+    const md = ["🥇", "🥈", "🥉"], mon = new Date(); mon.setHours(0, 0, 0, 0); mon.setDate(mon.getDate() - ((mon.getDay() + 6) % 7));
+    const mingguSaya = sel.filter(o => tWaktu(o) >= mon.getTime()).length, idx = SEM.terbaik.findIndex(x => x.kurir_id === me.id);
+    h += `<div class="sem-sep"></div><b>🏆 Kurir terbaik minggu ini</b>`;
+    h += SEM.terbaik.length ? SEM.terbaik.slice(0, 3).map((x, i) => `<div class="sem-rank${x.kurir_id === me.id ? " me" : ""}"><span>${md[i]}</span><b>${esc(x.nama)}${x.kurir_id === me.id ? " (Anda)" : ""}</b><em>${x.antaran} antaran</em></div>`).join("") : '<p class="hint" style="margin:6px 0 0">Belum ada antaran selesai minggu ini. Jadilah yang pertama! 🛵</p>';
+    h += `<p class="hint" style="margin:6px 0 0">${idx >= 0 ? `Anda peringkat <b>${idx + 1}</b> minggu ini • ${SEM.terbaik[idx].antaran} antaran.` : `Antaran selesai Anda minggu ini: <b>${mingguSaya}</b>.`} Hitungan mulai Senin.</p>`;
+  }
+  if(Array.isArray(SEM.tip)){
+    const bln = new Date(); bln.setDate(1); bln.setHours(0, 0, 0, 0);
+    const bi = SEM.tip.filter(x => Date.parse(x.created_at) >= bln.getTime()), ok = bi.filter(x => x.diterima).reduce((t, x) => t + x.jumlah, 0), tunggu = bi.filter(x => !x.diterima).reduce((t, x) => t + x.jumlah, 0);
+    h += `<div class="sem-sep"></div><b>🎁 Tip dari pembeli</b><p class="hint" style="margin:4px 0 6px">Bulan ini: <b style="color:#14502c">${fmtRp(ok)}</b> diterima${tunggu ? ` • ${fmtRp(tunggu)} menunggu konfirmasi` : ""}</p>`;
+    h += SEM.tip.length ? SEM.tip.slice(0, 5).map(x => `<div class="sem-tip"><div><b>${fmtRp(x.jumlah)}</b> dari ${esc(x.nama || "Pembeli")}<small>${esc(x.order_code)}${x.pesan ? " • “" + esc(x.pesan) + "”" : ""}</small></div>${x.diterima ? '<span class="sem-ok">✓ Diterima</span>' : `<button type="button" data-tipok="${x.id}">Sudah diterima</button>`}</div>`).join("") + '<p class="hint" style="margin:6px 0 0">Tip diberikan pembeli langsung kepada Anda. Tekan "Sudah diterima" setelah uangnya masuk.</p>' : '<p class="hint" style="margin:0">Belum ada tip. Antar dengan ramah, pembeli senang memberi tip! 😊</p>';
+  }
+  return h + "</div>";
+}
 function gambarPenghasilan(){
   const box = $("uangIsi"); if(!box) return;
   if(PG.err === "kolom"){ box.innerHTML = '<h2>💰 Penghasilan</h2><p class="hint">Fitur ini belum aktif. Minta admin menjalankan file <b>supabase-keuangan-kurir.sql</b> di Supabase.</p>'; return; }
@@ -1013,7 +1051,7 @@ function gambarPenghasilan(){
   const sisa = terima - talang;
   const list = rows.filter(o => ["selesai","gagal","dikirim","diproses"].includes(o.status) && (PG.f === "semua" || o.status === PG.f)).slice(0, 60);
   const stc = {selesai:["ok","Selesai"], gagal:["gg","Gagal"], dikirim:["jl","Diantar"], diproses:["jl","Diambil"]};
-  box.innerHTML = `<h2>💰 Penghasilan</h2>
+  box.innerHTML = semangatHtml(rows) + `<h2>💰 Penghasilan</h2>
   <div class="uchip">${[["hari","Hari ini"],["minggu","7 hari"],["bulan","Bulan ini"]].map(([k, t]) => `<button type="button" data-per="${k}" class="${k === PG.per ? "on" : ""}">${t}</button>`).join("")}<button type="button" data-ref style="margin-left:auto">↻</button></div>
   <div class="ug"><div><small>Antaran selesai</small><b>${selesai.length}</b>${gagal.length ? `<small>${gagal.length} gagal antar</small>` : ""}</div><div><small>Ongkir didapat</small><b>${fmtRp(ongkir)}</b></div>
     ${BIAYA.aktif ? `<div><small>Potongan aplikasi</small><b style="color:#a32d2d">−${fmtRp(potong)}</b></div><div><small>Rata-rata / antaran</small><b>${fmtRp(selesai.length ? Math.round(ongkir / selesai.length) : 0)}</b></div>` : ""}
@@ -1034,6 +1072,13 @@ function gambarPenghasilan(){
   box.querySelectorAll("[data-per]").forEach(b => b.onclick = () => { PG.per = b.dataset.per; gambarPenghasilan(); });
   box.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { PG.f = b.dataset.f; gambarPenghasilan(); });
   box.querySelector("[data-ref]").onclick = () => muatPenghasilan(true);
+  const bt = box.querySelector("[data-target]");
+  if(bt) bt.onclick = () => { const v = prompt("Target antaran per hari (1–100):", String(targetHarian())); if(v === null) return; const n = Math.round(Number(v)); if(!(n >= 1 && n <= 100)) return toast("Isi angka 1 sampai 100"); LSset(targetKey(), n); gambarPenghasilan(); toast("Target hari ini: " + n + " antaran"); };
+  box.querySelectorAll("[data-tipok]").forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try{ await cf("kurir_tip?id=eq." + encodeURIComponent(b.dataset.tipok), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({diterima:true, diterima_at:new Date().toISOString()})}); await muatSemangat(); gambarPenghasilan(); toast("Tip ditandai sudah diterima 🎁"); }
+    catch(e){ b.disabled = false; toast("Gagal menyimpan. Coba lagi."); }
+  });
 }
 
 // ===== Foto profil kurir: dipotong bulat (crop.js), disimpan di store_settings "foto_kurir_<id>" =====

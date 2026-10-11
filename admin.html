@@ -1289,10 +1289,24 @@ function ongkirCard(){
       <div class="field"><label>Ongkir standar per toko (Rp)</label><input class="inp" type="number" min="0" step="500" id="og_def" value="${esc(Number(f.__default)||0)}"></div>
       <div class="field"><label>Gratis tambahan sampai (km)</label><input class="inp" type="number" min="0" step="0.5" id="og_km" value="${esc(fk)}"></div>
       <div class="field"><label>Tambahan per km (Rp)</label><input class="inp" type="number" min="0" step="500" id="og_per" value="${esc(pk)}"></div></div>
+    <div class="card" style="margin:6px 0 14px;padding:12px;border:1.5px solid ${ongHujanOn(f)?'#5aa9dc':'var(--line,#e5ddd3)'};background:${ongHujanOn(f)?'#e8f4fc':'transparent'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>🌧️ Mode hujan: ${ongHujanOn(f)?'HIDUP':'mati'}</b><div class="sm" style="color:var(--mut);font-size:12px;margin-top:2px">Saat hidup, ongkir naik sekali per pengiriman dan pembeli melihat banner "Sedang hujan". Berlaku untuk belanja toko (bukan ojek/paket).</div></div>
+        <button class="btn ${ongHujanOn(f)?'btn-red':'btn-g'}" onclick="toggleHujan(this)">${ongHujanOn(f)?'Matikan mode hujan':'Nyalakan mode hujan'}</button></div>
+      <div class="field" style="margin-top:10px;max-width:260px"><label>Tambahan ongkir saat hujan (Rp)</label><input class="inp" type="number" min="0" step="500" id="og_hujan" value="${esc(Number(f.__hujanRp??2000)||0)}"></div></div>
     <details style="margin:4px 0 10px"><summary style="cursor:pointer;font-weight:700;font-size:13px;color:var(--g)">Ongkir khusus per toko (${rows.length} toko)</summary>
       <p class="sm" style="color:var(--mut);font-size:12px;margin:8px 0">Kosongkan untuk memakai ongkir standar.</p>
       <div class="cards" style="grid-template-columns:repeat(auto-fill,minmax(220px,1fr))">${rows.map((r,i)=>`<div class="lc" style="padding:10px"><div class="meta"><b>${esc(r.name)}</b><div class="sm">${r.count} produk</div></div><input class="inp og_toko" data-k="${esc(sKey(r.name))}" type="number" min="0" step="500" style="width:110px" placeholder="${esc(Number(f.__default)||0)}" value="${esc(f[sKey(r.name)]??'')}"></div>`).join('')}</div></details>
     <button class="btn btn-g full" onclick="saveOngkir(this)">Simpan Ongkir</button></div>`;
+}
+const ongHujanOn=f=>f.__hujan===true||f.__hujan===1||f.__hujan==='1'||f.__hujan==='true';
+async function toggleHujan(btn){
+  const rp=Number(String(($('#og_hujan')||{}).value||2000).replace(',','.'));
+  if(!(rp>=0))return toast('Isi tambahan ongkir hujan dengan benar');
+  await busy(btn,async()=>{
+    const cur=await readKey('shipping_fees',{}),f={...(cur&&typeof cur==='object'&&!Array.isArray(cur)?cur:{})};
+    const hidup=!ongHujanOn(f);f.__hujan=hidup;f.__hujanRp=Math.round(rp);
+    await setSetting('shipping_fees',f);S.settings.shipping_fees=f;render();toast(hidup?'Mode hujan dinyalakan':'Mode hujan dimatikan');
+  });
 }
 async function saveOngkir(btn){
   const num=id=>Number(String($('#'+id).value).replace(',','.'));
@@ -1301,6 +1315,7 @@ async function saveOngkir(btn){
   await busy(btn,async()=>{
     const cur=await readKey('shipping_fees',{}),f={...(cur&&typeof cur==='object'&&!Array.isArray(cur)?cur:{})};
     f.__default=Math.round(d);f.__freeKm=k;f.__perKm=Math.round(pk);
+    {const h=Number(String(($('#og_hujan')||{value:f.__hujanRp??2000}).value).replace(',','.'));if(h>=0)f.__hujanRp=Math.round(h);}
     document.querySelectorAll('.og_toko').forEach(el=>{const v=String(el.value).trim();if(v==='')delete f[el.dataset.k];else f[el.dataset.k]=Math.max(0,Math.round(Number(v)||0))});
     await setSetting('shipping_fees',f);S.settings.shipping_fees=f;render();toast('Ongkir toko disimpan');
   });

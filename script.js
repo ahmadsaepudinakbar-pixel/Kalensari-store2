@@ -279,6 +279,11 @@ function tokoTanpaTitik(){
   cartGroups().filter(g=>g.on).forEach(g=>{const l=sellerLocs[g.k];if(!(l&&validLL(l.lat,l.lng)))n.set(g.k,g.name);});
   return [...n.values()];
 }
+// ===== TAMBAHAN ONGKIR CUACA HUJAN (diatur admin: Ongkir > Mode hujan; disimpan di shipping_fees.__hujan / __hujanRp) =====
+const SHIP_HUJAN_RP=2000;
+const hujanOn=()=>{const v=shippingFees.__hujan;return v===true||v===1||v==="1"||v==="true";};
+const hujanRp=()=>{const v=shippingFees.__hujanRp;return(v===undefined||v===null||v==="")?SHIP_HUJAN_RP:Math.max(0,Math.round(Number(v)||0));};
+const rainFee=()=>hujanOn()?hujanRp():0; // sekali per pengiriman (1 kurir), ikut nota toko terakhir
 const SHIP_FREE_KM=2, SHIP_PER_KM=2500; // bawaan; bisa diubah di Admin > Ongkir
 const shipFreeKm=()=>{const v=shippingFees.__freeKm;return(v===undefined||v===null||v==="")?SHIP_FREE_KM:Math.max(0,Number(v)||0);};
 const shipPerKm=()=>{const v=shippingFees.__perKm;return(v===undefined||v===null||v==="")?SHIP_PER_KM:Math.max(0,Number(v)||0);};
@@ -301,12 +306,12 @@ function shippingRoute(items){
   const noLoc=all.filter(s=>!s.loc),withLoc=all.filter(s=>s.loc);
   if(b)withLoc.sort((x,y)=>y.km-x.km);
   const stops=[...noLoc,...withLoc],last=stops[stops.length-1]||null,base=stops.reduce((t,s)=>t+s.base,0);
-  const r={stops,last,base,km:null,extra:0,fee:base,state:"ok"};
+  const rain=rainFee(),r={stops,last,base,km:null,extra:0,rain,fee:base+rain,state:"ok"};
   if(!last||!last.loc){r.state="nostore";return r;}
   if(!b){r.state="nobuyer";return r;}
   r.km=last.km;
   r.extra=Math.max(0,Math.ceil(r.km-shipFreeKm()-1e-9))*shipPerKm(); // dibulatkan ke atas per KM penuh di atas batas
-  r.fee=base+r.extra;
+  r.fee=base+r.extra+rain;
   return r;
 }
 function shipBreakdownHTML(r){
@@ -818,7 +823,7 @@ function cartGroups(){
     return {...g,items,sub,on:items.length>0,full:items.length===g.all.length,closed:items.some(p=>allSellersClosed(p))};});
   const route=shippingRoute(gs.filter(g=>g.on).flatMap(g=>g.items)),lastK=route.last?sellerKey(route.last.name):"";
   return gs.map(g=>{const last=g.on&&g.k===lastK,base=shippingFeeFor(g.name);
-    return {...g,route,last,base,urut:route.stops.findIndex(x=>sellerKey(x.name)===g.k)+1,fee:g.on?base+(last?route.extra:0):0};});
+    return {...g,route,last,base,urut:route.stops.findIndex(x=>sellerKey(x.name)===g.k)+1,fee:g.on?base+(last?route.extra+route.rain:0):0};});
 }
 const selItems=()=>cartGroups().filter(g=>g.on).flatMap(g=>g.items);
 function setOff(idxs,off){idxs.forEach(i=>{if(cart[i]){if(off)cart[i].off=true;else delete cart[i].off;}});saveCart();renderCart();}
@@ -851,6 +856,7 @@ function renderCart() {
     <div class="cg-ship"><span>🛵 Ongkir<small>${o.s}</small></span><b>${o.v}</b></div>
     <div class="cg-sum"><span>Total toko ini</span><b>${rupiah(g.sub+(g.on?g.base:0))}</b></div></div>`}).join("")
     +(()=>{const j=jarakInfo(sel);return j?`<div class="cg cg-jarak"><div class="cg-ship" style="border-top:0;padding-top:2px"><span>📏 <b>Tambahan jarak</b><small>${j.s}</small></span><b>${j.v}</b></div></div>`:""})()
+    +(sel.length&&rainFee()>0?`<div class="cg cg-jarak cg-hujan"><div class="cg-ship" style="border-top:0;padding-top:2px"><span>🌧️ <b>Tambahan cuaca hujan</b><small>Kurir tetap mengantar saat hujan • sekali per pengiriman</small></span><b>+${rupiah(rainFee())}</b></div></div>`:"")
     +(gs.length>1?`<p class="cg-note">ℹ️ Tiap toko jadi <b>nota terpisah</b>, tapi semuanya dijemput & diantar <b>1 kurir</b>${sel.length>1&&sel[0].route.stops.length>1?` (rute: ${sel[0].route.stops.map(x=>esc(x.name)).join(" → ")} → rumah Anda)`:""}. Produk yang tidak dicentang tetap tersimpan di keranjang.</p>`:"")
     :`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
   document.querySelectorAll('#cartItems [data-ind="1"]').forEach(x=>{x.indeterminate=true});
@@ -861,6 +867,7 @@ function renderCart() {
   {const tot=document.querySelector("#checkoutForm .checkout-total");if(tot){let cb=document.getElementById("coShipBreakdown");if(!cb){cb=document.createElement("div");cb.id="coShipBreakdown";cb.className="ship-breakdown";tot.insertAdjacentElement("beforebegin",cb);}
     cb.hidden=!sel.length;cb.innerHTML=`<div class="ship-head">${sel.length>1?`${sel.length} toko • ${sel.length} nota • 1 kurir`:"Rincian pesanan"}</div>`+sel.slice().sort((a,b)=>a.urut-b.urut).map((g,i)=>{const o=ongkirTeks(g);return `<div class="ship-row"><span>${sel.length>1?`Nota ${i+1} • `:""}🏪 ${esc(g.name)}<small class="ship-sub">Barang ${rupiah(g.sub)} • Ongkir ${o.v} (${o.s})</small></span><b>${rupiah(g.sub+g.base)}</b></div>`}).join("")
       +(()=>{const j=jarakInfo(sel);return j?`<div class="ship-row ship-jarak"><span>📏 Tambahan jarak<small class="ship-sub">${j.s}</small></span><b>${j.v}</b></div>`:""})()
+      +(sel.length&&rainFee()>0?`<div class="ship-row ship-jarak"><span>🌧️ Tambahan cuaca hujan<small class="ship-sub">Berlaku selama cuaca hujan, sekali per pengiriman</small></span><b>+${rupiah(rainFee())}</b></div>`:"")
       +(sel.length>1?`<p class="ship-note">🛵 Satu kurir menjemput ${sel[0].route.stops.map(x=>esc(x.name)).join(" → ")} lalu mengantar ke rumah Anda. ${"QRIS"===String(document.querySelector('#checkoutForm select[name="payment"]')?.value||"")?"Bayar QRIS cukup <b>sekali</b> untuk semua nota.":""}</p>`:"");}}
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
@@ -1088,7 +1095,8 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const totalAll=payloads.reduce((t,x)=>t+x.total,0);
   const mapText=hasMap?`\nLokasi Maps: ${ksMapsSearch(`${mapLat},${mapLng}`)}`:"";
   const notaText=groups.map((g,i)=>{const r=g.route,pl=payloads[i];
-    const ship=!g.last?`${pl.shipping>0?rupiah(pl.shipping):"Gratis"} (ongkir pertama toko)`:r.state==="ok"?`${pl.shipping>0?rupiah(pl.shipping):"Gratis"} (jarak ${g.name} → pembeli ${fmtKm(r.km)} km)`:`${rupiah(pl.shipping)} (jarak belum terhitung, mohon konfirmasi)`;
+    const hj=g.last&&r.rain>0?` + hujan ${rupiah(r.rain)}`:"";
+    const ship=!g.last?`${pl.shipping>0?rupiah(pl.shipping):"Gratis"} (ongkir pertama toko)`:r.state==="ok"?`${pl.shipping>0?rupiah(pl.shipping):"Gratis"} (jarak ${g.name} → pembeli ${fmtKm(r.km)} km${hj})`:`${rupiah(pl.shipping)} (jarak belum terhitung, mohon konfirmasi)`;
     return `NOTA ${i+1} • ${codes[i]}\nToko: ${g.name}\n${g.items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n")}\nSubtotal: ${rupiah(pl.subtotal)}\nOngkir: ${ship}\nTotal nota: ${rupiah(pl.total)}`;}).join("\n\n");
   const msg=`Halo KALENSARI STORE, saya ingin memesan${groups.length>1?` dari ${groups.length} toko (${groups.length} nota, diantar 1 kurir)`:""}:\n\n${groups.length>1&&routeNote?`RUTE KURIR: ${rt.stops.map((x,i)=>`${i+1}. ${x.name}`).join(" → ")} → Pembeli\n\n`:""}${notaText}\n\n${groups.length>1?`TOTAL SEMUA NOTA: ${rupiah(totalAll)}\n\n`:""}Nama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${payment}`;
   const msgWA=kodeST?msg+`\n\n🔑 Kode serah terima: ${kodeST}\n(sebutkan ke kurir hanya saat pesanan sudah diterima)`:msg;
@@ -1242,6 +1250,7 @@ function renderMyOrders(rows=getLocalOrders()){
   myOrdersLast=rows;
   if(window.KSPW)KSPW.pasang(box,rows,()=>renderMyOrders(myOrdersLast));
   if(window.KSUlasan){KSUlasan.pasang(box,()=>renderMyOrders(myOrdersLast));KSUlasan.muat(rows).then(baru=>{if(baru&&myOrdersLast===rows)renderMyOrders(rows);});}
+  if(window.KSTip){KSTip.pasang(box,()=>renderMyOrders(myOrdersLast));KSTip.muat(rows).then(baru=>{if(baru&&myOrdersLast===rows)renderMyOrders(rows);});}
   // Hanya pesanan AKTIF. Selesai / dibatalkan / gagal pindah ke Riwayat di akun pembeli (dashboard-pembeli.html#pesanan).
   const AKTIF_ST=["menunggu","baru","diproses","dikirim"];
   const sorted=[...rows].filter(o=>AKTIF_ST.includes(o.status||"menunggu")).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
@@ -1286,7 +1295,7 @@ function kartuPesanan(o){
     ${o.pay_status==="lunas"?(/^saldo/i.test(o.payment||"")?'<div class="order-hint success">🎟️ Lunas pakai saldo voucher</div>':'<div class="order-hint success">💳 Sudah dibayar lewat QRIS</div>'):""}
     ${kodeHtml}
     ${window.KSPW?KSPW.html(o):""}
-    ${window.KSUlasan?KSUlasan.html(o):""}
+    ${window.KSUlasan?KSUlasan.html(o):""}${window.KSTip?KSTip.html(o):""}
     ${o.sync_error?`<div class="order-hint">⚠️ Belum tersinkron ke database: ${esc(o.sync_error)}</div>`:""}
   </div>`;
 }
@@ -2348,6 +2357,7 @@ function mintaKataSandi(wa){
 
 // crop.js: semua upload foto di toko (mis. foto produk admin) bisa dipotong dulu
 (function(){if(window.KSPW||document.querySelector('script[src*="pesanan-warga.js"]'))return;const s=document.createElement("script");s.src="pesanan-warga.js";s.onload=()=>{if(myOrdersLast)renderMyOrders(myOrdersLast);};document.head.appendChild(s);})();
+(function(){if(window.KSTip||document.querySelector('script[src*="tip-kurir.js"]'))return;const s=document.createElement("script");s.src="tip-kurir.js";s.onload=()=>{if(myOrdersLast)renderMyOrders(myOrdersLast);};document.head.appendChild(s);})();
 (function(){if(window.KSUlasan||document.querySelector('script[src*="ulasan.js"]'))return;const s=document.createElement("script");s.src="ulasan.js";s.onload=()=>{if(myOrdersLast)renderMyOrders(myOrdersLast);};document.head.appendChild(s);})();
 (function(){if(window.KSCrop||document.querySelector('script[src*="crop.js"]'))return;const s=document.createElement("script");s.src="crop.js";document.head.appendChild(s);})();
 
@@ -2528,3 +2538,13 @@ function infoBatal(o){
   if(Number(o.ongkir_tetap)>0&&!/^qris/i.test(String(o.payment||"")))h+=`<div class="order-hint">🛵 Ongkir jarak ${rupiah(o.ongkir_tetap)} dibayarkan bersama nota lain yang tetap diantar.</div>`;
   return h;
 }
+
+// ===== BANNER CUACA HUJAN (muncul bila admin menyalakan Mode hujan) =====
+function renderBannerHujan(){
+  let b=document.getElementById("ksHujanBar");
+  if(!hujanOn()){if(b)b.remove();return;}
+  if(!b){b=document.createElement("div");b.id="ksHujanBar";b.className="ks-hujan-bar";b.setAttribute("role","status");document.body.insertAdjacentElement("afterbegin",b);}
+  b.innerHTML=`<span>🌧️ <b>Sedang hujan</b> — kurir tetap mengantar. Ongkir +${rupiah(hujanRp())} per pengiriman.</span><button type="button" aria-label="Tutup" onclick="this.parentNode.remove()">×</button>`;
+}
+if(document.body)renderBannerHujan();else document.addEventListener("DOMContentLoaded",renderBannerHujan);
+setInterval(()=>{try{if(hujanOn()!==!!document.getElementById("ksHujanBar"))renderBannerHujan();}catch(e){}},5000);
