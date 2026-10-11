@@ -111,9 +111,8 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
     <div class="savebar"><div class="btns"><button class="btn wa" id="fSimpan" type="button">💾 Simpan perubahan</button><a class="btn" href="jasa.html">Lihat halaman Penyedia Jasa</a></div></div>
 
     <section class="box">
-      <h2>Keamanan akun</h2>
-      <div class="row2" style="margin-top:10px"><label>PIN lama<input id="pOld" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>PIN baru<input id="pNew" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div>
-      <div class="btns"><button class="btn" id="pSimpan" type="button">Simpan PIN baru</button><button class="btn danger" id="btnKeluar" type="button">Keluar</button></div>
+      <h2>Akun</h2>
+      <div class="btns"><button class="btn danger" id="btnKeluar" type="button">Keluar</button></div>
       <div id="ksHapusAkun"></div>
     </section>
   </div>
@@ -269,14 +268,6 @@ $("fSimpan").onclick = async () => {
   finally{ $("fSimpan").disabled = false; }
 };
 
-$("pSimpan").onclick = async () => {
-  const o = $("pOld").value, n = $("pNew").value;
-  if(!okPin(n)) return toast("PIN baru harus 4–8 angka");
-  try{
-    await KSID.gantiPin("jasa", me.wa, o, n);
-    $("pOld").value = $("pNew").value = ""; toast("PIN diganti");
-  }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
-};
 $("btnKeluar").onclick = () => { sessionStorage.removeItem("kalensari_jasa_sess"); if(window.KSID) KSID.hapusSesi("jasa"); if(window.KSSatu) KSSatu.keluarSemua(); location.href = "akun-jasa.html"; };
 
 
