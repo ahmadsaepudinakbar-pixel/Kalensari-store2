@@ -586,6 +586,44 @@ function tampilWaktuBar(w,jml){
   if(!bar){const grid=document.getElementById("productGrid");if(!grid)return;bar=document.createElement("div");bar.id="waktuBar";bar.className="waktu-bar";grid.insertAdjacentElement("beforebegin",bar);}
   bar.hidden=false;bar.innerHTML=`<span>${w.ik}</span><div><b>Cocok untuk ${w.nama} ini</b><small>${jml} menu pilihan ${w.nama} ada di paling atas • ${w.aj}</small></div>`;
 }
+// ===== TOKO TERDEKAT DULU =====
+// Urutan akhir menu: toko yang paling dekat dengan pembeli naik ke atas per "lapis jarak" (<=1, <=2, <=3, <=5 km, lebih jauh, toko tanpa titik).
+// Di DALAM satu lapis jarak, urutan tetap seperti sebelumnya: acak 20 menit + menu cocok suhu/cuaca + menu cocok waktu.
+// Titik pembeli: GPS (jika izin lokasi sudah diberikan / tombol ditekan) -> alamat utama akun warga -> lokasi terakhir tersimpan.
+const KS_DEKAT_KM=[1,2,3,5];            // batas lapis jarak (km), boleh diubah
+const KS_DEKAT_SIMPAN=12*36e5;          // lokasi GPS tersimpan dipakai maksimal 12 jam
+let KS_LOK=null, KS_IZIN="prompt";      // KS_LOK = {lat,lng,src:"gps"|"akun"}
+try{const v=JSON.parse(localStorage.getItem("kalensari_lokasi_beli")||"null");if(v&&validLL(v.lat,v.lng)&&Date.now()-v.t<KS_DEKAT_SIMPAN)KS_LOK={lat:Number(v.lat),lng:Number(v.lng),src:"gps"};}catch(e){}
+function setLokasiBeli(lat,lng,src){
+  if(!validLL(lat,lng))return;
+  if(src==="akun"&&KS_LOK&&KS_LOK.src==="gps")return; // GPS terbaru lebih diutamakan
+  KS_LOK={lat:Number(lat),lng:Number(lng),src};
+  if(src==="gps"){try{localStorage.setItem("kalensari_lokasi_beli",JSON.stringify({lat:KS_LOK.lat,lng:KS_LOK.lng,t:Date.now()}));}catch(e){}}
+  renderProducts();
+}
+function mintaLokasiBeli(diam){
+  if(!navigator.geolocation){if(!diam)showToast("Browser tidak mendukung lokasi.");return;}
+  if(!diam)showToast("📍 Mengambil lokasi...");
+  navigator.geolocation.getCurrentPosition(pos=>{setLokasiBeli(pos.coords.latitude,pos.coords.longitude,"gps");KS_IZIN="granted";if(!diam)showToast("📍 Toko terdekat tampil lebih dulu");},
+    err=>{if(err.code===1)KS_IZIN="denied";if(!diam)showToast(err.code===1?"Izin lokasi diblokir. Klik ikon gembok di alamat → Lokasi → Izinkan.":"Lokasi tidak bisa diperoleh. Coba lagi.");renderProducts();},
+    {enableHighAccuracy:false,timeout:15000,maximumAge:5*60*1000});
+}
+function jarakTokoProduk(p){
+  if(!KS_LOK)return null;let m=null;
+  sellerList(p).forEach(n=>{const l=sellerLocs[sellerKey(n)];if(l&&validLL(l.lat,l.lng)){const k=kmBetween(l,KS_LOK);if(m===null||k<m)m=k;}});
+  return m; // produk dari beberapa toko: pakai toko yang terdekat
+}
+function lapisJarak(p){const k=jarakTokoProduk(p);if(k===null)return KS_DEKAT_KM.length+1;const i=KS_DEKAT_KM.findIndex(x=>k<=x);return i<0?KS_DEKAT_KM.length:i;}
+function tampilDekatBar(aktif){
+  let bar=document.getElementById("dekatBar");
+  const perlu=aktif&&(KS_LOK||KS_IZIN!=="denied");
+  if(!perlu){if(bar)bar.hidden=true;return;}
+  if(!bar){const grid=document.getElementById("productGrid");if(!grid)return;bar=document.createElement("div");bar.id="dekatBar";bar.className="dekat-bar";grid.insertAdjacentElement("beforebegin",bar);}
+  bar.hidden=false;
+  bar.innerHTML=KS_LOK
+    ?`<span>📍</span><div><b>Toko terdekat tampil lebih dulu</b><small>Menurut ${KS_LOK.src==="gps"?"lokasi Anda sekarang":"alamat utama akun Anda"}</small></div><button type="button" onclick="mintaLokasiBeli(false)">Perbarui</button>`
+    :`<span>📍</span><div><b>Lihat toko terdekat dulu</b><small>Izinkan lokasi agar menu dari toko dekat Anda muncul paling atas</small></div><button type="button" onclick="mintaLokasiBeli(false)">Izinkan</button>`;
+}
 function renderProducts() {
   const q=document.getElementById("searchInput").value.toLowerCase().trim();
   const sort=document.getElementById("sortSelect").value;
@@ -597,6 +635,10 @@ function renderProducts() {
   {const bawaan=activeCategory==="Semua"&&!activeSeller&&!q&&!["priceAsc","price-low","priceDesc","price-high","name"].includes(sort);
     if(bawaan){const w=KS_WAKTU[waktuIni()];list=list.map((p,i)=>[p,i]).sort((a,b)=>cocokWaktu(b[0],w)-cocokWaktu(a[0],w)||a[1]-b[1]).map(x=>x[0]);tampilWaktuBar(w,new Set(list.filter(p=>cocokWaktu(p,w)).map(p=>groupName(p)||p.id)).size);}
     else tampilWaktuBar(null,0);}
+  // Toko terdekat dulu (urutan acak/suhu/waktu di atas tetap berlaku di dalam tiap lapis jarak)
+  {const urutBawaan=!["priceAsc","price-low","priceDesc","price-high","name"].includes(sort)&&!activeSeller;
+    if(urutBawaan&&KS_LOK)list=list.map((p,i)=>[p,i,lapisJarak(p)]).sort((a,b)=>a[2]-b[2]||a[1]-b[1]).map(x=>x[0]);
+    tampilDekatBar(urutBawaan);}
   if(sort==="priceAsc" || sort==="price-low") list.sort((a,b)=>currentPrice(a)-currentPrice(b));
   if(sort==="priceDesc" || sort==="price-high") list.sort((a,b)=>currentPrice(b)-currentPrice(a));
   if(sort==="name") list.sort((a,b)=>a.name.localeCompare(b.name,"id"));
@@ -2551,6 +2593,15 @@ async function muatCuaca(){
   }catch(e){console.warn("Cuaca tidak tersedia:",e);}
 }
 setTimeout(muatCuaca,1200);setInterval(muatCuaca,CUACA_SIMPAN);
+// ===== Titik pembeli untuk "toko terdekat dulu": tidak memunculkan popup izin sendiri; popup hanya muncul saat pembeli menekan tombol "Izinkan" =====
+setTimeout(async()=>{
+  try{
+    if(navigator.permissions&&navigator.permissions.query){try{KS_IZIN=(await navigator.permissions.query({name:"geolocation"})).state;}catch(e){}}
+    if(KS_IZIN==="granted")mintaLokasiBeli(true); // izin sudah pernah diberikan: ambil lokasi diam-diam
+    if(!KS_LOK||KS_LOK.src!=="gps"){const b=await loadBuyer();if(b&&okCoord(b.lat,b.lng))setLokasiBeli(b.lat,b.lng,"akun");}
+    renderProducts();
+  }catch(e){console.warn("Lokasi pembeli tidak tersedia:",e);}
+},1500);
 
 // ===== Nota dibatalkan: alasan + status pengembalian dana (QRIS) =====
 function infoBatal(o){
