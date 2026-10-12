@@ -267,6 +267,17 @@ body{background-color:#f4ebdf;background-image:none}
   <div id="stat" class="status p"></div>
   <label class="sw" id="aktifBox" style="margin:0 0 14px" hidden><input type="checkbox" id="f_aktif"> Saya siap menerima antaran</label>
   <p id="lokInfo" class="hint" hidden style="margin:-6px 4px 14px"></p>
+  <section class="box" id="lengkapiBox" hidden style="margin:0 0 14px">
+    <h2 style="margin:0 0 4px;font-size:18px">🪪 Lengkapi data kurir</h2>
+    <p class="hint" style="margin:0 0 12px">Foto profil dan NIK <b>wajib</b> diisi sebelum Anda bisa menerima antaran.</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)"><b id="lkFotoSt">Foto profil</b>
+      <label class="mini g" id="lkFotoBtn" for="avIn2" style="margin:0;cursor:pointer">📷 Ambil / unggah foto</label><input type="file" id="avIn2" accept="image/*" hidden></div>
+    <div style="padding:10px 0;border-top:1px solid var(--line)"><b id="lkNikSt">NIK</b>
+      <div id="lkNikForm" style="margin-top:8px"><input id="lkNikIn" class="fld" inputmode="numeric" autocomplete="off" maxlength="16" placeholder="16 angka NIK sesuai KTP">
+        <button class="mini g" id="lkNikSimpan" type="button" style="margin-top:8px">Simpan NIK</button>
+        <p class="hint" style="margin:8px 0 0">🔒 NIK hanya bisa dilihat admin Kalensari untuk verifikasi kurir. Tidak ditampilkan ke pembeli maupun kurir lain, dan tidak bisa diubah sendiri setelah disimpan.</p></div></div>
+    <p id="lkErr" class="hint" style="margin:6px 0 0;color:#c0392b"></p>
+  </section>
   <div id="saldoBox" hidden></div>
   <div id="notifBox" hidden><span class="nt-ic"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1z"/></svg></span><div class="nt-tx"><b>Notifikasi pesanan</b><p id="notifTxt">Dapatkan pemberitahuan di HP saat ada pesanan masuk, walaupun aplikasi sedang ditutup.</p></div><div class="nt-bt"><button class="mini g" type="button" id="btnNotif">Aktifkan</button><button class="mini" type="button" id="btnNotifTest" hidden>Kirim tes <em>›</em></button></div></div>
   <section id="layBox" hidden><div class="ly-ban"><div><b>Pilih Layanan Pengiriman</b><small>Centang layanan yang ingin Anda gunakan</small></div><span class="ly-pak" aria-hidden="true"><i>✦</i>📦<i>✦</i></span></div><div class="ly-g"><label class="ly-c"><input type="checkbox" value="cod"><span class="ly-cb"></span><span class="ly-ik">💵</span><b>COD</b><small>Bayar di tempat saat barang tiba</small><small class="ly-w">(Harga produk harus ditalangi dulu oleh kurir)</small></label><label class="ly-c"><input type="checkbox" value="paket"><span class="ly-cb"></span><span class="ly-ik">📦</span><b>Antar Paket</b><small>Kirim paket dengan aman &amp; cepat</small></label><label class="ly-c"><input type="checkbox" value="ojek"><span class="ly-cb"></span><span class="ly-ik">🛵</span><b>Ngojek</b><small>Antar jemput penumpang</small></label></div><p class="ly-n">Boleh pilih salah satu atau ketiganya.</p><div class="ly-rad"><label for="radSel"><b>📏 Kesanggupan jarak antar</b><small>Pesanan yang jaraknya melebihi pilihan Anda akan dialihkan ke kurir lain yang sanggup.</small></label><select id="radSel" class="fld"><option value="0">Tanpa batas jarak</option><option value="3">Maksimal 3 km</option><option value="5">Maksimal 5 km</option><option value="10">Maksimal 10 km</option><option value="15">Maksimal 15 km</option><option value="20">Maksimal 20 km</option><option value="25">Maksimal 25 km</option><option value="30">Maksimal 30 km</option><option value="40">Maksimal 40 km</option><option value="50">Maksimal 50 km</option></select><p class="ly-n" id="radNote" style="margin:0"></p></div></section>
@@ -395,7 +406,8 @@ async function load(){
   $("dHalo").textContent = "Halo, " + (me.nama || "selamat datang") + " 👋";
   FIELDS.forEach(k => { $("f_" + k).value = me[k] || ""; });
   $("fWa").value = "+" + WA;
-  $("f_aktif").checked = me.aktif !== false; const ok = !me.pending; $("stat").className = "status " + (ok ? "ok" : "p"); $("stat").textContent = ok ? "✅ Akun kurir Anda sudah disetujui admin." : "⏳ Menunggu persetujuan admin. Daftar pesanan akan tampil setelah disetujui."; $("ordBox").hidden = !ok; $("aktifBox").hidden = !ok; $("notifBox").hidden = !ok; $("layBox").hidden = !ok; if(ok){ pushInit(); layIsi(); lokPastikan(); }
+  $("f_aktif").checked = me.aktif !== false; const ok = !me.pending; $("stat").className = "status " + (ok ? "ok" : "p"); $("stat").textContent = ok ? "✅ Akun kurir Anda sudah disetujui admin." : "⏳ Menunggu persetujuan admin. Daftar pesanan akan tampil setelah disetujui."; $("ordBox").hidden = !ok; $("aktifBox").hidden = !ok; $("notifBox").hidden = !ok; $("layBox").hidden = !ok; if(ok){ pushInit(); layIsi(); }
+  lengkapiCek().finally(() => { if(ok) lokPastikan(); });
   if(ok && !me.joined){ me.joined = Date.now(); upsertMember(me).catch(() => {}); }
   if(window.KSID) $("kodeAkun").innerHTML = KSID.lencana(me.kode);
   renderProf(); $("dash").hidden = false;
@@ -503,6 +515,7 @@ async function muatPembagian(){
 async function eligibleCouriers(){
   const [l] = await Promise.all([getSetting(ROLE + "_members", []), muatBiaya(), muatPembagian()]);
   let el = (Array.isArray(l) ? l : []).filter(m => m && m.id && m.pending !== true && m.aktif !== false);
+  { const lk = el.filter(dataLengkap); if(lk.length) el = lk; }   // foto + NIK wajib; bila belum ada kurir yang lengkap, pesanan tetap dibagi agar tidak menggantung
   // Bila potongan saldo aktif: hanya kurir dengan saldo cukup yang mendapat giliran (sama di semua HP)
   // Saldo minus TIDAK menghalangi pesanan QRIS, antar barang/paket, dan ngojek. Hanya pesanan COD yang butuh saldo tidak minus (lihat eligFor).
   SALDO_ALL = BIAYA.aktif ? await saldoSemua() : null;
@@ -1038,6 +1051,52 @@ async function setStatus(code, status, antar){
   }catch(e){ toast("Gagal memperbarui status"); loadOrders(); }
 }
 $("btnRefresh").onclick = loadOrders;
+/* ===== Data wajib kurir: FOTO PROFIL + NIK =====
+   Tanpa keduanya kurir tidak bisa menyalakan "Saya siap menerima antaran". Foto disimpan lewat foto_simpan,
+   NIK lewat fungsi server kurir_nik_simpan (supabase-kurir-nik.sql): hanya admin yang bisa membaca NIK, kurir tidak bisa mengubahnya sendiri.
+   Penanda me.fotoOk / me.nikOk disinkronkan dari server setiap halaman dibuka. */
+function dataLengkap(m){ return !!(m && m.fotoOk && m.nikOk); }
+let NIKINFO = null;
+async function rpcNik(fn, body){
+  const r = await fetch(String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "") + "/rest/v1/rpc/" + fn, {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const t = await r.text(); let j = null; try{ j = JSON.parse(t); }catch(e){}
+  if(!r.ok){
+    const m = String((j && (j.message || j.hint)) || t || r.status);
+    if(r.status === 404 || /Could not find the function|PGRST202/i.test(m)) throw Object.assign(new Error("Fitur NIK belum aktif di server. Hubungi admin."), {belumAktif:true});
+    throw new Error(m.replace(/^SESI:\s*/, ""));
+  }
+  return j;
+}
+function lengkapiUI(){
+  const box = $("lengkapiBox"); if(!box || !me) return;
+  const ok = dataLengkap(me); box.hidden = ok; if(ok) return;
+  $("lkFotoSt").textContent = me.fotoOk ? "✅ Foto profil sudah ada" : "❌ Foto profil belum ada";
+  $("lkFotoBtn").textContent = me.fotoOk ? "📷 Ganti foto" : "📷 Ambil / unggah foto";
+  const adaNik = !!me.nikOk;
+  $("lkNikSt").textContent = adaNik ? "✅ NIK tersimpan" + (NIKINFO && NIKINFO.nik_samar ? " (" + NIKINFO.nik_samar + ")" : "") : "❌ NIK belum diisi";
+  $("lkNikForm").hidden = adaNik;
+  const er = $("lkErr"); er.textContent = NIKINFO && NIKINFO.err ? "⚠️ " + NIKINFO.err : "";
+}
+async function lengkapiCek(){
+  if(!me) return; let ubah = false;
+  try{ if(window.fotoKurir) await window.fotoKurir(); if(FOTO_KURIR && !me.fotoOk){ me.fotoOk = true; ubah = true; } }catch(e){}
+  if(cloudOn() && window.KSPesanan){
+    try{ const r = await rpcNik("kurir_nik_saya", {p_sesi:KSPesanan.sesi(ROLE)}); NIKINFO = r || {}; const ada = !!(r && r.ada); if(!!me.nikOk !== ada){ me.nikOk = ada; ubah = true; } }
+    catch(e){ NIKINFO = {err:e.message || "Gagal memeriksa NIK"}; }
+  }
+  if(!me.pending && !dataLengkap(me) && me.aktif !== false){ me.aktif = false; $("f_aktif").checked = false; ubah = true; }   // data belum lengkap -> tidak bisa siap antar
+  if(ubah) upsertMember(me).catch(() => {});
+  lengkapiUI();
+}
+$("lkNikSimpan").onclick = async () => {
+  const v = $("lkNikIn").value.replace(/\D/g, ""), b = $("lkNikSimpan");
+  if(v.length !== 16) return toast("NIK harus 16 angka");
+  if(!confirm("Pastikan NIK ini sudah benar sesuai KTP:\n\n" + v + "\n\nNIK tidak bisa diubah sendiri setelah disimpan.")) return;
+  b.disabled = true; b.textContent = "Menyimpan…";
+  try{ const r = await rpcNik("kurir_nik_simpan", {p_sesi:KSPesanan.sesi(ROLE), p_nik:v}); me.nikOk = true; NIKINFO = {ada:true, nik_samar:r && r.nik_samar}; $("lkNikIn").value = ""; toast("✅ NIK tersimpan"); lengkapiUI(); }
+  catch(e){ if(e.belumAktif) NIKINFO = {err:e.message}; lengkapiUI(); toast(String(e.message || e).slice(0, 110)); }
+  b.disabled = false; b.textContent = "Simpan NIK";
+};
 /* ===== Lokasi kurir: WAJIB aktif selama "Saya siap menerima antaran" menyala =====
    Disimpan di data kurir (me.lat, me.lng, me.lokAcc, me.lokT) agar semua HP bisa menghitung siapa yang terdekat ke toko. */
 const LOK_SIMPAN_MS = 3 * 60000, LOK_GESER_M = 150;
@@ -1087,6 +1146,7 @@ document.addEventListener("visibilitychange", () => { if(document.hidden || !me 
 setInterval(lokInfoUI, 30000);
 $("f_aktif").onchange = async () => {
   const cb = $("f_aktif"), on = cb.checked, lama = {lat:me.lat, lng:me.lng, lokAcc:me.lokAcc, lokT:me.lokT};
+  if(on && !dataLengkap(me)){ cb.checked = false; lengkapiUI(); const lb = $("lengkapiBox"); if(lb) lb.scrollIntoView({behavior:"smooth", block:"center"}); return toast("Lengkapi foto profil dan NIK dulu sebelum siap menerima antaran"); }
   if(on){
     cb.disabled = true; toast("📍 Mengambil lokasi Anda…");
     try{ lokTerap(await lokAmbil()); lokErr = ""; }
@@ -1237,14 +1297,14 @@ window.fotoKurir = async function(){
   try{ const v = await getSetting("foto_kurir_" + me.id, null); if(v && v.foto){ FOTO_KURIR = v.foto; tampilFotoKurir(); } }catch(e){}
 };
 document.addEventListener("change", async e => {
-  if(!e.target || e.target.id !== "avIn" || !e.target.files || !e.target.files[0] || !me) return;
+  if(!e.target || !["avIn", "avIn2"].includes(e.target.id) || !e.target.files || !e.target.files[0] || !me) return;
   const f = e.target.files[0]; e.target.value = "";
   try{
     const foto = await new Promise((ok, no) => { const r = new FileReader(); r.onerror = no; r.onload = () => { const im = new Image(); im.onerror = no;
       im.onload = () => { const z = Math.min(im.width, im.height), c = document.createElement("canvas"); c.width = c.height = 320;
         c.getContext("2d").drawImage(im, (im.width - z) / 2, (im.height - z) / 2, z, z, 0, 0, 320, 320); ok(c.toDataURL("image/jpeg", .82)); }; im.src = r.result; }; r.readAsDataURL(f); });
     await fotoKurirSimpan(foto);
-    FOTO_KURIR = foto; tampilFotoKurir(); toast("✅ Foto profil disimpan");
+    FOTO_KURIR = foto; tampilFotoKurir(); me.fotoOk = true; upsertMember(me).catch(() => {}); lengkapiUI(); toast("✅ Foto profil disimpan");
   }catch(x){ toast("Gagal menyimpan foto: " + String(x && x.message || x).slice(0, 60)); }
 });
 // Simpan foto profil lewat server (supabase-foto-aman.sql); bila SQL belum dijalankan, pakai cara lama
@@ -1598,7 +1658,7 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)}, cur="home";
-  var HOME=[".hd","#stat","#aktifBox","#lokInfo","#saldoBox","#notifBox","#layBox","#ringkas","#btnLihat"], ORD=["#ordBox"], PROF=["#profBox",".accordion-box","#ksLink"], UANG=["#uangBox"];
+  var HOME=[".hd","#stat","#aktifBox","#lokInfo","#lengkapiBox","#saldoBox","#notifBox","#layBox","#ringkas","#btnLihat"], ORD=["#ordBox"], PROF=["#profBox",".accordion-box","#ksLink"], UANG=["#uangBox"];
   function all(l){var r=[];l.forEach(function(q){document.querySelectorAll(q).forEach(function(e){r.push(e)})});return r}
   function show(t){ cur=t;
     if(t==="uang"&&window.muatPenghasilan) window.muatPenghasilan();

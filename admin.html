@@ -827,18 +827,39 @@ kurir(){
   <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('truck')}</div><div class="lbl">Total Kurir</div><div class="val">${all.length}</div></div>
   <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('check')}</div><div class="lbl" style="color:var(--blue)">Siap Antar</div><div class="val">${siap}</div></div></div>
   ${saldoPanel()}
-  <div class="cards" id="list">${list.map((m,i)=>`<div class="lc"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b> ${kodeChip(m.kode)}<div class="sm">${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">🛵 ${esc([m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-')}</div><div style="margin-top:6px">${m.aktif!==false?chip('Siap antar','b-Selesai'):chip('Tidak aktif','b-Batal')}${biaya().aktif&&saldoOf(m.id)!==null?' '+chip('💰 '+rp(saldoOf(m.id)),saldoOf(m.id)<minSaldoB()?'b-Batal':'b-Diproses'):''}</div>${biaya().aktif&&S.saldo?`<button class="btn btn-light" style="margin-top:8px;padding:6px 12px" onclick="saldoKurir('${jsq(m.id)}')">💰 Saldo</button>`:''}</div><div class="right-col">${waLink(m.wa)}<button class="more" onclick="memberMenu('kurir','${jsq(m.id)}')">${ico('dots')}</button></div></div>`).join('')||'<div class="empty">Belum ada kurir yang disetujui</div>'}</div>`;
+  <div class="cards" id="list">${list.map((m,i)=>`<div class="lc"><div class="ppl" data-kid="${esc(m.id)}" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b> ${kodeChip(m.kode)}<div class="sm">${m.wa?'+'+esc(m.wa):'-'}</div>${kurirDataHtml(m)}<div class="sm">🛵 ${esc([m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-')}</div><div style="margin-top:6px">${m.aktif!==false?chip('Siap antar','b-Selesai'):chip('Tidak aktif','b-Batal')}${biaya().aktif&&saldoOf(m.id)!==null?' '+chip('💰 '+rp(saldoOf(m.id)),saldoOf(m.id)<minSaldoB()?'b-Batal':'b-Diproses'):''}</div>${biaya().aktif&&S.saldo?`<button class="btn btn-light" style="margin-top:8px;padding:6px 12px" onclick="saldoKurir('${jsq(m.id)}')">💰 Saldo</button>`:''}</div><div class="right-col">${waLink(m.wa)}<button class="more" onclick="memberMenu('kurir','${jsq(m.id)}')">${ico('dots')}</button></div></div>`).join('')||'<div class="empty">Belum ada kurir yang disetujui</div>'}</div>`;
 },
 persetujuan(){
   const g=GROUPS.find(x=>x.k===apTab)||GROUPS[0],rows=pendingOf(g.k);
   return `<div class="toolbar"><p class="sm" style="color:var(--mut);flex:1;margin:0">Pendaftar baru menunggu di sini. Setelah disetujui, mereka bisa memakai dashboard masing-masing.</p><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="tabs">${GROUPS.map(x=>`<button class="tab ${x.k===g.k?'on':''}" onclick="apTab='${x.k}';render()">${x.em} ${x.label}<span class="n">${pendingOf(x.k).length}</span></button>`).join('')}</div>
-  <div class="cards" id="list">${rows.map((m,i)=>`<div class="lc" style="align-items:flex-start"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b> ${kodeChip(m.kode)}<div class="sm">📱 ${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">${g.em} ${esc(g.info(m))}</div>${m.updated?`<div class="sm">Daftar ${ago(m.updated)}</div>`:''}
+  <div class="cards" id="list">${rows.map((m,i)=>`<div class="lc" style="align-items:flex-start"><div class="ppl" ${g.k==='kurir'?`data-kid="${esc(m.id)}"`:''} style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b> ${kodeChip(m.kode)}<div class="sm">📱 ${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">${g.em} ${esc(g.info(m))}</div>${g.k==='kurir'?kurirDataHtml(m):''}${m.updated?`<div class="sm">Daftar ${ago(m.updated)}</div>`:''}
     <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-g" style="padding:8px 14px;font-size:13px" onclick="approve('${g.k}','${jsq(m.id)}',true,this)">✓ Setujui</button><button class="btn btn-red" style="padding:8px 14px;font-size:13px" onclick="approve('${g.k}','${jsq(m.id)}',false,this)">✕ Tolak</button></div></div><div class="right-col">${waLink(m.wa)}</div></div>`).join('')||`<div class="empty">Tidak ada ${g.label.toLowerCase()} yang menunggu persetujuan</div>`}</div>`;
 }
 });
 Object.assign(TITLES,{toko:['Daftar Toko','Penjual, jam buka, dan status toko'],kurir:['Daftar Kurir','Kurir yang sudah disetujui'],persetujuan:['Persetujuan','Pendaftar penjual, kurir, dan penyedia jasa']});
 let apTab='kurir';
+/* ===== NIK & foto kurir (wajib; NIK hanya terbaca admin, tersimpan di store_settings "kurir_nik" = {id:{nik,t}}) ===== */
+const nikData=id=>{const v=S.settings.kurir_nik;return v&&typeof v==='object'&&v[id]?v[id]:null};
+function kurirDataHtml(m){const n=nikData(m.id);return `<div class="sm">🪪 NIK: ${n?`<b>${esc(n.nik)}</b>`:'<b style="color:var(--red)">belum diisi</b>'} • 📷 Foto: ${m.fotoOk?'<b>ada</b>':'<b style="color:var(--red)">belum ada</b>'}</div>`}
+const FKA={};
+async function muatFotoKurirAdmin(){
+  for(const el of [...document.querySelectorAll('.ppl[data-kid]')]){
+    const id=el.dataset.kid;
+    if(!(id in FKA)){try{const v=await readKey('foto_kurir_'+id,null);FKA[id]=v&&v.foto||''}catch(e){FKA[id]=''}}
+    if(FKA[id]&&el.isConnected){el.style.backgroundImage=`url('${FKA[id]}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';el.style.cursor='pointer';
+      el.onclick=()=>modal(`<h3>📷 Foto profil kurir</h3><img src="${FKA[id]}" alt="Foto kurir" style="width:100%;border-radius:14px"><div class="mact"><button class="btn" onclick="closeModal()">Tutup</button></div>`)}
+  }
+}
+{const _render=render;render=function(){_render();if(route==='kurir'||route==='persetujuan')setTimeout(muatFotoKurirAdmin,0)}}
+{const _rl=refreshList;refreshList=function(){_rl();if(route==='kurir'||route==='persetujuan')setTimeout(muatFotoKurirAdmin,0)}}
+async function resetNik(id,btn){
+  if(!confirm('Reset NIK kurir ini? Kurir harus mengisi NIK lagi sebelum bisa siap menerima antaran.'))return;
+  await busy(btn,async()=>{
+    const nk=await readKey('kurir_nik',{});if(nk&&typeof nk==='object'&&nk[id]){delete nk[id];await setSetting('kurir_nik',nk);S.settings.kurir_nik=nk}
+    const arr=await readKey('kurir_members',[]),nl=(Array.isArray(arr)?arr:[]).map(x=>x&&x.id===id?{...x,nikOk:false,updated:Date.now()}:x);await setSetting('kurir_members',nl);S.settings.kurir_members=nl;
+    closeModal();render();toast('NIK direset. Kurir diminta mengisi ulang.')});
+}
 
 async function approve(gk,id,ok,btn){
   const g=GROUPS.find(x=>x.k===gk);
@@ -846,12 +867,14 @@ async function approve(gk,id,ok,btn){
   await busy(btn,async()=>{
     const key=gk+'_members',arr=await readKey(key,[]),list=Array.isArray(arr)?arr:[],m=list.find(x=>x&&x.id===id);
     if(!m){toast('Data tidak ditemukan, mungkin sudah diproses');await loadAll(true);return}
+    if(ok&&gk==='kurir'&&(!nikData(id)||!m.fotoOk)&&!confirm('Kurir ini belum melengkapi '+[!nikData(id)?'NIK':'',!m.fotoOk?'foto profil':''].filter(Boolean).join(' dan ')+'. Tetap setujui?'))return;
     if(ok){const upd={...m,pending:false,updated:Date.now()};if(gk==='jasa')upd.status='Show';const nl=list.map(x=>x&&x.id===id?upd:x);await setSetting(key,nl);S.settings[key]=nl;let ext='';if(gk==='kurir'){const sa=await beriSaldoAwal(id);if(sa)ext=` + saldo awal ${rp(biaya().saldoAwal)}`}toast(`${m.nama||'Akun'} disetujui${ext}`)}
     else{await removeMember(gk,id,list);toast('Pendaftaran ditolak')}
     render();
   });
 }
 async function removeMember(gk,id,list){
+  if(gk==='kurir'){try{const nk=await readKey('kurir_nik',{});if(nk&&typeof nk==='object'&&nk[id]){delete nk[id];await setSetting('kurir_nik',nk);S.settings.kurir_nik=nk}}catch(e){}}   // hapus NIK ikut akun
   const key=gk+'_members';list=list||await readKey(key,[]);const nl=(Array.isArray(list)?list:[]).filter(x=>x&&x.id!==id);
   await setSetting(key,nl);S.settings[key]=nl;
   const acc=await readKey(gk+'_accounts',{});let ch=false;if(acc&&typeof acc==='object')for(const w in acc){if(acc[w]&&acc[w].id===id){delete acc[w];ch=true}}
@@ -863,7 +886,9 @@ function memberMenu(gk,id){
   <div class="detail-row"><span>No. WA</span><b>${m.wa?'+'+esc(m.wa):'-'}</b></div>
   <div class="detail-row"><span>Keterangan</span><b>${esc(g.info(m))}</b></div>
   ${m.updated?`<div class="detail-row"><span>Diperbarui</span><b>${fmtDate(m.updated)}</b></div>`:''}
+  ${gk==='kurir'?`<div class="detail-row"><span>NIK</span><b>${nikData(m.id)?esc(nikData(m.id).nik):'belum diisi'}</b></div><div class="detail-row"><span>Foto profil</span><b>${m.fotoOk?'ada':'belum ada'}</b></div>`:''}
   <div class="mact" style="flex-direction:column">
+    ${gk==='kurir'&&nikData(m.id)?`<button class="btn btn-light" onclick="resetNik('${jsq(id)}',this)">🪪 Reset NIK (kurir isi ulang)</button>`:''}
     <button class="btn btn-light" onclick="setPending('${gk}','${jsq(id)}',this)">⏸ Kembalikan ke menunggu persetujuan</button>
     <button class="btn btn-red" onclick="delMember('${gk}','${jsq(id)}',this)">${ico('trash')}Hapus akun</button>
     <button class="btn" onclick="closeModal()">Tutup</button></div>`)}
