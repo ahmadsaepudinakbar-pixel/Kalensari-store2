@@ -21,9 +21,15 @@
   var SUFIKS = "(?:nya|lah|kah)?";
 
   function rapat(s) { return String(s).replace(/(.)\1+/g, "$1"); }   // huruf berulang -> satu
-  var subList = SUB.map(rapat), tokRe = null;
-  function bangunTok() { tokRe = new RegExp("^(?:" + TOK.map(rapat).join("|") + ")" + SUFIKS + "$"); }
-  bangunTok();
+  var KUSTOM = [], subList = [], tokRe = null;
+  // Gabungkan kata bawaan + kata tambahan admin. >= 5 huruf: dicocokkan di dalam kata; 3-4 huruf: kata utuh.
+  function bangun() {
+    var sub = SUB.slice(), tok = TOK.slice();
+    KUSTOM.forEach(function (k) { (k.length >= 5 ? sub : tok).push(k); });
+    subList = sub.map(rapat).filter(function (v, i, a) { return v && a.indexOf(v) === i; });
+    tokRe = new RegExp("^(?:" + tok.map(rapat).join("|") + ")" + SUFIKS + "$");
+  }
+  bangun();
 
   // Normalisasi satu kata: kembalikan {n: huruf rapi, a: indeks awal asli tiap huruf, z: indeks akhir asli tiap huruf}
   function normal(w, off) {
@@ -66,15 +72,35 @@
     return c.join("");
   }
   function kotor(teks) { return cari(teks).length > 0; }
-  function tambah(daftar) {
+  // Ganti seluruh daftar kata tambahan (dari admin). Huruf kecil, 3-30 huruf/angka, maks. 500 kata.
+  function atur(daftar) {
+    var h = [];
     (daftar || []).forEach(function (k) {
-      k = String(k || "").trim().toLowerCase(); if (k.length < 3) return;
-      if (k.length >= 5) { var r = rapat(k); if (subList.indexOf(r) < 0) subList.push(r); }
-      else if (TOK.indexOf(k) < 0) TOK.push(k);
-    }); bangunTok();
+      k = String(k || "").trim().toLowerCase().replace(/[^a-z0-9]/g, ""); if (k.length >= 3 && k.length <= 30 && h.indexOf(k) < 0) h.push(k);
+    });
+    KUSTOM = h.slice(0, 500); bangun();
+  }
+  function tambah(daftar) { atur(KUSTOM.concat(daftar || [])); }
+
+  /* Kata tambahan dari admin: store_settings "kata_terlarang" = {kata:[...]} (diatur di Admin > Pengaturan).
+     Disimpan di HP agar langsung aktif saat halaman dibuka, lalu diperbarui dari server paling cepat tiap 10 menit. */
+  var CK = "kalensari_kata_terlarang";
+  function muat() {
+    try { var c = JSON.parse(localStorage.getItem(CK) || "null"); if (c && Array.isArray(c.kata)) atur(c.kata); } catch (e) {}
+    try {
+      var cfg = window.CLOUD_CONFIG || {}; if (!cfg.enabled || !cfg.supabaseUrl) return;
+      var c2 = JSON.parse(localStorage.getItem(CK) || "null"); if (c2 && Date.now() - (c2.cek || 0) < 600000) return;
+      fetch(String(cfg.supabaseUrl).replace(/\/$/, "") + "/rest/v1/store_settings?select=value&key=eq.kata_terlarang",
+        { headers: { apikey: cfg.supabaseAnonKey, Authorization: "Bearer " + cfg.supabaseAnonKey } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { if (!Array.isArray(j)) return; var v = (j[0] && j[0].value) || {}, k = Array.isArray(v.kata) ? v.kata : [];
+          atur(k); try { localStorage.setItem(CK, JSON.stringify({ kata: k, cek: Date.now() })); } catch (e) {} })
+        .catch(function () {});
+    } catch (e) {}
   }
 
-  window.KSFilter = { bersihkan: bersihkan, kotor: kotor, tambah: tambah };
+  window.KSFilter = { bersihkan: bersihkan, kotor: kotor, tambah: tambah, atur: atur, muat: muat, jumlahBawaan: SUB.length + TOK.length };
+  if (typeof localStorage !== "undefined") muat();
   if (typeof module !== "undefined") module.exports = window.KSFilter;
 
   // Sensor langsung saat mengetik pada kolom bertanda data-filter (panjang teks tetap sama, kursor tidak loncat)

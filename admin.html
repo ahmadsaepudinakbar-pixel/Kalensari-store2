@@ -357,7 +357,7 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
 </svg>
 
-<script src="config.js"></script><script src="crop.js"></script><script src="qris-statis.js"></script>
+<script src="config.js"></script><script src="filter-kata.js"></script><script src="crop.js"></script><script src="qris-statis.js"></script>
 <script src="notif.js"></script>
 <script>
 /* =====================================================================
@@ -724,6 +724,7 @@ pengaturan(){
   ${tempatCard()}
   ${gmapsCard()}
   ${pembagianCard()}
+  ${kataCard()}
   ${biayaCard()}
   ${qrisStatisCard()}
   <div class="card"><div class="chead"><h3>🔔 Notifikasi Admin</h3></div>
@@ -1628,6 +1629,26 @@ async function koreksiSaldo(id,btn){
   const ket=$('#kjKet').value.trim()||(n>0?'Isi saldo oleh admin':'Koreksi admin');
   if(!confirm(`${n>0?'Tambah':'Kurangi'} saldo ${rp(Math.abs(n))}?`))return;
   await busy(btn,async()=>{await api('rpc/koreksi_saldo',{method:'POST',body:JSON.stringify({p_kurir_id:id,p_jumlah:n,p_ket:ket})});closeModal();toast('Saldo diperbarui');await loadAll(true)});
+}
+/* Filter kata kasar: kata tambahan dari admin. store_settings "kata_terlarang" = {kata:[...], t}. Kata bawaan ada di filter-kata.js.
+   Dipakai di komentar Pasar Warga, ulasan & balasan ulasan. Kata >= 5 huruf disensor di dalam kata; 3-4 huruf hanya sebagai kata utuh. */
+const kataDaftar=()=>{const v=S.settings.kata_terlarang;return v&&Array.isArray(v.kata)?v.kata:[]};
+function kataCard(){
+  const k=kataDaftar();
+  return `<div class="card"><div class="chead"><h3>🤬 Filter Kata Kasar</h3></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:10px">Kata kasar otomatis diganti bintang (contoh: <b>anjing</b> → <b>******</b>) di komentar Pasar Warga dan ulasan. Sudah ada ±${window.KSFilter?KSFilter.jumlahBawaan:40} kata bawaan. Tambahkan kata lain di bawah ini, satu kata per baris atau dipisah koma.</p>
+    <div class="field"><label>Kata tambahan</label><textarea class="inp" id="kataIsi" rows="5" placeholder="mis.&#10;kata1&#10;kata2" oninput="kataUji()">${esc(k.join('\n'))}</textarea>
+      <small style="color:var(--mut);font-size:12px">Kata 5 huruf atau lebih disensor di mana pun muncul dalam sebuah kata. Kata 3–4 huruf hanya disensor bila berdiri sendiri (agar tidak salah sasaran). Maksimal 500 kata.</small></div>
+    <div class="field"><label>Coba di sini</label><input class="inp" id="kataUji" placeholder="Ketik kalimat untuk menguji…" oninput="kataUji()"><div id="kataHasil" class="sm" style="margin-top:6px;font-weight:700;min-height:20px"></div></div>
+    <button class="btn btn-g full" onclick="kataSimpan(this)">Simpan Kata Tambahan</button></div>`;
+}
+function kataParse(){return String($('#kataIsi').value||'').split(/[\n,;]+/).map(x=>x.trim()).filter(Boolean)}
+function kataUji(){if(!window.KSFilter)return;KSFilter.atur(kataParse());const t=$('#kataUji').value;$('#kataHasil').textContent=t?KSFilter.bersihkan(t):''}
+async function kataSimpan(btn){
+  const mentah=kataParse();if(window.KSFilter)KSFilter.atur(mentah);
+  const kata=[...new Set(mentah.map(x=>x.toLowerCase().replace(/[^a-z0-9]/g,'')).filter(x=>x.length>=3&&x.length<=30))].slice(0,500),v={kata,t:Date.now()};
+  if(mentah.length&&kata.length<mentah.length&&!confirm('Ada '+(mentah.length-kata.length)+' kata yang dilewati (kurang dari 3 huruf, mengandung simbol/spasi, atau dobel). Lanjut simpan?'))return;
+  await busy(btn,async()=>{await setSetting('kata_terlarang',v);S.settings.kata_terlarang=v;try{localStorage.removeItem('kalensari_kata_terlarang')}catch(e){}render();toast('✅ '+kata.length+' kata tambahan disimpan')});
 }
 /* Cara pembagian pesanan ke kurir: store_settings "kurir_pembagian" = {mode:'acak'|'radius', radiusKm}. Dibaca aplikasi kurir (maks. 1 menit tertunda). */
 const pembagian=()=>({mode:'radius',radiusKm:0,...(S.settings.kurir_pembagian&&typeof S.settings.kurir_pembagian==='object'?S.settings.kurir_pembagian:{})});
