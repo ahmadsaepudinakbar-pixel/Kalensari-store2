@@ -2632,3 +2632,43 @@ setInterval(()=>{try{if(hujanOn()!==!!document.getElementById("ksHujanBar"))rend
 
 // Ganti rekomendasi otomatis bila halaman dibiarkan terbuka dan waktu makan berganti (cek tiap 5 menit)
 {let _w=waktuIni();setInterval(()=>{try{const n=waktuIni();if(n!==_w){_w=n;renderProducts();}}catch(e){}},300000);}
+
+// ===== POP-UP EVENT PASAR MALAM =====
+// Pasar malam desa = tiap MALAM JUMAT. Pop-up tampil Kamis sore sampai Kamis malam (waktu WIB), sekali per hari per HP.
+// Atur jadwal di 3 angka ini. Uji coba kapan saja: buka halaman toko dengan alamat  ...?pasarmalam=1
+const PM_HARI=4;          // 0=Minggu ... 4=Kamis
+const PM_JAM_MULAI=15;    // mulai tampil jam 15.00 WIB
+const PM_JAM_AKHIR=24;    // berhenti tampil jam 24.00 WIB (malam Jumat)
+const PM_GAMBAR="img/pasar-malam.jpg";         // poster
+const PM_DENAH="img/denah-pasar-malam.jpg";    // gambar denah (dibuka saat tombol "Lihat Denah Event" ditekan)
+const pmWib=()=>new Date(Date.now()+new Date().getTimezoneOffset()*6e4+7*36e5);
+const pmAktif=()=>{const w=pmWib();return w.getDay()===PM_HARI&&w.getHours()>=PM_JAM_MULAI&&w.getHours()<PM_JAM_AKHIR;};
+function tutupPasarMalam(){document.getElementById("pmOv")?.remove();document.removeEventListener("keydown",pmEsc);}
+function pmEsc(e){if(e.key==="Escape"){if(document.getElementById("pmDenah"))document.getElementById("pmDenah").remove();else tutupPasarMalam();}}
+function bukaDenahPasarMalam(){
+  if(document.getElementById("pmDenah"))return;
+  const ov=document.createElement("div");ov.id="pmDenah";ov.className="pm-ov pm-denah";
+  ov.innerHTML=`<div class="pm-dbox"><button type="button" class="pm-dx" aria-label="Tutup denah">✕</button><img alt="Denah Pasar Malam Kalensari Store"></div>`;
+  const im=ov.querySelector("img");
+  im.onerror=()=>{ov.remove();showToast("🗺️ Denah event belum tersedia, segera hadir.");};
+  im.src=PM_DENAH;
+  ov.addEventListener("click",e=>{if(e.target===ov||e.target.closest(".pm-dx"))ov.remove();});
+  document.body.appendChild(ov);
+}
+function tampilPasarMalam(paksa){
+  if(document.getElementById("pmOv"))return;
+  const w=pmWib(),kunci="kalensari_pasarmalam_"+w.getFullYear()+"-"+(w.getMonth()+1)+"-"+w.getDate();
+  if(!paksa){
+    if(!pmAktif()||document.hidden||document.querySelector(".modal.show"))return;
+    try{if(localStorage.getItem(kunci))return;}catch(e){}
+  }
+  try{localStorage.setItem(kunci,"1");}catch(e){}
+  const ov=document.createElement("div");ov.id="pmOv";ov.className="pm-ov";ov.setAttribute("role","dialog");ov.setAttribute("aria-label","Event Pasar Malam");
+  ov.innerHTML=`<div class="pm-box"><img src="${PM_GAMBAR}" alt="Event Pasar Malam Kalensari Store. Setiap malam Jumat, area pasar malam Kalensari Store.">`
+    +`<button type="button" class="pm-x" aria-label="Tutup"></button><button type="button" class="pm-den" aria-label="Lihat denah event"></button></div>`;
+  ov.addEventListener("click",e=>{if(e.target.closest(".pm-den"))bukaDenahPasarMalam();else if(e.target===ov||e.target.closest(".pm-x"))tutupPasarMalam();});
+  document.addEventListener("keydown",pmEsc);
+  document.body.appendChild(ov);
+}
+// Muncul sebentar setelah halaman terbuka (menunggu pop-up/ajakan lain selesai)
+setTimeout(()=>{try{tampilPasarMalam(new URLSearchParams(location.search).get("pasarmalam")==="1");}catch(e){console.warn("Pop-up pasar malam gagal:",e);}},2500);
