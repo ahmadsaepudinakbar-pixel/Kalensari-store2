@@ -2015,13 +2015,13 @@ body.ks-frame-open{overflow:hidden}`;
 })();
 
 
-// ===== PEMBAYARAN QRIS OTOMATIS (Duitku lewat Supabase Edge Function "duitku-qris") =====
+// ===== PEMBAYARAN QRIS OTOMATIS (iPaymu lewat Supabase Edge Function "ipaymu-qris" + VPS IP statis) =====
 // Pembeli memilih "QRIS" saat checkout -> muncul QRIS dengan nominal sesuai total pesanan.
-// Setelah dibayar, status pesanan otomatis "Lunas" (dicek tiap beberapa detik + callback Duitku).
-var QRIS_OTOMATIS=false;  // true = QRIS otomatis Duitku (butuh Edge Function duitku-qris). false = pakai QRIS statis toko (nominal terisi otomatis, dicek admin)
+// Setelah dibayar, status pesanan otomatis "Lunas" (dicek tiap beberapa detik + callback iPaymu).
+var QRIS_OTOMATIS=true;   // true = QRIS otomatis iPaymu (butuh Edge Function ipaymu-qris). false = pakai QRIS statis toko (nominal terisi otomatis, dicek admin)
 var QRIS_STATIS=null;     // diisi dari Admin > Pengaturan > "QRIS Pembayaran Pesanan" (store_settings: qris_statis)
 try{const c=JSON.parse(localStorage.getItem("kalensari_qris_statis")||"null");if(c&&typeof c==="object")QRIS_STATIS=c;}catch(e){}
-var QRIS_FN="duitku-qris";
+var QRIS_FN="ipaymu-qris";
 (function(){const o=[...document.querySelectorAll('#checkoutForm select[name="payment"] option')].find(x=>/^qris$/i.test(x.value||x.textContent));
   if(o&&QRIS_OTOMATIS){o.value="QRIS";o.textContent="QRIS (scan & bayar otomatis)";}})();
 async function qrisApi(body){
