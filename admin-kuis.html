@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#5b2e14">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<title>Admin Kuis Pintar • Kalensari Store</title>
+<style>
+:root{--br:#7a3e20;--br2:#5b2e14;--bg:#f7f3ef;--card:#fff;--ln:#eadfd6;--tx:#2a1d16;--mu:#7d6a5e;--gr:#1f8a4c;--rd:#c8452f;--gd:#f2b231;--bl:#2f74c8}
+*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--tx)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+header{background:var(--br2);color:#fff;position:sticky;top:0;z-index:10}
+header .in{max-width:1100px;margin:auto;padding:0 16px;height:56px;display:flex;align-items:center;gap:12px}
+header b{font-size:17px}header a{color:#fff;opacity:.85;text-decoration:none;font-size:13px}
+header .sp{margin-left:auto;display:flex;gap:14px;align-items:center}
+.tabs{max-width:1100px;margin:14px auto 0;padding:0 16px;display:flex;gap:6px;overflow:auto}
+.tabs button{border:1px solid var(--ln);background:#fff;border-radius:999px;padding:9px 14px;font-weight:700;white-space:nowrap;color:var(--mu)}
+.tabs button.on{background:var(--br);border-color:var(--br);color:#fff}
+main{max-width:1100px;margin:auto;padding:14px 16px 60px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:16px;margin-bottom:14px}
+.card h3{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.stat{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:12px}.stat small{color:var(--mu);font-size:12px}.stat b{display:block;font-size:24px;color:var(--br)}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+.btn.br{background:var(--br);color:#fff}.btn.gr{background:var(--gr);color:#fff}.btn.ol{background:#fff;border:1px solid var(--ln);color:var(--tx)}.btn.rd{background:#fdecea;color:var(--rd)}.btn.gd{background:var(--gd);color:#4a2510}
+.btn:disabled{opacity:.5;cursor:not-allowed}.btn.sm{padding:6px 10px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input.f,select.f,textarea.f{padding:9px 11px;border:1px solid var(--ln);border-radius:10px;background:#fff;min-width:0}
+textarea.f{width:100%;min-height:70px}
+label.l{display:block;font-size:13px;font-weight:700;margin:10px 0 4px;color:var(--mu)}
+label.l input,label.l select,label.l textarea{width:100%}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--ln);vertical-align:top}
+th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
+.tw{overflow:auto}
+.pill{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:800;background:#f4ebe3;color:var(--br)}
+.pill.ok{background:#e6f6ec;color:var(--gr)}.pill.off{background:#eee;color:#888}.pill.no{background:#fdecea;color:var(--rd)}
+.note{font-size:13px;color:var(--mu);line-height:1.5}
+.drop{border:2px dashed var(--ln);border-radius:16px;padding:26px;text-align:center;background:#fffaf5}
+.drop.over{border-color:var(--br);background:#fff1e3}
+.prog{height:10px;background:#f1e6dc;border-radius:99px;overflow:hidden}.prog i{display:block;height:100%;background:var(--gr);width:0;transition:.2s}
+.err{background:#fdecea;color:#8e2a1c;border-radius:10px;padding:10px;font-size:13px;margin-top:8px;max-height:220px;overflow:auto}
+.okb{background:#e6f6ec;color:#1b6a3a;border-radius:10px;padding:10px;font-size:14px;margin-top:8px}
+.soal{max-width:420px;white-space:pre-wrap;word-break:break-word}
+.login{max-width:380px;margin:60px auto}
+.modal{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.show{display:flex}.modal .box{background:#fff;border-radius:16px;padding:18px;width:min(640px,100%);max-height:90vh;overflow:auto}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a1d16;color:#fff;padding:11px 16px;border-radius:999px;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:92vw;text-align:center}
+.toast.show{opacity:1}
+[hidden]{display:none!important}
+.spin{display:inline-block;width:16px;height:16px;border:3px solid #0002;border-top-color:var(--br);border-radius:50%;animation:sp 1s linear infinite;vertical-align:middle}@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<header><div class="in"><b>🎓 Admin Kuis Pintar</b><div class="sp"><a href="kuis.html" target="_blank">Lihat kuis ↗</a><a href="admin.html">← Admin toko</a></div></div></header>
+
+<section id="loginView" class="login card" hidden>
+  <h3>🔐 Masuk admin</h3>
+  <p class="note">Gunakan akun admin yang sama dengan halaman Admin Kalensari Store.</p>
+  <label class="l">Email<input class="f" id="lgEmail" type="email" autocomplete="username"></label>
+  <label class="l">Kata sandi<input class="f" id="lgPass" type="password" autocomplete="current-password"></label>
+  <button class="btn br" style="width:100%;margin-top:12px" id="lgBtn" onclick="login()">Masuk</button>
+  <div id="lgErr" class="err" hidden></div>
+</section>
+
+<div id="appView" hidden>
+  <nav class="tabs" id="tabs">
+    <button data-t="ringkas" class="on">📊 Ringkasan</button><button data-t="impor">📥 Impor Excel</button><button data-t="soal">📚 Bank Soal</button><button data-t="pemenang">🏆 Pemenang</button><button data-t="aturan">⚙️ Aturan</button>
+  </nav>
+  <main>
+    <!-- RINGKASAN -->
+    <section data-p="ringkas">
+      <div class="row" style="margin-bottom:10px"><b>Bulan</b><select class="f" id="rkBulan" onchange="muatRingkas()"></select><button class="btn ol sm" onclick="muatRingkas()">↻ Muat ulang</button></div>
+      <div class="grid" id="rkStat"></div>
+      <div class="card" style="margin-top:14px"><h3>🏆 Peringkat sementara (jawaban benar unik)</h3><div class="tw"><table><thead><tr><th>#</th><th>Nama</th><th>WhatsApp</th><th>Benar</th></tr></thead><tbody id="rkRank"></tbody></table></div></div>
+      <div class="card"><h3>📚 Soal aktif per pelajaran</h3><div class="tw"><table><thead><tr><th>Jenjang</th><th>Kelas</th><th>Mapel</th><th>Soal</th></tr></thead><tbody id="rkMapel"></tbody></table></div></div>
+    </section>
+
+    <!-- IMPOR -->
+    <section data-p="impor" hidden>
+      <div class="card">
+        <h3>📥 Impor soal dari Excel</h3>
+        <p class="note">Kolom wajib: <b>jenjang</b> (SD/SMP/SMA), <b>kelas</b> (1–12), <b>mapel</b>, <b>soal</b>, <b>a</b>, <b>b</b>, <b>c</b>, <b>d</b>, <b>kunci</b> (A/B/C/D). Kolom <b>pembahasan</b> boleh kosong. Baris pertama = judul kolom. Soal yang sama persis (soal + 4 pilihan) otomatis dilewati, jadi aman mengimpor ulang file yang sama.</p>
+        <div class="row" style="margin-bottom:12px"><button class="btn gd" onclick="unduhTemplate()">⬇️ Unduh template Excel</button></div>
+        <div class="drop" id="drop">
+          <div style="font-size:40px">📄</div>
+          <p><b>Tarik file .xlsx / .csv ke sini</b> atau</p>
+          <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden onchange="bacaFile(this.files[0])">
+          <button class="btn br" onclick="$('#file').click()">Pilih file</button>
+        </div>
+        <div id="imHasil"></div>
+      </div>
+    </section>
+
+    <!-- BANK SOAL -->
+    <section data-p="soal" hidden>
+      <div class="card">
+        <div class="row">
+          <select class="f" id="fJenjang" onchange="hal=0;muatSoal()"><option value="">Semua jenjang</option><option>SD</option><option>SMP</option><option>SMA</option></select>
+          <select class="f" id="fKelas" onchange="hal=0;muatSoal()"><option value="">Semua kelas</option></select>
+          <input class="f" id="fMapel" placeholder="Mapel" style="width:140px" onchange="hal=0;muatSoal()">
+          <input class="f" id="fCari" placeholder="Cari teks soal…" style="flex:1;min-width:160px" onkeydown="if(event.key==='Enter'){hal=0;muatSoal()}">
+          <select class="f" id="fAktif" onchange="hal=0;muatSoal()"><option value="">Aktif & nonaktif</option><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+          <button class="btn br" onclick="hal=0;muatSoal()">Cari</button>
+          <button class="btn ol" onclick="editSoal()">＋ Tambah soal</button>
+        </div>
+      </div>
+      <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><span class="note" id="sInfo"></span><span class="row"><button class="btn ol sm" id="sPrev" onclick="hal--;muatSoal()">‹ Sebelumnya</button><button class="btn ol sm" id="sNext" onclick="hal++;muatSoal()">Berikutnya ›</button></span></div>
+        <div class="tw"><table><thead><tr><th>ID</th><th>Jenjang</th><th>Mapel</th><th>Soal</th><th>Kunci</th><th>Status</th><th></th></tr></thead><tbody id="sBody"></tbody></table></div></div>
+    </section>
+
+    <!-- PEMENANG -->
+    <section data-p="pemenang" hidden>
+      <div class="card">
+        <h3>🏆 Pemenang bulanan</h3>
+        <div class="row"><b>Bulan</b><select class="f" id="pmBulan" onchange="muatPemenang()"></select></div>
+        <p class="note">Urutan kerja: <b>1)</b> Tetapkan juara 1–3 (otomatis dari jawaban benar terbanyak). <b>2)</b> Undi kupon. <b>3)</b> Periksa daftar, lalu <b>Terbitkan</b>: pemenang tampil di popup toko dan hadiah otomatis masuk saldo voucher belanja pemenang. Sebaiknya dilakukan setelah bulan berakhir.</p>
+        <div class="row">
+          <button class="btn br" onclick="aksiPm('kuis_admin_juara')">1️⃣ Tetapkan juara 1–3</button>
+          <span class="row"><button class="btn br" onclick="aksiPm('kuis_admin_undi')">2️⃣ Undi kupon</button><input class="f" id="pmN" type="number" min="0" max="100" style="width:70px" title="Jumlah pemenang undian"> orang</span>
+          <button class="btn gr" onclick="terbit()">3️⃣ Terbitkan + kirim voucher</button>
+          <button class="btn rd" onclick="aksiPm('kuis_admin_sembunyi','Sembunyikan pemenang dari popup toko? (Voucher yang sudah masuk tidak ditarik)')">Sembunyikan</button>
+        </div>
+      </div>
+      <div class="grid" id="pmStat" style="margin-bottom:14px"></div>
+      <div class="card"><h3>Daftar pemenang</h3><div class="tw"><table><thead><tr><th>Jenis</th><th>#</th><th>Nama</th><th>WhatsApp</th><th>Benar / Kupon</th><th>Hadiah</th><th>Status</th></tr></thead><tbody id="pmBody"></tbody></table></div></div>
+    </section>
+
+    <!-- ATURAN -->
+    <section data-p="aturan" hidden>
+      <div class="card">
+        <h3>⚙️ Aturan kuis</h3>
+        <label class="l"><input type="checkbox" id="aAktif" style="width:auto"> Kuis aktif (bisa dimainkan)</label>
+        <div class="grid">
+          <label class="l">Poin per jawaban benar<input class="f" id="aPoin" type="number" min="1"></label>
+          <label class="l">Poin per 1 kupon<input class="f" id="aKupon" type="number" min="1"></label>
+          <label class="l">Maks. soal per hari / pelajar<input class="f" id="aMaks" type="number" min="1"></label>
+        </div>
+        <div class="grid">
+          <label class="l">Hadiah juara 1 (Rp)<input class="f" id="aJ1" type="number" min="0"></label>
+          <label class="l">Hadiah juara 2 (Rp)<input class="f" id="aJ2" type="number" min="0"></label>
+          <label class="l">Hadiah juara 3 (Rp)<input class="f" id="aJ3" type="number" min="0"></label>
+        </div>
+        <div class="grid">
+          <label class="l">Jumlah pemenang undian / bulan<input class="f" id="aNund" type="number" min="0"></label>
+          <label class="l">Hadiah tiap pemenang undian (Rp)<input class="f" id="aHund" type="number" min="0"></label>
+        </div>
+        <label class="l">Catatan untuk pelajar<textarea class="f" id="aCatatan"></textarea></label>
+        <button class="btn br" onclick="simpanAturan(this)">💾 Simpan aturan</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="mSoal"><div class="box">
+  <h3 id="msJudul">Soal</h3>
+  <div class="grid"><label class="l">Jenjang<select class="f" id="msJenjang"><option>SD</option><option>SMP</option><option>SMA</option></select></label>
+  <label class="l">Kelas<input class="f" id="msKelas" type="number" min="1" max="12"></label><label class="l">Mapel<input class="f" id="msMapel"></label></div>
+  <label class="l">Soal<textarea class="f" id="msSoal"></textarea></label>
+  <div class="grid"><label class="l">A<input class="f" id="msA"></label><label class="l">B<input class="f" id="msB"></label><label class="l">C<input class="f" id="msC"></label><label class="l">D<input class="f" id="msD"></label></div>
+  <div class="grid"><label class="l">Kunci<select class="f" id="msKunci"><option>A</option><option>B</option><option>C</option><option>D</option></select></label><label class="l"><input type="checkbox" id="msAktif" style="width:auto"> Aktif</label></div>
+  <label class="l">Pembahasan (opsional)<textarea class="f" id="msBahas"></textarea></label>
+  <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn ol" onclick="$('#mSoal').classList.remove('show')">Batal</button><button class="btn br" onclick="simpanSoal(this)">Simpan</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script>
+const CFG = window.CLOUD_CONFIG || {}, BASE = String(CFG.supabaseUrl || "").replace(/\/$/, ""), AUTH_KEY = "kalensari_admin_auth";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rp = n => "Rp" + Number(n || 0).toLocaleString("id-ID");
+const waShow = w => String(w || "").replace(/^62/, "0");
+let toastT; function toast(m, ms = 3000) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), ms); }
+
+/* ---------- auth (sama dengan admin.html; sesi dibagi di tab yang sama) ---------- */
+let auth = (() => { try { return JSON.parse(sessionStorage.getItem(AUTH_KEY) || "null"); } catch (e) { return null; } })();
+const saveAuth = a => { auth = a; try { a ? sessionStorage.setItem(AUTH_KEY, JSON.stringify(a)) : sessionStorage.removeItem(AUTH_KEY); } catch (e) {} };
+async function authReq(grant, body) {
+  const r = await fetch(`${BASE}/auth/v1/token?grant_type=${grant}`, { method: "POST", headers: { apikey: CFG.supabaseAnonKey, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error_description || d.msg || d.message || ("HTTP " + r.status));
+  return { access_token: d.access_token, refresh_token: d.refresh_token, expires_at: d.expires_at || Math.floor(Date.now() / 1000) + (d.expires_in || 3600), email: (d.user && d.user.email) || "" };
+}
+async function fresh() {
+  if (!auth || !auth.refresh_token) throw new Error("login");
+  if (auth.expires_at * 1000 - Date.now() > 60000) return;
+  try { saveAuth({ ...await authReq("refresh_token", { refresh_token: auth.refresh_token }), email: auth.email }); } catch (e) { saveAuth(null); throw new Error("login"); }
+}
+async function api(path, opt = {}) {
+  try { await fresh(); } catch (e) { tampilLogin(); throw new Error("Sesi admin berakhir, silakan masuk lagi."); }
+  const r = await fetch(`${BASE}/rest/v1/${path}`, { ...opt, headers: { apikey: CFG.supabaseAnonKey, Authorization: "Bearer " + auth.access_token, "Content-Type": "application/json", Prefer: "return=representation", ...(opt.headers || {}) } });
+  const t = await r.text(); let j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+  if (!r.ok) throw new Error((j && (j.message || j.hint)) || t || ("HTTP " + r.status));
+  return { data: j, range: r.headers.get("content-range") };
+}
+const rpc = async (fn, body = {}) => (await api("rpc/" + fn, { method: "POST", body: JSON.stringify(body) })).data;
+async function login() {
+  const b = $("#lgBtn"); b.disabled = true; $("#lgErr").hidden = true;
+  try {
+    const a = await authReq("password", { email: $("#lgEmail").value.trim(), password: $("#lgPass").value });
+    saveAuth(a);
+    if (await rpc("is_admin") !== true) { saveAuth(null); throw new Error("Akun ini bukan admin."); }
+    mulaiApp();
+  } catch (e) { $("#lgErr").textContent = e.message; $("#lgErr").hidden = false; }
+  b.disabled = false;
+}
+function tampilLogin() { $("#loginView").hidden = false; $("#appView").hidden = true; }
+
+/* ---------- navigasi ---------- */
+let tab = "ringkas";
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => bukaTab(b.dataset.t));
+function bukaTab(t) {
+  tab = t;
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  document.querySelectorAll("[data-p]").forEach(s => s.hidden = s.dataset.p !== t);
+  if (t === "ringkas") muatRingkas(); if (t === "soal") muatSoal(); if (t === "pemenang") muatPemenang(); if (t === "aturan") muatAturan();
+}
+function bulanList() {
+  const out = [], d = new Date(); d.setDate(1);
+  for (let i = 0; i < 12; i++) { const y = d.getFullYear(), m = d.getMonth() + 1; out.push(`${y}-${String(m).padStart(2, "0")}`); d.setMonth(d.getMonth() - 1); }
+  return out;
+}
+const BLN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const nmB = b => { const [y, m] = b.split("-"); return BLN[+m - 1] + " " + y; };
+
+/* ---------- ringkasan ---------- */
+let RINGKAS = null;
+async function muatRingkas() {
+  $("#rkStat").innerHTML = `<div class="stat"><span class="spin"></span></div>`;
+  try {
+    const r = RINGKAS = await rpc("kuis_admin_ringkas", { p_bulan: $("#rkBulan").value });
+    const pj = r.per_jenjang || {};
+    $("#rkStat").innerHTML = [["Soal aktif", r.soal_aktif], ["Total soal", r.soal_total], ["SD / SMP / SMA", `${pj.SD || 0} / ${pj.SMP || 0} / ${pj.SMA || 0}`], ["Pemain bulan ini", r.pemain_bulan], ["Jawaban bulan ini", r.jawaban_bulan], ["Kupon bulan ini", r.kupon_bulan]]
+      .map(([k, v]) => `<div class="stat"><small>${k}</small><b>${typeof v === "number" ? v.toLocaleString("id-ID") : v}</b></div>`).join("");
+    $("#rkRank").innerHTML = (r.ranking || []).map(x => `<tr><td>${x.peringkat}</td><td>${esc(x.nama)}</td><td>${esc(waShow(x.wa))}</td><td><b>${x.benar}</b></td></tr>`).join("") || `<tr><td colspan="4" class="note">Belum ada jawaban benar bulan ini.</td></tr>`;
+    $("#rkMapel").innerHTML = (r.per_mapel || []).map(x => `<tr><td>${x.jenjang}</td><td>${x.kelas}</td><td>${esc(x.mapel)}</td><td>${Number(x.n).toLocaleString("id-ID")}</td></tr>`).join("") || `<tr><td colspan="4" class="note">Belum ada soal. Impor dari Excel dulu.</td></tr>`;
+  } catch (e) { $("#rkStat").innerHTML = `<div class="err">${esc(e.message)}${/kuis_admin_ringkas|PGRST202/.test(e.message) ? "<br>Jalankan supabase-kuis-pintar.sql di Supabase dulu." : ""}</div>`; }
+}
+
+/* ---------- impor Excel ---------- */
+let XLSXok = null;
+function muatXLSX() {
+  if (window.XLSX) return Promise.resolve();
+  return XLSXok = XLSXok || new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; s.onload = ok; s.onerror = () => { XLSXok = null; no(new Error("Gagal memuat pembaca Excel. Periksa internet.")); }; document.head.appendChild(s); });
+}
+async function unduhTemplate() {
+  await muatXLSX();
+  const rows = [["jenjang", "kelas", "mapel", "soal", "a", "b", "c", "d", "kunci", "pembahasan"],
+    ["SD", 5, "Matematika", "Hasil dari 125 + 375 adalah ...", "400", "500", "550", "600", "B", "125 + 375 = 500"],
+    ["SMP", 8, "IPA", "Satuan gaya dalam SI adalah ...", "Joule", "Watt", "Newton", "Pascal", "C", "Gaya diukur dalam Newton (N)."],
+    ["SMA", 10, "Bahasa Indonesia", "Kalimat yang berisi ajakan disebut kalimat ...", "Imperatif", "Deklaratif", "Interogatif", "Eksklamatif", "A", ""]];
+  const ws = XLSX.utils.aoa_to_sheet(rows); ws["!cols"] = [6, 6, 16, 50, 16, 16, 16, 16, 7, 40].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Soal"); XLSX.writeFile(wb, "template-soal-kuis-pintar.xlsx");
+}
+const ALIAS = { jenjang: "jenjang", tingkat: "jenjang", kelas: "kelas", mapel: "mapel", pelajaran: "mapel", "mata pelajaran": "mapel", soal: "soal", pertanyaan: "soal",
+  a: "a", "pilihan a": "a", "opsi a": "a", b: "b", "pilihan b": "b", "opsi b": "b", c: "c", "pilihan c": "c", "opsi c": "c", d: "d", "pilihan d": "d", "opsi d": "d",
+  kunci: "kunci", "kunci jawaban": "kunci", jawaban: "kunci", pembahasan: "pembahasan", "pembahasan singkat": "pembahasan", penjelasan: "pembahasan" };
+const jenjangDari = k => k <= 6 ? "SD" : k <= 9 ? "SMP" : "SMA";
+function rapikan(raw, no) {
+  const r = {}; for (const [k, v] of Object.entries(raw)) { const kk = ALIAS[String(k).toLowerCase().trim()]; if (kk) r[kk] = String(v ?? "").trim(); }
+  const err = [];
+  // kelas boleh ditulis "5", "Kelas 5 SD", "6 SD", "Kelas 1 SMP" (= kelas 7), "Kelas 2 SMA" (= kelas 11)
+  const kTeks = String(r.kelas || "").toUpperCase();
+  let kelas = parseInt(kTeks.replace(/\D/g, ""), 10);
+  if (/SMP|MTS/.test(kTeks) && kelas >= 1 && kelas <= 3) kelas += 6;
+  if (/SMA|SMK|MA\b/.test(kTeks) && kelas >= 1 && kelas <= 3) kelas += 9;
+  if (!(kelas >= 1 && kelas <= 12)) err.push("kelas harus 1–12");
+  let jenjang = String(r.jenjang || "").toUpperCase().replace(/\s/g, "");
+  if (!jenjang && kelas) jenjang = jenjangDari(kelas);
+  if (!["SD", "SMP", "SMA"].includes(jenjang)) err.push("jenjang harus SD/SMP/SMA");
+  else if (kelas && jenjang !== jenjangDari(kelas)) err.push(`kelas ${kelas} bukan ${jenjang}`);
+  for (const k of ["mapel", "soal", "a", "b", "c", "d"]) if (!r[k]) err.push(`${k} kosong`);
+  let kunci = String(r.kunci || "").trim().toUpperCase();
+  if (!["A", "B", "C", "D"].includes(kunci)) { const cocok = ["a", "b", "c", "d"].find(x => r[x] && r[x].toLowerCase() === String(r.kunci || "").trim().toLowerCase()); kunci = cocok ? cocok.toUpperCase() : ""; }
+  if (!kunci) err.push("kunci harus A/B/C/D");
+  const SING = { ipa: "IPA", ips: "IPS", ipas: "IPAS", pkn: "PKn", ppkn: "PPKn", pjok: "PJOK", tik: "TIK", pai: "PAI" };
+  let mapel = r.mapel ? r.mapel.replace(/\s+/g, " ") : "";
+  if (mapel && mapel === mapel.toLowerCase()) mapel = mapel.split(" ").map(w => SING[w] || (w[0].toUpperCase() + w.slice(1))).join(" ");
+  return { no, err, data: { jenjang, kelas, mapel, soal: r.soal, a: r.a, b: r.b, c: r.c, d: r.d, kunci, pembahasan: r.pembahasan || null } };
+}
+let IMPOR = [];
+async function bacaFile(f) {
+  if (!f) return; const box = $("#imHasil");
+  box.innerHTML = `<p><span class="spin"></span> Membaca ${esc(f.name)}…</p>`;
+  try {
+    await muatXLSX();
+    const wb = XLSX.read(await f.arrayBuffer(), { type: "array" });
+    let rows = [];
+    for (const n of wb.SheetNames) { const r = XLSX.utils.sheet_to_json(wb.Sheets[n], { defval: "", raw: false }); if (r.length && Object.keys(r[0]).some(k => ALIAS[String(k).toLowerCase().trim()] === "soal")) rows = rows.concat(r); }
+    if (!rows.length) throw new Error("Tidak menemukan kolom 'soal'. Gunakan template Excel.");
+    const hasil = rows.map((r, i) => rapikan(r, i + 2));
+    const ok = hasil.filter(h => !h.err.length), bad = hasil.filter(h => h.err.length);
+    const seen = new Set(); IMPOR = ok.map(h => h.data).filter(d => { const k = [d.soal, d.a, d.b, d.c, d.d].map(x => x.toLowerCase().trim()).join("|"); if (seen.has(k)) return false; seen.add(k); return true; });
+    const dobel = ok.length - IMPOR.length;
+    const per = {}; IMPOR.forEach(d => { const k = `${d.jenjang} ${d.kelas} • ${d.mapel}`; per[k] = (per[k] || 0) + 1; });
+    box.innerHTML = `<div class="okb">✅ <b>${IMPOR.length.toLocaleString("id-ID")}</b> soal siap diimpor dari ${rows.length.toLocaleString("id-ID")} baris.${dobel ? ` ${dobel} soal kembar di file dilewati.` : ""}</div>
+      ${bad.length ? `<div class="err"><b>${bad.length} baris dilewati karena salah isi:</b><br>${bad.slice(0, 30).map(b => `Baris ${b.no}: ${esc(b.err.join(", "))}`).join("<br>")}${bad.length > 30 ? `<br>… dan ${bad.length - 30} lainnya` : ""}</div>` : ""}
+      <div class="tw" style="max-height:200px;margin-top:8px"><table><tbody>${Object.entries(per).sort().map(([k, n]) => `<tr><td>${esc(k)}</td><td>${n}</td></tr>`).join("")}</tbody></table></div>
+      <p class="note">Contoh soal pertama: <b>${esc(IMPOR[0] ? IMPOR[0].soal : "-")}</b> (kunci ${IMPOR[0] ? IMPOR[0].kunci : "-"})</p>
+      ${IMPOR.length ? `<button class="btn gr" id="imBtn" onclick="impor()">📥 Impor ${IMPOR.length.toLocaleString("id-ID")} soal</button><div class="prog" style="margin-top:10px" hidden id="imProg"><i></i></div><p class="note" id="imStat"></p>` : ""}`;
+  } catch (e) { box.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+  $("#file").value = "";
+}
+async function impor() {
+  const b = $("#imBtn"); b.disabled = true; $("#imProg").hidden = false;
+  const UK = 500; let masuk = 0, kirim = 0;
+  try {
+    for (let i = 0; i < IMPOR.length; i += UK) {
+      const batch = IMPOR.slice(i, i + UK);
+      const r = await api("quiz_questions?on_conflict=hash&select=id", { method: "POST", headers: { Prefer: "resolution=ignore-duplicates,return=representation" }, body: JSON.stringify(batch) });
+      masuk += (r.data || []).length; kirim += batch.length;
+      $("#imProg i").style.width = (kirim / IMPOR.length * 100) + "%";
+      $("#imStat").textContent = `${kirim.toLocaleString("id-ID")} / ${IMPOR.length.toLocaleString("id-ID")} diproses • ${masuk.toLocaleString("id-ID")} soal baru`;
+    }
+    $("#imStat").innerHTML = `✅ Selesai: <b>${masuk.toLocaleString("id-ID")}</b> soal baru masuk${kirim - masuk ? `, ${(kirim - masuk).toLocaleString("id-ID")} sudah ada sebelumnya (dilewati)` : ""}.`;
+    toast("Impor selesai"); IMPOR = [];
+  } catch (e) { $("#imStat").innerHTML = `<span style="color:var(--rd)">Berhenti di soal ke-${kirim + 1}: ${esc(e.message)}</span><br>Soal yang sudah masuk tetap tersimpan. Impor ulang file yang sama aman (soal yang sudah ada dilewati).`; b.disabled = false; }
+}
+const drop = $("#drop");
+["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => bacaFile(e.dataTransfer.files[0]));
+
+/* ---------- bank soal ---------- */
+let hal = 0; const PER = 50; let SOAL = [];
+async function muatSoal() {
+  hal = Math.max(0, hal);
+  const f = []; const j = $("#fJenjang").value, k = $("#fKelas").value, m = $("#fMapel").value.trim(), c = $("#fCari").value.trim(), a = $("#fAktif").value;
+  if (j) f.push("jenjang=eq." + j); if (k) f.push("kelas=eq." + k); if (m) f.push("mapel=ilike.*" + encodeURIComponent(m) + "*"); if (c) f.push("soal=ilike.*" + encodeURIComponent(c) + "*"); if (a) f.push("aktif=is." + a);
+  $("#sBody").innerHTML = `<tr><td colspan="7"><span class="spin"></span></td></tr>`;
+  try {
+    const r = await api(`quiz_questions?select=*&order=id.desc&limit=${PER}&offset=${hal * PER}${f.length ? "&" + f.join("&") : ""}`, { headers: { Prefer: "count=exact" } });
+    SOAL = r.data || []; const total = Number(String(r.range || "").split("/")[1]) || 0;
+    $("#sInfo").textContent = total ? `${(hal * PER + 1).toLocaleString("id-ID")}–${(hal * PER + SOAL.length).toLocaleString("id-ID")} dari ${total.toLocaleString("id-ID")} soal` : "Tidak ada soal";
+    $("#sPrev").disabled = hal === 0; $("#sNext").disabled = (hal + 1) * PER >= total;
+    $("#sBody").innerHTML = SOAL.map(q => `<tr><td>${q.id}</td><td>${q.jenjang} ${q.kelas}</td><td>${esc(q.mapel)}</td><td class="soal">${esc(q.soal)}<br><small class="note">A. ${esc(q.a)} • B. ${esc(q.b)} • C. ${esc(q.c)} • D. ${esc(q.d)}</small></td><td><b>${q.kunci}</b></td>
+      <td>${q.aktif ? '<span class="pill ok">Aktif</span>' : '<span class="pill off">Nonaktif</span>'}</td>
+      <td style="white-space:nowrap"><button class="btn ol sm" onclick="editSoal(${q.id})">Ubah</button> <button class="btn ol sm" onclick="toggleSoal(${q.id},${!q.aktif})">${q.aktif ? "Nonaktifkan" : "Aktifkan"}</button> <button class="btn rd sm" onclick="hapusSoal(${q.id})">Hapus</button></td></tr>`).join("") || `<tr><td colspan="7" class="note">Tidak ada soal.</td></tr>`;
+  } catch (e) { $("#sBody").innerHTML = `<tr><td colspan="7"><div class="err">${esc(e.message)}</div></td></tr>`; }
+}
+$("#fKelas").innerHTML += Array.from({ length: 12 }, (_, i) => `<option>${i + 1}</option>`).join("");
+async function toggleSoal(id, v) { try { await api("quiz_questions?id=eq." + id, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ aktif: v }) }); muatSoal(); } catch (e) { toast(e.message); } }
+async function hapusSoal(id) {
+  if (!confirm("Hapus soal #" + id + "? Riwayat jawaban soal ini juga ikut terhapus (poin yang sudah didapat tetap). Untuk menyembunyikan saja, pilih Nonaktifkan.")) return;
+  try { await api("quiz_questions?id=eq." + id, { method: "DELETE", headers: { Prefer: "return=minimal" } }); toast("Soal dihapus"); muatSoal(); } catch (e) { toast(e.message); }
+}
+let editId = null;
+function editSoal(id) {
+  const q = SOAL.find(x => x.id === id) || { jenjang: "SD", kelas: 1, mapel: "", soal: "", a: "", b: "", c: "", d: "", kunci: "A", pembahasan: "", aktif: true };
+  editId = id || null; $("#msJudul").textContent = id ? "Ubah soal #" + id : "Tambah soal";
+  $("#msJenjang").value = q.jenjang; $("#msKelas").value = q.kelas; $("#msMapel").value = q.mapel; $("#msSoal").value = q.soal;
+  $("#msA").value = q.a; $("#msB").value = q.b; $("#msC").value = q.c; $("#msD").value = q.d; $("#msKunci").value = q.kunci; $("#msBahas").value = q.pembahasan || ""; $("#msAktif").checked = q.aktif;
+  $("#mSoal").classList.add("show");
+}
+async function simpanSoal(b) {
+  const r = rapikan({ jenjang: $("#msJenjang").value, kelas: $("#msKelas").value, mapel: $("#msMapel").value, soal: $("#msSoal").value, a: $("#msA").value, b: $("#msB").value, c: $("#msC").value, d: $("#msD").value, kunci: $("#msKunci").value, pembahasan: $("#msBahas").value }, 0);
+  if (r.err.length) return toast(r.err.join(", "));
+  const body = { ...r.data, aktif: $("#msAktif").checked }; b.disabled = true;
+  try {
+    if (editId) await api("quiz_questions?id=eq." + editId, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify(body) });
+    else await api("quiz_questions", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(body) });
+    $("#mSoal").classList.remove("show"); toast("Soal disimpan"); muatSoal();
+  } catch (e) { toast(/duplicate|hash/.test(e.message) ? "Soal yang sama persis sudah ada" : e.message, 4000); }
+  b.disabled = false;
+}
+
+/* ---------- pemenang ---------- */
+let PM = null;
+async function muatPemenang() {
+  $("#pmBody").innerHTML = `<tr><td colspan="7"><span class="spin"></span></td></tr>`;
+  try { PM = await rpc("kuis_admin_ringkas", { p_bulan: $("#pmBulan").value }); renderPm(); } catch (e) { $("#pmBody").innerHTML = `<tr><td colspan="7"><div class="err">${esc(e.message)}</div></td></tr>`; }
+}
+function renderPm() {
+  const p = PM.pemenang || [], terbit = p.some(x => x.terbit);
+  $("#pmStat").innerHTML = [["Pemain", PM.pemain_bulan], ["Kupon terkumpul", PM.kupon_bulan], ["Pemenang", p.length], ["Status", terbit ? "✅ Terbit" : p.length ? "Draf" : "Belum ada"], ["Total hadiah", rp(p.reduce((t, x) => t + (x.hadiah || 0), 0))]]
+    .map(([k, v]) => `<div class="stat"><small>${k}</small><b style="font-size:20px">${typeof v === "number" ? v.toLocaleString("id-ID") : v}</b></div>`).join("");
+  $("#pmBody").innerHTML = p.map(x => `<tr><td>${x.jenis === "juara" ? "🏆 Juara" : "🎟️ Undian"}</td><td>${x.peringkat}</td><td>${esc(x.nama)}</td><td>${esc(waShow(x.wa))}</td><td>${x.jenis === "juara" ? x.jumlah_benar + " benar" : esc(x.nomor_kupon)}</td><td>${rp(x.hadiah)}</td>
+    <td>${x.terbit ? '<span class="pill ok">Terbit</span>' : '<span class="pill">Draf</span>'} ${x.voucher_ok ? '<span class="pill ok">Voucher masuk</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="7" class="note">Belum ada pemenang untuk ${nmB($("#pmBulan").value)}. Klik "Tetapkan juara" dan "Undi kupon".</td></tr>`;
+}
+async function aksiPm(fn, tanya) {
+  const bl = $("#pmBulan").value;
+  if (tanya && !confirm(tanya)) return;
+  if (!tanya && fn === "kuis_admin_juara" && !confirm(`Tetapkan juara 1–3 ${nmB(bl)} dari peringkat saat ini? (Bisa diulang selama belum diterbitkan)`)) return;
+  if (fn === "kuis_admin_undi" && !confirm(`Undi ${$("#pmN").value || "?"} pemenang dari kupon ${nmB(bl)}? Hasil undian sebelumnya (jika ada & belum terbit) akan diganti.`)) return;
+  try {
+    const body = { p_bulan: bl }; if (fn === "kuis_admin_undi") body.p_jumlah = Number($("#pmN").value) || null;
+    PM = await rpc(fn, body); renderPm(); toast("Berhasil");
+  } catch (e) { toast(e.message, 4000); }
+}
+async function terbit() {
+  const bl = $("#pmBulan").value, p = (PM && PM.pemenang) || [];
+  if (!p.length) return toast("Belum ada pemenang");
+  const total = p.filter(x => !x.voucher_ok).reduce((t, x) => t + (x.hadiah || 0), 0);
+  if (!confirm(`Terbitkan ${p.length} pemenang ${nmB(bl)}?\n\n• Pemenang tampil di popup Kalensari Store\n• ${rp(total)} saldo voucher masuk ke akun pemenang\n\nPastikan daftar sudah benar.`)) return;
+  try { PM = await rpc("kuis_admin_terbit", { p_bulan: bl, p_voucher: true }); renderPm(); toast("Pemenang diterbitkan 🎉"); } catch (e) { toast(e.message, 4000); }
+}
+
+/* ---------- aturan ---------- */
+let ATURAN = null;
+async function muatAturan() {
+  try {
+    ATURAN = ((await api("quiz_aturan?id=eq.1&select=*")).data || [])[0]; if (!ATURAN) return;
+    $("#aAktif").checked = ATURAN.aktif; $("#aPoin").value = ATURAN.poin_benar; $("#aKupon").value = ATURAN.poin_per_kupon; $("#aMaks").value = ATURAN.maks_soal_harian;
+    const h = ATURAN.hadiah_juara || []; $("#aJ1").value = h[0] || 0; $("#aJ2").value = h[1] || 0; $("#aJ3").value = h[2] || 0;
+    $("#aNund").value = ATURAN.jumlah_pemenang_undian; $("#aHund").value = ATURAN.hadiah_undian; $("#aCatatan").value = ATURAN.catatan || "";
+    $("#pmN").value = ATURAN.jumlah_pemenang_undian;
+  } catch (e) { toast(e.message, 4000); }
+}
+async function simpanAturan(b) {
+  const n = id => Math.max(0, Math.floor(Number($(id).value) || 0));
+  const body = { aktif: $("#aAktif").checked, poin_benar: Math.max(1, n("#aPoin")), poin_per_kupon: Math.max(1, n("#aKupon")), maks_soal_harian: Math.max(1, n("#aMaks")),
+    hadiah_juara: [n("#aJ1"), n("#aJ2"), n("#aJ3")], jumlah_pemenang_undian: n("#aNund"), hadiah_undian: n("#aHund"), catatan: $("#aCatatan").value.trim() || null, updated_at: new Date().toISOString() };
+  b.disabled = true;
+  try { await api("quiz_aturan?id=eq.1", { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify(body) }); toast("Aturan disimpan"); muatAturan(); } catch (e) { toast(e.message, 4000); }
+  b.disabled = false;
+}
+
+/* ---------- mulai ---------- */
+function mulaiApp() {
+  $("#loginView").hidden = true; $("#appView").hidden = false;
+  const bl = bulanList(), opt = bl.map(b => `<option value="${b}">${nmB(b)}</option>`).join("");
+  $("#rkBulan").innerHTML = opt; $("#pmBulan").innerHTML = opt;
+  // setelah tanggal 1–7, halaman pemenang otomatis membuka bulan lalu
+  if (new Date().getDate() <= 7) $("#pmBulan").value = bl[1];
+  muatAturan(); bukaTab(tab);
+}
+(async () => {
+  if (!auth) return tampilLogin();
+  try { await fresh(); if (await rpc("is_admin") !== true) throw 0; mulaiApp(); } catch (e) { saveAuth(null); tampilLogin(); }
+})();
+</script>
+</body>
+</html>

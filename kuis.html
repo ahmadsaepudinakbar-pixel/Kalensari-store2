@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#7a3e20">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<title>Kuis Pintar • Kalensari Store</title>
+<meta name="description" content="Kuis Pintar Kalensari Store: belajar gratis untuk SD, SMP, SMA, kumpulkan poin, tukarkan dengan kupon undian voucher belanja.">
+<style>
+:root{--br:#7a3e20;--br2:#5b2e14;--cr:#fffaf3;--cr2:#f8ecdc;--ln:#ecdccb;--tx:#2e201a;--mu:#7b6556;--gd:#f2b231;--gr:#2f8a4c;--rd:#c8452f;--sd:#3f8fe0;--smp:#2f9a6a;--sma:#8a5bd6}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:var(--tx);background:var(--cr);padding-bottom:78px}
+a{color:inherit}button{font:inherit;cursor:pointer}
+.wrap{width:min(1080px,100%);margin:auto;padding:0 16px}
+header.top{position:sticky;top:0;z-index:20;background:var(--br);color:#fff;box-shadow:0 4px 18px #0002}
+.top .wrap{display:flex;align-items:center;gap:12px;height:60px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;min-width:0}
+.logo i{width:38px;height:38px;border-radius:50%;background:#fff;color:var(--br);display:grid;place-items:center;font-style:normal;font-size:20px;flex:none}
+.logo b{display:block;font-size:16px;line-height:1.1}.logo small{display:block;font-size:11px;opacity:.8;white-space:nowrap}
+.top nav{margin-left:auto;display:flex;gap:4px}
+.top nav a{color:#fff;text-decoration:none;padding:8px 12px;border-radius:10px;font-size:14px;font-weight:600;opacity:.85}
+.top nav a.on,.top nav a:hover{background:#ffffff22;opacity:1}
+.top .poinchip{margin-left:auto;background:#fff;color:var(--br);border-radius:999px;padding:6px 12px;font-weight:800;font-size:13px;white-space:nowrap;text-decoration:none}
+@media(min-width:760px){.top .poinchip{margin-left:12px}}
+@media(max-width:759px){.top nav{display:none}}
+.bnav{position:fixed;left:0;right:0;bottom:0;z-index:20;background:#fff;border-top:1px solid var(--ln);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+.bnav a{display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;font-size:11px;font-weight:700;color:var(--mu);padding:4px}
+.bnav a span{font-size:21px;line-height:1}.bnav a.on{color:var(--br)}
+@media(min-width:760px){.bnav{display:none}body{padding-bottom:20px}}
+
+.hero{margin:16px 0;border-radius:24px;overflow:hidden;position:relative;color:#fff;
+ background:radial-gradient(circle at 85% 20%,#ffd98a55 0 18%,transparent 19%),radial-gradient(circle at 10% 90%,#ffffff18 0 22%,transparent 23%),linear-gradient(135deg,#8d4a25,#5b2e14);padding:26px 22px 22px}
+.hero h1{margin:0;font-size:clamp(30px,6vw,52px);line-height:1;letter-spacing:-.5px;text-shadow:0 3px 0 #0003}
+.hero h1 span{display:block;font-size:.55em;color:#ffe3a8;margin-top:6px}
+.hero p{margin:12px 0 0;max-width:520px;opacity:.92;line-height:1.5}
+.hero .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.hero .tags b{background:#ffffff22;border:1px solid #ffffff33;border-radius:999px;padding:5px 10px;font-size:12px}
+.hero .gratis{position:absolute;right:16px;top:16px;background:var(--gd);color:#5b2e14;font-weight:900;border-radius:12px;padding:6px 10px;transform:rotate(6deg);font-size:14px;box-shadow:0 6px 16px #0003}
+.hero .kids{position:absolute;right:18px;bottom:10px;font-size:54px;opacity:.95;letter-spacing:-8px;display:none}
+@media(min-width:760px){.hero{padding:40px 36px}.hero .kids{display:block;font-size:84px}}
+.btn{border:0;border-radius:14px;padding:12px 18px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;transition:.15s}
+.btn:active{transform:scale(.98)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.pri{background:var(--gd);color:#4a2510;box-shadow:0 4px 0 #c88a12}
+.btn.br{background:var(--br);color:#fff}.btn.ol{background:#fff;color:var(--br);border:1.5px solid var(--br)}
+.btn.full{width:100%}
+.hero .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:760px){.cards{grid-template-columns:repeat(4,1fr)}}
+.card{background:#fff;border:1px solid var(--ln);border-radius:18px;padding:14px;box-shadow:0 6px 18px #5b30140c}
+.feat{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;text-decoration:none}
+.feat .ic{font-size:30px}.feat b{font-size:15px}.feat small{color:var(--mu);font-size:12px;line-height:1.35}
+.feat .val{font-size:22px;font-weight:900;color:var(--br)}
+h2.t{font-size:20px;margin:22px 0 10px;display:flex;align-items:center;gap:8px}
+h2.t small{margin-left:auto;font-size:12px;color:var(--mu);font-weight:600}
+.why{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:760px){.why{grid-template-columns:repeat(4,1fr)}}
+.why div{background:var(--cr2);border-radius:14px;padding:12px;display:flex;gap:8px;align-items:center;font-size:13px;font-weight:600}
+.why div span{font-size:24px}
+.undian{background:linear-gradient(135deg,#fff3d6,#ffe1a6);border:1px solid #f1cf86;border-radius:20px;padding:16px;display:flex;gap:14px;align-items:center}
+.undian .tk{font-size:46px}.undian b{display:block;font-size:17px}.undian small{color:#6b4a1d}
+
+.jenjang{display:grid;gap:10px}
+@media(min-width:760px){.jenjang{grid-template-columns:repeat(3,1fr)}}
+.jj{border-radius:18px;padding:14px;color:#fff;border:0;text-align:left;display:flex;gap:12px;align-items:center;width:100%;box-shadow:0 6px 16px #0002;position:relative}
+.jj.SD{background:linear-gradient(135deg,#55a6f0,#2f74c8)}.jj.SMP{background:linear-gradient(135deg,#46b885,#24835a)}.jj.SMA{background:linear-gradient(135deg,#a07be4,#6d43c0)}
+.jj .em{font-size:40px}.jj b{font-size:22px;display:block}.jj small{opacity:.9}
+.jj.on{outline:4px solid var(--gd);outline-offset:2px}
+.kelas{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.kelas button{border:1.5px solid var(--ln);background:#fff;border-radius:12px;padding:10px 14px;font-weight:800;min-width:64px}
+.kelas button.on{background:var(--br);border-color:var(--br);color:#fff}
+.mapel{display:grid;gap:8px;margin-top:12px}
+@media(min-width:760px){.mapel{grid-template-columns:repeat(2,1fr)}}
+.mp{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--ln);border-radius:14px;padding:12px 14px;text-align:left;width:100%}
+.mp .em{font-size:26px;width:40px;height:40px;border-radius:12px;background:var(--cr2);display:grid;place-items:center;flex:none}
+.mp b{display:block}.mp small{color:var(--mu)}.mp i{margin-left:auto;font-style:normal;color:var(--br);font-weight:900;font-size:20px}
+.mp:disabled{opacity:.5}
+
+.quiz{max-width:640px;margin:16px auto}
+.qhead{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;color:var(--mu)}
+.qhead .x{border:0;background:#fff;border:1px solid var(--ln);border-radius:10px;width:36px;height:36px;font-size:18px}
+.bar{height:10px;background:var(--cr2);border-radius:99px;overflow:hidden;margin:10px 0 14px}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gd),#f08a24);border-radius:99px;transition:.3s}
+.qcard{background:#fff;border:1px solid var(--ln);border-radius:20px;padding:18px;box-shadow:0 10px 26px #5b301412}
+.qcard .soal{font-size:18px;line-height:1.5;font-weight:600;white-space:pre-wrap;word-break:break-word}
+.opts{display:grid;gap:10px;margin-top:16px}
+.opt{display:flex;gap:12px;align-items:center;text-align:left;background:#fff;border:2px solid var(--ln);border-radius:14px;padding:12px;width:100%;font-size:16px;transition:.12s}
+.opt b{width:34px;height:34px;flex:none;border-radius:10px;background:var(--cr2);display:grid;place-items:center;color:var(--br)}
+.opt span{white-space:pre-wrap;word-break:break-word}
+.opt:not(:disabled):hover{border-color:var(--br)}
+.opt.ok{border-color:var(--gr);background:#eaf7ee}.opt.ok b{background:var(--gr);color:#fff}
+.opt.no{border-color:var(--rd);background:#fdecea}.opt.no b{background:var(--rd);color:#fff}
+.opt:disabled{cursor:default;color:var(--tx);opacity:1}
+.fb{margin-top:14px;border-radius:14px;padding:12px 14px;font-weight:600;line-height:1.45}
+.fb.ok{background:#eaf7ee;color:#1f6a37}.fb.no{background:#fdecea;color:#8e2a1c}
+.fb small{display:block;font-weight:500;margin-top:4px;color:var(--tx);white-space:pre-wrap}
+.hasil{text-align:center}
+.hasil .big{font-size:64px;margin:6px 0}
+.hasil .skor{font-size:40px;font-weight:900;color:var(--br)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+.stats div{background:var(--cr2);border-radius:14px;padding:10px}.stats b{display:block;font-size:20px;color:var(--br)}.stats small{color:var(--mu);font-size:12px}
+
+.poinbox{background:linear-gradient(135deg,var(--br),var(--br2));color:#fff;border-radius:20px;padding:18px;display:flex;align-items:center;gap:14px}
+.poinbox .n{font-size:40px;font-weight:900;line-height:1}.poinbox small{opacity:.85}
+.tukar{display:flex;gap:8px;align-items:center;margin-top:12px}
+.tukar input{width:90px;padding:12px;border:1.5px solid var(--ln);border-radius:12px;font:inherit;font-weight:800;text-align:center}
+.kuponlist{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.kupon{background:#fff;border:2px dashed var(--gd);border-radius:12px;padding:8px 10px;font-weight:800;font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--br2)}
+.rank{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rank li{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--ln);border-radius:14px;padding:10px 12px}
+.rank li .no{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:var(--cr2);color:var(--br);flex:none}
+.rank li.g1 .no{background:#ffd54a}.rank li.g2 .no{background:#dfe4ea}.rank li.g3 .no{background:#f0b98a}
+.rank li b{flex:1}.rank li em{font-style:normal;font-weight:800;color:var(--br)}
+.rank li.me{border-color:var(--br);background:#fff6ec}
+.prize{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.prize div{background:#fff;border:1px solid var(--ln);border-radius:16px;padding:12px 6px;text-align:center}
+.prize span{font-size:28px;display:block}.prize b{display:block;color:var(--br)}.prize small{color:var(--mu);font-size:11px}
+.note{font-size:13px;color:var(--mu);line-height:1.5}
+.empty{text-align:center;color:var(--mu);background:#fff;border:1px dashed var(--ln);border-radius:16px;padding:22px}
+.login{background:#fff7e8;border:1px solid #f3dcae;border-radius:18px;padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.login p{margin:0;flex:1;min-width:200px}
+.rules{background:#fff;border:1px solid var(--ln);border-radius:18px;padding:6px 16px}
+.rules li{margin:8px 0;line-height:1.45}
+footer{text-align:center;color:var(--mu);font-size:12px;padding:26px 0}
+.toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:#2d211c;color:#fff;padding:12px 16px;border-radius:999px;z-index:60;opacity:0;pointer-events:none;transition:.25s;font-size:14px;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.spin{display:inline-block;width:18px;height:18px;border:3px solid #0002;border-top-color:var(--br);border-radius:50%;animation:sp 1s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+[hidden]{display:none!important}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:70;overflow:hidden}
+.confetti i{position:absolute;top:-20px;width:10px;height:14px;border-radius:2px;animation:fall 1.6s linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="index.html" title="Kembali ke toko"><i>🎓</i><span><b>Kalensari Store</b><small>Kuis Pintar • Belajar & Kumpulkan Poin</small></span></a>
+    <nav>
+      <a href="#beranda" data-v="beranda">Beranda</a><a href="#pilih" data-v="pilih">Kuis</a><a href="#poin" data-v="poin">Poin & Kupon</a><a href="#peringkat" data-v="peringkat">Peringkat</a><a href="index.html">🛍️ Toko</a>
+    </nav>
+    <a class="poinchip" href="#poin" id="chipPoin">⭐ <span>0</span> poin</a>
+  </div>
+</header>
+
+<main class="wrap" id="app">
+  <!-- BERANDA -->
+  <section data-view="beranda">
+    <div class="hero">
+      <span class="gratis">GRATIS!</span>
+      <h1>Kuis Pintar<span>Kalensari Store</span></h1>
+      <p>Belajar gratis untuk pelajar SD, SMP, dan SMA. Jawab soal dengan benar, kumpulkan poin, lalu tukarkan dengan kupon undian voucher belanja!</p>
+      <div class="tags"><b>📚 Belajar gratis</b><b>⭐ Kumpulkan poin</b><b>🎟️ Tukar kupon undian</b></div>
+      <div class="acts"><a class="btn pri" href="#pilih">🚀 Mulai Kuis</a><a class="btn ol" style="background:#ffffff18;color:#fff;border-color:#ffffff66" href="#aturan">Cara ikut</a></div>
+      <div class="kids">🧒👧🧑‍🎓</div>
+    </div>
+
+    <div id="loginBox" class="login" hidden>
+      <span style="font-size:34px">🔑</span>
+      <p><b>Masuk dulu dengan akun pembeli</b><br><span class="note">Pakai No. WhatsApp &amp; PIN akun Kalensari Store supaya poin dan kupon tersimpan. Belum punya? Daftar gratis.</span></p>
+      <button class="btn br" type="button" onclick="masuk()">Masuk / Daftar</button>
+    </div>
+
+    <div class="cards" style="margin-top:14px">
+      <a class="card feat" href="#pilih"><span class="ic">📖</span><b>Kuis Pelajar</b><small>SD, SMP, SMA</small></a>
+      <a class="card feat" href="#poin"><span class="ic">⭐</span><b>Poin Saya</b><span class="val" id="fPoin">0</span><small>dari jawaban benar</small></a>
+      <a class="card feat" href="#poin"><span class="ic">🎟️</span><b>Kupon Undian</b><span class="val" id="fKupon">0</span><small>kupon bulan ini</small></a>
+      <a class="card feat" href="#peringkat"><span class="ic">🏆</span><b>Peringkat</b><span class="val" id="fRank">–</span><small id="fBenar">0 benar bulan ini</small></a>
+    </div>
+
+    <h2 class="t">💡 Kenapa ikut Kuis Pintar?</h2>
+    <div class="why">
+      <div><span>🧠</span>Belajar jadi lebih seru</div>
+      <div><span>⭐</span>Dapat poin tiap jawaban benar</div>
+      <div><span>🎟️</span>Poin ditukar kupon undian</div>
+      <div><span>🎁</span>Juara 1–3 &amp; pemenang undian dapat voucher</div>
+    </div>
+
+    <h2 class="t">🏆 Hadiah bulan ini <small id="bulanTxt"></small></h2>
+    <div class="prize" id="prize"></div>
+    <div class="undian" style="margin-top:10px">
+      <span class="tk">🎟️</span>
+      <div><b>Undian Setiap Bulan</b><small id="undianTxt">Kupon diundi di akhir bulan.</small></div>
+    </div>
+
+    <div id="pemenangBox" hidden>
+      <h2 class="t">🎉 Pemenang <span id="pmBulan"></span></h2>
+      <div id="pemenang"></div>
+    </div>
+  </section>
+
+  <!-- PILIH JENJANG / KELAS / MAPEL -->
+  <section data-view="pilih" hidden>
+    <h2 class="t">🎒 Pilih jenjang &amp; kelas</h2>
+    <div class="jenjang" id="jenjang"></div>
+    <div id="kelasBox" hidden><h2 class="t">📚 Kelas</h2><div class="kelas" id="kelas"></div></div>
+    <div id="mapelBox" hidden><h2 class="t">✏️ Pilih mata pelajaran <small id="mapelInfo"></small></h2><div class="mapel" id="mapel"></div></div>
+  </section>
+
+  <!-- MAIN -->
+  <section data-view="main" hidden>
+    <div class="quiz">
+      <div class="qhead"><button class="x" type="button" onclick="keluarKuis()" aria-label="Keluar">✕</button><span id="qJudul"></span><span style="margin-left:auto" id="qNo"></span></div>
+      <div class="bar"><i id="qBar" style="width:0"></i></div>
+      <div class="qcard">
+        <div class="soal" id="qSoal"></div>
+        <div class="opts" id="qOpts"></div>
+        <div id="qFb"></div>
+      </div>
+      <button class="btn br full" style="margin-top:14px" id="qNext" type="button" hidden onclick="lanjut()">Lanjut ›</button>
+    </div>
+  </section>
+
+  <!-- HASIL -->
+  <section data-view="hasil" hidden>
+    <div class="quiz card hasil">
+      <div class="big" id="hEmoji">🎉</div>
+      <h2 style="margin:0" id="hJudul">Hebat!</h2>
+      <div class="skor" id="hSkor">0/0</div>
+      <div class="stats"><div><b id="hBenar">0</b><small>Benar</small></div><div><b id="hPoin">+0</b><small>Poin didapat</small></div><div><b id="hTotal">0</b><small>Total poin</small></div></div>
+      <div style="display:grid;gap:8px">
+        <button class="btn pri full" type="button" onclick="mulai()">🔁 Lanjut kuis berikutnya</button>
+        <a class="btn ol full" href="#poin">🎟️ Tukar poin ke kupon</a>
+        <a class="btn ol full" href="#pilih">Ganti pelajaran</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- POIN & KUPON -->
+  <section data-view="poin" hidden>
+    <h2 class="t">⭐ Poin &amp; Kupon</h2>
+    <div class="poinbox"><span style="font-size:44px">⭐</span><div><div class="n" id="pPoin">0</div><small>poin bisa ditukar • total didapat <b id="pTotal">0</b></small></div></div>
+    <div class="card" style="margin-top:12px">
+      <b>🎟️ Tukar poin dengan kupon undian</b>
+      <p class="note" id="tukarInfo" style="margin:6px 0 0"></p>
+      <div class="tukar"><input id="tukarN" type="number" min="1" max="100" value="1" inputmode="numeric" aria-label="Jumlah kupon"><button class="btn pri" type="button" id="tukarBtn" onclick="tukar()">Tukar sekarang</button></div>
+    </div>
+    <h2 class="t">🎫 Kupon saya bulan ini <small id="kuponN"></small></h2>
+    <div id="kuponList" class="kuponlist"></div>
+    <p class="note">Setiap kupon punya nomor unik dan ikut undian bulan berjalan. Makin banyak kupon, makin besar peluang menang. Satu orang paling banyak menang 1 hadiah undian per bulan.</p>
+  </section>
+
+  <!-- PERINGKAT -->
+  <section data-view="peringkat" hidden>
+    <h2 class="t">🏆 Papan peringkat <small id="rkBulan"></small></h2>
+    <p class="note" style="margin-top:-4px">Dihitung dari jumlah <b>jawaban benar</b> bulan ini (setiap soal hanya dihitung sekali). Juara 1, 2, 3 langsung mendapat hadiah.</p>
+    <ol class="rank" id="rank"></ol>
+  </section>
+
+  <!-- ATURAN -->
+  <section data-view="aturan" hidden>
+    <h2 class="t">📜 Cara ikut &amp; aturan</h2>
+    <ol class="rules" id="rules"></ol>
+    <a class="btn pri" href="#pilih" style="margin-top:12px">🚀 Mulai Kuis</a>
+  </section>
+</main>
+
+<footer>© <span id="yr"></span> Kalensari Store • <a href="index.html">Kembali ke toko</a> • <a href="syarat-ketentuan.html">Syarat &amp; Ketentuan</a></footer>
+
+<nav class="bnav">
+  <a href="#beranda" data-v="beranda"><span>🏠</span>Beranda</a>
+  <a href="#pilih" data-v="pilih"><span>📖</span>Kuis</a>
+  <a href="#poin" data-v="poin"><span>⭐</span>Poin</a>
+  <a href="#peringkat" data-v="peringkat"><span>🏆</span>Peringkat</a>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script>
+const CFG = window.CLOUD_CONFIG || {};
+const BASE = String(CFG.supabaseUrl || "").replace(/\/$/, "");
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rp = n => "Rp" + Number(n || 0).toLocaleString("id-ID");
+const sesi = () => { try { return localStorage.getItem("kalensari_sesi_pembeli") || ""; } catch (e) { return ""; } };
+const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+const namaBulan = b => { const [y, m] = String(b || "").split("-"); return m ? BULAN[+m - 1] + " " + y : ""; };
+let toastT; function toast(m, ms = 2600) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), ms); }
+
+async function rpc(fn, body = {}) {
+  const r = await fetch(`${BASE}/rest/v1/rpc/${fn}`, { method: "POST", headers: { apikey: CFG.supabaseAnonKey, Authorization: "Bearer " + CFG.supabaseAnonKey, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const t = await r.text(); let j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+  if (!r.ok) {
+    const m = String((j && j.message) || t || ("HTTP " + r.status));
+    if (/^SESI:/.test(m)) { INFO.login = false; render(); masuk(true); }
+    if (r.status === 404 || /PGRST202|Could not find the function/i.test(m)) throw new Error("Kuis belum dipasang di server (jalankan supabase-kuis-pintar.sql).");
+    throw new Error(m.replace(/^SESI:\s*/, ""));
+  }
+  return j;
+}
+function masuk(diam) {
+  try { sessionStorage.setItem("kalensari_next", "url:kuis.html" + (location.hash || "")); } catch (e) {}
+  if (diam) toast("Silakan masuk akun pembeli dulu");
+  setTimeout(() => location.href = "akun-pembeli.html", diam ? 900 : 0);
+}
+
+/* ---------- data ---------- */
+let INFO = { login: false, poin: 0, kupon: [], top: [], aturan: {} };
+async function muatInfo() {
+  try { INFO = await rpc("kuis_info", { p_sesi: sesi() }) || INFO; } catch (e) { toast(e.message, 4000); }
+  render();
+}
+const JENJANG = { SD: { em: "🧒", kelas: [1,2,3,4,5,6], ket: "Kelas 1–6" }, SMP: { em: "👦", kelas: [7,8,9], ket: "Kelas 7–9" }, SMA: { em: "🧑‍🎓", kelas: [10,11,12], ket: "Kelas 10–12" } };
+const MAPEL_EM = { matematika: "🔢", "bahasa indonesia": "📝", "bahasa inggris": "🇬🇧", ipa: "🔬", ips: "🌏", ipas: "🌱", pkn: "🇮🇩", ppkn: "🇮🇩", pancasila: "🇮🇩", "pendidikan pancasila": "🇮🇩", agama: "🕌", "pendidikan agama islam": "🕌", pai: "🕌", fisika: "⚛️", kimia: "🧪", biologi: "🧬", ekonomi: "💰", geografi: "🗺️", sejarah: "📜", sosiologi: "👥", "bahasa sunda": "🗣️", pjok: "⚽", "seni budaya": "🎨", informatika: "💻", tik: "💻" };
+const emMapel = m => MAPEL_EM[String(m).toLowerCase()] || "📘";
+let pilih = (() => { try { return JSON.parse(localStorage.getItem("ks_kuis_pilih") || "{}"); } catch (e) { return {}; } })();
+const simpanPilih = () => { try { localStorage.setItem("ks_kuis_pilih", JSON.stringify(pilih)); } catch (e) {} };
+
+function render() {
+  const a = INFO.aturan || {};
+  $("#chipPoin span").textContent = (INFO.poin || 0).toLocaleString("id-ID");
+  $("#loginBox").hidden = !!INFO.login;
+  $("#fPoin").textContent = (INFO.poin || 0).toLocaleString("id-ID");
+  $("#fKupon").textContent = (INFO.kupon || []).length;
+  $("#fRank").textContent = INFO.peringkat ? "#" + INFO.peringkat : "–";
+  $("#fBenar").textContent = (INFO.benar_bulan || 0) + " benar bulan ini";
+  $("#bulanTxt").textContent = namaBulan(INFO.bulan);
+  $("#rkBulan").textContent = namaBulan(INFO.bulan);
+  const hj = a.hadiah_juara || [];
+  $("#prize").innerHTML = ["🥇","🥈","🥉"].map((m, i) => `<div><span>${m}</span><small>Juara ${i + 1}</small><b>${hj[i] ? rp(hj[i]) : "-"}</b><small>voucher belanja</small></div>`).join("");
+  $("#undianTxt").textContent = a.jumlah_pemenang_undian ? `${a.jumlah_pemenang_undian} pemenang × ${rp(a.hadiah_undian)} voucher belanja. ${a.poin_per_kupon} poin = 1 kupon.` : "Kupon diundi di akhir bulan.";
+  // poin & kupon
+  $("#pPoin").textContent = (INFO.poin || 0).toLocaleString("id-ID");
+  $("#pTotal").textContent = (INFO.poin_total || 0).toLocaleString("id-ID");
+  const bisa = Math.floor((INFO.poin || 0) / (a.poin_per_kupon || 100));
+  $("#tukarInfo").innerHTML = INFO.login ? `${a.poin_per_kupon || 100} poin = 1 kupon. Poin Anda cukup untuk <b>${bisa}</b> kupon.` : `Masuk dulu untuk menukar poin. <a href="#" onclick="masuk();return false">Masuk</a>`;
+  $("#tukarN").max = Math.max(1, Math.min(100, bisa)); $("#tukarBtn").disabled = !INFO.login || bisa < 1;
+  const kp = INFO.kupon || [];
+  $("#kuponN").textContent = kp.length ? kp.length + " kupon" : "";
+  $("#kuponList").innerHTML = kp.length ? kp.map(k => `<span class="kupon">🎟️ ${esc(k)}</span>`).join("") : `<div class="empty" style="width:100%">Belum ada kupon bulan ini. Kumpulkan poin dari kuis lalu tukarkan di atas.</div>`;
+  // peringkat
+  const top = INFO.top || [];
+  $("#rank").innerHTML = top.length ? top.map(r => `<li class="g${r.peringkat}${INFO.login && INFO.peringkat === r.peringkat ? " me" : ""}"><span class="no">${r.peringkat <= 3 ? ["🥇","🥈","🥉"][r.peringkat - 1] : r.peringkat}</span><b>${esc(r.nama)}</b><em>${r.benar} benar</em></li>`).join("")
+    + (INFO.login && INFO.peringkat > 10 ? `<li class="me"><span class="no">${INFO.peringkat}</span><b>Anda</b><em>${INFO.benar_bulan} benar</em></li>` : "")
+    : `<div class="empty">Belum ada peserta bulan ini. Jadilah yang pertama! 🚀</div>`;
+  // aturan
+  $("#rules").innerHTML = [
+    "Masuk dengan akun pembeli Kalensari Store (No. WhatsApp + PIN). Gratis, tanpa biaya apa pun.",
+    "Pilih jenjang, kelas, dan mata pelajaran, lalu jawab soal pilihan A, B, C, atau D.",
+    `Setiap jawaban benar mendapat <b>+${a.poin_benar || 10} poin</b>. Setiap soal hanya bisa dijawab satu kali.`,
+    `Maksimal <b>${a.maks_soal_harian || 100} soal per hari</b> supaya adil untuk semua.`,
+    `Tukar <b>${a.poin_per_kupon || 100} poin = 1 kupon undian</b> bulan berjalan. Setiap kupon punya nomor unik.`,
+    `<b>Juara 1, 2, 3</b> tiap bulan = jawaban benar terbanyak bulan itu, langsung mendapat hadiah${hj.length ? " (" + hj.map(rp).join(" / ") + ")" : ""}.`,
+    `Di akhir bulan admin mengundi kupon: <b>${a.jumlah_pemenang_undian || 0} pemenang</b> masing-masing ${rp(a.hadiah_undian)}. Satu orang maksimal 1 hadiah undian per bulan.`,
+    "Hadiah berupa saldo voucher belanja yang langsung masuk ke akun pembeli dan bisa dipakai belanja di Kalensari Store.",
+    "Pemenang diumumkan di halaman ini dan di popup Kalensari Store (nama disingkat, nomor disamarkan).",
+    a.catatan ? esc(a.catatan) : ""
+  ].filter(Boolean).map(x => `<li>${x}</li>`).join("");
+}
+
+async function muatPemenang() {
+  try {
+    const p = await rpc("kuis_pemenang_terbit");
+    if (!p || !p.bulan) return;
+    $("#pemenangBox").hidden = false; $("#pmBulan").textContent = namaBulan(p.bulan);
+    const j = (p.juara || []).map(x => `<li class="g${x.peringkat}"><span class="no">${["🥇","🥈","🥉"][x.peringkat - 1] || x.peringkat}</span><b>${esc(x.nama)} <small class="note">${esc(x.wa)}</small></b><em>${rp(x.hadiah)}</em></li>`).join("");
+    const u = (p.undian || []).map(x => `<li><span class="no">🎟️</span><b>${esc(x.nama)} <small class="note">${esc(x.kupon)}</small></b><em>${rp(x.hadiah)}</em></li>`).join("");
+    $("#pemenang").innerHTML = (j ? `<p class="note"><b>Juara bulan ${namaBulan(p.bulan)}</b></p><ol class="rank">${j}</ol>` : "") + (u ? `<p class="note"><b>Pemenang undian kupon</b></p><ol class="rank">${u}</ol>` : "");
+  } catch (e) {}
+}
+
+/* ---------- pilih jenjang ---------- */
+function renderPilih() {
+  $("#jenjang").innerHTML = Object.entries(JENJANG).map(([k, v]) => `<button type="button" class="jj ${k}${pilih.jenjang === k ? " on" : ""}" onclick="pilihJenjang('${k}')"><span class="em">${v.em}</span><span><b>${k}</b><small>${v.ket}</small></span></button>`).join("");
+  const jj = JENJANG[pilih.jenjang];
+  $("#kelasBox").hidden = !jj;
+  if (jj) $("#kelas").innerHTML = jj.kelas.map(k => `<button type="button" class="${pilih.kelas === k ? "on" : ""}" onclick="pilihKelas(${k})">Kelas ${k}</button>`).join("");
+  $("#mapelBox").hidden = !(jj && jj.kelas.includes(pilih.kelas));
+  if (!$("#mapelBox").hidden) muatMapel();
+}
+function pilihJenjang(k) { pilih = { jenjang: k }; simpanPilih(); renderPilih(); setTimeout(() => $("#kelasBox").scrollIntoView({ behavior: "smooth", block: "center" }), 50); }
+function pilihKelas(k) { pilih.kelas = k; delete pilih.mapel; simpanPilih(); renderPilih(); setTimeout(() => $("#mapelBox").scrollIntoView({ behavior: "smooth", block: "start" }), 50); }
+async function muatMapel() {
+  const box = $("#mapel"); box.innerHTML = `<div class="empty"><span class="spin"></span> Memuat pelajaran…</div>`;
+  $("#mapelInfo").textContent = `${pilih.jenjang} • Kelas ${pilih.kelas}`;
+  try {
+    const m = await rpc("kuis_mapel", { p_jenjang: pilih.jenjang, p_kelas: pilih.kelas }) || [];
+    box.innerHTML = m.length ? m.map(x => `<button type="button" class="mp" data-m="${esc(x.mapel)}" onclick="pilihMapel(this.dataset.m)"><span class="em">${emMapel(x.mapel)}</span><span><b>${esc(x.mapel)}</b><small>${Number(x.jumlah).toLocaleString("id-ID")} soal</small></span><i>›</i></button>`).join("")
+      : `<div class="empty">Belum ada soal untuk ${pilih.jenjang} kelas ${pilih.kelas}. Coba kelas lain ya 🙏</div>`;
+  } catch (e) { box.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+}
+function pilihMapel(m) {
+  if (!INFO.login) { masuk(true); return; }
+  pilih.mapel = m; simpanPilih(); mulai();
+}
+
+/* ---------- main kuis ---------- */
+let SOAL = [], idx = 0, sesiHasil = { benar: 0, poin: 0 }, sibuk = false;
+async function mulai() {
+  if (!pilih.mapel) { location.hash = "#pilih"; return; }
+  if (!INFO.login) { masuk(true); return; }
+  tampil("main"); history.replaceState(null, "", "#main");
+  $("#qJudul").textContent = `${pilih.mapel} • ${pilih.jenjang} ${pilih.kelas}`;
+  $("#qSoal").innerHTML = `<span class="spin"></span> Menyiapkan soal…`; $("#qOpts").innerHTML = ""; $("#qFb").innerHTML = ""; $("#qNext").hidden = true; $("#qNo").textContent = ""; $("#qBar").style.width = "0";
+  try {
+    const r = await rpc("kuis_ambil", { p_sesi: sesi(), p_jenjang: pilih.jenjang, p_kelas: pilih.kelas, p_mapel: pilih.mapel, p_jumlah: 10 });
+    SOAL = r.soal || []; idx = 0; sesiHasil = { benar: 0, poin: 0 };
+    if (!SOAL.length) { $("#qSoal").innerHTML = `🎉 Hebat! Semua soal ${esc(pilih.mapel)} kelas ${pilih.kelas} sudah kamu jawab.<br><br><a class="btn br" href="#pilih">Pilih pelajaran lain</a>`; return; }
+    tampilSoal();
+  } catch (e) { $("#qSoal").innerHTML = esc(e.message) + `<br><br><a class="btn ol" href="#pilih">Kembali</a>`; }
+}
+function tampilSoal() {
+  const q = SOAL[idx]; sibuk = false;
+  $("#qNo").textContent = `Soal ${idx + 1}/${SOAL.length}`;
+  $("#qBar").style.width = (idx / SOAL.length * 100) + "%";
+  $("#qSoal").textContent = q.soal;
+  $("#qOpts").innerHTML = ["A","B","C","D"].map(k => `<button type="button" class="opt" data-k="${k}" onclick="jawab('${k}')"><b>${k}</b><span>${esc(q[k.toLowerCase()])}</span></button>`).join("");
+  $("#qFb").innerHTML = ""; $("#qNext").hidden = true;
+}
+async function jawab(k) {
+  if (sibuk) return; sibuk = true;
+  const q = SOAL[idx]; const btns = [...document.querySelectorAll(".opt")];
+  btns.forEach(b => b.disabled = true);
+  const pilihBtn = btns.find(b => b.dataset.k === k); pilihBtn.style.borderColor = "var(--br)";
+  try {
+    const r = await rpc("kuis_jawab", { p_sesi: sesi(), p_qid: q.id, p_pilihan: k });
+    btns.forEach(b => { if (b.dataset.k === r.kunci) b.classList.add("ok"); else if (b.dataset.k === k) b.classList.add("no"); });
+    if (r.benar) { sesiHasil.benar++; sesiHasil.poin += r.poin_dapat || 0; }
+    INFO.poin = r.poin; $("#chipPoin span").textContent = (r.poin || 0).toLocaleString("id-ID");
+    $("#qFb").innerHTML = `<div class="fb ${r.benar ? "ok" : "no"}">${r.benar ? `✅ Benar! +${r.poin_dapat || 0} poin` : `❌ Belum tepat. Jawaban yang benar: <b>${esc(r.kunci)}</b>`}${r.pembahasan ? `<small>💡 ${esc(r.pembahasan)}</small>` : ""}</div>`;
+    $("#qNext").hidden = false; $("#qNext").textContent = idx + 1 < SOAL.length ? "Lanjut ›" : "Lihat hasil 🎉";
+    $("#qBar").style.width = ((idx + 1) / SOAL.length * 100) + "%";
+    setTimeout(() => $("#qNext").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
+  } catch (e) {
+    toast(e.message, 4000); btns.forEach(b => b.disabled = false); pilihBtn.style.borderColor = ""; sibuk = false;
+    if (/Batas/.test(e.message)) { $("#qFb").innerHTML = `<div class="fb no">${esc(e.message)}</div>`; btns.forEach(b => b.disabled = true); }
+  }
+}
+function lanjut() { if (idx + 1 < SOAL.length) { idx++; tampilSoal(); window.scrollTo({ top: 0, behavior: "smooth" }); } else selesai(); }
+function selesai() {
+  const n = SOAL.length, b = sesiHasil.benar, pct = n ? b / n : 0;
+  $("#hEmoji").textContent = pct >= .8 ? "🏆" : pct >= .5 ? "🎉" : "💪";
+  $("#hJudul").textContent = pct >= .8 ? "Luar biasa!" : pct >= .5 ? "Hebat!" : "Tetap semangat!";
+  $("#hSkor").textContent = `${b}/${n}`; $("#hBenar").textContent = b; $("#hPoin").textContent = "+" + sesiHasil.poin; $("#hTotal").textContent = (INFO.poin || 0).toLocaleString("id-ID");
+  location.hash = "#hasil"; if (pct >= .8) konfeti();
+  muatInfo();
+}
+function keluarKuis() { if (idx < SOAL.length - 1 && !confirm("Keluar dari kuis? Soal yang sudah dijawab tetap tersimpan.")) return; location.hash = "#pilih"; muatInfo(); }
+function konfeti() {
+  const c = document.createElement("div"); c.className = "confetti";
+  const w = ["#f2b231","#7a3e20","#2f8a4c","#3f8fe0","#c8452f","#8a5bd6"];
+  for (let i = 0; i < 70; i++) { const p = document.createElement("i"); p.style.left = Math.random() * 100 + "%"; p.style.background = w[i % w.length]; p.style.animationDelay = Math.random() * .6 + "s"; p.style.animationDuration = 1.2 + Math.random() * 1.2 + "s"; c.appendChild(p); }
+  document.body.appendChild(c); setTimeout(() => c.remove(), 3200);
+}
+
+/* ---------- tukar ---------- */
+async function tukar() {
+  const n = Math.floor(Number($("#tukarN").value) || 0); const a = INFO.aturan || {};
+  if (n < 1) return toast("Isi jumlah kupon");
+  if (!confirm(`Tukar ${n * (a.poin_per_kupon || 100)} poin dengan ${n} kupon undian?`)) return;
+  const b = $("#tukarBtn"); b.disabled = true; b.innerHTML = `<span class="spin"></span>`;
+  try {
+    const r = await rpc("kuis_tukar", { p_sesi: sesi(), p_jumlah: n });
+    toast(`🎟️ ${r.kupon.length} kupon didapat!`); konfeti(); await muatInfo();
+  } catch (e) { toast(e.message, 4000); }
+  b.innerHTML = "Tukar sekarang"; render();
+}
+
+/* ---------- navigasi ---------- */
+function tampil(v) {
+  document.querySelectorAll("[data-view]").forEach(s => s.hidden = s.dataset.view !== v);
+  document.querySelectorAll("[data-v]").forEach(a => a.classList.toggle("on", a.dataset.v === v || (v === "main" && a.dataset.v === "pilih") || (v === "hasil" && a.dataset.v === "pilih")));
+}
+function rute() {
+  let v = (location.hash || "#beranda").slice(1);
+  if (!document.querySelector(`[data-view="${v}"]`)) v = "beranda";
+  if (v === "main" && !SOAL.length) v = "pilih";
+  if (v === "hasil" && !SOAL.length) v = "pilih";
+  tampil(v); if (v === "pilih") renderPilih();
+  if (v !== "main") window.scrollTo(0, 0);
+}
+addEventListener("hashchange", rute);
+$("#yr").textContent = new Date().getFullYear();
+rute(); render(); muatInfo(); muatPemenang();
+</script>
+</body>
+</html>
