@@ -1836,7 +1836,7 @@ function setoranPage(){
     ${stat('Perlu dikembalikan',rp(d.refund.reduce((t,o)=>t+refundJml(o),0)),d.refund.length+' pesanan dibatalkan setelah dibayar','doc','#ef4444')}</div>
   <div class="checkout-note" style="background:#fff8ec;border:1px solid #f3dfb8;border-radius:12px;padding:12px;font-size:13px;margin:4px 0 14px">Uang QRIS masuk ke akun merchant QRIS Kalensari Store (GoPay Merchant). Yang dihitung di sini hanya pesanan QRIS <b>lunas</b> yang sudah diterima penjual (Diproses/Dikirim/Selesai). Biaya QRIS (bila ada) tidak dipotongkan dari setoran.</div>
   <div class="tabs">${[['toko','🏪 Per toko'],['kurir','🛵 Ongkir per kurir']].map(([k,l])=>`<button class="tab ${setTab===k?'on':''}" onclick="setTab='${k}';setLihat='';render()">${l}</button>`).join('')}</div>
-  ${setTab==='toko'?`<div class="card" style="padding:16px;background:#fff8ec;border:1px solid #f3dfb8"><b>🏪 Uang barang toko sekarang lewat Saldo Penjualan</b><p class="sm" style="margin:6px 0 10px">Setiap pesanan non-COD yang selesai diantar otomatis masuk saldo toko. Toko mengajukan pencairan (1x sehari, minimal Rp20.000) dan Anda memprosesnya di menu Pencairan Saldo Toko.</p><button class="btn btn-g" onclick="go('cair')">Buka Pencairan Saldo Toko</button></div>`:''}
+  ${setTab==='toko'?`<div class="card" style="padding:16px;background:#fff8ec;border:1px solid #f3dfb8"><b>🏪 Uang barang toko sekarang lewat Saldo Penjualan</b><p class="sm" style="margin:6px 0 10px">Setiap pesanan yang selesai diantar (QRIS maupun COD) otomatis masuk saldo toko. Toko mengajukan pencairan (1x sehari, minimal Rp20.000) dan Anda memprosesnya di menu Pencairan Saldo Toko.</p><button class="btn btn-g" onclick="go('cair')">Buka Pencairan Saldo Toko</button></div>`:''}
   <div class="cards">${list.length?list.map(g=>{const b=sumAmt(g.belum),open=setLihat===g.key;return `<div class="card" style="padding:14px">
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><b style="font-size:16px">${esc(g.name)}</b><div class="sm" style="color:var(--mut)">${g.belum.length} pesanan belum disetor • ${g.sudah.length} sudah</div></div>
       <div style="text-align:right"><div style="font-size:20px;font-weight:800;color:${b?'var(--orange)':'var(--g2)'}">${rp(b)}</div><small style="color:var(--mut)">sudah disetor ${rp(sumAmt(g.sudah))}</small></div></div>
@@ -1871,6 +1871,8 @@ async function batalSetor(mark,btn){
    - Kurir menekan "Gagal antar" -> status "gagal" + gagal_alasan + gagal_at. */
 function utAdminHtml(o){
   if(!isCodO(o)||!['diproses','dikirim','selesai','gagal'].includes(o.status))return '';
+  if(codBaruA(o)){const sub=(Array.isArray(o.items)?o.items:[]).reduce((t,it)=>t+itemPrice(it)*(Number(it.qty)||1),0);
+    return `<div class="detail-row"><span>💵 COD • uang barang ${rp(sub)}<br><small style="color:var(--mut)">Masuk saldo toko setelah selesai • saldo kurir dipotong harga produk + potongan ongkir</small></span><b style="color:${o.status==='selesai'?'var(--g2)':'var(--orange)'}">${o.status==='selesai'?'✅ Sudah dicatat':o.status==='gagal'?'— Gagal, tidak dicatat':'⏳ Setelah selesai'}</b></div>`}
   const ut=o.uang_toko&&typeof o.uang_toko==='object'?o.uang_toko:{},m=new Map();
   (Array.isArray(o.items)?o.items:[]).forEach(it=>{const n=String(it.seller||'Toko').trim(),k=n.toLowerCase();if(!m.has(k))m.set(k,{n,v:0});m.get(k).v+=itemPrice(it)*(Number(it.qty)||1)});
   return [...m.entries()].map(([k,x])=>`<div class="detail-row"><span>💵 Uang barang ke ${esc(x.n)}<br><small style="color:var(--mut)">${rp(x.v)}</small></span><b style="color:${ut[k]?'var(--g2)':'var(--orange)'}">${ut[k]?'✅ Diterima '+fmtDate(ut[k]):'⏳ Belum dikonfirmasi toko'}</b></div>`).join('');
@@ -1878,6 +1880,10 @@ function utAdminHtml(o){
 const COD_DEF={maks:100000,wa_baru:true,maks_gagal:2,buka:{}};
 const codAt=()=>({...COD_DEF,...(S.settings.cod_aturan&&typeof S.settings.cod_aturan==='object'?S.settings.cod_aturan:{})});
 const isCodO=o=>/^cod/i.test(String(o.payment||'').trim());
+/* ATURAN COD BARU: pesanan COD yang dibuat sejak settings 'cod_saldo_mulai' (diisi supabase-cod-saldo.sql) -> uang barang MASUK SALDO TOKO
+   setelah selesai (seperti QRIS), saldo kurir dipotong harga produk + potongan ongkir. COD lama tetap pakai konfirmasi uang dari kurir. */
+const codMulaiMs=()=>{const v=S.settings.cod_saldo_mulai,s=v&&typeof v==='object'?v.t:v,ms=s?Date.parse(s):NaN;return isNaN(ms)?null:ms};
+const codBaruA=o=>{const m=codMulaiMs();return isCodO(o)&&m!=null&&Date.parse(o.created_at||'')>=m};
 const codTunggu=()=>S.orders.filter(o=>o.pay_status==='tunggu_wa'&&stLabel(o.status)==='Baru');
 function codWaLink(o){const wa=phoneKey(o.customer_phone);const txt=`Assalamualaikum ${o.customer_name||''}, ini admin Kalensari Store 🙏\n\nKami ingin konfirmasi pesanan COD Anda:\nKode: ${orderCode(o)}\nTotal: ${rp(o.total)}\nAlamat: ${cleanMap(o.address)||'-'}\n\nApakah pesanan ini benar dan siap dibayar tunai saat barang tiba? Balas "YA" untuk lanjut 🙏`;return `https://wa.me/${wa}?text=${encodeURIComponent(txt)}`}
 function codBermasalah(){
@@ -1937,7 +1943,7 @@ async function codKonfirmasi(id,btn){
     closeModal();render();toast('COD dikonfirmasi, pesanan diteruskan ke toko')});
 }
 /* ========== SALDO & PENCAIRAN TOKO ==========
-   Saldo toko = uang barang dari pesanan NON-COD (QRIS lunas / transfer) yang SELESAI, dikurangi pencairan (menunggu + selesai).
+   Saldo toko = uang barang dari pesanan QRIS lunas / transfer / COD (aturan baru) yang SELESAI, dikurangi pencairan (menunggu + selesai).
    Pesanan yang dulu sudah ditandai di Setoran QRIS (setoran_qris "KODE|t:toko") tidak dihitung lagi.
    Permintaan pencairan: store_settings "cair_toko" = [{id,toko,nama,wa,jumlah,rek,t,status:menunggu|selesai|ditolak,catatan,diproses_t}] */
 const cairList=()=>Array.isArray(S.settings.cair_toko)?S.settings.cair_toko.filter(Boolean):[];
@@ -2067,7 +2073,7 @@ async function vcKoreksi(btn){
 }
 function saldoToko(){
   const sq=setMap(),m=new Map(),ensure=(k,n)=>{if(!m.has(k))m.set(k,{k,n,masuk:0,keluar:0,ps:0});return m.get(k)};
-  S.orders.filter(o=>o.status==='selesai'&&!isCodO(o)&&!(/^qris/i.test(String(o.payment||''))&&o.pay_status!=='lunas')).forEach(o=>{
+  S.orders.filter(o=>o.status==='selesai'&&(!isCodO(o)||codBaruA(o))&&!(/^qris/i.test(String(o.payment||''))&&o.pay_status!=='lunas')).forEach(o=>{
     const by=new Map();(Array.isArray(o.items)?o.items:[]).forEach(it=>{const n=String(it.seller||'Tanpa toko').split(',')[0].trim(),k=n.toLowerCase();by.set(k,{n,v:((by.get(k)||{}).v||0)+itemPrice(it)*(Number(it.qty)||1)})});
     by.forEach((x,k)=>{if(sq[o.order_code+'|t:'+k])return;const g=ensure(k,x.n);g.masuk+=x.v;g.ps++});
   });

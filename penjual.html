@@ -97,13 +97,19 @@ async function fetchMyOrders(){
   // pesanan QRIS yang belum dibayar ditahan (belum diteruskan ke penjual)
   return (Array.isArray(rows)?rows:[]).filter(o=>Array.isArray(o.items)&&o.items.some(p=>sKey(p.seller)===k)&&!(/^qris/i.test(String(o.payment||""))&&o.pay_status!=="lunas")&&o.pay_status!=="tunggu_wa");
 }
-// COD: kurir membayar uang barang ke toko saat mengambil pesanan; toko menekan tombol sebagai bukti.
+// COD lama: kurir membayar uang barang ke toko saat mengambil pesanan; toko menekan tombol sebagai bukti.
 const isCodO=o=>/^cod/i.test(String(o.payment||"").trim()),utOf=o=>o&&o.uang_toko&&typeof o.uang_toko==="object"?o.uang_toko:{};
+// ATURAN COD BARU (pesanan sejak "cod_saldo_mulai"): uang barang MASUK SALDO TOKO otomatis setelah selesai diantar; tidak ada tombol terima uang dari kurir.
+let COD_MULAI=undefined;
+async function muatCodMulai(){try{const v=await getSetting("cod_saldo_mulai",null),s=v&&typeof v==="object"?v.t:v,ms=s?Date.parse(s):NaN;COD_MULAI=isNaN(ms)?null:ms}catch(e){if(COD_MULAI===undefined)COD_MULAI=null}}
+const codBaru=o=>isCodO(o)&&COD_MULAI!=null&&new Date(o.created_at).getTime()>=COD_MULAI;
 let KACC={};
-async function muatKurirAcc(rows){const need=rows.filter(o=>isCodO(o)&&o.status==="diproses");KACC={};if(!cloudOn()||!need.length)return;
+async function muatKurirAcc(rows){if(COD_MULAI===undefined)await muatCodMulai();const need=rows.filter(o=>isCodO(o)&&!codBaru(o)&&o.status==="diproses");KACC={};if(!cloudOn()||!need.length)return;
   try{const r=await cf("store_settings?select=key,value&key=in.("+need.map(o=>encodeURIComponent('"kurir_ord_'+o.order_code+'"')).join(",")+")");(r||[]).forEach(x=>{if(x.value&&x.value.acc)KACC[String(x.key).slice(10)]=x.value.acc})}catch(e){}}
 const kurirSudah=o=>["dikirim","selesai","gagal"].includes(o.status)||!!KACC[o.order_code];
-function utHtml(o,st,sub){if(!isCodO(o)||!["diproses","dikirim","selesai","gagal"].includes(st))return"";const t=utOf(o)[myKey()],k=KACC[o.order_code];
+function utHtml(o,st,sub){if(!isCodO(o)||!["diproses","dikirim","selesai","gagal"].includes(st))return"";
+  if(codBaru(o))return st==="gagal"?"":st==="selesai"?`<p style="color:#14502c;font-weight:700;margin-top:8px">✅ Uang barang ${rp(sub)} masuk saldo toko (COD). Tidak perlu menerima uang dari kurir.</p>`:`<div style="margin-top:8px;background:#f3f1ee;border-radius:12px;padding:10px"><small>💵 <b>Pesanan COD.</b> Uang barang <b>${rp(sub)}</b> otomatis masuk saldo toko setelah selesai diantar. Tidak perlu menerima uang dari kurir.</small></div>`;
+  const t=utOf(o)[myKey()],k=KACC[o.order_code];
   if(t)return `<p style="color:#14502c;font-weight:700;margin-top:8px">✅ Uang barang ${rp(sub)} sudah diterima dari kurir • ${new Date(t).toLocaleString("id-ID")}</p>`;
   if(!kurirSudah(o))return `<div style="margin-top:8px;background:#f3f1ee;border-radius:12px;padding:10px"><small>🛵 <b>Menunggu kurir menerima pesanan.</b> Kurir akan membayar uang barang <b>${rp(sub)}</b> saat mengambil.</small></div>`;
   return `<div style="margin-top:8px;background:#fff6e0;border-radius:12px;padding:10px"><small>🛵 <b>${k&&k.nama?"Kurir "+escH(k.nama):"Kurir"} sudah menerima pesanan.</b> Kurir membayar uang barang <b>${rp(sub)}</b> saat mengambil.</small><br><button class="mini g" data-ut="${escH(String(o.id))}" data-sub="${sub}">💵 Uang sudah diterima dari kurir</button></div>`}

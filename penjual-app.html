@@ -216,12 +216,21 @@ const LIMIT=15,base=o=>!o.status||o.status==="baru"?"menunggu":o.status,exp=o=>n
 // ===== COD: kurir membayar (menalangi) uang barang ke toko saat mengambil pesanan. Toko menekan tombol sebagai bukti. =====
 const isCodO=o=>/^cod/i.test(String(o.payment||"").trim()),myK=()=>K(me.toko||me.usaha);
 const utOf=o=>o&&o.uang_toko&&typeof o.uang_toko==="object"?o.uang_toko:{};
+// ATURAN COD BARU: pembeli bayar tunai ke kurir; uang barang MASUK SALDO TOKO otomatis setelah pesanan selesai (seperti QRIS).
+// Saldo kurir yang dipotong sebesar harga produk. Berlaku untuk pesanan yang dibuat sejak waktu "cod_saldo_mulai" (diisi supabase-cod-saldo.sql).
+// Pesanan COD lama (sebelum waktu itu) tetap memakai tombol "Uang sudah diterima dari kurir".
+let COD_MULAI=undefined;
+async function muatCodMulai(){try{const v=await getS("cod_saldo_mulai",null),s=v&&typeof v==="object"?v.t:v,ms=s?Date.parse(s):NaN;COD_MULAI=isNaN(ms)?null:ms}catch(e){if(COD_MULAI===undefined)COD_MULAI=null}}
+const codBaru=o=>isCodO(o)&&COD_MULAI!=null&&new Date(o.created_at).getTime()>=COD_MULAI;
+function utBaruHtml(o){const sub=barangKu(o),sel=base(o)==="selesai";
+  return sel?`<div class="card" style="margin-top:12px;background:#e8f6ee;border-color:#bfe3cc"><b style="color:#14502c">✅ Uang barang ${rp(sub)} masuk saldo toko</b><small style="display:block;color:var(--mu)">Pesanan COD sudah selesai diantar. Anda tidak perlu menerima uang dari kurir.</small></div>`
+  :`<div class="card" style="margin-top:12px;background:#f3f1ee"><b>💵 Pesanan COD</b><p style="margin:4px 0 0;font-size:13px">Pembeli membayar tunai ke kurir. Uang barang <b>${rp(sub)}</b> otomatis masuk saldo toko setelah pesanan selesai diantar. Anda tidak perlu menerima uang dari kurir.</p></div>`}
 // Kurir yang sudah menerima pesanan (store_settings kurir_ord_<kode>). Tombol uang baru muncul setelah ada kurir.
 let KACC={};
-async function muatKurirAcc(rows){const need=rows.filter(o=>isCodO(o)&&base(o)==="diproses");KACC={};if(!cloud()||!need.length)return;
+async function muatKurirAcc(rows){const need=rows.filter(o=>isCodO(o)&&!codBaru(o)&&base(o)==="diproses");KACC={};if(!cloud()||!need.length)return;
   try{const r=await cf("store_settings?select=key,value&key=in.("+need.map(o=>encodeURIComponent('"kurir_ord_'+o.order_code+'"')).join(",")+")");(r||[]).forEach(x=>{if(x.value&&x.value.acc)KACC[String(x.key).slice(10)]=x.value.acc})}catch(e){}}
 const kurirSudah=o=>["dikirim","selesai","gagal"].includes(base(o))||!!KACC[o.order_code];
-function utHtml(o){if(!isCodO(o)||!["diproses","dikirim","selesai","gagal"].includes(base(o)))return"";const t=utOf(o)[myK()],sub=mineItems(o).reduce((a,p)=>a+(p.sale||p.price||0)*p.qty,0),k=KACC[o.order_code];
+function utHtml(o){if(!isCodO(o)||!["diproses","dikirim","selesai","gagal"].includes(base(o)))return"";if(codBaru(o))return base(o)==="gagal"?"":utBaruHtml(o);const t=utOf(o)[myK()],sub=mineItems(o).reduce((a,p)=>a+(p.sale||p.price||0)*p.qty,0),k=KACC[o.order_code];
   if(t)return `<div class="card" style="margin-top:12px;background:#e8f6ee;border-color:#bfe3cc"><b style="color:#14502c">✅ Uang barang ${rp(sub)} sudah diterima dari kurir</b><small style="display:block;color:var(--mu)">${new Date(t).toLocaleString("id-ID")}</small></div>`;
   if(!kurirSudah(o))return `<div class="card" style="margin-top:12px;background:#f3f1ee"><b>🛵 Menunggu kurir menerima pesanan</b><p style="margin:4px 0 0;font-size:13px">Pesanan COD: kurir akan membayar uang barang <b>${rp(sub)}</b> saat mengambil pesanan. Siapkan pesanannya dulu.</p></div>`;
   return `<div class="card" style="margin-top:12px;background:#fff6e0;border-color:#f3d48a"><b>🛵 ${k&&k.nama?"Kurir "+esc(k.nama)+" sudah menerima pesanan":"Kurir sudah menerima pesanan"}</b><p style="margin:4px 0 10px;font-size:13px">Kurir membayar uang barang <b>${rp(sub)}</b> saat mengambil pesanan. Tekan tombol di bawah setelah uangnya Anda terima.</p><button class="btn" id="ut">💵 Uang sudah diterima dari kurir</button></div>`}
@@ -248,7 +257,7 @@ function beep(){if(document.hidden)return;try{const c=new(window.AudioContext||w
 const promoSisa=p=>p&&p.sale_until?Math.ceil((Date.parse(p.sale_until)-Date.now())/864e5):null;
 const promoHabis=p=>!!(p&&p.sale_until&&Date.parse(p.sale_until)<=Date.now());
 async function akhiriPromoHabis(){for(const p of P.filter(x=>Number(x.sale)>0&&promoHabis(x))){try{await prodSimpan(p.id,{sale:null,sale_until:null});p.sale=null;p.sale_until=null}catch(e){}}}
-async function load(poll){try{const [pr,or,ct]=await Promise.all([cloud()?cf("products?select=*&order=id.desc"):LG("kalensari_products",[]),cloud()?KSPesanan.baca("pesanan_toko",{p_sesi:KSPesanan.sesi("penjual"),p_limit:200},()=>cf("orders?select=*&order=created_at.desc&limit=200")):LG("kalensari_orders",[]),getS("categories",[])]);P=pr.filter(p=>mine(p.seller));akhiriPromoHabis();O=or.filter(o=>mineItems(o).length&&!belumBayar(o));LAST_LOAD=Date.now();await muatKurirAcc(O);cats=[...new Set(["Makanan","Minuman",...(ct||[]),...pr.map(p=>p.category)].filter(Boolean))];
+async function load(poll){try{const [pr,or,ct]=await Promise.all([cloud()?cf("products?select=*&order=id.desc"):LG("kalensari_products",[]),cloud()?KSPesanan.baca("pesanan_toko",{p_sesi:KSPesanan.sesi("penjual"),p_limit:200},()=>cf("orders?select=*&order=created_at.desc&limit=200")):LG("kalensari_orders",[]),getS("categories",[])]);P=pr.filter(p=>mine(p.seller));akhiriPromoHabis();O=or.filter(o=>mineItems(o).length&&!belumBayar(o));LAST_LOAD=Date.now();if(COD_MULAI===undefined)await muatCodMulai();await muatKurirAcc(O);cats=[...new Set(["Makanan","Minuman",...(ct||[]),...pr.map(p=>p.category)].filter(Boolean))];
 const codes=O.map(o=>o.order_code);if(known&&poll){const n=codes.filter(c=>!known.includes(c));if(n.length){beep();toast("🔔 "+n.length+" pesanan baru")}}known=codes;expireOld();if(poll&&["home","orders"].includes(view))go(view,arg);popupPesanan()}catch(e){if(!poll)toast("Gagal memuat: "+(e.message||e).toString().slice(0,80))}}
 const tried=new Set();async function expireOld(){for(const o of O.filter(o=>base(o)==="menunggu"&&exp(o)<=Date.now()&&isOnly(o)&&!tried.has(o.id))){tried.add(o.id);try{if(cloud())await KSPesanan.aksi("penjual",o.order_code,"kedaluwarsa",{},()=>cf("orders?id=eq."+encodeURIComponent(o.id)+"&status=in.(baru,menunggu)",{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"dibatalkan",updated_at:new Date().toISOString()})}));o.status="dibatalkan"}catch{}}}
 const mmss=l=>Math.floor(l/60000)+":"+String(Math.floor(l%60000/1000)).padStart(2,"0");
@@ -441,7 +450,7 @@ function langgananHtml(ok){const m=new Map();ok.forEach(o=>{const k=String(o.cus
   return `<h3>💛 Pelanggan langganan</h3><div class="card">${l.length?l.map((x,i)=>`<div class="ln"><span>${i+1}. ${esc(String(x.n).slice(0,30))}<small style="display:block;color:var(--mu)">${x.c}× belanja • terakhir ${new Date(x.t).toLocaleDateString("id-ID",{day:"numeric",month:"short"})}</small></span><b>${rp(x.v)}</b></div>`).join("")+`<small style="display:block;color:var(--mu);margin-top:6px">${m.size} pembeli • ${ulang} belanja lebih dari sekali</small>`:'<small style="color:var(--mu)">Belum ada pembeli di periode ini.</small>'}</div>`}
 /* ===== KARTU PESANAN BARU di atas Beranda ===== */
 /* ===== Uang COD dari kurir: tampil di Beranda supaya mudah dicari ===== */
-function codTungguList(){const k=myK();return O.filter(o=>isCodO(o)&&["diproses","dikirim","selesai"].includes(base(o))&&kurirSudah(o)&&!utOf(o)[k]&&Date.now()-new Date(o.created_at).getTime()<7*864e5)}
+function codTungguList(){const k=myK();return O.filter(o=>isCodO(o)&&!codBaru(o)&&["diproses","dikirim","selesai"].includes(base(o))&&kurirSudah(o)&&!utOf(o)[k]&&Date.now()-new Date(o.created_at).getTime()<7*864e5)}
 function codDashHtml(){const l=codTungguList();if(!l.length)return"";
   return `<div class="cod-d"><div class="cod-dh"><span>💵</span><div><b>Terima uang COD dari kurir</b><small>Kurir membayar uang barang saat mengambil pesanan. Tekan tombol setelah uangnya Anda terima.</small></div></div>
   ${l.map(o=>{const sub=mineItems(o).reduce((a,p)=>a+(p.sale||p.price||0)*p.qty,0),kr=KACC[o.order_code];return `<div class="cod-r"><div><b>${esc(o.order_code)}</b><small>${kr&&kr.nama?"🛵 "+esc(kr.nama)+" • ":""}${esc(STL[base(o)]||base(o))}</small></div><strong>${rp(sub)}</strong><button class="btn grn" data-codut="${esc(String(o.id))}">✅ Sudah diterima</button></div>`}).join("")}</div>`}
@@ -537,7 +546,7 @@ bind.home=()=>{bindPesananBaru();document.querySelectorAll("[data-codut]").forEa
 /* ===== LAPORAN KEUANGAN TOKO =====
    Hanya uang BARANG milik toko ini (ongkir milik kurir tidak dihitung).
    Dihitung dari pesanan yang sudah diterima toko (Diproses, Dikirim, Selesai). Ditolak / gagal antar tidak dihitung.
-   QRIS: uang diteruskan admin (catatan "setoran_qris"). COD: dibayar kurir saat mengambil (tombol "Uang sudah diterima"). */
+   QRIS: uang diteruskan admin (catatan "setoran_qris"). COD aturan baru (pesanan sejak cod_saldo_mulai): uang masuk SALDO toko setelah selesai diantar, sama seperti QRIS. COD lama: tombol "Uang sudah diterima". */
 let uPer="bulan",SETQ=null;
 const hargaU=p=>Number(p.sale)>0&&Number(p.sale)<Number(p.price)?Number(p.sale):Number(p.price)||0;
 const barangKu=o=>mineItems(o).reduce((a,p)=>a+hargaU(p)*(Number(p.qty)||1),0);
@@ -548,8 +557,8 @@ function uang(){
   const R=uRange(),[dari]=R[uPer],inR=o=>new Date(o.created_at).getTime()>=dari;
   const semua=O.filter(inR),ok=semua.filter(o=>["diproses","dikirim","selesai"].includes(stOf(o))),gagal=semua.filter(o=>["dibatalkan","gagal"].includes(stOf(o)));
   const k=myK(),sq=SETQ||{},jual=ok.reduce((a,o)=>a+barangKu(o),0);
-  const cara={non:{t:0,saldo:0,tunggu:0,belum_lunas:0,setor:0},cod:{t:0,sudah:0}};
-  ok.forEach(o=>{const v=barangKu(o),u=uangSt(o,sq);if(isCodO(o)){cara.cod.t+=v;if(u==="cod_ok")cara.cod.sudah+=v}else{cara.non.t+=v;cara.non[u]=(cara.non[u]||0)+v}});
+  const cara={non:{t:0,saldo:0,tunggu:0,belum_lunas:0,setor:0},cod:{t:0,sudah:0},cod2:{t:0,saldo:0,tunggu:0}};
+  ok.forEach(o=>{const v=barangKu(o),u=uangSt(o,sq);if(isCodO(o)&&!codBaru(o)){cara.cod.t+=v;if(u==="cod_ok")cara.cod.sudah+=v}else if(isCodO(o)){cara.cod2.t+=v;cara.cod2[u]=(cara.cod2[u]||0)+v}else{cara.non.t+=v;cara.non[u]=(cara.non[u]||0)+v}});
   const pm=new Map();ok.forEach(o=>mineItems(o).forEach(p=>{const n=p.name||"Produk";const x=pm.get(n)||{q:0,v:0};x.q+=Number(p.qty)||1;x.v+=hargaU(p)*(Number(p.qty)||1);pm.set(n,x)}));
   const top=[...pm.entries()].sort((a,b)=>b[1].q-a[1].q).slice(0,5);
   const hariN=uPer==="hari"?1:uPer==="7"?7:uPer==="bulan"?new Date().getDate():30,hm=new Map();
@@ -562,7 +571,7 @@ function uang(){
   <div class="card"><small style="color:var(--mu)">Pesanan berhasil</small><b style="display:block;font-size:20px;margin-top:4px">${ok.length}</b><small style="color:var(--mu)">rata-rata ${rp(ok.length?Math.round(jual/ok.length):0)}</small></div></div>
   <h3>💵 Uang masuk ke toko</h3><div class="card">
   ${ln("QRIS / saldo voucher",rp(cara.non.t))}${cara.non.t?(cara.non.saldo?ln("&nbsp;&nbsp;✅ Masuk saldo",rp(cara.non.saldo),"#14502c"):"")+(cara.non.tunggu?ln("&nbsp;&nbsp;⏳ Masuk saldo setelah selesai diantar",rp(cara.non.tunggu),"#a35a00"):"")+(cara.non.belum_lunas?ln("&nbsp;&nbsp;⚠️ QRIS belum lunas (tidak masuk saldo)",rp(cara.non.belum_lunas),"#b83c2b"):"")+(cara.non.setor?ln("&nbsp;&nbsp;📤 Sudah disetor manual oleh admin",rp(cara.non.setor),"#5b6e65"):""):""}
-  ${ln("COD (dibayar kurir)",rp(cara.cod.t))}${cara.cod.t?ln("&nbsp;&nbsp;✅ Sudah diterima dari kurir",rp(cara.cod.sudah),"#14502c")+sisa(cara.cod.t,cara.cod.sudah):""}
+  ${cara.cod2.t?ln("COD (dibayar pembeli ke kurir)",rp(cara.cod2.t))+(cara.cod2.saldo?ln("&nbsp;&nbsp;✅ Masuk saldo",rp(cara.cod2.saldo),"#14502c"):"")+(cara.cod2.tunggu?ln("&nbsp;&nbsp;⏳ Masuk saldo setelah selesai diantar",rp(cara.cod2.tunggu),"#a35a00"):""):""}${cara.cod.t?ln("COD lama (dibayar kurir)",rp(cara.cod.t))+ln("&nbsp;&nbsp;✅ Sudah diterima dari kurir",rp(cara.cod.sudah),"#14502c")+sisa(cara.cod.t,cara.cod.sudah):""}
   <div class="ln" style="border-top:1px solid var(--ln);margin-top:6px;padding-top:8px"><b>Total penjualan</b><b>${rp(jual)}</b></div>
   ${SETQ===null&&cara.non.t?'<small style="color:var(--mu)">Memuat catatan setoran QRIS…</small>':""}</div>
   ${saldoRingkas()}
@@ -591,7 +600,7 @@ function rekBaca(){const b=($("cBank").value||"").trim(),n=($("cNo").value||"").
 let BIAYA_CAIR=2500;   // biaya admin bank tiap pencairan (admin bisa ubah: store_settings "biaya_cair" = {admin:2500})
 /* Status uang satu pesanan untuk toko ini — dipakai Saldo DAN Laporan agar angkanya selalu sama */
 function uangSt(o,sq){const k=myK();
-  if(isCodO(o))return utOf(o)[k]?"cod_ok":"cod_belum";
+  if(isCodO(o)&&!codBaru(o))return utOf(o)[k]?"cod_ok":"cod_belum";
   if(sq&&sq[o.order_code+"|t:"+k])return "setor";
   if(isQris(o)&&o.pay_status!=="lunas")return "belum_lunas";
   if(o.status!=="selesai")return "tunggu";
@@ -626,7 +635,7 @@ function yakinCair(j,rek,saldo){return new Promise(res=>{const ov=document.creat
 function saldoRingkas(){const S=SALDO;if(!S)return'<h3>💳 Saldo penjualan</h3><div class="card"><small style="color:var(--mu)">Memuat saldo…</small></div>';
   const ln=(a,b,c)=>`<div class="ln"><span>${a}</span><b${c?` style="color:${c}"`:""}>${b}</b></div>`,cair=S.keluar-(S.potong||0);
   return `<h3>💳 Saldo penjualan <small style="font-weight:400;color:var(--mu)">(semua waktu)</small></h3><div class="card">${ln("Total masuk saldo",rp(S.total),"#14502c")}${cair?ln("Sudah / sedang dicairkan","−"+rp(cair),"#b83c2b"):""}${S.potong?ln("Potongan toko tutup","−"+rp(S.potong),"#b83c2b"):""}
-  <div class="ln" style="border-top:1px solid var(--ln);margin-top:6px;padding-top:8px"><b>Saldo sekarang</b><b>${rp(S.saldo)}</b></div><small style="color:var(--mu)">Sama dengan saldo di Beranda. Pesanan masuk saldo setelah selesai diantar dan pembayarannya lunas.</small>
+  <div class="ln" style="border-top:1px solid var(--ln);margin-top:6px;padding-top:8px"><b>Saldo sekarang</b><b>${rp(S.saldo)}</b></div><small style="color:var(--mu)">Sama dengan saldo di Beranda. Pesanan (QRIS maupun COD) masuk saldo setelah selesai diantar dan pembayarannya lunas.</small>
   <button type="button" class="btn o" id="uSaldo" style="margin-top:10px;padding:11px">Lihat &amp; cairkan saldo ›</button></div>`}
 function cekCair(S){if(!S)return"Memuat saldo…";
   if(S.mine.some(x=>x.status==="menunggu"))return"Masih ada pencairan yang menunggu diproses admin.";
