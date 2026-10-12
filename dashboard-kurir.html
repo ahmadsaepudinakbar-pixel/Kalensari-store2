@@ -266,6 +266,7 @@ body{background-color:#f4ebdf;background-image:none}
   <div class="hd"><div><small>🏍️ KURIR KALENSARI</small><b id="hdNama">Halo 👋</b></div><span class="pill" id="hdPill">Offline</span></div>
   <div id="stat" class="status p"></div>
   <label class="sw" id="aktifBox" style="margin:0 0 14px" hidden><input type="checkbox" id="f_aktif"> Saya siap menerima antaran</label>
+  <p id="lokInfo" class="hint" hidden style="margin:-6px 4px 14px"></p>
   <div id="saldoBox" hidden></div>
   <div id="notifBox" hidden><span class="nt-ic"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1z"/></svg></span><div class="nt-tx"><b>Notifikasi pesanan</b><p id="notifTxt">Dapatkan pemberitahuan di HP saat ada pesanan masuk, walaupun aplikasi sedang ditutup.</p></div><div class="nt-bt"><button class="mini g" type="button" id="btnNotif">Aktifkan</button><button class="mini" type="button" id="btnNotifTest" hidden>Kirim tes <em>›</em></button></div></div>
   <section id="layBox" hidden><div class="ly-ban"><div><b>Pilih Layanan Pengiriman</b><small>Centang layanan yang ingin Anda gunakan</small></div><span class="ly-pak" aria-hidden="true"><i>✦</i>📦<i>✦</i></span></div><div class="ly-g"><label class="ly-c"><input type="checkbox" value="cod"><span class="ly-cb"></span><span class="ly-ik">💵</span><b>COD</b><small>Bayar di tempat saat barang tiba</small><small class="ly-w">(Harga produk harus ditalangi dulu oleh kurir)</small></label><label class="ly-c"><input type="checkbox" value="paket"><span class="ly-cb"></span><span class="ly-ik">📦</span><b>Antar Paket</b><small>Kirim paket dengan aman &amp; cepat</small></label><label class="ly-c"><input type="checkbox" value="ojek"><span class="ly-cb"></span><span class="ly-ik">🛵</span><b>Ngojek</b><small>Antar jemput penumpang</small></label></div><p class="ly-n">Boleh pilih salah satu atau ketiganya.</p><div class="ly-rad"><label for="radSel"><b>📏 Kesanggupan jarak antar</b><small>Pesanan yang jaraknya melebihi pilihan Anda akan dialihkan ke kurir lain yang sanggup.</small></label><select id="radSel" class="fld"><option value="0">Tanpa batas jarak</option><option value="3">Maksimal 3 km</option><option value="5">Maksimal 5 km</option><option value="10">Maksimal 10 km</option><option value="15">Maksimal 15 km</option><option value="20">Maksimal 20 km</option><option value="25">Maksimal 25 km</option><option value="30">Maksimal 30 km</option><option value="40">Maksimal 40 km</option><option value="50">Maksimal 50 km</option></select><p class="ly-n" id="radNote" style="margin:0"></p></div></section>
@@ -394,7 +395,7 @@ async function load(){
   $("dHalo").textContent = "Halo, " + (me.nama || "selamat datang") + " 👋";
   FIELDS.forEach(k => { $("f_" + k).value = me[k] || ""; });
   $("fWa").value = "+" + WA;
-  $("f_aktif").checked = me.aktif !== false; const ok = !me.pending; $("stat").className = "status " + (ok ? "ok" : "p"); $("stat").textContent = ok ? "✅ Akun kurir Anda sudah disetujui admin." : "⏳ Menunggu persetujuan admin. Daftar pesanan akan tampil setelah disetujui."; $("ordBox").hidden = !ok; $("aktifBox").hidden = !ok; $("notifBox").hidden = !ok; $("layBox").hidden = !ok; if(ok){ pushInit(); layIsi(); }
+  $("f_aktif").checked = me.aktif !== false; const ok = !me.pending; $("stat").className = "status " + (ok ? "ok" : "p"); $("stat").textContent = ok ? "✅ Akun kurir Anda sudah disetujui admin." : "⏳ Menunggu persetujuan admin. Daftar pesanan akan tampil setelah disetujui."; $("ordBox").hidden = !ok; $("aktifBox").hidden = !ok; $("notifBox").hidden = !ok; $("layBox").hidden = !ok; if(ok){ pushInit(); layIsi(); lokPastikan(); }
   if(ok && !me.joined){ me.joined = Date.now(); upsertMember(me).catch(() => {}); }
   if(window.KSID) $("kodeAkun").innerHTML = KSID.lencana(me.kode);
   renderProf(); $("dash").hidden = false;
@@ -663,8 +664,24 @@ async function bukaRiwayat(){
 // ===== 1 checkout = 1 kurir: nota-nota dengan kolom "grup" yang sama selalu dipegang kurir yang sama =====
 const gk = o => o.grup || o.order_code;
 const anggota = o => Object.values(ORD).filter(x => gk(x) === gk(o));
+/* ===== Urutan giliran = kurir TERDEKAT ke toko dulu =====
+   Titik acuan: semua toko dalam 1 antaran gabungan (ojek/paket: titik jemput). Jarak = jarak lurus kurir -> toko TERDEKAT.
+   Jarak dibulatkan per 200 m agar urutan tidak gonta-ganti karena GPS bergeser sedikit; seri diurutkan acak (hash) seperti semula.
+   Kurir yang lokasinya belum ada / sudah basi (> LOK_BASI_MS) ditaruh PALING AKHIR, supaya pesanan tidak menggantung. */
+const LOK_BASI_MS = 15 * 60000;
+function lokKurir(m){
+  const la = Number(m && m.lat), ln = Number(m && m.lng), t = Number(m && m.lokT);
+  return Number.isFinite(la) && Number.isFinite(ln) && !(la === 0 && ln === 0) && Date.now() - t < LOK_BASI_MS ? {lat:la, lng:ln} : null;
+}
+function titikAmbil(o){
+  const t = transOf(o);
+  if(t){ const j = t.jemput; return j && Number.isFinite(+j.lat) && Number.isFinite(+j.lng) ? [{lat:+j.lat, lng:+j.lng}] : []; }
+  const pts = []; [o, ...anggota(o)].forEach(x => tokoUrut(x).forEach(k => { if(k.loc) pts.push(k.loc); })); return pts;
+}
 function sortedFor(o, elig){
-  const g = gk(o); return [...elig].sort((a, b) => (h32(g + ":" + a.id) - h32(g + ":" + b.id)) || String(a.id).localeCompare(String(b.id)));
+  const g = gk(o), tk = titikAmbil(o);
+  const kunci = m => { const p = lokKurir(m); if(!p || !tk.length) return 1e12; return Math.round(Math.min(...tk.map(x => jarakM(x, p))) / 200); };
+  return [...elig].sort((a, b) => (kunci(a) - kunci(b)) || (h32(g + ":" + a.id) - h32(g + ":" + b.id)) || String(a.id).localeCompare(String(b.id)));
 }
 function startOf(o, st){ if(st && st.base) return st.base; const t = Date.parse(o.updated_at || o.created_at || ""); return isNaN(t) ? Date.now() : t; }
 function slotIdx(o, st, now){ return ((st && st.skip) || 0) + Math.floor(Math.max(0, now - startOf(o, st)) / T_MS); }
@@ -926,6 +943,7 @@ async function loadOrders(){
     if(BIAYA.aktif && SALDO !== null && SALDO < 0) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda minus. Anda tidak bisa menerima pesanan COD sampai saldo kembali plus (QRIS, antar barang, dan ngojek tetap bisa). Isi saldo di Beranda.</p>';
     else if(false) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda kurang. Isi saldo di Beranda agar bisa menerima tawaran pesanan.</p>';
     if(me.aktif === false) h += '<p class="hint" style="margin-top:10px">⚠️ Anda sedang tidak siap menerima antaran. Centang "Saya siap menerima antaran" di atas agar pesanan bisa ditawarkan kepada Anda.</p>';
+    if(me.aktif !== false && !lokKurir(me)) h += '<p class="hint" style="margin-top:10px;color:#c0392b">📍 Lokasi Anda belum terbaca. Pesanan ditawarkan lebih dulu ke kurir yang lokasinya aktif dan terdekat dari toko. Nyalakan GPS dan izinkan lokasi.</p>';
     if(offers.length) h += hd(`Menunggu jawaban Anda (${offers.length})`) + offers.map(x => cardOffer(x.o, x.end)).join("");
     if(mine.length) h += hd(`Pesanan saya (${mine.length})`) + mine.map(cardMine).join("");
     if(!offers.length && !mine.length) h += '<p class="hint" style="margin-top:10px">Belum ada pesanan untuk Anda. Biarkan halaman ini terbuka; pesanan baru akan muncul otomatis.</p>';
@@ -1005,11 +1023,65 @@ async function setStatus(code, status, antar){
   }catch(e){ toast("Gagal memperbarui status"); loadOrders(); }
 }
 $("btnRefresh").onclick = loadOrders;
+/* ===== Lokasi kurir: WAJIB aktif selama "Saya siap menerima antaran" menyala =====
+   Disimpan di data kurir (me.lat, me.lng, me.lokAcc, me.lokT) agar semua HP bisa menghitung siapa yang terdekat ke toko. */
+const LOK_SIMPAN_MS = 3 * 60000, LOK_GESER_M = 150;
+let lokWatch = null, lokSimpan = null, lokErr = "";
+function lokPesanErr(e){ return e.code === 1 ? "Izin lokasi ditolak. Izinkan Lokasi untuk situs/aplikasi ini di pengaturan HP, lalu nyalakan lagi." : e.code === 3 ? "Lokasi belum didapat (waktu habis). Pastikan GPS menyala." : "Lokasi belum didapat. Pastikan GPS menyala."; }
+function lokAmbil(){
+  return new Promise((ok, no) => {
+    if(!window.isSecureContext) return no(new Error("Lokasi hanya bisa dipakai lewat HTTPS."));
+    if(!("geolocation" in navigator)) return no(new Error("Perangkat ini tidak mendukung lokasi."));
+    navigator.geolocation.getCurrentPosition(ok, e => no(Object.assign(new Error(lokPesanErr(e)), {kode:e.code})), {enableHighAccuracy:true, timeout:15000, maximumAge:0});
+  });
+}
+function lokTerap(pos){ me.lat = +pos.coords.latitude.toFixed(6); me.lng = +pos.coords.longitude.toFixed(6); me.lokAcc = Math.round(pos.coords.accuracy || 0); me.lokT = Date.now(); }
+function lokInfoUI(){
+  const el = $("lokInfo"); if(!el) return;
+  const on = me && me.aktif !== false && !me.pending; el.hidden = !on; if(!on) return;
+  const jam = me.lokT ? new Date(me.lokT).toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit"}) : "";
+  el.style.color = lokErr || !lokKurir(me) ? "#c0392b" : "#14502c";
+  el.textContent = lokErr ? "⚠️ " + lokErr : lokKurir(me) ? "📍 Lokasi aktif (±" + (me.lokAcc || 0) + " m) • diperbarui " + jam + ". Pesanan ditawarkan ke kurir terdekat dari toko." : "📍 Mencari lokasi Anda…";
+}
+async function lokSimpanKe(paksa){
+  const p = lokKurir(me); if(!p) return;
+  if(!paksa && lokSimpan && Date.now() - lokSimpan.t < LOK_SIMPAN_MS && jarakM(lokSimpan, p) < LOK_GESER_M) return;
+  lokSimpan = {lat:p.lat, lng:p.lng, t:Date.now()};
+  try{ await upsertMember(me); }catch(e){ lokSimpan = null; }
+}
+async function lokMatikanPaksa(pesan){
+  lokBerhenti(); me.aktif = false; me.lat = me.lng = null; me.lokT = 0; $("f_aktif").checked = false; lokErr = "";
+  try{ await upsertMember(me); }catch(e){} lokInfoUI(); toast(pesan);
+}
+function lokMulai(){
+  if(lokWatch !== null || !("geolocation" in navigator)) return;
+  lokWatch = navigator.geolocation.watchPosition(pos => { lokErr = ""; lokTerap(pos); lokInfoUI(); lokSimpanKe(false); },
+    e => { if(e.code === 1){ lokMatikanPaksa("Izin lokasi dimatikan, status Anda dikembalikan ke Offline."); } else { lokErr = lokPesanErr(e); lokInfoUI(); } },
+    {enableHighAccuracy:true, maximumAge:15000, timeout:30000});
+}
+function lokBerhenti(){ if(lokWatch !== null){ try{ navigator.geolocation.clearWatch(lokWatch); }catch(e){} lokWatch = null; } }
+// Dipanggil saat halaman dimuat: kurir yang masih berstatus siap WAJIB memberi lokasi, jika tidak status jadi Offline.
+async function lokPastikan(){
+  if(!me || me.pending || me.aktif === false) return lokInfoUI();
+  lokInfoUI();
+  try{ lokTerap(await lokAmbil()); lokErr = ""; lokInfoUI(); lokMulai(); await lokSimpanKe(true); loadOrders(); }
+  catch(e){ await lokMatikanPaksa("Lokasi wajib aktif agar bisa siap menerima antaran. Status Anda: Offline. " + (e.message || "")); }
+}
+document.addEventListener("visibilitychange", () => { if(document.hidden || !me || me.pending || me.aktif === false) return;
+  lokAmbil().then(p => { lokTerap(p); lokErr = ""; lokInfoUI(); lokSimpanKe(false); }).catch(() => {}); });
+setInterval(lokInfoUI, 30000);
 $("f_aktif").onchange = async () => {
-  const on = $("f_aktif").checked;
+  const cb = $("f_aktif"), on = cb.checked, lama = {lat:me.lat, lng:me.lng, lokAcc:me.lokAcc, lokT:me.lokT};
+  if(on){
+    cb.disabled = true; toast("📍 Mengambil lokasi Anda…");
+    try{ lokTerap(await lokAmbil()); lokErr = ""; }
+    catch(e){ cb.disabled = false; cb.checked = false; me.aktif = false; lokInfoUI(); return toast("Lokasi wajib aktif untuk siap menerima antaran. " + (e.message || "")); }
+    cb.disabled = false;
+  }
   me.aktif = on; me.updated = Date.now();
-  try{ await upsertMember(me); toast(on ? "Anda siap menerima antaran" : "Anda tidak menerima antaran baru"); loadOrders(); }
-  catch(e){ me.aktif = !on; $("f_aktif").checked = !on; toast(e.message || "Gagal menyimpan"); }
+  if(!on){ lokBerhenti(); me.lat = me.lng = null; me.lokT = 0; }
+  try{ await upsertMember(me); if(on){ lokMulai(); lokSimpan = {lat:me.lat, lng:me.lng, t:Date.now()}; } lokInfoUI(); toast(on ? "Anda siap menerima antaran" : "Anda tidak menerima antaran baru"); loadOrders(); }
+  catch(e){ me.aktif = !on; cb.checked = !on; Object.assign(me, lama); if(on) lokBerhenti(); else lokMulai(); lokInfoUI(); toast(e.message || "Gagal menyimpan"); }
 };
 $("orders").addEventListener("click", async e => {
   const b = e.target.closest("button[data-act]"); if(!b) return;
@@ -1511,7 +1583,7 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)}, cur="home";
-  var HOME=[".hd","#stat","#aktifBox","#saldoBox","#notifBox","#layBox","#ringkas","#btnLihat"], ORD=["#ordBox"], PROF=["#profBox",".accordion-box","#ksLink"], UANG=["#uangBox"];
+  var HOME=[".hd","#stat","#aktifBox","#lokInfo","#saldoBox","#notifBox","#layBox","#ringkas","#btnLihat"], ORD=["#ordBox"], PROF=["#profBox",".accordion-box","#ksLink"], UANG=["#uangBox"];
   function all(l){var r=[];l.forEach(function(q){document.querySelectorAll(q).forEach(function(e){r.push(e)})});return r}
   function show(t){ cur=t;
     if(t==="uang"&&window.muatPenghasilan) window.muatPenghasilan();
