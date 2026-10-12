@@ -6,6 +6,7 @@
 window.KSUlasan = (function () {
   const DATA = {}, ORD = {};
   let ADA = true;
+  const bs = s => window.KSFilter ? KSFilter.bersihkan(s) : String(s ?? "");   // sensor kata kasar (filter-kata.js)
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const cfg = () => window.CLOUD_CONFIG || {};
   async function cf(p, o = {}) {
@@ -51,7 +52,7 @@ window.KSUlasan = (function () {
     css();
     return tokoDari(o).map(([k, n]) => {
       const u = d.find(x => x.toko === k);
-      if (u) return `<div class="ksu-done"><span class="s">${bintang(u.bintang)}</span> Ulasan Anda untuk <b>${esc(n)}</b>${u.isi ? `<br>“${esc(u.isi)}”` : ""}${u.balasan ? `<div class="ksu-bls">💬 <b>Balasan ${esc(n)}:</b> ${esc(u.balasan)}</div>` : ""}</div>`;
+      if (u) return `<div class="ksu-done"><span class="s">${bintang(u.bintang)}</span> Ulasan Anda untuk <b>${esc(n)}</b>${u.isi ? `<br>“${esc(bs(u.isi))}”` : ""}${u.balasan ? `<div class="ksu-bls">💬 <b>Balasan ${esc(n)}:</b> ${esc(bs(u.balasan))}</div>` : ""}</div>`;
       return `<button type="button" class="ksu-btn" data-ksu="${esc(o.order_code)}" data-ksut="${esc(k)}" data-ksun="${esc(n)}">⭐ Beri ulasan untuk ${esc(n)}</button>`;
     }).join("");
   }
@@ -65,7 +66,7 @@ window.KSUlasan = (function () {
     ov.innerHTML = `<div class="ksu-card" role="dialog" aria-label="Beri ulasan"><h3>⭐ Ulasan untuk ${esc(nama)}</h3><p>Pesanan ${esc(code)}</p>
       <div class="ksu-st">${[1, 2, 3, 4, 5].map(i => `<button type="button" data-n="${i}" aria-label="${i} bintang">★</button>`).join("")}</div><div class="ksu-lbl">Ketuk bintang</div>
       <div class="ksu-ch">${CH.map(c => `<button type="button">${esc(c)}</button>`).join("")}</div>
-      <textarea maxlength="400" placeholder="Ceritakan pengalaman Anda (opsional)"></textarea>
+      <textarea data-filter maxlength="400" placeholder="Ceritakan pengalaman Anda (opsional)"></textarea>
       <div class="ksu-info">🔒 Ulasan hanya dibaca oleh penjual & admin, tidak ditampilkan di Kalensari Store.</div><div class="ksu-err"></div>
       <button type="button" class="ksu-go" disabled>Kirim ulasan</button><button type="button" class="ksu-x">Nanti saja</button></div>`;
     document.body.appendChild(ov);
@@ -76,7 +77,7 @@ window.KSUlasan = (function () {
     ov.querySelectorAll(".ksu-ch button").forEach(b => b.onclick = () => { const t = b.textContent; pilih.has(t) ? pilih.delete(t) : pilih.add(t); b.classList.toggle("on"); });
     $(".ksu-go").onclick = async () => {
       if (kirim || !n) return; kirim = true; $(".ksu-go").textContent = "Mengirim…"; $(".ksu-err").textContent = "";
-      const isi = [[...pilih].join(", "), $("textarea").value.trim()].filter(Boolean).join(". ").slice(0, 500);
+      const isi = [[...pilih].join(", "), bs($("textarea").value.trim())].filter(Boolean).join(". ").slice(0, 500);
       const row = { order_code: code, toko: tk, toko_nama: nama, bintang: n, isi, nama: String(o.customer_name || "").slice(0, 60), wa: String(o.customer_phone_normalized || o.customer_phone || "").slice(0, 16) };
       try {
         await cf("ulasan", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(row) });

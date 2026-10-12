@@ -182,7 +182,7 @@ a.q,a.m{text-decoration:none;color:inherit;display:flex}.q.q-ks{background:var(-
 <div id="lf" hidden style="text-align:left"><label>No. WhatsApp atau ID akun<input id="lw" class="fld" type="text" inputmode="text" autocapitalize="characters" placeholder="08xxxxxxxxxx atau PJ0001"></label><label>PIN<input id="lp" class="fld" type="password" inputmode="numeric" maxlength="8"></label><button class="btn" id="go">Masuk</button></div>
 <button class="btn" id="bm">Masuk</button><a class="btn o" href="penjual.html">Daftar</a><p style="margin-top:20px;font-size:13px">Aplikasi Penjual - Kalensari Store</p></section>
 <div id="app" hidden><header id="hd"></header><main id="v"></main><nav id="nav"></nav><div id="dr" hidden></div></div><div id="toast"></div>
-<script src="config.js" onerror="void 0"></script><script src="crop.js"></script><script src="akun-id.js"></script><script src="pesanan-aman.js"></script><script src="notif.js"></script><script src="hapus-akun.js"></script><script>
+<script src="config.js" onerror="void 0"></script><script src="filter-kata.js"></script><script src="crop.js"></script><script src="akun-id.js"></script><script src="pesanan-aman.js"></script><script src="notif.js"></script><script src="hapus-akun.js"></script><script>
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID"),K=s=>String(s||"").trim().toLowerCase();
 const toast=t=>{const e=$("toast");e.textContent=t;e.classList.add("s");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("s"),3000)};
 const cloud=()=>window.CLOUD_CONFIG&&CLOUD_CONFIG.enabled&&CLOUD_CONFIG.supabaseUrl&&CLOUD_CONFIG.supabaseAnonKey;
@@ -494,15 +494,15 @@ function ulasan(){if(!ULS)return '<p style="color:var(--mu);text-align:center;ma
   <div class="chips" style="margin-top:12px">${[["semua","Semua"],["belum","Belum dibalas"+(belum?" ("+belum+")":"")],["rendah","Bintang 1–2"]].map(([k,t])=>`<button data-uf="${k}" class="${k===ulsF?"on":""}">${t}</button>`).join("")}</div>
   ${l.length?l.map(x=>`<div class="ur"><div style="display:flex;justify-content:space-between;align-items:center"><span class="s">${bintangT(x.bintang)}</span><small>${new Date(x.created_at).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"})}</small></div>
     <small>${esc(namaDepan(x.nama))} • <a data-uo="${esc(x.order_code)}" style="color:var(--b);font-weight:700;cursor:pointer">${esc(x.order_code)}</a></small>
-    ${x.isi?`<p>${esc(x.isi)}</p>`:'<p style="color:var(--mu)">(tanpa komentar)</p>'}
-    ${x.balasan&&ulsEdit!==x.id?`<div class="bls">💬 <b>Balasan Anda:</b> ${esc(x.balasan)} <a data-ue="${x.id}" style="color:var(--b);font-size:12.5px;cursor:pointer">✎ ubah</a></div>`:
-      `<textarea class="fld" id="ut${x.id}" maxlength="400" placeholder="Balas ulasan ini (dibaca pembeli di riwayat pesanannya)">${esc(x.balasan||"")}</textarea><button class="btn o" data-ur="${x.id}" style="padding:10px;margin-top:0">💬 Kirim balasan</button>`}
+    ${x.isi?`<p>${esc(KSFilter.bersihkan(x.isi))}</p>`:'<p style="color:var(--mu)">(tanpa komentar)</p>'}
+    ${x.balasan&&ulsEdit!==x.id?`<div class="bls">💬 <b>Balasan Anda:</b> ${esc(KSFilter.bersihkan(x.balasan))} <a data-ue="${x.id}" style="color:var(--b);font-size:12.5px;cursor:pointer">✎ ubah</a></div>`:
+      `<textarea class="fld" id="ut${x.id}" data-filter maxlength="400" placeholder="Balas ulasan ini (dibaca pembeli di riwayat pesanannya)">${esc(x.balasan||"")}</textarea><button class="btn o" data-ur="${x.id}" style="padding:10px;margin-top:0">💬 Kirim balasan</button>`}
   </div>`).join(""):`<p style="color:var(--mu);text-align:center;margin-top:24px">${n?"Tidak ada ulasan di filter ini.":"Belum ada ulasan. Ulasan muncul setelah pembeli menilai pesanan yang sudah selesai."}</p>`}<div style="height:12px"></div>`}
 bind.ulasan=()=>{if(!ULS||Date.now()-ULS_T>60000)muatUlasan().then(()=>{if(view==="ulasan")go("ulasan")});
   document.querySelectorAll("[data-uf]").forEach(b=>b.onclick=()=>{ulsF=b.dataset.uf;go("ulasan")});
   document.querySelectorAll("[data-ue]").forEach(b=>b.onclick=()=>{ulsEdit=+b.dataset.ue;go("ulasan")});
   document.querySelectorAll("[data-uo]").forEach(b=>b.onclick=()=>{const o=O.find(x=>x.order_code===b.dataset.uo);o?go("detail",String(o.id)):toast("Pesanan sudah lama, tidak ada di daftar")});
-  document.querySelectorAll("[data-ur]").forEach(b=>b.onclick=async()=>{const id=+b.dataset.ur,t=$("ut"+id).value.trim();if(!t)return toast("Tulis balasan dulu");b.disabled=true;b.textContent="Mengirim…";
+  document.querySelectorAll("[data-ur]").forEach(b=>b.onclick=async()=>{const id=+b.dataset.ur,t=KSFilter.bersihkan($("ut"+id).value.trim());if(!t)return toast("Tulis balasan dulu");b.disabled=true;b.textContent="Mengirim…";
     try{const now=new Date().toISOString();await KSPesanan.baca("ulasan_balas",{p_sesi:KSPesanan.sesi("penjual"),p_id:id,p_balasan:t},()=>cf("ulasan?id=eq."+id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({balasan:t,balas_at:now})}));const x=ULS.find(y=>y.id===id);if(x){x.balasan=t;x.balas_at=now}ulsEdit=null;toast("✅ Balasan terkirim");go("ulasan")}
     catch(e){b.disabled=false;b.textContent="💬 Kirim balasan";toast("Gagal: "+String(e.message||e).slice(0,60))}})};
 /* beranda */
