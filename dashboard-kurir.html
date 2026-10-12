@@ -690,7 +690,9 @@ const layananKurir = m => Array.isArray(m && m.layanan) && m.layanan.length ? m.
 function eligFor(o, elig, busy){
   let l = transOf(o) ? elig.filter(m => !busy.has(m.id)) : elig;
   const L = layananPesanan(o);
-  if(SALDO_ALL && isCodP(o)) l = l.filter(m => (SALDO_ALL[m.id] || 0) >= (codBaru(o) ? 0 : minSaldo()));   // COD: saldo minus tidak ikut giliran (COD lama: tetap butuh saldo minimum)
+  // antaran gabungan: bila ada SATU nota COD baru di grup, seluruh antaran diperlakukan sebagai COD
+  const grupCodBaru = codBaru(o) || anggota(o).some(codBaru);
+  if(SALDO_ALL && (isCodP(o) || grupCodBaru)) l = l.filter(m => (SALDO_ALL[m.id] || 0) >= (grupCodBaru ? 0 : minSaldo()));   // COD: saldo minus tidak ikut giliran (COD lama: tetap butuh saldo minimum)
   if(L){ const pilih = l.filter(m => layananKurir(m).includes(L)); if(pilih.length) l = pilih; }
   return l;
 }
@@ -926,7 +928,7 @@ async function terima(code){
   const o = ORD[code]; if(!o) return;
   const [st, elig0, busy] = await Promise.all([readState(code), eligibleCouriers(), freshBusy()]);
   if(st.acc && st.acc.id !== me.id) return toast("Pesanan sudah diambil kurir lain");
-  if(codBaru(o) && BIAYA.aktif && !st.acc){ const sm = await saldoSemua(); if(sm && (sm[me.id] || 0) < 0) return toast("Saldo Anda minus. Isi saldo dulu supaya bisa menerima pesanan COD."); }
+  if((codBaru(o) || anggota(o).some(codBaru)) && BIAYA.aktif && !st.acc){ const sm = await saldoSemua(); if(sm && (sm[me.id] || 0) < 0) return toast("Saldo Anda minus. Isi saldo dulu supaya bisa menerima pesanan COD."); }
   if(transOf(o) && busy.has(me.id)) return toast("Selesaikan antaran Anda dulu sebelum menerima ojek/paket");
   const elig = eligFor(o, elig0, busy);
   const a = assigneeOf(o, st, elig, Date.now());
