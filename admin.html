@@ -412,13 +412,13 @@ async function loadAll(silent){
     // saldo kurir (tabel dari supabase-saldo-kurir.sql; kosong bila belum dipasang)
     const sejak=new Date(Date.now()-400*864e5).toISOString();
     const [ks,kt,km,kc,ku]=await Promise.all([
-      api('kurir_saldo?select=kurir_id,saldo').catch(()=>null),
+      api('kurir_saldo?select=kurir_id,saldo,kredit').catch(()=>api('kurir_saldo?select=kurir_id,saldo').catch(()=>null)),
       api('kurir_topup?select=id,kurir_id,nama,wa,jumlah,status,catatan,t,diproses_t&order=t.desc&limit=100').catch(()=>null),
       api('kurir_mutasi?select=jumlah,t&jenis=eq.potong&t=gt.'+encodeURIComponent(sejak)+'&limit=10000').catch(()=>null),
       api('kurir_cair?select=*&order=t.desc&limit=100').catch(()=>null),
       api('kurir_mutasi?select=order_code&jenis=eq.upah&t=gt.'+encodeURIComponent(sejak)+'&limit=10000').catch(()=>null)]);
     S.kcair=Array.isArray(kc)?kc:null;S.upah=new Set((Array.isArray(ku)?ku:[]).map(x=>x.order_code));
-    S.saldo=Array.isArray(ks)?Object.fromEntries(ks.map(x=>[x.kurir_id,Number(x.saldo)||0])):null;
+    S.saldo=Array.isArray(ks)?Object.fromEntries(ks.map(x=>[x.kurir_id,Number(x.saldo)||0])):null;S.kredit=Array.isArray(ks)?Object.fromEntries(ks.map(x=>[x.kurir_id,Number(x.kredit)||0])):{};
     S.topup=Array.isArray(kt)?kt:[];S.potong=Array.isArray(km)?km:[];
     S.products=Array.isArray(p)?p:[];S.orders=Array.isArray(o)?o:[];
     S.settings={};(Array.isArray(s)?s:[]).forEach(r=>S.settings[r.key]=r.value);
@@ -474,6 +474,7 @@ const minSaldoB=()=>{const b=biaya();return b.mode==='persen'?(Number(b.minSaldo
 const potongTeks=()=>{const b=biaya();return b.mode==='persen'?String(Number(b.persen)||0).replace('.',',')+'% dari ongkir':rp(b.potong)};
 const topupMenunggu=()=>(S.topup||[]).filter(x=>x.status==='menunggu');
 const saldoOf=id=>S.saldo?(S.saldo[id]||0):null;
+const kreditOf=id=>S.kredit?(S.kredit[id]||0):0;
 function pemasukan(){const now=wibNow(),bln=now.d.slice(0,7);let h=0,b=0;(S.potong||[]).forEach(x=>{const d=new Date(new Date(x.t).getTime()+7*36e5).toISOString().slice(0,10),v=Math.abs(Number(x.jumlah)||0);if(d===now.d)h+=v;if(d.slice(0,7)===bln)b+=v});return{h,b}}
 const laporTag=o=>{const l=laporOf(o);return l&&!l.beres?' <span class="badge" style="background:#fdecea;color:#c0392b">⚠️ Belum diterima</span>':''};
 const cleanMap=t=>String(t||'').replace(/\s*__KS_MAP__-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?__END__\s*/g,' ').trim();
@@ -1640,14 +1641,26 @@ async function saldoKurir(id){
   const m=members('kurir').find(x=>x.id===id)||{};
   modal(`<div class="chead"><h3 style="margin:0">💰 Saldo ${esc(m.nama||'Kurir')}</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
   <div class="detail-row"><span>Saldo sekarang</span><b style="font-size:18px">${rp(saldoOf(id)||0)}</b></div>
+  <div class="detail-row"><span>🎟️ Kredit sekarang<br><small style="color:var(--mut)">bonus, tidak bisa dicairkan</small></span><b style="font-size:18px">${rp(kreditOf(id))}</b></div>
   <div class="field" style="margin-top:12px"><label>Tambah / kurangi saldo (pakai minus untuk mengurangi)</label><input class="inp" id="kjJml" inputmode="numeric" placeholder="mis. 20000 atau -5000"></div>
   <div class="field"><label>Keterangan</label><input class="inp" id="kjKet" placeholder="mis. Bayar tunai ke admin / Bonus awal"></div>
   <button class="btn btn-g full" onclick="koreksiSaldo('${jsq(id)}',this)">Simpan</button>
+  <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line)"><b>🎟️ Beri / kurangi Kredit</b>
+    <div class="field" style="margin-top:8px"><label>Jumlah Kredit (pakai minus untuk mengurangi)</label><input class="inp" id="krJml" inputmode="numeric" placeholder="mis. 5000 atau -2000"></div>
+    <div class="field"><label>Keterangan</label><input class="inp" id="krKet" placeholder="mis. Bonus misi"></div>
+    <button class="btn btn-g full" onclick="beriKredit('${jsq(id)}',this)">Simpan Kredit</button>
+    <p class="sm" style="color:var(--mut);margin-top:6px">Kredit tidak bisa dicairkan. Saat pesanan selesai, potongan diambil dari Kredit lebih dulu, baru dari saldo.</p></div>
   ${Number(biaya().saldoAwal)>0?`<button class="btn btn-light full" style="margin-top:8px" onclick="saldoAwalBtn('${jsq(id)}',this)">🎁 Beri saldo awal ${rp(biaya().saldoAwal)} (sekali per kurir)</button>`:''}
   <p style="font-size:12px;color:var(--mut);margin:16px 0 6px;font-weight:600">Riwayat terakhir</p><div id="kjRw" class="sm">Memuat...</div>`);
   try{const r=await api('kurir_mutasi?select=jumlah,jenis,ket,saldo_akhir,t&kurir_id=eq.'+encodeURIComponent(id)+'&order=t.desc&limit=30');
-    $('#kjRw').innerHTML=r.length?r.map(x=>`<div class="detail-row"><span style="white-space:normal">${esc(x.ket||x.jenis)}<br><small style="color:var(--mut)">${fmtDate(x.t)} · saldo ${rp(x.saldo_akhir)}</small></span><b style="color:${x.jumlah>=0?'var(--g)':'var(--red)'}">${x.jumlah>=0?'+':'−'}${rp(Math.abs(x.jumlah))}</b></div>`).join(''):'Belum ada riwayat'}
+    $('#kjRw').innerHTML=r.length?r.map(x=>`<div class="detail-row"><span style="white-space:normal">${String(x.jenis||'').startsWith('kredit_')?'🎟️ ':''}${esc(x.ket||x.jenis)}<br><small style="color:var(--mut)">${fmtDate(x.t)} · ${String(x.jenis||'').startsWith('kredit_')?'Kredit':'saldo '+rp(x.saldo_akhir)}</small></span><b style="color:${x.jumlah>=0?'var(--g)':'var(--red)'}">${x.jumlah>=0?'+':'−'}${rp(Math.abs(x.jumlah))}</b></div>`).join(''):'Belum ada riwayat'}
   catch(e){$('#kjRw').textContent='Gagal memuat riwayat'}
+}
+async function beriKredit(id,btn){
+  const n=parseInt(String($('#krJml').value).replace(/[^0-9-]/g,''),10);if(!n)return toast('Isi jumlah Kredit');
+  const ket=$('#krKet').value.trim()||(n>0?'Kredit dari admin':'Koreksi Kredit oleh admin');
+  if(!confirm(`${n>0?'Tambah':'Kurangi'} Kredit ${rp(Math.abs(n))}?\nKredit tidak bisa dicairkan.`))return;
+  await busy(btn,async()=>{await api('rpc/beri_kredit',{method:'POST',body:JSON.stringify({p_kurir_id:id,p_jumlah:n,p_ket:ket})});closeModal();toast('Kredit diperbarui');await loadAll(true)});
 }
 async function koreksiSaldo(id,btn){
   const n=parseInt(String($('#kjJml').value).replace(/[^0-9-]/g,''),10);if(!n)return toast('Isi jumlahnya');

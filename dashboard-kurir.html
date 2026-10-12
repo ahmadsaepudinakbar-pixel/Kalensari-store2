@@ -229,7 +229,7 @@ body{background-color:#f4ebdf;background-image:none}
 .sd-hd{display:flex;align-items:center;gap:12px;padding-right:128px}.sd-ic{flex:none;width:56px;height:56px;border-radius:50%;background:var(--kg);color:#fff;display:grid;place-items:center;box-shadow:0 4px 10px rgba(91,44,18,.3)}
 .sd-n span{display:block;font-size:14px;font-weight:600;color:#9a5a2c}.sd-n b{display:block;font-size:30px;font-weight:900;color:var(--kt);line-height:1.05;letter-spacing:-.5px}
 .sd-isi{position:absolute;top:16px;right:14px;display:flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:11px 18px 11px 14px;background:linear-gradient(180deg,#9a5a2c,#6e3618);color:#fff;font:inherit;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 0 0 4px #f1e0cb,0 6px 14px rgba(91,44,18,.3)}.sd-isi span{font-size:24px;line-height:.8;font-weight:900}
-.sd-bd{position:relative;z-index:1;width:60%;margin-top:6px}.sd-sub{margin:0 0 6px;font-size:13px;color:#6b5444;line-height:1.35}
+.sd-bd{position:relative;z-index:1;width:60%;margin-top:6px}.sd-sub{margin:0 0 6px;font-size:13px;color:#6b5444;line-height:1.35}.sd-kr{margin:0 0 8px;padding:7px 9px;border-radius:10px;background:#fff3d6;color:#6a4a00;font-size:13px;line-height:1.3}.sd-kr b{display:block}.sd-kr small{display:block;font-size:11.5px;color:#8a6a1f}
 .sd-st{display:flex;gap:8px;align-items:flex-start;margin:6px 0 0;font-size:13px;line-height:1.35;color:#5c4638}.sd-st i{flex:none;font-style:normal;width:20px;text-align:center}.sd-st.ok{color:#228b4e;font-weight:600}.sd-st .ck{background:#2fa863;color:#fff;border-radius:5px;font-size:13px;font-weight:900;line-height:20px;height:20px}.sd-st.r{color:#c0392b}.sd-st.w{color:#a35a00;font-weight:600}
 .sd-rw{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:10px 14px;border:2px solid var(--kg);border-radius:999px;background:#fff;color:var(--kt);font:inherit;font-weight:800;font-size:14.5px;cursor:pointer}.sd-rw svg{color:var(--kg)}.sd-rw span{flex:1;text-align:left}.sd-rw em,.nt-bt em,.tile em,#btnLihat em{font-style:normal;font-size:22px;line-height:1;font-weight:700}
 .sd-ilu{position:absolute;right:-4px;bottom:4px;width:44%;max-width:190px;height:auto}
@@ -522,18 +522,18 @@ async function eligibleCouriers(){
   return el;
 }
 // ===== Saldo kurir (deposit) =====
-let BIAYA = {aktif:false, potong:1000, minTopup:20000, minSaldo:1000, caraBayar:""}, SALDO = null;
+let BIAYA = {aktif:false, potong:1000, minTopup:20000, minSaldo:1000, caraBayar:""}, SALDO = null, KREDIT = 0;
 const minSaldo = () => BIAYA.mode === "persen" ? (Number(BIAYA.minSaldo) || 1000) : Math.max(Number(BIAYA.minSaldo) || 0, Number(BIAYA.potong) || 0);
 const potongTeks = () => BIAYA.mode === "persen" ? `${String(Number(BIAYA.persen) || 0).replace(".", ",")}% dari ongkir` : fmtRp(BIAYA.potong);
 // ATURAN COD BARU (pesanan dibuat sejak "cod_saldo_mulai"): kurir TIDAK membayar toko. Pembeli bayar tunai ke kurir,
 // saldo toko bertambah otomatis, saldo kurir dipotong harga produk + potongan ongkir. Saldo kurir boleh minus,
 // tetapi selama minus kurir tidak bisa menerima pesanan COD (dicek di aplikasi dan di database).
-let COD_MULAI = null, SALDO_ALL = null;
+let COD_MULAI = null, SALDO_ALL = null, KREDIT_ALL = null;
 const isCodP = o => /^cod/i.test(String(o.payment || "").trim()) && !transOf(o);
 const codBaru = o => isCodP(o) && COD_MULAI != null && Date.parse(o.created_at || "") >= COD_MULAI;
 async function muatCodMulai(){ try{ const v = await getSetting("cod_saldo_mulai", null), s = v && typeof v === "object" ? v.t : v, ms = s ? Date.parse(s) : NaN; COD_MULAI = isNaN(ms) ? null : ms; }catch(e){} }
 async function muatBiaya(){ try{ await muatCodMulai(); const b = await getSetting("kurir_biaya", null); BIAYA = {aktif:false, potong:1000, minTopup:20000, minSaldo:1000, caraBayar:"", ...(b && typeof b === "object" ? b : {})}; }catch(e){} return BIAYA; }
-async function saldoSemua(){ try{ const r = await cf("kurir_saldo?select=kurir_id,saldo"); const m = {}; (r || []).forEach(x => { m[x.kurir_id] = Number(x.saldo) || 0; }); return m; }catch(e){ return null; } }
+async function saldoSemua(){ try{ let r; try{ r = await cf("kurir_saldo?select=kurir_id,saldo,kredit"); }catch(e){ r = await cf("kurir_saldo?select=kurir_id,saldo"); } const m = {}, k = {}; (r || []).forEach(x => { m[x.kurir_id] = Number(x.saldo) || 0; k[x.kurir_id] = Math.max(0, Number(x.kredit) || 0); }); KREDIT_ALL = k; return m; }catch(e){ return null; } }
 async function saldoSayaK(sejak){
   return KSPesanan.baca("saldo_saya", {p_sesi:KSPesanan.sesi(ROLE), p_peran:"kurir", ...(sejak ? {p_sejak:sejak} : {})}, async () => {
     const id = encodeURIComponent(me.id);
@@ -552,11 +552,12 @@ async function renderSaldo(){
     const j = await saldoSayaK();
     s = Number(j.saldo) || 0; req = j.topup || []; cair = j.cair === undefined ? null : j.cair;
     CAIRK = cair;
+    try{ const kr = await cf("kurir_saldo?select=kredit&kurir_id=eq." + id); KREDIT = kr && kr[0] ? Math.max(0, Number(kr[0].kredit) || 0) : 0; }catch(e){ KREDIT = 0; }   // Kredit: bonus, tidak bisa dicairkan
   }catch(e){ box.hidden = true; return; }
   SALDO = s; const kurang = s < 0;
   box.hidden = false; box.className = kurang ? "habis" : "";
   const baru = x => Date.now() - Date.parse(x.diproses_t || x.t) < 2 * 864e5;
-  box.innerHTML = `<div class="sd-hd"><span class="sd-ic"><svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor" aria-hidden="true"><path d="M18 7V5.5A2.5 2.5 0 0 0 15.5 3H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-8a3 3 0 0 0-3-3zM5 5h10.5a.5.5 0 0 1 .5.5V7H5a1 1 0 0 1 0-2zm12 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg></span><div class="sd-n"><span>Saldo Anda</span><b>${fmtRp(s)}</b></div></div><button class="sd-isi" type="button" id="btnTopup"><span>+</span>Isi saldo</button><div class="sd-bd"><p class="sd-sub">Dipotong ${potongTeks()} tiap pesanan selesai</p>`
+  box.innerHTML = `<div class="sd-hd"><span class="sd-ic"><svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor" aria-hidden="true"><path d="M18 7V5.5A2.5 2.5 0 0 0 15.5 3H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-8a3 3 0 0 0-3-3zM5 5h10.5a.5.5 0 0 1 .5.5V7H5a1 1 0 0 1 0-2zm12 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg></span><div class="sd-n"><span>Saldo Anda</span><b>${fmtRp(s)}</b></div></div><button class="sd-isi" type="button" id="btnTopup"><span>+</span>Isi saldo</button><div class="sd-bd"><p class="sd-sub">Dipotong ${potongTeks()} tiap pesanan selesai${KREDIT > 0 ? " (Kredit dipakai lebih dulu)" : ""}</p><p class="sd-kr"><b>🎟️ Kredit ${fmtRp(KREDIT)}</b><small>Tidak bisa dicairkan. Dipakai otomatis lebih dulu saat pesanan selesai.</small></p>`
     + (s < 0 ? `<p class="sd-st w"><i>⚠️</i><span>Saldo minus karena pesanan COD. Anda tidak bisa menerima pesanan COD sampai saldo kembali plus, tetapi pesanan QRIS, antar barang, dan ngojek tetap bisa diterima. Isi saldo minimal ${fmtRp(Math.max(Number(BIAYA.minTopup) || 0, -s + 1))} agar kembali plus.</span></p>` : "")
     + req.filter(x => x.status === "menunggu").map(x => `<p class="sd-st"><i>⏳</i><span>Isi saldo ${fmtRp(x.jumlah)} menunggu konfirmasi admin.</span></p>`).join("")
     + req.filter(x => x.status === "ditolak" && baru(x)).map(x => `<p class="sd-st r"><i>❌</i><span>Isi saldo ${fmtRp(x.jumlah)} ditolak${x.catatan ? ": " + esc(x.catatan) : ""}.</span></p>`).join("")
@@ -587,7 +588,7 @@ async function bukaCair(){
   const alasan = tunggu ? "Masih ada pencairan yang menunggu ditransfer admin." : hariIni ? "Pencairan hanya bisa 1x sehari. Coba lagi besok." : maks < MIN ? `Saldo yang bisa dicairkan minimal ${fmtRp(MIN)}. Sekarang ${fmtRp(maks)} (sisakan ${fmtRp(sisa)} untuk potongan pesanan).` : "";
   const rinci = j => `<div class="cr-l"><span>Jumlah dicairkan</span><b>${fmtRp(j)}</b></div><div class="cr-l"><span>Biaya admin bank</span><b style="color:#b83c2b">−${fmtRp(biaya)}</b></div><div class="cr-l cr-t"><span>Yang Anda terima</span><b style="color:#14502c">${j >= MIN ? fmtRp(j - biaya) : "–"}</b></div><div class="cr-l"><span>Sisa saldo</span><b>${fmtRp(Math.max(0, saldo - j))}</b></div>`;
   const ov = lembar(`<h3 style="margin:0 0 4px;color:var(--brown)">💸 Cairkan saldo</h3>
-    <p class="hint" style="margin:0 0 10px">Saldo ${fmtRp(saldo)} • bisa dicairkan ${fmtRp(maks)}. Minimal ${fmtRp(MIN)}, 1x sehari, dipotong biaya admin bank ${fmtRp(biaya)}.</p>
+    <p class="hint" style="margin:0 0 10px">Saldo ${fmtRp(saldo)} • bisa dicairkan ${fmtRp(maks)}.${KREDIT > 0 ? ` Kredit ${fmtRp(KREDIT)} tidak ikut bisa dicairkan.` : ""} Minimal ${fmtRp(MIN)}, 1x sehari, dipotong biaya admin bank ${fmtRp(biaya)}.</p>
     ${alasan ? `<p class="hint" style="background:#fff3cd;border-radius:12px;padding:10px 12px;color:#5a4300">${esc(alasan)}</p><button class="mini" id="crTutup" type="button" style="width:100%;margin-top:10px">Tutup</button>` : `
     <label>Jumlah<input id="crJ" class="fld" inputmode="numeric" value="${maks}"></label>
     <label>1. Kirim ke (bank / e-wallet)<input id="crB" class="fld" list="crBL" maxlength="30" placeholder="Pilih atau ketik, mis. DANA / BRI" value="${esc(rekHPk().b || "")}"><datalist id="crBL">${["DANA","OVO","GoPay","ShopeePay","LinkAja","BRI","BNI","BCA","Mandiri","BSI","BJB","SeaBank","Bank Jago","Blu BCA"].map(x => `<option value="${x}">`).join("")}</datalist></label>
@@ -680,8 +681,8 @@ async function bukaRiwayat(){
   const ov = lembar(`<h3 style="margin:0 0 8px;color:var(--brown)">📜 Riwayat saldo</h3><div id="rwIsi"><p class="hint">Memuat...</p></div><button class="mini" type="button" id="rwTutup" style="width:100%;margin-top:12px">Tutup</button>`);
   ov.querySelector("#rwTutup").onclick = () => ov.remove();
   try{
-    const r = ((await saldoSayaK()).mutasi || []).slice(0, 50);
-    ov.querySelector("#rwIsi").innerHTML = r.length ? r.map(x => `<div class="mut"><div>${esc(x.ket || x.jenis)}<br><small class="hint">${new Date(x.t).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})} • saldo ${fmtRp(x.saldo_akhir)}</small></div><b class="${x.jumlah >= 0 ? "p" : "m"}">${x.jumlah >= 0 ? "+" : "−"}${fmtRp(Math.abs(x.jumlah))}</b></div>`).join("") : '<p class="hint">Belum ada riwayat.</p>';
+    const r = ((await saldoSayaK()).mutasi || []).filter(x => Number(x.jumlah) !== 0).slice(0, 50);
+    ov.querySelector("#rwIsi").innerHTML = r.length ? r.map(x => `<div class="mut"><div>${String(x.jenis || "").startsWith("kredit_") ? "🎟️ " : ""}${esc(x.ket || x.jenis)}<br><small class="hint">${new Date(x.t).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})} • ${String(x.jenis || "").startsWith("kredit_") ? "Kredit (tidak bisa dicairkan)" : "saldo " + fmtRp(x.saldo_akhir)}</small></div><b class="${x.jumlah >= 0 ? "p" : "m"}">${x.jumlah >= 0 ? "+" : "−"}${fmtRp(Math.abs(x.jumlah))}</b></div>`).join("") : '<p class="hint">Belum ada riwayat.</p>';
   }catch(e){ ov.querySelector("#rwIsi").innerHTML = '<p class="hint">Gagal memuat riwayat.</p>'; }
 }
 // Urutan kurir diacak per pesanan (berdasarkan kode pesanan), sama untuk semua perangkat.
@@ -753,7 +754,7 @@ function eligFor(o, elig, busy){
   const L = layananPesanan(o);
   // antaran gabungan: bila ada SATU nota COD baru di grup, seluruh antaran diperlakukan sebagai COD
   const grupCodBaru = codBaru(o) || anggota(o).some(codBaru);
-  if(SALDO_ALL && (isCodP(o) || grupCodBaru)) l = l.filter(m => (SALDO_ALL[m.id] || 0) >= (grupCodBaru ? 0 : minSaldo()));   // COD: saldo minus tidak ikut giliran (COD lama: tetap butuh saldo minimum)
+  if(SALDO_ALL && (isCodP(o) || grupCodBaru)) l = l.filter(m => grupCodBaru ? (SALDO_ALL[m.id] || 0) >= 0 : (SALDO_ALL[m.id] || 0) + ((KREDIT_ALL && KREDIT_ALL[m.id]) || 0) >= minSaldo());   // COD: saldo minus tidak ikut giliran (COD lama: tetap butuh saldo minimum)
   if(L){ const pilih = l.filter(m => layananKurir(m).includes(L)); if(pilih.length) l = pilih; }
   if(PEMBAGIAN.mode === "radius" && PEMBAGIAN.radiusKm > 0){   // batas radius dari admin: kurir -> toko terdekat
     const tk = titikAmbil(o);
@@ -802,7 +803,7 @@ function cardOffer(o, end){
   const c = esc(o.order_code);
   return `<div class="card offer"><h3>${c} <span class="chip">${transOf(o) ? (LAYK[transOf(o).layanan] || LAYK.ojek).n : "Baru untuk Anda"}</span></h3>${orderBody(o)}`
     + (o.grup ? `<p class="hint" style="margin:4px 0;color:#7a4a00">🧾 Antaran gabungan: ${anggota(o).length > 1 ? anggota(o).length + " nota (" + anggota(o).map(x => esc(x.order_code)).join(", ") + ")" : "1 nota"} • semua toko sudah menerima pesanan.</p>` : "")
-    + (codBaru(o) ? `<p class="hint" style="margin:4px 0;color:#7a4a00">💵 COD: tagih tunai ke pembeli, tidak perlu membayar ke toko. Setelah selesai, saldo Anda dipotong harga produk <b>${fmtRp(barangOf(o))}</b> + potongan ongkir. Saldo boleh minus, tetapi selama minus Anda tidak bisa menerima COD.</p>` : "")
+    + (codBaru(o) ? `<p class="hint" style="margin:4px 0;color:#7a4a00">💵 COD: tagih tunai ke pembeli, tidak perlu membayar ke toko. Setelah selesai, Kredit (bila ada) lalu saldo Anda dipotong harga produk <b>${fmtRp(barangOf(o))}</b> + potongan ongkir. Saldo boleh minus, tetapi selama minus Anda tidak bisa menerima COD.</p>` : "")
     + (kmGrup(o) !== null ? `<p class="hint" style="margin:4px 0">📏 Jarak antar sekitar <b>${fmtKmK(kmGrup(o))} km</b>${radiusKurir(me) ? " (batas Anda " + radiusKurir(me) + " km)" : ""}</p>` : "")
     + `<p class="hint" style="margin:0">Nomor pembeli tampil setelah pesanan diterima.</p>`
     + `<div class="dua"><button class="tolak" type="button" data-act="tolak" data-code="${c}" aria-label="Tolak">✕</button>`
@@ -812,9 +813,9 @@ function cardOffer(o, end){
 function bayarTokoHtml(o){
   if(!/^cod/i.test(String(o.payment || "").trim())) return "";
   if(codBaru(o)){
-    const br = barangOf(o), mnsT = BIAYA.aktif && SALDO !== null && SALDO - br < 0;
+    const br = barangOf(o), mnsT = BIAYA.aktif && SALDO !== null && SALDO + KREDIT - br < 0;
     return `<div class="km-cod"><span class="km-cod-ic">💵</span><div><b class="km-cod-t">Pesanan COD</b>`
-      + `<p class="km-cod-r"><span>Tidak perlu membayar ke toko. Setelah selesai, saldo Anda dipotong harga produk <b>${fmtRp(br)}</b> + potongan ongkir.</span></p>`
+      + `<p class="km-cod-r"><span>Tidak perlu membayar ke toko. Setelah selesai, Kredit (bila ada) lalu saldo Anda dipotong harga produk <b>${fmtRp(br)}</b> + potongan ongkir.</span></p>`
       + (mnsT ? `<p class="km-cod-r" style="color:#a32d2d"><span>⚠️ Saldo Anda akan minus. Selama minus Anda tidak bisa menerima COD lagi; isi saldo agar kembali plus.</span></p>` : "")
       + `<p class="km-cod-tg">Tagih ke pembeli: <b>${fmtRp(o.total)}</b></p></div></div>`;
   }
@@ -1193,7 +1194,7 @@ window.muatPenghasilan = async function(paksa){
     PG.rows = await pesananKurir("riwayat", () => cf("orders?select=*&kurir_id=eq." + encodeURIComponent(me.id) + "&created_at=gte." + encodeURIComponent(sejak) + "&order=created_at.desc&limit=500"), sejak);
     PG.err = "";
   }catch(e){ PG.rows = []; PG.err = /kurir_id|column/i.test(String(e.message)) ? "kolom" : "net"; }
-  try{ await muatBiaya(); PG.mut = BIAYA.aktif ? ((await saldoSayaK(new Date(Date.now() - 45*864e5).toISOString())).mutasi || []).filter(m => m.jenis === "potong") : []; }catch(e){ PG.mut = []; }
+  try{ await muatBiaya(); PG.mut = BIAYA.aktif ? ((await saldoSayaK(new Date(Date.now() - 45*864e5).toISOString())).mutasi || []).filter(m => m.jenis === "potong" || m.jenis === "kredit_potong") : []; }catch(e){ PG.mut = []; }
   try{ await muatSemangat(); }catch(e){}
   PG.t = Date.now(); gambarPenghasilan();
 };

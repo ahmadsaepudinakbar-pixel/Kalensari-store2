@@ -1024,7 +1024,7 @@ async function jumlahKurirAktif(){
     const b=S.kurir_biaya&&typeof S.kurir_biaya==="object"?S.kurir_biaya:{};
     if(b.aktif){
       const min=b.mode==="persen"?(Number(b.minSaldo)||1000):Math.max(Number(b.minSaldo)||0,Number(b.potong)||0);
-      try{const s={};(await cloudFetch("kurir_saldo?select=kurir_id,saldo")).forEach(x=>{s[x.kurir_id]=Number(x.saldo)||0;});siap=siap.filter(m=>(s[m.id]||0)>=min);}catch(e){}
+      try{const s={};let rr;try{rr=await cloudFetch("kurir_saldo?select=kurir_id,saldo,kredit");}catch(e){rr=await cloudFetch("kurir_saldo?select=kurir_id,saldo");}(rr||[]).forEach(x=>{s[x.kurir_id]=(Number(x.saldo)||0)+(Number(x.kredit)||0);});siap=siap.filter(m=>(s[m.id]||0)>=min);}catch(e){}   // Kredit ikut dihitung: bisa dipakai membayar potongan
     }
     return siap.length;
   }catch(e){ return null; }
