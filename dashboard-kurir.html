@@ -492,7 +492,8 @@ async function eligibleCouriers(){
   const [l] = await Promise.all([getSetting(ROLE + "_members", []), muatBiaya()]);
   let el = (Array.isArray(l) ? l : []).filter(m => m && m.id && m.pending !== true && m.aktif !== false);
   // Bila potongan saldo aktif: hanya kurir dengan saldo cukup yang mendapat giliran (sama di semua HP)
-  if(BIAYA.aktif){ const s = await saldoSemua(); SALDO_ALL = s; if(s) el = el.filter(m => (s[m.id] || 0) >= minSaldo()); }
+  // Saldo minus TIDAK menghalangi pesanan QRIS, antar barang/paket, dan ngojek. Hanya pesanan COD yang butuh saldo tidak minus (lihat eligFor).
+  SALDO_ALL = BIAYA.aktif ? await saldoSemua() : null;
   return el;
 }
 // ===== Saldo kurir (deposit) =====
@@ -527,11 +528,11 @@ async function renderSaldo(){
     s = Number(j.saldo) || 0; req = j.topup || []; cair = j.cair === undefined ? null : j.cair;
     CAIRK = cair;
   }catch(e){ box.hidden = true; return; }
-  SALDO = s; const kurang = s < minSaldo();
+  SALDO = s; const kurang = s < 0;
   box.hidden = false; box.className = kurang ? "habis" : "";
   const baru = x => Date.now() - Date.parse(x.diproses_t || x.t) < 2 * 864e5;
   box.innerHTML = `<div class="sd-hd"><span class="sd-ic"><svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor" aria-hidden="true"><path d="M18 7V5.5A2.5 2.5 0 0 0 15.5 3H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3v-8a3 3 0 0 0-3-3zM5 5h10.5a.5.5 0 0 1 .5.5V7H5a1 1 0 0 1 0-2zm12 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg></span><div class="sd-n"><span>Saldo Anda</span><b>${fmtRp(s)}</b></div></div><button class="sd-isi" type="button" id="btnTopup"><span>+</span>Isi saldo</button><div class="sd-bd"><p class="sd-sub">Dipotong ${potongTeks()} tiap pesanan selesai</p>`
-    + (s < 0 ? `<p class="sd-st w"><i>⚠️</i><span>Saldo minus karena pesanan COD. Anda tidak bisa menerima pesanan COD sampai saldo kembali plus. Isi saldo minimal ${fmtRp(Math.max(Number(BIAYA.minTopup) || 0, -s + 1))} agar kembali plus.</span></p>` : kurang ? `<p class="sd-st w"><i>⚠️</i><span>Saldo kurang. Anda tidak mendapat tawaran pesanan sampai saldo diisi (minimal isi ${fmtRp(BIAYA.minTopup)}).</span></p>` : "")
+    + (s < 0 ? `<p class="sd-st w"><i>⚠️</i><span>Saldo minus karena pesanan COD. Anda tidak bisa menerima pesanan COD sampai saldo kembali plus, tetapi pesanan QRIS, antar barang, dan ngojek tetap bisa diterima. Isi saldo minimal ${fmtRp(Math.max(Number(BIAYA.minTopup) || 0, -s + 1))} agar kembali plus.</span></p>` : "")
     + req.filter(x => x.status === "menunggu").map(x => `<p class="sd-st"><i>⏳</i><span>Isi saldo ${fmtRp(x.jumlah)} menunggu konfirmasi admin.</span></p>`).join("")
     + req.filter(x => x.status === "ditolak" && baru(x)).map(x => `<p class="sd-st r"><i>❌</i><span>Isi saldo ${fmtRp(x.jumlah)} ditolak${x.catatan ? ": " + esc(x.catatan) : ""}.</span></p>`).join("")
     + req.filter(x => x.status === "diterima" && baru(x)).slice(0, 1).map(x => `<p class="sd-st ok"><i class="ck">✓</i><span>Isi saldo ${fmtRp(x.jumlah)} sudah masuk.</span></p>`).join("")
@@ -689,7 +690,7 @@ const layananKurir = m => Array.isArray(m && m.layanan) && m.layanan.length ? m.
 function eligFor(o, elig, busy){
   let l = transOf(o) ? elig.filter(m => !busy.has(m.id)) : elig;
   const L = layananPesanan(o);
-  if(codBaru(o) && SALDO_ALL) l = l.filter(m => (SALDO_ALL[m.id] || 0) >= 0);   // COD: saldo minus tidak ikut giliran
+  if(SALDO_ALL && isCodP(o)) l = l.filter(m => (SALDO_ALL[m.id] || 0) >= (codBaru(o) ? 0 : minSaldo()));   // COD: saldo minus tidak ikut giliran (COD lama: tetap butuh saldo minimum)
   if(L){ const pilih = l.filter(m => layananKurir(m).includes(L)); if(pilih.length) l = pilih; }
   return l;
 }
@@ -889,8 +890,8 @@ async function loadOrders(){
     seenOffers = new Set(codes); setCounts(offers.length, mine.length);
     const hd = t => `<h3 class="ob-pill"><span>${/^Menunggu/.test(t) ? "🔔" : "📦"}</span>${t}</h3>`;
     let h = "";
-    if(BIAYA.aktif && SALDO !== null && SALDO < 0) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda minus. Anda tidak bisa menerima pesanan COD sampai saldo kembali plus. Isi saldo di Beranda.</p>';
-    else if(BIAYA.aktif && SALDO !== null && SALDO < minSaldo()) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda kurang. Isi saldo di Beranda agar bisa menerima tawaran pesanan.</p>';
+    if(BIAYA.aktif && SALDO !== null && SALDO < 0) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda minus. Anda tidak bisa menerima pesanan COD sampai saldo kembali plus (QRIS, antar barang, dan ngojek tetap bisa). Isi saldo di Beranda.</p>';
+    else if(false) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda kurang. Isi saldo di Beranda agar bisa menerima tawaran pesanan.</p>';
     if(me.aktif === false) h += '<p class="hint" style="margin-top:10px">⚠️ Anda sedang tidak siap menerima antaran. Centang "Saya siap menerima antaran" di atas agar pesanan bisa ditawarkan kepada Anda.</p>';
     if(offers.length) h += hd(`Menunggu jawaban Anda (${offers.length})`) + offers.map(x => cardOffer(x.o, x.end)).join("");
     if(mine.length) h += hd(`Pesanan saya (${mine.length})`) + mine.map(cardMine).join("");
