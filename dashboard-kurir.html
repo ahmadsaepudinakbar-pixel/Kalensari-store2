@@ -489,8 +489,19 @@ async function writeState(code, st){
   await KSPesanan.kurirSimpan(ORD_PREFIX + code, st, () => cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key:ORD_PREFIX + code, value:st}])}));
 }
 function h32(str){ let h = 2166136261; for(let i = 0; i < str.length; i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } h ^= h >>> 16; h = Math.imul(h, 2246822507); h ^= h >>> 13; h = Math.imul(h, 3266489909); h ^= h >>> 16; return h >>> 0; }
+/* Cara pembagian pesanan (diatur admin: store_settings "kurir_pembagian").
+   mode "acak"   = urutan kurir diacak per pesanan (cara lama).
+   mode "radius" = kurir terdekat ke toko ditawari lebih dulu; radiusKm > 0 = hanya kurir dalam radius itu (bila tak ada satu pun, semua kurir ikut). */
+let PEMBAGIAN = {mode:"radius", radiusKm:0}, PEMBAGIAN_T = 0;
+async function muatPembagian(){
+  if(Date.now() - PEMBAGIAN_T < 60000) return PEMBAGIAN;
+  try{ const v = await getSetting("kurir_pembagian", null);
+    PEMBAGIAN = {mode:"radius", radiusKm:0, ...(v && typeof v === "object" ? v : {})};
+    PEMBAGIAN.radiusKm = Math.max(0, Number(PEMBAGIAN.radiusKm) || 0); if(PEMBAGIAN.mode !== "acak") PEMBAGIAN.mode = "radius"; PEMBAGIAN_T = Date.now(); }catch(e){}
+  return PEMBAGIAN;
+}
 async function eligibleCouriers(){
-  const [l] = await Promise.all([getSetting(ROLE + "_members", []), muatBiaya()]);
+  const [l] = await Promise.all([getSetting(ROLE + "_members", []), muatBiaya(), muatPembagian()]);
   let el = (Array.isArray(l) ? l : []).filter(m => m && m.id && m.pending !== true && m.aktif !== false);
   // Bila potongan saldo aktif: hanya kurir dengan saldo cukup yang mendapat giliran (sama di semua HP)
   // Saldo minus TIDAK menghalangi pesanan QRIS, antar barang/paket, dan ngojek. Hanya pesanan COD yang butuh saldo tidak minus (lihat eligFor).
@@ -680,7 +691,7 @@ function titikAmbil(o){
 }
 function sortedFor(o, elig){
   const g = gk(o), tk = titikAmbil(o);
-  const kunci = m => { const p = lokKurir(m); if(!p || !tk.length) return 1e12; return Math.round(Math.min(...tk.map(x => jarakM(x, p))) / 200); };
+  const kunci = m => { if(PEMBAGIAN.mode === "acak") return 0; const p = lokKurir(m); if(!p || !tk.length) return 1e12; return Math.round(Math.min(...tk.map(x => jarakM(x, p))) / 200); };
   return [...elig].sort((a, b) => (kunci(a) - kunci(b)) || (h32(g + ":" + a.id) - h32(g + ":" + b.id)) || String(a.id).localeCompare(String(b.id)));
 }
 function startOf(o, st){ if(st && st.base) return st.base; const t = Date.parse(o.updated_at || o.created_at || ""); return isNaN(t) ? Date.now() : t; }
@@ -731,6 +742,10 @@ function eligFor(o, elig, busy){
   const grupCodBaru = codBaru(o) || anggota(o).some(codBaru);
   if(SALDO_ALL && (isCodP(o) || grupCodBaru)) l = l.filter(m => (SALDO_ALL[m.id] || 0) >= (grupCodBaru ? 0 : minSaldo()));   // COD: saldo minus tidak ikut giliran (COD lama: tetap butuh saldo minimum)
   if(L){ const pilih = l.filter(m => layananKurir(m).includes(L)); if(pilih.length) l = pilih; }
+  if(PEMBAGIAN.mode === "radius" && PEMBAGIAN.radiusKm > 0){   // batas radius dari admin: kurir -> toko terdekat
+    const tk = titikAmbil(o);
+    if(tk.length){ const dekat = l.filter(m => { const p = lokKurir(m); return p && Math.min(...tk.map(x => jarakM(x, p))) / 1000 <= PEMBAGIAN.radiusKm; }); if(dekat.length) l = dekat; }
+  }
   const km = kmGrup(o);
   if(km !== null){ const sanggup = l.filter(m => { const r = radiusKurir(m); return r === 0 || r >= km; }); if(sanggup.length) l = sanggup; }
   return l;
@@ -1041,7 +1056,7 @@ function lokInfoUI(){
   const on = me && me.aktif !== false && !me.pending; el.hidden = !on; if(!on) return;
   const jam = me.lokT ? new Date(me.lokT).toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit"}) : "";
   el.style.color = lokErr || !lokKurir(me) ? "#c0392b" : "#14502c";
-  el.textContent = lokErr ? "⚠️ " + lokErr : lokKurir(me) ? "📍 Lokasi aktif (±" + (me.lokAcc || 0) + " m) • diperbarui " + jam + ". Pesanan ditawarkan ke kurir terdekat dari toko." : "📍 Mencari lokasi Anda…";
+  el.textContent = lokErr ? "⚠️ " + lokErr : lokKurir(me) ? "📍 Lokasi aktif (±" + (me.lokAcc || 0) + " m) • diperbarui " + jam + "." + (PEMBAGIAN.mode === "radius" ? " Pesanan ditawarkan ke kurir terdekat dari toko." : "") : "📍 Mencari lokasi Anda…";
 }
 async function lokSimpanKe(paksa){
   const p = lokKurir(me); if(!p) return;

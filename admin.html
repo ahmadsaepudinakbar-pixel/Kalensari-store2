@@ -723,6 +723,7 @@ pengaturan(){
   ${tarifCard()}
   ${tempatCard()}
   ${gmapsCard()}
+  ${pembagianCard()}
   ${biayaCard()}
   ${qrisStatisCard()}
   <div class="card"><div class="chead"><h3>🔔 Notifikasi Admin</h3></div>
@@ -1627,6 +1628,26 @@ async function koreksiSaldo(id,btn){
   const ket=$('#kjKet').value.trim()||(n>0?'Isi saldo oleh admin':'Koreksi admin');
   if(!confirm(`${n>0?'Tambah':'Kurangi'} saldo ${rp(Math.abs(n))}?`))return;
   await busy(btn,async()=>{await api('rpc/koreksi_saldo',{method:'POST',body:JSON.stringify({p_kurir_id:id,p_jumlah:n,p_ket:ket})});closeModal();toast('Saldo diperbarui');await loadAll(true)});
+}
+/* Cara pembagian pesanan ke kurir: store_settings "kurir_pembagian" = {mode:'acak'|'radius', radiusKm}. Dibaca aplikasi kurir (maks. 1 menit tertunda). */
+const pembagian=()=>({mode:'radius',radiusKm:0,...(S.settings.kurir_pembagian&&typeof S.settings.kurir_pembagian==='object'?S.settings.kurir_pembagian:{})});
+function pembagianCard(){
+  const b=pembagian(),r=b.mode==='acak'?'acak':'radius',km=Number(b.radiusKm)||0,opsi=[0,1,2,3,5,10];if(km&&!opsi.includes(km))opsi.push(km);
+  return `<div class="card"><div class="chead"><h3>🧭 Pembagian Pesanan ke Kurir</h3></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:10px">Atur siapa yang ditawari pesanan lebih dulu. Tiap kurir diberi waktu 3 menit, lalu pesanan pindah ke kurir berikutnya.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+      <label style="display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer"><input type="radio" name="pbMode" value="radius" ${r==='radius'?'checked':''} onchange="pembagianMode()"> <span><b>Per radius (terdekat dulu)</b><br><small style="color:var(--mut)">Kurir yang lokasinya paling dekat dengan toko ditawari lebih dulu. Lokasi kurir wajib aktif saat siap antar.</small></span></label>
+      <label style="display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer"><input type="radio" name="pbMode" value="acak" ${r==='acak'?'checked':''} onchange="pembagianMode()"> <span><b>Acak</b><br><small style="color:var(--mut)">Semua kurir siap antar mendapat giliran secara acak, tanpa melihat jarak.</small></span></label>
+    </div>
+    <div class="field" id="pbRadius" ${r==='radius'?'':'hidden'}><label>Batas radius kurir ke toko</label>
+      <select class="inp" id="pbKm">${opsi.sort((a,b)=>a-b).map(v=>`<option value="${v}" ${v===km?'selected':''}>${v?'Maksimal '+v+' km dari toko':'Tanpa batas (urut terdekat saja)'}</option>`).join('')}</select>
+      <small style="color:var(--mut);font-size:12px">Jika ada batas, hanya kurir di dalam radius yang ditawari. Bila tidak ada kurir dalam radius, pesanan tetap dibagi ke semua kurir agar tidak menggantung. Kurir yang lokasinya belum terbaca ditawari paling akhir.</small></div>
+    <button class="btn btn-g full" onclick="savePembagian(this)">Simpan Pembagian Pesanan</button></div>`;
+}
+function pembagianMode(){const p=(document.querySelector('input[name=pbMode]:checked')||{}).value==='radius';$('#pbRadius').hidden=!p}
+async function savePembagian(btn){
+  const mode=(document.querySelector('input[name=pbMode]:checked')||{}).value==='acak'?'acak':'radius',radiusKm=mode==='radius'?Math.max(0,Number($('#pbKm').value)||0):0,v={mode,radiusKm,t:Date.now()};
+  await busy(btn,async()=>{await setSetting('kurir_pembagian',v);S.settings.kurir_pembagian=v;render();toast(mode==='acak'?'✅ Pesanan dibagi secara acak':'✅ Pesanan dibagi per radius'+(radiusKm?' (maks. '+radiusKm+' km)':' (terdekat dulu)'))});
 }
 function biayaCard(){
   const b=biaya();
