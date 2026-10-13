@@ -588,8 +588,13 @@ async function doLogin(){
 function enterApp(){
   $('#login').classList.add('hide');$('#app').classList.remove('hide');
   const em=(auth&&auth.email)||'Admin';$('#whoName').textContent=em.split('@')[0];$('#avatarL').textContent=initials(em);
-  go('dashboard');loadAll(true);
+  // tautan langsung dari notifikasi: admin.html#persetujuan-penjual, #pasarmalam, ...
+  const hs=decodeURIComponent(location.hash.slice(1)),[hr,ht]=hs.split('-');
+  if(hr&&PAGES[hr]){if(hr==='persetujuan'&&ht)apTab=ht;go(hr);history.replaceState(null,'',location.pathname)}else go('dashboard');
+  loadAll(true).then(()=>{if(hr==='persetujuan'&&ht&&route==='persetujuan'){apTab=ht;render()}}).catch(()=>{});
 }
+// notifikasi diketuk saat admin sudah terbuka -> pindah ke halaman yang dituju
+addEventListener('hashchange',()=>{if(!auth||$('#app').classList.contains('hide'))return;const [hr,ht]=decodeURIComponent(location.hash.slice(1)).split('-');if(hr&&PAGES[hr]){if(hr==='persetujuan'&&ht)apTab=ht;go(hr);loadAll(true).then(()=>{if(hr==='persetujuan'&&ht&&route==='persetujuan'){apTab=ht;render()}}).catch(()=>{});history.replaceState(null,'',location.pathname)}});
 function logout(){
   if(auth&&auth.access_token)fetch(`${BASE}/auth/v1/logout`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+auth.access_token}}).catch(()=>{});
   saveAuth(null);S.loaded=false;$('#app').classList.add('hide');$('#login').classList.remove('hide');toggleSide(false);closeModal();
@@ -2301,7 +2306,7 @@ PAGES.pasarmalam=function(){
       <label class="btn btn-light" style="cursor:pointer">🗺️ ${PM_DENAH?'Ganti':'Unggah'} denah<input type="file" accept="image/*" hidden onchange="pmPilihDenah(this)"></label>
       ${PM_DENAH?'<button type="button" class="btn btn-light" onclick="pmHapusDenah(this)">Hapus denah</button>':''}</div></div>
     <button class="btn btn-g" style="margin-top:14px" onclick="pmSimpan(this)">Simpan</button>
-    <p class="sm" style="margin:10px 0 0">Pop-up muncul sekali sehari per HP pada hari & jam di atas (waktu WIB). Uji coba kapan saja: buka <b>kalensari.web.id/?pasarmalam=1</b>. Daftar pedagang juga bisa dibuka warga dari menu ☰ → 🌙 Pasar Malam Jum’at.</p></div>`;
+    <p class="sm" style="margin:10px 0 0">Pop-up muncul sekali sehari per HP pada hari & jam di atas (waktu WIB). Uji coba kapan saja: buka <b>kalensari.web.id/?pasarmalam=1</b>. Pada malam acara, tombol 🌙 Pasar Malam juga muncul di samping 🏪 Toko (hari lain tersembunyi).</p></div>`;
 };
 Object.assign(TITLES,{pasarmalam:['Pasar Malam Jum’at','Pedagang, nomor lapak, denah & jadwal pop-up']});
 async function pmSimpan(btn){

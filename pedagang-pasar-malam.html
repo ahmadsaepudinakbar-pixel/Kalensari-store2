@@ -171,7 +171,7 @@ function render(){
   $("dToko").textContent=me.toko||me.usaha||"Lapak saya";
   $("dSub").textContent=[me.nama,me.kode?"ID "+me.kode:"",me.jualan].filter(Boolean).join(" • ");
   let st;
-  if(me.pending)st=`<div class="st tunggu"><b>⏳ Menunggu persetujuan admin</b>Pendaftaran lapak sedang diperiksa. Sambil menunggu, Anda sudah bisa menyiapkan menu di <b>Kelola menu &amp; pesanan</b>.</div>`;
+  if(me.pending)st=`<div class="st tunggu"><b>⏳ Menunggu verifikasi admin</b>Permintaan verifikasi sudah masuk ke admin. Agar lebih cepat, kirim juga lewat WhatsApp. Sambil menunggu, Anda sudah bisa menyiapkan menu di <b>Kelola menu &amp; pesanan</b>.<div class="btns" style="margin-top:10px"><a class="btn" style="background:#1f9d55" id="btnWaAdmin" href="${esc(waAdmin())}" target="_blank" rel="noopener">💬 Kirim permintaan verifikasi ke admin</a></div></div>`;
   else if(!terdaftarPm())st=`<div class="st tunggu"><b>⏳ Menunggu admin memasukkan lapak Anda</b>Akun sudah aktif. Admin akan memasukkan Anda ke daftar pedagang Pasar Malam dan memberi nomor lapak.</div>`;
   else st=`<div class="st ok"><b>✅ Terdaftar sebagai pedagang Pasar Malam Jum'at</b><span>${lapak?"Nomor lapak Anda: <b style=\"font-size:17px\">"+esc(lapak)+"</b>":"Nomor lapak akan diberikan admin."}</span></div>`;
   $("dStatus").innerHTML=st;
@@ -189,10 +189,18 @@ async function simpan(data){
 async function buka(){
   try{const r=await KSID.saya(ROLE);const d=r.data||{};
     if(!d.pasarMalam){me=null;$("dash").hidden=true;$("auth").hidden=false;showTab(true);toast("Nomor ini terdaftar sebagai penjual biasa. Akun Pasar Malam terpisah — daftar dengan nomor lain.");return}
-    me=d;me.kode=me.kode||r.kode||"";WA=r.wa;await muatCfg();render();sinkronJadwal()}
+    me=d;me.kode=me.kode||r.kode||"";WA=r.wa;await Promise.all([muatCfg(),muatWaAdmin()]);render();sinkronJadwal()}
   catch(e){if(e.sesiHabis){keluar(true);toast("Sesi berakhir. Silakan masuk lagi.")}else toast(e.message||"Gagal memuat akun")}
 }
 function keluar(diam){try{localStorage.removeItem(SESS)}catch(e){}if(window.KSID)KSID.hapusSesi(ROLE);me=null;$("dash").hidden=true;$("auth").hidden=false;showTab(true);if(!diam)toast("Anda sudah keluar")}
+
+// ---- permintaan verifikasi ke admin lewat WhatsApp ----
+let WA_ADMIN="";
+async function muatWaAdmin(){try{const v=await getSetting("whatsapp_number","");WA_ADMIN=normPhone(v)}catch(e){}}
+function waAdmin(){if(!me)return "#";const t=["Assalamualaikum Admin Kalensari Store 🙏","Saya mendaftar sebagai *pedagang Pasar Malam Jum'at*, mohon diverifikasi.","",
+  "🏮 Lapak: "+(me.toko||me.usaha||"-"),"👤 Pemilik: "+(me.nama||"-"),"🧺 Jualan: "+[me.jualan,me.pmInfo].filter(Boolean).join(" – "),me.kode?"🆔 ID akun: "+me.kode:null,"📱 WA: +"+(WA||me.wa||""),"",
+  "Setujui di: kalensari.web.id/admin.html#persetujuan-penjual"].filter(x=>x!==null).join("\n");
+  return (WA_ADMIN?"https://wa.me/"+WA_ADMIN:"https://wa.me/")+"?text="+encodeURIComponent(t)}
 
 // ---- jadwal buka lapak = jadwal acara (dipakai toko: menu hanya bisa dipesan saat Pasar Malam) ----
 function jadwalLapak(){const h=Number(CFG.hari??4),hariIni=acara().iso,tgl=wib();const today=`${tgl.getFullYear()}-${String(tgl.getMonth()+1).padStart(2,"0")}-${String(tgl.getDate()).padStart(2,"0")}`;
@@ -219,7 +227,7 @@ $("btnDaftar").onclick=()=>busy($("btnDaftar"),async()=>{
   await setSetting("penjual_accounts",{...acc,[wa]:{h:await hashPin(wa,pin),id}});
   await setSetting("penjual_members",[...(Array.isArray(list)?list:[]),{id,nama,toko,usaha:toko,wa,dusun:"",buka:"15:00",tutup:"22:00",aktif:true,pending:true,status:"Show",pasarMalam:true,jualan,pmInfo,updated:Date.now()}]);
   await KSID.masuk(ROLE,wa,pin);localStorage.setItem(SESS,wa);
-  toast("🎉 Pendaftaran terkirim! Menunggu persetujuan admin.");await buka();scrollTo({top:0,behavior:"smooth"});
+  toast("🎉 Pendaftaran terkirim ke admin! Tekan tombol hijau untuk kirim juga lewat WhatsApp.");await buka();scrollTo({top:0,behavior:"smooth"});
 });
 // ---- masuk ----
 $("btnMasuk").onclick=()=>busy($("btnMasuk"),async()=>{
