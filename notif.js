@@ -112,6 +112,12 @@
       var j = await r.json();
       if (j && j.terkirim > 0) return "server";
       if (j && j.error === "tunggu sebentar") return "tunggu";
+      // aplikasi Android: tampilkan alasan gagal dari server agar mudah dicek
+      if (NATIVE && j) {
+        var d = (j.detail || []).filter(function (x) { return x.jenis === "android"; })[0];
+        if (!j.perangkat || !d) return "gagal:HP ini belum tercatat di server. Tekan Matikan lalu Aktifkan notifikasi lagi.";
+        return "gagal:Kode " + d.kode + " " + String(d.galat || j.error || "").slice(0, 220);
+      }
     } catch (e) {}
     try { var g = await reg(); await g.showNotification("Kalensari Store", { body: "Tes notifikasi (lokal) 🎉", icon: "icons/icon-192.png", tag: "tes" }); } catch (e) {}
     return "lokal";
@@ -187,7 +193,8 @@
       };
       if (t) t.onclick = async function () {
         t.disabled = true; var h = await tes(key);
-        toastKecil(h === "server" ? "Tes dikirim. Notifikasi akan muncul sebentar lagi." : h === "tunggu" ? "Tunggu 30 detik sebelum tes lagi." : "Notifikasi lokal muncul. Pengiriman dari server belum aktif.");
+        if (String(h).indexOf("gagal:") === 0) { try { alert("Tes notifikasi gagal\n\n" + String(h).slice(6)); } catch (e) {} }
+        else toastKecil(h === "server" ? "Tes dikirim. Notifikasi akan muncul sebentar lagi." : h === "tunggu" ? "Tunggu 30 detik sebelum tes lagi." : "Notifikasi lokal muncul. Pengiriman dari server belum aktif.");
         setTimeout(function () { t.disabled = false; }, 3000);
       };
     }
