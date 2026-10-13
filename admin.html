@@ -59,6 +59,17 @@ svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke
 .nav .cnt{margin-left:auto;background:var(--g2);color:#fff;font-size:11px;border-radius:99px;padding:2px 8px;font-weight:700}
 .nav a.on .cnt{background:#fff;color:var(--g)}
 .sidebar .bottom{margin-top:auto;border-top:1px solid #2a3550;padding-top:12px}
+/* menu dikelompokkan + sidebar bisa di-scroll (HP & layar pendek) */
+.sidebar{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#3a4766 transparent}
+.sidebar .brand{flex:none}.sidebar #nav{flex:none}
+.ngrp{margin:2px 0 4px}.ngrp>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:10px;cursor:pointer;font-weight:700;font-size:13.5px;color:#e6ebf3;user-select:none}
+.ngrp>summary::-webkit-details-marker{display:none}.ngrp>summary:hover{background:var(--side2)}
+.ngrp>summary .e{font-size:17px;width:22px;text-align:center}.ngrp>summary .ch{margin-left:auto;transition:transform .2s;opacity:.7;font-size:12px}
+.ngrp[open]>summary .ch{transform:rotate(90deg)}.ngrp>summary .cnt{margin-left:auto}.ngrp>summary .cnt+.ch{margin-left:6px}
+.ngrp[open]>summary .cnt{display:none}.ngrp[open]>summary .ch{margin-left:auto}
+.ngrp .sub{padding-left:14px;border-left:1px solid #2a3550;margin:0 0 4px 26px}.ngrp .sub a{padding:9px 12px;font-size:14px}
+.menu-list .mgrp{font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--mut);text-transform:uppercase;padding:16px 4px 4px;border-bottom:1px solid var(--line)}
+.menu-list .mgrp:first-child{padding-top:2px}
 .main{flex:1;margin-left:250px;min-width:0}
 .top{background:#fff;display:flex;align-items:center;gap:16px;padding:16px 28px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
 .top h1{font-size:24px;font-weight:800}
@@ -498,14 +509,50 @@ const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
   ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['kabar','Kabar Desa','doc'],['harian','Absen & Promo Ongkir','check'],['lapak','Lapak Barter','tag'],['kuis','Kuis Pintar','check'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['keamanan','Keamanan & Backup','lock'],['pengaturan','Pengaturan','gear']
 ];
+/* Kelompok menu per pihak. '' = tampil langsung tanpa kelompok. Kunci yang tidak tercantum masuk "Lainnya". */
+const GRUP=[
+  ['','',['dashboard','pesanan','persetujuan']],
+  ['🏪','Toko & Produk',['produk','kategori','toko','promosi','laporan']],
+  ['👥','Warga Desa (Pembeli)',['pelanggan','voucher','harian','kabar','ulasan','resetpin','lapak','kuis']],
+  ['🛵','Kurir',['kurir','cod']],
+  ['🤝','Penyedia Jasa',['jasa']],
+  ['💰','Keuangan',['keuangan','cair','setoran','refund']],
+  ['⚙️','Sistem',['keamanan','pengaturan']]
+];
+(()=>{const ada=new Set(GRUP.flatMap(g=>g[2])),sisa=MENU.map(m=>m[0]).filter(k=>!ada.has(k));if(sisa.length)GRUP.push(['📁','Lainnya',sisa])})();
+const MENU_BY=Object.fromEntries(MENU.map(m=>[m[0],m]));
+/* Angka penanda (badge) tiap menu: [jumlah, warna] */
+function badgeMenu(k){
+  try{
+    if(k==='pesanan'){const n=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;return n?[n,'']:null}
+    if(k==='persetujuan'){const n=pendingTotal();return n?[n,'var(--orange)']:null}
+    if(k==='refund'){const n=refundTunggu().length;return n?[n,'#ef4444']:null}
+    if(k==='cair'){const n=cairTunggu().length;return n?[n,'var(--orange)']:null}
+    if(k==='cod'){const n=codTunggu().length;return n?[n,'var(--orange)']:null}
+    if(k==='resetpin'){const n=Object.values(rpMap()).filter(x=>x&&x.status==='baru').length;return n?[n,'var(--orange)']:null}
+  }catch(e){}
+  return null;
+}
+const cntHtml=b=>b?`<span class="cnt"${b[1]?` style="background:${b[1]}"`:''}>${b[0]}</span>`:'';
+const GRUP_KEY='ks_admin_grup_buka';
+function grupBuka(){try{return JSON.parse(localStorage.getItem(GRUP_KEY)||'[]')}catch(e){return[]}}
+// dipanggil saat judul kelompok diketuk (sebelum terbuka/tertutup), jadi hanya pilihan admin yang diingat
+function grupKlik(el){try{const l=new Set(grupBuka());!el.open?l.add(el.dataset.g):l.delete(el.dataset.g);localStorage.setItem(GRUP_KEY,JSON.stringify([...l]))}catch(e){}}
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
 let jenisFilter='Semua',route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
 
 function renderNav(){
   const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
-  $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}${k==='persetujuan'&&pendingTotal()?`<span class="cnt" style="background:var(--orange)">${pendingTotal()}</span>`:''}${k==='refund'&&refundTunggu().length?`<span class="cnt" style="background:#ef4444">${refundTunggu().length}</span>`:''}</a>`).join('');
+  const link=k=>{const m=MENU_BY[k];if(!m)return'';return `<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(m[2])}${m[1]}${cntHtml(badgeMenu(k))}</a>`};
+  const buka=new Set(grupBuka()),navEl=$('#nav'),sc=$('#sidebar')?$('#sidebar').scrollTop:0;
+  navEl.innerHTML=GRUP.map(([e,l,ks])=>{
+    if(!l||ks.length===1)return ks.map(link).join('');                       // tanpa kelompok / kelompok berisi 1 menu
+    const aktifDi=ks.includes(route),tot=ks.reduce((t,k)=>{const b=badgeMenu(k);return t+(b?b[0]:0)},0);
+    return `<details class="ngrp" data-g="${l}"${aktifDi||buka.has(l)?' open':''}><summary onclick="grupKlik(this.parentNode)"><span class="e">${e}</span>${l}${tot?`<span class="cnt" style="background:var(--orange)">${tot}</span>`:''}<span class="ch">▶</span></summary><div class="sub">${ks.map(link).join('')}</div></details>`;
+  }).join('');
+  if($('#sidebar'))$('#sidebar').scrollTop=sc;
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
-    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','refund','voucher','kabar','harian','lapak','ulasan','resetpin','keamanan','pengaturan','lainnya'].includes(route));
+    const on=route===k||(k==='lainnya'&&!BNAV.some(b=>b[0]===route));
     const dot=k==='lainnya'&&pendingTotal()?`<span style="position:absolute;top:2px;right:calc(50% - 16px);background:var(--orange);color:#fff;font-size:10px;border-radius:99px;min-width:16px;padding:0 4px;font-weight:700">${pendingTotal()}</span>`:'';
     return `<button class="${on?'on':''}" style="position:relative" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}${dot}</button>`}).join('');
   const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
@@ -757,7 +804,7 @@ lainnya(){
   return `<div class="profile-head"><div class="avatar" style="width:56px;height:56px;font-size:22px">${esc(initials(em||'A'))}</div><div><b style="font-size:18px">Admin</b><div style="opacity:.9;font-size:13px">${esc(em)}</div></div></div>
   <div class="card" style="margin-bottom:14px"><div class="chead" style="margin-bottom:10px"><h3>🎨 Tampilan</h3><span class="sm" style="color:var(--mut);font-size:12px">tersimpan di HP ini</span></div>
     <div class="tema-pick">${[['terang','☀️','Terang'],['gelap','🌙','Gelap'],['auto','📱','Ikuti HP']].map(([k,e,l])=>`<button type="button" class="${temaPilihan()===k?'on':''}" onclick="aturTema('${k}');render()"><span>${e}</span>${l}</button>`).join('')}</div></div>
-  <div class="card menu-list">${MENU.map(([k,l,i])=>`<a onclick="go('${k}')">${ico(i,'color:var(--mut)')}${l}${k==='persetujuan'&&pendingTotal()?` <span class="badge b-Diproses">${pendingTotal()} menunggu</span>`:''}${k==='resetpin'&&Object.values(rpMap()).filter(x=>x&&x.status==='baru').length?` <span class="badge b-Diproses">${Object.values(rpMap()).filter(x=>x&&x.status==='baru').length} baru</span>`:''}${k==='cair'&&cairTunggu().length?` <span class="badge b-Diproses">${cairTunggu().length} menunggu</span>`:''}${k==='cod'&&codTunggu().length?` <span class="badge b-Diproses">${codTunggu().length} konfirmasi</span>`:''}<span class="ch">${ico('right')}</span></a>`).join('')}
+  <div class="card menu-list">${GRUP.map(([e,l,ks])=>(l?`<div class="mgrp">${e} ${l}</div>`:'')+ks.map(k=>{const m=MENU_BY[k];if(!m)return'';const b=badgeMenu(k);return `<a onclick="go('${k}')">${ico(m[2],'color:var(--mut)')}${m[1]}${b?` <span class="badge b-Diproses">${b[0]}</span>`:''}<span class="ch">${ico('right')}</span></a>`}).join('')).join('')}
   <a href="index.html">${ico('store','color:var(--mut)')}Buka Halaman Toko<span class="ch">${ico('right')}</span></a>
   <a onclick="logout()" style="color:var(--red);border:0">${ico('out')}Logout</a></div>`;
 }
