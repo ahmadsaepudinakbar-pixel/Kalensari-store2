@@ -73,7 +73,7 @@
       let lihat = ""; try { lihat = localStorage.getItem(KUNCI) || ""; } catch (e) {}
       if (lihat === tanda) return;
       // jangan menumpuk dengan popup lain yang sedang terbuka
-      if (document.querySelector(".modal.show")) return;
+      if (document.querySelector(".modal.show, .pm-ov")) return;
       tampil(p, tanda);
     } catch (e) {}
   }, 2500);

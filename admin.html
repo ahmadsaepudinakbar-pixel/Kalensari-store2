@@ -507,12 +507,12 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['kabar','Kabar Desa','doc'],['harian','Absen & Promo Ongkir','check'],['lapak','Lapak Barter','tag'],['kuis','Kuis Pintar','check'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['keamanan','Keamanan & Backup','lock'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['kabar','Kabar Desa','doc'],['pasarmalam','Pasar Malam Jumat','store'],['harian','Absen & Promo Ongkir','check'],['lapak','Lapak Barter','tag'],['kuis','Kuis Pintar','check'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['keamanan','Keamanan & Backup','lock'],['pengaturan','Pengaturan','gear']
 ];
 /* Kelompok menu per pihak. '' = tampil langsung tanpa kelompok. Kunci yang tidak tercantum masuk "Lainnya". */
 const GRUP=[
   ['','',['dashboard','pesanan','persetujuan']],
-  ['🏪','Toko & Produk',['produk','kategori','toko','promosi','laporan']],
+  ['🏪','Toko & Produk',['produk','kategori','toko','pasarmalam','promosi','laporan']],
   ['👥','Warga Desa (Pembeli)',['pelanggan','voucher','harian','kabar','ulasan','resetpin','lapak','kuis']],
   ['🛵','Kurir',['kurir','cod']],
   ['🤝','Penyedia Jasa',['jasa']],
@@ -526,6 +526,7 @@ function badgeMenu(k){
   try{
     if(k==='pesanan'){const n=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;return n?[n,'']:null}
     if(k==='persetujuan'){const n=pendingTotal();return n?[n,'var(--orange)']:null}
+    if(k==='pasarmalam'){const n=pmMinta().length;return n?[n,'var(--orange)']:null}
     if(k==='refund'){const n=refundTunggu().length;return n?[n,'#ef4444']:null}
     if(k==='cair'){const n=cairTunggu().length;return n?[n,'var(--orange)']:null}
     if(k==='cod'){const n=codTunggu().length;return n?[n,'var(--orange)']:null}
@@ -815,7 +816,7 @@ lainnya(){
 const GROUPS=[
   {k:'kurir',label:'Kurir',em:'🛵',info:m=>[m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-'},
   {k:'jasa',label:'Penyedia Jasa',em:'🤝',info:m=>[m.kategori,m.dusun].filter(Boolean).join(' • ')||'-'},
-  {k:'penjual',label:'Penjual',em:'🏪',info:m=>[m.toko||m.usaha,m.dusun].filter(Boolean).join(' • ')||'-'}
+  {k:'penjual',label:'Penjual',em:'🏪',info:m=>(m.pasarMalam?'🌙 Pasar Malam Jumat • ':'')+([m.toko||m.usaha,m.jualan,m.dusun].filter(Boolean).join(' • ')||'-')}
 ];
 const members=k=>(Array.isArray(S.settings[k+'_members'])?S.settings[k+'_members']:[]).filter(Boolean);
 const pendingOf=k=>members(k).filter(m=>m.pending===true);
@@ -917,7 +918,7 @@ async function approve(gk,id,ok,btn){
     const key=gk+'_members',arr=await readKey(key,[]),list=Array.isArray(arr)?arr:[],m=list.find(x=>x&&x.id===id);
     if(!m){toast('Data tidak ditemukan, mungkin sudah diproses');await loadAll(true);return}
     if(ok&&gk==='kurir'&&(!nikData(id)||!m.fotoOk)&&!confirm('Kurir ini belum melengkapi '+[!nikData(id)?'NIK':'',!m.fotoOk?'foto profil':''].filter(Boolean).join(' dan ')+'. Tetap setujui?'))return;
-    if(ok){const upd={...m,pending:false,updated:Date.now()};if(gk==='jasa')upd.status='Show';const nl=list.map(x=>x&&x.id===id?upd:x);await setSetting(key,nl);S.settings[key]=nl;let ext='';if(gk==='kurir'){const sa=await beriSaldoAwal(id);if(sa)ext=` + saldo awal ${rp(biaya().saldoAwal)}`}toast(`${m.nama||'Akun'} disetujui${ext}`)}
+    if(ok){const upd={...m,pending:false,updated:Date.now()};if(gk==='jasa')upd.status='Show';const nl=list.map(x=>x&&x.id===id?upd:x);await setSetting(key,nl);S.settings[key]=nl;let ext='';if(gk==='penjual'&&m.pasarMalam){await pmAtur(c=>{if(!c.pedagang.includes(id))c.pedagang.push(id)});ext=' + masuk daftar Pasar Malam'}if(gk==='kurir'){const sa=await beriSaldoAwal(id);if(sa)ext=` + saldo awal ${rp(biaya().saldoAwal)}`}toast(`${m.nama||'Akun'} disetujui${ext}`)}
     else{await removeMember(gk,id,list);toast('Pendaftaran ditolak')}
     render();
   });
@@ -938,6 +939,7 @@ function memberMenu(gk,id){
   ${gk==='kurir'?`<div class="detail-row"><span>NIK</span><b>${nikData(m.id)?esc(nikData(m.id).nik):'belum diisi'}</b></div><div class="detail-row"><span>Foto profil</span><b>${m.fotoOk?'ada':'belum ada'}</b></div>`:''}
   <div class="mact" style="flex-direction:column">
     ${gk==='kurir'&&nikData(m.id)?`<button class="btn btn-light" onclick="resetNik('${jsq(id)}',this)">🪪 Reset NIK (kurir isi ulang)</button>`:''}
+    ${gk==='penjual'?`<button class="btn btn-light" onclick="pmToggle('${jsq(id)}',this)">${pmCfg().pedagang.includes(id)&&m.pasarMalam?'🌙 Keluarkan dari Pasar Malam Jumat':'🌙 Masukkan ke Pasar Malam Jumat'}</button>`:''}
     <button class="btn btn-light" onclick="setPending('${gk}','${jsq(id)}',this)">⏸ Kembalikan ke menunggu persetujuan</button>
     <button class="btn btn-red" onclick="delMember('${gk}','${jsq(id)}',this)">${ico('trash')}Hapus akun</button>
     <button class="btn" onclick="closeModal()">Tutup</button></div>`)}
@@ -1927,7 +1929,7 @@ async function cekPermintaanUang(){
   if(baruT.length||baruC.length)loadAll(true);
 }
 setInterval(cekPermintaanUang,30000);setTimeout(cekPermintaanUang,4000);
-setInterval(()=>{if(auth&&!$('#app').classList.contains('hide')&&!$('#modalRoot').innerHTML&&document.visibilityState==='visible'&&!['kabar','harian'].includes(route))loadAll(true)},60000);   // jangan muat ulang saat admin sedang menulis kabar / mengatur promo
+setInterval(()=>{if(auth&&!$('#app').classList.contains('hide')&&!$('#modalRoot').innerHTML&&document.visibilityState==='visible'&&!['kabar','harian','pasarmalam'].includes(route))loadAll(true)},60000);   // jangan muat ulang saat admin sedang menulis kabar / mengatur promo
 
 /* ========== SETORAN QRIS ==========
    Uang pembayaran QRIS masuk ke akun merchant Kalensari Store. Halaman ini menghitung berapa yang harus
@@ -2238,6 +2240,85 @@ async function hrSimpan(btn){
     promo:{aktif:$('#hrPrAktif').checked,mulai,selesai,persen:n('hrPrPersen',1,100),maks:n('hrPrMaks',0,1000000),kuota:n('hrPrKuota',0,100000),hari:[...document.querySelectorAll('#hrPrHari input:checked')].map(x=>Number(x.value))}};
   await busy(btn,async()=>{await setSetting('harian_aturan',v);S.settings.harian_aturan=v;render();toast('Aturan disimpan')});
 }
+
+/* ========== PASAR MALAM JUMAT (store_settings "pasar_malam" + foto_pasar_malam_denah) ==========
+   pasar_malam = {aktif, hari, mulai, akhir, acara, lokasi, info, denah, pedagang:[id penjual], lapak:{id:"A1"}}
+   Pedagang = akun penjual dengan tanda pasarMalam:true (daftar lewat pedagang-pasar-malam.html).
+   Hanya yang id-nya ada di "pedagang" yang tampil di toko — kunci ini hanya bisa diubah admin. */
+const PM_DEF={aktif:true,hari:4,mulai:'15:00',akhir:'21:00',acara:'18:00',lokasi:'Area Pasar Malam Kalensari Store',info:'',denah:false,pedagang:[],lapak:{}};
+function pmNorm(v){v=v&&typeof v==='object'&&!Array.isArray(v)?v:{};return {...PM_DEF,...v,pedagang:Array.isArray(v.pedagang)?v.pedagang.filter(Boolean):[],lapak:v.lapak&&typeof v.lapak==='object'&&!Array.isArray(v.lapak)?v.lapak:{}}}
+const pmCfg=()=>pmNorm(S.settings.pasar_malam);
+// ubah aturan berdasarkan data terbaru di server (supaya tidak menimpa perubahan admin lain)
+async function pmAtur(fn){const c=pmNorm(await readKey('pasar_malam',null));fn(c);await setSetting('pasar_malam',c);S.settings.pasar_malam=c;return c}
+const pmAnggota=()=>members('penjual').filter(m=>m.pasarMalam);
+const pmMinta=()=>{const ids=pmCfg().pedagang;return pmAnggota().filter(m=>!m.pending&&!ids.includes(m.id))};
+const pmProdukN=m=>{const k=sKey(m.toko||m.usaha);return S.products.filter(p=>sellerNames(p).some(n=>sKey(n)===k)).length};
+let PM_DENAH;   // undefined = belum dimuat, '' = tidak ada, data:... = foto
+async function pmMuatDenah(){try{const r=await api('store_settings?select=value&key=eq.foto_pasar_malam_denah');PM_DENAH=r[0]&&r[0].value&&r[0].value.foto||''}catch(e){PM_DENAH=''}if(route==='pasarmalam')render()}
+function pmTglAcara(){const c=pmCfg(),w=new Date(Date.now()+new Date().getTimezoneOffset()*6e4+7*36e5),h=Number(c.hari),n=w.getHours()*60+w.getMinutes();let d=(h-w.getDay()+7)%7;if(d===0&&n>=(tMin(c.akhir)??1260))d=7;const t=new Date(w.getTime()+d*864e5);return {iso:`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`,teks:t.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long'})}}
+PAGES.pasarmalam=function(){
+  if(PM_DENAH===undefined){PM_DENAH=null;pmMuatDenah()}
+  const c=pmCfg(),lbl='font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:4px',HR=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const ac=pmTglAcara(),daftar=pmAnggota().filter(m=>!m.pending&&c.pedagang.includes(m.id)).sort((a,b)=>String(c.lapak[a.id]||'zz').localeCompare(String(c.lapak[b.id]||'zz'),'id',{numeric:true})||String(a.toko||'').localeCompare(String(b.toko||''),'id'));
+  const minta=pmMinta(),tunggu=pmAnggota().filter(m=>m.pending),libur=daftar.filter(m=>m.pmLibur===ac.iso).length;
+  const kartu=(m,i,aksi)=>`<div class="lc" style="align-items:flex-start"><div class="cat-ic" style="background:${aksi==='ok'?'#2b150a':colors[i%colors.length]};color:#ffc94a;font-weight:800;font-size:${c.lapak[m.id]?14:18}px">${c.lapak[m.id]?esc(c.lapak[m.id]):'🏮'}</div><div class="meta"><b>${esc(m.toko||m.usaha||'(tanpa nama)')}</b> ${kodeChip(m.kode)}
+      <div class="sm">${esc([m.nama,m.wa?'+'+m.wa:'',m.jualan].filter(Boolean).join(' • '))}</div>${m.pmInfo?`<div class="sm">📝 ${esc(m.pmInfo)}</div>`:''}
+      <div class="sm">${pmProdukN(m)} menu online${aksi==='ok'?' • '+(m.pmLibur===ac.iso?'<span style="color:#b91c1c;font-weight:700">libur minggu ini</span>':'<span style="color:#15803d;font-weight:700">buka minggu ini</span>'):''}</div>
+      ${aksi==='ok'?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center"><input class="inp" id="pmL_${esc(m.id)}" maxlength="8" placeholder="No. lapak" value="${esc(c.lapak[m.id]||'')}" style="width:110px;padding:7px 10px"><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="pmLapak('${jsq(m.id)}',this)">Simpan no.</button><button class="btn btn-red" style="padding:7px 12px;font-size:12px" onclick="pmToggle('${jsq(m.id)}',this)">Keluarkan</button></div>`
+      :aksi==='minta'?`<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-g" style="padding:8px 14px;font-size:13px" onclick="pmToggle('${jsq(m.id)}',this)">✓ Masukkan ke Pasar Malam</button><button class="btn btn-red" style="padding:8px 14px;font-size:13px" onclick="pmTolak('${jsq(m.id)}',this)">✕ Tolak</button></div>`
+      :`<div style="margin-top:10px"><button class="btn btn-g" style="padding:8px 14px;font-size:13px" onclick="apTab='penjual';go('persetujuan')">Buka Persetujuan</button></div>`}</div><div class="right-col">${waLink(m.wa)}</div></div>`;
+  return `<div class="stats">
+    ${stat('Pedagang terdaftar',daftar.length,(daftar.length-libur)+' buka • '+libur+' libur minggu ini','store','#7b3f1d')}
+    ${stat('Acara berikutnya',ac.teks.split(',')[0],ac.teks.split(',').slice(1).join(',').trim()+' • '+esc(c.acara)+' WIB','check','#f59e0b')}
+    ${stat('Menunggu',minta.length+tunggu.length,minta.length+' minta gabung • '+tunggu.length+' akun baru','users','#8b5cf6')}
+  </div>
+  ${minta.length?`<div class="card"><div class="chead"><h3>🙋 Penjual minta ikut Pasar Malam (${minta.length})</h3></div><div class="cards">${minta.map((m,i)=>kartu(m,i,'minta')).join('')}</div></div>`:''}
+  ${tunggu.length?`<div class="card"><div class="chead"><h3>⏳ Pendaftar baru — setujui di menu Persetujuan (${tunggu.length})</h3></div><div class="cards">${tunggu.map((m,i)=>kartu(m,i,'baru')).join('')}</div><p class="sm" style="margin:10px 0 0">Saat disetujui, pedagang otomatis masuk daftar Pasar Malam.</p></div>`:''}
+  <div class="card"><div class="chead"><h3>🏮 Daftar pedagang (${daftar.length})</h3><button class="btn btn-light" onclick="loadAll()">↻</button></div>
+    ${daftar.length?`<div class="cards">${daftar.map((m,i)=>kartu(m,i,'ok')).join('')}</div>`:'<div class="empty" style="padding:14px">Belum ada pedagang. Bagikan link <b>kalensari.web.id/pedagang-pasar-malam.html</b> ke calon pedagang.</div>'}
+    <p class="sm" style="margin:10px 0 0">Nomor lapak tampil di daftar pedagang & akun pedagang. Pedagang mengatur menu lewat Aplikasi Penjual seperti toko biasa.</p></div>
+  <div class="card"><div class="chead"><h3>⚙️ Pop-up & jadwal</h3></div>
+    <label style="display:flex;gap:10px;align-items:center;margin:0 0 10px;font-size:14px"><input type="checkbox" id="pmAktif" ${c.aktif!==false?'checked':''} style="width:20px;height:20px">Tampilkan pop-up event di halaman toko</label>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+      <label><span style="${lbl}">Hari pop-up</span><select class="inp" id="pmHari">${HR.map((h,i)=>`<option value="${i}" ${Number(c.hari)===i?'selected':''}>${h}</option>`).join('')}</select></label>
+      <label><span style="${lbl}">Pop-up mulai</span><input class="inp" type="time" id="pmMulai" value="${esc(c.mulai)}"></label>
+      <label><span style="${lbl}">Pop-up berhenti</span><input class="inp" type="time" id="pmAkhir" value="${esc(c.akhir)}"></label>
+      <label><span style="${lbl}">Jam acara dimulai</span><input class="inp" type="time" id="pmAcara" value="${esc(c.acara)}"></label></div>
+    <label style="display:block;margin-top:10px"><span style="${lbl}">Lokasi</span><input class="inp" id="pmLokasi" maxlength="80" value="${esc(c.lokasi)}"></label>
+    <label style="display:block;margin-top:10px"><span style="${lbl}">Info untuk warga & pedagang (opsional, mis. biaya lapak, aturan parkir)</span><textarea class="inp" id="pmInfo" rows="3" maxlength="400">${esc(c.info)}</textarea></label>
+    <div style="margin-top:12px"><span style="${lbl}">Gambar denah (dibuka dari tombol "Lihat Denah Event")</span>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">${PM_DENAH?`<img src="${PM_DENAH}" alt="Denah" style="width:120px;height:84px;object-fit:cover;border-radius:12px">`:PM_DENAH===null?'<span class="sm">Memuat…</span>':'<span class="sm">Belum ada denah</span>'}
+      <label class="btn btn-light" style="cursor:pointer">🗺️ ${PM_DENAH?'Ganti':'Unggah'} denah<input type="file" accept="image/*" hidden onchange="pmPilihDenah(this)"></label>
+      ${PM_DENAH?'<button type="button" class="btn btn-light" onclick="pmHapusDenah(this)">Hapus denah</button>':''}</div></div>
+    <button class="btn btn-g" style="margin-top:14px" onclick="pmSimpan(this)">Simpan</button>
+    <p class="sm" style="margin:10px 0 0">Pop-up muncul sekali sehari per HP pada hari & jam di atas (waktu WIB). Uji coba kapan saja: buka <b>kalensari.web.id/?pasarmalam=1</b>. Daftar pedagang juga bisa dibuka warga dari menu ☰ → 🌙 Pasar Malam Jumat.</p></div>`;
+};
+Object.assign(TITLES,{pasarmalam:['Pasar Malam Jumat','Pedagang, nomor lapak, denah & jadwal pop-up']});
+async function pmSimpan(btn){
+  const mulai=$('#pmMulai').value||'15:00',akhir=$('#pmAkhir').value||'21:00';
+  if(akhir<=mulai)return toast('Jam berhenti harus setelah jam mulai');
+  await busy(btn,async()=>{await pmAtur(c=>Object.assign(c,{aktif:$('#pmAktif').checked,hari:Number($('#pmHari').value),mulai,akhir,acara:$('#pmAcara').value||'18:00',lokasi:$('#pmLokasi').value.trim()||PM_DEF.lokasi,info:$('#pmInfo').value.trim()}));render();toast('Aturan Pasar Malam disimpan')});
+}
+async function pmLapak(id,btn){const v=String($('#pmL_'+CSS.escape(id)).value||'').trim().toUpperCase().slice(0,8);
+  await busy(btn,async()=>{await pmAtur(c=>{if(v)c.lapak[id]=v;else delete c.lapak[id]});render();toast(v?'Nomor lapak '+v+' disimpan':'Nomor lapak dihapus')})}
+// masukkan / keluarkan pedagang (tanda pasarMalam di akun penjual ikut disesuaikan)
+async function pmToggle(id,btn){
+  const masuk=!(pmCfg().pedagang.includes(id)&&(members('penjual').find(x=>x.id===id)||{}).pasarMalam);
+  if(!masuk&&!confirm('Keluarkan pedagang ini dari Pasar Malam Jumat? Akun penjual & menunya tetap ada.'))return;
+  await busy(btn,async()=>{
+    const arr=await readKey('penjual_members',[]),nl=(Array.isArray(arr)?arr:[]).map(x=>x&&x.id===id?{...x,pasarMalam:masuk,updated:Date.now()}:x);
+    await setSetting('penjual_members',nl);S.settings.penjual_members=nl;
+    await pmAtur(c=>{c.pedagang=c.pedagang.filter(x=>x!==id);if(masuk)c.pedagang.push(id);else delete c.lapak[id]});
+    closeModal();render();toast(masuk?'🌙 Masuk daftar Pasar Malam':'Dikeluarkan dari Pasar Malam')});
+}
+async function pmTolak(id,btn){if(!confirm('Tolak permintaan ikut Pasar Malam? Akun penjualnya tetap ada.'))return;
+  await busy(btn,async()=>{const arr=await readKey('penjual_members',[]),nl=(Array.isArray(arr)?arr:[]).map(x=>x&&x.id===id?{...x,pasarMalam:false,updated:Date.now()}:x);await setSetting('penjual_members',nl);S.settings.penjual_members=nl;render();toast('Permintaan ditolak')})}
+async function pmPilihDenah(inp){const f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  try{const foto=await new Promise((ok,no)=>{const r=new FileReader();r.onerror=no;r.onload=()=>{const im=new Image();im.onerror=no;im.onload=()=>{const k=Math.min(1,1400/Math.max(im.width,im.height)),cv=document.createElement('canvas');cv.width=Math.round(im.width*k);cv.height=Math.round(im.height*k);const x=cv.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,cv.width,cv.height);x.drawImage(im,0,0,cv.width,cv.height);ok(cv.toDataURL('image/jpeg',.82))};im.src=r.result};r.readAsDataURL(f)});
+    await setSetting('foto_pasar_malam_denah',{foto,t:Date.now()});await pmAtur(c=>{c.denah=true});PM_DENAH=foto;render();toast('🗺️ Denah disimpan')}
+  catch(e){toast('Gagal menyimpan denah: '+String(e.message||e).slice(0,80))}}
+async function pmHapusDenah(btn){if(!confirm('Hapus gambar denah?'))return;
+  await busy(btn,async()=>{await api('store_settings?key=eq.foto_pasar_malam_denah',{method:'DELETE',headers:{Prefer:'return=minimal'}}).catch(()=>{});await pmAtur(c=>{c.denah=false});PM_DENAH='';render();toast('Denah dihapus')})}
 
 /* ========== SALDO VOUCHER PEMBELI & AJAK TETANGGA (supabase-voucher-pembeli.sql) ==========
    store_settings "voucher_aturan" = {aktif, kompensasi, ajak:{aktif, pengundang, baru, min, maksBulan, hari}} */

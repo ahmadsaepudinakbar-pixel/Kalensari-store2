@@ -5,7 +5,7 @@
      - belum dibayar     : hanya QRIS yang belum lunas & belum kirim bukti, status masih menunggu;
                            muncul lagi paling cepat 30 menit setelah ditutup
      - "Menunggu verifikasi" (bukti sudah dikirim) tidak ditagih; COD tidak pernah ditagih
-     - menunggu popup lain (pemenang kuis, absen, modal) ditutup dulu
+     - menunggu popup lain (pemenang kuis, absen, Pasar Malam, modal) ditutup dulu
    Data dari server lewat KSPesanan.baca("pesanan_saya") (pesanan-aman.js). Dipasang di index.html setelah script.js. */
 (function () {
   "use strict";
@@ -54,7 +54,7 @@
 
   // Ada popup / modal lain yang sedang terbuka?
   function adaPopup() {
-    return !!document.querySelector(".kp-pop, .hr-ov, .nb-ov, .modal.show, .ksh-ov, .lacak-ov, [role=dialog][aria-modal=true]:not(#ksIngat)");
+    return !!document.querySelector(".kp-pop, .hr-ov, .nb-ov, .pm-ov, .modal.show, .ksh-ov, .lacak-ov, [role=dialog][aria-modal=true]:not(#ksIngat)");
   }
   function tungguSepi(fn) {
     var n = 0, t = setInterval(function () { if (!adaPopup()) { clearInterval(t); fn(); } else if (++n > 60) clearInterval(t); }, 1500);

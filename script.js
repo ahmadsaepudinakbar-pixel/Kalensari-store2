@@ -373,7 +373,8 @@ async function loadCloudSettings(){
       if(r.key==="unggulan_toko"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){unggulanToko=r.value;localStorage.setItem("kalensari_unggulan_toko",JSON.stringify(unggulanToko));}
       if(r.key==="tutup_toko"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){tutupToko=r.value;localStorage.setItem("kalensari_tutup_toko",JSON.stringify(tutupToko));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
-      if(r.key==="penjual_members"&&Array.isArray(r.value)){r.value.forEach(x=>{if(x&&x.id)sellerIdMap[x.id]=sellerKey(x.toko||x.usaha)});}
+      if(r.key==="penjual_members"&&Array.isArray(r.value)){r.value.forEach(x=>{if(x&&x.id)sellerIdMap[x.id]=sellerKey(x.toko||x.usaha)});pmSimpanMembers(r.value);}
+      if(r.key==="pasar_malam"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){PM_CFG={...PM_DEF,...r.value};try{localStorage.setItem("kalensari_pasar_malam",JSON.stringify(PM_CFG));}catch(e){}}
       if(r.key==="cod_aturan"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){codAturan={...codAturan,...r.value};}
       if(r.key==="qris_statis"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){QRIS_STATIS=r.value;try{localStorage.setItem("kalensari_qris_statis",JSON.stringify(r.value));}catch(e){}}
     });
@@ -1820,7 +1821,7 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
 .ks-menu a:hover,.ks-menu button:hover,.ks-menu a:focus-visible,.ks-menu button:focus-visible{background:#f8edd3;outline:none}`;
   document.head.appendChild(st);
   const m=document.createElement("div");m.className="ks-menu";m.setAttribute("role","menu");
-  m.innerHTML=`<a role="menuitem" href="pasar.html" style="background:#fff6ec;color:#5b2e1a;margin-bottom:4px">🔁 Lapak Barter <span style="margin-left:auto;background:#faeeda;color:#633806;font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px">Baru</span></a><a role="menuitem" href="akun-pembeli.html"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true" style="flex:none;vertical-align:middle"><circle cx="20" cy="20" r="20" fill="#FFE27A"/><path d="M5 34c1-6 5-9 9-9s8 3 9 9z" fill="#4FC3A1"/><path d="M17 34c1-7 5-10 9-10s8 3 9 10z" fill="#FF8A5C"/><path d="M11 36c1-6 5-9 9-9s8 3 9 9z" fill="#5AA9F0"/><circle cx="12" cy="19" r="5" fill="#FFD3A8" stroke="#7a3e20" stroke-width="1"/><circle cx="28" cy="18" r="5.5" fill="#F7C39A" stroke="#7a3e20" stroke-width="1"/><circle cx="20" cy="22" r="5.5" fill="#FFDDB8" stroke="#7a3e20" stroke-width="1"/><path d="M17.8 23.5q2.2 2 4.4 0M9.8 20.3q2.2 1.8 4.4 0M25.8 19.5q2.2 1.8 4.4 0" stroke="#7a3e20" stroke-width="1.1" fill="none" stroke-linecap="round"/><circle cx="18.3" cy="21" r=".8" fill="#5b2e1a"/><circle cx="21.7" cy="21" r=".8" fill="#5b2e1a"/><circle cx="10.6" cy="18" r=".7" fill="#5b2e1a"/><circle cx="13.4" cy="18" r=".7" fill="#5b2e1a"/><circle cx="26.6" cy="17.2" r=".7" fill="#5b2e1a"/><circle cx="29.4" cy="17.2" r=".7" fill="#5b2e1a"/><path d="M14.5 17q5.5-6 11 0" fill="#5b2e1a" opacity=".85"/></svg> Warga Desa</a><a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" href="akun-jasa.html">🤝 Penyedia Jasa</a><a role="menuitem" href="akun-kurir.html">🛵 Kurir</a>`;
+  m.innerHTML=`<a role="menuitem" href="pasar.html" style="background:#fff6ec;color:#5b2e1a;margin-bottom:4px">🔁 Lapak Barter <span style="margin-left:auto;background:#faeeda;color:#633806;font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px">Baru</span></a><button type="button" role="menuitem" onclick="bukaInfoPasarMalam()" style="background:#2b150a;color:#fff;margin-bottom:4px">🌙 Pasar Malam Jumat <span style="margin-left:auto;background:#ffc94a;color:#3a1f10;font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px">Kamis</span></button><a role="menuitem" href="akun-pembeli.html"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true" style="flex:none;vertical-align:middle"><circle cx="20" cy="20" r="20" fill="#FFE27A"/><path d="M5 34c1-6 5-9 9-9s8 3 9 9z" fill="#4FC3A1"/><path d="M17 34c1-7 5-10 9-10s8 3 9 10z" fill="#FF8A5C"/><path d="M11 36c1-6 5-9 9-9s8 3 9 9z" fill="#5AA9F0"/><circle cx="12" cy="19" r="5" fill="#FFD3A8" stroke="#7a3e20" stroke-width="1"/><circle cx="28" cy="18" r="5.5" fill="#F7C39A" stroke="#7a3e20" stroke-width="1"/><circle cx="20" cy="22" r="5.5" fill="#FFDDB8" stroke="#7a3e20" stroke-width="1"/><path d="M17.8 23.5q2.2 2 4.4 0M9.8 20.3q2.2 1.8 4.4 0M25.8 19.5q2.2 1.8 4.4 0" stroke="#7a3e20" stroke-width="1.1" fill="none" stroke-linecap="round"/><circle cx="18.3" cy="21" r=".8" fill="#5b2e1a"/><circle cx="21.7" cy="21" r=".8" fill="#5b2e1a"/><circle cx="10.6" cy="18" r=".7" fill="#5b2e1a"/><circle cx="13.4" cy="18" r=".7" fill="#5b2e1a"/><circle cx="26.6" cy="17.2" r=".7" fill="#5b2e1a"/><circle cx="29.4" cy="17.2" r=".7" fill="#5b2e1a"/><path d="M14.5 17q5.5-6 11 0" fill="#5b2e1a" opacity=".85"/></svg> Warga Desa</a><a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" href="akun-jasa.html">🤝 Penyedia Jasa</a><a role="menuitem" href="akun-kurir.html">🛵 Kurir</a>`;
   document.body.appendChild(m);
   // Mode Desktop / Seluler (hanya di layar HP): tampilan situs dilebarkan seperti di komputer. Pilihan diingat di HP ini.
   if(screen.width<900){
@@ -2643,42 +2644,82 @@ setInterval(()=>{try{if(hujanOn()!==!!document.getElementById("ksHujanBar"))rend
 // Ganti rekomendasi otomatis bila halaman dibiarkan terbuka dan waktu makan berganti (cek tiap 5 menit)
 {let _w=waktuIni();setInterval(()=>{try{const n=waktuIni();if(n!==_w){_w=n;renderProducts();}}catch(e){}},300000);}
 
-// ===== POP-UP EVENT PASAR MALAM =====
-// Pasar malam desa = tiap MALAM JUMAT. Pop-up tampil Kamis sore sampai Kamis malam (waktu WIB), sekali per hari per HP.
-// Atur jadwal di 3 angka ini. Uji coba kapan saja: buka halaman toko dengan alamat  ...?pasarmalam=1
-const PM_HARI=4;          // 0=Minggu ... 4=Kamis
-const PM_JAM_MULAI=15;    // mulai tampil jam 15.00 WIB
-const PM_JAM_AKHIR=24;    // berhenti tampil jam 24.00 WIB (malam Jumat)
-const PM_GAMBAR="img/pasar-malam.jpg";         // poster
-const PM_DENAH="img/denah-pasar-malam.jpg";    // gambar denah (dibuka saat tombol "Lihat Denah Event" ditekan)
+// ===== PASAR MALAM JUMAT (pop-up event + daftar pedagang) =====
+// Pop-up tampil di hari & jam yang diatur admin (bawaan: KAMIS 15.00–21.00 WIB), sekali per hari per HP.
+// Aturan dari store_settings "pasar_malam" (menu admin 🌙 Pasar Malam Jumat). Uji coba kapan saja: ...?pasarmalam=1
+// Tombol "Lihat Denah Event" membuka lembar Pasar Malam Jumat: jadwal, denah (bila diunggah admin) & daftar pedagang.
+var PM_DEF={aktif:true,hari:4,mulai:"15:00",akhir:"21:00",acara:"18:00",lokasi:"Area Pasar Malam Kalensari Store",info:"",denah:false,pedagang:[],lapak:{}};
+var PM_CFG=(()=>{try{const v=JSON.parse(localStorage.getItem("kalensari_pasar_malam")||"null");return v&&typeof v==="object"?{...PM_DEF,...v}:{...PM_DEF};}catch(e){return{...PM_DEF};}})();
+var PM_MEMBERS=(()=>{try{const v=JSON.parse(localStorage.getItem("kalensari_pm_members")||"[]");return Array.isArray(v)?v:[];}catch(e){return[];}})();
+function pmSimpanMembers(list){PM_MEMBERS=(list||[]).filter(x=>x&&x.pasarMalam&&!x.pending).map(x=>({id:x.id,toko:x.toko||x.usaha||"",nama:x.nama||"",jualan:x.jualan||"",pmInfo:x.pmInfo||"",pmLibur:x.pmLibur||"",kode:x.kode||""}));try{localStorage.setItem("kalensari_pm_members",JSON.stringify(PM_MEMBERS));}catch(e){}}
+const PM_GAMBAR="img/pasar-malam.jpg";
+const PM_HARI_NAMA=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
 const pmWib=()=>new Date(Date.now()+new Date().getTimezoneOffset()*6e4+7*36e5);
-const pmAktif=()=>{const w=pmWib();return w.getDay()===PM_HARI&&w.getHours()>=PM_JAM_MULAI&&w.getHours()<PM_JAM_AKHIR;};
+const pmMenit=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||""));return m?+m[1]*60+ +m[2]:null;};
+const pmAktif=()=>{const c=PM_CFG,w=pmWib(),n=w.getHours()*60+w.getMinutes(),a=pmMenit(c.mulai)??900,b=pmMenit(c.akhir)??1260;return c.aktif!==false&&w.getDay()===Number(c.hari??4)&&n>=a&&n<b;};
+// tanggal acara berikutnya (YYYY-MM-DD, WIB) — hari ini bila hari acara & belum lewat jam akhir
+function pmTanggalAcara(){const c=PM_CFG,w=pmWib(),h=Number(c.hari??4),n=w.getHours()*60+w.getMinutes();let d=(h-w.getDay()+7)%7;if(d===0&&n>=(pmMenit(c.akhir)??1260))d=7;const t=new Date(w.getTime()+d*864e5);return{iso:`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`,teks:t.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"}),hariIni:d===0};}
+function pmPedagang(){const c=PM_CFG,ids=Array.isArray(c.pedagang)?c.pedagang:[],tgl=pmTanggalAcara().iso;
+  return PM_MEMBERS.filter(m=>ids.includes(m.id)).map(m=>{const k=sellerKey(m.toko);return{...m,key:k,lapak:(c.lapak&&c.lapak[m.id])||"",libur:m.pmLibur===tgl,menu:products.filter(p=>p.status!=="Hide"&&sellerList(p).some(s=>sellerKey(s)===k)).length};})
+    .sort((a,b)=>(a.libur-b.libur)||String(a.lapak||"zz").localeCompare(String(b.lapak||"zz"),"id",{numeric:true})||a.toko.localeCompare(b.toko,"id"));}
+function pmAdaPopup(){return !!document.querySelector(".kp-pop,.hr-ov,.modal.show,#ksIngat.on,.qp-ov,[role=dialog][aria-modal=true]:not(#pmOv):not(#pmInfo)");}
 function tutupPasarMalam(){document.getElementById("pmOv")?.remove();document.removeEventListener("keydown",pmEsc);}
-function pmEsc(e){if(e.key==="Escape"){if(document.getElementById("pmDenah"))document.getElementById("pmDenah").remove();else tutupPasarMalam();}}
-function bukaDenahPasarMalam(){
-  if(document.getElementById("pmDenah"))return;
+function pmEsc(e){if(e.key!=="Escape")return;if(document.getElementById("pmDenah"))document.getElementById("pmDenah").remove();else if(document.getElementById("pmInfo"))document.getElementById("pmInfo").remove();else tutupPasarMalam();}
+function bukaDenahPasarMalam(src){
+  if(document.getElementById("pmDenah")||!src)return;
   const ov=document.createElement("div");ov.id="pmDenah";ov.className="pm-ov pm-denah";
-  ov.innerHTML=`<div class="pm-dbox"><button type="button" class="pm-dx" aria-label="Tutup denah">✕</button><img alt="Denah Pasar Malam Kalensari Store"></div>`;
-  const im=ov.querySelector("img");
-  im.onerror=()=>{ov.remove();showToast("🗺️ Denah event belum tersedia, segera hadir.");};
-  im.src=PM_DENAH;
+  ov.innerHTML=`<div class="pm-dbox"><button type="button" class="pm-dx" aria-label="Tutup denah">✕</button><img alt="Denah Pasar Malam Jumat"></div>`;
+  ov.querySelector("img").src=src;
   ov.addEventListener("click",e=>{if(e.target===ov||e.target.closest(".pm-dx"))ov.remove();});
   document.body.appendChild(ov);
 }
+async function pmFotoDenah(){if(!PM_CFG.denah||!CLOUD_CONFIG?.enabled)return "";try{const r=await cloudFetch("store_settings?select=value&key=eq.foto_pasar_malam_denah");const v=r&&r[0]&&r[0].value;return v&&typeof v.foto==="string"&&/^data:image\//.test(v.foto)?v.foto:"";}catch(e){return "";}}
+// Lembar "Pasar Malam Jumat": jadwal, denah, daftar pedagang (tap = lihat menu lapak di toko)
+async function bukaInfoPasarMalam(){
+  tutupPasarMalam();document.querySelector(".ks-menu.open")?.classList.remove("open");
+  if(document.getElementById("pmInfo"))return;
+  const c=PM_CFG,acara=pmTanggalAcara(),list=pmPedagang(),buka=list.filter(x=>!x.libur);
+  const ov=document.createElement("div");ov.id="pmInfo";ov.className="pm-ov pm-info";ov.setAttribute("role","dialog");ov.setAttribute("aria-modal","true");ov.setAttribute("aria-label","Pasar Malam Jumat");
+  ov.innerHTML=`<div class="pm-sheet"><div class="pm-sh"><div><small>🌙 EVENT MINGGUAN</small><h2>Pasar Malam Jumat</h2></div><button type="button" class="pm-shx" aria-label="Tutup">✕</button></div>
+  <div class="pm-sb">
+    <div class="pm-jad"><div><b>📅 ${acara.hariIni?"Malam ini":esc(acara.teks)}</b><span>Setiap ${PM_HARI_NAMA[Number(c.hari??4)]} malam • mulai ${esc(String(c.acara||"18:00").replace(":","."))} WIB</span></div><div><b>📍 Lokasi</b><span>${esc(c.lokasi||PM_DEF.lokasi)}</span></div></div>
+    ${c.info?`<p class="pm-catat">${esc(c.info)}</p>`:""}
+    <div class="pm-denah-slot"></div>
+    <h3>🏮 Pedagang ${acara.hariIni?"malam ini":"minggu ini"} <em>${buka.length}</em></h3>
+    <div class="pm-list">${list.length?list.map(m=>`<button type="button" class="pm-pd${m.libur?" libur":""}" data-k="${esc(m.key)}"${m.menu&&!m.libur?"":" data-kosong=\"1\""}><span class="pm-no">${m.lapak?esc(m.lapak):"🏮"}</span><span class="pm-tx"><b>${esc(m.toko||m.nama)}</b><small>${esc([m.jualan,m.pmInfo].filter(Boolean).join(" • ")||"Pedagang Pasar Malam")}</small></span><span class="pm-mn">${m.libur?"Libur minggu ini":m.menu?m.menu+" menu ›":"Beli di lapak"}</span></button>`).join(""):`<p class="pm-kosong">Daftar pedagang segera diumumkan. Datang langsung ke lokasi ya! 🙌</p>`}</div>
+    <a class="pm-daftar" href="pedagang-pasar-malam.html">🧺 Mau jualan di Pasar Malam Jumat? <b>Daftar jadi pedagang ›</b></a>
+  </div></div>`;
+  ov.addEventListener("click",e=>{
+    if(e.target===ov||e.target.closest(".pm-shx")){ov.remove();return;}
+    const b=e.target.closest(".pm-pd");if(!b)return;
+    if(b.classList.contains("libur")){showToast("Pedagang ini libur minggu ini");return;}
+    if(b.dataset.kosong){showToast("Menu online belum ada. Silakan beli langsung di lapaknya 🙏");return;}
+    ov.remove();setSeller(b.dataset.k);
+  });
+  document.addEventListener("keydown",pmEsc);
+  document.body.appendChild(ov);
+  const src=await pmFotoDenah();
+  if(src&&ov.isConnected){const s=ov.querySelector(".pm-denah-slot");s.innerHTML=`<button type="button" class="pm-dn"><img alt="Denah Pasar Malam Jumat"><span>🗺️ Ketuk untuk memperbesar denah</span></button>`;s.querySelector("img").src=src;s.querySelector("button").onclick=()=>bukaDenahPasarMalam(src);}
+}
 function tampilPasarMalam(paksa){
-  if(document.getElementById("pmOv"))return;
+  if(document.getElementById("pmOv")||document.getElementById("pmInfo"))return;
   const w=pmWib(),kunci="kalensari_pasarmalam_"+w.getFullYear()+"-"+(w.getMonth()+1)+"-"+w.getDate();
   if(!paksa){
-    if(!pmAktif()||document.hidden||document.querySelector(".modal.show"))return;
+    if(!pmAktif()||document.hidden)return;
     try{if(localStorage.getItem(kunci))return;}catch(e){}
+    if(pmAdaPopup()){clearTimeout(tampilPasarMalam.t);tampilPasarMalam.t=setTimeout(()=>tampilPasarMalam(false),3000);return;}   // tunggu popup lain ditutup
   }
   try{localStorage.setItem(kunci,"1");}catch(e){}
-  const ov=document.createElement("div");ov.id="pmOv";ov.className="pm-ov";ov.setAttribute("role","dialog");ov.setAttribute("aria-label","Event Pasar Malam");
-  ov.innerHTML=`<div class="pm-box"><img src="${PM_GAMBAR}" alt="Event Pasar Malam Kalensari Store. Setiap malam Jumat, area pasar malam Kalensari Store.">`
-    +`<button type="button" class="pm-x" aria-label="Tutup"></button><button type="button" class="pm-den" aria-label="Lihat denah event"></button></div>`;
-  ov.addEventListener("click",e=>{if(e.target.closest(".pm-den"))bukaDenahPasarMalam();else if(e.target===ov||e.target.closest(".pm-x"))tutupPasarMalam();});
+  const ov=document.createElement("div");ov.id="pmOv";ov.className="pm-ov";ov.setAttribute("role","dialog");ov.setAttribute("aria-modal","true");ov.setAttribute("aria-label","Event Pasar Malam Jumat");
+  ov.innerHTML=`<div class="pm-box"><img src="${PM_GAMBAR}" alt="Event Pasar Malam Jumat Kalensari Store. Setiap Kamis malam mulai ${esc(String(PM_CFG.acara||"18:00").replace(":","."))} WIB di area Pasar Malam Kalensari Store.">`
+    +`<button type="button" class="pm-x" aria-label="Tutup"></button><button type="button" class="pm-den" aria-label="Lihat denah & daftar pedagang Pasar Malam Jumat"></button></div>`;
+  ov.addEventListener("click",e=>{if(e.target.closest(".pm-den"))bukaInfoPasarMalam();else if(e.target===ov||e.target.closest(".pm-x"))tutupPasarMalam();});
   document.addEventListener("keydown",pmEsc);
   document.body.appendChild(ov);
 }
-// Muncul sebentar setelah halaman terbuka (menunggu pop-up/ajakan lain selesai)
-setTimeout(()=>{try{tampilPasarMalam(new URLSearchParams(location.search).get("pasarmalam")==="1");}catch(e){console.warn("Pop-up pasar malam gagal:",e);}},2500);
+{const q=new URLSearchParams(location.search).get("pasarmalam");
+  // ?pasarmalam=1 -> pop-up (uji coba), ?pasarmalam=info -> langsung buka daftar pedagang
+  setTimeout(()=>{try{if(q==="info")bukaInfoPasarMalam();else tampilPasarMalam(q==="1");}catch(e){console.warn("Pop-up pasar malam gagal:",e);}},q?1200:4000);
+  // halaman dibiarkan terbuka / aplikasi dibuka lagi saat jam event mulai
+  setInterval(()=>{try{tampilPasarMalam(false);}catch(e){}},300000);
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")setTimeout(()=>{try{tampilPasarMalam(false);}catch(e){}},1500);});}
