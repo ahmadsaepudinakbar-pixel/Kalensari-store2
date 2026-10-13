@@ -210,6 +210,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
     <section class="hero2"><div class="h2top"><div><small>Halo 👋</small><b id="hNama">Warga</b><div id="kodeAkun" style="margin-top:6px"></div></div><div class="h2av" id="hAv">W</div></div>
       <div class="h2al" data-go="alamat"><span>📍</span><div><small>Antar ke (alamat utama)</small><b id="hAlamat">Belum ada alamat</b></div><i>›</i></div></section>
     <div id="homeAktif"></div>
+    <div class="hr-wrap" id="dbHarian"><div id="dbAbsen" hidden></div><div id="dbPromo" hidden></div><div id="dbMenu" hidden></div></div>
     <div class="grid3">
       <button type="button" class="q" data-go="pesanan"><i>📋</i><span>Pesanan</span><em id="qPes" hidden></em></button>
       <button type="button" class="q" data-go="saldo"><i>🎟️</i><span>Saldo voucher</span><em id="qSaldo" hidden></em></button>
@@ -220,6 +221,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
       <button type="button" class="q" data-go="akun" data-fokus="notif"><i>🔔</i><span>Notifikasi</span></button>
       <button type="button" class="q" data-go="akun"><i>👤</i><span>Akun & PIN</span></button>
     </div>
+    <div id="dbKabar" hidden style="margin-top:14px"></div>
     <section class="box" style="margin-top:14px" id="sumBox" hidden></section>
     <a class="ks-banner" href="index.html"><img src="icons/logo-kalensari.png" alt=""><span><b>Belanja di Kalensari Store</b><small>Makanan, minuman & kebutuhan dari warga</small></span><i>›</i></a>
   </div>
@@ -271,6 +273,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 <script src="serahterima.js"></script>
 <script src="filter-kata.js"></script><script src="ulasan.js"></script><script src="tip-kurir.js"></script>
 <script src="pesanan-warga.js"></script>
+<script src="harian.js"></script>
 <script>
 
 const $ = id => document.getElementById(id);
@@ -549,8 +552,8 @@ function infoBatal(o){
   return h;
 }
 // ===== SALDO VOUCHER & AJAK TETANGGA (tabel pembeli_saldo / pembeli_mutasi / pembeli_ajak, lihat supabase-voucher-pembeli.sql) =====
-const JENIS_V = {sambut:"Voucher selamat datang", refund:"Pengembalian", kompensasi:"Kompensasi", ajak:"Bonus ajak tetangga", ajak_baru:"Bonus pembeli baru", pakai:"Dipakai belanja", koreksi:"Penyesuaian admin"};
-const IKON_V = {sambut:["🎁","#fff0d9"], refund:["↩️","#e0efff"], kompensasi:["🎁","#ffe8ef"], ajak:["🧑‍🤝‍🧑","#e3f7e9"], ajak_baru:["🎉","#fff3d6"], pakai:["🛒","#f3e6d6"], koreksi:["🛠️","#eceff3"]};
+const JENIS_V = {absen:"Hadiah absen harian", cashback:"Cashback ongkir promo", sambut:"Voucher selamat datang", refund:"Pengembalian", kompensasi:"Kompensasi", ajak:"Bonus ajak tetangga", ajak_baru:"Bonus pembeli baru", pakai:"Dipakai belanja", koreksi:"Penyesuaian admin"};
+const IKON_V = {absen:["✅","#e3f7e9"], cashback:["🛵","#fff3d6"], sambut:["🎁","#fff0d9"], refund:["↩️","#e0efff"], kompensasi:["🎁","#ffe8ef"], ajak:["🧑‍🤝‍🧑","#e3f7e9"], ajak_baru:["🎉","#fff3d6"], pakai:["🛒","#f3e6d6"], koreksi:["🛠️","#eceff3"]};
 async function rpc(fn, body){
   const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
   const r = await fetch(base + "/rest/v1/rpc/" + fn, {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify(body)});
@@ -585,7 +588,7 @@ async function muatVoucher(){
     $("ajStat").textContent = (aj || []).length ? `👥 ${ok} tetangga berhasil bergabung` + (tunggu ? ` • ${tunggu} menunggu pesanan pertama selesai` : "") : "Belum ada tetangga yang memakai kode Anda.";
     $("ajMasuk").hidden = A.aktif === false || (saya || []).length > 0 || (sel || []).length > 0;
     $("vcMut").innerHTML = (mut || []).length ? mut.map(m => { const ik = IKON_V[m.jenis] || ["🎟️","#eef2f6"]; return `<details class="vc-m"><summary><i style="background:${ik[1]}">${ik[0]}</i><b>${esc(JENIS_V[m.jenis] || m.jenis)}</b><strong class="${m.jumlah >= 0 ? "p" : "m"}">${m.jumlah >= 0 ? "+" : "−"}${fmtRp(Math.abs(m.jumlah))}</strong><em>›</em></summary><small>${esc(m.ket || "")}</small><small>${new Date(m.t).toLocaleString("id-ID", {dateStyle:"medium", timeStyle:"short"})} • saldo ${fmtRp(m.saldo_akhir)}</small></details>`; }).join("")
-      : '<p class="hint">Belum ada riwayat. Saldo voucher bertambah dari voucher selamat datang, pengembalian nota yang batal, kompensasi toko tutup, dan bonus ajak tetangga.</p>';
+      : '<p class="hint">Belum ada riwayat. Saldo voucher bertambah dari voucher selamat datang, absen harian, cashback ongkir promo, pengembalian nota yang batal, kompensasi toko tutup, dan bonus ajak tetangga.</p>';
   }catch(e){ $("vcSaldo").textContent = "-"; $("vcMut").innerHTML = '<p class="hint">Fitur saldo voucher belum aktif. Minta admin menjalankan <b>supabase-voucher-pembeli.sql</b>.</p>'; $("ajInfo").textContent = ""; }
 }
 /* ===== SELAMAT DATANG + VOUCHER AKUN BARU (supabase-voucher-sambut.sql) =====
@@ -813,13 +816,13 @@ async function loadOrders(diam){
     if(diam === true && sig === ORD_SIG) return;
     ORD_SIG = sig;
     if($("oWaktu")) $("oWaktu").textContent = "Diperbarui " + new Date().toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit"});
-    await muatKurirOrd(rows); await muatFotoProduk(rows);
+    await muatKurirOrd(rows); await muatFotoProduk(rows); await muatCashback(); CB_TAMPIL = new Set();
     ringkasan(rows.filter(o => !trOf(o))); berandaPesanan(rows);
     if(window.KSPW) KSPW.pasang(box, rows, loadOrders);
     if(window.KSUlasan){ await KSUlasan.muat(rows); KSUlasan.pasang(box, loadOrders); }
     if(window.KSTip){ await KSTip.muat(rows); KSTip.pasang(box, loadOrders); }
     if(window.KSST){ await KSST.muatInfo(rows.filter(o => o.status === "selesai" && Date.now() - new Date(o.updated_at || o.created_at || 0) < 4*864e5).map(o => o.order_code)); KSST.pasang(box, WA, loadOrders); }
-    box.innerHTML = rows.length ? rows.map((o, i) => trOf(o) ? kartuKirim(o) : `<div class="card oc c${i % 4}" data-st="${esc(o.status || "menunggu")}"><div class="oc-top"><span class="oc-ic${fotoPesanan(o) ? " ft" : ""}">${fotoPesanan(o) ? `<img src="${esc(fotoPesanan(o))}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('ft');this.outerHTML=OC_IC.tas">${jmlJenis(o) > 1 ? `<em>+${jmlJenis(o) - 1}</em>` : ""}` : OC_IC.tas}</span><div class="oc-main"><div class="oc-h"><b>${esc(o.order_code || "Pesanan")}</b><span class="oc-st s-${esc(o.status || "menunggu")}">${OC_IC[o.status] || OC_IC.menunggu}${esc(labelSt(o))}</span></div><p class="oc-r">${OC_IC.kal}${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p class="oc-r">${OC_IC.item}<span>${itemsText(o)}</span></p><div class="oc-tot"><b>Total ${fmtRp(o.total)}</b>· ${esc(o.payment || "")}</div></div><span class="oc-ill">${ocGambar(o)}</span></div>${o.status === "dikirim" ? `<button type="button" class="oc-lacak" data-lacak="${esc(o.order_code)}"><span>🛵</span><b>Lacak kurir</b><small>Lihat posisi kurir di peta</small><em>›</em></button>` : ""}${infoBayar(o)}${infoBatal(o)}${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}${window.KSTip ? KSTip.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
+    box.innerHTML = rows.length ? rows.map((o, i) => trOf(o) ? kartuKirim(o) : `<div class="card oc c${i % 4}" data-st="${esc(o.status || "menunggu")}"><div class="oc-top"><span class="oc-ic${fotoPesanan(o) ? " ft" : ""}">${fotoPesanan(o) ? `<img src="${esc(fotoPesanan(o))}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('ft');this.outerHTML=OC_IC.tas">${jmlJenis(o) > 1 ? `<em>+${jmlJenis(o) - 1}</em>` : ""}` : OC_IC.tas}</span><div class="oc-main"><div class="oc-h"><b>${esc(o.order_code || "Pesanan")}</b><span class="oc-st s-${esc(o.status || "menunggu")}">${OC_IC[o.status] || OC_IC.menunggu}${esc(labelSt(o))}</span></div><p class="oc-r">${OC_IC.kal}${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p class="oc-r">${OC_IC.item}<span>${itemsText(o)}</span></p><div class="oc-tot"><b>Total ${fmtRp(o.total)}</b>· ${esc(o.payment || "")}</div></div><span class="oc-ill">${ocGambar(o)}</span></div>${o.status === "dikirim" ? `<button type="button" class="oc-lacak" data-lacak="${esc(o.order_code)}"><span>🛵</span><b>Lacak kurir</b><small>Lihat posisi kurir di peta</small><em>›</em></button>` : ""}${infoBayar(o)}${infoBatal(o)}${infoCashback(o)}${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}${window.KSTip ? KSTip.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
     ORD_MAP = Object.fromEntries(rows.map(o => [o.order_code, o]));
     lipatPesanan(box, rows);
     if(window.KSPW && KSPW.grupPasang) KSPW.grupPasang(box, rows);   // ringkasan multi toko (diproses / menunggu / batal + voucher)
@@ -833,6 +836,24 @@ async function loadOrders(diam){
 //  - saat aplikasi dibuka kembali dari belakang layar
 //  - saat ada notifikasi pesanan masuk ke HP ini
 $("oMuat").onclick = async () => { const b = $("oMuat"); if(b.disabled) return; b.disabled = true; b.textContent = "⏳ Memuat..."; ORD_SIG = ""; try{ await loadOrders(true); toast("Pesanan diperbarui"); } finally{ b.disabled = false; b.textContent = "🔄 Perbarui"; } };
+/* ===== PROGRAM HARIAN (harian.js + supabase-betah-harian.sql): absen, promo ongkir, menu baru toko favorit, Kabar Desa ===== */
+function muatHarian(){
+  if(!window.KSHarian) return;
+  KSHarian.absen($("dbAbsen"), {onHadiah: () => { muatSaldoKecil(); if(halNow === "saldo") muatVoucher(); }});
+  KSHarian.promo($("dbPromo")); KSHarian.menuBaru($("dbMenu")); KSHarian.kabar($("dbKabar"), {maks:3});
+}
+// buka lagi besok pagi tanpa menutup aplikasi: kartu absen ikut berganti hari
+let HARIAN_TGL = new Date(Date.now() + 7*3600e3).toISOString().slice(0, 10);
+document.addEventListener("visibilitychange", () => { if(document.visibilityState !== "visible" || !me) return; const t = new Date(Date.now() + 7*3600e3).toISOString().slice(0, 10); if(t !== HARIAN_TGL){ HARIAN_TGL = t; muatHarian(); } });
+/* Cashback ongkir promo pada kartu pesanan (sekali per nota / grup nota) */
+let CB = {}, CB_TAMPIL = new Set();
+async function muatCashback(){ CB = {}; if(!window.KSHarian || !cloudOn()) return; try{ const l = await KSHarian.rpc("cashback_saya", {p_sesi:KSPesanan.sesi(ROLE)}); (Array.isArray(l) ? l : []).forEach(c => { CB[c.kunci] = c; }); }catch(e){} }
+function infoCashback(o){
+  const k = o.grup || o.order_code, c = CB[k]; if(!c || CB_TAMPIL.has(k) || c.status === "batal") return ""; CB_TAMPIL.add(k);
+  const box = (t, ok) => `<p style="margin:8px 0 0;padding:7px 10px;border-radius:10px;font-size:13px;font-weight:600;background:${ok ? "#e8f6ee" : "#fff4d6"};color:${ok ? "#14502c" : "#6b3a00"}">${t}</p>`;
+  return c.status === "cair" ? box("🛵 Cashback ongkir " + fmtRp(c.jumlah) + " sudah masuk saldo voucher", true)
+    : box("🛵 Ikut promo ongkir: ongkir kembali " + c.persen + "%" + (c.maks > 0 ? " (maks " + fmtRp(c.maks) + ")" : "") + " ke saldo voucher setelah pesanan selesai");
+}
 setInterval(() => { if(document.visibilityState === "visible" && Object.values(ORD_MAP).some(o => AKTIF.includes(o.status || "menunggu"))) loadOrders(true); }, 20000);
 document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && WA) loadOrders(true); });
 if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(e.data && e.data.type === "bunyi-pesanan" && WA) loadOrders(true); });
@@ -849,7 +870,7 @@ document.querySelectorAll('input[type="password"]').forEach(x => {
 (async () => {
   $("warn").hidden = cloudOn();
   if(!WA) return location.replace("akun-" + ROLE + ".html");
-  try{ await load(); loadOrders(); muatSaldoKecil(); if(halNow === "saldo") muatVoucher(); await cekSambut(); cekBonusAjak(); }catch(e){ toast(e.message || "Gagal memuat data"); }
+  try{ await load(); loadOrders(); muatSaldoKecil(); if(halNow === "saldo") muatVoucher(); muatHarian(); await cekSambut(); cekBonusAjak(); }catch(e){ toast(e.message || "Gagal memuat data"); }
 })();
 
 </script>

@@ -1,0 +1,274 @@
+/* Kalensari Store • PROGRAM HARIAN (supaya pembeli rajin membuka aplikasi)
+   Dipakai di index.html (toko) dan dashboard-pembeli.html.
+     KSHarian.kabar(el, {maks})       -> kotak "📰 Kabar Desa" (store_settings 'kabar_desa', ditulis admin)
+     KSHarian.promo(el)               -> banner promo ongkir jam tertentu (cashback ke saldo voucher)
+     KSHarian.menuBaru(el, {diToko})  -> kabar menu baru dari toko favorit (toko yang diikuti + toko produk favorit)
+     KSHarian.absen(el, {ringkas, onHadiah}) -> kartu absen harian beruntun (butuh akun pembeli)
+     KSHarian.tombolIkuti(kunciToko)  -> tombol "🔔 Ikuti toko" untuk bar toko di halaman produk
+     KSHarian.siap()                  -> dipanggil script.js setelah produk dari database dimuat (halaman toko)
+   Server: supabase-betah-harian.sql (absen_harian, promo_ongkir_info, cashback_saya). */
+(function () {
+  "use strict";
+  var C = function () { return window.CLOUD_CONFIG || {}; };
+  var on = function () { var c = C(); return !!(c.enabled && c.supabaseUrl && c.supabaseAnonKey); };
+  var base = function () { return String(C().supabaseUrl || "").replace(/\/$/, ""); };
+  var hdr = function () { var k = C().supabaseAnonKey; return { apikey: k, Authorization: "Bearer " + k, "Content-Type": "application/json" }; };
+  async function rest(p) {
+    var r = await fetch(base() + "/rest/v1/" + p, { headers: hdr() });
+    if (!r.ok) throw new Error((await r.text()) || r.status);
+    return r.json();
+  }
+  async function rpc(fn, body) {
+    var r = await fetch(base() + "/rest/v1/rpc/" + fn, { method: "POST", headers: hdr(), body: JSON.stringify(body || {}) });
+    var t = await r.text(), j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+    if (!r.ok) {
+      var m = String((j && (j.message || j.hint)) || t || r.status), er = new Error(m.replace(/^SESI:\s*/, ""));
+      er.tidakAda = r.status === 404 || /PGRST202|Could not find the function/i.test(m); er.sesiHabis = /Sesi berakhir/i.test(m); throw er;
+    }
+    return j;
+  }
+  var sesi = function () { try { return localStorage.getItem("kalensari_sesi_pembeli") || ""; } catch (e) { return ""; } };
+  var LS = function (k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } };
+  var LSset = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+  var rp = function (n) { return "Rp" + Number(n || 0).toLocaleString("id-ID"); };
+  var say = function (t) { if (typeof window.toast === "function") return window.toast(t); if (typeof window.showToast === "function") return window.showToast(t); };
+  var hariIni = function () { return new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10); };   // tanggal WIB
+  var jam = function (s) { var m = String(s || "").match(/^(\d{1,2}):(\d{2})$/); return m ? ("0" + m[1]).slice(-2) + ":" + m[2] : ""; };
+  var jamTampil = function (s) { return jam(s).replace(":", "."); };
+  var sembunyi = function (el) { if (el) { el.innerHTML = ""; el.hidden = true; } };
+
+  /* ---------- gaya (sekali) ---------- */
+  var CSS = false;
+  function css() {
+    if (CSS) return; CSS = true;
+    var st = document.createElement("style");
+    st.textContent = [
+      ".hr-wrap{display:grid;gap:12px;margin:0 0 14px}.hr-wrap:empty,.hr-wrap:not(:has(>:not([hidden]))){display:none}",
+      ".hr-card{background:#fff;border:1px solid #ead9c6;border-radius:20px;padding:14px 16px;color:#3a1f10;box-shadow:0 4px 14px rgba(91,44,18,.07);font-family:inherit}",
+      ".hr-h{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:17px;color:#5b2c12}.hr-h small{margin-left:auto;font-size:12px;font-weight:600;color:#8a7466}",
+      /* kabar desa */
+      ".hr-kb[hidden]{display:none!important}.hr-kb{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px dashed #ead9c6;cursor:pointer}.hr-kb:first-of-type{border-top:0;padding-top:2px}",
+      ".hr-kb-ik{flex:none;width:42px;height:42px;border-radius:12px;background:#f5e8d8;display:grid;place-items:center;font-size:22px}",
+      ".hr-kb.pn .hr-kb-ik{background:#ffe3c2}.hr-kb-t{flex:1;min-width:0}.hr-kb-t b{font-size:15px;line-height:1.3}",
+      ".hr-kb-t em{font-style:normal;font-size:10.5px;font-weight:800;background:#e53935;color:#fff;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:2px}",
+      ".hr-kb-t .pin{background:#b8460b}",
+      ".hr-kb-t p{margin:3px 0 4px;font-size:13.5px;color:#5c4638;line-height:1.45;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}",
+      ".hr-kb.buka .hr-kb-t p{display:block;-webkit-line-clamp:unset}.hr-kb-t small{font-size:12px;color:#8a7466}.hr-kb-t small a{color:#7b3f1d;font-weight:700}",
+      ".hr-kb img{display:none;width:100%;max-height:260px;object-fit:cover;border-radius:14px;margin:6px 0 4px}.hr-kb.buka img[src]{display:block}",
+      ".hr-kb-thumb{flex:none;width:56px;height:56px;border-radius:12px;object-fit:cover;background:#f5e8d8}.hr-kb.buka .hr-kb-thumb{display:none}",
+      ".hr-semua{display:block;width:100%;margin-top:8px;border:1px solid #e3d2c0;background:#fffaf2;color:#7b3f1d;border-radius:999px;padding:9px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}",
+      /* promo */
+      ".hr-promo{display:flex;gap:12px;align-items:center;background:linear-gradient(120deg,#fff4d6,#ffe1c4);border:1.5px solid #f2b866;border-radius:20px;padding:13px 14px;color:#5a2d0c}",
+      ".hr-promo>i{font-style:normal;font-size:30px;flex:none}.hr-promo b{display:block;font-size:15.5px}.hr-promo span{display:block;font-size:13px;margin-top:2px}",
+      ".hr-promo small{display:block;font-size:12px;opacity:.8;margin-top:3px}.hr-promo .live{display:inline-block;background:#e53935;color:#fff;font-size:10.5px;font-weight:800;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:2px;animation:hrKedip 1.4s infinite}",
+      ".hr-promo.habis{background:#f4efe9;border-color:#e3d6c8;color:#6b5546}",
+      "@keyframes hrKedip{50%{opacity:.45}}",
+      /* menu baru */
+      ".hr-mb{display:flex;gap:12px;align-items:center;background:#f0faf3;border:1.5px solid #bfe3cc;border-radius:20px;padding:12px 12px 12px 14px;color:#14502c}",
+      ".hr-mb>i{font-style:normal;font-size:28px;flex:none}.hr-mb div{flex:1;min-width:0}.hr-mb b{display:block;font-size:15px}.hr-mb span{display:block;font-size:13px;color:#2c6b44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+      ".hr-mb button{flex:none;border:0;border-radius:999px;padding:9px 13px;font:inherit;font-weight:800;font-size:13px;cursor:pointer;background:#228b4e;color:#fff}",
+      ".hr-mb .x{background:none;color:#2c6b44;padding:6px 8px;font-size:18px}",
+      /* absen */
+      ".hr-ab{background:linear-gradient(135deg,#5b2c12,#8a4a22);color:#fff;border:0}.hr-ab .hr-h{color:#fff}.hr-ab .hr-h small{color:#f6dcc0}",
+      ".hr-ab p{margin:0 0 10px;font-size:13.5px;opacity:.95}",
+      ".hr-dots{display:flex;gap:6px;margin:4px 0 12px}.hr-dots i{flex:1;height:34px;border-radius:10px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;color:rgba(255,255,255,.7)}",
+      ".hr-dots i.on{background:#ffd36b;color:#5b2c12}.hr-dots i.hd{font-size:17px}.hr-dots i.hd.on{background:#7ee2a0}",
+      ".hr-ab button{width:100%;border:0;border-radius:999px;padding:12px;font:inherit;font-weight:800;font-size:15px;cursor:pointer;background:#ffd36b;color:#4a2400}",
+      ".hr-ab button:disabled{background:rgba(255,255,255,.18);color:#fff;cursor:default}",
+      ".hr-ab.ringkas{display:flex;align-items:center;gap:12px;padding:12px 14px}.hr-ab.ringkas>i{font-style:normal;font-size:28px}.hr-ab.ringkas div{flex:1;min-width:0}",
+      ".hr-ab.ringkas b{display:block;font-size:15px}.hr-ab.ringkas span{display:block;font-size:12.5px;opacity:.9}.hr-ab.ringkas button{width:auto;padding:10px 14px;font-size:14px;flex:none}",
+      ".hr-ikuti{border:1px solid #228b4e!important;color:#228b4e!important;background:#fff!important;margin-left:auto}.hr-ikuti.on{background:#228b4e!important;color:#fff!important}",
+      ".hr-ov{position:fixed;inset:0;z-index:9500;background:rgba(40,20,8,.55);display:grid;place-items:center;padding:20px}",
+      ".hr-ov>div{background:#fff;border-radius:24px;max-width:340px;width:100%;padding:24px 20px 18px;text-align:center;color:#3a1f10;box-shadow:0 20px 40px rgba(0,0,0,.25)}",
+      ".hr-ov .big{font-size:52px;line-height:1}.hr-ov h3{margin:10px 0 2px;font-size:19px;color:#5b2c12}.hr-ov .rp{font-size:30px;font-weight:800;color:#228b4e;margin:4px 0 8px}",
+      ".hr-ov p{margin:0 0 14px;font-size:14px;color:#5c4638}.hr-ov button{width:100%;border:0;border-radius:999px;padding:12px;font:inherit;font-weight:800;font-size:15px;color:#fff;background:#7b3f1d;cursor:pointer}"
+    ].join("\n");
+    document.head.appendChild(st);
+  }
+
+  /* ---------- 📰 KABAR DESA ---------- */
+  var amanLink = function (u) { u = String(u || "").trim(); return /^(https?:\/\/|[a-z0-9][\w\-./]*(\.html)?([?#][^\s"'<>]*)?$)/i.test(u) && !/^javascript:/i.test(u) ? u : ""; };
+  var tglTampil = function (t) { try { return new Date(t).toLocaleDateString("id-ID", { day: "numeric", month: "short" }); } catch (e) { return ""; } };
+  async function kabar(el, o) {
+    o = o || {}; if (!el) return 0; css();
+    if (!on()) return sembunyi(el), 0;
+    var list = [];
+    try { var r = await rest("store_settings?select=value&key=eq.kabar_desa"); list = r[0] && Array.isArray(r[0].value) ? r[0].value : []; }
+    catch (e) { return sembunyi(el), 0; }
+    var h = hariIni();
+    list = list.filter(function (k) { return k && k.judul && k.tampil !== false && (!k.sampai || k.sampai >= h); })
+      .sort(function (a, b) { return (b.penting ? 1 : 0) - (a.penting ? 1 : 0) || (Number(b.t) || 0) - (Number(a.t) || 0); });
+    if (!list.length) return sembunyi(el), 0;
+    // pertama kali dibuka di HP ini: hanya kabar 3 hari terakhir yang diberi tanda "Baru"
+    var lihat = Number(LS("kalensari_kabar_dilihat", 0)) || (Date.now() - 3 * 864e5), maks = o.maks || 3, nBaru = 0;
+    var item = function (k, i) {
+      var baru = (Number(k.t) || 0) > lihat; if (baru) nBaru++;
+      var link = amanLink(k.link);
+      return '<article class="hr-kb' + (k.penting ? " pn" : "") + '"' + (i >= maks ? " hidden" : "") + ' data-kb="' + esc(k.id) + '">'
+        + '<div class="hr-kb-ik">' + esc(k.ikon || "📢") + '</div><div class="hr-kb-t"><b>' + esc(k.judul) + '</b>'
+        + (k.penting ? '<em class="pin">Penting</em>' : baru ? "<em>Baru</em>" : "")
+        + (k.foto ? '<img alt="" data-foto="' + esc(k.id) + '">' : "")
+        + "<p>" + esc(k.isi || "") + "</p><small>" + esc(tglTampil(k.t)) + (k.sampai ? " • sampai " + esc(tglTampil(k.sampai)) : "")
+        + (link ? ' • <a href="' + esc(link) + '"' + (/^https?:/i.test(link) ? ' target="_blank" rel="noopener"' : "") + ">Selengkapnya ›</a>" : "") + "</small></div>"
+        + (k.foto ? '<img class="hr-kb-thumb" alt="" data-foto="' + esc(k.id) + '">' : "") + "</article>";
+    };
+    el.hidden = false;
+    el.innerHTML = '<section class="hr-card"><h3 class="hr-h">📰 Kabar Desa<small>' + list.length + " kabar</small></h3>"
+      + list.map(item).join("")
+      + (list.length > maks ? '<button type="button" class="hr-semua">Lihat semua kabar (' + list.length + ")</button>" : "") + "</section>";
+    el.querySelectorAll(".hr-kb").forEach(function (a) { a.addEventListener("click", function (e) { if (!e.target.closest("a")) a.classList.toggle("buka"); }); });
+    var bs = el.querySelector(".hr-semua");
+    if (bs) bs.onclick = function () { el.querySelectorAll(".hr-kb[hidden]").forEach(function (a) { a.hidden = false; }); bs.remove(); };
+    // foto disimpan terpisah (store_settings 'foto_kabar_<id>') supaya daftar kabar tetap ringan
+    var adaFoto = list.filter(function (k) { return k.foto; }).map(function (k) { return '"foto_kabar_' + String(k.id).replace(/[^\w-]/g, "") + '"'; });
+    if (adaFoto.length) rest("store_settings?select=key,value&key=in.(" + encodeURIComponent(adaFoto.join(",")) + ")").then(function (rows) {
+      (rows || []).forEach(function (x) {
+        var id = x.key.slice("foto_kabar_".length), f = x.value && x.value.foto;
+        if (f && /^(data:image\/|https:\/\/)/.test(f)) el.querySelectorAll('[data-foto="' + id + '"]').forEach(function (im) { im.src = f; });
+      });
+    }).catch(function () {});
+    LSset("kalensari_kabar_dilihat", Math.max.apply(null, [lihat].concat(list.map(function (k) { return Number(k.t) || 0; }))));
+    return nBaru;
+  }
+
+  /* ---------- 🎁 PROMO ONGKIR (cashback) ---------- */
+  async function promo(el) {
+    if (!el) return; css();
+    if (!on()) return sembunyi(el);
+    var p; try { p = await rpc("promo_ongkir_info"); } catch (e) { return sembunyi(el); }
+    if (!p || !p.aktif || !p.hari_ini) return sembunyi(el);
+    var now = jam(p.sekarang), mulai = jam(p.mulai), selesai = jam(p.selesai);
+    if (now >= selesai) return sembunyi(el);                                   // sudah lewat untuk hari ini
+    var nilai = (Number(p.persen) >= 100 ? "Ongkir kembali 100%" : "Ongkir kembali " + p.persen + "%") + (Number(p.maks) > 0 ? " (maks " + rp(p.maks) + ")" : "");
+    var habis = p.berlangsung && p.sisa === 0;
+    var sub = habis ? "Kuota hari ini sudah habis. Coba lagi besok ya!"
+      : p.berlangsung ? "Berlaku sekarang sampai jam " + jamTampil(selesai) + (p.sisa != null ? " • sisa " + p.sisa + " pembeli" : "")
+      : "Hari ini jam " + jamTampil(mulai) + "–" + jamTampil(selesai);
+    el.hidden = false;
+    el.innerHTML = '<section class="hr-promo' + (habis ? " habis" : "") + '"><i>' + (habis ? "⌛" : "🛵") + "</i><div><b>" + esc(nilai) + (p.berlangsung && !habis ? '<em class="live">BERLANGSUNG</em>' : "")
+      + "</b><span>" + esc(sub) + "</span><small>Bayar ongkir seperti biasa. Setelah pesanan selesai, ongkirnya kembali jadi saldo voucher. 1× per hari per akun.</small></div></section>";
+    // muat ulang otomatis saat promo dimulai / berakhir
+    clearTimeout(el._hrT); el._hrT = setTimeout(function () { promo(el); }, 60000);
+  }
+
+  /* ---------- 🆕 MENU BARU DARI TOKO FAVORIT ---------- */
+  var IKUTI = "kalensari_toko_ikuti", DILIHAT = "kalensari_menu_dilihat";
+  var kunci = function (n) { return String(n || "").trim().toLowerCase(); };
+  var tokoDari = function (p) { return String((p && p.seller) || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean); };
+  var tampil = function (p) { return p && p.status === "Show"; };
+  function diikuti() { var l = LS(IKUTI, []); return Array.isArray(l) ? l.map(kunci).filter(Boolean) : []; }
+  async function ambilProduk() {
+    try { if (typeof products !== "undefined" && Array.isArray(products) && products.length) return products; } catch (e) {}   // halaman toko
+    if (!on()) return [];
+    try { return await rest("products?select=id,name,seller,status&limit=3000"); } catch (e) { return []; }
+  }
+  function tokoFavorit(prods) {
+    var s = new Set(diikuti()), fav = LS("kalensari_favorit", []);
+    if (Array.isArray(fav) && fav.length) {
+      var f = new Set(fav.map(Number));
+      prods.forEach(function (p) { if (f.has(Number(p.id))) tokoDari(p).forEach(function (n) { s.add(kunci(n)); }); });
+    }
+    return s;
+  }
+  function tandaiDilihat(k, prods) {
+    var seen = LS(DILIHAT, {}); if (!seen || typeof seen !== "object" || Array.isArray(seen)) seen = {};
+    seen[k] = prods.filter(function (p) { return tokoDari(p).some(function (n) { return kunci(n) === k; }); }).map(function (p) { return String(p.id); });
+    LSset(DILIHAT, seen);
+  }
+  async function menuBaru(el, o) {
+    o = o || {}; if (!el) return; css();
+    var prods = await ambilProduk(); if (!prods.length) return sembunyi(el);
+    var fav = tokoFavorit(prods); if (!fav.size) return sembunyi(el);
+    var seen = LS(DILIHAT, {}); if (!seen || typeof seen !== "object" || Array.isArray(seen)) seen = {};
+    var ubah = false, baru = [];
+    fav.forEach(function (k) {
+      var milik = prods.filter(function (p) { return tokoDari(p).some(function (n) { return kunci(n) === k; }); });
+      if (!milik.length) return;
+      if (!Array.isArray(seen[k])) { seen[k] = milik.map(function (p) { return String(p.id); }); ubah = true; return; }   // pertama kali: jadi patokan
+      var lama = new Set(seen[k]), n = milik.filter(function (p) { return tampil(p) && !lama.has(String(p.id)); });
+      if (n.length) baru.push({ k: k, nama: tokoDari(n[0]).find(function (x) { return kunci(x) === k; }) || k, items: n });
+    });
+    if (ubah) LSset(DILIHAT, seen);
+    if (!baru.length) return sembunyi(el);
+    el.hidden = false;
+    el.innerHTML = baru.slice(0, 3).map(function (b) {
+      var nm = b.items.map(function (p) { return p.name; }), teks = nm.slice(0, 2).join(", ") + (nm.length > 2 ? " +" + (nm.length - 2) + " lagi" : "");
+      return '<section class="hr-mb"><i>🆕</i><div><b>Menu baru di ' + esc(b.nama) + "</b><span>" + esc(teks) + '</span></div><button type="button" data-mb-lihat="' + esc(b.k) + '" data-nama="' + esc(b.nama) + '">Lihat</button><button type="button" class="x" data-mb-tutup="' + esc(b.k) + '" aria-label="Tutup">×</button></section>';
+    }).join("");
+    el.querySelectorAll("[data-mb-lihat]").forEach(function (x) { x.onclick = function () {
+      var k = x.dataset.mbLihat; tandaiDilihat(k, prods);
+      if (o.diToko && typeof window.setSeller === "function") { window.setSeller(k); menuBaru(el, o); }
+      else location.href = "index.html?toko=" + encodeURIComponent(x.dataset.nama || k);
+    }; });
+    el.querySelectorAll("[data-mb-tutup]").forEach(function (x) { x.onclick = function () { tandaiDilihat(x.dataset.mbTutup, prods); menuBaru(el, o); }; });
+  }
+  function tombolIkuti(k) {
+    css(); k = kunci(k); if (!k) return "";
+    var ya = diikuti().indexOf(k) >= 0;
+    return '<button type="button" class="hr-ikuti' + (ya ? " on" : "") + '" data-ikuti="' + esc(k) + '">' + (ya ? "🔔 Diikuti" : "🔔 Ikuti toko") + "</button>";
+  }
+  document.addEventListener("click", async function (e) {
+    var b = e.target.closest && e.target.closest("[data-ikuti]"); if (!b) return;
+    var k = b.dataset.ikuti, l = diikuti(), ya = l.indexOf(k) >= 0;
+    l = ya ? l.filter(function (x) { return x !== k; }) : l.concat([k]); LSset(IKUTI, l);
+    if (!ya) tandaiDilihat(k, await ambilProduk());   // menu yang sudah ada tidak dianggap baru
+    say(ya ? "Berhenti mengikuti toko" : "🔔 Toko diikuti. Anda akan diberi tahu saat ada menu baru.");
+    if (typeof window.renderSellerBar === "function") window.renderSellerBar(); else b.outerHTML = tombolIkuti(k);
+  });
+
+  /* ---------- ✅ ABSEN HARIAN ---------- */
+  function rayakan(jml, n) {
+    css();
+    var ov = document.createElement("div"); ov.className = "hr-ov";
+    ov.innerHTML = '<div role="dialog" aria-modal="true"><div class="big">🎉</div><h3>Hebat, ' + n + ' hari berturut-turut!</h3><div class="rp">+' + rp(jml) + '</div><p>Hadiah absen sudah masuk ke <b>saldo voucher</b> dan bisa langsung dipakai belanja.</p><button type="button">Mantap!</button></div>';
+    ov.querySelector("button").onclick = function () { ov.remove(); };
+    ov.onclick = function (e) { if (e.target === ov) ov.remove(); };
+    document.body.appendChild(ov);
+    try { navigator.vibrate && navigator.vibrate([60, 40, 60]); } catch (e) {}
+  }
+  async function absen(el, o) {
+    o = o || {}; if (!el) return; css();
+    if (!on() || !sesi()) return sembunyi(el);
+    var s; try { s = await rpc("absen_harian", { p_sesi: sesi(), p_klaim: false }); } catch (e) { return sembunyi(el); }
+    if (!s || !s.aktif) return sembunyi(el);
+    if (o.ringkas && s.sudah) return sembunyi(el);                           // di toko: hilang setelah absen
+    gambarAbsen(el, s, o);
+  }
+  function gambarAbsen(el, s, o) {
+    var n = Number(s.hari) || 7, sik = Number(s.siklus) || 0, sisa = n - sik;
+    var info = s.sudah
+      ? (sik === n ? "Hadiah sudah cair hari ini. Hitungan mulai lagi besok." : "Sudah absen hari ini. Kembali besok" + (s.hadiah > 0 ? ", " + sisa + " hari lagi dapat " + rp(s.hadiah) : "") + ".")
+      : (s.hadiah > 0 ? "Absen " + n + " hari berturut-turut, dapat saldo voucher " + rp(s.hadiah) + "." : "Absen setiap hari, jangan sampai bolong!") + (sik > 0 ? " Sudah " + sik + " hari, jangan putus!" : "");
+    el.hidden = false;
+    if (o.ringkas) {
+      el.innerHTML = '<section class="hr-card hr-ab ringkas"><i>✅</i><div><b>Absen harian</b><span>' + esc(sik > 0 ? "Hari ke-" + (sik + 1) + " dari " + n + (s.hadiah > 0 ? " • hadiah " + rp(s.hadiah) : "") : (s.hadiah > 0 ? n + " hari berturut-turut dapat " + rp(s.hadiah) : "Absen tiap hari")) + '</span></div><button type="button">Absen</button></section>';
+    } else {
+      var dots = ""; for (var i = 1; i <= n; i++) dots += '<i class="' + (i <= sik ? "on" : "") + (i === n ? " hd" : "") + '">' + (i === n ? "🎁" : i) + "</i>";
+      el.innerHTML = '<section class="hr-card hr-ab"><h3 class="hr-h">✅ Absen harian<small>' + (Number(s.total) || 0) + " hari total</small></h3><p>" + esc(info) + '</p><div class="hr-dots">' + dots + '</div><button type="button"' + (s.sudah ? " disabled" : "") + ">" + (s.sudah ? "✓ Sudah absen hari ini" : "Absen sekarang") + "</button></section>";
+    }
+    var b = el.querySelector("button");
+    if (b && !s.sudah) b.onclick = async function () {
+      b.disabled = true; b.textContent = "⏳";
+      try {
+        var r = await rpc("absen_harian", { p_sesi: sesi(), p_klaim: true });
+        if (r && r.dapat > 0) { rayakan(r.dapat, r.hari); if (typeof o.onHadiah === "function") o.onHadiah(r); }
+        else say("✅ Absen hari ke-" + (r && r.siklus) + " tercatat. Sampai besok!");
+        if (o.ringkas) sembunyi(el); else gambarAbsen(el, r, o);
+      } catch (e) { b.disabled = false; b.textContent = o.ringkas ? "Absen" : "Absen sekarang"; say(e.sesiHabis ? "Sesi berakhir. Silakan masuk lagi." : (e.tidakAda ? "Fitur absen belum aktif" : (e.message || "Gagal absen"))); }
+    };
+  }
+
+  /* ---------- halaman toko ---------- */
+  async function siap() {
+    var w = document.getElementById("ksHarian"); if (!w) return;
+    css(); w.classList.add("hr-wrap");
+    if (!w.children.length) w.innerHTML = '<div id="hrAbsen" hidden></div><div id="hrPromo" hidden></div><div id="hrMenu" hidden></div><div id="hrKabar" hidden></div>';
+    absen(document.getElementById("hrAbsen"), { ringkas: true });
+    promo(document.getElementById("hrPromo"));
+    menuBaru(document.getElementById("hrMenu"), { diToko: true });
+    kabar(document.getElementById("hrKabar"), { maks: 2 });
+  }
+
+  window.KSHarian = { kabar: kabar, promo: promo, menuBaru: menuBaru, absen: absen, tombolIkuti: tombolIkuti, siap: siap, rpc: rpc, sesi: sesi };
+})();

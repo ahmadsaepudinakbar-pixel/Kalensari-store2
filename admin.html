@@ -496,7 +496,7 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['lapak','Lapak Barter','tag'],['kuis','Kuis Pintar','check'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['keamanan','Keamanan & Backup','lock'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['kabar','Kabar Desa','doc'],['harian','Absen & Promo Ongkir','check'],['lapak','Lapak Barter','tag'],['kuis','Kuis Pintar','check'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['keamanan','Keamanan & Backup','lock'],['pengaturan','Pengaturan','gear']
 ];
 const BNAV=[['dashboard','Beranda','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['pelanggan','Pelanggan','users'],['lainnya','Lainnya','dots']];
 let jenisFilter='Semua',route='dashboard',orderFilter='Semua',prodFilter='Semua',q='',repTab='Ringkasan',repDays=30,chartDays=7;
@@ -505,7 +505,7 @@ function renderNav(){
   const aktif=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;
   $('#nav').innerHTML=MENU.map(([k,l,i])=>`<a class="${route===k?'on':''}" onclick="go('${k}')">${ico(i)}${l}${k==='pesanan'&&aktif?`<span class="cnt">${aktif}</span>`:''}${k==='persetujuan'&&pendingTotal()?`<span class="cnt" style="background:var(--orange)">${pendingTotal()}</span>`:''}${k==='refund'&&refundTunggu().length?`<span class="cnt" style="background:#ef4444">${refundTunggu().length}</span>`:''}</a>`).join('');
   $('#bnav').innerHTML=BNAV.map(([k,l,i])=>{
-    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','refund','voucher','lapak','ulasan','resetpin','keamanan','pengaturan','lainnya'].includes(route));
+    const on=route===k||(k==='lainnya'&&['kategori','toko','kurir','jasa','persetujuan','promosi','laporan','keuangan','cair','setoran','cod','refund','voucher','kabar','harian','lapak','ulasan','resetpin','keamanan','pengaturan','lainnya'].includes(route));
     const dot=k==='lainnya'&&pendingTotal()?`<span style="position:absolute;top:2px;right:calc(50% - 16px);background:var(--orange);color:#fff;font-size:10px;border-radius:99px;min-width:16px;padding:0 4px;font-weight:700">${pendingTotal()}</span>`:'';
     return `<button class="${on?'on':''}" style="position:relative" onclick="go('${k}')">${ico(i,'width:22px;height:22px')}${l}${dot}</button>`}).join('');
   const baru=S.orders.filter(o=>stLabel(o.status)==='Baru').length;
@@ -550,7 +550,7 @@ function sessionExpired(){if(!$('#app').classList.contains('hide')){logout();toa
 
 const TITLES={dashboard:['Dashboard','Ringkasan toko dari data asli'],pesanan:['Pesanan','Kelola semua pesanan masuk'],
   produk:['Produk','Atur produk, harga, dan stok'],kategori:['Kategori','Kelompokkan produk toko'],pelanggan:['Pelanggan','Dihitung dari pesanan yang masuk'],
-  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],cair:['Pencairan Saldo','Pencairan saldo kurir & saldo penjualan toko'],resetpin:['Reset PIN Warga','Permintaan lupa PIN dari akun Warga Desa'],ulasan:['Ulasan Pembeli','Penilaian pembeli untuk tiap toko (tidak tampil di toko)'],lapak:['Lapak Barter','Iklan jual beli & barter warga (pasar.html)'],cod:['COD & Gagal antar','Pengaman COD dan laporan gagal antar kurir'],refund:['Refund & Toko Tutup','Pengembalian dana pembeli dan pelanggaran toko'],voucher:['Voucher & Ajak Tetangga','Saldo voucher belanja pembeli, kompensasi & bonus ajak tetangga'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],keamanan:['Keamanan & Backup','Batas pesanan, catatan aktivitas admin, unduh backup data'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
+  promosi:['Promosi','Produk dengan harga coret (diskon)'],laporan:['Laporan','Ringkasan penjualan toko'],keuangan:['Keuangan','Omset & pendapatan bersih Kalensari Store'],cair:['Pencairan Saldo','Pencairan saldo kurir & saldo penjualan toko'],resetpin:['Reset PIN Warga','Permintaan lupa PIN dari akun Warga Desa'],ulasan:['Ulasan Pembeli','Penilaian pembeli untuk tiap toko (tidak tampil di toko)'],lapak:['Lapak Barter','Iklan jual beli & barter warga (pasar.html)'],cod:['COD & Gagal antar','Pengaman COD dan laporan gagal antar kurir'],refund:['Refund & Toko Tutup','Pengembalian dana pembeli dan pelanggaran toko'],kabar:['Kabar Desa','Pengumuman untuk warga di halaman toko & dashboard pembeli'],harian:['Absen & Promo Ongkir','Absen harian beruntun dan cashback ongkir jam tertentu'],voucher:['Voucher & Ajak Tetangga','Saldo voucher belanja pembeli, kompensasi & bonus ajak tetangga'],setoran:['Setoran QRIS','Uang QRIS yang perlu diteruskan ke toko & kurir'],keamanan:['Keamanan & Backup','Batas pesanan, catatan aktivitas admin, unduh backup data'],pengaturan:['Pengaturan Toko','WhatsApp toko dan akun admin'],lainnya:['Menu','Semua menu admin']};
 
 function render(){
   renderNav();
@@ -1880,7 +1880,7 @@ async function cekPermintaanUang(){
   if(baruT.length||baruC.length)loadAll(true);
 }
 setInterval(cekPermintaanUang,30000);setTimeout(cekPermintaanUang,4000);
-setInterval(()=>{if(auth&&!$('#app').classList.contains('hide')&&!$('#modalRoot').innerHTML&&document.visibilityState==='visible')loadAll(true)},60000);
+setInterval(()=>{if(auth&&!$('#app').classList.contains('hide')&&!$('#modalRoot').innerHTML&&document.visibilityState==='visible'&&!['kabar','harian'].includes(route))loadAll(true)},60000);   // jangan muat ulang saat admin sedang menulis kabar / mengatur promo
 
 /* ========== SETORAN QRIS ==========
    Uang pembayaran QRIS masuk ke akun merchant Kalensari Store. Halaman ini menghitung berapa yang harus
@@ -2090,6 +2090,108 @@ async function ttReset(k,btn){
 /* potongan saldo toko dari pelanggaran (ongkir refund QRIS) */
 function potonganToko(k){const l=pelMap()[k];return Array.isArray(l)?l.reduce((t,x)=>t+(Number(x.potong)||0),0):0}
 
+/* ========== KABAR DESA (store_settings "kabar_desa"; foto di "foto_kabar_<id>") ==========
+   Tampil di halaman toko (index.html) dan dashboard pembeli lewat harian.js */
+let KB_EDIT=null,KB_FOTO=null;   // KB_FOTO: null = tidak berubah, 'hapus' = hapus foto, data:image = foto baru
+const KB_IKON=['📢','📰','🎉','🕌','💚','🤲','⚠️','🛒','🌾','🏥','🎓','⚽','💧','🚧'];
+const kbList=()=>Array.isArray(S.settings.kabar_desa)?S.settings.kabar_desa.filter(x=>x&&x.id):[];
+const kbHari=()=>new Date(Date.now()+7*3600e3).toISOString().slice(0,10);
+PAGES.kabar=function(){
+  const l=kbList().slice().sort((a,b)=>(b.penting?1:0)-(a.penting?1:0)||(Number(b.t)||0)-(Number(a.t)||0)),e=KB_EDIT?l.find(x=>x.id===KB_EDIT)||{}:{};
+  const lbl='font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:4px',h=kbHari();
+  const st=x=>x.tampil===false?['Disembunyikan','b-Batal']:x.sampai&&x.sampai<h?['Kedaluwarsa','b-Batal']:['Tayang','b-Selesai'];
+  return `<div class="card"><div class="chead"><h3>${KB_EDIT?'✎ Ubah kabar':'✍️ Tulis kabar baru'}</h3>${KB_EDIT?'<button class="btn btn-light" onclick="KB_EDIT=null;KB_FOTO=null;render()">Batal</button>':''}</div>
+    <span style="${lbl}">Ikon</span><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px" id="kbIk">${KB_IKON.map(i=>`<button type="button" class="btn btn-light" data-ik="${i}" style="padding:6px 10px;font-size:20px;${(e.ikon||'📢')===i?'outline:2px solid var(--g2)':''}" onclick="document.querySelectorAll('#kbIk [data-ik]').forEach(b=>b.style.outline='');this.style.outline='2px solid var(--g2)';$('#kbIkon').value=this.dataset.ik">${i}</button>`).join('')}</div>
+    <input type="hidden" id="kbIkon" value="${esc(e.ikon||'📢')}">
+    <label><span style="${lbl}">Judul</span><input class="inp" id="kbJudul" maxlength="80" placeholder="mis. Santunan anak yatim Jumat ini" value="${esc(e.judul||'')}"></label>
+    <label style="display:block;margin-top:10px"><span style="${lbl}">Isi kabar</span><textarea class="inp" id="kbIsi" rows="5" maxlength="1500" placeholder="Tulis kabar untuk warga…">${esc(e.isi||'')}</textarea></label>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-top:10px">
+      <label><span style="${lbl}">Tampil sampai (kosong = terus)</span><input class="inp" type="date" id="kbSampai" value="${esc(e.sampai||'')}"></label>
+      <label><span style="${lbl}">Link "Selengkapnya" (opsional)</span><input class="inp" id="kbLink" placeholder="mis. santunan.html" value="${esc(e.link||'')}"></label></div>
+    <label style="display:flex;gap:10px;align-items:center;margin:12px 0 0;font-size:14px"><input type="checkbox" id="kbPenting" ${e.penting?'checked':''} style="width:20px;height:20px">📌 Penting (selalu paling atas)</label>
+    <div style="margin-top:12px"><span style="${lbl}">Foto (opsional)</span>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><img id="kbPrev" alt="" style="width:84px;height:84px;object-fit:cover;border-radius:12px;background:var(--bg2,#f3f3f3);${(KB_FOTO&&KB_FOTO!=='hapus')||(e.foto&&KB_FOTO!=='hapus')?'':'display:none'}" ${KB_FOTO&&KB_FOTO!=='hapus'?`src="${KB_FOTO}"`:''}>
+      <label class="btn btn-light" style="cursor:pointer">📷 Pilih foto<input type="file" accept="image/*" hidden onchange="kbPilihFoto(this)"></label>
+      ${(e.foto||KB_FOTO)&&KB_FOTO!=='hapus'?'<button type="button" class="btn btn-light" onclick="KB_FOTO=\'hapus\';$(\'#kbPrev\').style.display=\'none\';this.remove()">Hapus foto</button>':''}</div></div>
+    <button class="btn btn-g" style="margin-top:14px" onclick="kbSimpan(this)">${KB_EDIT?'💾 Simpan perubahan':'📢 Terbitkan kabar'}</button>
+    <p class="sm" style="margin:10px 0 0">Kabar tampil di halaman toko (2 teratas) dan beranda dashboard pembeli. Kabar baru diberi tanda <b>Baru</b>.</p></div>
+  <div class="card"><div class="chead"><h3>📰 Daftar kabar (${l.length})</h3></div>
+    ${l.length?l.map(x=>{const s=st(x);return `<div class="detail-row" style="align-items:flex-start"><span style="white-space:normal;flex:1"><b>${esc(x.ikon||'📢')} ${esc(x.judul)}</b> ${x.penting?'📌':''}${x.foto?' 🖼️':''}<br><small style="color:var(--mut)">${esc(String(x.isi||'').slice(0,90))}${String(x.isi||'').length>90?'…':''}</small><br><small style="color:var(--mut)">${ago(Number(x.t)||Date.now())}${x.sampai?' · sampai '+esc(x.sampai):''}</small></span>
+      <span style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><span class="badge ${s[1]}">${s[0]}</span>
+      <span style="display:flex;gap:6px"><button class="btn btn-light" style="padding:6px 10px" onclick="KB_EDIT='${esc(x.id)}';KB_FOTO=null;render();scrollTo(0,0)">✎</button><button class="btn btn-light" style="padding:6px 10px" onclick="kbTampil('${esc(x.id)}',this)">${x.tampil===false?'👁':'🙈'}</button><button class="btn btn-light" style="padding:6px 10px;color:#b91c1c" onclick="kbHapus('${esc(x.id)}',this)">🗑</button></span></span></div>`}).join(''):'<div class="empty" style="padding:14px">Belum ada kabar. Tulis kabar pertama di atas.</div>'}</div>`;
+};
+async function kbPilihFoto(inp){const f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  try{KB_FOTO=await new Promise((ok,no)=>{const r=new FileReader();r.onerror=no;r.onload=()=>{const im=new Image();im.onerror=no;im.onload=()=>{const k=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.82))};im.src=r.result};r.readAsDataURL(f)});
+    const p=$('#kbPrev');p.src=KB_FOTO;p.style.display=''}catch(e){toast('Foto tidak bisa dibaca')}}
+async function kbSimpan(btn){
+  const judul=$('#kbJudul').value.trim(),isi=$('#kbIsi').value.trim();
+  if(!judul)return toast('Judul wajib diisi');
+  const lama=kbList(),id=KB_EDIT||('k'+Date.now().toString(36)),e=lama.find(x=>x.id===id)||{};
+  const foto=KB_FOTO==='hapus'?false:KB_FOTO?true:!!e.foto;
+  const rec={...e,id,ikon:$('#kbIkon').value||'📢',judul,isi,link:$('#kbLink').value.trim(),sampai:$('#kbSampai').value||'',penting:$('#kbPenting').checked,foto,t:e.t||Date.now(),ubah:Date.now()};
+  await busy(btn,async()=>{
+    if(KB_FOTO&&KB_FOTO!=='hapus')await setSetting('foto_kabar_'+id,{foto:KB_FOTO,t:Date.now()});
+    if(KB_FOTO==='hapus')await api('store_settings?key=eq.'+encodeURIComponent('foto_kabar_'+id),{method:'DELETE',headers:{Prefer:'return=minimal'}}).catch(()=>{});
+    const nl=[rec,...lama.filter(x=>x.id!==id)].slice(0,60);await setSetting('kabar_desa',nl);S.settings.kabar_desa=nl;
+    const baru=!KB_EDIT;KB_EDIT=null;KB_FOTO=null;render();toast(baru?'📢 Kabar diterbitkan':'Kabar disimpan')});
+}
+async function kbTampil(id,btn){const nl=kbList().map(x=>x.id===id?{...x,tampil:x.tampil===false}:x);await busy(btn,async()=>{await setSetting('kabar_desa',nl);S.settings.kabar_desa=nl;render();toast('Disimpan')})}
+async function kbHapus(id,btn){const x=kbList().find(y=>y.id===id);if(!x||!confirm('Hapus kabar "'+x.judul+'"?'))return;
+  await busy(btn,async()=>{const nl=kbList().filter(y=>y.id!==id);await setSetting('kabar_desa',nl);S.settings.kabar_desa=nl;
+    if(x.foto)await api('store_settings?key=eq.'+encodeURIComponent('foto_kabar_'+id),{method:'DELETE',headers:{Prefer:'return=minimal'}}).catch(()=>{});
+    if(KB_EDIT===id){KB_EDIT=null;KB_FOTO=null}render();toast('Kabar dihapus')})}
+
+/* ========== ABSEN HARIAN & PROMO ONGKIR (supabase-betah-harian.sql; store_settings "harian_aturan") ========== */
+let HR=null;
+const HR_DEF={absen:{aktif:true,hari:7,hadiah:1000},promo:{aktif:false,mulai:'11:00',selesai:'13:00',persen:100,maks:5000,kuota:20,hari:[]}};
+function hrAt(){const v=S.settings.harian_aturan&&typeof S.settings.harian_aturan==='object'?S.settings.harian_aturan:{};return {absen:{...HR_DEF.absen,...(v.absen||{})},promo:{...HR_DEF.promo,...(v.promo||{})}}}
+async function muatHr(){
+  const tgl=kbHari(),dari=new Date(Date.now()+7*3600e3-6*864e5).toISOString().slice(0,10);
+  try{const [k,a]=await Promise.all([api('promo_ongkir_klaim?select=*&tanggal=gte.'+dari+'&order=t.desc&limit=200'),api('pembeli_absen?select=wa,terakhir,beruntun,total,hadiah&order=beruntun.desc&limit=500')]);HR={k,a,tgl,err:''}}
+  catch(e){HR={k:[],a:[],tgl,err:String(e.message||e)}}
+  if(route==='harian')render();
+}
+PAGES.harian=function(){
+  if(HR===null){HR=undefined;muatHr()}
+  const A=hrAt(),d=HR||{k:[],a:[],tgl:kbHari()},lbl='font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:4px';
+  const num=(id,l,v,step,min,max)=>`<label><span style="${lbl}">${l}</span><input class="inp" id="${id}" type="number" min="${min||0}"${max?` max="${max}"`:''} step="${step||1}" value="${Number(v)||0}"></label>`;
+  const hari=['Min','Sen','Sel','Rab','Kam','Jum','Sab'],ph=Array.isArray(A.promo.hari)?A.promo.hari.map(Number):[];
+  const kIni=(d.k||[]).filter(x=>x.tanggal===d.tgl&&x.status!=='batal'),cair=(d.k||[]).filter(x=>x.status==='cair'),absenIni=(d.a||[]).filter(x=>x.terakhir===d.tgl).length;
+  const totalCair=cair.reduce((t,x)=>t+(Number(x.jumlah)||0),0),hadiahAbsen=(d.a||[]).reduce((t,x)=>t+(Number(x.hadiah)||0),0);
+  return `${d.err?`<div class="card" style="background:var(--rl)"><b>Fitur belum aktif.</b> Jalankan <b>supabase-betah-harian.sql</b> di Supabase.<div class="sm">${esc(d.err.slice(0,160))}</div></div>`:''}
+  <div class="stats">
+    ${stat('Absen hari ini',absenIni,(d.a||[]).length+' pembeli pernah absen','check','#16a34a')}
+    ${stat('Total hadiah absen',rp(hadiahAbsen),'sejak program dimulai','tag','#8b5cf6')}
+    ${stat('Klaim promo hari ini',kIni.length+(Number(A.promo.kuota)>0?' / '+A.promo.kuota:''),'cashback cair 7 hari: '+rp(totalCair),'truck','#f59e0b')}
+  </div>
+  <div class="card"><div class="chead"><h3>✅ Absen harian</h3></div>
+    <label style="display:flex;gap:10px;align-items:center;margin:0 0 10px;font-size:14px"><input type="checkbox" id="hrAbAktif" ${A.absen.aktif!==false?'checked':''} style="width:20px;height:20px">Program absen aktif</label>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">${num('hrAbHari','Hadiah tiap berapa hari berturut-turut',A.absen.hari,1,2,30)}${num('hrAbHadiah','Hadiah saldo voucher (Rp)',A.absen.hadiah,500,0,50000)}</div>
+    <p class="sm" style="margin:10px 0 0">Pembeli menekan "Absen" sekali sehari (di toko atau dashboard). Bila bolong sehari, hitungan mulai lagi dari 1. Perkiraan biaya: maks ${rp(Math.round((Number(A.absen.hadiah)||0)*30/Math.max(2,Number(A.absen.hari)||7)))} per pembeli per bulan.</p></div>
+  <div class="card"><div class="chead"><h3>🛵 Promo ongkir jam tertentu (cashback)</h3></div>
+    <label style="display:flex;gap:10px;align-items:center;margin:0 0 10px;font-size:14px"><input type="checkbox" id="hrPrAktif" ${A.promo.aktif?'checked':''} style="width:20px;height:20px">Promo aktif</label>
+    <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <label><span style="${lbl}">Mulai jam</span><input class="inp" type="time" id="hrPrMulai" value="${esc(A.promo.mulai)}"></label>
+      <label><span style="${lbl}">Sampai jam</span><input class="inp" type="time" id="hrPrSelesai" value="${esc(A.promo.selesai)}"></label>
+      ${num('hrPrPersen','Ongkir kembali (%)',A.promo.persen,5,1,100)}${num('hrPrMaks','Maks. cashback per pesanan (Rp, 0 = tanpa batas)',A.promo.maks,500)}${num('hrPrKuota','Kuota pembeli per hari (0 = tanpa batas)',A.promo.kuota,1)}</div>
+    <span style="${lbl};margin-top:12px">Hari berlaku (kosong semua = setiap hari)</span>
+    <div style="display:flex;flex-wrap:wrap;gap:8px" id="hrPrHari">${hari.map((n,i)=>`<label style="display:flex;gap:5px;align-items:center;font-size:14px;border:1px solid var(--line,#e5e5e5);border-radius:99px;padding:6px 12px"><input type="checkbox" value="${i}" ${ph.includes(i)?'checked':''}>${n}</label>`).join('')}</div>
+    <p class="sm" style="margin:10px 0 0">Pembeli bayar ongkir seperti biasa dan kurir tetap menerima penuh. Setelah <b>semua nota</b> pesanan itu selesai, ongkirnya dikembalikan ke <b>saldo voucher</b> pembeli (nota batal tidak dihitung). Berlaku 1× per pembeli per hari, hanya pesanan toko (bukan ojek/paket). Biaya maksimal per hari: ${Number(A.promo.kuota)>0&&Number(A.promo.maks)>0?rp(A.promo.kuota*A.promo.maks):'tanpa batas (isi kuota & maks)'}.</p>
+    <button class="btn btn-g" style="margin-top:12px" onclick="hrSimpan(this)">Simpan aturan absen & promo</button></div>
+  <div class="card"><div class="chead"><h3>🧾 Klaim cashback 7 hari terakhir</h3><button class="btn btn-light" onclick="HR=null;render()">↻</button></div>
+    ${HR===undefined?'<div class="empty" style="padding:14px">Memuat…</div>':(d.k||[]).length?(d.k||[]).map(x=>`<div class="detail-row"><span style="white-space:normal"><b>${esc(x.kunci)}</b> · +${esc(x.wa)}<br><small style="color:var(--mut)">${esc(namaWa(x.wa))} · ${esc(x.tanggal)} · ${x.persen}%${x.maks>0?' maks '+rp(x.maks):''}</small></span><span class="badge ${x.status==='cair'?'b-Selesai':x.status==='tunggu'?'b-Diproses':'b-Batal'}">${x.status==='cair'?rp(x.jumlah):x.status==='tunggu'?'menunggu selesai':'batal'}</span></div>`).join(''):'<div class="empty" style="padding:14px">Belum ada klaim</div>'}</div>
+  <div class="card"><div class="chead"><h3>🔥 Absen beruntun terpanjang</h3></div>
+    ${(d.a||[]).filter(x=>x.terakhir>=new Date(Date.now()+7*3600e3-864e5).toISOString().slice(0,10)).slice(0,10).map(x=>`<div class="detail-row"><span>+${esc(x.wa)}<br><small style="color:var(--mut)">${esc(namaWa(x.wa))} · total ${x.total} hari</small></span><b>${x.beruntun} hari</b></div>`).join('')||'<div class="empty" style="padding:14px">Belum ada</div>'}</div>`;
+};
+async function hrSimpan(btn){
+  const n=(id,lo,hi)=>Math.max(lo,Math.min(hi,Math.round(Number($('#'+id).value)||0)));
+  const mulai=$('#hrPrMulai').value||'11:00',selesai=$('#hrPrSelesai').value||'13:00';
+  if(selesai<=mulai)return toast('Jam selesai harus setelah jam mulai');
+  const v={absen:{aktif:$('#hrAbAktif').checked,hari:n('hrAbHari',2,30),hadiah:n('hrAbHadiah',0,50000)},
+    promo:{aktif:$('#hrPrAktif').checked,mulai,selesai,persen:n('hrPrPersen',1,100),maks:n('hrPrMaks',0,1000000),kuota:n('hrPrKuota',0,100000),hari:[...document.querySelectorAll('#hrPrHari input:checked')].map(x=>Number(x.value))}};
+  await busy(btn,async()=>{await setSetting('harian_aturan',v);S.settings.harian_aturan=v;render();toast('Aturan disimpan')});
+}
+
 /* ========== SALDO VOUCHER PEMBELI & AJAK TETANGGA (supabase-voucher-pembeli.sql) ==========
    store_settings "voucher_aturan" = {aktif, kompensasi, ajak:{aktif, pengundang, baru, min, maksBulan, hari}} */
 let VC=null;
@@ -2101,7 +2203,7 @@ async function muatVc(){
   if(route==='voucher')render();
 }
 function namaWa(wa){const acc=S.settings.pembeli_accounts&&typeof S.settings.pembeli_accounts==='object'?S.settings.pembeli_accounts:{},id=acc[wa]&&acc[wa].id,l=Array.isArray(S.settings.pembeli_members)?S.settings.pembeli_members:[],m=l.find(x=>x&&x.id===id);return m?(m.nama||'')+(m.kode?' · '+m.kode:''):''}
-const JENIS_VC={sambut:'🎁 Voucher selamat datang',refund:'↩️ Pengembalian',kompensasi:'🎁 Kompensasi',ajak:'👥 Bonus pengundang',ajak_baru:'🎉 Bonus pembeli baru',pakai:'🛒 Dipakai belanja',koreksi:'🛠️ Koreksi admin'};
+const JENIS_VC={absen:'✅ Hadiah absen harian',cashback:'🛵 Cashback ongkir promo',sambut:'🎁 Voucher selamat datang',refund:'↩️ Pengembalian',kompensasi:'🎁 Kompensasi',ajak:'👥 Bonus pengundang',ajak_baru:'🎉 Bonus pembeli baru',pakai:'🛒 Dipakai belanja',koreksi:'🛠️ Koreksi admin'};
 PAGES.voucher=function(){
   if(VC===null){VC=undefined;muatVc()}
   const A=vcAt(),lbl='font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:4px',d=VC||{sal:[],mut:[],aj:[]};

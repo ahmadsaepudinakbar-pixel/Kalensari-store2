@@ -459,7 +459,7 @@ function renderSellerBar(){
   if(!activeSeller){bar.hidden=true;bar.innerHTML="";return;}
   const n=activeSellerName(),closed=sellerClosed(n);
   bar.hidden=false;
-  const sfF=(shopFotos||{})[activeSeller];bar.innerHTML=`<span>${sfF?`<i class="sf-foto" style="background-image:url('${sfF}')"></i>`:"🏪"} Produk dari <b>${esc(n)}</b>${closed?' <em class="sf-closed">Tutup</em>':""}</span><button type="button" onclick="setSeller('')">× Semua toko</button>`;
+  const sfF=(shopFotos||{})[activeSeller];bar.innerHTML=`<span>${sfF?`<i class="sf-foto" style="background-image:url('${sfF}')"></i>`:"🏪"} Produk dari <b>${esc(n)}</b>${closed?' <em class="sf-closed">Tutup</em>':""}</span>${window.KSHarian?KSHarian.tombolIkuti(activeSeller):""}<button type="button" onclick="setSeller('')">× Semua toko</button>`;
 }
 // Daftar toko diambil otomatis dari nama penjual di tiap produk (produk multi-penjual masuk ke tiap toko).
 function shopRows(){
@@ -1222,7 +1222,7 @@ if(new URLSearchParams(location.search).get("pesanan")){ history.replaceState(nu
 // ?toko=Nama Toko -> langsung tampilkan produk toko itu (dipakai tombol "Lihat Toko Saya" di aplikasi penjual)
 {const tk=new URLSearchParams(location.search).get("toko");if(tk){history.replaceState(null,"",location.pathname);activeSeller=sellerKey(tk);activeCategory="Semua";renderCategories();renderProducts();setTimeout(()=>document.getElementById("products")?.scrollIntoView({behavior:"smooth"}),700);}}
 if(location.hash==="#checkout"){ history.replaceState(null,"",location.pathname); if(cart.length) setTimeout(()=>document.getElementById("checkoutBtn").click(),400); }
-(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); setTimeout(muatFotoToko,800); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); } })();
+(async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); setTimeout(muatFotoToko,800); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); window.KSHarian&&KSHarian.siap(); } })();
 
 // ===== ADMIN DASHBOARD V6 =====
 let adminLoggedIn = !!(adminAuth&&adminAuth.refresh_token);

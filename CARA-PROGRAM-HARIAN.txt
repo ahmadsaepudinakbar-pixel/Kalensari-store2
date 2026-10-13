@@ -1,0 +1,37 @@
+PROGRAM HARIAN PEMBELI • KALENSARI STORE
+=======================================
+Isi: absen harian, kabar menu baru toko favorit, promo ongkir jam tertentu (cashback), Kabar Desa.
+
+LANGKAH PASANG
+--------------
+1) Supabase > SQL Editor > New query > tempel isi  supabase-betah-harian.sql  > Run.
+   Hasil terakhir harus menampilkan true semua. Aman dijalankan ulang.
+2) Unggah ke GitHub (timpa file lama):
+     BARU   harian.js, supabase-betah-harian.sql, CARA-PROGRAM-HARIAN.txt
+     UBAH   index.html, script.js, dashboard-pembeli.html, admin.html,
+            keluar.js, akun-pembeli.html (perbaikan sebelumnya, ikut disertakan)
+3) Buka Admin > Lainnya > "Absen & Promo Ongkir" untuk mengatur, dan "Kabar Desa" untuk menulis kabar.
+
+1) ABSEN HARIAN
+   - Pembeli menekan "Absen" sekali sehari (di toko atau beranda dashboard).
+   - Setiap N hari berturut-turut (bawaan 7) dapat saldo voucher (bawaan Rp1.000). Bolong sehari = mulai lagi.
+   - Aktif otomatis setelah SQL dijalankan. Bisa dimatikan / diubah di admin.
+
+2) MENU BARU DARI TOKO FAVORIT
+   - Toko favorit = toko yang diikuti (tombol "🔔 Ikuti toko" saat membuka daftar produk satu toko)
+     + toko dari produk yang disimpan ke Favorit.
+   - Hanya muncul bila ada MENU BARU. Tampil sebagai kartu di toko & dashboard saat aplikasi dibuka.
+   - Catatan: belum berupa notifikasi HP saat aplikasi tertutup, karena fungsi server "kirim-notif"
+     tidak ada di zip. Kirim isi fungsi itu bila ingin dijadikan notifikasi HP.
+
+3) PROMO ONGKIR JAM TERTENTU (CASHBACK) • bawaan MATI, nyalakan di admin
+   - Pembeli bayar ongkir seperti biasa, kurir tetap terima penuh.
+   - Pesanan toko yang dibuat di jam promo: setelah SEMUA notanya selesai, ongkir (nota yang selesai saja)
+     dikembalikan ke saldo voucher sesuai persen & batas maksimal.
+   - 1x per pembeli per hari, dibatasi kuota pembeli per hari. Ojek / kirim paket tidak ikut.
+   - Biaya maksimal per hari = kuota x maks cashback (tertulis di halaman admin).
+
+4) KABAR DESA
+   - Admin menulis kabar (ikon, judul, isi, foto, link, tanggal berakhir, tanda Penting).
+   - Tampil di toko (2 teratas + "Lihat semua") dan di beranda dashboard pembeli. Kabar baru diberi tanda "Baru".
+   - Tidak perlu SQL khusus; hanya admin yang bisa menulis.
