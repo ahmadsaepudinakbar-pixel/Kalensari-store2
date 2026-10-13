@@ -1,4 +1,4 @@
-/* Kalensari Store - ID akun (PB0001 pembeli, PJ0001 penjual, KR0001 kurir, JS0001 penyedia jasa)
+/* Kalensari Store - ID akun (PB0001 pembeli, PJ0001 penjual, PM0001 pedagang Pasar Malam, KR0001 kurir, JS0001 penyedia jasa)
    - KSID.keWA(input, peran): bila input berupa ID akun, kembalikan ID yang dirapikan (dicocokkan di server saat masuk).
    - KSID.masuk / gantiPin / sesi / saya / simpan: masuk & ubah data akun lewat server dengan kunci sesi.
    - KSID.lencana(kode): potongan HTML "🆔 KR0001" + tombol salin. */
@@ -6,14 +6,14 @@
   var C = window.CLOUD_CONFIG || {};
   var AWAL = { pembeli: "PB", penjual: "PJ", kurir: "KR", jasa: "JS" };
   function rapikan(v) {
-    var m = String(v || "").trim().toUpperCase().match(/^(PB|PJ|KR|JS)[\s-]?0*(\d{1,6})$/);
+    var m = String(v || "").trim().toUpperCase().match(/^(PB|PJ|PM|KR|JS)[\s-]?0*(\d{1,6})$/);
     return m ? m[1] + ("000" + m[2]).slice(-Math.max(4, m[2].length)) : null;
   }
   // Bila input berupa ID akun, kembalikan ID itu sendiri (dicocokkan di server saat masuk).
   // null = bukan ID (pakai nomor WA), "" = ID untuk peran lain.
   async function keWA(input, peran) {
     var kode = rapikan(input); if (!kode) return null;
-    if (AWAL[peran] && kode.indexOf(AWAL[peran]) !== 0) return "";
+    if (AWAL[peran] && kode.indexOf(AWAL[peran]) !== 0 && !(peran === "penjual" && kode.indexOf("PM") === 0)) return "";
     return kode;
   }
   function lencana(kode) {
