@@ -1,0 +1,20 @@
+ISI SALDO KURIR LEWAT QRIS OTOMATIS (iPaymu) • KALENSARI STORE
+==============================================================
+Kurir pilih nominal -> QR iPaymu muncul (nominal terisi) -> setelah bayar, saldo kurir
+langsung bertambah sendiri. Tidak perlu unggah bukti & tidak perlu ACC admin.
+Cara lama (QRIS statis + unggah bukti) tetap ada lewat tombol "Bayar manual".
+
+LANGKAH PASANG (urut)
+1) Supabase > SQL Editor > jalankan  supabase-topup-qris.sql  (hasil akhir: true semua).
+2) Supabase > Edge Functions > ipaymu-qris > Code > ganti SELURUH isi index.ts dengan
+   supabase-functions/ipaymu-qris/index.ts dari zip ini > Deploy.
+   (Secrets IPAYMU_VA, IPAYMU_API_KEY, IPAYMU_MODE, IPAYMU_PROXY, PROXY_KEY tidak berubah.)
+3) GitHub: timpa dashboard-kurir.html.
+
+CATATAN
+- Saldo masuk sekali per pembayaran walau iPaymu mengabari berkali-kali.
+- Nominal diambil dari iPaymu. Bila kurir membayar KURANG, permintaan masuk antrean admin
+  (Isi saldo kurir) dengan nominal = yang benar-benar dibayar, untuk dicek manual.
+- QR berlaku 15 menit. Maksimal 3 QR belum dibayar per kurir.
+- Biaya QRIS iPaymu ditanggung Kalensari Store (saldo kurir dikreditkan penuh).
+- Bila QRIS otomatis gangguan, aplikasi kurir otomatis pindah ke cara manual.

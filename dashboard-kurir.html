@@ -639,6 +639,16 @@ async function bukaTopup(){
     <input id="tuJml" class="fld" inputmode="numeric" placeholder="Atau tulis jumlah lain, mis. 30000">
     <button class="mini g" type="button" id="tuLanjut" style="width:100%;padding:13px;font-size:16px;margin:6px 0 0" disabled>OK, lanjut bayar</button>
     <button class="mini" type="button" id="tuBatal" style="width:100%;margin-top:10px">Batal</button></div>
+    <div id="tuAuto" hidden><h3 style="margin:0 0 4px;color:var(--brown)">⚡ Bayar QRIS • saldo langsung masuk</h3>
+    <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;text-align:center;margin:8px 0">
+      <b id="tuANom" style="display:block;font-size:28px;color:var(--brown);margin:0 0 8px"></b>
+      <div id="tuAQr"><p class="hint">Menyiapkan QRIS…</p></div>
+      <p id="tuASt" style="margin:8px 0 0;font-weight:700;color:#7a5a20">⏳ Menunggu pembayaran</p>
+      <p class="hint" style="margin:6px 0 0">Scan dengan DANA, OVO, GoPay, ShopeePay, atau m-banking. Nominal sudah terisi. Di HP yang sama: tekan <b>Simpan QR</b>, lalu di aplikasi bank pilih Scan → gambar dari galeri. Saldo bertambah otomatis setelah bayar, tanpa menunggu admin.</p></div>
+    <button class="mini g" type="button" id="tuASimpan" style="width:100%;padding:12px;font-size:15px">⬇️ Simpan QR</button>
+    <button class="mini" type="button" id="tuACek" style="width:100%;margin-top:8px;padding:11px">↻ Saya sudah bayar, cek sekarang</button>
+    <button class="mini" type="button" id="tuAManual" style="width:100%;margin-top:8px;border-style:dashed">Bayar manual (unggah bukti, dicek admin)</button>
+    <button class="mini" type="button" id="tuAUbah" style="width:100%;margin-top:8px">← Ubah nominal</button></div>
     <div id="tuStep2" hidden><h3 style="margin:0 0 4px;color:var(--brown)">📱 Bayar dengan QRIS</h3>
     <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px;text-align:center;margin:8px 0">
       <small class="hint" style="display:block;margin:0">Bayar tepat sebesar</small><b id="tuNom" style="display:block;font-size:28px;color:var(--brown);margin:2px 0 8px"></b>
@@ -656,14 +666,65 @@ async function bukaTopup(){
   ov.querySelectorAll(".nom button").forEach(b => b.onclick = () => { jml = +b.dataset.v; q("#tuJml").value = ""; ov.querySelectorAll(".nom button").forEach(x => x.classList.toggle("on", x === b)); cekLanjut(); });
   q("#tuJml").oninput = e => { e.target.value = e.target.value.replace(/\D/g, ""); jml = +e.target.value || 0; ov.querySelectorAll(".nom button").forEach(x => x.classList.remove("on")); cekLanjut(); };
   q("#tuBatal").onclick = () => ov.remove();
+  // ===== QRIS otomatis iPaymu (Edge Function ipaymu-qris + supabase-topup-qris.sql) =====
+  let tuId = 0, tuPoll = null, tuTick = null, tuQrObj = null;
+  const tuStop = () => { clearInterval(tuPoll); clearInterval(tuTick); };
+  const tuApi = async body => {
+    const base = String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "");
+    const r = await fetch(base + "/functions/v1/ipaymu-qris", {method:"POST", headers:{"Content-Type":"application/json", apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey}, body:JSON.stringify({...body, sesi:(window.KSID && KSID.sesi("kurir")) || ""})});
+    const d = await r.json().catch(() => ({})); if(!r.ok || d.ok === false) throw new Error(d.pesan || ("HTTP " + r.status)); return d;
+  };
+  const tuMuatQrLib = () => window.qrcode ? Promise.resolve() : new Promise((ok, no) => { const sc = document.createElement("script"); sc.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"; sc.onload = ok; sc.onerror = () => no(new Error("Gagal memuat pembuat QR")); document.head.appendChild(sc); });
+  const tuLunas = d => { tuStop(); q("#tuASt").innerHTML = "✅ Pembayaran diterima"; toast("✅ Saldo " + fmtRp(jml) + " sudah masuk" + (d && d.saldo != null ? " • saldo sekarang " + fmtRp(d.saldo) : "")); try{ navigator.vibrate && navigator.vibrate([60, 40, 60]); }catch(e){} setTimeout(() => { ov.remove(); renderSaldo(); }, 1600); };
+  const tuCek = async manual => {
+    if(!tuId || !document.body.contains(ov)) return tuStop();
+    try{ const d = await tuApi({aksi:"topup_cek", id:tuId});
+      if(d.pay_status === "lunas") return tuLunas(d);
+      if(d.pay_status === "kedaluwarsa"){ tuStop(); q("#tuASt").innerHTML = "⌛ Waktu bayar habis. Tekan ← Ubah nominal untuk membuat QR baru."; return; }
+      if(d.pay_status === "periksa"){ tuStop(); q("#tuASt").innerHTML = "🔎 Nominal yang dibayar berbeda. Admin akan memeriksa."; return; }
+      if(manual) toast("Pembayaran belum diterima. Coba lagi beberapa detik lagi.");
+    }catch(e){ if(manual) toast("Gagal mengecek: " + String(e.message || e).slice(0, 80)); }
+  };
+  const tuManual = async () => {
+    tuStop(); q("#tuAuto").hidden = true; q("#tuStep1").hidden = true; q("#tuStep2").hidden = false; q("#tuNom").textContent = fmtRp(jml);
+    await qrisP;
+    q("#tuQr").innerHTML = qris ? `<img src="${qris}" alt="QRIS Kalensari" style="width:100%;max-width:300px;border-radius:10px;display:block;margin:0 auto"><a class="mini" download="qris-isi-saldo.jpg" href="${qris}" style="display:inline-block;margin-top:8px">⬇️ Simpan gambar QRIS</a>`
+      : `<p class="hint" style="color:#a35a00;margin:6px 0">QRIS belum dipasang admin. Bayar sesuai catatan admin${wa ? ' atau <a href="https://wa.me/' + wa + '" target="_blank" rel="noopener">tanya admin lewat WhatsApp</a>' : ""}, lalu unggah buktinya.</p>`;
+  };
+  q("#tuAManual").onclick = tuManual;
+  q("#tuAUbah").onclick = () => { tuStop(); tuId = 0; q("#tuAuto").hidden = true; q("#tuStep1").hidden = false; };
+  q("#tuACek").onclick = () => tuCek(true);
+  q("#tuASimpan").onclick = () => { if(!tuQrObj) return; const a = document.createElement("a"); a.href = tuQrObj.createDataURL(10, 4); a.download = "qris-isi-saldo-" + jml + ".png"; document.body.appendChild(a); a.click(); a.remove(); toast("QR disimpan. Buka aplikasi bank → Scan → pilih dari galeri."); };
+  const tuOtomatis = async () => {
+    q("#tuStep1").hidden = true; q("#tuStep2").hidden = true; q("#tuAuto").hidden = false; ov.firstElementChild.scrollTop = 0;
+    q("#tuANom").textContent = fmtRp(jml); q("#tuAQr").innerHTML = '<p class="hint">Menyiapkan QRIS…</p>'; q("#tuASt").innerHTML = "⏳ Menunggu pembayaran";
+    try{
+      const [d] = await Promise.all([tuApi({aksi:"topup_buat", jumlah:jml}), tuMuatQrLib()]);
+      tuId = d.id; tuQrObj = qrcode(0, "M"); tuQrObj.addData(d.qr); tuQrObj.make();
+      q("#tuAQr").innerHTML = `<img src="${tuQrObj.createDataURL(8, 2)}" alt="QRIS isi saldo" style="width:100%;max-width:280px;display:block;margin:0 auto;image-rendering:pixelated">`;
+      if(Number(d.total) && Number(d.total) !== jml) q("#tuANom").textContent = fmtRp(d.total);
+      const exp = Date.parse(d.expire) || (Date.now() + 15 * 60000);
+      tuStop();
+      tuTick = setInterval(() => { const l = exp - Date.now(); if(!document.body.contains(ov)) return tuStop();
+        if(l <= 0){ tuStop(); q("#tuASt").innerHTML = "⌛ Waktu bayar habis. Tekan ← Ubah nominal untuk membuat QR baru."; return; }
+        if(!/✅|🔎/.test(q("#tuASt").textContent)) q("#tuASt").innerHTML = "⏳ Menunggu pembayaran • sisa " + Math.floor(l / 60000) + ":" + String(Math.floor(l % 60000 / 1000)).padStart(2, "0"); }, 1000);
+      tuPoll = setInterval(() => tuCek(false), 4000);
+    }catch(e){
+      console.warn("QRIS otomatis isi saldo gagal:", e && e.message);
+      toast("QRIS otomatis sedang gangguan. Silakan bayar manual lalu unggah bukti.");
+      tuManual();
+    }
+  };
   q("#tuLanjut").onclick = async () => {
     if(jml < min) return toast("Isi saldo minimal " + fmtRp(min));
+    if(BIAYA.qrisOtomatis !== false && window.KSID && KSID.sesi("kurir")) return tuOtomatis();
     q("#tuStep1").hidden = true; q("#tuStep2").hidden = false; q("#tuNom").textContent = fmtRp(jml); ov.firstElementChild.scrollTop = 0;
     await qrisP;
     q("#tuQr").innerHTML = qris ? `<img src="${qris}" alt="QRIS Kalensari" style="width:100%;max-width:300px;border-radius:10px;display:block;margin:0 auto"><a class="mini" download="qris-isi-saldo.jpg" href="${qris}" style="display:inline-block;margin-top:8px">⬇️ Simpan gambar QRIS</a>`
       : `<p class="hint" style="color:#a35a00;margin:6px 0">QRIS belum dipasang admin. Bayar sesuai catatan admin${wa ? ' atau <a href="https://wa.me/' + wa + '" target="_blank" rel="noopener">tanya admin lewat WhatsApp</a>' : ""}, lalu unggah buktinya.</p>`;
   };
   q("#tuUbah").onclick = () => { q("#tuStep2").hidden = true; q("#tuStep1").hidden = false; };
+  const tuTutupLama = ov.remove.bind(ov); ov.remove = () => { tuStop(); tuTutupLama(); };
   q("#tuPilih").onclick = () => q("#tuFile").click();
   q("#tuFile").onchange = async e => { const f = e.target.files[0]; if(!f) return; try{ bukti = await kecilkanFoto(f, 900); q("#tuPrev").src = bukti; q("#tuPrev").style.display = "block"; q("#tuPilih").textContent = "🔄 Ganti foto bukti"; q("#tuKirim").disabled = false; }catch(err){ toast("Foto tidak bisa dibaca"); } };
   q("#tuKirim").onclick = async () => {
