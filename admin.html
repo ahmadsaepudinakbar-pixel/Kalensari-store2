@@ -2710,5 +2710,20 @@ async function ubahPersenQris(){
   await busy(null,async()=>{await setSetting('biaya_qris_persen',n);S.settings.biaya_qris_persen=n;render();toast('Biaya QRIS diubah ke '+String(n).replace('.',',')+'%')});
 }
 </script>
+<script src="kembali.js"></script>
+<script>
+KSKembali.pasang({
+  tutup: function(){
+    if($('#modalRoot').innerHTML){ closeModal(); return true; }
+    if($('#sidebar').classList.contains('open')){ toggleSide(false); return true; }
+    return false;
+  },
+  pulang: function(){
+    if(!$('#app').classList.contains('hide')&&route!=='dashboard'){ go('dashboard'); return true; }
+    return false;
+  },
+  pesan: function(t){ toast(t); }
+});
+</script>
 </body>
 </html>

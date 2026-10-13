@@ -336,7 +336,7 @@ body{background-color:#f4ebdf;background-image:none}
 <script src="crop.js"></script>
 <script src="akun-id.js"></script><script src="pesanan-aman.js"></script><script src="hapus-akun.js"></script><script>window.KSHapus&&KSHapus.pasang(document.getElementById("ksHapusAkun"),"kurir")</script>
 <script src="notif.js"></script>
-<script src="navigasi-kurir.js"></script>
+<script src="navigasi-kurir.js"></script><script src="kembali.js"></script>
 <script>
 
 const $ = id => document.getElementById(id);
@@ -571,7 +571,7 @@ async function renderSaldo(){
 }
 function lembar(html){
   const ov = document.createElement("div");
-  ov.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(40,20,10,.55);display:flex;align-items:flex-end;justify-content:center";
+  ov.className = "ks-lembar"; ov.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(40,20,10,.55);display:flex;align-items:flex-end;justify-content:center";
   ov.innerHTML = `<div style="background:#fffaf2;width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto">${html}</div>`;
   ov.onclick = e => { if(e.target === ov) ov.remove(); };
   document.body.appendChild(ov); return ov;
@@ -1565,7 +1565,7 @@ function fotoPaket(code){
 function serahTerima(code){
   const o = ORD[code], tr = o && transOf(o), siapa = tr && tr.layanan === "paket" ? "penerima barang" : tr ? "penumpang" : "pembeli";
   const ov = document.createElement("div"); ov.id = "stModal";
-  ov.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(40,20,10,.55);display:flex;align-items:flex-end;justify-content:center";
+  ov.className = "ks-lembar"; ov.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(40,20,10,.55);display:flex;align-items:flex-end;justify-content:center";
   ov.innerHTML = `<div style="background:#fffaf2;width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto">
     <h3 style="margin:0 0 4px;color:var(--brown)">✅ Serah terima ${esc(code)}</h3>
     <p class="hint" style="margin:0 0 8px">Minta <b>kode 4 angka</b> dari ${siapa}. Kode ada di aplikasi / WhatsApp ${siapa === "penerima barang" ? "pengirim" : "pembeli"}.</p>
@@ -1736,6 +1736,10 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
   window.renderProf=function(){ if(window.fotoKurir) window.fotoKurir(); if(typeof me==="undefined"||!me) return; var n=me.nama||"Kurir"; $("pNama").textContent=n; $("pAv").textContent=n.charAt(0).toUpperCase();
     $("pHari").textContent=me.joined?Math.max(1,Math.ceil((Date.now()-me.joined)/864e5)):1; $("pSel").textContent=me.selesai||0; show(cur) };
   setTimeout(function(){var h=(location.hash||"").slice(1); show(["pesanan","uang","profil"].indexOf(h)>=0?h:"home")},0);
+  if(window.KSKembali) KSKembali.pasang({
+    tutup: function(){ return KSKembali.tutupAtas(".ks-lembar,.fp-ov,.modal.show"); },
+    pulang: function(){ if(cur!=="home"){ show("home"); return true; } return false; }
+  });
 })();
 </script>
 </body>

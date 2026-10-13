@@ -256,6 +256,22 @@
   <script src="pesanan-warga.js"></script>
   <script src="qris-statis.js"></script>
   <script src="harian.js"></script>
+  <script src="kembali.js"></script>
+  <script>
+  KSKembali.pasang({
+    lewati: function(){ return document.body.classList.contains("ks-frame-open"); },   // bingkai halaman lain: ditutup oleh script.js
+    tutup: function(){
+      var m=document.querySelector(".ks-menu.open"); if(m){ m.classList.remove("open"); return true; }
+      var sp=document.getElementById("shopPanel"); if(sp&&!sp.hidden&&typeof closeShopPanel==="function"){ closeShopPanel(); return true; }
+      return KSKembali.tutupAtas("#pmDenah,#pmInfo,#pmOv,.kp-pop,.hr-ov,.modal.show");
+    },
+    pulang: function(){
+      if(typeof activeSeller!=="undefined"&&activeSeller&&typeof setSeller==="function"){ setSeller(""); return true; }
+      if(typeof hanyaFavorit!=="undefined"&&hanyaFavorit&&typeof bukaFavorit==="function"){ bukaFavorit(false); return true; }
+      return false;
+    }
+  });
+  </script>
   <script src="script.js"></script>
   <script src="keluar.js"></script>
   <script src="pengingat-pesanan.js"></script>
