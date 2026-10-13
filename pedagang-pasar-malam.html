@@ -68,7 +68,7 @@ hr{border:0;border-top:1px solid var(--ln);margin:18px 0}
 <div class="top"><a href="index.html" aria-label="Kembali ke toko">←</a><b>Pasar Malam Jum'at<small>🌙 Akun Pedagang • Kalensari Store</small></b></div>
 <main class="wrap">
   <div class="hero"><img src="img/pasar-malam-hero.jpg" alt="Event Pasar Malam Jum'at Kalensari Store" width="948" height="668"><span class="bulan" aria-hidden="true">🌙</span>
-    <div class="tag"><b>Akun Khusus Pedagang</b><span id="heroJadwal">Setiap malam Jum'at • mulai 17.00 WIB</span></div></div>
+    <div class="tag"><b>Akun Khusus Pedagang</b><span id="heroJadwal">Setiap malam Jum'at • mulai 16.00 WIB</span></div></div>
 
   <div id="warn" class="st tunggu" hidden>⚠️ Database online belum aktif, pendaftaran belum bisa dipakai.</div>
 
@@ -137,7 +137,7 @@ const normPhone=v=>{let d=String(v||"").replace(/\D/g,"");if(d.startsWith("0"))d
 const ROLE="penjual",SESS="kalensari_penjual_sess",sKey=n=>String(n||"").trim().toLowerCase();
 const JUALAN=["Jajanan & Makanan","Minuman","Pakaian & Aksesoris","Mainan Anak","Barang Rumah Tangga","Hasil Tani & Sayur","Barter / Barang Bekas","Hiburan & Permainan","Lainnya"];
 const HARI=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"],MALAM=["Minggu","Senin","Selasa","Rabu","Kamis","Jum'at","Sabtu"];
-const PM_DEF={aktif:true,hari:4,mulai:"15:00",akhir:"21:00",acara:"17:00",tutup:"22:00",lokasi:"Area Pasar Malam Kalensari Store",info:"",pedagang:[],lapak:{}};
+const PM_DEF={aktif:true,hari:4,mulai:"16:00",akhir:"21:00",acara:"16:00",tutup:"21:00",lokasi:"Area Pasar Malam Kalensari Store",info:"",pedagang:[],lapak:{}};
 const cloudOn=()=>typeof CLOUD_CONFIG!=="undefined"&&CLOUD_CONFIG&&CLOUD_CONFIG.enabled&&CLOUD_CONFIG.supabaseUrl&&CLOUD_CONFIG.supabaseAnonKey;
 async function cf(path,opt={}){const base=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");const r=await fetch(base+"/rest/v1/"+path,{...opt,headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey,"Content-Type":"application/json",...(opt.headers||{})}});const t=await r.text();if(!r.ok){let m=t;try{m=JSON.parse(t).message||t}catch(e){}throw new Error(m||r.status)}return t?JSON.parse(t):[]}
 async function getSetting(key,def){const r=await cf(`store_settings?select=value&key=eq.${encodeURIComponent(key)}`);return r[0]&&r[0].value!=null?r[0].value:def}
@@ -151,7 +151,7 @@ const wib=()=>new Date(Date.now()+new Date().getTimezoneOffset()*6e4+7*36e5);
 const mnt=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||""));return m?+m[1]*60+ +m[2]:null};
 function acara(){const w=wib(),h=Number(CFG.hari??4),n=w.getHours()*60+w.getMinutes();let d=(h-w.getDay()+7)%7;if(d===0&&n>=(mnt(CFG.akhir)??1260))d=7;const t=new Date(w.getTime()+d*864e5);
   return{iso:`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`,teks:t.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"}),d}}
-const jamAcara=()=>String(CFG.acara||"17:00").replace(":",".");
+const jamAcara=()=>String(CFG.acara||"16:00").replace(":",".");
 async function muatCfg(){try{const v=await getSetting("pasar_malam",null);if(v&&typeof v==="object")CFG={...PM_DEF,...v}}catch(e){}
   $("heroJadwal").textContent=`Setiap malam ${MALAM[(Number(CFG.hari??4)+1)%7]} • mulai ${jamAcara()} WIB`}
 
@@ -175,7 +175,7 @@ function render(){
   else if(!terdaftarPm())st=`<div class="st tunggu"><b>⏳ Menunggu admin memasukkan lapak Anda</b>Akun sudah aktif. Admin akan memasukkan Anda ke daftar pedagang Pasar Malam dan memberi nomor lapak.</div>`;
   else st=`<div class="st ok"><b>✅ Terdaftar sebagai pedagang Pasar Malam Jum'at</b><span>${lapak?"Nomor lapak Anda: <b style=\"font-size:17px\">"+esc(lapak)+"</b>":"Nomor lapak akan diberikan admin."}</span></div>`;
   $("dStatus").innerHTML=st;
-  $("dAcara").innerHTML=`<div class="lp">${lapak?`<span><small>LAPAK</small>${esc(lapak)}</span>`:"🌙"}</div><div><b>${a.d===0?"Pasar Malam malam ini!":"Pasar Malam berikutnya"}</b><span>${esc(a.teks)} • ${esc(jamAcara())}–${esc(String(CFG.tutup||"22:00").replace(":","."))} WIB<br>${esc(CFG.lokasi||PM_DEF.lokasi)}</span></div>`;
+  $("dAcara").innerHTML=`<div class="lp">${lapak?`<span><small>LAPAK</small>${esc(lapak)}</span>`:"🌙"}</div><div><b>${a.d===0?"Pasar Malam malam ini!":"Pasar Malam berikutnya"}</b><span>${esc(a.teks)} • ${esc(jamAcara())}–${esc(String(CFG.tutup||"21:00").replace(":","."))} WIB<br>${esc(CFG.lokasi||PM_DEF.lokasi)}</span></div>`;
   $("dCatat").hidden=!CFG.info;$("dCatat").textContent=CFG.info?"📌 Info dari panitia:\n"+CFG.info:"";
   $("dHadirBox").hidden=!ok;$("dHadir").checked=me.pmLibur!==a.iso;
   $("dHadirJudul").textContent=a.d===0?"Saya buka malam ini":"Saya buka "+a.teks.split(",")[0];
@@ -204,7 +204,7 @@ function waAdmin(){if(!me)return "#";const t=["Assalamualaikum Admin Kalensari S
 
 // ---- jadwal buka lapak = jadwal acara (dipakai toko: menu hanya bisa dipesan saat Pasar Malam) ----
 function jadwalLapak(){const h=Number(CFG.hari??4),hariIni=acara().iso,tgl=wib();const today=`${tgl.getFullYear()}-${String(tgl.getMonth()+1).padStart(2,"0")}-${String(tgl.getDate()).padStart(2,"0")}`;
-  return{o:CFG.acara||"17:00",c:CFG.tutup||"22:00",off:[0,1,2,3,4,5,6].filter(d=>d!==h),h:me.pmLibur&&me.pmLibur>=today?[me.pmLibur]:[]}}
+  return{o:CFG.acara||"16:00",c:CFG.tutup||"21:00",off:[0,1,2,3,4,5,6].filter(d=>d!==h),h:me.pmLibur&&me.pmLibur>=today?[me.pmLibur]:[]}}
 async function sinkronJadwal(){if(!me||me.pending||!window.KSID||!KSID.sesi(ROLE))return;
   try{const rec=jadwalLapak(),k=sKey(me.toko||me.usaha),cur=((await getSetting("seller_schedule",{}))||{})[k];
     const sama=cur&&cur.o===rec.o&&cur.c===rec.c&&JSON.stringify([...(cur.off||[])].sort())===JSON.stringify(rec.off)&&JSON.stringify(cur.h||[])===JSON.stringify(rec.h);
@@ -225,7 +225,7 @@ $("btnDaftar").onclick=()=>busy($("btnDaftar"),async()=>{
   if((Array.isArray(list)?list:[]).some(m=>m&&sKey(m.toko||m.usaha)===sKey(toko)))throw new Error("Nama lapak sudah dipakai toko lain. Tambahkan nama Anda, mis. \""+toko+" BU "+nama.split(" ")[0].toUpperCase()+"\"");
   const id="u"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   await setSetting("penjual_accounts",{...acc,[wa]:{h:await hashPin(wa,pin),id}});
-  await setSetting("penjual_members",[...(Array.isArray(list)?list:[]),{id,nama,toko,usaha:toko,wa,dusun:"",buka:"15:00",tutup:"22:00",aktif:true,pending:true,status:"Show",pasarMalam:true,jualan,pmInfo,updated:Date.now()}]);
+  await setSetting("penjual_members",[...(Array.isArray(list)?list:[]),{id,nama,toko,usaha:toko,wa,dusun:"",buka:"16:00",tutup:"21:00",aktif:true,pending:true,status:"Show",pasarMalam:true,jualan,pmInfo,updated:Date.now()}]);
   await KSID.masuk(ROLE,wa,pin);localStorage.setItem(SESS,wa);
   toast("🎉 Pendaftaran terkirim ke admin! Tekan tombol hijau untuk kirim juga lewat WhatsApp.");await buka();scrollTo({top:0,behavior:"smooth"});
 });

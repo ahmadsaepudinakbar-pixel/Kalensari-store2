@@ -2654,7 +2654,7 @@ setInterval(()=>{try{if(hujanOn()!==!!document.getElementById("ksHujanBar"))rend
 // Pop-up tampil di hari & jam yang diatur admin (bawaan: KAMIS 15.00–21.00 WIB), sekali per hari per HP.
 // Aturan dari store_settings "pasar_malam" (menu admin 🌙 Pasar Malam Jum’at). Uji coba kapan saja: ...?pasarmalam=1
 // Tombol "Lihat Denah Event" membuka lembar Pasar Malam Jum’at: jadwal, denah (bila diunggah admin) & daftar pedagang.
-var PM_DEF={aktif:true,hari:4,mulai:"15:00",akhir:"21:00",acara:"17:00",lokasi:"Area Pasar Malam Kalensari Store",info:"",denah:false,pedagang:[],lapak:{}};
+var PM_DEF={aktif:true,hari:4,mulai:"16:00",akhir:"21:00",acara:"16:00",tutup:"21:00",lokasi:"Area Pasar Malam Kalensari Store",info:"",denah:false,pedagang:[],lapak:{}};
 var PM_CFG=(()=>{try{const v=JSON.parse(localStorage.getItem("kalensari_pasar_malam")||"null");return v&&typeof v==="object"?{...PM_DEF,...v}:{...PM_DEF};}catch(e){return{...PM_DEF};}})();
 var PM_MEMBERS=(()=>{try{const v=JSON.parse(localStorage.getItem("kalensari_pm_members")||"[]");return Array.isArray(v)?v:[];}catch(e){return[];}})();
 function pmSimpanMembers(list){const ks=(list||[]).filter(x=>x&&x.pasarMalam).map(x=>sellerKey(x.toko||x.usaha)).filter(Boolean);pmKeySet.c=new Set(ks);try{localStorage.setItem("kalensari_pm_toko",ks.join("\n"));}catch(e){}PM_MEMBERS=(list||[]).filter(x=>x&&x.pasarMalam&&!x.pending).map(x=>({id:x.id,toko:x.toko||x.usaha||"",nama:x.nama||"",jualan:x.jualan||"",pmInfo:x.pmInfo||"",pmLibur:x.pmLibur||"",kode:x.kode||""}));try{localStorage.setItem("kalensari_pm_members",JSON.stringify(PM_MEMBERS));}catch(e){}}
@@ -2663,10 +2663,10 @@ const PM_HARI_NAMA=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
 const PM_MALAM=["Minggu","Senin","Selasa","Rabu","Kamis","Jum'at","Sabtu"];   // "malam Jum'at" = Kamis malam
 const pmWib=()=>new Date(Date.now()+new Date().getTimezoneOffset()*6e4+7*36e5);
 const pmMenit=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||""));return m?+m[1]*60+ +m[2]:null;};
-const pmAktif=()=>{const c=PM_CFG,w=pmWib(),n=w.getHours()*60+w.getMinutes(),a=pmMenit(c.mulai)??900,b=pmMenit(c.akhir)??1260;return c.aktif!==false&&w.getDay()===Number(c.hari??4)&&n>=a&&n<b;};
+const pmAktif=()=>{const c=PM_CFG,w=pmWib(),n=w.getHours()*60+w.getMinutes(),a=pmMenit(c.mulai)??960,b=pmMenit(c.akhir)??1260;return c.aktif!==false&&w.getDay()===Number(c.hari??4)&&n>=a&&n<b;};
 // Tombol 🌙 Pasar Malam di baris kategori hanya muncul pada malam Jum'at: dari jam pop-up mulai sampai acara selesai
 function pmTombolMuncul(){try{const c=(typeof PM_CFG==="object"&&PM_CFG)||{};if(c.aktif===false)return false;const w=pmWib(),n=w.getHours()*60+w.getMinutes();
-  return w.getDay()===Number(c.hari??4)&&n>=(pmMenit(c.mulai)??900)&&n<Math.max(pmMenit(c.tutup)??1320,pmMenit(c.akhir)??1260);}catch(e){return false;}}   // dipanggil sebelum bagian ini dimuat -> false dulu
+  return w.getDay()===Number(c.hari??4)&&n>=(pmMenit(c.mulai)??960)&&n<Math.max(pmMenit(c.tutup)??1260,pmMenit(c.akhir)??1260);}catch(e){return false;}}   // dipanggil sebelum bagian ini dimuat -> false dulu
 setTimeout(()=>{try{renderCategories();}catch(e){}},0);
 // tanggal acara berikutnya (YYYY-MM-DD, WIB) — hari ini bila hari acara & belum lewat jam akhir
 function pmTanggalAcara(){const c=PM_CFG,w=pmWib(),h=Number(c.hari??4),n=w.getHours()*60+w.getMinutes();let d=(h-w.getDay()+7)%7;if(d===0&&n>=(pmMenit(c.akhir)??1260))d=7;const t=new Date(w.getTime()+d*864e5);return{iso:`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`,teks:t.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long"}),hariIni:d===0};}
@@ -2693,7 +2693,7 @@ async function bukaInfoPasarMalam(){
   const ov=document.createElement("div");ov.id="pmInfo";ov.className="pm-ov pm-info";ov.setAttribute("role","dialog");ov.setAttribute("aria-modal","true");ov.setAttribute("aria-label","Pasar Malam Jum’at");
   ov.innerHTML=`<div class="pm-sheet"><div class="pm-sh"><div><small>🌙 EVENT MINGGUAN</small><h2>Pasar Malam Jum’at</h2></div><button type="button" class="pm-shx" aria-label="Tutup">✕</button></div>
   <div class="pm-sb">
-    <div class="pm-jad"><div><b>📅 ${acara.hariIni?"Malam ini":esc(acara.teks)}</b><span>Setiap malam ${PM_MALAM[(Number(c.hari??4)+1)%7]} • mulai ${esc(String(c.acara||"17:00").replace(":","."))} WIB</span></div><div><b>📍 Lokasi</b><span>${esc(c.lokasi||PM_DEF.lokasi)}</span></div></div>
+    <div class="pm-jad"><div><b>📅 ${acara.hariIni?"Malam ini":esc(acara.teks)}</b><span>Setiap malam ${PM_MALAM[(Number(c.hari??4)+1)%7]} • mulai ${esc(String(c.acara||"16:00").replace(":","."))} WIB</span></div><div><b>📍 Lokasi</b><span>${esc(c.lokasi||PM_DEF.lokasi)}</span></div></div>
     ${c.info?`<p class="pm-catat">${esc(c.info)}</p>`:""}
     <div class="pm-denah-slot"></div>
     <h3>🏮 Pedagang ${acara.hariIni?"malam ini":"minggu ini"} <em>${buka.length}</em></h3>
@@ -2722,7 +2722,7 @@ function tampilPasarMalam(paksa){
   }
   try{localStorage.setItem(kunci,"1");}catch(e){}
   const ov=document.createElement("div");ov.id="pmOv";ov.className="pm-ov";ov.setAttribute("role","dialog");ov.setAttribute("aria-modal","true");ov.setAttribute("aria-label","Event Pasar Malam Jum’at");
-  ov.innerHTML=`<div class="pm-box"><img src="${PM_GAMBAR}" alt="Event Pasar Malam Jum’at Kalensari Store. Setiap malam ${PM_MALAM[(Number(PM_CFG.hari??4)+1)%7]} mulai ${esc(String(PM_CFG.acara||"17:00").replace(":","."))} WIB di area Pasar Malam Kalensari Store.">`
+  ov.innerHTML=`<div class="pm-box"><img src="${PM_GAMBAR}" alt="Event Pasar Malam Jum’at Kalensari Store. Setiap malam ${PM_MALAM[(Number(PM_CFG.hari??4)+1)%7]} mulai ${esc(String(PM_CFG.acara||"16:00").replace(":","."))} WIB di area Pasar Malam Kalensari Store.">`
     +`<button type="button" class="pm-x" aria-label="Tutup"></button><button type="button" class="pm-den" aria-label="Lihat denah & daftar pedagang Pasar Malam Jum’at"></button></div>`;
   ov.addEventListener("click",e=>{if(e.target.closest(".pm-den"))bukaInfoPasarMalam();else if(e.target===ov||e.target.closest(".pm-x"))tutupPasarMalam();});
   document.addEventListener("keydown",pmEsc);

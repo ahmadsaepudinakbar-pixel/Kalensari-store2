@@ -2251,7 +2251,7 @@ async function hrSimpan(btn){
    pasar_malam = {aktif, hari, mulai, akhir, acara, lokasi, info, denah, pedagang:[id penjual], lapak:{id:"A1"}}
    Pedagang = akun penjual dengan tanda pasarMalam:true (daftar lewat pedagang-pasar-malam.html).
    Hanya yang id-nya ada di "pedagang" yang tampil di toko — kunci ini hanya bisa diubah admin. */
-const PM_DEF={aktif:true,hari:4,mulai:'15:00',akhir:'21:00',acara:'17:00',tutup:'22:00',lokasi:'Area Pasar Malam Kalensari Store',info:'',denah:false,pedagang:[],lapak:{}};
+const PM_DEF={aktif:true,hari:4,mulai:'16:00',akhir:'21:00',acara:'16:00',tutup:'21:00',lokasi:'Area Pasar Malam Kalensari Store',info:'',denah:false,pedagang:[],lapak:{}};
 function pmNorm(v){v=v&&typeof v==='object'&&!Array.isArray(v)?v:{};return {...PM_DEF,...v,pedagang:Array.isArray(v.pedagang)?v.pedagang.filter(Boolean):[],lapak:v.lapak&&typeof v.lapak==='object'&&!Array.isArray(v.lapak)?v.lapak:{}}}
 const pmCfg=()=>pmNorm(S.settings.pasar_malam);
 // ubah aturan berdasarkan data terbaru di server (supaya tidak menimpa perubahan admin lain)
@@ -2261,7 +2261,7 @@ const pmAnggota=()=>members('penjual').filter(m=>m.pasarMalam);
 async function pmSyncJadwal(){
   const c=pmCfg(),ms=members('penjual').filter(m=>m.pasarMalam&&!m.pending&&c.pedagang.includes(m.id));if(!ms.length)return;
   const cur=await readKey('seller_schedule',{}),sc=cur&&typeof cur==='object'&&!Array.isArray(cur)?cur:{},h=Number(c.hari);let ubah=false;
-  ms.forEach(m=>{const k=sKey(m.toko||m.usaha);if(!k)return;const lama=sc[k]||{},rec={o:c.acara||'17:00',c:c.tutup||'22:00',off:[0,1,2,3,4,5,6].filter(d=>d!==h),h:Array.isArray(lama.h)?lama.h:[]};
+  ms.forEach(m=>{const k=sKey(m.toko||m.usaha);if(!k)return;const lama=sc[k]||{},rec={o:c.acara||'16:00',c:c.tutup||'21:00',off:[0,1,2,3,4,5,6].filter(d=>d!==h),h:Array.isArray(lama.h)?lama.h:[]};
     if(JSON.stringify(lama)!==JSON.stringify(rec)){sc[k]=rec;ubah=true}});
   if(ubah){await setSetting('seller_schedule',sc);S.settings.seller_schedule=sc}
 }
@@ -2310,9 +2310,9 @@ PAGES.pasarmalam=function(){
 };
 Object.assign(TITLES,{pasarmalam:['Pasar Malam Jum’at','Pedagang, nomor lapak, denah & jadwal pop-up']});
 async function pmSimpan(btn){
-  const mulai=$('#pmMulai').value||'15:00',akhir=$('#pmAkhir').value||'21:00';
+  const mulai=$('#pmMulai').value||'16:00',akhir=$('#pmAkhir').value||'21:00';
   if(akhir<=mulai)return toast('Jam berhenti harus setelah jam mulai');
-  const acara=$('#pmAcara').value||'17:00',tutup=$('#pmTutup').value||'22:00';if(tutup<=acara)return toast('Jam acara selesai harus setelah jam mulai acara');
+  const acara=$('#pmAcara').value||'16:00',tutup=$('#pmTutup').value||'21:00';if(tutup<=acara)return toast('Jam acara selesai harus setelah jam mulai acara');
   await busy(btn,async()=>{await pmAtur(c=>Object.assign(c,{aktif:$('#pmAktif').checked,hari:Number($('#pmHari').value),mulai,akhir,acara,tutup,lokasi:$('#pmLokasi').value.trim()||PM_DEF.lokasi,info:$('#pmInfo').value.trim()}));await pmSyncJadwal();render();toast('Aturan Pasar Malam disimpan • jadwal lapak ikut diperbarui')});
 }
 async function pmLapak(id,btn){const v=String($('#pmL_'+CSS.escape(id)).value||'').trim().toUpperCase().slice(0,8);
