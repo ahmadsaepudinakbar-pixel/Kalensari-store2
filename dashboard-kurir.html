@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8"><script src="ks-ingat.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="manifest-kurir.webmanifest">
 <meta name="theme-color" content="#7b3f1d">
@@ -386,8 +386,8 @@ async function hashPin(wa, pin){
 }
 
 const FIELDS = ["nama","kendaraan","wilayah"];
-let me = null, WA = window.KSID && KSID.sesi(ROLE) ? sessionStorage.getItem(SESS) : null;
-function keluar(){ sessionStorage.removeItem(SESS); if(window.KSID) KSID.hapusSesi(ROLE); location.href = "akun-" + ROLE + ".html"; }
+let me = null, WA = window.KSID && KSID.sesi(ROLE) ? (sessionStorage.getItem(SESS) || localStorage.getItem(SESS)) : null;   // tetap masuk walau aplikasi ditutup
+function keluar(){ sessionStorage.removeItem(SESS); try{ localStorage.removeItem(SESS); }catch(e){} if(window.KSID) KSID.hapusSesi(ROLE); location.href = "akun-" + ROLE + ".html"; }
 $("btnKeluar").onclick = keluar;
 const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan", gagal:"Gagal antar"};
 function itemsText(o){
