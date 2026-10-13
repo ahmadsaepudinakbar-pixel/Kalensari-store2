@@ -2245,7 +2245,7 @@ async function hrSimpan(btn){
    pasar_malam = {aktif, hari, mulai, akhir, acara, lokasi, info, denah, pedagang:[id penjual], lapak:{id:"A1"}}
    Pedagang = akun penjual dengan tanda pasarMalam:true (daftar lewat pedagang-pasar-malam.html).
    Hanya yang id-nya ada di "pedagang" yang tampil di toko — kunci ini hanya bisa diubah admin. */
-const PM_DEF={aktif:true,hari:4,mulai:'15:00',akhir:'21:00',acara:'18:00',lokasi:'Area Pasar Malam Kalensari Store',info:'',denah:false,pedagang:[],lapak:{}};
+const PM_DEF={aktif:true,hari:4,mulai:'15:00',akhir:'21:00',acara:'17:00',lokasi:'Area Pasar Malam Kalensari Store',info:'',denah:false,pedagang:[],lapak:{}};
 function pmNorm(v){v=v&&typeof v==='object'&&!Array.isArray(v)?v:{};return {...PM_DEF,...v,pedagang:Array.isArray(v.pedagang)?v.pedagang.filter(Boolean):[],lapak:v.lapak&&typeof v.lapak==='object'&&!Array.isArray(v.lapak)?v.lapak:{}}}
 const pmCfg=()=>pmNorm(S.settings.pasar_malam);
 // ubah aturan berdasarkan data terbaru di server (supaya tidak menimpa perubahan admin lain)
@@ -2297,7 +2297,7 @@ Object.assign(TITLES,{pasarmalam:['Pasar Malam Jumat','Pedagang, nomor lapak, de
 async function pmSimpan(btn){
   const mulai=$('#pmMulai').value||'15:00',akhir=$('#pmAkhir').value||'21:00';
   if(akhir<=mulai)return toast('Jam berhenti harus setelah jam mulai');
-  await busy(btn,async()=>{await pmAtur(c=>Object.assign(c,{aktif:$('#pmAktif').checked,hari:Number($('#pmHari').value),mulai,akhir,acara:$('#pmAcara').value||'18:00',lokasi:$('#pmLokasi').value.trim()||PM_DEF.lokasi,info:$('#pmInfo').value.trim()}));render();toast('Aturan Pasar Malam disimpan')});
+  await busy(btn,async()=>{await pmAtur(c=>Object.assign(c,{aktif:$('#pmAktif').checked,hari:Number($('#pmHari').value),mulai,akhir,acara:$('#pmAcara').value||'17:00',lokasi:$('#pmLokasi').value.trim()||PM_DEF.lokasi,info:$('#pmInfo').value.trim()}));render();toast('Aturan Pasar Malam disimpan')});
 }
 async function pmLapak(id,btn){const v=String($('#pmL_'+CSS.escape(id)).value||'').trim().toUpperCase().slice(0,8);
   await busy(btn,async()=>{await pmAtur(c=>{if(v)c.lapak[id]=v;else delete c.lapak[id]});render();toast(v?'Nomor lapak '+v+' disimpan':'Nomor lapak dihapus')})}

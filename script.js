@@ -2648,12 +2648,13 @@ setInterval(()=>{try{if(hujanOn()!==!!document.getElementById("ksHujanBar"))rend
 // Pop-up tampil di hari & jam yang diatur admin (bawaan: KAMIS 15.00–21.00 WIB), sekali per hari per HP.
 // Aturan dari store_settings "pasar_malam" (menu admin 🌙 Pasar Malam Jumat). Uji coba kapan saja: ...?pasarmalam=1
 // Tombol "Lihat Denah Event" membuka lembar Pasar Malam Jumat: jadwal, denah (bila diunggah admin) & daftar pedagang.
-var PM_DEF={aktif:true,hari:4,mulai:"15:00",akhir:"21:00",acara:"18:00",lokasi:"Area Pasar Malam Kalensari Store",info:"",denah:false,pedagang:[],lapak:{}};
+var PM_DEF={aktif:true,hari:4,mulai:"15:00",akhir:"21:00",acara:"17:00",lokasi:"Area Pasar Malam Kalensari Store",info:"",denah:false,pedagang:[],lapak:{}};
 var PM_CFG=(()=>{try{const v=JSON.parse(localStorage.getItem("kalensari_pasar_malam")||"null");return v&&typeof v==="object"?{...PM_DEF,...v}:{...PM_DEF};}catch(e){return{...PM_DEF};}})();
 var PM_MEMBERS=(()=>{try{const v=JSON.parse(localStorage.getItem("kalensari_pm_members")||"[]");return Array.isArray(v)?v:[];}catch(e){return[];}})();
 function pmSimpanMembers(list){PM_MEMBERS=(list||[]).filter(x=>x&&x.pasarMalam&&!x.pending).map(x=>({id:x.id,toko:x.toko||x.usaha||"",nama:x.nama||"",jualan:x.jualan||"",pmInfo:x.pmInfo||"",pmLibur:x.pmLibur||"",kode:x.kode||""}));try{localStorage.setItem("kalensari_pm_members",JSON.stringify(PM_MEMBERS));}catch(e){}}
 const PM_GAMBAR="img/pasar-malam.jpg";
 const PM_HARI_NAMA=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const PM_MALAM=["Minggu","Senin","Selasa","Rabu","Kamis","Jum'at","Sabtu"];   // "malam Jum'at" = Kamis malam
 const pmWib=()=>new Date(Date.now()+new Date().getTimezoneOffset()*6e4+7*36e5);
 const pmMenit=t=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(t||""));return m?+m[1]*60+ +m[2]:null;};
 const pmAktif=()=>{const c=PM_CFG,w=pmWib(),n=w.getHours()*60+w.getMinutes(),a=pmMenit(c.mulai)??900,b=pmMenit(c.akhir)??1260;return c.aktif!==false&&w.getDay()===Number(c.hari??4)&&n>=a&&n<b;};
@@ -2682,7 +2683,7 @@ async function bukaInfoPasarMalam(){
   const ov=document.createElement("div");ov.id="pmInfo";ov.className="pm-ov pm-info";ov.setAttribute("role","dialog");ov.setAttribute("aria-modal","true");ov.setAttribute("aria-label","Pasar Malam Jumat");
   ov.innerHTML=`<div class="pm-sheet"><div class="pm-sh"><div><small>🌙 EVENT MINGGUAN</small><h2>Pasar Malam Jumat</h2></div><button type="button" class="pm-shx" aria-label="Tutup">✕</button></div>
   <div class="pm-sb">
-    <div class="pm-jad"><div><b>📅 ${acara.hariIni?"Malam ini":esc(acara.teks)}</b><span>Setiap ${PM_HARI_NAMA[Number(c.hari??4)]} malam • mulai ${esc(String(c.acara||"18:00").replace(":","."))} WIB</span></div><div><b>📍 Lokasi</b><span>${esc(c.lokasi||PM_DEF.lokasi)}</span></div></div>
+    <div class="pm-jad"><div><b>📅 ${acara.hariIni?"Malam ini":esc(acara.teks)}</b><span>Setiap malam ${PM_MALAM[(Number(c.hari??4)+1)%7]} • mulai ${esc(String(c.acara||"17:00").replace(":","."))} WIB</span></div><div><b>📍 Lokasi</b><span>${esc(c.lokasi||PM_DEF.lokasi)}</span></div></div>
     ${c.info?`<p class="pm-catat">${esc(c.info)}</p>`:""}
     <div class="pm-denah-slot"></div>
     <h3>🏮 Pedagang ${acara.hariIni?"malam ini":"minggu ini"} <em>${buka.length}</em></h3>
@@ -2711,7 +2712,7 @@ function tampilPasarMalam(paksa){
   }
   try{localStorage.setItem(kunci,"1");}catch(e){}
   const ov=document.createElement("div");ov.id="pmOv";ov.className="pm-ov";ov.setAttribute("role","dialog");ov.setAttribute("aria-modal","true");ov.setAttribute("aria-label","Event Pasar Malam Jumat");
-  ov.innerHTML=`<div class="pm-box"><img src="${PM_GAMBAR}" alt="Event Pasar Malam Jumat Kalensari Store. Setiap Kamis malam mulai ${esc(String(PM_CFG.acara||"18:00").replace(":","."))} WIB di area Pasar Malam Kalensari Store.">`
+  ov.innerHTML=`<div class="pm-box"><img src="${PM_GAMBAR}" alt="Event Pasar Malam Jumat Kalensari Store. Setiap malam ${PM_MALAM[(Number(PM_CFG.hari??4)+1)%7]} mulai ${esc(String(PM_CFG.acara||"17:00").replace(":","."))} WIB di area Pasar Malam Kalensari Store.">`
     +`<button type="button" class="pm-x" aria-label="Tutup"></button><button type="button" class="pm-den" aria-label="Lihat denah & daftar pedagang Pasar Malam Jumat"></button></div>`;
   ov.addEventListener("click",e=>{if(e.target.closest(".pm-den"))bukaInfoPasarMalam();else if(e.target===ov||e.target.closest(".pm-x"))tutupPasarMalam();});
   document.addEventListener("keydown",pmEsc);
