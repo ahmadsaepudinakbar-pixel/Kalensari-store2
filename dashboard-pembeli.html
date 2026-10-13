@@ -189,6 +189,9 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 
 /* v49b foto produk di kartu pesanan */
 .oc-ic.ft{position:relative;border-radius:14px;background:#fff;overflow:visible;padding:0;border:2px solid var(--c)}
+.pinw{position:relative;display:block}.pinw .fld{padding-right:50px}.pinw .lihat{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:20px;padding:6px 8px;cursor:pointer;line-height:1;opacity:.75}
+.btn:disabled{opacity:.6;cursor:wait}
+.o-seg{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:2px 2px 0;font-size:12.5px;color:var(--muted)}.o-seg button{border:1px solid #dcc8b2;background:#fff;color:var(--brown);border-radius:999px;padding:7px 14px;font:inherit;font-weight:700;font-size:13px;cursor:pointer}
 .oc-ic.ft img{width:100%;height:100%;object-fit:cover;border-radius:12px;display:block}
 .oc-ic.ft em{position:absolute;right:-6px;bottom:-6px;background:var(--c);color:#fff;font-style:normal;font-size:11px;font-weight:800;border-radius:999px;padding:1px 6px;border:2px solid #fff}
 #orders .oc .oc-ic.ft{width:56px;height:56px}
@@ -200,7 +203,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 <main class="wrap">
 <div id="warn" class="warn" hidden>⚠️ Database online belum aktif. Data hanya tersimpan di browser ini (mode uji coba).</div>
   <div id="dash" hidden>
-  <section class="tmp" id="tmpBox" hidden><b style="font-size:17px">🔐 Buat PIN baru</b><p style="margin:4px 0 10px;font-size:14px">Anda masuk dengan PIN sementara dari admin. Buat PIN baru Anda sendiri sekarang.</p><div class="row2"><label>PIN baru<input id="tPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka"></label><label>Ulangi PIN<input id="tPin2" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div><button class="btn wa" id="tSimpan" type="button">Simpan PIN baru</button></section>
+  <section class="tmp" id="tmpBox" hidden><b style="font-size:17px">🔐 Buat PIN baru</b><p style="margin:4px 0 10px;font-size:14px">Anda masuk dengan PIN sementara dari admin. Buat PIN baru Anda sendiri sekarang.</p><div class="row2"><label>PIN baru<input id="tPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka"></label><label>Ulangi PIN<input id="tPin2" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div><label id="tLamaBox" hidden>PIN sementara dari admin<input id="tLama" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="PIN yang dikirim admin"></label><button class="btn wa" id="tSimpan" type="button">Simpan PIN baru</button></section>
 
   <!-- ===== BERANDA ===== -->
   <div data-pg="home">
@@ -237,22 +240,24 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
   </div>
 
   <!-- ===== PESANAN ===== -->
-  <section class="box" data-pg="pesanan"><div class="fchips" id="oFilter"><button type="button" data-f="semua" class="on">Semua</button><button type="button" data-f="aktif"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Berjalan</button><button type="button" data-f="selesai"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".85"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Selesai</button><button type="button" data-f="kirim">📦 Paket &amp; Ojek</button><button type="button" data-f="batal"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".85"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>Dibatalkan</button></div><div id="orders"></div><div class="btns"><a class="btn wa" href="index.html">🛍️ Belanja sekarang</a></div></section>
+  <section class="box" data-pg="pesanan"><div class="fchips" id="oFilter"><button type="button" data-f="semua" class="on">Semua</button><button type="button" data-f="aktif"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Berjalan</button><button type="button" data-f="selesai"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".85"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Selesai</button><button type="button" data-f="kirim">📦 Paket &amp; Ojek</button><button type="button" data-f="batal"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity=".85"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>Dibatalkan</button></div><div class="o-seg"><span id="oWaktu"></span><button type="button" id="oMuat">🔄 Perbarui</button></div><div id="orders"></div><div class="btns"><a class="btn wa" href="index.html">🛍️ Belanja sekarang</a></div></section>
 
   <!-- ===== ALAMAT ===== -->
   <section class="box" data-pg="alamat"><p class="hint" style="margin:0 0 4px">Alamat <b>utama</b> dipakai otomatis saat checkout. Simpan juga titik lokasinya agar kurir mudah menemukan.</p><div id="alBox"></div></section>
 
   <!-- ===== AKUN ===== -->
   <div data-pg="akun">
-    <section class="box"><h2 id="dHalo" style="font-size:20px"></h2>
+    <section class="box"><h2 id="dHalo" style="font-size:20px"></h2><div id="kodeAkun2" style="margin:6px 0 4px"></div><p class="hint" id="kodeAkunInfo" style="margin:4px 0 12px" hidden>ID akun bisa dipakai untuk masuk selain nomor WhatsApp.</p>
       <label>Nama<input id="f_nama" class="fld" maxlength="60"></label>
       <label>No. WhatsApp (untuk masuk)<input id="fWa" class="fld" disabled></label>
       <div class="btns"><button class="btn wa" id="fSimpan" type="button">💾 Simpan nama</button></div>
     </section>
     <section class="box" style="margin-top:14px" id="notifSec"><h2>🔔 Notifikasi</h2><div id="ksNotifDb"></div></section>
     <section class="box" style="margin-top:14px"><h2>🔐 Ganti PIN</h2>
-      <div class="row2" style="margin-top:10px"><label>PIN lama<input id="pOld" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>PIN baru<input id="pNew" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div>
-      <div class="btns"><button class="btn" id="pSimpan" type="button">Simpan PIN baru</button></div></section>
+      <label style="margin-top:10px">PIN lama<input id="pOld" class="fld" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password"></label>
+      <div class="row2"><label>PIN baru<input id="pNew" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="new-password"></label><label>Ulangi PIN baru<input id="pNew2" class="fld" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label></div>
+      <div class="btns"><button class="btn" id="pSimpan" type="button">Simpan PIN baru</button></div>
+      <p class="hint" style="margin:12px 0 0;text-align:center">Lupa PIN lama? <a href="akun-pembeli.html#lupa" style="color:var(--brown);font-weight:700">Atur ulang lewat kode WhatsApp</a></p></section>
     <div class="btns" style="margin-top:14px"><button class="btn danger" id="btnKeluar" type="button">Keluar dari akun</button></div>
     <div id="ksHapusAkun"></div>
   </div>
@@ -284,7 +289,7 @@ function suksesPin(judul, isi){
   document.body.appendChild(ov);
 }
 function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 3200); }
-const normPhone = v => String(v||"").replace(/\D/g,"").replace(/^0/,"62");
+const normPhone = v => { let d = String(v||"").replace(/\D/g,""); if(d.startsWith("0")) d = "62" + d.slice(1); else if(d.startsWith("8")) d = "62" + d; return d; };
 const okPin = v => /^\d{4,8}$/.test(v);
 const fmtRp = n => "Rp" + Number(n||0).toLocaleString("id-ID");
 const ROLE = "pembeli", SESS = "kalensari_" + ROLE + "_sess";
@@ -329,7 +334,7 @@ function validCoord(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&
 function parseCoord(v){const t=String(v==null?"":v).trim().replace(",",".");return t===""?NaN:Number(t)}
 function parseLatLng(t){t=String(t||"").trim();if(!t)return null;const m=t.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)||t.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/)||t.match(/[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?)(?:,|%2C)\s*(-?\d+(?:\.\d+)?)/i)||t.match(/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/);return m?[Number(String(m[1]).replace(",",".")),Number(String(m[2]).replace(",","."))]:null}
 function keluar(){ sessionStorage.removeItem(SESS); try{ localStorage.removeItem(LOGIN); }catch(e){} if(window.KSID) KSID.hapusSesi(ROLE); if(window.KSSatu) KSSatu.keluarSemua(); location.href = "akun-" + ROLE + ".html"; }
-$("btnKeluar").onclick = keluar;
+$("btnKeluar").onclick = () => { if(confirm("Keluar dari akun di HP ini?\nAnda perlu memasukkan nomor WhatsApp dan PIN lagi untuk masuk.")) keluar(); };
 const SL = {menunggu:"Menunggu", baru:"Menunggu", diproses:"Diproses", dikirim:"Dikirim", selesai:"Selesai", dibatalkan:"Dibatalkan", gagal:"Gagal diantar"};
 function itemsText(o){
   let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } }
@@ -358,7 +363,7 @@ async function load(){
   if(a.wa && a.wa !== WA){ WA = a.wa; sessionStorage.setItem(SESS, WA); LSset(LOGIN, {wa: WA, exp: Date.now() + 365*864e5}); }
   me = {...(a.data || {}), id:a.id, wa:WA};
   $("dHalo").textContent = "Halo, " + (me.nama || "selamat datang") + " 👋";
-  if(window.KSID) $("kodeAkun").innerHTML = KSID.lencana(me.kode);
+  if(window.KSID){ $("kodeAkun").innerHTML = KSID.lencana(me.kode); $("kodeAkun2").innerHTML = KSID.lencana(me.kode); $("kodeAkunInfo").hidden = !me.kode; }
   FIELDS.forEach(k => { $("f_" + k).value = me[k] || ""; });
   $("fWa").value = "+" + WA;
   if(window.KSNotif) KSNotif.kartu($("ksNotifDb"), {key:"pembeli_push_" + WA, judul:"🔔 Kabari saya lewat notifikasi", ajakan:"Dapatkan pemberitahuan saat pesanan diterima toko, diantar kurir, dan selesai.", aktifTeks:"Anda akan diberi tahu saat status pesanan berubah."});
@@ -378,17 +383,23 @@ $("fSimpan").onclick = async () => {
   if(!$("f_nama").value.trim()) return toast("Nama wajib diisi");
   FIELDS.forEach(k => { me[k] = $("f_" + k).value.trim(); });
   
-  me.updated = Date.now();
+  me.updated = Date.now(); $("fSimpan").disabled = true;
   try{ await upsertMember(me); $("dHalo").textContent = "Halo, " + me.nama + " 👋"; heroUpdate(); toast("Nama berhasil disimpan"); if(sessionStorage.getItem("kalensari_next") === "checkout" && me.alamat){ sessionStorage.removeItem("kalensari_next"); toast("Tersimpan. Kembali ke checkout..."); setTimeout(() => { location.href = "index.html#checkout"; }, 900); } }
   catch(e){ toast(e.message || "Gagal menyimpan"); }
+  finally{ $("fSimpan").disabled = false; }
 };
 $("pSimpan").onclick = async () => {
   const o = $("pOld").value, n = $("pNew").value;
+  if(!okPin(o)) return toast("Isi PIN lama Anda (4–8 angka)");
   if(!okPin(n)) return toast("PIN baru harus 4–8 angka");
+  if(n !== $("pNew2").value) return toast("Ulangi PIN baru tidak sama");
+  if(n === o) return toast("PIN baru harus berbeda dari PIN lama");
+  $("pSimpan").disabled = true;
   try{
     const g = await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:o, p_pin_baru:n}); if(g && g.sesi) KSID.setSesi(ROLE, g.sesi);
-    $("pOld").value = $("pNew").value = ""; suksesPin("PIN berhasil diganti", "Mulai sekarang gunakan PIN baru untuk masuk dan konfirmasi pesanan. Jangan beri tahu PIN Anda kepada siapa pun.");
+    $("pOld").value = $("pNew").value = $("pNew2").value = ""; suksesPin("PIN berhasil diganti", "Mulai sekarang gunakan PIN baru untuk masuk dan konfirmasi pesanan. Jangan beri tahu PIN Anda kepada siapa pun.");
   }catch(e){ toast(e.message || "Gagal mengganti PIN"); }
+  finally{ $("pSimpan").disabled = false; }
 };
 
 /* ===== PIN sementara dari admin → wajib buat PIN baru ===== */
@@ -397,8 +408,8 @@ $("tSimpan").onclick = async () => {
   if(!okPin(n)) return toast("PIN harus 4–8 angka"); if(n !== n2) return toast("Ulangi PIN tidak sama");
   $("tSimpan").disabled = true;
   try{ let lama = sessionStorage.getItem("kalensari_pin_tmp") || "";
-    if(!lama){ lama = prompt("Masukkan PIN sementara dari admin:") || ""; if(!lama) return; }
-    const g = await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:lama, p_pin_baru:n}); if(g && g.sesi) KSID.setSesi(ROLE, g.sesi); sessionStorage.removeItem("kalensari_pin_tmp");
+    if(!lama){ $("tLamaBox").hidden = false; lama = $("tLama").value; if(!okPin(lama)){ $("tLama").focus(); return toast("Masukkan PIN sementara dari admin"); } }
+    const g = await rpc("ganti_pin_pembeli", {p_wa:WA, p_pin_lama:lama, p_pin_baru:n}); if(g && g.sesi) KSID.setSesi(ROLE, g.sesi); sessionStorage.removeItem("kalensari_pin_tmp"); $("tLama").value = "";
     $("tmpBox").hidden = true; suksesPin("PIN baru tersimpan", "Mulai sekarang gunakan PIN baru untuk masuk dan konfirmasi pesanan. Ingat baik-baik ya."); }
   catch(e){ toast(e.message || "Gagal menyimpan PIN"); } finally{ $("tSimpan").disabled = false; }
 };
@@ -546,6 +557,13 @@ async function rpc(fn, body){
   const t = await r.text(); if(!r.ok){ let m = t; try{ m = JSON.parse(t).message || t; }catch(e){} throw new Error(m); }
   const j = t ? JSON.parse(t) : null; if(j && j.ok === false) throw new Error(j.pesan || "Gagal"); return j;
 }
+// Salin teks: pakai clipboard bila ada, bila tidak (HP lama / bukan https) pakai cara cadangan
+async function salinTeks(t, pesan){
+  try{ if(navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(t); return toast(pesan || "Disalin"); } }catch(e){}
+  const a = document.createElement("textarea"); a.value = t; a.setAttribute("readonly", ""); a.style.cssText = "position:fixed;top:-1000px;opacity:0"; document.body.appendChild(a); a.select();
+  let ok = false; try{ ok = document.execCommand("copy"); }catch(e){} a.remove();
+  toast(ok ? (pesan || "Disalin") : "Tidak bisa menyalin otomatis. Tekan lama kodenya lalu salin.");
+}
 async function muatSaldoKecil(){
   try{ const r = await saldoSaya(); const v = Number(r && r.saldo) || 0; $("qSaldo").textContent = v >= 1000 ? Math.floor(v / 1000) + "rb" : v; $("qSaldo").hidden = !v; return v; }catch(e){ return null; }
 }
@@ -562,7 +580,7 @@ async function muatVoucher(){
       : `Bagikan kode Anda. Begitu tetangga <b>daftar akun baru</b> memakai kode Anda dan kode OTP WhatsApp-nya berhasil, Anda <b>langsung dapat ${fmtRp(A.pengundang)}</b> saldo voucher.` + (Number(A.baru) > 0 ? ` Tetangga Anda dapat <b>${fmtRp(A.baru)}</b> setelah pesanan pertamanya (minimal ${fmtRp(A.min)}) selesai diantar.` : "");
     const pesan = `Yuk belanja makanan & minuman dari warga Desa Kalensari di Kalensari Store 🛍️\n\nDaftar pakai kode saya *${kode}*` + (Number(A.baru) > 0 ? ` supaya kamu dapat saldo voucher ${fmtRp(A.baru)} setelah pesanan pertama selesai` : "") + `:\n${link}`;
     $("ajWa").href = "https://wa.me/?text=" + encodeURIComponent(pesan);
-    $("ajSalin").onclick = () => { navigator.clipboard && navigator.clipboard.writeText(kode ? kode + " • " + link : link); toast("Kode & link disalin"); };
+    $("ajSalin").onclick = () => salinTeks(kode ? kode + " • " + link : link, "Kode & link disalin");
     const ok = (aj || []).filter(x => x.status === "selesai" || x.status === "cair").length, tunggu = (aj || []).filter(x => x.status === "menunggu").length;
     $("ajStat").textContent = (aj || []).length ? `👥 ${ok} tetangga berhasil bergabung` + (tunggu ? ` • ${tunggu} menunggu pesanan pertama selesai` : "") : "Belum ada tetangga yang memakai kode Anda.";
     $("ajMasuk").hidden = A.aktif === false || (saya || []).length > 0 || (sel || []).length > 0;
@@ -794,6 +812,7 @@ async function loadOrders(diam){
     const sig = rows.map(o => [o.order_code, o.status, o.pay_status, o.kurir_id, o.total].join(":")).join("|");
     if(diam === true && sig === ORD_SIG) return;
     ORD_SIG = sig;
+    if($("oWaktu")) $("oWaktu").textContent = "Diperbarui " + new Date().toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit"});
     await muatKurirOrd(rows); await muatFotoProduk(rows);
     ringkasan(rows.filter(o => !trOf(o))); berandaPesanan(rows);
     if(window.KSPW) KSPW.pasang(box, rows, loadOrders);
@@ -813,10 +832,20 @@ async function loadOrders(diam){
 //  - tiap 20 detik selama halaman terbuka & masih ada pesanan berjalan
 //  - saat aplikasi dibuka kembali dari belakang layar
 //  - saat ada notifikasi pesanan masuk ke HP ini
+$("oMuat").onclick = async () => { const b = $("oMuat"); if(b.disabled) return; b.disabled = true; b.textContent = "⏳ Memuat..."; ORD_SIG = ""; try{ await loadOrders(true); toast("Pesanan diperbarui"); } finally{ b.disabled = false; b.textContent = "🔄 Perbarui"; } };
 setInterval(() => { if(document.visibilityState === "visible" && Object.values(ORD_MAP).some(o => AKTIF.includes(o.status || "menunggu"))) loadOrders(true); }, 20000);
 document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && WA) loadOrders(true); });
 if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(e.data && e.data.type === "bunyi-pesanan" && WA) loadOrders(true); });
 
+document.querySelectorAll('input[type="password"]').forEach(x => {
+  x.addEventListener("input", () => { const v = x.value.replace(/\D/g, "").slice(0, 8); if(v !== x.value) x.value = v; });
+  if(x.closest(".row2") || x.id === "pOld" || x.id === "tLama"){
+    const w = document.createElement("span"); w.className = "pinw"; x.parentNode.insertBefore(w, x); w.appendChild(x);
+    const b = document.createElement("button"); b.type = "button"; b.className = "lihat"; b.textContent = "👁"; b.setAttribute("aria-label", "Lihat PIN"); b.tabIndex = -1;
+    b.onclick = () => { const t = x.type === "password"; x.type = t ? "text" : "password"; b.textContent = t ? "🙈" : "👁"; };
+    w.appendChild(b);
+  }
+});
 (async () => {
   $("warn").hidden = cloudOn();
   if(!WA) return location.replace("akun-" + ROLE + ".html");
