@@ -2,12 +2,13 @@
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
    (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v47";
+const VERSION = "ks-v49";
 const CACHE = "kalensari-" + VERSION;
 const PRECACHE = [
   "./offline.html",
   "./manifest.webmanifest",
   "./manifest-kurir.webmanifest",
+  "./manifest-penjual.webmanifest",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
 ];
@@ -61,13 +62,16 @@ self.addEventListener("push", (e) => {
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : "" }; }
   const title = d.title || "Kalensari Store";
   const adm = /admin-notif/.test((d.url || "") + " " + (d.tag || ""));   // push untuk aplikasi Admin Notif memakai logo adminnotif
+  // logo sesuai aplikasi: Mitra Toko (penjual & Pasar Malam), Kurir, atau Kalensari Store
+  const u = d.url || "";
+  const ikon = adm ? "icons/adminnotif-192.png" : /penjual|pedagang-pasar-malam/.test(u) ? "icons/penjual-192.png" : /kurir/.test(u) ? "icons/kurir-192.png" : "icons/icon-192.png";
   // pesanan masuk (penjual, kurir) & transaksi admin: tetap di layar sampai disentuh + getar panjang seperti telepon
   const penting = /pesanan-baru|ks-pesanan|admin-(qris|topup|cair|ord)/.test(d.tag || "");
   e.waitUntil(Promise.all([
     self.registration.showNotification(title, {
       body: d.body || "Ada kabar baru untuk Anda.",
-      icon: adm ? "icons/adminnotif-192.png" : "icons/icon-192.png",
-      badge: adm ? "icons/adminnotif-192.png" : "icons/icon-192.png",
+      icon: ikon,
+      badge: ikon,
       tag: d.tag || "kalensari",
       renotify: true,
       requireInteraction: penting,
