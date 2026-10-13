@@ -2,7 +2,7 @@
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
    (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v46";
+const VERSION = "ks-v47";
 const CACHE = "kalensari-" + VERSION;
 const PRECACHE = [
   "./offline.html",
@@ -61,6 +61,8 @@ self.addEventListener("push", (e) => {
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : "" }; }
   const title = d.title || "Kalensari Store";
   const adm = /admin-notif/.test((d.url || "") + " " + (d.tag || ""));   // push untuk aplikasi Admin Notif memakai logo adminnotif
+  // pesanan masuk (penjual, kurir) & transaksi admin: tetap di layar sampai disentuh + getar panjang seperti telepon
+  const penting = /pesanan-baru|ks-pesanan|admin-(qris|topup|cair|ord)/.test(d.tag || "");
   e.waitUntil(Promise.all([
     self.registration.showNotification(title, {
       body: d.body || "Ada kabar baru untuk Anda.",
@@ -68,8 +70,9 @@ self.addEventListener("push", (e) => {
       badge: adm ? "icons/adminnotif-192.png" : "icons/icon-192.png",
       tag: d.tag || "kalensari",
       renotify: true,
-      requireInteraction: /pesanan-baru|ks-pesanan/.test(d.tag || ""),
-      vibrate: [300, 120, 300, 120, 300],
+      requireInteraction: penting,
+      silent: false,
+      vibrate: penting ? [900, 400, 900, 400, 900, 400, 900, 400, 900] : [300, 120, 300, 120, 300],
       data: { url: d.url || "./" }
     }),
     // halaman yang sedang terbuka ikut berbunyi & memuat ulang data

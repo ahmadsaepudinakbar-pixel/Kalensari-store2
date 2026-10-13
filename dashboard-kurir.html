@@ -289,6 +289,7 @@ body{background-color:#f4ebdf;background-image:none}
   <section class="box" id="ordBox" style="margin-top:0" hidden><div class="ob-hero"><span class="ob-ic" aria-hidden="true">❤️<i>🤲</i></span><div><h2>Pesanan untuk diantar</h2><p>Tiap pesanan ditawarkan ke satu kurir secara acak. Jika tidak ditanggapi, otomatis pindah ke kurir lain.</p></div><span class="ob-masjid" aria-hidden="true">🕌</span></div><div id="orders"></div><div class="btns"><button class="btn" id="btnRefresh" type="button">🔄 Muat ulang</button></div></section>
 
   <!-- 2. Data diri -->
+  <section class="box accordion-box" style="margin-top:14px;text-align:left"><b>📞 Nada dering pesanan</b><p class="hint" style="margin:6px 0 10px">Saat aplikasi terbuka, pesanan baru berdering seperti telepon (lagu Kalensari) sampai Anda menekan Lihat atau Diam.</p><button class="mini" type="button" style="width:100%" onclick="window.KSDering&&KSDering.tes()">▶ Tes nada dering</button></section>
   <section class="box accordion-box" style="margin-top:14px">
     <button class="accordion-head" type="button" aria-expanded="false" aria-controls="dataDiriBody" data-accordion="dataDiriBody">
       <span><h2 id="dHalo" style="font-size:22px"></h2><span class="section-note">Data diri kurir</span></span><span class="chev">⌄</span>
@@ -336,6 +337,7 @@ body{background-color:#f4ebdf;background-image:none}
 <script src="crop.js"></script>
 <script src="akun-id.js"></script><script src="pesanan-aman.js"></script><script src="hapus-akun.js"></script><script>window.KSHapus&&KSHapus.pasang(document.getElementById("ksHapusAkun"),"kurir")</script>
 <script src="notif.js"></script>
+<script src="dering.js"></script>
 <script src="navigasi-kurir.js"></script><script src="kembali.js"></script>
 <script>
 
@@ -1030,7 +1032,11 @@ async function loadOrders(){
       if(a && a.id === me.id) offers.push({o:rep, end:slotEnd(rep, st, now), n:list.length}); else other += list.length;
     }
     const codes = offers.map(x => x.o.order_code);
-    if(seenOffers && codes.some(c => !seenOffers.has(c))){ toast("🔔 Ada pesanan baru untuk Anda"); bunyi(); try{ navigator.vibrate && navigator.vibrate([250,120,250]); }catch(e){} }
+    window.__kOffers = codes.length;
+    if(seenOffers && codes.some(c => !seenOffers.has(c))){ toast("🔔 Ada pesanan baru untuk Anda");
+      if(window.KSDering) KSDering.mulai({label:"Kalensari Kurir", judul:"Pesanan baru untuk Anda!", isi: codes.length > 1 ? codes.length + " pesanan menunggu diterima." : "Ketuk Lihat untuk menerima pesanan.", ikon:"🛵", lihat:"Lihat pesanan",
+        onLihat: () => { const b = document.getElementById("btnLihat"); if(b) b.click(); }, sampai: () => !window.__kOffers });
+      else { bunyi(); try{ navigator.vibrate && navigator.vibrate([250,120,250]); }catch(e){} } }
     seenOffers = new Set(codes); setCounts(offers.length, mine.length);
     const hd = t => `<h3 class="ob-pill"><span>${/^Menunggu/.test(t) ? "🔔" : "📦"}</span>${t}</h3>`;
     let h = "";

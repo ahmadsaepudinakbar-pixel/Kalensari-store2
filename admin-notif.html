@@ -53,9 +53,10 @@ header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius
     <div id="notifBox"></div>
     <details class="card nada" id="nadaCard">
       <summary>🔊 Nada notifikasi</summary>
-      <div class="mut">Berlaku saat aplikasi sedang terbuka. Pilih nada bawaan atau suara dari HP (mp3, m4a, ogg, wav).</div>
+      <div class="mut">Berlaku saat aplikasi sedang terbuka. "Lagu Kalensari" berdering berulang seperti telepon sampai ditekan.</div>
       <select class="inp" id="nadaPil">
-        <option value="default">Default (ting-ting-ting)</option>
+        <option value="lagu">📞 Lagu Kalensari (dering telepon)</option>
+        <option value="default">Ting-ting-ting</option>
         <option value="bel">Bel panjang</option>
         <option value="sirine">Sirine</option>
         <option value="kustom">Suara dari HP saya…</option>
@@ -80,6 +81,7 @@ header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius
 
 <script src="config.js"></script>
 <script src="notif.js"></script>
+<script src="dering.js"></script>
 <script src="pwa.js"></script>
 <script>
 const CFG=window.CLOUD_CONFIG||{},BASE=String(CFG.supabaseUrl||'').replace(/\/$/,'');
@@ -180,20 +182,21 @@ async function mainkanKustom(){
   clearTimeout(nadaTimer);nadaTimer=setTimeout(()=>{try{nadaAudio.pause()}catch(e){}},NADA_DETIK*1000);
   return true;
 }
-async function mainkan(p){if(p==='kustom'){if(await mainkanKustom())return;throw new Error('tidak ada file')}beep(p)}
-function bunyi(){
-  try{navigator.vibrate&&navigator.vibrate([300,120,300])}catch(e){}
-  mainkan(nadaPref.pilih||'default').catch(()=>{try{beep('default')}catch(e){}});
+async function mainkan(p,teks){if(p==='lagu'&&window.KSDering){KSDering.mulai({label:'Kalensari Admin',judul:teks?'Ada transaksi baru!':'Tes nada dering',isi:teks||'Seperti ini bunyinya saat ada QRIS, isi saldo, atau pencairan.',ikon:'💳',lihat:'Lihat',ikonLihat:'👀',onLihat:()=>scrollTo({top:0,behavior:'smooth'})});return}if(p==='kustom'){if(await mainkanKustom())return;throw new Error('tidak ada file')}beep(p)}
+function bunyi(teks){
+  const p=nadaPref.pilih||'lagu';
+  if(p!=='lagu'){try{navigator.vibrate&&navigator.vibrate([300,120,300])}catch(e){}}
+  mainkan(p,teks).catch(()=>{try{beep('default')}catch(e){}});
 }
 function nadaTampil(){
-  $('#nadaPil').value=nadaPref.pilih||'default';
+  $('#nadaPil').value=nadaPref.pilih||'lagu';
   $('#nadaInfo').textContent=nadaPref.pilih==='kustom'?('File: '+(nadaPref.nama||'(belum dipilih)')+' · diputar maks. '+NADA_DETIK+' detik'):'';
 }
 function nadaInit(){
   $('#nadaPil').onchange=async e=>{
     const v=e.target.value;
     if(v==='kustom'){let ada=false;try{ada=!!(await idbGet('file'))}catch(x){}
-      if(!ada){e.target.value=nadaPref.pilih||'default';$('#nadaFile').click();return}}
+      if(!ada){e.target.value=nadaPref.pilih||'lagu';$('#nadaFile').click();return}}
     nadaPref.pilih=v;nadaSimpan();nadaTampil();mainkan(v).catch(()=>toast('Nada belum bisa diputar'));
   };
   $('#nadaPilih').onclick=()=>$('#nadaFile').click();
@@ -206,8 +209,8 @@ function nadaInit(){
       mainkan('kustom').catch(()=>toast('File tersimpan, tapi belum bisa diputar. Coba format mp3.'));
     }catch(x){toast('Gagal menyimpan suara')}
   };
-  $('#nadaTes').onclick=()=>mainkan(nadaPref.pilih||'default').catch(()=>toast('Nada belum bisa diputar'));
-  $('#nadaReset').onclick=async()=>{try{await idbDel('file')}catch(x){}nadaPref={};nadaSimpan();try{nadaAudio&&nadaAudio.pause()}catch(x){}nadaTampil();toast('Kembali ke nada default')};
+  $('#nadaTes').onclick=()=>mainkan(nadaPref.pilih||'lagu').catch(()=>toast('Nada belum bisa diputar'));
+  $('#nadaReset').onclick=async()=>{try{await idbDel('file')}catch(x){}nadaPref={};nadaSimpan();try{nadaAudio&&nadaAudio.pause()}catch(x){}nadaTampil();toast('Kembali ke Lagu Kalensari')};
   nadaTampil();
 }
 async function kabari(){
@@ -215,9 +218,9 @@ async function kabari(){
   try{localStorage.setItem(SEEN_KEY,JSON.stringify([...new Set([...s,...all.map(x=>x.key)])].slice(-400)))}catch(e){}
   if(first){first=false;return}
   if(!baru.length)return;
-  bunyi();
   const bq=baru.filter(x=>D.qris.includes(x)),bt=baru.filter(x=>D.topup.includes(x)),bc=baru.filter(x=>D.cair.includes(x));
   const msg=[];if(bq.length)msg.push(`💳 ${bq.length} QRIS perlu dicek`);if(bt.length)msg.push(`💰 ${bt.length} isi saldo`);if(bc.length)msg.push(`💸 ${bc.length} pencairan`);
+  bunyi(msg.join(' • '));
   toast(msg.join(' • '));
   if(document.hidden&&'Notification' in window&&Notification.permission==='granted'){
     try{const reg=await navigator.serviceWorker.getRegistration();reg&&reg.showNotification('Kalensari Admin',{body:msg.join(' • '),icon:'icons/adminnotif-192.png',badge:'icons/adminnotif-192.png',tag:'admin-notif',renotify:true,vibrate:[300,120,300],data:{url:'admin-notif.html'}})}catch(e){}
@@ -310,7 +313,7 @@ function start(){
 }
 setInterval(()=>{if(auth&&!$('#app').classList.contains('hide'))muat()},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&auth)muat()});
-if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='bunyi-pesanan'){bunyi();muat()}});
+if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='bunyi-pesanan'){if((nadaPref.pilih||'lagu')!=='lagu')bunyi();muat()}});
 nadaInit();
 if(auth&&auth.refresh_token)start();else showLogin();
 </script>

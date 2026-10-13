@@ -243,7 +243,7 @@ if(PM_MODE){document.title="Pasar Malam Jum'at – Aplikasi Pedagang";const st=d
 <button class="btn" id="bm">Masuk</button><a class="btn o" id="aDaftar" href="penjual.html">Daftar</a><p id="aKaki" style="margin-top:20px;font-size:13px">Aplikasi Penjual - Kalensari Store</p></section>
 <script>if(PM_MODE){const a=document.querySelector("#auth");a.querySelector("h1").textContent="Pasar Malam Jum'at";a.querySelector("h1+p").textContent="Aplikasi khusus pedagang • menu & pesanan lapak";document.getElementById("aDaftar").href="pedagang-pasar-malam.html";document.getElementById("aDaftar").textContent="Daftar lapak";document.getElementById("aKaki").textContent="🌙 Pasar Malam Jum'at • Kalensari Store";document.getElementById("lw").placeholder="08xxxxxxxxxx atau PM0001";}</script>
 <div id="app" hidden><header id="hd"></header><main id="v"></main><nav id="nav"></nav><div id="dr" hidden></div></div><div id="toast"></div>
-<script src="config.js" onerror="void 0"></script><script src="filter-kata.js"></script><script src="crop.js"></script><script src="akun-id.js"></script><script src="pesanan-aman.js"></script><script src="notif.js"></script><script src="hapus-akun.js"></script><script>
+<script src="config.js" onerror="void 0"></script><script src="filter-kata.js"></script><script src="crop.js"></script><script src="akun-id.js"></script><script src="pesanan-aman.js"></script><script src="notif.js"></script><script src="dering.js"></script><script src="hapus-akun.js"></script><script>
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])),rp=n=>"Rp "+Number(n||0).toLocaleString("id-ID"),K=s=>String(s||"").trim().toLowerCase();
 const toast=t=>{const e=$("toast");e.textContent=t;e.classList.add("s");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("s"),3000)};
 const cloud=()=>window.CLOUD_CONFIG&&CLOUD_CONFIG.enabled&&CLOUD_CONFIG.supabaseUrl&&CLOUD_CONFIG.supabaseAnonKey;
@@ -548,7 +548,7 @@ function popupPesanan(){if(document.querySelector(".pp-ov"))return;
   <div class="pp-r pp-tot"><span>${n} barang</span><b>${rp(tot(o))}</b></div></div>
   ${isOnly(o)?`<button class="btn grn pp-ya">✅ Terima pesanan</button>`:'<p class="pp-n">Pesanan gabungan beberapa toko: diproses oleh admin.</p>'}
   <div class="pp-a"><button class="btn o pp-det">👀 Lihat detail</button><button class="btn o pp-x">Nanti</button></div></div>`;
-  document.body.appendChild(ov);beep();try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}catch(e){}
+  document.body.appendChild(ov);if(window.KSDering)KSDering.mulai({layar:false,sampai:()=>!document.body.contains(ov)});else{beep();try{navigator.vibrate&&navigator.vibrate([300,150,300,150,300])}catch(e){}}
   const tutup=()=>{ov.remove();setTimeout(popupPesanan,400)};
   ov.querySelector(".pp-x").onclick=tutup;
   ov.querySelector(".pp-det").onclick=()=>{ov.remove();go("detail",o.id)};
@@ -830,6 +830,7 @@ bind.saldo=()=>{document.querySelectorAll(".u-row").forEach(r=>r.onclick=()=>go(
     catch(e){toast("Gagal: "+String(e.message||e).slice(0,80));b.disabled=false;b.textContent="💸 Ajukan pencairan"}})};
 /* ===== NOTIFIKASI PESANAN (pindahan dari halaman penjual.html) ===== */
 function notif(){return `<div class="card"><b>🔔 Notifikasi pesanan</b><p style="margin:6px 0 10px;font-size:13.5px;color:var(--mu)">HP berbunyi saat ada pesanan masuk untuk toko ${esc(me.toko||me.usaha||"Anda")}, walaupun aplikasi sedang ditutup. Pesanan juga dicek otomatis tiap 25 detik selama aplikasi dibuka.</p><div id="ntBox"></div></div>
+  <div class="card" style="margin-top:12px"><b>📞 Nada dering pesanan</b><p style="margin:6px 0 10px;font-size:13.5px;color:var(--mu)">Saat aplikasi terbuka, pesanan baru berdering seperti telepon (lagu Kalensari) sampai Anda menanggapinya.</p><button class="btn o" type="button" onclick="window.KSDering&&KSDering.tes()">▶ Tes nada dering</button></div>
   <div class="card" style="margin-top:12px"><b>📋 Pesanan</b><p style="margin:6px 0 10px;font-size:13.5px;color:var(--mu)">Terima / tolak pesanan dan konfirmasi uang COD ada di menu Pesanan.</p><button class="btn" onclick="go('orders')">Buka daftar pesanan</button></div>`}
 bind.notif=()=>{const b=$("ntBox");if(!b)return;if(window.KSNotif)KSNotif.kartu(b,{key:"penjual_push_"+me.id,extra:{nama:me.toko||me.usaha||""},judul:"🔔 Aktifkan notifikasi pesanan",ajakan:"Supaya HP berbunyi saat ada pesanan masuk, walaupun aplikasi sedang ditutup.",aktifTeks:"HP ini akan berbunyi saat ada pesanan masuk untuk toko Anda, walaupun aplikasi ditutup."});else b.innerHTML='<p style="font-size:13px;color:var(--mu)">Notifikasi belum tersedia di perangkat ini.</p>'};
 /* pesanan */
