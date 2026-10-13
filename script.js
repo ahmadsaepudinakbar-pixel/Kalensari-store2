@@ -2064,9 +2064,19 @@ async function bayarQris(code,waMsg){
       if(l<=0){clearInterval(qpTick);clearInterval(qpTimer);qpHabis(code);return;}el.textContent=Math.floor(l/60000)+":"+String(Math.floor(l%60000/1000)).padStart(2,"0");},1000);
     clearInterval(qpTimer);qpTimer=setInterval(()=>qpCekSekarang(code,false),4000);
   }catch(e){
-    qpRender(`<h2>💳 QRIS</h2><div class="qp-st bad">QRIS otomatis belum bisa dibuat.<br><small>${esc(e.message)}</small></div><p>Pesanan Anda tetap tersimpan. Hubungi toko lewat WhatsApp untuk cara bayar lain.</p><div class="qp-acts"><a class="btn primary" target="_blank" rel="noopener" href="${waLink(qpWa||("Halo KALENSARI STORE, saya ingin membayar pesanan "+code))}">💬 WhatsApp toko</a><button class="btn light" type="button" onclick="tutupQris()">Tutup</button></div>`);
+    if(qpCode!==code)return;
+    console.warn("QRIS otomatis gagal:",e&&e.message);
+    // CADANGAN: QRIS otomatis gagal (mis. server proxy/iPaymu gangguan) -> pakai QRIS statis toko + unggah bukti
+    if(qrisCadanganSiap()){
+      await bayarStatis(code,waMsg);
+      if(qpCode===code){const b=document.getElementById("qpBody");if(b&&b.querySelector(".qp-qr img")&&!b.querySelector(".qp-cadangan"))b.insertAdjacentHTML("afterbegin",'<div class="qp-st qp-cadangan" style="background:#fff4d6;color:#6b3a00;margin-bottom:10px">⚠️ QRIS otomatis sedang gangguan. Silakan bayar dengan <b>QRIS toko</b> di bawah ini, lalu unggah bukti bayarnya. Admin akan segera mengecek.</div>');}
+      return;
+    }
+    qpRender(`<h2>💳 QRIS</h2><div class="qp-st bad">QRIS sedang gangguan sebentar.</div><p>Pesanan Anda tetap tersimpan. Coba lagi beberapa menit lagi lewat 📦 Pesanan Saya, atau hubungi toko lewat WhatsApp untuk cara bayar lain.</p><details style="font-size:12px;color:#8a7466;margin:-4px 0 10px"><summary>Info teknis</summary>${esc(e&&e.message||"")}</details><div class="qp-acts"><button class="btn primary" type="button" onclick="bayarQris('${esc(code)}')">↻ Coba lagi</button><a class="btn outline" target="_blank" rel="noopener" href="${waLink(qpWa||("Halo KALENSARI STORE, saya ingin membayar pesanan "+code))}">💬 WhatsApp toko</a><button class="btn light" type="button" onclick="tutupQris()">Tutup</button></div>`);
   }
 }
+// QRIS statis toko siap dipakai sebagai cadangan (diatur di Admin > Pengaturan > QRIS Pembayaran Pesanan)
+function qrisCadanganSiap(){try{return !!QRIS_STATIS&&QRIS_STATIS.aktif!==false&&!!window.QRISStatis&&QRISStatis.cek(QRIS_STATIS.raw).ok&&typeof bayarStatis==="function";}catch(e){return false;}}
 async function qpCekSekarang(code,manual){
   try{const d=await qrisApi({aksi:"cek",order_code:code});if(qpCode!==code)return;
     if(d.pay_status==="lunas")return qpLunas(code);
