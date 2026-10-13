@@ -628,6 +628,7 @@ async function bukaCair(){
     }catch(e){ Y.disabled = false; segar(); toast("Gagal: " + String(e.message || e).slice(0, 100)); }
   };
 }
+/* versi isi-saldo: qris-otomatis-2 */
 async function bukaTopup(){
   await muatBiaya();
   const min = Number(BIAYA.minTopup) || 20000, pil = [min, 50000, 100000].filter((v, i, a) => v >= min && a.indexOf(v) === i);
@@ -685,13 +686,15 @@ async function bukaTopup(){
       if(manual) toast("Pembayaran belum diterima. Coba lagi beberapa detik lagi.");
     }catch(e){ if(manual) toast("Gagal mengecek: " + String(e.message || e).slice(0, 80)); }
   };
-  const tuManual = async () => {
+  const tuManual = async alasan => {
     tuStop(); q("#tuAuto").hidden = true; q("#tuStep1").hidden = true; q("#tuStep2").hidden = false; q("#tuNom").textContent = fmtRp(jml);
+    q("#tuAlasan") && q("#tuAlasan").remove();
+    if(typeof alasan === "string" && alasan) q("#tuStep2").insertAdjacentHTML("afterbegin", `<p id="tuAlasan" style="background:#fff4d6;color:#6b3a00;border-radius:12px;padding:9px 11px;font-size:12.5px;margin:0 0 8px">⚠️ QRIS otomatis tidak bisa dipakai sekarang, jadi memakai cara manual.<br><small style="opacity:.8">Info untuk admin: ${esc(alasan)}</small></p>`);
     await qrisP;
     q("#tuQr").innerHTML = qris ? `<img src="${qris}" alt="QRIS Kalensari" style="width:100%;max-width:300px;border-radius:10px;display:block;margin:0 auto"><a class="mini" download="qris-isi-saldo.jpg" href="${qris}" style="display:inline-block;margin-top:8px">⬇️ Simpan gambar QRIS</a>`
       : `<p class="hint" style="color:#a35a00;margin:6px 0">QRIS belum dipasang admin. Bayar sesuai catatan admin${wa ? ' atau <a href="https://wa.me/' + wa + '" target="_blank" rel="noopener">tanya admin lewat WhatsApp</a>' : ""}, lalu unggah buktinya.</p>`;
   };
-  q("#tuAManual").onclick = tuManual;
+  q("#tuAManual").onclick = () => tuManual("");
   q("#tuAUbah").onclick = () => { tuStop(); tuId = 0; q("#tuAuto").hidden = true; q("#tuStep1").hidden = false; };
   q("#tuACek").onclick = () => tuCek(true);
   q("#tuASimpan").onclick = () => { if(!tuQrObj) return; const a = document.createElement("a"); a.href = tuQrObj.createDataURL(10, 4); a.download = "qris-isi-saldo-" + jml + ".png"; document.body.appendChild(a); a.click(); a.remove(); toast("QR disimpan. Buka aplikasi bank → Scan → pilih dari galeri."); };
@@ -712,12 +715,13 @@ async function bukaTopup(){
     }catch(e){
       console.warn("QRIS otomatis isi saldo gagal:", e && e.message);
       toast("QRIS otomatis sedang gangguan. Silakan bayar manual lalu unggah bukti.");
-      tuManual();
+      tuManual(String(e && e.message || e).slice(0, 160));
     }
   };
   q("#tuLanjut").onclick = async () => {
     if(jml < min) return toast("Isi saldo minimal " + fmtRp(min));
     if(BIAYA.qrisOtomatis !== false && window.KSID && KSID.sesi("kurir")) return tuOtomatis();
+    tuManual(BIAYA.qrisOtomatis === false ? "QRIS otomatis dimatikan admin" : "sesi kurir tidak ditemukan, silakan keluar lalu masuk lagi"); return;
     q("#tuStep1").hidden = true; q("#tuStep2").hidden = false; q("#tuNom").textContent = fmtRp(jml); ov.firstElementChild.scrollTop = 0;
     await qrisP;
     q("#tuQr").innerHTML = qris ? `<img src="${qris}" alt="QRIS Kalensari" style="width:100%;max-width:300px;border-radius:10px;display:block;margin:0 auto"><a class="mini" download="qris-isi-saldo.jpg" href="${qris}" style="display:inline-block;margin-top:8px">⬇️ Simpan gambar QRIS</a>`
