@@ -14,8 +14,11 @@
 
   const st = document.createElement("style");
   st.textContent = `
-.kp-tombol{display:flex;align-items:center;gap:12px;margin:14px 0 4px;padding:14px 16px;border-radius:18px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#8d4a25,#5b2e14);box-shadow:0 10px 24px -12px #5b2e14}
-.kp-tombol .e{font-size:30px}.kp-tombol b{display:block;font-size:16px}.kp-tombol small{opacity:.85;font-size:12px}.kp-tombol i{margin-left:auto;font-style:normal;background:#f2b231;color:#4a2510;font-weight:900;border-radius:999px;padding:6px 12px;font-size:13px;white-space:nowrap}
+.kp-tombol{display:flex;align-items:center;gap:12px;margin:14px 0 4px;padding:6px 14px 6px 6px;border-radius:20px;text-decoration:none;color:#fff;background:linear-gradient(135deg,#753e20,#5b2e14);box-shadow:0 10px 24px -12px #5b2e14}
+.kp-tombol .e{font-size:30px}.kp-tombol .lg{flex:none;width:96px;height:auto;aspect-ratio:194/174;border-radius:16px;display:block}
+.kp-tombol span{min-width:0}.kp-tombol b{display:block;font-size:16px;line-height:1.25}.kp-tombol small{display:block;opacity:.9;font-size:12px;line-height:1.4;margin-top:2px}
+.kp-tombol i{margin-left:auto;font-style:normal;background:#f2b231;color:#4a2510;font-weight:900;border-radius:999px;padding:8px 14px;font-size:14px;white-space:nowrap;box-shadow:0 3px 0 #c88a12}
+@media(max-width:380px){.kp-tombol .lg{width:80px}.kp-tombol b{font-size:15px}.kp-tombol i{padding:7px 11px;font-size:13px}}
 .kp-pop{position:fixed;inset:0;z-index:1500;background:#0009;display:flex;align-items:center;justify-content:center;padding:16px;animation:kpF .25s}
 @keyframes kpF{from{opacity:0}}
 .kp-box{background:#fffaf3;border-radius:24px;width:min(440px,100%);max-height:90vh;overflow:auto;position:relative;box-shadow:0 30px 60px #0006;animation:kpU .35s cubic-bezier(.2,1.4,.4,1)}
@@ -52,7 +55,7 @@
     const ref = document.getElementById("lapakCard") || document.querySelector(".wa-banner") || document.querySelector("footer");
     if (!ref) return;
     const sec = document.createElement("section"); sec.className = "container"; sec.id = "kpTombol";
-    sec.innerHTML = '<a class="kp-tombol" href="kuis.html"><span class="e">🎓</span><span><b>Kuis Pintar Kalensari</b><small>Belajar gratis SD • SMP • SMA, kumpulkan poin, menangkan voucher!</small></span><i>Main ›</i></a>';
+    sec.innerHTML = '<a class="kp-tombol" href="kuis.html"><img class="lg" src="img/kuis-logo.webp" alt="" width="194" height="174" loading="lazy"><span><b>Kuis Pintar Kalensari</b><small>Belajar gratis SD • SMP • SMA, kumpulkan poin, menangkan voucher!</small></span><i>Main ›</i></a>';
     ref.parentNode.insertBefore(sec, ref);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pasangTombol); else pasangTombol();
