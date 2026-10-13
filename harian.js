@@ -178,6 +178,7 @@
   }
   async function menuBaru(el, o) {
     o = o || {}; if (!el) return; css();
+    await sinkronIkuti();
     var prods = await ambilProduk(); if (!prods.length) return sembunyi(el);
     var fav = tokoFavorit(prods); if (!fav.size) return sembunyi(el);
     var seen = LS(DILIHAT, {}); if (!seen || typeof seen !== "object" || Array.isArray(seen)) seen = {};
@@ -203,6 +204,22 @@
     }; });
     el.querySelectorAll("[data-mb-tutup]").forEach(function (x) { x.onclick = function () { tandaiDilihat(x.dataset.mbTutup, prods); menuBaru(el, o); }; });
   }
+  // Daftar ikuti juga disimpan di server (supabase-ikuti-toko.sql) supaya kirim-notif bisa mengabari lewat HP.
+  // Pertama kali di HP ini: daftar lokal & server digabung. Sesudahnya server yang jadi patokan.
+  var waSaya = function () { var v = LS("kalensari_pembeli_login", null); return v && v.wa ? String(v.wa) : ""; };
+  async function simpanIkuti(l) { if (!on() || !sesi()) return false; try { await rpc("ikuti_toko", { p_sesi: sesi(), p_toko: l }); return true; } catch (e) { return false; } }
+  async function sinkronIkuti() {
+    if (!on() || !sesi()) return;
+    try {
+      var srv = await rpc("ikuti_toko", { p_sesi: sesi(), p_toko: null }); srv = Array.isArray(srv) ? srv.map(kunci) : [];
+      var tanda = "kalensari_ikuti_sinkron_" + waSaya();
+      if (!LS(tanda, false)) {
+        var gab = Array.from(new Set(srv.concat(diikuti())));
+        if (gab.length !== srv.length) await rpc("ikuti_toko", { p_sesi: sesi(), p_toko: gab });
+        LSset(IKUTI, gab); LSset(tanda, true);
+      } else LSset(IKUTI, srv);
+    } catch (e) { /* fitur server belum aktif: tetap pakai daftar di HP */ }
+  }
   function tombolIkuti(k) {
     css(); k = kunci(k); if (!k) return "";
     var ya = diikuti().indexOf(k) >= 0;
@@ -213,7 +230,11 @@
     var k = b.dataset.ikuti, l = diikuti(), ya = l.indexOf(k) >= 0;
     l = ya ? l.filter(function (x) { return x !== k; }) : l.concat([k]); LSset(IKUTI, l);
     if (!ya) tandaiDilihat(k, await ambilProduk());   // menu yang sudah ada tidak dianggap baru
-    say(ya ? "Berhenti mengikuti toko" : "🔔 Toko diikuti. Anda akan diberi tahu saat ada menu baru.");
+    var keServer = await simpanIkuti(l), izin = typeof Notification !== "undefined" && Notification.permission === "granted";
+    say(ya ? "Berhenti mengikuti toko"
+      : !keServer ? "🔔 Toko diikuti. Masuk akun pembeli agar dikabari lewat notifikasi HP saat ada menu baru."
+      : izin ? "🔔 Toko diikuti. Anda dapat notifikasi HP saat ada menu baru."
+      : "🔔 Toko diikuti. Aktifkan notifikasi di Dashboard > Akun agar dikabari lewat HP.");
     if (typeof window.renderSellerBar === "function") window.renderSellerBar(); else b.outerHTML = tombolIkuti(k);
   });
 
