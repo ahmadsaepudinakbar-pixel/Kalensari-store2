@@ -262,6 +262,7 @@ body{background-color:#f4ebdf;background-image:none}
 .k2-h{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f1e6dd}
 .k2-h .km-ic{width:38px;height:38px;font-size:18px;flex:none}
 .k2-ht{flex:1;min-width:0}.k2-ht b{display:block;font-size:17px;color:#2a1a0e;letter-spacing:.2px}
+.k2-ht b{display:flex;align-items:center;gap:7px}.k2-km{flex:none;font-style:normal;font-size:12.5px;font-weight:800;color:#14502c;background:#e9f6ed;border-radius:999px;padding:2px 8px;letter-spacing:0}
 .k2-ht small{display:block;font-size:12.5px;color:#7a6455;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .k2-hr{text-align:right;flex:none}.k2-hr b{display:block;font-size:16px;color:#14502c;margin-bottom:3px}
 .k2-hr .km-st{font-size:11.5px;padding:3px 9px}
@@ -955,12 +956,24 @@ function cardMine0(o){
   }
   return cardToko2(o, num, next);
 }
+// Jarak yang harus ditempuh kurir (garis lurus antar titik):
+//   diproses -> posisi kurir → toko (urut rute) → pembeli ; dikirim -> posisi kurir → pembeli.
+//   Bila posisi kurir belum terbaca, dihitung dari toko pertama.
+function jarakTempuh(o){
+  const pb = extractMapLocation(o.note) || extractMapLocation(o.address);
+  const tk = o.status === "dikirim" ? [] : tokoUrut(o).filter(t => t.loc).map(t => t.loc);
+  const pts = [lokKurir(me), ...tk, pb].filter(x => x && Number.isFinite(+x.lat) && Number.isFinite(+x.lng)).map(x => ({lat:+x.lat, lng:+x.lng}));
+  if(pts.length < 2 || !pb) return null;
+  let m = 0; for(let i = 1; i < pts.length; i++) m += jarakM(pts[i - 1], pts[i]);
+  return m;
+}
+const kmTempuh = m => String(Math.max(0.1, Math.round(m / 100) / 10)).replace(".", ",") + " km";
 // Kartu pesanan toko v2: kepala ringkas • rute bernomor (ambil di toko → antar ke pembeli) • 1 tombol utama • menu ⋯
 const K2_MENU = {};
 function cardToko2(o, num, next){
   const code = esc(o.order_code), dikirim = o.status === "dikirim";
   const isi = itemsText(o).replace(/<[^>]+>/g, "");
-  const kepala = `<div class="k2-h"><span class="km-ic">🛍️</span><div class="k2-ht"><b>${code}</b><small>${esc(isi)}${o.payment ? " · " + esc(o.payment) : ""}</small></div>`
+  const kepala = `<div class="k2-h"><span class="km-ic">🛍️</span><div class="k2-ht"><b>${code}${jarakTempuh(o) !== null ? `<em class="k2-km" title="Jarak yang harus ditempuh">${kmTempuh(jarakTempuh(o))}</em>` : ""}</b><small>${esc(isi)}${o.payment ? " · " + esc(o.payment) : ""}</small></div>`
     + `<div class="k2-hr"><b>${fmtRp(o.total)}</b><span class="km-st s-${esc(o.status)}">${dikirim ? "🛵" : "🕑"} ${esc(SL[o.status] || o.status)}</span></div></div>`;
   // titik pembeli & toko (sama dengan mapLinks)
   const loc = extractMapLocation(o.note) || extractMapLocation(o.address);

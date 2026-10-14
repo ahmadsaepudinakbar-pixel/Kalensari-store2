@@ -28,6 +28,8 @@
     var h = Math.sin(dLa / 2) * Math.sin(dLa / 2) + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLn / 2) * Math.sin(dLn / 2);
     return 2 * R * Math.asin(Math.sqrt(h));
   }
+  // jarak tempuh di header: selalu dalam km, 1 angka di belakang koma (0,1 km … 2,5 km … 1 km)
+  function kmSingkat(m) { var v = Math.max(0.1, Math.round(m / 100) / 10); return String(v).replace(".", ",") + " km"; }
   function km(m) { return m < 1000 ? Math.round(m / 10) * 10 + " m" : (m / 1000).toFixed(1).replace(".", ",") + " km"; }
 
   // ---- muat Leaflet sekali saja ----
@@ -52,7 +54,7 @@
       + ".ksn-map{position:absolute;inset:0}"
       + ".ksn-top{position:absolute;z-index:620;top:max(10px,env(safe-area-inset-top));left:10px;right:10px;display:flex;gap:10px;align-items:center;background:#fff;border-radius:22px;padding:8px 10px;box-shadow:0 6px 18px rgba(20,40,25,.16)}"
       + ".ksn-x{border:0;background:#fdf1d8;color:#3a2a14;border-radius:16px;width:50px;height:50px;font-size:24px;cursor:pointer;flex:none}"
-      + ".ksn-tt{flex:1;min-width:0}.ksn-tt b{display:block;font-size:19px;color:#4a1f0a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+      + ".ksn-tt{flex:1;min-width:0}.ksn-tt b{display:block;font-size:19px;color:#4a1f0a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ksn-tot{font-style:normal;font-size:15px;font-weight:800;color:#14502c;background:#e9f6ed;border-radius:999px;padding:2px 9px;margin-left:8px;vertical-align:2px}"
       + ".ksn-gps{display:inline-flex;align-items:center;gap:6px;margin-top:3px;font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:99px;background:#fdeacc;color:#7a3d00}"
       + ".ksn-gps i{width:8px;height:8px;border-radius:50%;background:#e0912a}.ksn-gps.ok{background:#e3f4e8;color:#14502c}.ksn-gps.ok i{background:#22a35a}"
       + ".ksn-gm{flex:none;width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#25a35a,#167a3f);display:grid;place-items:center;box-shadow:0 4px 10px rgba(22,122,63,.3)}"
@@ -85,7 +87,35 @@
       + ".ksn-attr{display:block;text-align:center;margin-top:6px;font-size:10.5px;color:#9aa39c}"
       + ".ksn-pin{font-size:30px;line-height:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}"
       + ".ksn-me{width:24px;height:24px;border-radius:50%;background:#1a73e8;border:4px solid #fff;box-shadow:0 0 0 14px rgba(26,115,232,.18)}"
-      + "@media (prefers-reduced-motion:reduce){.ksn-next.dekat{animation:none}}";
+      + "@media (prefers-reduced-motion:reduce){.ksn-next.dekat{animation:none}}"
+      /* ===== tampilan rapi v2 ===== */
+      + ".ksn-top{padding:6px 8px;border-radius:18px;gap:8px}.ksn-x{width:42px;height:42px;border-radius:13px;font-size:21px}"
+      + ".ksn-tt b{display:flex;align-items:center;gap:7px;font-size:17px}.ksn-kode{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"
+      + ".ksn-tot{flex:none;margin:0;font-size:13px;padding:2px 9px;vertical-align:0}.ksn-gps{margin-top:2px;font-size:11.5px;padding:2px 9px}"
+      + ".ksn-more{width:34px;height:42px}"
+      + ".ksn-fab{right:10px;gap:9px}.ksn-fab button{width:46px;height:46px}.ksn-fab svg{width:22px;height:22px}"
+      + ".ksn-arrow{left:12px;width:50px;height:50px}.ksn-arrow svg{width:24px;height:24px}"
+      + ".ksn-card{padding:6px 14px calc(10px + env(safe-area-inset-bottom));border-radius:22px 22px 0 0}.ksn-handle{width:42px;height:4px;margin:0 auto 8px}"
+      + ".ksn-step{margin:0 0 4px}.ksn-chip{font-size:12px;padding:3px 10px 3px 8px}"
+      + ".ksn-card h3{font-size:19px;gap:8px;margin:0}.ksn-card h3 span{font-size:24px}"
+      + ".ksn-ket{margin:2px 0 8px 32px;font-size:13.5px}.ksn-dots{margin:0 0 8px;font-size:12px}"
+      + ".ksn-info{gap:8px;margin:0 0 10px}.ksn-info div{gap:8px;border-radius:14px;padding:8px 10px}"
+      + ".ksn-info svg{width:24px;height:24px}.ksn-info b{font-size:17px}.ksn-info small{font-size:11.5px}"
+      + ".ksn-btns{gap:8px}.ksn-btns a{gap:8px;border-radius:14px;padding:7px 10px}.ksn-btns a b{font-size:15px}.ksn-btns a small{font-size:11px}.ksn-btns a em{font-size:18px}"
+      + ".ksn-tel .ic,.ksn-wa .ic{width:32px;height:32px}.ksn-tel .ic svg,.ksn-wa .ic svg{width:18px;height:18px}.ksn-wa .ic svg{width:26px;height:26px}"
+      + ".ksn-next{margin-top:8px;padding:12px;border-radius:14px;font-size:15px}.ksn-attr{margin-top:4px}"
+      /* naik/turun */
+      + ".ksn-card{max-height:78vh}.ksn-card:not(.besar){padding-bottom:calc(8px + env(safe-area-inset-bottom))}"
+      + ".ksn-card:not(.besar)>:not(.ksn-handle):not(.ksn-mini){display:none!important}.ksn-card.besar .ksn-mini{display:none}"
+      + ".ksn-handle{cursor:pointer;margin-bottom:6px}.ksn-card:not(.besar) .ksn-handle{margin-bottom:6px}"
+      + ".ksn-mini{display:flex;align-items:center;gap:9px;cursor:pointer;min-height:44px}"
+      + ".ksn-mi-ic{flex:none;font-size:24px;line-height:1}.ksn-mi-t{flex:1;min-width:0}"
+      + ".ksn-mi-t b{display:block;font-size:16px;color:#2a1508;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+      + ".ksn-mi-t small{display:block;font-size:13px;font-weight:700;color:#14502c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+      + ".ksn-mi-tel,.ksn-mi-wa,.ksn-mi-up{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;border:0;cursor:pointer;text-decoration:none}"
+      + ".ksn-mi-tel{background:#14532d}.ksn-mi-wa{background:#25a35a}.ksn-mi-tel svg{width:18px;height:18px}.ksn-mi-wa svg{width:24px;height:24px}"
+      + ".ksn-mi-up{background:#eef3ee;color:#14502c;font-size:20px;font-weight:900;line-height:1;padding-top:6px}.ksn-mi-tel[hidden],.ksn-mi-wa[hidden]{display:none}"
+      + ".ksn-turun{position:absolute;top:8px;right:10px;width:36px;height:36px;border-radius:50%;border:0;background:#eef3ee;color:#14502c;font-size:20px;font-weight:900;cursor:pointer;line-height:1}";
     document.head.appendChild(s);
   }
 
@@ -108,16 +138,19 @@
     var ov = document.createElement("div"); ov.className = "ksn-ov";
     var IK = {"map": "<svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M3 6.5 8.5 4l7 2.5L21 4v13.5L15.5 20l-7-2.5L3 20z\" fill=\"#fff\"/><path d=\"M8.5 4v13.5M15.5 6.5V20\" stroke=\"#cfe8d6\" stroke-width=\"1.4\"/><path d=\"M15.5 3.2c-1.9 0-3.3 1.4-3.3 3.2 0 2.3 3.3 5.6 3.3 5.6s3.3-3.3 3.3-5.6c0-1.8-1.4-3.2-3.3-3.2z\" fill=\"#e5484d\"/><circle cx=\"15.5\" cy=\"6.4\" r=\"1.2\" fill=\"#fff\"/></svg>", "loc": "<svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\"><circle cx=\"12\" cy=\"12\" r=\"6.5\"/><circle cx=\"12\" cy=\"12\" r=\"2.6\" fill=\"currentColor\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3\"/></svg>", "lay": "<svg width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linejoin=\"round\"><path d=\"m12 3 9 5-9 5-9-5z\"/><path d=\"m3 13 9 5 9-5\"/></svg>", "img": "<svg width=\"30\" height=\"30\" viewBox=\"0 0 24 24\"><rect x=\"2.5\" y=\"4\" width=\"19\" height=\"16\" rx=\"3\" fill=\"#7cc4f2\"/><path d=\"M2.5 16.5 8 11l4.5 4.5L15 13l6.5 5.5V17c0 1.7-1.3 3-3 3h-13c-1.7 0-3-1.3-3-3z\" fill=\"#3fae5a\"/><circle cx=\"16.5\" cy=\"8.5\" r=\"2\" fill=\"#ffd34d\"/></svg>", "arrow": "<svg width=\"30\" height=\"30\" viewBox=\"0 0 24 24\"><path d=\"M21 3 3 10.5l7.5 2.9L13.5 21z\" fill=\"currentColor\"/></svg>", "route": "<svg viewBox=\"0 0 36 36\" fill=\"none\"><circle cx=\"9\" cy=\"27\" r=\"4\" stroke=\"#1f8f4c\" stroke-width=\"3\"/><path d=\"M27 6c-3.3 0-6 2.6-6 5.8 0 4.2 6 10.2 6 10.2s6-6 6-10.2C33 8.6 30.3 6 27 6z\" fill=\"#1f8f4c\"/><circle cx=\"27\" cy=\"11.8\" r=\"2.2\" fill=\"#fff\"/><path d=\"M13 27h7a5 5 0 0 0 0-10h-1\" stroke=\"#1f8f4c\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>", "jam": "<svg viewBox=\"0 0 36 36\"><circle cx=\"18\" cy=\"19\" r=\"14\" fill=\"#1f8f4c\"/><circle cx=\"18\" cy=\"19\" r=\"10.5\" fill=\"#fff\"/><path d=\"M18 12.5V19l4 3\" stroke=\"#1f8f4c\" stroke-width=\"3\" stroke-linecap=\"round\" fill=\"none\"/><path d=\"M7 7.5 10.5 4M29 7.5 25.5 4\" stroke=\"#1f8f4c\" stroke-width=\"3\" stroke-linecap=\"round\"/></svg>", "telp": "<svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\"><path fill=\"#fff\" d=\"M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z\"/></svg>", "wa": "<svg width=\"40\" height=\"40\" viewBox=\"0 0 32 32\"><path fill=\"#fff\" d=\"M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3Z\"/><path fill=\"#1f8f4c\" d=\"M16 26.6c-2 0-4-.6-5.7-1.6l-.4-.2-3.9 1 1-3.8-.3-.4A10.6 10.6 0 1 1 16 26.6Zm5.8-7.9c-.3-.2-1.9-.9-2.2-1-.3-.1-.5-.2-.7.2l-1 1.2c-.2.2-.4.2-.7.1a8.7 8.7 0 0 1-4.3-3.8c-.3-.5.3-.5.9-1.6.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4-.3.3-1.1 1.1-1.1 2.7s1.2 3.2 1.3 3.4c.2.2 2.3 3.5 5.6 4.9 2.1.9 2.9 1 4 .8.6-.1 1.9-.8 2.2-1.5.3-.8.3-1.4.2-1.5l-.6-.3Z\"/></svg>", "gpin": "<svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\"><path d=\"M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7z\" fill=\"#34a853\"/><path d=\"M12 2a7 7 0 0 0-7 7c0 1.5.5 3 1.3 4.4L12 9z\" fill=\"#4285f4\"/><path d=\"M12 2a7 7 0 0 1 7 7c0 1-.2 2-.6 3L12 9z\" fill=\"#ea4335\"/><path d=\"M12 9 6.3 13.4c.6 1.2 1.4 2.4 2.2 3.5L12 9z\" fill=\"#fbbc04\"/><circle cx=\"12\" cy=\"9\" r=\"2.6\" fill=\"#fff\"/></svg>"};
     ov.innerHTML = '<div class="ksn-map"></div>'
-      + '<div class="ksn-top"><button class="ksn-x" type="button" aria-label="Tutup peta">←</button><div class="ksn-tt"><b>🧭 ' + esc(opt.judul || "Navigasi") + '</b><span class="ksn-gps"><i></i><span>GPS mencari…</span></span></div>'
-      + '<a class="ksn-gm ksn-gl" target="_blank" rel="noopener" href="#" title="Buka di Google Maps" aria-label="Buka di Google Maps">' + IK.map + '</a><button class="ksn-more" type="button" aria-label="Menu lainnya">⋮</button>'
+      + '<div class="ksn-top"><button class="ksn-x" type="button" aria-label="Tutup peta">←</button><div class="ksn-tt"><b><span class="ksn-kode">🧭 ' + esc(opt.judul || "Navigasi") + '</span><em class="ksn-tot" hidden></em></b><span class="ksn-gps"><i></i><span>GPS mencari…</span></span></div>'
+      + '<button class="ksn-more" type="button" aria-label="Menu lainnya">⋮</button>'
       + '<div class="ksn-menu" hidden><button type="button" data-a="semua">🗺️ Lihat seluruh rute</button><button type="button" data-a="sat">🛰️ <span class="ksn-satl">Mode satelit</span></button><a class="ksn-gl" target="_blank" rel="noopener" href="#">' + IK.gpin + ' Buka di Google Maps</a></div></div>'
-      + '<div class="ksn-fab" style="top:calc(max(10px,env(safe-area-inset-top)) + 86px)"><button type="button" data-a="ikut" class="on" title="Ikuti posisi saya" aria-label="Ikuti posisi saya">' + IK.loc + '</button><button type="button" data-a="semua" title="Lihat seluruh rute" aria-label="Lihat seluruh rute">' + IK.lay + '</button><button type="button" data-a="sat" title="Peta / Satelit" aria-label="Ganti peta atau satelit">' + IK.img + '</button></div>'
+      + '<div class="ksn-fab" style="top:calc(max(10px,env(safe-area-inset-top)) + 72px)"><button type="button" data-a="ikut" class="on" title="Ikuti posisi saya" aria-label="Ikuti posisi saya">' + IK.loc + '</button><button type="button" data-a="semua" title="Lihat seluruh rute" aria-label="Lihat seluruh rute">' + IK.lay + '</button><button type="button" data-a="sat" title="Peta / Satelit" aria-label="Ganti peta atau satelit">' + IK.img + '</button></div>'
       + '<button type="button" class="ksn-arrow on" data-a="ikut" aria-label="Kembali ke posisi saya">' + IK.arrow + '</button>'
-      + '<div class="ksn-card"><div class="ksn-handle"></div><p class="ksn-step"></p><h3></h3><p class="ksn-ket"></p><div class="ksn-dots"></div>'
+      + '<div class="ksn-card"><div class="ksn-handle"></div>'
+      + '<div class="ksn-mini" role="button" aria-label="Lihat detail tujuan"><span class="ksn-mi-ic"></span><div class="ksn-mi-t"><b class="ksn-mi-n"></b><small class="ksn-mi-s"></small></div>'
+      + '<a class="ksn-mi-tel" href="#" aria-label="Telepon">' + IK.telp + '</a><a class="ksn-mi-wa" target="_blank" rel="noopener" href="#" aria-label="WhatsApp">' + IK.wa + '</a><button type="button" class="ksn-mi-up" aria-label="Naikkan">⌃</button></div>'
+      + '<button type="button" class="ksn-turun" aria-label="Turunkan">⌄</button><p class="ksn-step"></p><h3></h3><p class="ksn-ket"></p><div class="ksn-dots"></div>'
       + '<div class="ksn-info"><div>' + IK.route + '<span><b class="ksn-jarak">-</b><small>Jarak rute</small></span></div><div>' + IK.jam + '<span><b class="ksn-eta">-</b><small>Perkiraan tiba</small></span></div></div>'
       + '<div class="ksn-btns"><a class="ksn-tel" href="#"><span class="ic">' + IK.telp + '</span><span><b>Telepon</b><small class="ksn-sub1"></small></span><em>›</em></a><a class="ksn-wa" target="_blank" rel="noopener" href="#"><span class="ic">' + IK.wa + '</span><span><b>WhatsApp</b><small class="ksn-sub2"></small></span><em>›</em></a></div>'
       + '<button type="button" class="ksn-next"></button>'
-      + '<a class="ksn-g ksn-gl" target="_blank" rel="noopener" href="#">' + IK.gpin + 'Buka di Google Maps<em>›</em></a><small class="ksn-attr">Peta © OpenStreetMap • Satelit © Esri • Rute OSRM</small></div>';
+      + '<small class="ksn-attr">Peta © OpenStreetMap • Satelit © Esri • Rute OSRM</small></div>';
     document.body.appendChild(ov);
     var q = function (s) { return ov.querySelector(s); };
     var st = aktif = { ov: ov, ovf: document.body.style.overflow, i: 0, pos: null, ikut: true, ruteT: 0, ruteDari: null, garis: null, watch: null, kunci: null, iv: 0, vis: null, sat: false };
@@ -162,6 +195,24 @@
       if (pts.length > 1) peta.fitBounds(pts, { paddingTopLeft: [20, 110], paddingBottomRight: [20, kartuH() + 20] }); else pusat(pts[0], 17, false);
     }
 
+    // ---- kotak tujuan naik/turun (bawaan: kecil, peta ±90% layar) ----
+    function mini() {
+      var s = stops[st.i]; if (!s) return;
+      q(".ksn-mi-ic").textContent = s.e; q(".ksn-mi-n").textContent = s.nama;
+      var j = q(".ksn-jarak").textContent, e = q(".ksn-eta").textContent;
+      q(".ksn-mi-s").textContent = [j !== "-" ? j : "", e !== "-" ? e : ""].filter(Boolean).join(" · ") || (s.ket || "Menghitung rute…");
+      var ada = !q(".ksn-btns").hidden;
+      q(".ksn-mi-tel").hidden = q(".ksn-mi-wa").hidden = !ada;
+      q(".ksn-mi-tel").href = q(".ksn-tel").href; q(".ksn-mi-wa").href = q(".ksn-wa").href;
+    }
+    function besar(on) {
+      q(".ksn-card").classList.toggle("besar", !!on);
+      setTimeout(function () { var ar = q(".ksn-arrow"); if (ar) ar.style.bottom = (kartuH() + 14) + "px"; }, 0);
+    }
+    q(".ksn-mini").onclick = function (e) { if (!e.target.closest("a")) besar(true); };
+    q(".ksn-handle").onclick = function () { besar(!q(".ksn-card").classList.contains("besar")); };
+    q(".ksn-turun").onclick = function () { besar(false); };
+    try { var amati = new MutationObserver(mini); amati.observe(q(".ksn-jarak"), { childList: true, characterData: true, subtree: true }); amati.observe(q(".ksn-eta"), { childList: true, characterData: true, subtree: true }); } catch (e) {}
     function tampil() {
       var s = stops[st.i], akhir = st.i === stops.length - 1, nomor = String(s.tel || "").replace(/\D/g, "");
       q(".ksn-step").innerHTML = '<span class="ksn-chip">📍 Tujuan' + (stops.length > 1 ? " " + (st.i + 1) + " dari " + stops.length : "") + "</span>";
@@ -174,10 +225,10 @@
       q(".ksn-tel").href = nomor ? "tel:+" + nomor : "#"; q(".ksn-sub1").textContent = "Hubungi " + peran;
       q(".ksn-wa").href = nomor ? "https://wa.me/" + nomor : "#"; q(".ksn-sub2").textContent = "Chat " + peran;
       q(".ksn-next").hidden = stops.length < 2;
-      q(".ksn-next").textContent = akhir ? "✅ Sudah sampai di tujuan terakhir" : "Sudah di sini, lanjut ke tujuan berikutnya ›";
+      q(".ksn-next").textContent = akhir ? "✅ Sudah sampai di tujuan terakhir" : "Sudah di sini, lanjut ›";
       q(".ksn-jarak").textContent = "-"; q(".ksn-eta").textContent = "-";
       st.ruteT = 0; hitungRute(true);
-      setTimeout(function () { var ar = q(".ksn-arrow"); if (ar) ar.style.bottom = (kartuH() + 16) + "px"; }, 0);
+      st.dekatLalu = false; mini(); besar(false);
     }
     q(".ksn-next").onclick = function () {
       if (st.i < stops.length - 1) { st.i++; tampil(); }
@@ -202,16 +253,21 @@
         var leg = r.legs && r.legs[0];
         var m = dari && leg ? leg.distance : r.distance, dtk = dari && leg ? leg.duration : r.duration;
         q(".ksn-jarak").textContent = dari ? km(m) : km(r.distance) + " (total)";
+        tot(r.distance);   // total sisa perjalanan: posisi kurir -> semua tujuan yang tersisa
         q(".ksn-eta").textContent = dari ? Math.max(1, Math.round(dtk / 60)) + " menit" : "-";
         if (fit && !(st.ikut && st.pos)) lihatSemua();
       } catch (e) { garisLurus(); if (fit) lihatSemua(); }
     }
+    function tot(m, kira) { var e = q(".ksn-tot"); if (!e) return; if (!(m > 0)) { e.hidden = true; return; } e.textContent = (kira ? "± " : "") + kmSingkat(m); e.hidden = false; }
     function garisLurus() {
       if (!peta) return;
       var titik = (st.pos ? [st.pos] : []).concat(stops.slice(st.i));
       if (st.garis) peta.removeLayer(st.garis);
       st.garis = L.polyline(titik.map(function (p) { return [p.lat, p.lng]; }), { color: "#7b3f1d", weight: 4, dashArray: "6 8" }).addTo(peta);
       if (st.pos) { q(".ksn-jarak").textContent = "± " + km(jarakM(st.pos, stops[st.i])); q(".ksn-eta").textContent = "-"; }
+      // perkiraan garis lurus bila rute jalan tidak bisa dihitung
+      var tt = 0; for (var k = 1; k < titik.length; k++) tt += jarakM(titik[k - 1], titik[k]);
+      if (titik.length > 1) tot(tt, true);
     }
 
     // ---- GPS kurir ----
@@ -222,6 +278,8 @@
         var pertama = !st.pos; st.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
         if (peta) { if (!peta.hasLayer(meMk)) meMk.addTo(peta); meMk.setLatLng([st.pos.lat, st.pos.lng]); if (st.ikut) pusat([st.pos.lat, st.pos.lng], pertama ? 17 : peta.getZoom(), !pertama); }
         var dekat = jarakM(st.pos, stops[st.i]) < 60; q(".ksn-next").classList.toggle("dekat", dekat);
+        if (dekat && !st.dekatLalu && !q(".ksn-next").hidden) besar(true);   // sudah dekat: kotak naik supaya tombol "lanjut" terlihat
+        st.dekatLalu = dekat;
         var geser = st.ruteDari ? jarakM(st.pos, st.ruteDari) : 1e9;
         if (pertama || Date.now() - st.ruteT > 30000 || geser > 150) hitungRute(pertama);
       }, function (err) {
