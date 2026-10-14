@@ -793,7 +793,30 @@ function nextSkip(o, st, elig, now){
 const itemsOf = o => { let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } } return Array.isArray(it) ? it : []; };
 const transOf = o => { const it = itemsOf(o)[0]; return it && it.layanan ? it : null; };
 const LAYK = {ojek:{e:"🛵", n:"Ojek online", a:"Jemput", jalan:"🛵 Penumpang sudah dijemput"}, paket:{e:"📦", n:"Kirim paket/barang", a:"Ambil barang", jalan:"📦 Barang sudah diambil"}};
-function busyIds(rows, states){ const s = new Set(); rows.forEach(o => { const st = states[o.order_code]; if(st && st.acc && st.acc.id) s.add(st.acc.id); }); return s; }
+function busyIds(rows, states){ const s = new Set(), b = {}; rows.forEach(o => { const st = states[o.order_code]; if(st && st.acc && st.acc.id){ s.add(st.acc.id); if(o.status === "diproses" || o.status === "dikirim") (b[st.acc.id] = b[st.acc.id] || []).push(o); } }); BAWAAN = b; return s; }
+/* ===== Batas bawaan kurir (sama dengan trigger database ks_batas_bawaan_kurir & server kirim-notif) =====
+   1 kurir = 1 antaran. Antaran ke-2 (maks. 2) hanya dari TOKO YANG SAMA, selagi antaran pertama belum "dikirim",
+   dan hanya bila tidak ada kurir lain yang kosong. Nota satu grup (antaran gabungan) dihitung satu antaran. */
+let BAWAAN = {};
+const MAKS_BAWA = 2;
+const tokoKey = o => String((itemsOf(o)[0] || {}).seller || "").trim().toLowerCase();
+const samaGrup = (x, o) => !!(o.grup && x.grup && String(x.grup) === String(o.grup));
+const bawaanLain = (id, o) => (BAWAAN[id] || []).filter(x => x.order_code !== o.order_code && !samaGrup(x, o));
+const jmlAntar = l => new Set(l.map(x => x.grup || x.order_code)).size;
+function bolehTambah(o, id){
+  const b = bawaanLain(id, o); if(!b.length) return true;
+  if(transOf(o) || jmlAntar(b) >= MAKS_BAWA) return false;
+  const t = tokoKey(o);
+  return !!t && b.every(x => x.status === "diproses" && !transOf(x) && tokoKey(x) === t);
+}
+function alasanTolak(o, id){
+  const b = bawaanLain(id, o); if(!b.length) return "";
+  if(transOf(o) || b.some(transOf)) return "Selesaikan antaran Anda dulu. Ojek / kirim paket hanya bisa diambil saat Anda tidak membawa pesanan lain.";
+  if(jmlAntar(b) >= MAKS_BAWA) return "Anda sudah membawa 2 pesanan. Selesaikan dulu sebelum mengambil pesanan baru.";
+  if(b.some(x => x.status === "dikirim")) return "Pesanan Anda sudah dalam perjalanan. Selesaikan dulu sebelum mengambil pesanan baru.";
+  return "Pesanan kedua hanya boleh dari toko yang sama dengan pesanan yang sedang Anda bawa.";
+}
+const pesanGalat = err => { const s = String((err && err.message) || err || ""); try{ const j = JSON.parse(s); if(j && j.message) return j.message; }catch(e){} return s; };
 /* Layanan pilihan kurir (me.layanan = ["cod","paket","ojek"], kosong/tidak ada = semua).
    Pesanan toko non-COD tetap untuk semua kurir. Bila tidak ada kurir yang memilih layanan itu, pesanan tetap dibagi ke semua kurir. */
 const LAY_SEMUA = ["cod", "paket", "ojek"];
@@ -817,7 +840,9 @@ function kmGrup(o){
 }
 const fmtKmK = k => (Math.round(k * 10) / 10).toString().replace(".", ",");
 function eligFor(o, elig, busy){
-  let l = transOf(o) ? elig.filter(m => !busy.has(m.id)) : elig;
+  // kurir kosong didahulukan; kurir yang sudah membawa antaran hanya ikut bila tidak ada yang kosong (lihat bolehTambah)
+  const kosong = elig.filter(m => !bawaanLain(m.id, o).length);
+  let l = (kosong.length || transOf(o)) ? kosong : elig.filter(m => bolehTambah(o, m.id));
   const L = layananPesanan(o);
   // antaran gabungan: bila ada SATU nota COD baru di grup, seluruh antaran diperlakukan sebagai COD
   const grupCodBaru = codBaru(o) || anggota(o).some(codBaru);
@@ -1078,12 +1103,12 @@ async function terima(code){
   const [st, elig0, busy] = await Promise.all([readState(code), eligibleCouriers(), freshBusy(), muatTokoLoc()]);
   if(st.acc && st.acc.id !== me.id) return toast("Pesanan sudah diambil kurir lain");
   if((codBaru(o) || anggota(o).some(codBaru)) && BIAYA.aktif && !st.acc){ const sm = await saldoSemua(); if(sm && (sm[me.id] || 0) < 0) return toast("Saldo Anda minus. Isi saldo dulu supaya bisa menerima pesanan COD."); }
-  if(transOf(o) && busy.has(me.id)) return toast("Selesaikan antaran Anda dulu sebelum menerima ojek/paket");
+  if(!st.acc && !bolehTambah(o, me.id)) return toast(alasanTolak(o, me.id));
   const elig = eligFor(o, elig0, busy);
   const a = assigneeOf(o, st, elig, Date.now());
   if(!st.acc && (!a || a.id !== me.id)) return toast("Waktu habis. Pesanan dialihkan ke kurir lain.");
   const acc = {id:me.id, nama:me.nama || "", wa:WA, t:Date.now()};
-  await writeState(code, {...st, acc});
+  try{ await writeState(code, {...st, acc}); }catch(e){ return toast(pesanGalat(e).slice(0, 160)); }
   const v = await readState(code);
   if(!v.acc || v.acc.id !== me.id) return toast("Pesanan sudah diambil kurir lain");
   const ikut = [code];
@@ -1241,7 +1266,7 @@ $("orders").addEventListener("click", async e => {
     else if(act === "gagal"){ b.disabled = false; return gagalAntar(code); }
     else if(act === "tutup"){ b.disabled = false; return tokoTutup(code); }
     else if(act === "status"){ if(b.dataset.status === "selesai"){ b.disabled = false; const tp = ORD[code] && transOf(ORD[code]); return tp && tp.layanan === "paket" ? fotoPaket(code) : serahTerima(code); } return await setStatus(code, b.dataset.status); }
-  }catch(err){ toast("Gagal: " + String(err.message || err).slice(0, 100)); }
+  }catch(err){ toast("Gagal: " + pesanGalat(err).slice(0, 140)); }
   loadOrders();
 });
 
