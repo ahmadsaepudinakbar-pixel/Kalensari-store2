@@ -449,6 +449,7 @@ body[data-tab="pesanan"] #kpAktif{display:none!important}
 #kpAktif .pa-h{background:#fffbea;border-bottom:1px solid #f6e7a8}
 #kpAktif .pa .cd{background:#7a3e00;color:#fff}
 #kpAktif .pa-ciut{background:#f3e9de;color:var(--p-br)}
+#kpAktif .pa-a .mini{background:linear-gradient(135deg,#25a35a,#167a3f)!important;color:#fff!important;box-shadow:0 4px 12px rgba(22,122,63,.3)}
 #kpAktif .pa.kecil{background:#fff}
 #kpAktif .pa.kecil span:nth-child(2){color:var(--p-mut)}#kpAktif .pa.kecil span:nth-child(2) b{color:var(--p-ink)}
 @media (prefers-reduced-motion:reduce){#kpAktif .pa{animation:none;box-shadow:0 0 0 3px rgba(255,214,10,.45),0 10px 26px rgba(60,35,15,.16)}}
@@ -549,7 +550,7 @@ body[data-tab="pesanan"] #kpAktif{display:none!important}
 <script src="akun-id.js"></script><script src="pesanan-aman.js"></script><script src="hapus-akun.js"></script><script>window.KSHapus&&KSHapus.pasang(document.getElementById("ksHapusAkun"),"kurir")</script>
 <script src="notif.js"></script>
 <script src="dering.js"></script>
-<script src="navigasi-kurir.js"></script><script src="kembali.js"></script>
+<script src="navigasi-kurir.js"></script><script src="kamera.js"></script><script src="kembali.js"></script>
 <script>
 
 const $ = id => document.getElementById(id);
@@ -701,7 +702,7 @@ function mapLinks(o){
 // Waktu tanggap tiap kurir (menit). Ubah angka ini bila ingin lebih lama / lebih singkat.
 const T_MENIT = 3, T_MS = T_MENIT * 60000;
 const ORD_PREFIX = "kurir_ord_";
-let ORD = {}, seenOffers = null, busyLoad = false;
+let ORD = {}, seenOffers = null, busyLoad = false, bukaUlangSudah = false;
 // Status tiap pesanan disimpan di baris sendiri (store_settings, key kurir_ord_<kode>) agar kurir berbeda tidak saling menimpa.
 async function readStates(){
   const rows = await cf("store_settings?select=key,value&key=like." + ORD_PREFIX + "*");
@@ -1333,6 +1334,9 @@ async function loadOrders(){
     if(tunggu > 0) h += `<p class="hint" style="margin-top:12px">⏳ ${tunggu} antaran gabungan menunggu toko lain menerima pesanan. Kurir ditawari setelah semua toko menjawab.</p>`;
     if(other > 0) h += `<p class="hint" style="margin-top:12px">${other} pesanan lain sedang ditangani / ditawarkan ke kurir lain.</p>`;
     box.innerHTML = h; tick(); lacakSync(mine); if(window.kokpitAktif) kokpitAktif(mine, offers);
+    // halaman sempat dimuat ulang (mis. Android menutup Chrome saat kamera dibuka): buka lagi jendela serah terima / foto paket
+    try{ const b = JSON.parse(sessionStorage.getItem("ks_buka") || "null"); if(b && !bukaUlangSudah){ bukaUlangSudah = true; sessionStorage.removeItem("ks_buka");
+      if(ORD[b.code] && ORD[b.code].status === "dikirim"){ if(window.ksTab) ksTab("pesanan"); toast("Halaman sempat dimuat ulang. Silakan ambil foto lagi."); (b.f === "fp" ? fotoPaket : serahTerima)(b.code); } } }catch(e){}
   }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
   finally{ busyLoad = false; }
 }
@@ -1804,7 +1808,8 @@ function fotoPaket(code){
     </div><span class="fp-daun l" aria-hidden="true"></span><span class="fp-daun r" aria-hidden="true"></span></div>`;
   document.body.appendChild(ov);
   let pos = null, file = null, foto = "", sibuk = false, watch = null;
-  const tutup = () => { try{ if(watch != null) navigator.geolocation.clearWatch(watch); }catch(e){} ov.remove(); };
+  try{ sessionStorage.setItem("ks_buka", JSON.stringify({f:"fp", code})); }catch(e){}
+  const tutup = () => { try{ sessionStorage.removeItem("ks_buka"); }catch(e){} try{ if(watch != null) navigator.geolocation.clearWatch(watch); }catch(e){} ov.remove(); };
   ov.onclick = e => { if(e.target === ov) tutup(); };
   $("fpBatal").onclick = tutup;
   const jarakKe = () => pos && tuju ? Math.round(jarakM(pos, tuju)) : null;
@@ -1836,7 +1841,7 @@ function fotoPaket(code){
     {enableHighAccuracy:true, maximumAge:5000, timeout:30000});
   } else $("fpGps").querySelector("span").textContent = "HP ini tidak mendukung GPS";
   $("fpGps").onclick = () => { if(pos) window.open(`https://www.google.com/maps/search/?api=1&query=${pos.lat},${pos.lng}`, "_blank", "noopener"); };
-  $("fpAmbil").onclick = () => { if(!pos) toast("Tunggu lokasi GPS terkunci dulu…"); $("fpFile").click(); };
+  $("fpAmbil").onclick = () => { if(!pos) toast("Tunggu lokasi GPS terkunci dulu…"); window.KSKamera ? KSKamera.ambil($("fpFile"), {judul:"Foto bukti paket"}) : $("fpFile").click(); };
   $("fpFile").onchange = async e => { file = e.target.files[0] || null; if(!file) return; $("fpAmbil").querySelector("b").textContent = "Ambil ulang foto"; if(!pos) toast("Foto tersimpan, menunggu GPS…"); terakhirBuat = Date.now(); await buat(); };
   $("fpNama").onchange = () => { if(file) buat(); };
   $("fpKirim").onclick = async () => {
@@ -1862,7 +1867,8 @@ function serahTerima(code){
     <input id="stKode" class="fld" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="• • • •" style="font-size:30px;letter-spacing:14px;text-align:center;font-weight:700">
     <button class="mini g" id="stOk" type="button" style="width:100%;padding:13px;font-size:16px;margin:0">✅ Selesai — kode benar</button>
     <details id="stFotoBox" style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px"><summary style="cursor:pointer;font-weight:700;color:var(--brown)">📷 ${siapa[0].toUpperCase() + siapa.slice(1)} tidak ada di tempat?</summary>
-      <p class="hint" style="margin:6px 0">Foto barang di lokasi (mis. dititipkan ke tetangga / keluarga, atau diletakkan di depan pintu). ${siapa[0].toUpperCase() + siapa.slice(1)} & admin bisa melihat foto ini.</p>
+      <p class="hint" style="margin:6px 0">Foto barang di lokasi (mis. dititipkan ke tetangga / keluarga, atau diletakkan di depan pintu). Foto otomatis diberi <b>cap lokasi GPS, tanggal &amp; jam</b>. ${siapa[0].toUpperCase() + siapa.slice(1)} & admin bisa melihat foto ini.</p>
+      <div class="fp-gps" id="stGps" style="margin:0 0 8px"><i>📍</i><span>Lokasi GPS dicari saat Anda membuka bagian ini…</span><em>›</em></div>
       <input type="file" id="stFile" accept="image/*" capture="environment" data-crop="asli" hidden>
       <button class="mini" id="stPilih" type="button">📷 Ambil foto</button>
       <img id="stPrev" alt="" style="display:none;width:100%;border-radius:12px;margin-top:8px">
@@ -1872,7 +1878,42 @@ function serahTerima(code){
     <button class="mini" id="stBatal" type="button" style="width:100%;margin-top:12px">Batal</button></div>`;
   document.body.appendChild(ov);
   let foto = "", sibuk = false;
-  const tutup = () => ov.remove();
+  try{ sessionStorage.setItem("ks_buka", JSON.stringify({f:"st", code})); }catch(e){}
+  // ===== foto bukti berlokasi (hanya bila pembeli tidak ada; serah terima dengan kode tidak perlu kamera/GPS) =====
+  let pos = null, file = null, watch = null, terakhirBuat = 0;
+  const tj = tr ? tr.tujuan : (extractMapLocation(o && o.note) || extractMapLocation(o && o.address));
+  const tuju = tj && Number.isFinite(+tj.lat) && Number.isFinite(+tj.lng) ? {lat:+tj.lat, lng:+tj.lng} : null;
+  const jarakKe = () => pos && tuju ? Math.round(jarakM(pos, tuju)) : null;
+  const fmtJ = d => d < 1000 ? d + " m" : (d / 1000).toFixed(1).replace(".", ",") + " km";
+  const gpsUI = () => {
+    const g = $("stGps"); if(!g) return; const d = jarakKe();
+    g.className = "fp-gps" + (pos ? (pos.acc <= 50 ? " ok" : " lemah") : "");
+    g.querySelector("span").innerHTML = !pos ? "Mencari lokasi GPS…" : `<b>Lokasi terkunci (±${pos.acc} m)</b>` + (d != null ? ` <i>•</i> <b>${fmtJ(d)} dari ${esc(siapa)}</b>` : "");
+  };
+  function mulaiGps(){
+    if(watch != null) return;
+    if(!("geolocation" in navigator)){ const g = $("stGps"); if(g) g.querySelector("span").textContent = "HP ini tidak mendukung GPS"; return; }
+    const g = $("stGps"); if(g) g.querySelector("span").textContent = "Mencari lokasi GPS…";
+    watch = navigator.geolocation.watchPosition(p => {
+      const baru = !pos; pos = {lat:+p.coords.latitude.toFixed(6), lng:+p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy || 0)}; gpsUI();
+      if(file && (baru || Date.now() - terakhirBuat > 15000)){ terakhirBuat = Date.now(); buatFoto(); }
+    }, err => { const g = $("stGps"); if(g) g.querySelector("span").textContent = err.code === 1 ? "Izin lokasi ditolak — aktifkan lokasi untuk aplikasi ini" : "GPS belum dapat, pastikan lokasi HP menyala"; },
+    {enableHighAccuracy:true, maximumAge:5000, timeout:30000});
+  }
+  async function buatFoto(){
+    if(!file || !pos){ $("stKirim").disabled = true; return; }
+    const wib = new Date().toLocaleString("id-ID", {timeZone:"Asia/Jakarta", dateStyle:"medium", timeStyle:"medium"}) + " WIB", d = jarakKe();
+    const ket = $("stKet").value.trim();
+    try{
+      foto = await capFoto(file, [
+        {ik:"🏠", lbl:"Diserahkan untuk", val:[(o && o.customer_name) || siapa, ket || code]},
+        {ik:"📅", lbl:"Tanggal & Jam", val:[wib]},
+        {ik:"📍", lbl:"Lokasi", val:[`${pos.lat}, ${pos.lng} (±${pos.acc} m)`, d != null ? fmtJ(d) + " dari alamat " + siapa : ""]},
+        {ik:"👤", lbl:"Kurir", val:[me.nama || "Kurir Kalensari", code]}]);
+      $("stPrev").src = foto; $("stPrev").style.display = "block"; $("stKirim").disabled = false;
+    }catch(e){ toast("Foto tidak bisa dibaca, coba ambil ulang"); }
+  }
+  const tutup = () => { try{ sessionStorage.removeItem("ks_buka"); }catch(e){} try{ if(watch != null) navigator.geolocation.clearWatch(watch); }catch(e){} ov.remove(); };
   ov.onclick = e => { if(e.target === ov) tutup(); };
   $("stBatal").onclick = tutup;
   setTimeout(() => $("stKode").focus(), 100);
@@ -1885,22 +1926,30 @@ function serahTerima(code){
       const r = String(await cekKode(code, kode));
       if(r === "ok" || r === "tanpa-kode" || r === "belum-aktif"){ tutup(); await setStatus(code, "selesai", {cara: r === "ok" ? "kode" : "tanpa-kode"}); }
       else if(r.indexOf("salah") === 0){ const sisa = r.split(":")[1]; toast("❌ Kode salah" + (sisa ? ` (sisa ${sisa}x coba)` : "")); $("stKode").value = ""; $("stKode").focus(); }
-      else if(r === "terkunci"){ toast("Kode salah terlalu sering. Pakai foto bukti atau hubungi admin."); $("stFotoBox").open = true; }
+      else if(r === "terkunci"){ toast("Kode salah terlalu sering. Pakai foto bukti atau hubungi admin."); $("stFotoBox").open = true; mulaiGps(); }
       else toast("Tidak bisa memeriksa kode: " + r);
     }catch(e){ toast("Gagal memeriksa kode. Cek internet lalu coba lagi."); }
     finally{ sibuk = false; const b = $("stOk"); if(b) b.disabled = false; }
   };
-  $("stPilih").onclick = () => $("stFile").click();
+  $("stFotoBox").addEventListener("toggle", () => { if($("stFotoBox").open) mulaiGps(); });
+  $("stGps").onclick = () => { if(pos) window.open(`https://www.google.com/maps/search/?api=1&query=${pos.lat},${pos.lng}`, "_blank", "noopener"); };
+  $("stPilih").onclick = () => { mulaiGps(); if(!pos) toast("Lokasi GPS sedang dicari…"); window.KSKamera ? KSKamera.ambil($("stFile"), {judul:"Foto bukti serah terima"}) : $("stFile").click(); };
   $("stFile").onchange = async e => {
-    const f = e.target.files[0]; if(!f) return;
-    try{ foto = await kecilkanFoto(f); $("stPrev").src = foto; $("stPrev").style.display = "block"; $("stKirim").disabled = false; $("stPilih").textContent = "📷 Ganti foto"; }
-    catch(err){ toast("Foto tidak bisa dibaca"); }
+    file = e.target.files[0] || null; if(!file) return;
+    $("stPilih").textContent = "📷 Ambil ulang foto"; if(!pos) toast("Foto tersimpan, menunggu GPS…");
+    terakhirBuat = Date.now(); await buatFoto();
   };
+  $("stKet").onchange = () => { if(file) buatFoto(); };
   $("stKirim").onclick = async () => {
-    if(!foto) return toast("Ambil foto dulu");
+    if(!file) return toast("Ambil foto dulu");
+    if(!pos) return toast("Tunggu lokasi GPS terkunci dulu");
     const ket = $("stKet").value.trim(); if(!ket) return toast("Tulis dititipkan ke siapa / diletakkan di mana");
+    const d = jarakKe();
+    if(d != null && d > 300 && !confirm(`Lokasi Anda sekitar ${fmtJ(d)} dari alamat ${siapa}.\nYakin pesanan sudah diserahkan di sini?`)) return;
     if(sibuk) return; sibuk = true; $("stKirim").disabled = true; $("stKirim").textContent = "Mengirim...";
-    tutup(); await setStatus(code, "selesai", {cara:"foto", foto, ket});
+    await buatFoto();
+    const lok = {lat:pos.lat, lng:pos.lng, acc:pos.acc, jarak:d};
+    tutup(); await setStatus(code, "selesai", {cara:"foto", foto, ket, lok});
   };
 }
 
@@ -2137,7 +2186,7 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
   var $=function(i){return document.getElementById(i)}, cur="home";
   var HOME=[".hd","#stat","#aktifBox","#lokInfo","#lengkapiBox","#kokpit","#kpTarget","#ringkas","#btnLihat","#kpNotif","#kpLay"], ORD=["#ordBox"], PROF=["#profBox","#setH","#layBox","#notifBox",".accordion-box","#ksLink"], UANG=["#saldoBox","#uangBox"];
   function all(l){var r=[];l.forEach(function(q){document.querySelectorAll(q).forEach(function(e){r.push(e)})});return r}
-  function show(t){ cur=t; document.body.dataset.tab=t;
+  function show(t){ cur=t; document.body.dataset.tab=t; try{ history.replaceState(history.state,"",location.pathname+location.search+(t==="home"?"":"#"+t)); }catch(e){}
     if(t==="uang"&&window.muatPenghasilan) window.muatPenghasilan();
     [[HOME,"home"],[ORD,"pesanan"],[PROF,"profil"],[UANG,"uang"]].forEach(function(g){all(g[0]).forEach(function(e){e.classList.toggle("tabhide",g[1]!==t)})});
     document.querySelectorAll("#nav button").forEach(function(b){b.classList.toggle("on",b.dataset.go===t)}); scrollTo(0,0) }
@@ -2153,7 +2202,7 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
     if(b.dataset.gulir) setTimeout(function(){var el=$(b.dataset.gulir); if(el) el.scrollIntoView({behavior:"smooth",block:"start"})},60)});
   if(window.KSKembali) KSKembali.pasang({
     // peta navigasi kurir punya penangan kembali sendiri: tutup peta saja, tetap di tab Pesanan
-    lewati: function(){ return !!(window.KSNav && KSNav.sibuk && KSNav.sibuk()); },
+    lewati: function(){ return !!((window.KSNav && KSNav.sibuk && KSNav.sibuk()) || (window.KSKamera && KSKamera.sibuk && KSKamera.sibuk())); },
     tutup: function(){ return KSKembali.tutupAtas(".ks-lembar,.fp-ov,.modal.show"); },
     pulang: function(){ if(cur!=="home"){ show("home"); return true; } return false; }
   });
