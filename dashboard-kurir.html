@@ -1924,11 +1924,11 @@ function gagalAntar(code){
   const refundPembeli = tr ? 0 : grup.filter(lunasQ).reduce((t, x) => t + (Number(x.total) || 0), 0);
   if(!tr) grup.forEach(x => { const p = pisahGagal(x), c = (codBaru(x) || lunasQ(x)) && BIAYA.aktif; pg.tanggung += p.tanggung; pg.kembali += p.kembali; if(c){ jaminan += p.kembali; ganti += p.tanggung; }
     if(p.kembali > 0) tokoUrut(x).forEach(t => { if(!tokoKembali.includes(t.nama)) tokoKembali.push(t.nama); }); });
-  const barangTeks = tr ? (tr.layanan === "paket" ? "Dikembalikan ke pengirim" : "-") : pg.kembali > 0 ? "Dikembalikan ke toko" + (pg.tanggung ? " (makanan/minuman tidak)" : "") : "Makanan/minuman, tidak dikembalikan";
+  const barangTeks = tr ? (tr.layanan === "paket" ? "Dikembalikan ke pengirim" : "-") : pg.kembali > 0 ? "Dikembalikan ke toko" + (pg.tanggung ? " (makanan/minuman/es krim/buah tidak)" : "") : "Makanan/minuman/es krim/buah, tidak dikembalikan";
   let alasan = "", sibuk = false, pos = null, file = null, foto = "", watch = null, terakhir = 0;
   const ov = lembar(`<h3 style="margin:0 0 4px;color:#a32d2d">❌ Gagal antar ${banyak ? codes.length + " nota" : esc(code)}</h3>
     ${banyak ? `<p class="hint" style="margin:0 0 6px">Semua nota dalam antaran ini ikut gagal: <b>${grup.map(x => esc(x.order_code) + " (" + esc(tokoUrut(x).map(t => t.nama).join(", ") || "toko") + ")").join(", ")}</b></p>` : ""}
-    ${!tr && pg.tanggung > 0 ? `<div class="ga-info mkn"><b>🍲 Makanan &amp; minuman ${fmtRp(pg.tanggung)}: tidak perlu dikembalikan.</b>
+    ${!tr && pg.tanggung > 0 ? `<div class="ga-info mkn"><b>🍲 Makanan, minuman, es krim &amp; buah ${fmtRp(pg.tanggung)}: tidak perlu dikembalikan.</b>
       <span>${ganti ? `Kerugiannya <b>ditanggung Anda</b>: saldo dipotong ${fmtRp(ganti)} dan uangnya untuk toko.` : "Tidak ada potongan saldo."}</span></div>` : ""}
     ${!tr && pg.kembali > 0 ? `<div class="ga-info"><b>📦 Barang ${fmtRp(pg.kembali)} wajib dikembalikan ke ${esc((tokoKembali.length ? tokoKembali : toko).join(", ") || "toko")} maksimal 24 jam.</b>
       <span>Toko akan menekan "Barang sudah kembali" di aplikasinya.${jaminan ? ` Saldo Anda dipotong <b>jaminan ${fmtRp(jaminan)}</b> dan dikembalikan otomatis setelah toko konfirmasi (impas). Bila lewat 24 jam, uang jaminan menjadi milik toko.` : ""}</span></div>` : ""}
@@ -1991,7 +1991,7 @@ function gagalAntar(code){
     if(alasan === "Lainnya" && !ket) return $("gaErr").textContent = "Tulis keterangannya.";
     if(!file) return $("gaErr").textContent = "Ambil foto bukti di lokasi dulu.";
     if(!pos) return $("gaErr").textContent = "Tunggu lokasi GPS terkunci dulu.";
-    if((jaminan || ganti) && !confirm(`Saldo Anda akan dipotong ${fmtRp(jaminan + ganti)}:` + (ganti ? `\n• ${fmtRp(ganti)} ganti rugi makanan/minuman untuk toko (tidak kembali)` : "") + (jaminan ? `\n• ${fmtRp(jaminan)} jaminan barang, kembali setelah ${(tokoKembali.length ? tokoKembali : toko).join(", ") || "toko"} menekan "Barang sudah kembali" (maks 24 jam)` : "") + `\n\nLanjutkan?`)) return;
+    if((jaminan || ganti) && !confirm(`Saldo Anda akan dipotong ${fmtRp(jaminan + ganti)}:` + (ganti ? `\n• ${fmtRp(ganti)} ganti rugi makanan/minuman/es krim/buah untuk toko (tidak kembali)` : "") + (jaminan ? `\n• ${fmtRp(jaminan)} jaminan barang, kembali setelah ${(tokoKembali.length ? tokoKembali : toko).join(", ") || "toko"} menekan "Barang sudah kembali" (maks 24 jam)` : "") + `\n\nLanjutkan?`)) return;
     sibuk = true; $("gaKirim").textContent = "Mengirim…"; $("gaErr").textContent = "";
     try{
       const sts = await Promise.all(codes.map(c => readState(c)));
@@ -2015,12 +2015,14 @@ function gagalAntar(code){
 
 // ===== Barang retur (gagal antar) yang masih dibawa kurir: store_settings "retur_<kode>" (dibuat database) =====
 let RETUR = [], GAGAL_ATURAN = null;
-// kategori yang kerugiannya ditanggung kurir bila gagal antar COD (bawaan Makanan & Minuman; diatur admin: "gagal_aturan")
-const tanggungKurir = () => ((GAGAL_ATURAN && Array.isArray(GAGAL_ATURAN.tanggung_kurir) ? GAGAL_ATURAN.tanggung_kurir : ["Makanan", "Minuman"]).map(x => String(x).trim().toLowerCase()));
+// kategori yang kerugiannya ditanggung kurir bila gagal antar (bawaan Makanan, Minuman, Es Krim, Buah-buahan; diatur admin: "gagal_aturan")
+// nama kategori disamakan: "Es Krim" = "es cream" = "ice cream", "Buah" = "Buah-buahan" (sama dengan ks_kat_norm di database)
+const katN = s => { const k = String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); return ({escream:"eskrim", escrim:"eskrim", icecream:"eskrim", buah:"buahbuahan"})[k] || k; };
+const tanggungKurir = () => ((GAGAL_ATURAN && Array.isArray(GAGAL_ATURAN.tanggung_kurir) ? GAGAL_ATURAN.tanggung_kurir : ["Makanan", "Minuman", "Es Krim", "Buah-buahan"]).map(katN));
 function pisahGagal(o){   // {tanggung, kembali}: nilai barang yang ditanggung kurir / wajib dikembalikan
   const tk = tanggungKurir(); let a = 0, b = 0;
   itemsOf(o).forEach(p => { const v = (Number(p.sale) > 0 && Number(p.sale) < Number(p.price) ? Number(p.sale) : Number(p.price) || 0) * (Number(p.qty) || 1);
-    if(tk.includes(String(p.category || "").trim().toLowerCase())) a += v; else b += v; });
+    if(tk.includes(katN(p.category))) a += v; else b += v; });
   return {tanggung:Math.round(a), kembali:Math.round(b)};
 }
 async function muatRetur(){

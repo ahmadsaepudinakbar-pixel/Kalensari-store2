@@ -159,6 +159,11 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
 .ms .val{font-size:22px;font-weight:800}
 .ms .ic{width:34px;height:34px;border-radius:9px}.ms .ic svg.i{width:18px;height:18px}
 .promo-tag{width:80px;height:72px;border-radius:12px;color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;text-align:center;font-size:17px;line-height:1;transform:rotate(-4deg);flex-shrink:0;text-shadow:0 2px 0 rgba(0,0,0,.15)}
+.gk-info{margin:0 0 12px;padding:12px 14px;border-radius:14px;background:#fff8e6;border:1px solid #f1d48a;font-size:13px;line-height:1.45;color:#5c4210}.gk-info>b{display:block;font-size:14px;color:#3a2a06;margin-bottom:3px}.gk-info>span{display:block}.gk-info>em{display:inline-block;margin-top:8px;font-style:normal;font-weight:700;font-size:12px;padding:3px 10px;border-radius:99px;background:#fff;color:#7a4a00}
+.gk-st{display:inline-block;margin-top:4px;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px;background:#eef1f5;color:#4b5563}.gk-st.on{background:#fdecea;color:#a32d2d}
+.gk-cek{display:flex;gap:10px;align-items:flex-start;margin:12px 0 4px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;cursor:pointer}.gk-cek input{width:20px;height:20px;margin-top:1px;flex:none}.gk-cek b{display:block;font-size:14px}.gk-cek small{display:block;font-size:12px;color:var(--mut);margin-top:2px;line-height:1.35}
+[data-theme="dark"] .gk-info{background:#30260f;border-color:#6b5320;color:#e9d6a8}[data-theme="dark"] .gk-info>b{color:#f3c969}[data-theme="dark"] .gk-info>em{background:#1f2937;color:#f3c969}
+[data-theme="dark"] .gk-st{background:#263142;color:#b8c2d0}[data-theme="dark"] .gk-st.on{background:#3a1c1a;color:#ff9a8f}[data-theme="dark"] .gk-cek{border-color:#3a4658}
 .cat-ic{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
 .ppl{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0}
 .empty{text-align:center;color:var(--mut);padding:40px 10px}
@@ -403,7 +408,7 @@ const setSetting=(key,value)=>api('store_settings?on_conflict=key',{method:'POST
 
 /* ========== DATA ASLI ========== */
 const S={products:[],orders:[],settings:{},loaded:false};
-const BASE_CATS=['Makanan','Minuman'];
+const BASE_CATS=['Makanan','Minuman','Es Krim','Buah-buahan'];
 const STATUS_LABEL={menunggu:'Baru',baru:'Baru',diproses:'Diproses',dikirim:'Dikirim',selesai:'Selesai',dibatalkan:'Batal',gagal:'Gagal'};
 const STATUS_DB={Baru:'menunggu',Diproses:'diproses',Dikirim:'dikirim',Selesai:'selesai',Batal:'dibatalkan',Gagal:'gagal'};
 const stLabel=s=>STATUS_LABEL[String(s||'').toLowerCase()]||'Baru';
@@ -442,7 +447,9 @@ function allCats(){
   const used=new Set(S.products.map(p=>p.category).filter(Boolean));
   return [...new Set([...BASE_CATS,...customCats(),...used])].filter(c=>!removedCats().includes(c)||used.has(c));
 }
-const catEmoji=c=>/minum|jus|es |kopi|teh/i.test(c)?'🥤':/makan|nasi|mie|kue|jajan/i.test(c)?'🍛':'🏷️';
+const catEmoji=c=>/es ?kr?im|es ?cream|ice ?cream/i.test(c)?'🍦':/buah/i.test(c)?'🍎':/minum|jus|es |kopi|teh/i.test(c)?'🥤':/makan|nasi|mie|kue|jajan/i.test(c)?'🍛':/mainan|boneka/i.test(c)?'🧸':/pakaian|baju|kaos/i.test(c)?'👕':/aksesoris|asesoris/i.test(c)?'💍':'🏷️';
+// nama kategori disamakan (sama dengan ks_kat_norm di database & aplikasi kurir): "Es Krim" = "es cream" = "ice cream", "Buah" = "Buah-buahan"
+function katN(s){const k=String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');return({escream:'eskrim',escrim:'eskrim',icecream:'eskrim',buah:'buahbuahan'})[k]||k}
 const fotoUtama=v=>String(v||'').split(/\s*(?:\r?\n|\s\|\s)\s*/)[0].trim();
 const prodThumb=(p,size)=>p&&p.image?`<img src="${esc(fotoUtama(p.image))}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit" loading="lazy" onerror="this.replaceWith(document.createTextNode('${catEmoji(p.category||'')}'))">`:catEmoji((p&&p.category)||'');
 
@@ -726,8 +733,12 @@ produk(){
   <div class="cards" id="list">${list.length?list.map(p=>{const s=(sm.get('id:'+p.id)||{qty:0}).qty;const on=p.status==='Show'||p.status==='Sold Out';return `<div class="lc" style="${on?'':'opacity:.6'}"><div class="pimg" style="width:54px;height:54px;font-size:28px;overflow:hidden">${prodThumb(p)}</div><div class="meta"><b>${esc(p.name)}</b><div class="pr">${Number(p.sale)>0?`<s style="color:var(--mut);font-weight:500">${rp(p.price)}</s> ${rp(p.sale)}`:rp(p.price)}</div><div class="sm">${esc(p.seller||'-')} · ${p.stock!=null&&p.stock!==''?'Stok '+p.stock+' · ':''}Terjual ${s}${stTxt(p)}</div></div><div class="right-col"><button class="sw ${on?'on':''}" onclick="toggleProd(${Number(p.id)},this)" title="Tampilkan / sembunyikan"></button><button class="more" onclick="productMenu(${Number(p.id)})">${ico('dots')}</button></div></div>`}).join(''):'<div class="empty">Produk tidak ditemukan</div>'}</div>`;
 },
 kategori(){
+  const tk=gagalTanggung().map(katN),cats=allCats(),jml=cats.filter(c=>tk.includes(katN(c))).length;
+  const lain=gagalTanggung().filter(x=>!cats.some(c=>katN(c)===katN(x)));
   return `<div class="toolbar"><div style="flex:1"></div><button class="btn btn-g" onclick="catForm()">${ico('plus')}Tambah Kategori</button></div>
-  <div class="cards">${allCats().map((c,i)=>{const n=S.products.filter(p=>p.category===c).length;return `<div class="lc"><div class="cat-ic" style="background:${colors[i%colors.length]}">${catEmoji(c)}</div><div class="meta"><b>${esc(c)}</b><div class="sm">${n} produk</div></div><button class="more" onclick="catMenu('${jsq(c)}')">${ico('dots')}</button></div>`}).join('')}</div>`;
+  <div class="gk-info"><b>🛵 Gagal antar: siapa yang menanggung?</b><span>Nyalakan sakelar untuk kategori yang <b>tidak bisa dikembalikan</b> (cepat basi/meleleh). Bila gagal antar, kerugiannya <b>ditanggung kurir</b> (saldo kurir dipotong, uangnya masuk saldo toko). Kategori yang sakelarnya mati <b>wajib dikembalikan ke toko</b>. Berlaku untuk COD dan QRIS lunas.</span><em>${jml} dari ${cats.length} kategori ditanggung kurir</em></div>
+  <div class="cards">${cats.map((c,i)=>{const n=S.products.filter(p=>p.category===c).length,on=tk.includes(katN(c));return `<div class="lc"><div class="cat-ic" style="background:${colors[i%colors.length]}">${catEmoji(c)}</div><div class="meta"><b>${esc(c)}</b><div class="sm">${n} produk</div><div class="gk-st ${on?'on':''}">${on?'🛵 Gagal antar: ditanggung kurir':'↩️ Gagal antar: wajib kembali ke toko'}</div></div><button class="sw ${on?'on':''}" onclick="tanggungKat('${jsq(c)}',this)" title="Ditanggung kurir bila gagal antar" aria-label="Ditanggung kurir bila gagal antar: ${esc(c)}"></button><button class="more" onclick="catMenu('${jsq(c)}')">${ico('dots')}</button></div>`}).join('')}</div>
+  ${lain.length?`<p class="sm" style="color:var(--mut);margin:10px 4px 0">Juga ditanggung kurir (tidak ada di daftar kategori): ${lain.map(esc).join(', ')}. Ubah di Kurir &gt; COD &amp; Gagal antar &gt; Aturan COD.</p>`:''}`;
 },
 pelanggan(){
   const all=customers();const list=all.filter(c=>(c.name+c.wa+kodePembeli(c.wa)).toLowerCase().includes(q.toLowerCase()));
@@ -1323,6 +1334,7 @@ async function importProduk(inp){
 function catForm(old){
   modal(`<h3>${old?'Ubah Nama':'Tambah'} Kategori</h3><div class="field"><label>Nama kategori</label><input class="inp" id="cN" value="${esc(old||'')}"></div>
   ${old?`<p class="sm" style="color:var(--mut);font-size:12px">Semua produk di kategori ini ikut dipindah ke nama baru.</p>`:''}
+  <label class="gk-cek"><input type="checkbox" id="cTk" ${(old?gagalTanggung().some(x=>katN(x)===katN(old)):false)?'checked':''}><span><b>Ditanggung kurir bila gagal antar</b><small>Untuk barang yang tidak bisa dikembalikan (makanan, minuman, es krim, buah). Bila tidak dicentang, barang wajib dikembalikan ke toko.</small></span></label>
   <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="saveCat('${old?jsq(old):''}',this)">Simpan</button></div>`)}
 async function saveCat(old,btn){
   const v=$('#cN').value.replace(/\s+/g,' ').trim();if(!v)return toast('Nama wajib diisi');
@@ -1332,7 +1344,10 @@ async function saveCat(old,btn){
     let removed=removedCats().filter(c=>c!==v);if(old&&old!==v)removed.push(old);
     if(old&&old!==v){await api('products?category=eq.'+encodeURIComponent(old),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({category:v})});S.products.forEach(p=>{if(p.category===old)p.category=v})}
     await setSetting('categories',cats);await setSetting('removed_categories',removed);
-    S.settings.categories=cats;S.settings.removed_categories=removed;closeModal();render();toast('Kategori disimpan');
+    S.settings.categories=cats;S.settings.removed_categories=removed;
+    const tkOn=!!($('#cTk')&&$('#cTk').checked);let tk=gagalTanggung().filter(x=>katN(x)!==katN(v)&&!(old&&katN(x)===katN(old)));if(tkOn)tk.push(v);
+    if(JSON.stringify(tk)!==JSON.stringify(gagalTanggung()))await simpanTanggung(tk);
+    closeModal();render();toast('Kategori disimpan');
   });
 }
 function catMenu(c){const n=S.products.filter(p=>p.category===c).length;
@@ -2038,7 +2053,15 @@ function codBermasalah(){
 /* ========== GAGAL ANTAR AMAN (supabase-gagal-antar-aman.sql) ==========
    store_settings "retur_<kode>" = {kode,kurir_id,kurir_nama,toko[],per_toko{},barang,jaminan,cod,pembeli,hp,lok,t,batas,status:di_kurir|kembali|diteruskan}
    store_settings "antar_<kode>"  = {cara:'gagal', alasan, lok:{lat,lng,jarak}, hubungi:{t,via}} (dari aplikasi kurir) */
-const gagalTanggung=()=>{const v=S.settings.gagal_aturan;return v&&Array.isArray(v.tanggung_kurir)?v.tanggung_kurir:['Makanan','Minuman']};
+const gagalTanggung=()=>{const v=S.settings.gagal_aturan;return v&&Array.isArray(v.tanggung_kurir)?v.tanggung_kurir:['Makanan','Minuman','Es Krim','Buah-buahan']};
+async function simpanTanggung(daftar){const ga={...(S.settings.gagal_aturan&&typeof S.settings.gagal_aturan==='object'?S.settings.gagal_aturan:{}),tanggung_kurir:daftar};await setSetting('gagal_aturan',ga);S.settings.gagal_aturan=ga;}
+async function tanggungKat(c,btn){
+  const on=gagalTanggung().some(x=>katN(x)===katN(c));
+  const daftar=on?gagalTanggung().filter(x=>katN(x)!==katN(c)):[...gagalTanggung(),c];
+  btn.classList.toggle('on',!on);btn.disabled=true;
+  try{await simpanTanggung(daftar);render();toast(on?`${c}: wajib dikembalikan ke toko bila gagal antar`:`${c}: ditanggung kurir bila gagal antar`);}
+  catch(e){btn.classList.toggle('on',on);btn.disabled=false;toast('Gagal menyimpan, coba lagi');}
+}
 const returList=()=>Object.keys(S.settings).filter(k=>k.startsWith('retur_')).map(k=>S.settings[k]).filter(v=>v&&v.kode).sort((a,b)=>(Date.parse(b.t)||0)-(Date.parse(a.t)||0));
 const returLewat=v=>v&&(v.status==='diteruskan'||(v.status==='di_kurir'&&Date.now()>Date.parse(v.batas)));
 function returStatus(v){if(v.status==='tanpa_retur')return['b-Diproses','🍲 Ditanggung kurir'];if(v.status==='kembali')return['b-Selesai','✅ Sudah kembali'];if(v.status==='diteruskan')return['b-Batal','Diteruskan ke toko'];if(returLewat(v))return['b-Batal','⚠️ Lewat 24 jam'];const s=Date.parse(v.batas)-Date.now();return['b-Diproses',`Sisa ${Math.floor(s/36e5)} j ${Math.floor(s%36e5/6e4)} m`]}
@@ -2046,11 +2069,11 @@ function returCard(){
   const l=returList().filter(v=>v.status==='di_kurir'||Date.now()-(Date.parse(v.t)||0)<7*864e5).slice(0,40);
   return `<div class="card"><div class="chead"><h3>📦 Barang gagal antar (wajib kembali ke toko)</h3><span class="sm">${l.filter(v=>v.status==='di_kurir').length} masih di kurir</span></div>
     ${l.length?l.map(v=>{const [b,t]=returStatus(v),a=S.settings['antar_'+v.kode]||{},toko=(v.toko||[]).map(x=>x.replace(/\b\w/g,c=>c.toUpperCase())).join(', ');
-      return `<div class="detail-row" style="align-items:center;gap:10px;flex-wrap:wrap"><span style="white-space:normal"><b>${esc(v.kode)}</b> · ${esc(toko||'-')}${v.barang?` · barang ${rp(v.barang)}`:''}${v.jaminan?` <small style="color:var(--mut)">(jaminan kurir ${rp(v.jaminan)})</small>`:''}${v.hangus?` · 🍲 makanan/minuman ${rp(v.hangus)} <small style="color:var(--mut)">(ditanggung kurir, untuk toko)</small>`:''}<br>
+      return `<div class="detail-row" style="align-items:center;gap:10px;flex-wrap:wrap"><span style="white-space:normal"><b>${esc(v.kode)}</b> · ${esc(toko||'-')}${v.barang?` · barang ${rp(v.barang)}`:''}${v.jaminan?` <small style="color:var(--mut)">(jaminan kurir ${rp(v.jaminan)})</small>`:''}${v.hangus?` · 🍲 makanan/minuman/es krim/buah ${rp(v.hangus)} <small style="color:var(--mut)">(ditanggung kurir, untuk toko)</small>`:''}<br>
         <small style="color:var(--mut)">Kurir ${esc(v.kurir_nama||v.kurir_id)} · pembeli ${esc(v.pembeli||'-')} · ${fmtDate(v.t)}${a.lok&&a.lok.jarak!=null?` · ${a.lok.jarak} m dari alamat`:''}</small></span>
         <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="badge ${b}">${t}</span>${v.status==='di_kurir'?`<button class="btn btn-g" style="padding:7px 10px" onclick="returAdmin('${esc(v.kode)}','kembali',this)">Barang kembali</button><button class="btn btn-light" style="padding:7px 10px" onclick="returAdmin('${esc(v.kode)}','diteruskan',this)">Teruskan ke toko</button>`:''}</span></div>`}).join('')
       :'<div class="empty" style="padding:14px">Belum ada barang gagal antar</div>'}
-    <p class="sm" style="margin:10px 0 0">Berlaku untuk COD dan QRIS lunas (uang pembeli QRIS dikembalikan otomatis ke saldo voucher). Makanan & minuman (kategori di Aturan COD) tidak dikembalikan; kerugiannya ditanggung kurir dan masuk saldo toko. Barang lain wajib kembali dalam 24 jam dan toko menekan "Barang sudah kembali". Kurir: saldo kurir dipotong jaminan harga produk, kembali setelah toko konfirmasi; lewat 24 jam jaminan masuk saldo toko. Tombol di sini untuk keputusan admin bila ada sengketa.</p></div>`;
+    <p class="sm" style="margin:10px 0 0">Berlaku untuk COD dan QRIS lunas (uang pembeli QRIS dikembalikan otomatis ke saldo voucher). Makanan, minuman, es krim & buah (kategori di Aturan COD) tidak dikembalikan; kerugiannya ditanggung kurir dan masuk saldo toko. Barang lain wajib kembali dalam 24 jam dan toko menekan "Barang sudah kembali". Kurir: saldo kurir dipotong jaminan harga produk, kembali setelah toko konfirmasi; lewat 24 jam jaminan masuk saldo toko. Tombol di sini untuk keputusan admin bila ada sengketa.</p></div>`;
 }
 async function returAdmin(kode,aksi,btn){
   if(!confirm(aksi==='kembali'?`Catat barang ${kode} sudah kembali ke toko? Jaminan dikembalikan ke saldo kurir.`:`Teruskan ${kode} ke toko? Barang dianggap dibeli kurir dan jaminan menjadi saldo toko.`))return;
@@ -2104,7 +2127,7 @@ function codPage(){
       <label><span style="${lbl}">Batas nilai COD (Rp, 0 = tanpa batas)</span><input class="inp" id="codMaks" type="number" min="0" step="5000" value="${Number(A.maks)||0}"></label>
       <label><span style="${lbl}">Blokir COD setelah gagal</span><input class="inp" id="codGagal" type="number" min="1" max="10" value="${Number(A.maks_gagal)||2}"></label>
     </div>
-    <label style="display:block;margin-top:12px"><span style="${lbl}">Kategori yang kerugiannya ditanggung kurir bila gagal antar, COD maupun QRIS (pisahkan koma). Kategori lain wajib dikembalikan ke toko.</span><input class="inp" id="codTanggung" value="${esc(gagalTanggung().join(', '))}" placeholder="Makanan, Minuman"><small class="sm" style="display:block;margin-top:4px">Kategori yang ada: ${esc(allCats().join(', '))}</small></label>
+    <label style="display:block;margin-top:12px"><span style="${lbl}">Kategori yang kerugiannya ditanggung kurir bila gagal antar, COD maupun QRIS (pisahkan koma). Kategori lain wajib dikembalikan ke toko. Bisa juga diatur lewat sakelar di menu Kategori.</span><input class="inp" id="codTanggung" value="${esc(gagalTanggung().join(', '))}" placeholder="Makanan, Minuman, Es Krim, Buah-buahan"><small class="sm" style="display:block;margin-top:4px">Kategori yang ada: ${esc(allCats().join(', '))}</small></label>
     <label style="display:flex;gap:10px;align-items:center;margin:12px 0;font-size:14px"><input type="checkbox" id="codWa" ${A.wa_baru!==false?'checked':''} style="width:20px;height:20px">Pembeli baru wajib dikonfirmasi lewat WA dulu</label>
     <button class="btn btn-g" onclick="codSimpan(this)">Simpan aturan</button></div>`;
 }

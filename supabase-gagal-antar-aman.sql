@@ -9,7 +9,7 @@
 --       status 'di_kurir'  -> barang masih dibawa kurir
 --       status 'kembali'   -> toko menekan "Barang sudah kembali" (aplikasi Mitra Toko)
 --       status 'diteruskan'-> lewat 24 jam / diputuskan admin: barang dianggap dibeli kurir
---     Kecuali kategori "ditanggung kurir" (bawaan: Makanan & Minuman, bisa diubah admin di
+--     Kecuali kategori "ditanggung kurir" (bawaan: Makanan, Minuman, Es Krim & Buah-buahan, bisa diubah admin di
 --     store_settings 'gagal_aturan'): tidak dikembalikan; pesanan COD -> saldo kurir langsung
 --     dipotong harga barang itu (mutasi 'ganti_gagal') dan uangnya menjadi saldo toko.
 --  Berlaku untuk COD (aturan baru) DAN pesanan yang sudah dibayar (QRIS / saldo voucher, lunas).
@@ -84,7 +84,7 @@ create trigger ks_gagal_wajib_bukti
   execute function public.ks_gagal_wajib_bukti();
 
 -- 3) Saat pesanan TOKO gagal antar.
---    Aturan per barang (diatur admin: store_settings 'gagal_aturan' = {"tanggung_kurir":["Makanan","Minuman"]}):
+--    Aturan per barang (diatur admin: store_settings 'gagal_aturan' = {"tanggung_kurir":["Makanan","Minuman","Es Krim","Buah-buahan"]}):
 --      * kategori "ditanggung kurir" (bawaan: Makanan, Minuman) -> TIDAK dikembalikan. Pesanan COD: saldo kurir langsung
 --        dipotong harga barang (mutasi 'ganti_gagal'), uangnya menjadi saldo toko.
 --      * kategori lain (mis. Mainan, Aksesoris, Pakaian) -> WAJIB kembali ke toko. Pesanan COD: jaminan dipotong,
@@ -92,21 +92,31 @@ create trigger ks_gagal_wajib_bukti
 create unique index if not exists kurir_mutasi_ganti_gagal_unik
   on public.kurir_mutasi(order_code) where jenis = 'ganti_gagal';
 
+create or replace function public.ks_kat_norm(t text)
+returns text language sql immutable as $$
+  select case k
+           when 'escream' then 'eskrim' when 'escrim' then 'eskrim' when 'icecream' then 'eskrim'
+           when 'buah' then 'buahbuahan'
+           else k end
+    from (select regexp_replace(lower(coalesce(t, '')), '[^a-z0-9]', '', 'g') k) z
+$$;
+
+-- Daftar kategori yang ditanggung kurir (dari admin 'gagal_aturan'; bawaan 4 kategori)
 create or replace function public.ks_tanggung_kurir()
 returns text[] language sql stable security definer set search_path = public as $$
   select coalesce(
-    (select array_agg(lower(btrim(x))) from public.store_settings s, jsonb_array_elements_text(s.value->'tanggung_kurir') x
+    (select array_agg(public.ks_kat_norm(x)) from public.store_settings s, jsonb_array_elements_text(s.value->'tanggung_kurir') x
       where s.key = 'gagal_aturan' and jsonb_typeof(s.value->'tanggung_kurir') = 'array' and btrim(x) <> ''),
-    array['makanan', 'minuman'])
+    array['makanan', 'minuman', 'eskrim', 'buahbuahan'])
 $$;
 
--- harga barang & toko tiap item, dipisah: tanggung kurir / wajib kembali
+-- Pemisahan barang gagal antar memakai nama kategori yang sudah disamakan
 create or replace function public.ks_pisah_gagal(p_items jsonb)
 returns table(tanggung boolean, toko text, nilai int)
 language sql stable security definer set search_path = public as $$
-  select lower(btrim(coalesce(
+  select public.ks_kat_norm(coalesce(
            (select p.category from public.products p where p.id::text = x->>'id' limit 1),
-           x->>'category', ''))) = any(public.ks_tanggung_kurir()),
+           x->>'category', '')) = any(public.ks_tanggung_kurir()),
          lower(regexp_replace(btrim(split_part(coalesce(x->>'seller', ''), ',', 1)), '\s+', ' ', 'g')),
          round(case when coalesce((x->>'sale')::numeric, 0) > 0
                          and coalesce((x->>'sale')::numeric, 0) < coalesce((x->>'price')::numeric, 0)
@@ -271,7 +281,7 @@ grant execute on function public.admin_retur(text, text) to authenticated;
 
 revoke all on function public.ks_cod_baru(text, timestamptz) from public, anon, authenticated;
 
--- Cek: harus menampilkan true, true, true, true, true, {makanan,minuman}
+-- Cek: harus menampilkan true, true, true, true, true, {makanan,minuman,eskrim,buahbuahan}
 select exists (select 1 from pg_trigger where tgname = 'ks_gagal_wajib_bukti') as wajib_foto_gagal,
        exists (select 1 from pg_trigger where tgname = 'ks_gagal_retur')       as catat_retur_jaminan,
        exists (select 1 from pg_trigger where tgname = 'ks_gagal_refund')      as refund_qris_pembeli,

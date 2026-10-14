@@ -1,0 +1,34 @@
+KALENSARI STORE - KATEGORI ES KRIM & BUAH-BUAHAN (gagal antar ditanggung kurir)
+================================================================================
+
+URUTAN PASANG
+1. Unggah ke GitHub (timpa file lama):
+     script.js, admin.html, penjual-app.html, dashboard-kurir.html, navigasi-kurir.js
+   (dashboard-kurir.html & navigasi-kurir.js sudah termasuk mode gelap)
+2. Jalankan supabase-kategori-eskrim-buah.sql di Supabase > SQL Editor > Run.
+   Hasil akhir harus: {makanan,minuman,eskrim,buahbuahan}
+   (Kalau admin sudah menambah kategori lain di Aturan COD, kategori itu tetap ada.)
+
+YANG BERUBAH
+- Kategori "Es Krim" dan "Buah-buahan" sekarang kategori bawaan: muncul di toko,
+  di pilihan kategori Mitra Toko (tambah/ubah produk), dan di admin.
+- Bila gagal antar (COD maupun QRIS lunas), es krim & buah TIDAK dikembalikan ke toko;
+  kerugiannya ditanggung kurir (saldo kurir dipotong, uangnya masuk saldo toko),
+  sama seperti makanan & minuman.
+- Ejaan disamakan otomatis: "Es Krim" = "Es Cream" = "Ice Cream" = "EsKrim",
+  "Buah" = "Buah-buahan" = "buah buahan".
+- ATUR SENDIRI DI ADMIN > menu KATEGORI:
+  tiap kategori punya sakelar "Gagal antar: ditanggung kurir".
+    nyala = tidak dikembalikan, kerugian ditanggung kurir (saldo kurir dipotong)
+    mati  = barang wajib dikembalikan ke toko (jaminan saldo kurir)
+  Saat Tambah / Ubah nama kategori juga ada centang "Ditanggung kurir bila gagal antar".
+  Ganti nama kategori -> aturannya ikut pindah ke nama baru.
+  Langsung berlaku tanpa SQL tambahan (aplikasi kurir & database membaca pengaturan ini).
+  (Masih bisa juga lewat Kurir > COD & Gagal antar > Aturan COD, isian dipisah koma.)
+
+PENTING UNTUK PENJUAL
+- Produk es krim / buah yang SUDAH ada harus dipindah ke kategori yang tepat
+  (Mitra Toko > Daftar Produk > ubah produk > Kategori, atau lewat admin).
+  Aturan membaca kategori produk; produk es krim yang masih berkategori lain
+  (mis. "Minuman") tetap ditanggung kurir, tapi yang berkategori "Lainnya" akan
+  dianggap barang yang wajib dikembalikan.

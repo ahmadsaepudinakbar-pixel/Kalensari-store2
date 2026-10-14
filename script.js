@@ -263,7 +263,7 @@ const hashPin=async v=>{if(!(window.crypto&&crypto.subtle))throw Error("no-crypt
 const checkAdminPin=async()=>false; // PIN lama tidak dipakai lagi; admin masuk lewat Supabase Auth
 // ===== /KODE ADMIN =====
 {const saved=normalizePhone(readLS("kalensari_wa_number",""));if(saved.length>=9)WHATSAPP_NUMBER=saved;}
-const BASE_CATEGORIES=["Makanan","Minuman"];
+const BASE_CATEGORIES=["Makanan","Minuman","Es Krim","Buah-buahan"];
 const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])].filter(c=>!removedCategories.includes(c)||products.some(p=>p.category===c));
 const sellerKey=n=>String(n||"").trim().toLowerCase();
 const shippingFeeFor=n=>{const v=shippingFees[sellerKey(n)],d=Number(shippingFees.__default)||0;return(v===undefined||v===null||v==="")?d:(Number(v)||0);};
