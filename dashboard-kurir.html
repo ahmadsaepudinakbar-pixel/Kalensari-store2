@@ -1743,16 +1743,20 @@ function gagalAntar(code){
   const tuju = tj && Number.isFinite(+tj.lat) && Number.isFinite(+tj.lng) ? {lat:+tj.lat, lng:+tj.lng} : null;
   const pg = {tanggung:0, kembali:0}; let jaminan = 0, ganti = 0;
   const tokoKembali = [];   // hanya toko yang barangnya wajib dikembalikan (bukan makanan/minuman)
-  if(!tr) grup.forEach(x => { const p = pisahGagal(x), c = codBaru(x) && BIAYA.aktif; pg.tanggung += p.tanggung; pg.kembali += p.kembali; if(c){ jaminan += p.kembali; ganti += p.tanggung; }
+  // berlaku untuk COD dan pesanan yang sudah dibayar (QRIS / saldo, lunas); uang pembeli yang sudah bayar dikembalikan otomatis
+  const lunasQ = x => !isCod(x) && x.pay_status === "lunas";
+  const refundPembeli = tr ? 0 : grup.filter(lunasQ).reduce((t, x) => t + (Number(x.total) || 0), 0);
+  if(!tr) grup.forEach(x => { const p = pisahGagal(x), c = (codBaru(x) || lunasQ(x)) && BIAYA.aktif; pg.tanggung += p.tanggung; pg.kembali += p.kembali; if(c){ jaminan += p.kembali; ganti += p.tanggung; }
     if(p.kembali > 0) tokoUrut(x).forEach(t => { if(!tokoKembali.includes(t.nama)) tokoKembali.push(t.nama); }); });
   const barangTeks = tr ? (tr.layanan === "paket" ? "Dikembalikan ke pengirim" : "-") : pg.kembali > 0 ? "Dikembalikan ke toko" + (pg.tanggung ? " (makanan/minuman tidak)" : "") : "Makanan/minuman, tidak dikembalikan";
   let alasan = "", sibuk = false, pos = null, file = null, foto = "", watch = null, terakhir = 0;
   const ov = lembar(`<h3 style="margin:0 0 4px;color:#a32d2d">❌ Gagal antar ${banyak ? codes.length + " nota" : esc(code)}</h3>
     ${banyak ? `<p class="hint" style="margin:0 0 6px">Semua nota dalam antaran ini ikut gagal: <b>${grup.map(x => esc(x.order_code) + " (" + esc(tokoUrut(x).map(t => t.nama).join(", ") || "toko") + ")").join(", ")}</b></p>` : ""}
     ${!tr && pg.tanggung > 0 ? `<div class="ga-info mkn"><b>🍲 Makanan &amp; minuman ${fmtRp(pg.tanggung)}: tidak perlu dikembalikan.</b>
-      <span>${ganti ? `Karena COD, kerugiannya <b>ditanggung Anda</b>: saldo dipotong ${fmtRp(ganti)} dan uangnya untuk toko.` : "Pesanan sudah dibayar, tidak ada potongan saldo."}</span></div>` : ""}
+      <span>${ganti ? `Kerugiannya <b>ditanggung Anda</b>: saldo dipotong ${fmtRp(ganti)} dan uangnya untuk toko.` : "Tidak ada potongan saldo."}</span></div>` : ""}
     ${!tr && pg.kembali > 0 ? `<div class="ga-info"><b>📦 Barang ${fmtRp(pg.kembali)} wajib dikembalikan ke ${esc((tokoKembali.length ? tokoKembali : toko).join(", ") || "toko")} maksimal 24 jam.</b>
-      <span>Toko akan menekan "Barang sudah kembali" di aplikasinya.${jaminan ? ` Karena COD, saldo Anda dipotong <b>jaminan ${fmtRp(jaminan)}</b> dan dikembalikan otomatis setelah toko konfirmasi (impas). Bila lewat 24 jam, uang jaminan menjadi milik toko.` : ""}</span></div>` : ""}
+      <span>Toko akan menekan "Barang sudah kembali" di aplikasinya.${jaminan ? ` Saldo Anda dipotong <b>jaminan ${fmtRp(jaminan)}</b> dan dikembalikan otomatis setelah toko konfirmasi (impas). Bila lewat 24 jam, uang jaminan menjadi milik toko.` : ""}</span></div>` : ""}
+    ${refundPembeli ? `<p class="hint" style="margin:8px 0 0">💳 Pembeli sudah bayar QRIS ${fmtRp(refundPembeli)}: uangnya dikembalikan otomatis sebagai saldo voucher pembeli.</p>` : ""}
     <p class="hint" style="margin:10px 0 6px"><b>1. Hubungi ${siapa} dulu</b></p>
     <div id="gaHub"></div>
     <p class="hint" style="margin:12px 0 6px"><b>2. Alasan</b></p>

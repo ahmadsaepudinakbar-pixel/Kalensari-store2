@@ -12,7 +12,9 @@
 --     Kecuali kategori "ditanggung kurir" (bawaan: Makanan & Minuman, bisa diubah admin di
 --     store_settings 'gagal_aturan'): tidak dikembalikan; pesanan COD -> saldo kurir langsung
 --     dipotong harga barang itu (mutasi 'ganti_gagal') dan uangnya menjadi saldo toko.
---  2) JAMINAN SALDO (khusus COD aturan baru & Saldo Kurir aktif):
+--  Berlaku untuk COD (aturan baru) DAN pesanan yang sudah dibayar (QRIS / saldo voucher, lunas).
+--  Pesanan yang sudah dibayar: uang pembeli dikembalikan otomatis sebagai saldo voucher.
+--  2) JAMINAN SALDO (Saldo Kurir aktif):
 --       saldo kurir langsung dipotong harga produk (mutasi 'jaminan_gagal').
 --       - Toko konfirmasi barang kembali dalam 24 jam -> jaminan dikembalikan ke kurir ('jaminan_kembali').
 --       - Lewat 24 jam tanpa konfirmasi -> uang jaminan menjadi saldo toko (dihitung aplikasi Mitra Toko).
@@ -116,7 +118,7 @@ $$;
 create or replace function public.ks_gagal_retur()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
-  kid text; knama text; cod boolean; aktif boolean; sek timestamptz := now(); f jsonb;
+  kid text; knama text; cod boolean; lunas boolean; aktif boolean; berlaku boolean; sek timestamptz := now(); f jsonb;
   barang int := 0; per jsonb := '{}'::jsonb; hangus int := 0; per_h jsonb := '{}'::jsonb; jaminan int := 0; ganti int := 0;
 begin
   -- ojek / kirim paket tidak punya toko
@@ -135,19 +137,21 @@ begin
     from (select toko, sum(nilai)::int v from public.ks_pisah_gagal(new.items) where tanggung and toko <> '' group by toko) s;
 
   cod := public.ks_cod_baru(new.payment, new.created_at);
+  -- QRIS / saldo yang sudah LUNAS: aturannya sama dengan COD (uang pembeli dikembalikan, lihat ks_gagal_refund)
+  lunas := coalesce(new.pay_status, '') = 'lunas' and lower(btrim(coalesce(new.payment, ''))) !~ '^cod';
   aktif := coalesce((public.ks_biaya()->>'aktif')::boolean, false);
-  -- pesanan non-COD (sudah dibayar): makanan tidak ditagih ke kurir, tidak ada yang perlu dikembalikan
-  if not (cod and aktif) then hangus := 0; per_h := '{}'::jsonb; end if;
+  berlaku := (cod or lunas) and aktif;
+  if not berlaku then hangus := 0; per_h := '{}'::jsonb; end if;
   if barang <= 0 and hangus <= 0 then return null; end if;
   select value into f from public.store_settings where key = 'foto_' || new.order_code;
 
-  if cod and aktif and hangus > 0
+  if berlaku and hangus > 0
      and not exists (select 1 from public.kurir_mutasi where order_code = new.order_code and jenis = 'ganti_gagal') then
     perform public.ks_ubah_saldo(kid, -hangus, 'ganti_gagal',
       'Ganti rugi makanan/minuman gagal antar ' || new.order_code || ' (untuk toko)', new.order_code);
     ganti := hangus;
   end if;
-  if cod and aktif and barang > 0
+  if berlaku and barang > 0
      and not exists (select 1 from public.kurir_mutasi where order_code = new.order_code and jenis = 'jaminan_gagal') then
     perform public.ks_ubah_saldo(kid, -barang, 'jaminan_gagal',
       'Jaminan barang gagal antar ' || new.order_code || ' (kembali setelah toko konfirmasi)', new.order_code);
@@ -159,7 +163,7 @@ begin
     'toko', (select coalesce(jsonb_agg(distinct k), '[]'::jsonb) from (select jsonb_object_keys(per) k union select jsonb_object_keys(per_h)) z),
     'per_toko', per, 'barang', barang, 'jaminan', jaminan,
     'hangus', ganti, 'hangus_per_toko', case when ganti > 0 then per_h else '{}'::jsonb end,
-    'cod', cod,
+    'cod', cod, 'lunas', lunas,
     'pembeli', coalesce(new.customer_name, ''), 'hp', coalesce(nullif(to_jsonb(new)->>'customer_phone_normalized', ''), new.customer_phone, ''),
     'lok', case when f is not null then f->'lok' else null end,
     't', to_char(sek at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
@@ -174,6 +178,41 @@ create trigger ks_gagal_retur
   after update on public.orders
   for each row when (new.status = 'gagal' and old.status is distinct from 'gagal')
   execute function public.ks_gagal_retur();
+
+
+-- 3b) Pesanan yang SUDAH DIBAYAR (QRIS / saldo voucher) lalu gagal antar -> uang pembeli kembali sebagai saldo voucher.
+--     Sama seperti COD: pembeli tidak membayar apa pun; kerugian makanan ditanggung kurir, barang lain kembali ke toko.
+--     Saldo voucher yang sempat dipakai di pesanan COD juga dikembalikan.
+--     Butuh fitur saldo voucher pembeli (supabase-voucher-pembeli.sql); bila belum dipasang, langkah ini dilewati.
+create or replace function public.ks_gagal_refund()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_wa text; jml int := 0; pakai int;
+begin
+  if jsonb_typeof(new.items) = 'array' and (new.items->0) ? 'layanan' then return null; end if;
+  if to_regclass('public.pembeli_mutasi') is null
+     or to_regprocedure('public.ks_saldo_pembeli(text,integer,text,text,text)') is null then return null; end if;
+  pakai := coalesce(nullif(to_jsonb(old)->>'potong_saldo', '')::numeric, 0)::int;
+  if coalesce(new.pay_status, '') = 'lunas' and lower(btrim(coalesce(new.payment, ''))) !~ '^cod' then
+    jml := coalesce(old.total, 0) + pakai;
+  else
+    jml := pakai;
+  end if;
+  v_wa := nullif(to_jsonb(new)->>'customer_phone_normalized', '');
+  if v_wa is null then v_wa := regexp_replace(regexp_replace(coalesce(new.customer_phone, ''), '\D', '', 'g'), '^0', '62'); end if;
+  if jml > 0 and v_wa <> '' and not exists (select 1 from public.pembeli_mutasi where order_code = new.order_code and jenis = 'refund') then
+    execute 'select public.ks_saldo_pembeli($1, $2, $3, $4, $5)'
+      using v_wa, jml, 'refund', 'Pengembalian ' || new.order_code || ' (gagal diantar)', new.order_code;
+    update public.orders set refund = coalesce(refund, '{}'::jsonb) || jsonb_build_object('jumlah', jml, 'status', 'saldo', 'saldo_t', now(), 'ket', 'gagal antar')
+     where id = new.id;
+  end if;
+  return null;
+end $$;
+
+drop trigger if exists ks_gagal_refund on public.orders;
+create trigger ks_gagal_refund
+  after update on public.orders
+  for each row when (new.status = 'gagal' and old.status is distinct from 'gagal')
+  execute function public.ks_gagal_refund();
 
 -- 4) Mitra Toko: "Barang sudah kembali" (hanya toko pemilik barang, maksimal 24 jam)
 create or replace function public.toko_retur_kembali(p_sesi text, p_kode text)
@@ -232,9 +271,10 @@ grant execute on function public.admin_retur(text, text) to authenticated;
 
 revoke all on function public.ks_cod_baru(text, timestamptz) from public, anon, authenticated;
 
--- Cek: harus menampilkan true, true, true, true, {makanan,minuman}
+-- Cek: harus menampilkan true, true, true, true, true, {makanan,minuman}
 select exists (select 1 from pg_trigger where tgname = 'ks_gagal_wajib_bukti') as wajib_foto_gagal,
        exists (select 1 from pg_trigger where tgname = 'ks_gagal_retur')       as catat_retur_jaminan,
+       exists (select 1 from pg_trigger where tgname = 'ks_gagal_refund')      as refund_qris_pembeli,
        exists (select 1 from pg_proc where proname = 'toko_retur_kembali')     as tombol_toko,
        exists (select 1 from pg_proc where proname = 'admin_retur')            as tombol_admin,
        public.ks_tanggung_kurir()                                              as kategori_ditanggung_kurir;

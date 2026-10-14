@@ -7,7 +7,7 @@ URUTAN PASANG (penting):
      penjual-app.html, admin.html, script.js
 2. Tunggu 1-2 menit, minta kurir menutup lalu membuka lagi aplikasi kurir.
 3. BARU jalankan supabase-gagal-antar-aman.sql di Supabase > SQL Editor > Run.
-   Hasil akhir harus: true, true, true, true, {makanan,minuman}.
+   Hasil akhir harus: true, true, true, true, true, {makanan,minuman}.
    (Kalau SQL dijalankan lebih dulu, kurir yang masih memakai aplikasi lama
     tidak bisa menekan Gagal antar karena belum ada foto bukti.)
 
@@ -27,7 +27,7 @@ A. Aplikasi kurir
      tetap mendapat catatannya sendiri (makanan/minuman atau barang wajib kembali).
    - Pengingat di Beranda & Pesanan: "Kembalikan barang ... ke toko, sisa ... jam".
 
-B. Aturan per kategori barang (khusus COD aturan baru & Saldo Kurir aktif)
+B. Aturan per kategori barang (COD dan QRIS lunas, Saldo Kurir aktif)
    - MAKANAN & MINUMAN: tidak perlu dikembalikan. Kerugian ditanggung kurir:
      saldo kurir langsung dipotong harga makanan (riwayat: "ganti_gagal") dan
      uangnya masuk saldo toko.
@@ -37,15 +37,16 @@ B. Aturan per kategori barang (khusus COD aturan baru & Saldo Kurir aktif)
    - Daftar kategori yang ditanggung kurir bisa diubah di admin:
      Kurir > COD & Gagal antar > Aturan COD > "Kategori yang kerugiannya ditanggung kurir".
      Kategori dibaca dari data produk (bukan dari pesanan), jadi tidak bisa dipalsukan.
-   - Pesanan yang sudah dibayar (QRIS): makanan tidak ditagih ke kurir.
+   - QRIS / saldo voucher yang SUDAH LUNAS: aturannya sama persis dengan COD, dan
+     uang pembeli (produk + ongkir) dikembalikan OTOMATIS sebagai saldo voucher.
+     Saldo voucher yang sempat dipakai di pesanan COD juga dikembalikan.
 
 C. Jaminan saldo untuk barang yang wajib kembali
    - Saat gagal antar: saldo kurir dipotong harga produk (riwayat: "jaminan_gagal").
    - Toko menekan "Barang sudah kembali" dalam 24 jam -> jaminan kembali ke kurir.
    - Lewat 24 jam tanpa konfirmasi -> uang jaminan masuk saldo toko
      (barang dianggap dibeli kurir).
-   - Pesanan QRIS yang gagal antar tetap dicatat wajib kembali (tanpa jaminan);
-     yang lewat 24 jam muncul di tanda bahaya admin.
+   - Berlaku untuk COD dan QRIS lunas.
 
 D. Mitra Toko (penjual-app.html)
    - Di detail pesanan gagal antar ada kotak kuning + tombol "Barang sudah kembali".
