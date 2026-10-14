@@ -122,6 +122,7 @@
       + "background:linear-gradient(135deg,#1d4ed8,#1e3a8a);color:#fff;font-size:13px;font-weight:800;line-height:1.15;text-align:center;box-shadow:0 4px 12px rgba(30,58,138,.3)}"
       + ".ksn-info .ksn-next b{font-size:13px;white-space:normal;color:#fff}.ksn-nx-ic{font-size:19px;line-height:1}"
       + ".ksn-info .ksn-next.akhir{background:linear-gradient(135deg,#1d4ed8,#1e3a8a);box-shadow:0 4px 12px rgba(30,58,138,.3)}"
+      + ".ksn-tema .ksn-mat{display:none}html.gelap .ksn-tema .ksn-bln{display:none}html.gelap .ksn-tema .ksn-mat{display:block}.ksn-tema{color:#5b4636}html.gelap .ksn-fab .ksn-tema{color:#ffcf5c}"
       + ".ksn-turun{position:absolute;top:8px;right:10px;width:36px;height:36px;border-radius:50%;border:0;background:#eef3ee;color:#14502c;font-size:20px;font-weight:900;cursor:pointer;line-height:1}";
     document.head.appendChild(s);
   }
@@ -155,7 +156,7 @@
       + '<div class="ksn-top"><button class="ksn-x" type="button" aria-label="Tutup peta">←</button><div class="ksn-tt"><b><span class="ksn-kode">🧭 ' + esc(opt.judul || "Navigasi") + '</span><em class="ksn-tot" hidden></em></b><span class="ksn-gps"><i></i><span>GPS mencari…</span></span></div>'
       + '<button class="ksn-more" type="button" aria-label="Menu lainnya">⋮</button>'
       + '<div class="ksn-menu" hidden><button type="button" data-a="semua">🗺️ Lihat seluruh rute</button><button type="button" data-a="sat">🛰️ <span class="ksn-satl">Mode satelit</span></button><a class="ksn-gl" target="_blank" rel="noopener" href="#">' + IK.gpin + ' Buka di Google Maps</a></div></div>'
-      + '<div class="ksn-fab" style="top:calc(max(10px,env(safe-area-inset-top)) + 72px)"><button type="button" data-a="ikut" class="on" title="Ikuti posisi saya" aria-label="Ikuti posisi saya">' + IK.loc + '</button><button type="button" data-a="semua" title="Lihat seluruh rute" aria-label="Lihat seluruh rute">' + IK.lay + '</button><button type="button" data-a="sat" title="Peta / Satelit" aria-label="Ganti peta atau satelit">' + IK.img + '</button></div>'
+      + '<div class="ksn-fab" style="top:calc(max(10px,env(safe-area-inset-top)) + 72px)"><button type="button" data-a="ikut" class="on" title="Ikuti posisi saya" aria-label="Ikuti posisi saya">' + IK.loc + '</button><button type="button" data-a="semua" title="Lihat seluruh rute" aria-label="Lihat seluruh rute">' + IK.lay + '</button><button type="button" data-a="sat" title="Peta / Satelit" aria-label="Ganti peta atau satelit">' + IK.img + '</button><button type="button" data-a="tema" class="ksn-tema" title="Mode gelap / terang" aria-label="Ganti mode gelap atau terang"><svg class="ksn-bln" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1z"/></svg><svg class="ksn-mat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg></button></div>'
       + '<button type="button" class="ksn-arrow on" data-a="ikut" aria-label="Kembali ke posisi saya">' + IK.arrow + '</button>'
       + '<div class="ksn-card"><div class="ksn-handle"></div>'
       + '<div class="ksn-mini" role="button" aria-label="Lihat detail tujuan"><span class="ksn-mi-ic"></span><div class="ksn-mi-t"><b class="ksn-mi-n"></b><small class="ksn-mi-s"></small></div>'
@@ -191,11 +192,13 @@
       setTimeout(function () { peta.invalidateSize(); if (st.ikut && st.pos) pusat([st.pos.lat, st.pos.lng], peta.getZoom(), false); }, 120);
     }
     ov.addEventListener("click", function (e) {
-      var b = e.target.closest("[data-a]"); if (!b || !peta) return;
+      var b = e.target.closest("[data-a]");
+      if (b && b.dataset.a === "tema") { if (window.KSTema) KSTema.set(KSTema.gelap() ? "terang" : "gelap"); else document.documentElement.classList.toggle("gelap"); return; }
+      if (!b || !peta) return;
       var ikutBtn = ov.querySelectorAll('[data-a="ikut"]');
       if (b.dataset.a === "ikut") { st.ikut = true; ikutBtn.forEach(function (x) { x.classList.add("on"); }); if (st.pos) pusat([st.pos.lat, st.pos.lng], Math.max(peta.getZoom(), 17), true); }
       if (b.dataset.a === "semua") { st.ikut = false; ikutBtn.forEach(function (x) { x.classList.remove("on"); }); lihatSemua(); }
-      if (b.dataset.a === "sat") { st.sat = !st.sat; q(".ksn-satl").textContent = st.sat ? "Mode peta jalan" : "Mode satelit"; if (st.sat) { peta.removeLayer(osm); sat.addTo(peta); lbl.addTo(peta); } else { peta.removeLayer(sat); peta.removeLayer(lbl); osm.addTo(peta); } }
+      if (b.dataset.a === "sat") { st.sat = !st.sat; ov.classList.toggle("ksn-sat", st.sat); q(".ksn-satl").textContent = st.sat ? "Mode peta jalan" : "Mode satelit"; if (st.sat) { peta.removeLayer(osm); sat.addTo(peta); lbl.addTo(peta); } else { peta.removeLayer(sat); peta.removeLayer(lbl); osm.addTo(peta); } }
       q(".ksn-menu").hidden = true;
     });
     function kartuH() { var c = q(".ksn-card"); return c ? c.offsetHeight : 300; }
