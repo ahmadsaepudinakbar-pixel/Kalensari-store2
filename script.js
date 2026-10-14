@@ -1471,12 +1471,12 @@ document.getElementById("waFloat")?.setAttribute("href", `https://wa.me/${WHATSA
 function setupHeroButtons(){
   const info=document.getElementById("waHero");if(!info)return;
   const wa=t=>`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(t)}`;
-  info.textContent="Info Santunan";
+  info.innerHTML='<svg class="hx-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 10.5S8.5 8.3 8.5 6a2 2 0 0 1 3.5-1.3A2 2 0 0 1 15.5 6c0 2.3-3.5 4.5-3.5 4.5Z" fill="#8a3f1c"/><path d="M2 15.5h3.2l3.6-1.8a2.5 2.5 0 0 1 2-.1l3.4 1.2a1.3 1.3 0 0 1-.6 2.5H10m4.2 0 5.1-2.6a1.5 1.5 0 0 1 1.9 2.2L16 21H5.3L2 19.5" fill="none" stroke="#8a3f1c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Info Santunan</span>';
   info.setAttribute("href","santunan.html");
   info.removeAttribute("target");info.removeAttribute("rel");
   let jasa=document.getElementById("jasaHero");
   if(!jasa){jasa=info.cloneNode(false);jasa.id="jasaHero";jasa.classList.add("hero-jasa");info.insertAdjacentElement("afterend",jasa);}
-  jasa.textContent="Penyedia Jasa";
+  jasa.innerHTML='<svg class="hx-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5a6 6 0 0 1 12 0Z" fill="#c9611f"/><path d="M11 3.6h2v3h-2z" fill="#a14b14"/><path d="M5 9.5h14v1.6H5z" fill="#8a3f1c"/><path d="M7.5 11.1h9a4.5 4.5 0 0 1-9 0Z" fill="#f2c9a6"/><path d="M4 22c.3-4 3.3-6.2 8-6.2s7.7 2.2 8 6.2Z" fill="#8a3f1c"/><path d="M10 15.9 12 19l2-3.1" fill="none" stroke="#f6e3d2" stroke-width="1.5"/></svg><span>Penyedia Jasa</span>';
   jasa.setAttribute("href","jasa.html");
   jasa.removeAttribute("target");jasa.removeAttribute("rel");
 }
