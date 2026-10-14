@@ -2306,7 +2306,8 @@ async function codInfo(phone){
   const rows=await riwayatCod(phone);
   if(rows===null)return{boleh:true,tahan:A.wa_baru!==false,pesan:""};      // gagal cek riwayat: tetap boleh, tapi dikonfirmasi WA
   const buka=Date.parse((A.buka||{})[hp]||"")||0;
-  const gagal=rows.filter(o=>o.status==="gagal"&&isCod(o.payment)&&(Date.parse(o.gagal_at||o.updated_at||"")||0)>buka).length;
+  // nota multi-toko yang gagal bersamaan (waktu sama) dihitung 1 kejadian
+  const gagal=new Set(rows.filter(o=>o.status==="gagal"&&isCod(o.payment)&&(Date.parse(o.gagal_at||o.updated_at||"")||0)>buka).map(o=>String(o.gagal_at||o.updated_at||"").slice(0,16))).size;
   const selesai=rows.filter(o=>o.status==="selesai").length;
   const maksGagal=Number(A.maks_gagal)||2;
   if(gagal>=maksGagal)return{boleh:false,gagal,selesai,pesan:`COD belum bisa dipakai untuk nomor ini karena ${gagal}x pesanan gagal diantar.\n\nSilakan pilih pembayaran QRIS. Hubungi admin jika ada kekeliruan.`};

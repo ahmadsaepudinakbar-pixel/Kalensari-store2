@@ -466,6 +466,19 @@ body[data-tab="pesanan"] #kpAktif{display:none!important}
 #lokInfo.lok em{font-style:normal;font-weight:500;color:#3e6b4f}
 #lokInfo.lok.cari{background:#fff4e2;color:#7a4a00!important}#lokInfo.lok.cari i{background:#e08a00;box-shadow:0 0 0 3px rgba(224,138,0,.18)}
 #lokInfo.lok.err{display:flex;align-items:flex-start;border-radius:14px;background:#fdecea;color:#a32d2d!important;font-weight:600}#lokInfo.lok.err i{margin-top:5px;background:#c0392b;box-shadow:none}
+
+/* gagal antar aman, tagih COD, barang retur */
+.ga-info{margin:8px 0 2px;padding:10px 12px;border-radius:14px;background:#fff6e0;border:1px solid #f0d58a;font-size:13px;color:#5c4210;line-height:1.4}.ga-info>b{display:block;color:#3a2a06;margin-bottom:2px}
+.ga-info.mkn{background:#fdecea;border-color:#f1b0a8;color:#7a2418}.ga-info.mkn>b{color:#5a1810}
+.ga-ok{margin:0;padding:8px 12px;border-radius:12px;background:#e8f6ed;color:#14502c;font-weight:700;font-size:13.5px}
+.st-cod{margin:6px 0 12px;padding:12px 14px;border-radius:16px;background:#fff6e0;border:1.5px solid #f0c45a}
+.st-cod small{display:block;font-size:12.5px;font-weight:700;color:#7a4a00}.st-cod>b{display:block;font-size:28px;color:#3a2a06;margin:2px 0 8px}
+.st-cek{display:flex!important;gap:10px;align-items:center;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid #f0d58a;font-size:14.5px;font-weight:600;cursor:pointer}
+.st-cek input{width:22px;height:22px;accent-color:#1f8f4c;flex:none}.st-cek:has(input:checked){background:#e8f6ed;border-color:#9fd6b3;color:#14502c}
+.st-belum{display:block;width:100%;margin-top:8px;border:0;background:none;color:#a32d2d;font:inherit;font-size:13px;font-weight:700;text-align:left;padding:4px 2px;cursor:pointer}
+.rt-box{margin:0 0 10px;padding:12px 14px;border-radius:16px;background:#fff6e0;border:1.5px solid #f0c45a;font-size:13px;color:#5c4210;line-height:1.4;box-shadow:var(--p-sh)}
+.rt-box>b{display:block;font-size:14.5px;color:#3a2a06;margin-bottom:3px}.rt-box.lewat{background:#fdecea;border-color:#f1b0a8;color:#7a2418}
+#ordBox .rt-box{margin-top:12px}
 </style>
 </head>
 <body>
@@ -476,7 +489,7 @@ body[data-tab="pesanan"] #kpAktif{display:none!important}
   <div class="hd"><span class="hd-av" id="hdAv" aria-hidden="true">K</span><div class="hd-t"><small id="hdKode">KURIR KALENSARI</small><b id="hdNama">Halo</b><span class="hd-sub" id="hdSub">Kurir Kalensari Store</span></div><span class="pill" id="hdPill">Offline</span></div>
   <div id="stat" class="status p"></div>
   <label class="sw" id="aktifBox" hidden><span class="ak-ic"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 6.6a8 8 0 1 0 11.4 0"/></svg></span><span class="ak-t"><b><span class="ak-on">Anda Online</span><span class="ak-off">Anda Offline</span></b><small><span class="ak-on">Siap menerima antaran</span><span class="ak-off">Geser untuk mulai menerima antaran</span></small></span><input type="checkbox" id="f_aktif" aria-label="Siap menerima antaran (Online)"></label>
-  <p id="lokInfo" class="hint" hidden></p><div id="kpAktif" hidden></div><div id="kokpit" class="kp" hidden><button type="button" class="kp-c" data-ke="uang"><small id="kpSaldoL">Saldo</small><b id="kpSaldo" class="sk">&nbsp;</b></button><button type="button" class="kp-c" data-ke="uang"><small>Ongkir hari ini</small><b id="kpHari" class="sk">&nbsp;</b></button><button type="button" class="kp-c" data-ke="uang"><small>Antaran hari ini</small><b id="kpAntar" class="sk">&nbsp;</b></button></div><section id="kpTarget" class="kp-tg" hidden></section>
+  <p id="lokInfo" class="hint" hidden></p><div id="kpAktif" hidden></div><div id="kpRetur" hidden></div><div id="kokpit" class="kp" hidden><button type="button" class="kp-c" data-ke="uang"><small id="kpSaldoL">Saldo</small><b id="kpSaldo" class="sk">&nbsp;</b></button><button type="button" class="kp-c" data-ke="uang"><small>Ongkir hari ini</small><b id="kpHari" class="sk">&nbsp;</b></button><button type="button" class="kp-c" data-ke="uang"><small>Antaran hari ini</small><b id="kpAntar" class="sk">&nbsp;</b></button></div><section id="kpTarget" class="kp-tg" hidden></section>
   <section class="box" id="lengkapiBox" hidden style="margin:0 0 14px">
     <h2 style="margin:0 0 4px;font-size:18px">🪪 Lengkapi data kurir</h2>
     <p class="hint" style="margin:0 0 12px">Foto profil dan NIK <b>wajib</b> diisi sebelum Anda bisa menerima antaran.</p>
@@ -1293,7 +1306,7 @@ async function loadOrders(){
   if(busyLoad) return; busyLoad = true;
   const box = $("orders"); if(!box.innerHTML.trim()) box.innerHTML = '<div class="skl"><i></i><i></i><i class="s"></i></div><div class="skl"><i></i><i></i><i class="s"></i></div>';
   try{
-    const [rows, states, elig, pend] = await Promise.all([pesananKurir("aktif", () => fetchOrders("status=in.(diproses,dikirim)")), readStates(), eligibleCouriers(), pesananKurir("tunggu", () => fetchOrders("status=in.(menunggu,baru)&grup=not.is.null")).catch(() => []), muatTokoLoc()]);
+    const [rows, states, elig, pend] = await Promise.all([pesananKurir("aktif", () => fetchOrders("status=in.(diproses,dikirim)")), readStates(), eligibleCouriers(), pesananKurir("tunggu", () => fetchOrders("status=in.(menunggu,baru)&grup=not.is.null")).catch(() => []), muatTokoLoc(), muatRetur()]);
     const now = Date.now(); ORD = {}; STATES = states; rows.forEach(o => { ORD[o.order_code] = o; });
     const tungguToko = grupMenunggu(pend, now);
     const busy = busyIds(rows, states);
@@ -1323,7 +1336,8 @@ async function loadOrders(){
       else { bunyi(); try{ navigator.vibrate && navigator.vibrate([250,120,250]); }catch(e){} } }
     seenOffers = new Set(giliran); setCounts(offers.length, mine.length);
     const hd = t => `<h3 class="ob-pill${/^Menunggu/.test(t) ? " baru" : ""}"><span></span>${t}</h3>`;
-    let h = "";
+    let h = returHtml();
+    { const kr = $("kpRetur"); if(kr){ kr.innerHTML = h; kr.hidden = !h; } }
     if(BIAYA.aktif && SALDO !== null && SALDO < 0) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda minus. Anda tidak bisa menerima pesanan COD sampai saldo kembali plus (QRIS, antar barang, dan ngojek tetap bisa). Isi saldo di menu Penghasilan.</p>';
     else if(false) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda kurang. Isi saldo di Beranda agar bisa menerima tawaran pesanan.</p>';
     if(me.aktif === false) h += '<p class="hint" style="margin-top:10px">⚠️ Anda sedang tidak siap menerima antaran. Nyalakan tombol <b>Online</b> di Beranda agar pesanan bisa ditawarkan kepada Anda.</p>';
@@ -1704,41 +1718,145 @@ function lacakSync(mine){
 }
 function lacakHapus(code){ KSPesanan.kurirSimpan(LACAK_PREFIX + code, null, () => cf("store_settings?key=eq." + encodeURIComponent(LACAK_PREFIX + code), {method:"DELETE"})).catch(() => {}); }
 
-// ===== Gagal antar: kurir wajib pilih alasan. Dipakai admin untuk memblokir COD pembeli yang sering gagal =====
+// ===== Gagal antar (aman): wajib menghubungi pembeli dulu + foto berlokasi GPS. Barang toko WAJIB kembali ke toko. =====
+// COD aturan baru: saldo kurir dipotong jaminan harga produk (oleh database, supabase-gagal-antar-aman.sql),
+// dikembalikan setelah toko menekan "Barang sudah kembali" (maks 24 jam). Lewat 24 jam -> uangnya untuk toko.
 const ALASAN_GAGAL = ["Pembeli menolak", "Tidak ada di rumah", "Nomor tidak bisa dihubungi", "Alamat tidak ditemukan", "Lainnya"];
+// catatan "sudah menghubungi": setiap tombol Telepon / WhatsApp yang ditekan di aplikasi dicatat per nomor (2 jam)
+const HUB_KEY = "ks_hubungi", HUB_MS = 2 * 3600e3;
+function hubCatat(nomor, via){ const n = String(nomor || "").replace(/\D/g, ""); if(!n) return; const m = LSget(HUB_KEY, {}); m[n] = {t:Date.now(), via}; Object.keys(m).forEach(k => { if(Date.now() - (m[k].t || 0) > 864e5) delete m[k]; }); LSset(HUB_KEY, m); }
+function hubCek(nomor){ const n = String(nomor || "").replace(/\D/g, ""); const x = n && LSget(HUB_KEY, {})[n]; return x && Date.now() - x.t < HUB_MS ? x : null; }
+document.addEventListener("click", e => {
+  const a = e.target.closest && e.target.closest('a[href^="tel:"],a[href*="wa.me/"]'); if(!a) return;
+  const h = a.getAttribute("href") || "", tel = /^tel:/.test(h);
+  hubCatat(tel ? h.slice(4) : (h.split("wa.me/")[1] || "").split(/[?#]/)[0], tel ? "telepon" : "whatsapp");
+}, true);
 function gagalAntar(code){
   const o = ORD[code]; if(!o) return;
-  let alasan = "", barang = "Dikembalikan ke toko", sibuk = false;
-  const ov = lembar(`<h3 style="margin:0 0 4px;color:#a32d2d">❌ Gagal antar ${esc(code)}</h3>
-    <p class="hint" style="margin:0 0 10px">Pastikan sudah menelepon / WA pembeli dulu. Pilih alasannya:</p>
+  // 1 checkout = 1 kurir: bila gagal, SEMUA nota toko yang dipegang kurir ini ikut gagal sekaligus (1 laporan, 1 foto)
+  const grup = [o].concat(anggota(o).filter(x => x.order_code !== code && ["diproses", "dikirim"].includes(x.status) && ((STATES[x.order_code] || {}).acc || {}).id === me.id));
+  const codes = grup.map(x => x.order_code), banyak = codes.length > 1;
+  const tr = transOf(o), toko = tr ? [] : [...new Set(grup.flatMap(x => tokoUrut(x).map(t => t.nama)))];
+  const num = tr && tr.layanan === "paket" && tr.waPenerima ? String(tr.waPenerima).replace(/\D/g, "") : (o.customer_phone_normalized || normPhone(o.customer_phone));
+  const siapa = tr ? (tr.layanan === "paket" ? "penerima" : "penumpang") : "pembeli";
+  const tj = tr ? tr.tujuan : (extractMapLocation(o.note) || extractMapLocation(o.address));
+  const tuju = tj && Number.isFinite(+tj.lat) && Number.isFinite(+tj.lng) ? {lat:+tj.lat, lng:+tj.lng} : null;
+  const pg = {tanggung:0, kembali:0}; let jaminan = 0, ganti = 0;
+  const tokoKembali = [];   // hanya toko yang barangnya wajib dikembalikan (bukan makanan/minuman)
+  if(!tr) grup.forEach(x => { const p = pisahGagal(x), c = codBaru(x) && BIAYA.aktif; pg.tanggung += p.tanggung; pg.kembali += p.kembali; if(c){ jaminan += p.kembali; ganti += p.tanggung; }
+    if(p.kembali > 0) tokoUrut(x).forEach(t => { if(!tokoKembali.includes(t.nama)) tokoKembali.push(t.nama); }); });
+  const barangTeks = tr ? (tr.layanan === "paket" ? "Dikembalikan ke pengirim" : "-") : pg.kembali > 0 ? "Dikembalikan ke toko" + (pg.tanggung ? " (makanan/minuman tidak)" : "") : "Makanan/minuman, tidak dikembalikan";
+  let alasan = "", sibuk = false, pos = null, file = null, foto = "", watch = null, terakhir = 0;
+  const ov = lembar(`<h3 style="margin:0 0 4px;color:#a32d2d">❌ Gagal antar ${banyak ? codes.length + " nota" : esc(code)}</h3>
+    ${banyak ? `<p class="hint" style="margin:0 0 6px">Semua nota dalam antaran ini ikut gagal: <b>${grup.map(x => esc(x.order_code) + " (" + esc(tokoUrut(x).map(t => t.nama).join(", ") || "toko") + ")").join(", ")}</b></p>` : ""}
+    ${!tr && pg.tanggung > 0 ? `<div class="ga-info mkn"><b>🍲 Makanan &amp; minuman ${fmtRp(pg.tanggung)}: tidak perlu dikembalikan.</b>
+      <span>${ganti ? `Karena COD, kerugiannya <b>ditanggung Anda</b>: saldo dipotong ${fmtRp(ganti)} dan uangnya untuk toko.` : "Pesanan sudah dibayar, tidak ada potongan saldo."}</span></div>` : ""}
+    ${!tr && pg.kembali > 0 ? `<div class="ga-info"><b>📦 Barang ${fmtRp(pg.kembali)} wajib dikembalikan ke ${esc((tokoKembali.length ? tokoKembali : toko).join(", ") || "toko")} maksimal 24 jam.</b>
+      <span>Toko akan menekan "Barang sudah kembali" di aplikasinya.${jaminan ? ` Karena COD, saldo Anda dipotong <b>jaminan ${fmtRp(jaminan)}</b> dan dikembalikan otomatis setelah toko konfirmasi (impas). Bila lewat 24 jam, uang jaminan menjadi milik toko.` : ""}</span></div>` : ""}
+    <p class="hint" style="margin:10px 0 6px"><b>1. Hubungi ${siapa} dulu</b></p>
+    <div id="gaHub"></div>
+    <p class="hint" style="margin:12px 0 6px"><b>2. Alasan</b></p>
     <div id="gaAl" class="ga-chips">${ALASAN_GAGAL.map(a => `<button type="button" class="ga-chip" data-v="${esc(a)}">${esc(a)}</button>`).join("")}</div>
     <input id="gaKet" class="fld" maxlength="120" placeholder="Keterangan singkat (wajib jika pilih Lainnya)" style="margin-top:10px">
-    <p class="hint" style="margin:10px 0 6px"><b>Barangnya:</b></p>
-    <div id="gaBr" class="ga-chips">${["Dikembalikan ke toko", "Dititip di kurir", "Lainnya"].map((a, i) => `<button type="button" class="ga-chip${i ? "" : " on"}" data-v="${esc(a)}">${esc(a)}</button>`).join("")}</div>
+    <p class="hint" style="margin:6px 0 6px"><b>3. Foto bukti di lokasi</b> (otomatis bercap GPS, tanggal &amp; jam)</p>
+    <div class="fp-gps" id="gaGps" style="margin:0 0 8px"><i>📍</i><span>Mencari lokasi GPS…</span><em>›</em></div>
+    <input type="file" id="gaFile" accept="image/*" capture="environment" data-crop="off" hidden>
+    <button class="mini" id="gaFoto" type="button">📷 Ambil foto bukti</button>
+    <img id="gaPrev" alt="" style="display:none;width:100%;border-radius:12px;margin-top:8px">
     <p id="gaErr" class="hint" style="color:#c0392b;margin:8px 0 0"></p>
     <button class="mini merah" id="gaKirim" type="button" style="width:100%;padding:13px;font-size:15px;margin:12px 0 0">Laporkan gagal antar</button>
     <button class="mini" id="gaBatal" type="button" style="width:100%;margin-top:10px">Batal</button>`);
-  const pilih = (box, set) => { $(box).onclick = e => { const x = e.target.closest(".ga-chip"); if(!x) return; $(box).querySelectorAll(".ga-chip").forEach(y => y.classList.toggle("on", y === x)); set(x.dataset.v); $("gaErr").textContent = ""; }; };
-  pilih("gaAl", v => { alasan = v; }); pilih("gaBr", v => { barang = v; });
-  $("gaBatal").onclick = () => ov.remove();
+  const tutup = () => { try{ if(watch != null) navigator.geolocation.clearWatch(watch); }catch(e){} ov.remove(); };
+  ov.onclick = e => { if(e.target === ov) tutup(); };
+  $("gaBatal").onclick = tutup;
+  const hubUI = () => {
+    const x = hubCek(num), w = $("gaHub"); if(!w) return;
+    w.innerHTML = x ? `<p class="ga-ok">✓ Sudah ${x.via === "telepon" ? "menelepon" : "chat WhatsApp"} ${siapa} pukul ${new Date(x.t).toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit"})}</p>`
+      : num ? `<div class="k2-kon" style="margin:0"><a class="k2-pil" href="tel:+${esc(num)}">📞 Telepon ${siapa}</a><a class="k2-pil" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}">💬 WhatsApp ${siapa}</a></div><p class="hint" style="margin:6px 0 0">Tombol laporan aktif setelah Anda menelepon / chat ${siapa}.</p>`
+      : `<p class="hint" style="margin:0">Nomor ${siapa} tidak ada.</p>`;
+  };
+  hubUI(); const hubIv = setInterval(() => { if(!document.body.contains(ov)) return clearInterval(hubIv); hubUI(); }, 1500);
+  $("gaAl").onclick = e => { const x = e.target.closest(".ga-chip"); if(!x) return; $("gaAl").querySelectorAll(".ga-chip").forEach(y => y.classList.toggle("on", y === x)); alasan = x.dataset.v; $("gaErr").textContent = ""; if(file) buat(); };
+  const jarakKe = () => pos && tuju ? Math.round(jarakM(pos, tuju)) : null;
+  const fmtJ = d => d < 1000 ? d + " m" : (d / 1000).toFixed(1).replace(".", ",") + " km";
+  const gpsUI = () => { const g = $("gaGps"); if(!g) return; const d = jarakKe();
+    g.className = "fp-gps" + (pos ? (pos.acc <= 50 ? " ok" : " lemah") : "");
+    g.querySelector("span").innerHTML = !pos ? "Mencari lokasi GPS…" : `<b>Lokasi terkunci (±${pos.acc} m)</b>` + (d != null ? ` <i>•</i> <b>${fmtJ(d)} dari ${siapa}</b>` : ""); };
+  async function buat(){
+    if(!file || !pos) return;
+    const wib = new Date().toLocaleString("id-ID", {timeZone:"Asia/Jakarta", dateStyle:"medium", timeStyle:"medium"}) + " WIB", d = jarakKe();
+    try{
+      foto = await capFoto(file, [
+        {ik:"❌", lbl:"Gagal antar", val:[o.customer_name || siapa, alasan || code]},
+        {ik:"📅", lbl:"Tanggal & Jam", val:[wib]},
+        {ik:"📍", lbl:"Lokasi", val:[`${pos.lat}, ${pos.lng} (±${pos.acc} m)`, d != null ? fmtJ(d) + " dari alamat " + siapa : ""]},
+        {ik:"👤", lbl:"Kurir", val:[me.nama || "Kurir Kalensari", banyak ? codes.length + " nota: " + codes.join(", ") : code]}]);
+      $("gaPrev").src = foto; $("gaPrev").style.display = "block";
+    }catch(e){ toast("Foto tidak bisa dibaca, coba ambil ulang"); }
+  }
+  if("geolocation" in navigator){
+    watch = gpsPantau(p => {
+      const baru = !pos; pos = {lat:+p.coords.latitude.toFixed(6), lng:+p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy || 0)}; gpsUI();
+      if(file && (baru || Date.now() - terakhir > 15000)){ terakhir = Date.now(); buat(); }
+    }, err => { const g = $("gaGps"); if(g) g.querySelector("span").textContent = err.code === 1 ? "Izin lokasi ditolak — aktifkan lokasi untuk aplikasi ini" : "GPS belum dapat, pastikan lokasi HP menyala"; },
+    {enableHighAccuracy:true, maximumAge:5000, timeout:30000});
+  } else $("gaGps").querySelector("span").textContent = "HP ini tidak mendukung GPS";
+  $("gaFoto").onclick = () => { if(!pos) toast("Lokasi GPS sedang dicari…"); window.KSKamera ? KSKamera.ambil($("gaFile"), {judul:"Foto bukti gagal antar"}) : $("gaFile").click(); };
+  $("gaFile").onchange = async e => { file = e.target.files[0] || null; if(!file) return; $("gaFoto").textContent = "📷 Ambil ulang foto"; if(!pos) toast("Foto tersimpan, menunggu GPS…"); terakhir = Date.now(); await buat(); };
   $("gaKirim").onclick = async () => {
     if(sibuk) return;
-    const ket = $("gaKet").value.trim();
+    const ket = $("gaKet").value.trim(), hub = hubCek(num);
+    if(num && !hub) return $("gaErr").textContent = `Telepon atau chat WhatsApp ${siapa} dulu lewat tombol di atas.`;
     if(!alasan) return $("gaErr").textContent = "Pilih alasan dulu.";
     if(alasan === "Lainnya" && !ket) return $("gaErr").textContent = "Tulis keterangannya.";
-    sibuk = true; $("gaKirim").textContent = "Mengirim…";
+    if(!file) return $("gaErr").textContent = "Ambil foto bukti di lokasi dulu.";
+    if(!pos) return $("gaErr").textContent = "Tunggu lokasi GPS terkunci dulu.";
+    if((jaminan || ganti) && !confirm(`Saldo Anda akan dipotong ${fmtRp(jaminan + ganti)}:` + (ganti ? `\n• ${fmtRp(ganti)} ganti rugi makanan/minuman untuk toko (tidak kembali)` : "") + (jaminan ? `\n• ${fmtRp(jaminan)} jaminan barang, kembali setelah ${(tokoKembali.length ? tokoKembali : toko).join(", ") || "toko"} menekan "Barang sudah kembali" (maks 24 jam)` : "") + `\n\nLanjutkan?`)) return;
+    sibuk = true; $("gaKirim").textContent = "Mengirim…"; $("gaErr").textContent = "";
     try{
-      const st = await readState(code);
-      if(!st.acc || st.acc.id !== me.id){ ov.remove(); toast("Pesanan ini bukan milik Anda"); return loadOrders(); }
-      const now = new Date().toISOString();
-      const teks = alasan + (ket ? " – " + ket : "") + " • Barang: " + barang + " • Kurir: " + (me.nama || WA);
-      await KSPesanan.aksi("kurir", code, "gagal", {alasan:teks}, () => cf("orders?order_code=eq." + encodeURIComponent(code), {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"gagal", gagal_alasan:teks, gagal_at:now, updated_at:now})}));
-      await catatKurir([code], {});
-      try{ await KSPesanan.kurirSimpan(ORD_PREFIX + code, null, () => cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + code), {method:"DELETE"})); }catch(e){}
-      lacakHapus(code);
-      ov.remove(); toast("Laporan gagal antar terkirim ke admin"); loadOrders();
-    }catch(e){ sibuk = false; $("gaKirim").textContent = "Laporkan gagal antar"; $("gaErr").textContent = "Gagal mengirim: " + String(e.message || e).slice(0, 120); }
+      const sts = await Promise.all(codes.map(c => readState(c)));
+      if(sts.some(st => !st.acc || st.acc.id !== me.id)){ tutup(); toast("Ada nota yang bukan milik Anda. Muat ulang pesanan."); return loadOrders(); }
+      await buat();
+      const d = jarakKe(), lok = {lat:pos.lat, lng:pos.lng, acc:pos.acc, jarak:d}, now = new Date().toISOString();
+      const simpan = (key, value) => KSPesanan.kurirSimpan(key, value, () => cf("store_settings?on_conflict=key", {method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"}, body:JSON.stringify([{key, value}])}));
+      // foto & catatan DULU: database menolak gagal antar tanpa foto berlokasi (supabase-gagal-antar-aman.sql)
+      for(const c of codes){
+        await simpan("foto_" + c, {foto, t:Date.now(), lok, gagal:true, ...(banyak ? {grup:codes} : {})});
+        await simpan("antar_" + c, {id:me.id, nama:me.nama || "", wa:WA, cara:"gagal", alasan, ket, t:Date.now(), lok, hubungi:hub || null, ...(banyak ? {grup:codes} : {})});
+      }
+      const teks = alasan + (ket ? " – " + ket : "") + " • Barang: " + barangTeks + " • Kurir: " + (me.nama || WA) + (d != null ? " • Jarak ke " + siapa + " " + fmtJ(d) : "");
+      await KSPesanan.aksi("kurir", codes, "gagal", {alasan:teks}, () => cf("orders?order_code=in.(" + codes.map(c => '"' + String(c).replace(/"/g, "") + '"').join(",") + ")", {method:"PATCH", headers:{Prefer:"return=minimal"}, body:JSON.stringify({status:"gagal", gagal_alasan:teks, gagal_at:now, updated_at:now})}));
+      await catatKurir(codes, {});
+      for(const c of codes){ try{ await KSPesanan.kurirSimpan(ORD_PREFIX + c, null, () => cf("store_settings?key=eq." + encodeURIComponent(ORD_PREFIX + c), {method:"DELETE"})); }catch(e){} lacakHapus(c); }
+      tutup(); toast(tr || !pg.kembali ? "Laporan gagal antar terkirim" : "Laporan terkirim. Kembalikan barang ke toko maks 24 jam."); loadOrders(); setTimeout(renderSaldo, 800);
+    }catch(e){ sibuk = false; $("gaKirim").textContent = "Laporkan gagal antar"; $("gaErr").textContent = "Gagal mengirim: " + pesanGalat(e).slice(0, 160); }
   };
+}
+
+// ===== Barang retur (gagal antar) yang masih dibawa kurir: store_settings "retur_<kode>" (dibuat database) =====
+let RETUR = [], GAGAL_ATURAN = null;
+// kategori yang kerugiannya ditanggung kurir bila gagal antar COD (bawaan Makanan & Minuman; diatur admin: "gagal_aturan")
+const tanggungKurir = () => ((GAGAL_ATURAN && Array.isArray(GAGAL_ATURAN.tanggung_kurir) ? GAGAL_ATURAN.tanggung_kurir : ["Makanan", "Minuman"]).map(x => String(x).trim().toLowerCase()));
+function pisahGagal(o){   // {tanggung, kembali}: nilai barang yang ditanggung kurir / wajib dikembalikan
+  const tk = tanggungKurir(); let a = 0, b = 0;
+  itemsOf(o).forEach(p => { const v = (Number(p.sale) > 0 && Number(p.sale) < Number(p.price) ? Number(p.sale) : Number(p.price) || 0) * (Number(p.qty) || 1);
+    if(tk.includes(String(p.category || "").trim().toLowerCase())) a += v; else b += v; });
+  return {tanggung:Math.round(a), kembali:Math.round(b)};
+}
+async function muatRetur(){
+  if(GAGAL_ATURAN === null) getSetting("gagal_aturan", {}).then(v => { GAGAL_ATURAN = v && typeof v === "object" ? v : {}; }).catch(() => { GAGAL_ATURAN = {}; });
+  try{ const r = await cf("store_settings?select=key,value&key=like.retur_*");
+    RETUR = (Array.isArray(r) ? r : []).map(x => x.value).filter(v => v && v.kurir_id === me.id && v.status === "di_kurir" && Date.now() - Date.parse(v.batas) < 3 * 864e5); }
+  catch(e){ RETUR = []; }
+  return RETUR;
+}
+function returHtml(){
+  if(!RETUR.length) return "";
+  return RETUR.map(v => { const sisa = Date.parse(v.batas) - Date.now(), lewat = sisa <= 0, jam = Math.floor(sisa / 36e5), mnt = Math.max(0, Math.floor(sisa % 36e5 / 6e4));
+    const toko = (v.toko || []).map(t => t.replace(/\b\w/g, c => c.toUpperCase())).join(", ") || "toko";
+    return `<div class="rt-box${lewat ? " lewat" : ""}"><b>📦 Kembalikan barang ${esc(v.kode)} ke ${esc(toko)}</b>`
+      + `<span>${lewat ? `Lewat 24 jam: barang dianggap Anda beli${v.jaminan ? `, jaminan ${fmtRp(v.jaminan)} menjadi milik toko` : ""}. Hubungi admin bila barang sudah dikembalikan.`
+        : `Sisa waktu <b>${jam} jam ${mnt} menit</b>. ${v.jaminan ? `Jaminan ${fmtRp(v.jaminan)} kembali ke saldo setelah toko menekan "Barang sudah kembali".` : `Minta toko menekan "Barang sudah kembali".`}`}</span></div>`; }).join("");
 }
 
 // ===== Serah terima: kode 4 angka dari pembeli, atau foto bukti bila pembeli tidak ada =====
@@ -1760,6 +1878,13 @@ async function cekKode(code, kode){
 /* ===== PAKET: bukti diterima = FOTO BERLOKASI (tanpa kode) =====
    Kurir memotret paket di lokasi. Foto otomatis dicap: penerima, tanggal & jam (WIB), titik GPS + jarak ke tujuan,
    dan nama kurir. Pengirim & admin bisa melihat foto + titiknya di peta. */
+// GPS untuk foto bukti: pantau terus + ambil sekali di awal (cadangan bila pantauan tidak segera memberi posisi,
+// mis. saat pantauan lokasi "siap antar" juga berjalan)
+function gpsPantau(ok, gagal){
+  const id = navigator.geolocation.watchPosition(ok, gagal, {enableHighAccuracy:true, maximumAge:5000, timeout:30000});
+  try{ navigator.geolocation.getCurrentPosition(ok, () => {}, {enableHighAccuracy:true, maximumAge:15000, timeout:20000}); }catch(e){}
+  return id;
+}
 function capFoto(file, kol){
   // kol = [{ik, lbl, val:[baris1, baris2?]}, ...]  -> 4 kolom (foto lebar) atau 2x2 (foto tegak)
   return new Promise((ok, no) => {
@@ -1834,7 +1959,7 @@ function fotoPaket(code){
   }
   let terakhirBuat = 0;
   if("geolocation" in navigator){
-    watch = navigator.geolocation.watchPosition(p => {
+    watch = gpsPantau(p => {
       const baru = !pos; pos = {lat:+p.coords.latitude.toFixed(6), lng:+p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy || 0)}; gpsUI();
       if(file && (baru || Date.now() - terakhirBuat > 15000)){ terakhirBuat = Date.now(); buat(); }
     }, err => { const g = $("fpGps"); if(g) g.querySelector("span").textContent = err.code === 1 ? "Izin lokasi ditolak — aktifkan lokasi untuk aplikasi ini" : "GPS belum dapat, pastikan lokasi HP menyala"; },
@@ -1859,11 +1984,15 @@ function fotoPaket(code){
 
 function serahTerima(code){
   const o = ORD[code], tr = o && transOf(o), siapa = tr && tr.layanan === "paket" ? "penerima barang" : tr ? "penumpang" : "pembeli";
+  const cod = !!(o && isCodP(o)), tagih = cod ? (Number(o.total) || 0) + tambahOngkir(o) : 0;
   const ov = document.createElement("div"); ov.id = "stModal";
   ov.className = "ks-lembar"; ov.style.cssText = "position:fixed;inset:0;z-index:9000;background:rgba(40,20,10,.55);display:flex;align-items:flex-end;justify-content:center";
   ov.innerHTML = `<div style="background:#fffaf2;width:100%;max-width:480px;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:92vh;overflow:auto">
     <h3 style="margin:0 0 4px;color:var(--brown)">✅ Serah terima ${esc(code)}</h3>
     <p class="hint" style="margin:0 0 8px">Minta <b>kode 4 angka</b> dari ${siapa}. Kode ada di aplikasi / WhatsApp ${siapa === "penerima barang" ? "pengirim" : "pembeli"}.</p>
+    ${cod ? `<div class="st-cod"><small>💵 COD • tagih tunai ke pembeli</small><b>${fmtRp(tagih)}</b>
+      <label class="st-cek"><input type="checkbox" id="stUang"><span>Uang <b>${fmtRp(tagih)}</b> sudah saya terima</span></label>
+      <button type="button" class="st-belum" id="stBelum">Pembeli tidak membayar? Laporkan gagal antar ›</button></div>` : ""}
     <input id="stKode" class="fld" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="• • • •" style="font-size:30px;letter-spacing:14px;text-align:center;font-weight:700">
     <button class="mini g" id="stOk" type="button" style="width:100%;padding:13px;font-size:16px;margin:0">✅ Selesai — kode benar</button>
     <details id="stFotoBox" style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px"><summary style="cursor:pointer;font-weight:700;color:var(--brown)">📷 ${siapa[0].toUpperCase() + siapa.slice(1)} tidak ada di tempat?</summary>
@@ -1872,7 +2001,7 @@ function serahTerima(code){
       <input type="file" id="stFile" accept="image/*" capture="environment" data-crop="asli" hidden>
       <button class="mini" id="stPilih" type="button">📷 Ambil foto</button>
       <img id="stPrev" alt="" style="display:none;width:100%;border-radius:12px;margin-top:8px">
-      <input id="stKet" class="fld" maxlength="120" placeholder="Dititipkan ke siapa / diletakkan di mana">
+      <input id="stKet" class="fld" maxlength="120" placeholder="${cod ? "Dititipkan ke siapa & uang dibayar oleh siapa" : "Dititipkan ke siapa / diletakkan di mana"}">
       <button class="mini g" id="stKirim" type="button" disabled style="width:100%;padding:12px;margin:0">📤 Kirim foto & selesaikan</button>
     </details>
     <button class="mini" id="stBatal" type="button" style="width:100%;margin-top:12px">Batal</button></div>`;
@@ -1894,7 +2023,7 @@ function serahTerima(code){
     if(watch != null) return;
     if(!("geolocation" in navigator)){ const g = $("stGps"); if(g) g.querySelector("span").textContent = "HP ini tidak mendukung GPS"; return; }
     const g = $("stGps"); if(g) g.querySelector("span").textContent = "Mencari lokasi GPS…";
-    watch = navigator.geolocation.watchPosition(p => {
+    watch = gpsPantau(p => {
       const baru = !pos; pos = {lat:+p.coords.latitude.toFixed(6), lng:+p.coords.longitude.toFixed(6), acc:Math.round(p.coords.accuracy || 0)}; gpsUI();
       if(file && (baru || Date.now() - terakhirBuat > 15000)){ terakhirBuat = Date.now(); buatFoto(); }
     }, err => { const g = $("stGps"); if(g) g.querySelector("span").textContent = err.code === 1 ? "Izin lokasi ditolak — aktifkan lokasi untuk aplikasi ini" : "GPS belum dapat, pastikan lokasi HP menyala"; },
@@ -1916,11 +2045,13 @@ function serahTerima(code){
   const tutup = () => { try{ sessionStorage.removeItem("ks_buka"); }catch(e){} try{ if(watch != null) navigator.geolocation.clearWatch(watch); }catch(e){} ov.remove(); };
   ov.onclick = e => { if(e.target === ov) tutup(); };
   $("stBatal").onclick = tutup;
+  if($("stBelum")) $("stBelum").onclick = () => { tutup(); gagalAntar(code); };
   setTimeout(() => $("stKode").focus(), 100);
   $("stKode").oninput = e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 4); };
   $("stKode").onkeydown = e => { if(e.key === "Enter") $("stOk").click(); };
   $("stOk").onclick = async () => {
     const kode = $("stKode").value; if(kode.length !== 4) return toast("Masukkan 4 angka kode");
+    if(cod && !$("stUang").checked) return toast("Centang dulu: uang " + fmtRp(tagih) + " sudah diterima");
     if(sibuk) return; sibuk = true; $("stOk").disabled = true;
     try{
       const r = String(await cekKode(code, kode));
@@ -1943,6 +2074,7 @@ function serahTerima(code){
   $("stKirim").onclick = async () => {
     if(!file) return toast("Ambil foto dulu");
     if(!pos) return toast("Tunggu lokasi GPS terkunci dulu");
+    if(cod && !$("stUang").checked) return toast("Centang dulu: uang " + fmtRp(tagih) + " sudah diterima. Bila belum dibayar, pakai Gagal antar.");
     const ket = $("stKet").value.trim(); if(!ket) return toast("Tulis dititipkan ke siapa / diletakkan di mana");
     const d = jarakKe();
     if(d != null && d > 300 && !confirm(`Lokasi Anda sekitar ${fmtJ(d)} dari alamat ${siapa}.\nYakin pesanan sudah diserahkan di sini?`)) return;
@@ -2184,7 +2316,7 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)}, cur="home";
-  var HOME=[".hd","#stat","#aktifBox","#lokInfo","#lengkapiBox","#kokpit","#kpTarget","#ringkas","#btnLihat","#kpNotif","#kpLay"], ORD=["#ordBox"], PROF=["#profBox","#setH","#layBox","#notifBox",".accordion-box","#ksLink"], UANG=["#saldoBox","#uangBox"];
+  var HOME=[".hd","#stat","#aktifBox","#lokInfo","#lengkapiBox","#kpRetur","#kokpit","#kpTarget","#ringkas","#btnLihat","#kpNotif","#kpLay"], ORD=["#ordBox"], PROF=["#profBox","#setH","#layBox","#notifBox",".accordion-box","#ksLink"], UANG=["#saldoBox","#uangBox"];
   function all(l){var r=[];l.forEach(function(q){document.querySelectorAll(q).forEach(function(e){r.push(e)})});return r}
   function show(t){ cur=t; document.body.dataset.tab=t; try{ history.replaceState(history.state,"",location.pathname+location.search+(t==="home"?"":"#"+t)); }catch(e){}
     if(t==="uang"&&window.muatPenghasilan) window.muatPenghasilan();

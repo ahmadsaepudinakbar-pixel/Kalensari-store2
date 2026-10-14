@@ -1,0 +1,73 @@
+KALENSARI STORE - GAGAL ANTAR AMAN (anti kurir & pembeli bersekongkol)
+=======================================================================
+
+URUTAN PASANG (penting):
+1. Unggah dulu ke GitHub (timpa file lama):
+     dashboard-kurir.html, navigasi-kurir.js, kamera.js (baru),
+     penjual-app.html, admin.html, script.js
+2. Tunggu 1-2 menit, minta kurir menutup lalu membuka lagi aplikasi kurir.
+3. BARU jalankan supabase-gagal-antar-aman.sql di Supabase > SQL Editor > Run.
+   Hasil akhir harus: true, true, true, true, {makanan,minuman}.
+   (Kalau SQL dijalankan lebih dulu, kurir yang masih memakai aplikasi lama
+    tidak bisa menekan Gagal antar karena belum ada foto bukti.)
+
+YANG BERUBAH
+------------
+A. Aplikasi kurir
+   - Serah terima COD: muncul kotak "Tagih tunai Rp..." dan centang
+     "Uang Rp... sudah saya terima" (wajib, untuk kode 4 angka maupun foto).
+     Ada tombol "Pembeli tidak membayar? Laporkan gagal antar".
+   - Gagal antar sekarang wajib:
+       1) menelepon / chat WA pembeli dari tombol di aplikasi (tercatat jamnya),
+       2) memilih alasan,
+       3) foto bukti di lokasi, otomatis bercap GPS, tanggal & jam, jarak ke alamat.
+     Pilihan "Barang dititip di kurir" dihapus: barang toko WAJIB kembali ke toko.
+   - MULTI TOKO: 1 checkout = 1 kurir, jadi gagal antar berlaku untuk SEMUA nota
+     yang dipegang kurir sekaligus (1x telepon, 1 foto, 1 laporan). Tiap toko
+     tetap mendapat catatannya sendiri (makanan/minuman atau barang wajib kembali).
+   - Pengingat di Beranda & Pesanan: "Kembalikan barang ... ke toko, sisa ... jam".
+
+B. Aturan per kategori barang (khusus COD aturan baru & Saldo Kurir aktif)
+   - MAKANAN & MINUMAN: tidak perlu dikembalikan. Kerugian ditanggung kurir:
+     saldo kurir langsung dipotong harga makanan (riwayat: "ganti_gagal") dan
+     uangnya masuk saldo toko.
+   - MAINAN, AKSESORIS, PAKAIAN (dan semua kategori lain): wajib kembali ke toko
+     dengan jaminan (lihat di bawah). Bila barang kembali = impas, tidak ada yang rugi.
+   - Satu nota berisi makanan + barang lain dihitung terpisah per barang.
+   - Daftar kategori yang ditanggung kurir bisa diubah di admin:
+     Kurir > COD & Gagal antar > Aturan COD > "Kategori yang kerugiannya ditanggung kurir".
+     Kategori dibaca dari data produk (bukan dari pesanan), jadi tidak bisa dipalsukan.
+   - Pesanan yang sudah dibayar (QRIS): makanan tidak ditagih ke kurir.
+
+C. Jaminan saldo untuk barang yang wajib kembali
+   - Saat gagal antar: saldo kurir dipotong harga produk (riwayat: "jaminan_gagal").
+   - Toko menekan "Barang sudah kembali" dalam 24 jam -> jaminan kembali ke kurir.
+   - Lewat 24 jam tanpa konfirmasi -> uang jaminan masuk saldo toko
+     (barang dianggap dibeli kurir).
+   - Pesanan QRIS yang gagal antar tetap dicatat wajib kembali (tanpa jaminan);
+     yang lewat 24 jam muncul di tanda bahaya admin.
+
+D. Mitra Toko (penjual-app.html)
+   - Di detail pesanan gagal antar ada kotak kuning + tombol "Barang sudah kembali".
+   - Di daftar pesanan muncul pemberitahuan bila ada barang yang sedang dikembalikan.
+   - Ganti rugi makanan/minuman dan jaminan barang yang tidak kembali tampil di "Saldo masuk".
+
+   - Hitungan gagal COD pembeli (untuk blokir COD) kini per KEJADIAN:
+     beberapa nota yang gagal bersamaan dihitung 1x (script.js & admin).
+
+E. Admin > Kurir > COD & Gagal antar
+   - "Tanda bahaya gagal antar": kurir sering gagal, pasangan kurir-pembeli yang
+     sama berulang kali gagal, lokasi janggal (sudah di depan rumah < 50 m tapi
+     gagal, atau jauh > 300 m dari alamat), barang tidak kembali lewat 24 jam.
+   - "Barang gagal antar": status tiap barang + tombol "Barang kembali" /
+     "Teruskan ke toko" untuk memutuskan bila ada sengketa.
+   - Detail pesanan menampilkan foto bukti gagal antar, titik GPS, dan apakah
+     kurir sudah menghubungi pembeli.
+
+PENGAMAN DI DATABASE (tidak bisa diakali dari HP)
+-------------------------------------------------
+- Gagal antar dari aplikasi ditolak bila belum ada foto bukti berlokasi
+  (maks 3 jam sebelumnya). Admin tetap bisa mengubah status tanpa foto.
+- Catatan retur (store_settings "retur_<kode>") hanya bisa diubah server/admin.
+- Tombol "Barang sudah kembali" hanya bisa ditekan toko pemilik barang dan
+  hanya dalam 24 jam. Jaminan tidak bisa dikembalikan dua kali.
