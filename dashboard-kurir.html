@@ -1031,13 +1031,13 @@ async function loadOrders(){
       const a = assigneeOf(rep, st, eligFor(rep, elig, busy), now);
       if(a && a.id === me.id) offers.push({o:rep, end:slotEnd(rep, st, now), n:list.length}); else other += list.length;
     }
-    const codes = offers.map(x => x.o.order_code);
+    const codes = offers.map(x => x.o.order_code), giliran = offers.map(x => x.o.order_code + "@" + x.end);
     window.__kOffers = codes.length;
-    if(seenOffers && codes.some(c => !seenOffers.has(c))){ toast("🔔 Ada pesanan baru untuk Anda");
+    if(seenOffers && giliran.some(c => !seenOffers.has(c))){ toast("🔔 Ada pesanan baru untuk Anda");
       if(window.KSDering) KSDering.mulai({label:"Kalensari Kurir", judul:"Pesanan baru untuk Anda!", isi: codes.length > 1 ? codes.length + " pesanan menunggu diterima." : "Ketuk Lihat untuk menerima pesanan.", ikon:"🛵", lihat:"Lihat pesanan",
         onLihat: () => { const b = document.getElementById("btnLihat"); if(b) b.click(); }, sampai: () => !window.__kOffers });
       else { bunyi(); try{ navigator.vibrate && navigator.vibrate([250,120,250]); }catch(e){} } }
-    seenOffers = new Set(codes); setCounts(offers.length, mine.length);
+    seenOffers = new Set(giliran); setCounts(offers.length, mine.length);
     const hd = t => `<h3 class="ob-pill"><span>${/^Menunggu/.test(t) ? "🔔" : "📦"}</span>${t}</h3>`;
     let h = "";
     if(BIAYA.aktif && SALDO !== null && SALDO < 0) h += '<p class="hint" style="margin-top:10px;color:#c0392b">⚠️ Saldo Anda minus. Anda tidak bisa menerima pesanan COD sampai saldo kembali plus (QRIS, antar barang, dan ngojek tetap bisa). Isi saldo di Beranda.</p>';
@@ -1632,7 +1632,7 @@ function bunyi(){
     setTimeout(() => { try{ c.close(); }catch(e){} }, 800);
   }catch(e){}
 }
-if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(e.data && e.data.type === "bunyi-pesanan" && (!e.data.tag || e.data.tag === "pesanan-baru")){ bunyi(); if(me && !me.pending) loadOrders(); } if(e.data && e.data.type === "bunyi-pesanan" && /^saldo/.test(e.data.tag || "") && me) renderSaldo(); });
+if("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if(e.data && e.data.type === "bunyi-pesanan" && (!e.data.tag || /^pesanan-baru/.test(e.data.tag))){ bunyi(); if(me && !me.pending) loadOrders(); } if(e.data && e.data.type === "bunyi-pesanan" && /^saldo/.test(e.data.tag || "") && me) renderSaldo(); });
 
 // ===== Notifikasi push: pesanan masuk tetap sampai ke HP walau aplikasi ditutup =====
 const VAPID_KEY = (typeof CLOUD_CONFIG !== "undefined" && CLOUD_CONFIG.vapidPublicKey) || "";
