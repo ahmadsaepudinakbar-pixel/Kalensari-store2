@@ -62,7 +62,7 @@
       ".hr-kb-t .pin{background:#b8460b}",
       ".hr-kb-t p{margin:3px 0 4px;font-size:13.5px;color:#5c4638;line-height:1.45;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}",
       ".hr-kb.buka .hr-kb-t p{display:block;-webkit-line-clamp:unset}.hr-kb-t small{font-size:12px;color:#8a7466}.hr-kb-t small a{color:#7b3f1d;font-weight:700}",
-      ".hr-kb img.hr-kb-f{display:none;width:100%;max-width:100%;height:auto;max-height:340px;object-fit:cover;border-radius:14px;margin:10px 0 2px}.hr-kb.buka img.hr-kb-f[src]{display:block}",
+      ".hr-kb img.hr-kb-f{display:none;width:100%;max-width:100%;height:auto;max-height:420px;object-fit:contain;background:#f5e8d8;border-radius:14px;margin:0 0 12px}.hr-kb.buka img.hr-kb-f[src]{display:block}",
       ".hr-kb img.hr-kb-thumb{display:block;flex:none;width:56px;height:56px;max-width:none;border-radius:12px;object-fit:cover;background:#f5e8d8}.hr-kb.buka img.hr-kb-thumb{display:none}",
       /* ikon kabar di header + panel */
       ".kabar-btn{position:relative;flex:none;background:none;border:0;font-size:22px;line-height:1;cursor:pointer;padding:4px 6px;margin:0;color:inherit}",
@@ -141,17 +141,19 @@
     }
     // pertama kali dibuka di HP ini: hanya kabar 3 hari terakhir yang diberi tanda "Baru"
     var lihat = Number(LS("kalensari_kabar_dilihat", 0)) || (Date.now() - 3 * 864e5), maks = o.maks || 3, nBaru = 0;
+    // **tebal**  *miring*  (seperti yang biasa diketik di WhatsApp / catatan)
+    var gaya = function (t) { return esc(t).replace(/\*\*([^*\n][^*]*?)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, "$1<i>$2</i>"); };
     var item = function (k, i) {
       var baru = (Number(k.t) || 0) > lihat; if (baru) nBaru++;
       var link = amanLink(k.link);
       return '<article class="hr-kb' + (k.penting ? " pn" : "") + (o.buka ? " buka" : "") + '"' + (i >= maks ? " hidden" : "") + ' data-kb="' + esc(k.id) + '">'
+        + (k.foto ? '<img class="hr-kb-f" alt="" loading="lazy" data-foto="' + esc(k.id) + '">' : "")
         + '<div class="hr-kb-r"><div class="hr-kb-ik">' + esc(k.ikon || "📢") + '</div><div class="hr-kb-t"><b>' + esc(k.judul) + '</b>'
         + (k.penting ? '<em class="pin">Penting</em>' : baru ? "<em>Baru</em>" : "")
-        + "<p>" + esc(k.isi || "") + "</p>"
+        + "<p>" + gaya(k.isi || "") + "</p>"
         + (link ? '<a class="hr-kb-btn" href="' + esc(link) + '"' + (/^https?:/i.test(link) ? ' target="_blank" rel="noopener"' : "") + ">" + esc(k.tombol || "Selengkapnya") + " ›</a><br>" : "")
         + "<small>" + esc(tglTampil(k.t)) + (k.oleh ? " • oleh <i>" + esc(k.oleh) + "</i>" : "") + (k.sampai ? " • sampai " + esc(tglTampil(k.sampai)) : "") + "</small></div>"
-        + (k.foto ? '<img class="hr-kb-thumb" alt="" data-foto="' + esc(k.id) + '">' : "") + "</div>"
-        + (k.foto ? '<img class="hr-kb-f" alt="" loading="lazy" data-foto="' + esc(k.id) + '">' : "") + "</article>";
+        + (k.foto ? '<img class="hr-kb-thumb" alt="" data-foto="' + esc(k.id) + '">' : "") + "</div></article>";
     };
     el.hidden = false;
     el.innerHTML = '<section class="hr-card">' + (o.panel ? "" : '<h3 class="hr-h">📰 Kabar Desa<small>' + list.length + " kabar</small></h3>")
