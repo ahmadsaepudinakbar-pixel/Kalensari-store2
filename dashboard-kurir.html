@@ -1349,7 +1349,7 @@ async function loadOrders(){
     if(other > 0) h += `<p class="hint" style="margin-top:12px">${other} pesanan lain sedang ditangani / ditawarkan ke kurir lain.</p>`;
     box.innerHTML = h; tick(); lacakSync(mine); if(window.kokpitAktif) kokpitAktif(mine, offers);
     // halaman sempat dimuat ulang (mis. Android menutup Chrome saat kamera dibuka): buka lagi jendela serah terima / foto paket
-    try{ const b = JSON.parse(sessionStorage.getItem("ks_buka") || "null"); if(b && !bukaUlangSudah){ bukaUlangSudah = true; sessionStorage.removeItem("ks_buka");
+    try{ const b = JSON.parse(localStorage.getItem("ks_buka") || "null"); if(b && !bukaUlangSudah && Date.now() - (b.t || 0) < 30 * 60000){ bukaUlangSudah = true; localStorage.removeItem("ks_buka");
       if(ORD[b.code] && ORD[b.code].status === "dikirim"){ if(window.ksTab) ksTab("pesanan"); toast("Halaman sempat dimuat ulang. Silakan ambil foto lagi."); (b.f === "fp" ? fotoPaket : serahTerima)(b.code); } } }catch(e){}
   }catch(e){ box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
   finally{ busyLoad = false; }
@@ -1937,8 +1937,8 @@ function fotoPaket(code){
     </div><span class="fp-daun l" aria-hidden="true"></span><span class="fp-daun r" aria-hidden="true"></span></div>`;
   document.body.appendChild(ov);
   let pos = null, file = null, foto = "", sibuk = false, watch = null;
-  try{ sessionStorage.setItem("ks_buka", JSON.stringify({f:"fp", code})); }catch(e){}
-  const tutup = () => { try{ sessionStorage.removeItem("ks_buka"); }catch(e){} try{ if(watch != null) navigator.geolocation.clearWatch(watch); }catch(e){} ov.remove(); };
+  try{ localStorage.setItem("ks_buka", JSON.stringify({f:"fp", code, t:Date.now()})); }catch(e){}
+  const tutup = () => { try{ localStorage.removeItem("ks_buka"); }catch(e){} try{ if(watch != null) navigator.geolocation.clearWatch(watch); }catch(e){} ov.remove(); };
   ov.onclick = e => { if(e.target === ov) tutup(); };
   $("fpBatal").onclick = tutup;
   const jarakKe = () => pos && tuju ? Math.round(jarakM(pos, tuju)) : null;
@@ -2011,7 +2011,7 @@ function serahTerima(code){
     <button class="mini" id="stBatal" type="button" style="width:100%;margin-top:12px">Batal</button></div>`;
   document.body.appendChild(ov);
   let foto = "", sibuk = false;
-  try{ sessionStorage.setItem("ks_buka", JSON.stringify({f:"st", code})); }catch(e){}
+  try{ localStorage.setItem("ks_buka", JSON.stringify({f:"st", code, t:Date.now()})); }catch(e){}
   // ===== foto bukti berlokasi (hanya bila pembeli tidak ada; serah terima dengan kode tidak perlu kamera/GPS) =====
   let pos = null, file = null, watch = null, terakhirBuat = 0;
   const tj = tr ? tr.tujuan : (extractMapLocation(o && o.note) || extractMapLocation(o && o.address));
@@ -2046,7 +2046,7 @@ function serahTerima(code){
       $("stPrev").src = foto; $("stPrev").style.display = "block"; $("stKirim").disabled = false;
     }catch(e){ toast("Foto tidak bisa dibaca, coba ambil ulang"); }
   }
-  const tutup = () => { try{ sessionStorage.removeItem("ks_buka"); }catch(e){} try{ if(watch != null) navigator.geolocation.clearWatch(watch); }catch(e){} ov.remove(); };
+  const tutup = () => { try{ localStorage.removeItem("ks_buka"); }catch(e){} try{ if(watch != null) navigator.geolocation.clearWatch(watch); }catch(e){} ov.remove(); };
   ov.onclick = e => { if(e.target === ov) tutup(); };
   $("stBatal").onclick = tutup;
   if($("stBelum")) $("stBelum").onclick = () => { tutup(); gagalAntar(code); };
