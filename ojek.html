@@ -358,7 +358,7 @@ async function initMap(){
     if(TOKO.length) CENTER = [TOKO.reduce((s,p) => s+p.lat,0)/TOKO.length, TOKO.reduce((s,p) => s+p.lng,0)/TOKO.length]; }catch(e){}
   try{ const tp = await getSetting("transport_places", []); TEMPAT = (Array.isArray(tp) ? tp : []).map(t => ({nama:String(t.nama || "").trim(), e:t.e || "📍", lat:Number(t.lat), lng:Number(t.lng)})).filter(t => t.nama && Number.isFinite(t.lat) && Number.isFinite(t.lng)); }catch(e){}
   const pop = semuaPatokan();
-  $("populer").hidden = !pop.length;
+  $("populer").hidden = !pop.length || layanan === "paket";   // kirim paket: tanpa rekomendasi nama toko
   $("populerList").innerHTML = pop.map((t, i) => `<button type="button" data-p="${i}">${esc(t.e || "📍")} ${esc(t.nama)}</button>`).join("");
 }
 $("populerList").addEventListener("click", e => { const b = e.target.closest("[data-p]"); if(!b) return; const t = semuaPatokan()[+b.dataset.p]; setPt("b", t.lat, t.lng, t.nama); if(!$("ketB").value) $("ketB").value = t.nama; });
@@ -393,6 +393,7 @@ function setLayanan(l){
   $("lblB").textContent = l === "paket" ? "Barang diantar ke mana?" : "Mau ke mana?";
   $("ruteHint").firstChild.textContent = l === "paket" ? "🟢 A = ambil barang · 🔴 B = antar ke. Ketuk \"Pilih di peta\" di atas untuk mengubah." : "🟢 A = jemput · 🔴 B = tujuan. Ketuk \"Pilih di peta\" di atas untuk mengubah.";
   $("btnPesan").textContent = l === "paket" ? "📦 Kirim paket sekarang" : "🛵 Pesan ojek sekarang";
+  $("populer").hidden = l === "paket" || !$("populerList").children.length;   // kirim paket: tanpa rekomendasi nama toko
   const off = TARIF[l] && TARIF[l].aktif === false; $("offNote").hidden = !off; $("offNote").textContent = off ? `Layanan ${LAY[l].nama} sedang tidak tersedia.` : ""; $("btnPesan").disabled = off;
   renderFare();
 }
