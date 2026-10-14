@@ -120,9 +120,16 @@
   }
 
   var aktif = null;   // satu navigasi terbuka pada satu waktu
+  var abaikanBack = 0; // waktu peta ditutup lewat tombol ← (history.back() milik peta sendiri, jangan diproses halaman)
+  // true bila tombol kembali HP sedang/baru saja dipakai untuk peta -> halaman jangan pindah tab
+  function sibuk() {
+    if (aktif) return true;
+    if (abaikanBack && Date.now() - abaikanBack < 1500) { abaikanBack = 0; return true; }
+    abaikanBack = 0; return false;
+  }
   function tutup(dariBack) {
     if (!aktif) return;
-    if (aktif.back) { window.removeEventListener("popstate", aktif.back); if (dariBack !== true) try { history.back(); } catch (e) {} }
+    if (aktif.back) { window.removeEventListener("popstate", aktif.back); if (dariBack !== true) try { abaikanBack = Date.now(); history.back(); } catch (e) { abaikanBack = 0; } }
     try { if (aktif.watch != null) navigator.geolocation.clearWatch(aktif.watch); } catch (e) {}
     try { if (aktif.kunci) aktif.kunci.release(); } catch (e) {}
     clearInterval(aktif.iv); document.removeEventListener("visibilitychange", aktif.vis);
@@ -298,5 +305,5 @@
     tampil();
   }
 
-  window.KSNav = { buka: buka, tutup: tutup, mode: mode, setMode: setMode, urlGoogle: urlGoogle };
+  window.KSNav = { buka: buka, tutup: tutup, sibuk: sibuk, mode: mode, setMode: setMode, urlGoogle: urlGoogle };
 })();

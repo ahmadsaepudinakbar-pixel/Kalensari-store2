@@ -486,7 +486,8 @@ function tokoUrut(o){
 const NAVR = {};
 function navBtn(label, cls, judul, stops){
   if(!stops.some(x => x && Number.isFinite(+x.lat) && Number.isFinite(+x.lng))) return "";
-  const id = (judul + "|" + label).replace(/[^\w|-]/g, ""); NAVR[id] = {judul, stops};
+  // ID unik per tujuan (bukan hanya per label): tombol "🧭 Arah" toko & pembeli dulu memakai ID sama sehingga saling menimpa
+  const id = (judul + "|" + label + "|" + stops.map(s => s ? s.nama + "@" + s.lat + "," + s.lng : "").join(">")).replace(/[^\w|>@,-]/g, ""); NAVR[id] = {judul, stops};
   return `<button class="mini ${cls}" type="button" data-nav="${esc(id)}">${label}</button>`;
 }
 function petaUI(){ const m = window.KSNav ? KSNav.mode() : "dalam"; document.querySelectorAll('input[name="petaMode"]').forEach(r => r.checked = r.value === m); const n = $("petaNote"); if(n) n.textContent = m === "google" ? "Google Maps (keluar aplikasi)" : "Peta Kalensari (di dalam aplikasi)"; }
@@ -1860,6 +1861,8 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
     $("pHari").textContent=me.joined?Math.max(1,Math.ceil((Date.now()-me.joined)/864e5)):1; $("pSel").textContent=me.selesai||0; show(cur) };
   setTimeout(function(){var h=(location.hash||"").slice(1); show(["pesanan","uang","profil"].indexOf(h)>=0?h:"home")},0);
   if(window.KSKembali) KSKembali.pasang({
+    // peta navigasi kurir punya penangan kembali sendiri: tutup peta saja, tetap di tab Pesanan
+    lewati: function(){ return !!(window.KSNav && KSNav.sibuk && KSNav.sibuk()); },
     tutup: function(){ return KSKembali.tutupAtas(".ks-lembar,.fp-ov,.modal.show"); },
     pulang: function(){ if(cur!=="home"){ show("home"); return true; } return false; }
   });
