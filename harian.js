@@ -1,5 +1,6 @@
 /* Kalensari Store • PROGRAM HARIAN (supaya pembeli rajin membuka aplikasi)
    Dipakai di index.html (toko) dan dashboard-pembeli.html.
+     KSHarian.tombolKabar()           -> ikon 📰 + angka kabar baru di header toko (sebelah kanan ☰), membuka panel Kabar Desa
      KSHarian.kabar(el, {maks})       -> kotak "📰 Kabar Desa" (store_settings 'kabar_desa', ditulis admin & penulis kabar)
      KSHarian.penulis(el, {onUbah})   -> kartu "✍️ Tulis Kabar Desa" di dashboard pembeli (hanya untuk akun penulis kabar;
                                          supabase-kabar-penulis.sql: kabar_saya, kabar_tulis, kabar_hapus)
@@ -53,15 +54,29 @@
       ".hr-card{background:#fff;border:1px solid #ead9c6;border-radius:20px;padding:14px 16px;color:#3a1f10;box-shadow:0 4px 14px rgba(91,44,18,.07);font-family:inherit}",
       ".hr-h{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:17px;color:#5b2c12}.hr-h small{margin-left:auto;font-size:12px;font-weight:600;color:#8a7466}",
       /* kabar desa */
-      ".hr-kb[hidden]{display:none!important}.hr-kb{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px dashed #ead9c6;cursor:pointer}.hr-kb:first-of-type{border-top:0;padding-top:2px}",
+      ".hr-kb[hidden]{display:none!important}.hr-kb{display:block;padding:10px 0;border-top:1px dashed #ead9c6;cursor:pointer}.hr-kb:first-of-type{border-top:0;padding-top:2px}",
+      ".hr-kb-r{display:flex;gap:12px;align-items:flex-start}",
       ".hr-kb-ik{flex:none;width:42px;height:42px;border-radius:12px;background:#f5e8d8;display:grid;place-items:center;font-size:22px}",
       ".hr-kb.pn .hr-kb-ik{background:#ffe3c2}.hr-kb-t{flex:1;min-width:0}.hr-kb-t b{font-size:15px;line-height:1.3}",
       ".hr-kb-t em{font-style:normal;font-size:10.5px;font-weight:800;background:#e53935;color:#fff;border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:2px}",
       ".hr-kb-t .pin{background:#b8460b}",
       ".hr-kb-t p{margin:3px 0 4px;font-size:13.5px;color:#5c4638;line-height:1.45;white-space:pre-line;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}",
       ".hr-kb.buka .hr-kb-t p{display:block;-webkit-line-clamp:unset}.hr-kb-t small{font-size:12px;color:#8a7466}.hr-kb-t small a{color:#7b3f1d;font-weight:700}",
-      ".hr-kb img{display:none;width:100%;max-height:260px;object-fit:cover;border-radius:14px;margin:6px 0 4px}.hr-kb.buka img[src]{display:block}",
-      ".hr-kb-thumb{flex:none;width:56px;height:56px;border-radius:12px;object-fit:cover;background:#f5e8d8}.hr-kb.buka .hr-kb-thumb{display:none}",
+      ".hr-kb img.hr-kb-f{display:none;width:100%;max-width:100%;height:auto;max-height:340px;object-fit:cover;border-radius:14px;margin:10px 0 2px}.hr-kb.buka img.hr-kb-f[src]{display:block}",
+      ".hr-kb img.hr-kb-thumb{display:block;flex:none;width:56px;height:56px;max-width:none;border-radius:12px;object-fit:cover;background:#f5e8d8}.hr-kb.buka img.hr-kb-thumb{display:none}",
+      /* ikon kabar di header + panel */
+      ".kabar-btn{position:relative;flex:none;background:none;border:0;font-size:22px;line-height:1;cursor:pointer;padding:4px 6px;margin:0;color:inherit}",
+      ".nav.ada-kabar{gap:6px}.nav.ada-kabar .brand{white-space:nowrap;margin-right:auto;margin-left:10px}.nav.ada-kabar .cart-btn,.nav.ada-kabar .order-btn{white-space:nowrap;flex:none}",
+      "@media(max-width:420px){.nav.ada-kabar{gap:2px}.nav.ada-kabar .brand{font-size:15px;letter-spacing:0;margin-left:8px}.nav.ada-kabar>button{font-size:19px;padding-left:3px;padding-right:3px}.nav.ada-kabar .kabar-btn b{right:-6px}}",
+      "@media(max-width:350px){.nav.ada-kabar .brand{font-size:13px}.nav.ada-kabar>button{font-size:17px}}",
+      ".kabar-btn b{position:absolute;top:-3px;right:-5px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#e53935;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px #fff}",
+      ".kabar-btn b[hidden]{display:none}",
+      ".hr-pn{align-items:end!important;padding:0!important;place-items:end center!important}",
+      ".hr-pn>div{max-width:560px!important;width:100%!important;max-height:88vh;display:flex;flex-direction:column;padding:0!important;border-radius:24px 24px 0 0!important;text-align:left!important;overflow:hidden}",
+      ".hr-pn-h{display:flex;align-items:center;gap:8px;padding:16px 18px 10px;border-bottom:1px solid #f0e3d6}.hr-pn-h h3{margin:0!important;font-size:19px;flex:1}",
+      ".hr-pn-h button{width:auto!important;background:#f5e8d8!important;color:#5b2c12!important;border-radius:999px!important;padding:6px 12px!important;font-size:18px!important}",
+      ".hr-pn-b{overflow:auto;padding:6px 18px 22px;-webkit-overflow-scrolling:touch}.hr-pn-b .hr-card{border:0;box-shadow:none;padding:0;background:none}",
+      ".hr-pn-kosong{text-align:center;color:#8a7466;padding:30px 10px;font-size:14px}",
       ".hr-kb-btn{display:inline-block;margin:6px 0 4px;padding:7px 14px;border-radius:999px;background:#7b3f1d;color:#fff!important;font-weight:800;font-size:13px;text-decoration:none}",
       ".hr-kb-t small i{font-style:normal;color:#7b3f1d;font-weight:700}",
       /* penulis kabar */
@@ -120,23 +135,26 @@
     var h = hariIni();
     list = list.filter(function (k) { return k && k.judul && k.tampil !== false && (!k.sampai || k.sampai >= h); })
       .sort(function (a, b) { return (b.penting ? 1 : 0) - (a.penting ? 1 : 0) || (Number(b.t) || 0) - (Number(a.t) || 0); });
-    if (!list.length) return sembunyi(el), 0;
+    if (!list.length) {
+      if (o.panel) { el.hidden = false; el.innerHTML = '<p class="hr-pn-kosong">Belum ada kabar desa saat ini.</p>'; return 0; }
+      return sembunyi(el), 0;
+    }
     // pertama kali dibuka di HP ini: hanya kabar 3 hari terakhir yang diberi tanda "Baru"
     var lihat = Number(LS("kalensari_kabar_dilihat", 0)) || (Date.now() - 3 * 864e5), maks = o.maks || 3, nBaru = 0;
     var item = function (k, i) {
       var baru = (Number(k.t) || 0) > lihat; if (baru) nBaru++;
       var link = amanLink(k.link);
-      return '<article class="hr-kb' + (k.penting ? " pn" : "") + '"' + (i >= maks ? " hidden" : "") + ' data-kb="' + esc(k.id) + '">'
-        + '<div class="hr-kb-ik">' + esc(k.ikon || "📢") + '</div><div class="hr-kb-t"><b>' + esc(k.judul) + '</b>'
+      return '<article class="hr-kb' + (k.penting ? " pn" : "") + (o.buka ? " buka" : "") + '"' + (i >= maks ? " hidden" : "") + ' data-kb="' + esc(k.id) + '">'
+        + '<div class="hr-kb-r"><div class="hr-kb-ik">' + esc(k.ikon || "📢") + '</div><div class="hr-kb-t"><b>' + esc(k.judul) + '</b>'
         + (k.penting ? '<em class="pin">Penting</em>' : baru ? "<em>Baru</em>" : "")
-        + (k.foto ? '<img alt="" data-foto="' + esc(k.id) + '">' : "")
         + "<p>" + esc(k.isi || "") + "</p>"
         + (link ? '<a class="hr-kb-btn" href="' + esc(link) + '"' + (/^https?:/i.test(link) ? ' target="_blank" rel="noopener"' : "") + ">" + esc(k.tombol || "Selengkapnya") + " ›</a><br>" : "")
         + "<small>" + esc(tglTampil(k.t)) + (k.oleh ? " • oleh <i>" + esc(k.oleh) + "</i>" : "") + (k.sampai ? " • sampai " + esc(tglTampil(k.sampai)) : "") + "</small></div>"
-        + (k.foto ? '<img class="hr-kb-thumb" alt="" data-foto="' + esc(k.id) + '">' : "") + "</article>";
+        + (k.foto ? '<img class="hr-kb-thumb" alt="" data-foto="' + esc(k.id) + '">' : "") + "</div>"
+        + (k.foto ? '<img class="hr-kb-f" alt="" loading="lazy" data-foto="' + esc(k.id) + '">' : "") + "</article>";
     };
     el.hidden = false;
-    el.innerHTML = '<section class="hr-card"><h3 class="hr-h">📰 Kabar Desa<small>' + list.length + " kabar</small></h3>"
+    el.innerHTML = '<section class="hr-card">' + (o.panel ? "" : '<h3 class="hr-h">📰 Kabar Desa<small>' + list.length + " kabar</small></h3>")
       + list.map(item).join("")
       + (list.length > maks ? '<button type="button" class="hr-semua">Lihat semua kabar (' + list.length + ")</button>" : "") + "</section>";
     el.dataset.kbMaks = maks;
@@ -152,7 +170,46 @@
       });
     }).catch(function () {});
     LSset("kalensari_kabar_dilihat", Math.max.apply(null, [lihat].concat(list.map(function (k) { return Number(k.t) || 0; }))));
+    hitungKabar();
     return nBaru;
+  }
+
+  /* ---------- 📰 ikon Kabar Desa di header (sebelah kiri tulisan KALENSARI) + angka kabar baru ---------- */
+  async function hitungKabar() {
+    var b = document.getElementById("kabarBtn"); if (!b || !on()) return;
+    var list = [];
+    try { var r = await rest("store_settings?select=value&key=eq.kabar_desa"); list = r[0] && Array.isArray(r[0].value) ? r[0].value : []; } catch (e) { return; }
+    var h = hariIni(), lihat = Number(LS("kalensari_kabar_dilihat", 0)) || (Date.now() - 3 * 864e5);
+    var aktif = list.filter(function (k) { return k && k.judul && k.tampil !== false && (!k.sampai || k.sampai >= h); });
+    var n = aktif.filter(function (k) { return (Number(k.t) || 0) > lihat; }).length, bd = b.querySelector("b");
+    bd.textContent = n > 9 ? "9+" : String(n); bd.hidden = !n;
+    b.setAttribute("aria-label", n ? "Kabar Desa, " + n + " kabar baru" : "Kabar Desa");
+  }
+  function bukaPanelKabar() {
+    css();
+    var ov = document.createElement("div"); ov.className = "hr-ov hr-pn";
+    ov.innerHTML = '<div role="dialog" aria-label="Kabar Desa"><div class="hr-pn-h"><h3>📰 Kabar Desa</h3><button type="button" aria-label="Tutup">✕</button></div><div class="hr-pn-b"><p class="hr-pn-kosong">Memuat kabar…</p></div></div>';
+    document.body.appendChild(ov);
+    var tutup = function () { ov.remove(); document.removeEventListener("keydown", esc_); };
+    var esc_ = function (e) { if (e.key === "Escape") tutup(); };
+    ov.querySelector(".hr-pn-h button").onclick = tutup;
+    ov.addEventListener("click", function (e) { if (e.target === ov) tutup(); });
+    document.addEventListener("keydown", esc_);
+    kabar(ov.querySelector(".hr-pn-b"), { maks: 99, buka: true, panel: true });
+  }
+  function tombolKabar() {
+    if (document.getElementById("kabarBtn")) return hitungKabar();
+    var menu = document.getElementById("menuBtn"); if (!menu || !menu.parentNode) return;
+    css();
+    var b = document.createElement("button");
+    b.type = "button"; b.id = "kabarBtn"; b.className = "kabar-btn"; b.title = "Kabar Desa";
+    b.innerHTML = '📰<b hidden></b>';
+    b.onclick = bukaPanelKabar;
+    menu.parentNode.insertBefore(b, menu.nextSibling);
+    menu.parentNode.classList.add("ada-kabar");
+    hitungKabar();
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") hitungKabar(); });
+    setInterval(function () { if (document.visibilityState === "visible") hitungKabar(); }, 5 * 60000);
   }
 
   /* ---------- ✍️ PENULIS KABAR (perangkat desa / akun pilihan admin) ---------- */
@@ -392,12 +449,12 @@
   async function siap() {
     var w = document.getElementById("ksHarian"); if (!w) return;
     css(); w.classList.add("hr-wrap");
-    if (!w.children.length) w.innerHTML = '<div id="hrAbsen" hidden></div><div id="hrPromo" hidden></div><div id="hrMenu" hidden></div><div id="hrKabar" hidden></div>';
+    if (!w.children.length) w.innerHTML = '<div id="hrAbsen" hidden></div><div id="hrPromo" hidden></div><div id="hrMenu" hidden></div>';
     absen(document.getElementById("hrAbsen"), { ringkas: true });
     promo(document.getElementById("hrPromo"));
     menuBaru(document.getElementById("hrMenu"), { diToko: true });
-    kabar(document.getElementById("hrKabar"), { maks: 1 });
+    tombolKabar();   // Kabar Desa: ikon 📰 + angka di header, dibuka sebagai panel
   }
 
-  window.KSHarian = { kabar: kabar, penulis: penulis, promo: promo, menuBaru: menuBaru, absen: absen, tombolIkuti: tombolIkuti, siap: siap, rpc: rpc, sesi: sesi };
+  window.KSHarian = { kabar: kabar, bukaKabar: bukaPanelKabar, tombolKabar: tombolKabar, penulis: penulis, promo: promo, menuBaru: menuBaru, absen: absen, tombolIkuti: tombolIkuti, siap: siap, rpc: rpc, sesi: sesi };
 })();
