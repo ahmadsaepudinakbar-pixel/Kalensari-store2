@@ -256,6 +256,34 @@ body{background-color:#f4ebdf;background-image:none}
 @media (max-width:370px){.ly-g{grid-template-columns:1fr 1fr}.sd-bd{width:58%}}
 @media (display-mode: standalone){.topbar{display:none}.wrap{padding-top:calc(12px + env(safe-area-inset-top,0px))}}
 .sd-rw.sd-cr{border-color:#228b4e;color:#14502c;background:#f2faf5}.cr-box{background:#fff;border:1px dashed var(--line);border-radius:12px;padding:8px 12px;font-size:14px}.cr-l{display:flex;justify-content:space-between;padding:4px 0}.cr-l.cr-t{border-top:1px solid var(--line);margin-top:4px;padding-top:6px}
+
+/* ===== Kartu pesanan aktif v2 (rapi): kepala ringkas, rute bernomor, 1 tombol utama + menu ⋯ ===== */
+.km.k2{padding:0;overflow:hidden;border-left-width:5px}
+.k2-h{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #f1e6dd}
+.k2-h .km-ic{width:38px;height:38px;font-size:18px;flex:none}
+.k2-ht{flex:1;min-width:0}.k2-ht b{display:block;font-size:17px;color:#2a1a0e;letter-spacing:.2px}
+.k2-ht small{display:block;font-size:12.5px;color:#7a6455;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k2-hr{text-align:right;flex:none}.k2-hr b{display:block;font-size:16px;color:#14502c;margin-bottom:3px}
+.k2-hr .km-st{font-size:11.5px;padding:3px 9px}
+.k2-rute{padding:12px 14px 2px}
+.k2-s{display:flex;gap:10px;align-items:flex-start;position:relative;padding-bottom:12px}
+.k2-s:not(:last-child)::before{content:"";position:absolute;left:11px;top:26px;bottom:2px;width:2px;background:#d8e8dc}
+.k2-n{flex:none;width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid #228b4e;color:#228b4e;font-size:12px;font-weight:800;display:grid;place-items:center;position:relative;z-index:1}
+.k2-s.aktif .k2-n{background:#228b4e;color:#fff}.k2-s.beres .k2-n{background:#e6efe8;border-color:#b9d3c0;color:#5c8a6a}
+.k2-t{flex:1;min-width:0}.k2-t small{display:block;font-size:11.5px;color:#8a7466}
+.k2-t b{display:block;font-size:15px;color:#2a1a0e;line-height:1.3}.k2-s.beres .k2-t b{color:#7a8a7e;text-decoration:line-through}
+.k2-t p{margin:2px 0 0!important;font-size:13px!important;color:#5c4638!important;line-height:1.35}
+.k2-kon{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.k2-pil{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:999px;background:#e9f6ed;color:#14502c!important;font-size:13px;font-weight:800;text-decoration:none;border:0;font-family:inherit}
+.k2-s .mini.k2-arah,.k2-arah{flex:none;margin:0;padding:6px 11px;border-radius:999px;border:1.5px solid #b9e0c4;background:#fff;color:#14502c;font-size:13px;font-weight:800;white-space:nowrap;text-decoration:none;cursor:pointer}
+.k2-isi{padding:0 14px}.k2-isi .km-r{margin:4px 0}
+.k2-aksi{display:flex;gap:8px;align-items:stretch;padding:10px 14px 14px}
+.k2-aksi .km-btn{margin:0;flex:1}
+.k2-lain{flex:none;width:52px;border-radius:16px;border:1.5px solid #e3d2c0;background:#fffaf2;font-size:22px;font-weight:900;color:#5b2c12;cursor:pointer;line-height:1}
+.k2-menu button,.k2-menu .mini{display:flex;align-items:center;gap:10px;width:100%;margin:0 0 8px;padding:14px;border-radius:14px;border:1px solid #eadfd8;background:#fff;font:inherit;font-size:15.5px;font-weight:700;color:#2a1a0e;text-align:left;cursor:pointer}
+.k2-menu .bh{color:#1d4f91}.k2-menu .mr{color:#a32d2d;background:#fff4f2;border-color:#f3c9c1}
+.k2-cod{display:flex;gap:10px;align-items:flex-start;margin:4px 0 6px;padding:9px 11px;border-radius:12px;background:#fff8e3;border:1px solid #f3dfa5}
+.k2-cod>span{font-size:18px;line-height:1.2}.k2-cod b{display:block;font-size:14px;color:#2a1a0e}.k2-cod small{display:block;font-size:12px;color:#6b5546;line-height:1.35;margin-top:2px}
 </style>
 </head>
 <body>
@@ -903,21 +931,13 @@ function cardOffer(o, end){
 }
 // COD: kurir membayar (menalangi) uang barang ke tiap toko saat mengambil; toko menekan "Uang barang sudah diterima".
 function bayarTokoHtml(o){
+  // COD (aturan sekarang): kurir TIDAK membayar dulu ke toko. Cukup tagih ke pembeli; setelah selesai saldo kurir dipotong harga produk + potongan ongkir.
   if(!/^cod/i.test(String(o.payment || "").trim())) return "";
-  if(codBaru(o)){
-    const br = barangOf(o), mnsT = BIAYA.aktif && SALDO !== null && SALDO + KREDIT - br < 0;
-    return `<div class="km-cod"><span class="km-cod-ic">💵</span><div><b class="km-cod-t">Pesanan COD</b>`
-      + `<p class="km-cod-r"><span>Tidak perlu membayar ke toko. Setelah selesai, Kredit (bila ada) lalu saldo Anda dipotong harga produk <b>${fmtRp(br)}</b> + potongan ongkir.</span></p>`
-      + (mnsT ? `<p class="km-cod-r" style="color:#a32d2d"><span>⚠️ Saldo Anda akan minus. Selama minus Anda tidak bisa menerima COD lagi; isi saldo agar kembali plus.</span></p>` : "")
-      + `<p class="km-cod-tg">Tagih ke pembeli: <b>${fmtRp(o.total)}</b></p></div></div>`;
-  }
-  let it = o.items; if(typeof it === "string"){ try{ it = JSON.parse(it); }catch(e){ it = []; } }
-  const m = new Map(); (Array.isArray(it) ? it : []).forEach(p => { const n = String(p.seller || "Toko").trim(), k = n.toLowerCase(); if(!m.has(k)) m.set(k, {n, v:0}); m.get(k).v += (Number(p.sale) || Number(p.price) || 0) * (Number(p.qty) || 1); });
-  if(!m.size) return "";
-  const ut = o.uang_toko && typeof o.uang_toko === "object" ? o.uang_toko : {};
-  return `<div class="km-cod"><span class="km-cod-ic">💵</span><div><b class="km-cod-t">Bayar dulu ke toko (COD)</b>`
-    + [...m.entries()].map(([k, x]) => `<p class="km-cod-r"><span>${esc(x.n)} • <b>${fmtRp(x.v)}</b></span><span class="${ut[k] ? "ok" : "tg"}">${ut[k] ? "✅ Diterima toko" : "⏳ Belum dikonfirmasi"}</span></p>`).join("")
-    + `<p class="km-cod-tg">Tagih ke pembeli: <b>${fmtRp(o.total)}</b></p></div></div>`;
+  const br = barangOf(o), mnsT = BIAYA.aktif && SALDO !== null && SALDO + KREDIT - br < 0;
+  return `<div class="k2-cod"><span>💵</span><div><b>COD · tagih ke pembeli ${fmtRp(o.total)}</b>`
+    + `<small>Tidak perlu bayar ke toko. Setelah selesai, saldo dipotong harga produk ${fmtRp(br)} + potongan ongkir.</small>`
+    + (mnsT ? `<small style="color:#a32d2d">⚠️ Saldo Anda akan minus; selama minus Anda tidak bisa menerima COD.</small>` : "")
+    + `</div></div>`;
 }
 function cardMine(o){ const h = cardMine0(o); return o.status === "dikirim" ? h.replace(/<\/div>\s*$/, lacakInd() + "</div>") : h; }
 function cardMine0(o){
@@ -933,18 +953,58 @@ function cardMine0(o){
   if(tr){
     return `<div class="card km">${kepala}${transBody(o, true)}${tombol}</div>`;
   }
-  return `<div class="card km">${kepala}`
-    + `<p class="km-r"><i>📍</i><span>${esc(cleanMapNote(o.address || "-"))}</span></p><div class="map-actions">${mapLinks(o)}</div>`
-    + `<p class="km-r"><i>📦</i><span>${itemsText(o)}</span></p>`
-    + `<div class="km-tot"><span>$</span><b>Total ${fmtRp(o.total)}</b><small>• ${esc(o.payment || "")}</small></div>`
-    + (cleanOrderNote(o.note) ? `<p class="km-r"><i>📝</i><span>${esc(cleanOrderNote(o.note))}</span></p>` : "")
-    + bayarTokoHtml(o)
-    + (tambahOngkir(o) ? `<p class="km-plus">➕ Tagih juga ongkir jarak <b>${fmtRp(tambahOngkir(o))}</b> (dari nota toko yang tutup) • total nota ini <b>${fmtRp((Number(o.total) || 0) + tambahOngkir(o))}</b></p>` : "")
-    + tombol
-    + (o.status === "dikirim" ? `<button class="km-btn r" type="button" data-act="gagal" data-code="${esc(o.order_code)}"><span>❌</span>Gagal antar</button>` : "")
-    + (o.status === "diproses" ? `<button class="km-btn r" type="button" data-act="tutup" data-code="${esc(o.order_code)}"><span>🚫</span>Toko tutup / tidak bisa diambil</button>` : "")
-    + `</div>`;
+  return cardToko2(o, num, next);
 }
+// Kartu pesanan toko v2: kepala ringkas • rute bernomor (ambil di toko → antar ke pembeli) • 1 tombol utama • menu ⋯
+const K2_MENU = {};
+function cardToko2(o, num, next){
+  const code = esc(o.order_code), dikirim = o.status === "dikirim";
+  const isi = itemsText(o).replace(/<[^>]+>/g, "");
+  const kepala = `<div class="k2-h"><span class="km-ic">🛍️</span><div class="k2-ht"><b>${code}</b><small>${esc(isi)}${o.payment ? " · " + esc(o.payment) : ""}</small></div>`
+    + `<div class="k2-hr"><b>${fmtRp(o.total)}</b><span class="km-st s-${esc(o.status)}">${dikirim ? "🛵" : "🕑"} ${esc(SL[o.status] || o.status)}</span></div></div>`;
+  // titik pembeli & toko (sama dengan mapLinks)
+  const loc = extractMapLocation(o.note) || extractMapLocation(o.address);
+  const alamat = cleanMapNote(o.address || "-");
+  const pembeli = loc ? {nama:o.customer_name || "Pembeli", e:"🏠", lat:loc.lat, lng:loc.lng, ket:alamat, tel:num, peran:"pembeli"} : null;
+  const toko = tokoUrut(o);
+  const stTok = toko.map(t => t.loc ? {nama:t.nama, e:"🏪", lat:t.loc.lat, lng:t.loc.lng, ket:"Ambil pesanan", tel:t.loc.wa || "", peran:"toko"} : null);
+  const langkah = toko.map((t, k) => `<div class="k2-s ${dikirim ? "beres" : k === 0 ? "aktif" : ""}"><span class="k2-n">${dikirim ? "✓" : k + 1}</span>`
+      + `<div class="k2-t"><small>Ambil di</small><b>${esc(t.nama)}</b>${!t.loc && !dikirim ? `<p>Lokasi toko belum diatur penjual</p>` : ""}</div>`
+      + (!dikirim && stTok[k] ? navBtn("🧭 Arah", "k2-arah", o.order_code, [stTok[k]]) : "") + `</div>`).join("")
+    + `<div class="k2-s ${dikirim || !toko.length ? "aktif" : ""}"><span class="k2-n">${toko.length + 1}</span>`
+      + `<div class="k2-t"><small>Antar ke</small><b>${esc(o.customer_name || "Pembeli")}</b><p>${esc(alamat)}</p>`
+      + `<div class="k2-kon"><a class="k2-pil" href="tel:+${esc(num)}">📞 Telepon</a><a class="k2-pil" target="_blank" rel="noopener" href="https://wa.me/${esc(num)}">💬 WhatsApp</a></div></div>`
+      + (pembeli ? navBtn("🧭 Arah", "k2-arah", o.order_code, [pembeli])
+        : alamat && alamat !== "-" ? `<a class="k2-arah" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(alamat)}">📍 Cari</a>` : "")
+      + `</div>`;
+  const tambahan = (cleanOrderNote(o.note) ? `<p class="km-r"><i>📝</i><span>${esc(cleanOrderNote(o.note))}</span></p>` : "")
+    + bayarTokoHtml(o)
+    + (tambahOngkir(o) ? `<p class="km-plus">➕ Tagih juga ongkir jarak <b>${fmtRp(tambahOngkir(o))}</b> (dari nota toko yang tutup) • total nota ini <b>${fmtRp((Number(o.total) || 0) + tambahOngkir(o))}</b></p>` : "");
+  // isi menu ⋯ (tombol aslinya disembunyikan di kartu supaya tetap memakai penangan klik yang sama)
+  const ada = stTok.filter(Boolean);
+  const rute = !dikirim && ada.length && pembeli ? navBtn("🗺️ Rute lengkap (semua toko → pembeli)", "", o.order_code, [...ada, pembeli]) : "";
+  const tersembunyi = (!dikirim ? `<button type="button" data-act="lepas" data-code="${code}">x</button><button type="button" data-act="tutup" data-code="${code}">x</button>` : `<button type="button" data-act="gagal" data-code="${code}">x</button>`);
+  K2_MENU[o.order_code] = {rute, dikirim};
+  return `<div class="card km k2">${kepala}<div class="k2-rute">${langkah}</div>`
+    + (tambahan ? `<div class="k2-isi">${tambahan}</div>` : "")
+    + `<div class="k2-aksi"><button class="km-btn w" type="button" data-act="status" data-code="${code}" data-status="${next[0]}"><span>${next[2]}</span>${next[1].replace(/^\S+\s(?=[A-Z])/, "")}<em>›</em></button>`
+    + `<button class="k2-lain" type="button" data-k2lain="${code}" aria-label="Pilihan lainnya">⋯</button></div>`
+    + `<div hidden class="k2-sem">${tersembunyi}</div></div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-k2lain]"); if(!b) return;
+  const code = b.dataset.k2lain, m = K2_MENU[code] || {};
+  const kartu = b.closest(".k2"), klik = act => { const x = kartu && kartu.querySelector(`.k2-sem [data-act="${act}"]`); if(x) x.click(); };
+  const ov = lembar(`<h3 style="margin:0 0 12px;color:var(--brown)">Pesanan ${esc(code)}</h3><div class="k2-menu">`
+    + (m.rute || "")
+    + (m.dikirim ? `<button type="button" class="mr" data-k2="gagal">❌ Gagal antar</button>`
+                 : `<button type="button" class="bh" data-k2="lepas">↩️ Lepas pesanan</button><button type="button" class="mr" data-k2="tutup">🚫 Toko tutup / tidak bisa diambil</button>`)
+    + `<button type="button" data-k2="tutupmenu" style="justify-content:center;color:#7a6455">Kembali</button></div>`);
+  ov.addEventListener("click", ev => {
+    const t = ev.target.closest("[data-k2],[data-nav]"); if(!t) return;
+    ov.remove(); if(t.dataset.k2 && t.dataset.k2 !== "tutupmenu") klik(t.dataset.k2);
+  });
+});
 // ===== TOKO BELUM MENJAWAB / TOKO TUTUP =====
 // Batas toko menjawab = 15 menit sejak dibayar (QRIS) / dibuat (COD). Nota yang lewat batas dibatalkan otomatis.
 const BATAS_TOKO_MS = 15 * 60000;
