@@ -587,11 +587,35 @@ function cocokWaktu(p,w){
   if(k)return KS_WAKTU[k]===w?1:0;
   return w.re.test(t)?1:0;
 }
+// ===== BARIS INFO RINGKAS: satu kotak dibagi tiga (menu waktu | toko terdekat | cuaca) =====
+// Bagian yang tidak aktif disembunyikan; sisanya melebar mengisi baris. Ketuk bagian untuk keterangan lengkap.
+function infoSel(id){
+  const grid=document.getElementById("productGrid");if(!grid)return null;
+  let box=document.getElementById("ksInfo3");
+  if(!box){
+    if(!document.getElementById("ksInfo3Css")){const st=document.createElement("style");st.id="ksInfo3Css";st.textContent=
+      ".ks-i3{display:flex;align-items:stretch;background:#fff;border:1px solid #eadfd8;border-radius:12px;margin:0 0 10px;overflow:hidden}"+
+      ".ks-i3:not(:has(>.ks-i3c:not([hidden]))){display:none}"+
+      ".ks-i3c{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 6px;border:0;background:none;font:inherit;color:#2e201a;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}"+
+      ".ks-i3c[hidden]{display:none}.ks-i3c:not([hidden])~.ks-i3c:not([hidden]){border-left:1px solid #eadfd8}"+
+      ".ks-i3c:active{background:#fbf5ef}.ks-i3c>i{font-style:normal;font-size:15px;line-height:1;flex:none}"+
+      ".ks-i3c>span{min-width:0;line-height:1.15}.ks-i3c b{display:block;font-size:11.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"+
+      ".ks-i3c small{display:block;font-size:10.5px;color:#8a7466;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"+
+      ".ks-i3c small.ok{color:#228b4e;font-weight:800}"+
+      "@media(max-width:360px){.ks-i3c{gap:4px;padding:5px 4px}.ks-i3c>i{font-size:14px}.ks-i3c b{font-size:11px}.ks-i3c small{font-size:10px}}";
+      document.head.appendChild(st);}
+    box=document.createElement("div");box.id="ksInfo3";box.className="ks-i3";
+    box.innerHTML='<button type="button" class="ks-i3c" id="waktuBar" hidden></button><button type="button" class="ks-i3c" id="dekatBar" hidden></button><button type="button" class="ks-i3c" id="cuacaBar" hidden></button>';
+    grid.insertAdjacentElement("beforebegin",box);
+  }
+  return document.getElementById(id);
+}
 function tampilWaktuBar(w,jml){
-  let bar=document.getElementById("waktuBar");
-  if(!w||!jml){if(bar)bar.hidden=true;return;}
-  if(!bar){const grid=document.getElementById("productGrid");if(!grid)return;bar=document.createElement("div");bar.id="waktuBar";bar.className="waktu-bar";grid.insertAdjacentElement("beforebegin",bar);}
-  bar.hidden=false;bar.innerHTML=`<span>${w.ik}</span><div><b>Cocok untuk ${w.nama} ini</b><small>${jml} menu pilihan ${w.nama} ada di paling atas • ${w.aj}</small></div>`;
+  if(!w||!jml){const b=document.getElementById("waktuBar");if(b)b.hidden=true;return;}
+  const bar=infoSel("waktuBar");if(!bar)return;
+  const ket=`Cocok untuk ${w.nama} ini: ${jml} menu pilihan ${w.nama} ada di paling atas • ${w.aj}`;
+  bar.hidden=false;bar.title=ket;bar.onclick=()=>showToast(`${w.ik} ${ket}`);
+  bar.innerHTML=`<i>${w.ik}</i><span><b>${w.nama.charAt(0).toUpperCase()+w.nama.slice(1)}</b><small>${jml} menu</small></span>`;
 }
 // ===== TOKO TERDEKAT DULU =====
 // Urutan akhir menu: toko yang paling dekat dengan pembeli naik ke atas per "lapis jarak" (<=1, <=2, <=3, <=5 km, lebih jauh, toko tanpa titik).
@@ -622,14 +646,15 @@ function jarakTokoProduk(p){
 }
 function lapisJarak(p){const k=jarakTokoProduk(p);if(k===null)return KS_DEKAT_KM.length+1;const i=KS_DEKAT_KM.findIndex(x=>k<=x);return i<0?KS_DEKAT_KM.length:i;}
 function tampilDekatBar(aktif){
-  let bar=document.getElementById("dekatBar");
   const perlu=aktif&&(KS_LOK||KS_IZIN!=="denied");
-  if(!perlu){if(bar)bar.hidden=true;return;}
-  if(!bar){const grid=document.getElementById("productGrid");if(!grid)return;bar=document.createElement("div");bar.id="dekatBar";bar.className="dekat-bar";grid.insertAdjacentElement("beforebegin",bar);}
-  bar.hidden=false;
+  if(!perlu){const b=document.getElementById("dekatBar");if(b)b.hidden=true;return;}
+  const bar=infoSel("dekatBar");if(!bar)return;
+  bar.hidden=false;bar.onclick=()=>mintaLokasiBeli(false);
+  bar.title=KS_LOK?`Toko terdekat tampil lebih dulu, menurut ${KS_LOK.src==="gps"?"lokasi Anda sekarang":"alamat utama akun Anda"}. Ketuk untuk perbarui lokasi.`
+    :"Izinkan lokasi agar menu dari toko dekat Anda muncul paling atas";
   bar.innerHTML=KS_LOK
-    ?`<span>📍</span><div><b>Toko terdekat tampil lebih dulu</b><small>Menurut ${KS_LOK.src==="gps"?"lokasi Anda sekarang":"alamat utama akun Anda"}</small></div><button type="button" onclick="mintaLokasiBeli(false)">Perbarui</button>`
-    :`<span>📍</span><div><b>Lihat toko terdekat dulu</b><small>Izinkan lokasi agar menu dari toko dekat Anda muncul paling atas</small></div><button type="button" onclick="mintaLokasiBeli(false)">Izinkan</button>`;
+    ?`<i>📍</i><span><b>Terdekat</b><small class="ok">Perbarui</small></span>`
+    :`<i>📍</i><span><b>Toko dekat</b><small class="ok">Izinkan</small></span>`;
 }
 function renderProducts() {
   const q=document.getElementById("searchInput").value.toLowerCase().trim();
@@ -1829,15 +1854,6 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
   const m=document.createElement("div");m.className="ks-menu";m.setAttribute("role","menu");
   m.innerHTML=`<a role="menuitem" href="pasar.html" style="background:#fff6ec;color:#5b2e1a;margin-bottom:4px">🔁 Lapak Barter <span style="margin-left:auto;background:#faeeda;color:#633806;font-size:11px;font-weight:800;padding:2px 7px;border-radius:8px">Baru</span></a><a role="menuitem" href="akun-pembeli.html"><svg width="30" height="30" viewBox="0 0 40 40" aria-hidden="true" style="flex:none;vertical-align:middle"><circle cx="20" cy="20" r="20" fill="#FFE27A"/><path d="M5 34c1-6 5-9 9-9s8 3 9 9z" fill="#4FC3A1"/><path d="M17 34c1-7 5-10 9-10s8 3 9 10z" fill="#FF8A5C"/><path d="M11 36c1-6 5-9 9-9s8 3 9 9z" fill="#5AA9F0"/><circle cx="12" cy="19" r="5" fill="#FFD3A8" stroke="#7a3e20" stroke-width="1"/><circle cx="28" cy="18" r="5.5" fill="#F7C39A" stroke="#7a3e20" stroke-width="1"/><circle cx="20" cy="22" r="5.5" fill="#FFDDB8" stroke="#7a3e20" stroke-width="1"/><path d="M17.8 23.5q2.2 2 4.4 0M9.8 20.3q2.2 1.8 4.4 0M25.8 19.5q2.2 1.8 4.4 0" stroke="#7a3e20" stroke-width="1.1" fill="none" stroke-linecap="round"/><circle cx="18.3" cy="21" r=".8" fill="#5b2e1a"/><circle cx="21.7" cy="21" r=".8" fill="#5b2e1a"/><circle cx="10.6" cy="18" r=".7" fill="#5b2e1a"/><circle cx="13.4" cy="18" r=".7" fill="#5b2e1a"/><circle cx="26.6" cy="17.2" r=".7" fill="#5b2e1a"/><circle cx="29.4" cy="17.2" r=".7" fill="#5b2e1a"/><path d="M14.5 17q5.5-6 11 0" fill="#5b2e1a" opacity=".85"/></svg> Warga Desa</a><a role="menuitem" href="penjual.html">🏪 Penjual</a><a role="menuitem" href="akun-jasa.html">🤝 Penyedia Jasa</a><a role="menuitem" href="akun-kurir.html">🛵 Kurir</a>`;
   document.body.appendChild(m);
-  // Mode Desktop / Seluler (hanya di layar HP): tampilan situs dilebarkan seperti di komputer. Pilihan diingat di HP ini.
-  if(screen.width<900){
-    const dk=(()=>{try{return localStorage.getItem("kalensari_desktop")==="1"}catch(e){return false}})();
-    const sep=document.createElement("div");sep.style.cssText="height:1px;background:#eadfd6;margin:4px 8px";
-    const b=document.createElement("button");b.type="button";b.setAttribute("role","menuitem");b.dataset.modeDesktop="1";
-    b.innerHTML=dk?"📱 Mode Seluler":"🖥️ Mode Desktop";
-    b.onclick=()=>{try{localStorage.setItem("kalensari_desktop",dk?"0":"1")}catch(e){}location.reload();};
-    m.appendChild(sep);m.appendChild(b);
-  }
   const close=()=>{m.classList.remove("open");btn.setAttribute("aria-expanded","false");};
   const place=()=>{const r=btn.getBoundingClientRect();m.style.top=(r.bottom+8)+"px";m.style.left=Math.max(8,Math.min(r.left,innerWidth-m.offsetWidth-8))+"px";};
   btn.onclick=e=>{e.stopPropagation();const open=!m.classList.contains("open");if(open){m.classList.add("open");place();}else m.classList.remove("open");btn.setAttribute("aria-expanded",String(open));};
@@ -2593,11 +2609,13 @@ function cuacaTitik(){const l=Object.values(sellerLocs||{}).filter(x=>x&&Number.
 function cuacaTeks(kode){if([95,96,99].includes(kode))return["⛈️","hujan petir"];if((kode>=51&&kode<=67)||(kode>=80&&kode<=82))return["🌧️","hujan"];if([45,48].includes(kode))return["🌫️","berkabut"];if(kode<=1)return["☀️","cerah"];if(kode===2)return["⛅","cerah berawan"];return["☁️","berawan"];}
 function cuacaMode(c){const hujan=(c.kode>=51&&c.kode<=67)||(c.kode>=80&&c.kode<=82)||c.kode>=95;return hujan||c.suhu<=26?"hujan":c.suhu>=30?"panas":"biasa";}
 function tampilCuaca(){
-  const grid=document.getElementById("productGrid");if(!grid||!KS_CUACA)return;
-  let bar=document.getElementById("cuacaBar");if(!bar){bar=document.createElement("div");bar.id="cuacaBar";grid.insertAdjacentElement("beforebegin",bar);}
+  if(!KS_CUACA)return;
+  const bar=infoSel("cuacaBar");if(!bar)return;
   const c=KS_CUACA,[ik,ket]=cuacaTeks(c.kode),malam=!c.siang&&c.kode<=1?"🌙":ik;
   const ajak=c.mode==="panas"?"yang segar-segar dulu, yuk! 🧊":c.mode==="hujan"?"yang hangat-hangat dulu, yuk! 🍜":"selamat memilih menu 😊";
-  bar.className="cuaca-bar "+c.mode;bar.innerHTML=`<span class="cuaca-ik">${malam}</span><span><b>${Math.round(c.suhu)}°C, ${ket}</b> di Kalensari — ${ajak}</span>`;
+  const lengkap=`${Math.round(c.suhu)}°C, ${ket} di Kalensari — ${ajak}`;
+  bar.hidden=false;bar.title=lengkap;bar.onclick=()=>showToast(`${malam} ${lengkap}`);
+  bar.innerHTML=`<i>${malam}</i><span><b>${Math.round(c.suhu)}°C</b><small>${ket}</small></span>`;
 }
 async function muatCuaca(){
   try{const lama=JSON.parse(localStorage.getItem("kalensari_cuaca")||"null");if(lama&&Date.now()-lama.t<CUACA_SIMPAN){KS_CUACA=lama;tampilCuaca();renderProducts();return;}}catch(e){}
