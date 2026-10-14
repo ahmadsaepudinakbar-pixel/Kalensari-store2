@@ -318,6 +318,15 @@ let NB=null,NBC=null;let LAST_LOAD=0;
    Di Beranda: tekan sekali lagi (dalam 2 detik) untuk keluar. */
 let KB_ON=false,KB_KELUAR=0;
 function pasangKembali(){if(KB_ON)return;KB_ON=true;try{history.pushState({ksApp:1},"")}catch(e){}
+  /* tombol kembali ANDROID (APK): true = ditangani di halaman, false = boleh keluar aplikasi */
+  window.KSBack=()=>{try{if(window.KSKamera&&KSKamera.tutup&&KSKamera.tutup())return true}catch(e){}
+    const ov=[...document.querySelectorAll(".cr-ov,.ks-lembar,.ksc-ov")].pop();if(ov){ov.remove();return true}
+    if(!me||$("app").hidden)return false;
+    const dr=$("dr");
+    if(dr&&!dr.hidden){dr.hidden=true;return true}
+    if(view!=="home"){go(view==="detail"?"orders":view==="form"?(arg&&P.some(p=>String(p.id)===String(arg))&&KB_DARI==="home"?"home":"prods"):"home");return true}
+    if(Date.now()-KB_KELUAR<2000)return false;
+    KB_KELUAR=Date.now();toast("Tekan kembali sekali lagi untuk keluar");return true};
   addEventListener("popstate",()=>{if(!me||$("app").hidden)return;
     const dr=$("dr");
     if(dr&&!dr.hidden){dr.hidden=true}

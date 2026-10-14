@@ -32,7 +32,7 @@
       + ".ksk-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s}";
     document.head.appendChild(s);
   }
-  var buka = false, abaikan = 0;
+  var buka = false, abaikan = 0, penutup = null;
   function sibuk() { if (buka) return true; if (abaikan && Date.now() - abaikan < 1500) { abaikan = 0; return true; } abaikan = 0; return false; }
   function bisa() { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.isSecureContext); }
 
@@ -55,13 +55,13 @@
     ov.innerHTML = '<div class="ksk-top"><button type="button" class="ksk-x" aria-label="Tutup kamera">✕</button><b>' + (opt.judul || "Ambil foto") + '</b></div>'
       + '<div class="ksk-v"><video playsinline muted autoplay></video><img alt="" hidden><div class="ksk-msg">Membuka kamera…</div><div class="ksk-flash"></div></div>'
       + '<div class="ksk-bar"></div>';
-    document.body.appendChild(ov); buka = true;
+    document.body.appendChild(ov); buka = true; penutup = function () { tutup(); };
     var q = function (s) { return ov.querySelector(s); };
     var video = q("video"), img = q("img"), msg = q(".ksk-msg"), bar = q(".ksk-bar"), stream = null, depan = false, hasil = null, selesai = false;
     var lamaOvf = document.body.style.overflow; document.body.style.overflow = "hidden";
 
     function stop() { try { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} stream = null; }
-    function tutup() { if (selesai) return; selesai = true; buka = false; stop(); try { if (img.src) URL.revokeObjectURL(img.src); } catch (e) {} window.removeEventListener("popstate", onBack); document.body.style.overflow = lamaOvf; ov.remove(); }
+    function tutup() { if (selesai) return; selesai = true; buka = false; penutup = null; stop(); try { if (img.src) URL.revokeObjectURL(img.src); } catch (e) {} window.removeEventListener("popstate", onBack); document.body.style.overflow = lamaOvf; ov.remove(); }
     function onBack() { tutup(); }
     // tombol kembali HP menutup kamera saja
     try { history.pushState({ kskam: 1 }, ""); window.addEventListener("popstate", onBack); } catch (e) {}
@@ -112,5 +112,5 @@
     mulai();
   }
 
-  window.KSKamera = { ambil: ambil, bisa: bisa, sibuk: sibuk };
+  window.KSKamera = { ambil: ambil, bisa: bisa, sibuk: sibuk, tutup: function () { if (!penutup) return false; penutup(); return true; } };
 })();

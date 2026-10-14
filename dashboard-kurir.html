@@ -689,7 +689,25 @@ function navBtn(label, cls, judul, stops){
 function petaUI(){ const m = window.KSNav ? KSNav.mode() : "dalam"; document.querySelectorAll('input[name="petaMode"]').forEach(r => r.checked = r.value === m); const n = $("petaNote"); if(n) n.textContent = m === "google" ? "Google Maps (keluar aplikasi)" : "Peta Kalensari (di dalam aplikasi)"; }
 document.addEventListener("change", e => { if(e.target.name !== "petaMode" || !window.KSNav) return; KSNav.setMode(e.target.value); petaUI(); toast(e.target.value === "google" ? "📍 Navigasi memakai Google Maps" : "🗺️ Navigasi memakai Peta Kalensari"); });
 setTimeout(petaUI, 0);
-document.addEventListener("click", e => { const b = e.target.closest("[data-nav]"); if(!b) return; const n = NAVR[b.dataset.nav]; if(n && window.KSNav) KSNav.buka(n); });
+document.addEventListener("click", e => { const b = e.target.closest("[data-nav]"); if(!b) return; const n = NAVR[b.dataset.nav]; if(n && window.KSNav) KSNav.buka({...n, onLanjut:(a, c) => navLanjut(n.judul, a, c), onSampai:s => navSampai(n.judul, s)}); });
+/* Tombol di layar navigasi:
+   "Tujuan selanjutnya" saat meninggalkan toko terakhir / titik jemput -> pesanan ditandai "dikirim" (barang sudah diambil);
+   "Selesai" di tujuan terakhir (pembeli / penerima / penumpang) -> buka serah terima. */
+const navNota = code => { const o = ORD[code]; if(!o) return []; return [o].concat(anggota(o).filter(x => x.order_code !== code && ["diproses", "dikirim"].includes(x.status) && ((STATES[x.order_code] || {}).acc || {}).id === me.id)); };
+async function navAmbil(code){   // tandai semua nota antaran ini "dikirim" (sekali jalan, diam-diam)
+  for(const x of navNota(code)) if(x.status === "diproses"){ try{ await setStatus(x.order_code, "dikirim"); }catch(e){} }
+}
+function navLanjut(code, dari, ke){
+  if(!ORD[code] || !dari || !ke) return;
+  const lepasToko = dari.peran === "toko" && ke.peran !== "toko", lepasJemput = dari.peran === "pemesan";
+  if(lepasToko || lepasJemput) navAmbil(code);
+}
+async function navSampai(code, akhir){
+  const o = ORD[code]; if(!o || !akhir || akhir.peran === "toko") return;
+  if(o.status === "diproses") await navAmbil(code);
+  const tr = transOf(o);
+  setTimeout(() => { if(window.ksTab) ksTab("pesanan"); (tr && tr.layanan === "paket" ? fotoPaket : serahTerima)(code); }, 350);
+}
 function mapLinks(o){
   const loc=extractMapLocation(o.note)||extractMapLocation(o.address);
   if(!loc){
@@ -1141,7 +1159,7 @@ function bayarTokoHtml(o){
 function cardMine(o){ const h = cardMine0(o); return o.status === "dikirim" ? h.replace(/<\/div>\s*$/, lacakInd() + "</div>") : h; }
 function cardMine0(o){
   const tr = transOf(o), num = o.customer_phone_normalized || normPhone(o.customer_phone);
-  const next = o.status === "diproses" ? ["dikirim", tr ? (LAYK[tr.layanan] || LAYK.ojek).jalan : "Tandai sedang dikirim", "🛵"] : ["selesai", tr && tr.layanan === "paket" ? "Foto bukti paket diterima" : tr ? "Sudah sampai tujuan" : "Tandai selesai", tr && tr.layanan === "paket" ? "📷" : "✅"];
+  const next = o.status === "diproses" ? ["dikirim", tr ? (LAYK[tr.layanan] || LAYK.ojek).jalan : "Tujuan selanjutnya", "➜"] : ["selesai", tr && tr.layanan === "paket" ? "Foto bukti paket diterima" : tr ? "Sudah sampai tujuan" : "Tandai selesai", tr && tr.layanan === "paket" ? "📷" : "✅"];
   const stIk = {diproses:"🕑", dikirim:"🛵", menunggu:"⏳", baru:"⏳"}[o.status] || "🕑";
   const kepala = `<div class="km-h"><span class="km-ic">${tr ? (tr.layanan === "paket" ? "📦" : "🛵") : "🛍️"}</span><b>${esc(o.order_code)}</b><span class="km-st s-${esc(o.status)}">${stIk} ${esc(SL[o.status] || o.status)}</span></div>`
     + `<p class="km-r"><i>👤</i><span>${esc(o.customer_name || "Pembeli")}${o.customer_phone ? " • " + esc(o.customer_phone) : ""}</span></p>`;
@@ -1769,7 +1787,7 @@ function gagalAntar(code){
     <img id="gaPrev" alt="" style="display:none;width:100%;border-radius:12px;margin-top:8px">
     <p id="gaErr" class="hint" style="color:#c0392b;margin:8px 0 0"></p>
     <button class="mini merah" id="gaKirim" type="button" style="width:100%;padding:13px;font-size:15px;margin:12px 0 0">Laporkan gagal antar</button>
-    <button class="mini" id="gaBatal" type="button" style="width:100%;margin-top:10px">Batal</button>`);
+    <button class="mini" id="gaBatal" type="button" data-tutup style="width:100%;margin-top:10px">Batal</button>`);
   const tutup = () => { try{ if(watch != null) navigator.geolocation.clearWatch(watch); }catch(e){} ov.remove(); };
   ov.onclick = e => { if(e.target === ov) tutup(); };
   $("gaBatal").onclick = tutup;
@@ -2008,7 +2026,7 @@ function serahTerima(code){
       <input id="stKet" class="fld" maxlength="120" placeholder="${cod ? "Dititipkan ke siapa & uang dibayar oleh siapa" : "Dititipkan ke siapa / diletakkan di mana"}">
       <button class="mini g" id="stKirim" type="button" disabled style="width:100%;padding:12px;margin:0">📤 Kirim foto & selesaikan</button>
     </details>
-    <button class="mini" id="stBatal" type="button" style="width:100%;margin-top:12px">Batal</button></div>`;
+    <button class="mini" id="stBatal" type="button" data-tutup style="width:100%;margin-top:12px">Batal</button></div>`;
   document.body.appendChild(ov);
   let foto = "", sibuk = false;
   try{ localStorage.setItem("ks_buka", JSON.stringify({f:"st", code, t:Date.now()})); }catch(e){}

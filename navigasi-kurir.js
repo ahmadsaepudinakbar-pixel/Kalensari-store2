@@ -81,7 +81,7 @@
       + ".ksn-btns .ksn-tel{background:#fff;border:2px solid #b8dfc5;color:#1f2a22}.ksn-tel .ic{flex:none;width:42px;height:42px;border-radius:50%;background:#14532d;display:grid;place-items:center}"
       + ".ksn-btns .ksn-wa{background:linear-gradient(135deg,#25a35a,#167a3f);color:#fff;box-shadow:0 4px 12px rgba(22,122,63,.3)}.ksn-wa .ic{flex:none;width:42px;height:42px;display:grid;place-items:center}"
       + ".ksn-next{display:block;width:100%;margin-top:10px;border:0;border-radius:18px;padding:14px;font:inherit;font-weight:800;font-size:16px;background:#1f2a33;color:#fff;cursor:pointer}"
-      + ".ksn-next.dekat{animation:ksnD 1.2s infinite}@keyframes ksnD{50%{box-shadow:0 0 0 7px rgba(34,139,78,.3)}}"
+      + ".ksn-next.dekat{animation:ksnD 1.2s infinite}@keyframes ksnD{50%{box-shadow:0 0 0 7px rgba(29,78,216,.35)}}"
       + ".ksn-g{display:flex;align-items:center;gap:12px;margin-top:10px;padding:13px 16px;border-radius:16px;background:#eef3ee;color:#14502c;font-weight:700;font-size:15.5px;text-decoration:none}.ksn-g em{margin-left:auto;font-style:normal;font-size:20px}"
       + ".ksn-next[hidden],.ksn-btns[hidden],.ksn-ket[hidden]{display:none}"
       + ".ksn-attr{display:block;text-align:center;margin-top:6px;font-size:10.5px;color:#9aa39c}"
@@ -115,6 +115,13 @@
       + ".ksn-mi-tel,.ksn-mi-wa,.ksn-mi-up{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;border:0;cursor:pointer;text-decoration:none}"
       + ".ksn-mi-tel{background:#14532d}.ksn-mi-wa{background:#25a35a}.ksn-mi-tel svg{width:18px;height:18px}.ksn-mi-wa svg{width:24px;height:24px}"
       + ".ksn-mi-up{background:#eef3ee;color:#14502c;font-size:20px;font-weight:900;line-height:1;padding-top:6px}.ksn-mi-tel[hidden],.ksn-mi-wa[hidden]{display:none}"
+      /* 3 kotak 1 baris: jarak • perkiraan tiba • tujuan selanjutnya / selesai */
+      + ".ksn-info{display:grid;grid-template-columns:1fr 1fr 1.12fr;gap:8px}.ksn-info>div{min-width:0;gap:6px;padding:8px 8px}"
+      + ".ksn-info svg{width:22px;height:22px}.ksn-info b{font-size:16px;white-space:nowrap}.ksn-info small{font-size:11px;white-space:nowrap}.ksn-info span{min-width:0}"
+      + ".ksn-info .ksn-next{margin:0;width:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 6px;border-radius:14px;"
+      + "background:linear-gradient(135deg,#1d4ed8,#1e3a8a);color:#fff;font-size:13px;font-weight:800;line-height:1.15;text-align:center;box-shadow:0 4px 12px rgba(30,58,138,.3)}"
+      + ".ksn-info .ksn-next b{font-size:13px;white-space:normal;color:#fff}.ksn-nx-ic{font-size:19px;line-height:1}"
+      + ".ksn-info .ksn-next.akhir{background:linear-gradient(135deg,#1d4ed8,#1e3a8a);box-shadow:0 4px 12px rgba(30,58,138,.3)}"
       + ".ksn-turun{position:absolute;top:8px;right:10px;width:36px;height:36px;border-radius:50%;border:0;background:#eef3ee;color:#14502c;font-size:20px;font-weight:900;cursor:pointer;line-height:1}";
     document.head.appendChild(s);
   }
@@ -154,9 +161,9 @@
       + '<div class="ksn-mini" role="button" aria-label="Lihat detail tujuan"><span class="ksn-mi-ic"></span><div class="ksn-mi-t"><b class="ksn-mi-n"></b><small class="ksn-mi-s"></small></div>'
       + '<a class="ksn-mi-tel" href="#" aria-label="Telepon">' + IK.telp + '</a><a class="ksn-mi-wa" target="_blank" rel="noopener" href="#" aria-label="WhatsApp">' + IK.wa + '</a><button type="button" class="ksn-mi-up" aria-label="Naikkan">⌃</button></div>'
       + '<button type="button" class="ksn-turun" aria-label="Turunkan">⌄</button><p class="ksn-step"></p><h3></h3><p class="ksn-ket"></p><div class="ksn-dots"></div>'
-      + '<div class="ksn-info"><div>' + IK.route + '<span><b class="ksn-jarak">-</b><small>Jarak rute</small></span></div><div>' + IK.jam + '<span><b class="ksn-eta">-</b><small>Perkiraan tiba</small></span></div></div>'
+      + '<div class="ksn-info"><div>' + IK.route + '<span><b class="ksn-jarak">-</b><small>Jarak rute</small></span></div><div>' + IK.jam + '<span><b class="ksn-eta">-</b><small>Perkiraan tiba</small></span></div>'
+      + '<button type="button" class="ksn-next"><span class="ksn-nx-ic">➜</span><b class="ksn-nx-t">Tujuan selanjutnya</b></button></div>'
       + '<div class="ksn-btns"><a class="ksn-tel" href="#"><span class="ic">' + IK.telp + '</span><span><b>Telepon</b><small class="ksn-sub1"></small></span><em>›</em></a><a class="ksn-wa" target="_blank" rel="noopener" href="#"><span class="ic">' + IK.wa + '</span><span><b>WhatsApp</b><small class="ksn-sub2"></small></span><em>›</em></a></div>'
-      + '<button type="button" class="ksn-next"></button>'
       + '<small class="ksn-attr">Peta © OpenStreetMap • Satelit © Esri • Rute OSRM</small></div>';
     document.body.appendChild(ov);
     var q = function (s) { return ov.querySelector(s); };
@@ -233,15 +240,17 @@
       q(".ksn-btns").hidden = !nomor;
       q(".ksn-tel").href = nomor ? "tel:+" + nomor : "#"; q(".ksn-sub1").textContent = "Hubungi " + peran;
       q(".ksn-wa").href = nomor ? "https://wa.me/" + nomor : "#"; q(".ksn-sub2").textContent = "Chat " + peran;
-      q(".ksn-next").hidden = stops.length < 2;
-      q(".ksn-next").textContent = akhir ? "✅ Sudah sampai di tujuan terakhir" : "Sudah di sini, lanjut ›";
+      // kotak ke-3: "Tujuan selanjutnya" (masih ada tujuan) / "Selesai" (tujuan terakhir)
+      q(".ksn-nx-t").textContent = akhir ? (s.peran === "toko" ? "Sudah sampai" : "Selesai") : "Tujuan selanjutnya";
+      q(".ksn-nx-ic").textContent = akhir ? "✓" : "➜";
+      q(".ksn-next").classList.toggle("akhir", akhir);
       q(".ksn-jarak").textContent = "-"; q(".ksn-eta").textContent = "-";
       st.ruteT = 0; hitungRute(true);
       st.dekatLalu = false; mini(); besar(false);
     }
     q(".ksn-next").onclick = function () {
-      if (st.i < stops.length - 1) { st.i++; tampil(); }
-      else { tutup(); if (opt.onSampai) try { opt.onSampai(); } catch (e) {} }
+      if (st.i < stops.length - 1) { var dari = stops[st.i]; st.i++; tampil(); if (opt.onLanjut) try { opt.onLanjut(dari, stops[st.i], st.i); } catch (e) {} }
+      else { var ak = stops[stops.length - 1]; tutup(); if (opt.onSampai) try { opt.onSampai(ak); } catch (e) {} }
     };
 
     // ---- rute jalan (OSRM, gratis tanpa kunci) ----
@@ -287,7 +296,7 @@
         var pertama = !st.pos; st.pos = { lat: p.coords.latitude, lng: p.coords.longitude };
         if (peta) { if (!peta.hasLayer(meMk)) meMk.addTo(peta); meMk.setLatLng([st.pos.lat, st.pos.lng]); if (st.ikut) pusat([st.pos.lat, st.pos.lng], pertama ? 17 : peta.getZoom(), !pertama); }
         var dekat = jarakM(st.pos, stops[st.i]) < 60; q(".ksn-next").classList.toggle("dekat", dekat);
-        if (dekat && !st.dekatLalu && !q(".ksn-next").hidden) besar(true);   // sudah dekat: kotak naik supaya tombol "lanjut" terlihat
+        if (dekat && !st.dekatLalu) besar(true);   // sudah dekat: kotak naik supaya tombol "lanjut" terlihat
         st.dekatLalu = dekat;
         var geser = st.ruteDari ? jarakM(st.pos, st.ruteDari) : 1e9;
         if (pertama || Date.now() - st.ruteT > 30000 || geser > 150) hitungRute(pertama);
@@ -307,5 +316,5 @@
     tampil();
   }
 
-  window.KSNav = { buka: buka, tutup: tutup, sibuk: sibuk, mode: mode, setMode: setMode, urlGoogle: urlGoogle };
+  window.KSNav = { buka: buka, tutup: tutup, sibuk: sibuk, terbuka: function () { return !!aktif; }, mode: mode, setMode: setMode, urlGoogle: urlGoogle };
 })();

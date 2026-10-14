@@ -38,6 +38,20 @@
       if (ON) return; ON = true; o = o || {};
       var keluar = 0, pesan = o.pesan || tampil;
       jaga();
+      /* Dipanggil tombol kembali ANDROID (aplikasi APK, MainActivity.kt) lewat evaluateJavascript.
+         WebView sering melewati riwayat buatan halaman, jadi tombol kembali bertanya ke halaman dulu.
+         true = sudah ditangani (tetap di aplikasi), false = boleh keluar aplikasi. */
+      window.KSBack = function () {
+        try { if (window.KSKamera && KSKamera.tutup && KSKamera.tutup()) return true; } catch (x) {}
+        try { if (window.KSNav && KSNav.terbuka && KSNav.terbuka()) { KSNav.tutup(true); return true; } } catch (x) {}
+        try { if (o.lewati && o.lewati()) { history.back(); return true; } } catch (x) {}   // halaman/bingkai lain yang mengurus
+        var beres = false;
+        try { beres = !!(o.tutup && o.tutup()); } catch (x) {}
+        if (!beres) { try { beres = !!(o.pulang && o.pulang()); } catch (x) {} }
+        if (beres) return true;
+        if (Date.now() - keluar < 2000) return false;
+        keluar = Date.now(); pesan("Tekan kembali sekali lagi untuk keluar"); return true;
+      };
       addEventListener("popstate", function (e) {
         if (o.lewati && o.lewati(e)) return;
         var beres = false;
