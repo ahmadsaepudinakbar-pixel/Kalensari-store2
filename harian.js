@@ -1,6 +1,8 @@
 /* Kalensari Store • PROGRAM HARIAN (supaya pembeli rajin membuka aplikasi)
    Dipakai di index.html (toko) dan dashboard-pembeli.html.
-     KSHarian.kabar(el, {maks})       -> kotak "📰 Kabar Desa" (store_settings 'kabar_desa', ditulis admin)
+     KSHarian.kabar(el, {maks})       -> kotak "📰 Kabar Desa" (store_settings 'kabar_desa', ditulis admin & penulis kabar)
+     KSHarian.penulis(el, {onUbah})   -> kartu "✍️ Tulis Kabar Desa" di dashboard pembeli (hanya untuk akun penulis kabar;
+                                         supabase-kabar-penulis.sql: kabar_saya, kabar_tulis, kabar_hapus)
      KSHarian.promo(el)               -> banner promo ongkir jam tertentu (cashback ke saldo voucher)
      KSHarian.menuBaru(el, {diToko})  -> kabar menu baru dari toko favorit (toko yang diikuti + toko produk favorit)
      KSHarian.absen(el, {ringkas, onHadiah}) -> kartu absen harian beruntun (butuh akun pembeli)
@@ -27,7 +29,10 @@
     }
     return j;
   }
-  var sesi = function () { try { return localStorage.getItem("kalensari_sesi_pembeli") || ""; } catch (e) { return ""; } };
+  var sesi = function () {
+    try { if (window.KSPesanan && KSPesanan.sesi) { var s = KSPesanan.sesi("pembeli"); if (s) return s; } } catch (e) {}
+    try { return localStorage.getItem("kalensari_sesi_pembeli") || ""; } catch (e) { return ""; }
+  };
   var LS = function (k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } };
   var LSset = function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
   var esc = function (s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
@@ -57,6 +62,22 @@
       ".hr-kb.buka .hr-kb-t p{display:block;-webkit-line-clamp:unset}.hr-kb-t small{font-size:12px;color:#8a7466}.hr-kb-t small a{color:#7b3f1d;font-weight:700}",
       ".hr-kb img{display:none;width:100%;max-height:260px;object-fit:cover;border-radius:14px;margin:6px 0 4px}.hr-kb.buka img[src]{display:block}",
       ".hr-kb-thumb{flex:none;width:56px;height:56px;border-radius:12px;object-fit:cover;background:#f5e8d8}.hr-kb.buka .hr-kb-thumb{display:none}",
+      ".hr-kb-btn{display:inline-block;margin:6px 0 4px;padding:7px 14px;border-radius:999px;background:#7b3f1d;color:#fff!important;font-weight:800;font-size:13px;text-decoration:none}",
+      ".hr-kb-t small i{font-style:normal;color:#7b3f1d;font-weight:700}",
+      /* penulis kabar */
+      ".hr-tl .hr-h small{font-weight:700}.hr-tl>p{margin:0 0 10px;font-size:13px;color:#5c4638}",
+      ".hr-tl-row{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px dashed #ead9c6;font-size:13.5px}.hr-tl-row span{flex:1;min-width:0}",
+      ".hr-tl-row small{display:block;color:#8a7466;font-size:12px}.hr-tl-row button{flex:none;border:1px solid #e3d2c0;background:#fffaf2;border-radius:10px;padding:6px 9px;font-size:14px;cursor:pointer}",
+      ".hr-tl-baru{width:100%;border:0;border-radius:999px;padding:11px;font:inherit;font-weight:800;font-size:15px;color:#fff;background:#7b3f1d;cursor:pointer;margin-top:4px}",
+      ".hr-fm{max-height:92vh;overflow:auto;text-align:left!important;max-width:420px!important}.hr-fm h3{margin:0 0 10px!important}",
+      ".hr-fm label{display:block;margin:10px 0 0;font-size:12.5px;font-weight:700;color:#7a5a46}",
+      ".hr-fm input,.hr-fm textarea{display:block;width:100%;box-sizing:border-box;margin-top:4px;border:1px solid #e3d2c0;border-radius:12px;padding:10px 12px;font:inherit;font-size:15px;color:#3a1f10;background:#fffdf9}",
+      ".hr-fm input[hidden]{display:none!important}",
+      ".hr-fm .ik{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.hr-fm .ik button{width:auto;padding:5px 9px;font-size:20px;background:#f5e8d8;color:inherit;border-radius:10px}.hr-fm .ik button.on{outline:2px solid #7b3f1d}",
+      ".hr-fm .ft{display:flex;gap:10px;align-items:center;margin-top:6px}.hr-fm .ft img{width:72px;height:72px;object-fit:cover;border-radius:12px;background:#f5e8d8}",
+      ".hr-fm .ft label,.hr-fm .ft button{display:inline-block;width:auto;margin:0;padding:8px 12px;border-radius:10px;font-size:13px;font-weight:700;background:#f5e8d8;color:#5b2c12;cursor:pointer}",
+      ".hr-fm .aks{display:flex;gap:8px;margin-top:16px}.hr-fm .aks button{flex:1}.hr-fm .aks .bt{background:#efe4d8;color:#5b2c12}",
+      ".hr-fm small.nt{display:block;margin-top:4px;font-size:12px;color:#8a7466;font-weight:400}",
       ".hr-semua{display:block;width:100%;margin-top:8px;border:1px solid #e3d2c0;background:#fffaf2;color:#7b3f1d;border-radius:999px;padding:9px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}",
       /* promo */
       ".hr-promo{display:flex;gap:12px;align-items:center;background:linear-gradient(120deg,#fff4d6,#ffe1c4);border:1.5px solid #f2b866;border-radius:20px;padding:13px 14px;color:#5a2d0c}",
@@ -109,14 +130,16 @@
         + '<div class="hr-kb-ik">' + esc(k.ikon || "📢") + '</div><div class="hr-kb-t"><b>' + esc(k.judul) + '</b>'
         + (k.penting ? '<em class="pin">Penting</em>' : baru ? "<em>Baru</em>" : "")
         + (k.foto ? '<img alt="" data-foto="' + esc(k.id) + '">' : "")
-        + "<p>" + esc(k.isi || "") + "</p><small>" + esc(tglTampil(k.t)) + (k.sampai ? " • sampai " + esc(tglTampil(k.sampai)) : "")
-        + (link ? ' • <a href="' + esc(link) + '"' + (/^https?:/i.test(link) ? ' target="_blank" rel="noopener"' : "") + ">Selengkapnya ›</a>" : "") + "</small></div>"
+        + "<p>" + esc(k.isi || "") + "</p>"
+        + (link ? '<a class="hr-kb-btn" href="' + esc(link) + '"' + (/^https?:/i.test(link) ? ' target="_blank" rel="noopener"' : "") + ">" + esc(k.tombol || "Selengkapnya") + " ›</a><br>" : "")
+        + "<small>" + esc(tglTampil(k.t)) + (k.oleh ? " • oleh <i>" + esc(k.oleh) + "</i>" : "") + (k.sampai ? " • sampai " + esc(tglTampil(k.sampai)) : "") + "</small></div>"
         + (k.foto ? '<img class="hr-kb-thumb" alt="" data-foto="' + esc(k.id) + '">' : "") + "</article>";
     };
     el.hidden = false;
     el.innerHTML = '<section class="hr-card"><h3 class="hr-h">📰 Kabar Desa<small>' + list.length + " kabar</small></h3>"
       + list.map(item).join("")
       + (list.length > maks ? '<button type="button" class="hr-semua">Lihat semua kabar (' + list.length + ")</button>" : "") + "</section>";
+    el.dataset.kbMaks = maks;
     el.querySelectorAll(".hr-kb").forEach(function (a) { a.addEventListener("click", function (e) { if (!e.target.closest("a")) a.classList.toggle("buka"); }); });
     var bs = el.querySelector(".hr-semua");
     if (bs) bs.onclick = function () { el.querySelectorAll(".hr-kb[hidden]").forEach(function (a) { a.hidden = false; }); bs.remove(); };
@@ -130,6 +153,91 @@
     }).catch(function () {});
     LSset("kalensari_kabar_dilihat", Math.max.apply(null, [lihat].concat(list.map(function (k) { return Number(k.t) || 0; }))));
     return nBaru;
+  }
+
+  /* ---------- ✍️ PENULIS KABAR (perangkat desa / akun pilihan admin) ---------- */
+  var KB_IKON = ["📢", "📰", "🎉", "🕌", "💚", "🤲", "⚠️", "🌾", "🏥", "🎓", "⚽", "💧", "🚧"];
+  var tglIso = function (d) { return new Date(d.getTime() + 7 * 3600e3).toISOString().slice(0, 10); };
+  function kecilkanFoto(f) {
+    return new Promise(function (ok, no) {
+      var r = new FileReader(); r.onerror = no;
+      r.onload = function () {
+        var im = new Image(); im.onerror = no;
+        im.onload = function () {
+          var k = Math.min(1, 1000 / Math.max(im.width, im.height)), c = document.createElement("canvas");
+          c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+          var x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(im, 0, 0, c.width, c.height);
+          ok(c.toDataURL("image/jpeg", 0.8));
+        };
+        im.src = r.result;
+      };
+      r.readAsDataURL(f);
+    });
+  }
+  async function penulis(el, o) {
+    o = o || {}; if (!el) return; css();
+    if (!on() || !sesi()) return sembunyi(el);
+    var d; try { d = await rpc("kabar_saya", { p_sesi: sesi() }); } catch (e) { return sembunyi(el); }   // SQL belum dipasang / sesi habis
+    if (!d || !d.penulis) return sembunyi(el);
+    var hari = Number(d.hari) || 7, list = Array.isArray(d.kabar) ? d.kabar : [], h = hariIni();
+    el.hidden = false;
+    el.innerHTML = '<section class="hr-card hr-tl"><h3 class="hr-h">✍️ Tulis Kabar Desa<small>' + esc(d.ket || "Penulis kabar") + "</small></h3>"
+      + "<p>Kabar Anda langsung tampil untuk semua warga di halaman toko dan dashboard, dan hilang otomatis setelah " + hari + " hari.</p>"
+      + list.map(function (k) {
+          var habis = k.sampai && k.sampai < h;
+          return '<div class="hr-tl-row"><span><b>' + esc(k.ikon || "📢") + " " + esc(k.judul) + "</b><small>" + (habis ? "Sudah tidak tayang" : "Tayang sampai " + esc(tglTampil(k.sampai))) + "</small></span>"
+            + '<button type="button" data-ubah="' + esc(k.id) + '" aria-label="Ubah">✎</button><button type="button" data-hapus="' + esc(k.id) + '" aria-label="Hapus">🗑</button></div>';
+        }).join("")
+      + '<button type="button" class="hr-tl-baru">📢 Tulis kabar baru</button></section>';
+    var segar = function () { penulis(el, o); if (typeof o.onUbah === "function") o.onUbah(); };
+    el.querySelector(".hr-tl-baru").onclick = function () { formKabar({}, hari, segar); };
+    el.querySelectorAll("[data-ubah]").forEach(function (b) {
+      b.onclick = function () { var k = list.find(function (x) { return x.id === b.dataset.ubah; }); if (k) formKabar(k, hari, segar); };
+    });
+    el.querySelectorAll("[data-hapus]").forEach(function (b) {
+      b.onclick = async function () {
+        var k = list.find(function (x) { return x.id === b.dataset.hapus; }); if (!k || !confirm('Hapus kabar "' + k.judul + '"?')) return;
+        b.disabled = true;
+        try { await rpc("kabar_hapus", { p_sesi: sesi(), p_id: k.id }); say("Kabar dihapus"); segar(); }
+        catch (e) { b.disabled = false; say(e.message || "Gagal menghapus"); }
+      };
+    });
+  }
+  function formKabar(k, hari, selesai) {
+    var maks = tglIso(new Date(Date.now() + hari * 864e5)), min = hariIni(), foto = null;   // foto: null = tetap, "hapus", atau data:image
+    var ov = document.createElement("div"); ov.className = "hr-ov";
+    ov.innerHTML = '<div class="hr-fm"><h3>' + (k.id ? "✎ Ubah kabar" : "📢 Tulis kabar baru") + "</h3>"
+      + '<label>Ikon</label><div class="ik">' + KB_IKON.map(function (i) { return '<button type="button" data-ik="' + i + '"' + ((k.ikon || "📢") === i ? ' class="on"' : "") + ">" + i + "</button>"; }).join("") + "</div>"
+      + '<label>Judul<input id="hfJudul" maxlength="80" placeholder="mis. Kerja bakti Minggu pagi" value="' + esc(k.judul || "") + '"></label>'
+      + '<label>Isi kabar<textarea id="hfIsi" rows="5" maxlength="1500" placeholder="Tulis kabar untuk warga…">' + esc(k.isi || "") + "</textarea></label>"
+      + '<label>Foto (opsional)</label><div class="ft"><img id="hfPrev" alt=""' + (k.foto ? "" : ' style="display:none"') + '><label>📷 Pilih foto<input type="file" accept="image/*" hidden id="hfFoto"></label>'
+      + (k.foto ? '<button type="button" id="hfHapusFoto">Hapus foto</button>' : "") + "</div>"
+      + '<label>Tautan tombol (opsional)<input id="hfLink" maxlength="300" placeholder="mis. https://wa.me/62812… atau santunan.html" value="' + esc(k.link || "") + '"></label>'
+      + '<label>Tulisan di tombol<input id="hfTombol" maxlength="30" placeholder="mis. Daftar sekarang" value="' + esc(k.tombol || "") + '"><small class="nt">Tombol hanya muncul bila tautan diisi. Kosong = "Selengkapnya".</small></label>'
+      + '<label>Tampil sampai<input type="date" id="hfSampai" min="' + min + '" max="' + maks + '" value="' + esc(k.sampai && k.sampai <= maks ? k.sampai : maks) + '"><small class="nt">Paling lama ' + hari + " hari. Setelah itu kabar hilang otomatis.</small></label>"
+      + '<div class="aks"><button type="button" class="bt" id="hfBatal">Batal</button><button type="button" id="hfKirim">' + (k.id ? "💾 Simpan" : "📢 Terbitkan") + "</button></div></div>";
+    document.body.appendChild(ov);
+    var $f = function (id) { return ov.querySelector("#" + id); }, ikon = k.ikon || "📢";
+    if (k.foto) rest("store_settings?select=value&key=eq." + encodeURIComponent("foto_kabar_" + k.id)).then(function (r) { var f = r[0] && r[0].value && r[0].value.foto; if (f && foto === null) $f("hfPrev").src = f; }).catch(function () {});
+    ov.querySelectorAll("[data-ik]").forEach(function (b) { b.onclick = function () { ov.querySelectorAll("[data-ik]").forEach(function (x) { x.classList.remove("on"); }); b.classList.add("on"); ikon = b.dataset.ik; }; });
+    $f("hfFoto").onchange = async function () {
+      var f = this.files && this.files[0]; this.value = ""; if (!f) return;
+      try { foto = await kecilkanFoto(f); $f("hfPrev").src = foto; $f("hfPrev").style.display = ""; } catch (e) { say("Foto tidak bisa dibaca"); }
+    };
+    if ($f("hfHapusFoto")) $f("hfHapusFoto").onclick = function () { foto = "hapus"; $f("hfPrev").style.display = "none"; this.remove(); };
+    var tutup = function () { ov.remove(); };
+    $f("hfBatal").onclick = tutup;
+    ov.addEventListener("click", function (e) { if (e.target === ov) tutup(); });
+    $f("hfKirim").onclick = async function () {
+      var b = this, judul = $f("hfJudul").value.trim();
+      if (!judul) return say("Judul wajib diisi");
+      b.disabled = true; b.textContent = "⏳ Menyimpan...";
+      try {
+        await rpc("kabar_tulis", { p_sesi: sesi(), p_foto: foto, p_kabar: { id: k.id || null, ikon: ikon, judul: judul, isi: $f("hfIsi").value.trim(),
+          link: amanLink($f("hfLink").value), tombol: $f("hfTombol").value.trim(), sampai: $f("hfSampai").value || "" } });
+        tutup(); say(k.id ? "Kabar disimpan" : "📢 Kabar diterbitkan"); selesai();
+      } catch (e) { b.disabled = false; b.textContent = k.id ? "💾 Simpan" : "📢 Terbitkan"; say(e.message || "Gagal menyimpan"); }
+    };
   }
 
   /* ---------- 🎁 PROMO ONGKIR (cashback) ---------- */
@@ -288,8 +396,8 @@
     absen(document.getElementById("hrAbsen"), { ringkas: true });
     promo(document.getElementById("hrPromo"));
     menuBaru(document.getElementById("hrMenu"), { diToko: true });
-    kabar(document.getElementById("hrKabar"), { maks: 2 });
+    kabar(document.getElementById("hrKabar"), { maks: 1 });
   }
 
-  window.KSHarian = { kabar: kabar, promo: promo, menuBaru: menuBaru, absen: absen, tombolIkuti: tombolIkuti, siap: siap, rpc: rpc, sesi: sesi };
+  window.KSHarian = { kabar: kabar, penulis: penulis, promo: promo, menuBaru: menuBaru, absen: absen, tombolIkuti: tombolIkuti, siap: siap, rpc: rpc, sesi: sesi };
 })();

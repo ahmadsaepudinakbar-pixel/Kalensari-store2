@@ -250,6 +250,7 @@ body{background:#f6efe6}
     </div>
     <a class="wd-kuis" href="kuis.html"><span class="wd-kuis-ic" aria-hidden="true">🎓</span><span><b>Kuis Pintar</b><small>Jawab soal seru, menangkan hadiah tiap bulan</small></span><em>Gratis</em><i aria-hidden="true">›</i></a>
     <div id="dbKabar" hidden style="margin-top:14px"></div>
+    <div id="dbKabarTulis" hidden style="margin-top:14px"></div>
     <section class="box" style="margin-top:14px" id="sumBox" hidden></section>
     <a class="ks-banner wd-toko" href="index.html"><img src="icons/logo-kalensari.png" alt=""><span><b>Belanja di Kalensari Store</b><small>Makanan, minuman & kebutuhan dari warga</small></span><i>›</i></a>
   </div>
@@ -877,7 +878,9 @@ $("oMuat").onclick = async () => { const b = $("oMuat"); if(b.disabled) return; 
 function muatHarian(){
   if(!window.KSHarian) return;
   KSHarian.absen($("dbAbsen"), {onHadiah: () => { muatSaldoKecil(); if(halNow === "saldo") muatVoucher(); }});
-  KSHarian.promo($("dbPromo")); KSHarian.menuBaru($("dbMenu")); KSHarian.kabar($("dbKabar"), {maks:3});
+  KSHarian.promo($("dbPromo")); KSHarian.menuBaru($("dbMenu")); KSHarian.kabar($("dbKabar"), {maks:1});
+  // khusus akun penulis kabar (perangkat desa / akun pilihan admin): kartu "Tulis Kabar Desa"
+  if(KSHarian.penulis) KSHarian.penulis($("dbKabarTulis"), {onUbah: () => KSHarian.kabar($("dbKabar"), {maks:1})});
 }
 // buka lagi besok pagi tanpa menutup aplikasi: kartu absen ikut berganti hari
 let HARIAN_TGL = new Date(Date.now() + 7*3600e3).toISOString().slice(0, 10);

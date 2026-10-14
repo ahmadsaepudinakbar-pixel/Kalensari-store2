@@ -2151,6 +2151,10 @@ let KB_EDIT=null,KB_FOTO=null;   // KB_FOTO: null = tidak berubah, 'hapus' = hap
 const KB_IKON=['📢','📰','🎉','🕌','💚','🤲','⚠️','🛒','🌾','🏥','🎓','⚽','💧','🚧'];
 const kbList=()=>Array.isArray(S.settings.kabar_desa)?S.settings.kabar_desa.filter(x=>x&&x.id):[];
 const kbHari=()=>new Date(Date.now()+7*3600e3).toISOString().slice(0,10);
+// masa tayang bawaan (store_settings "kabar_aturan") & penulis kabar (store_settings "kabar_penulis", rahasia) — supabase-kabar-penulis.sql
+const kbLama=()=>{const n=parseInt((S.settings.kabar_aturan||{}).hari,10);return n>=1&&n<=90?n:7};
+const kbSampaiBawaan=()=>new Date(Date.now()+7*3600e3+kbLama()*864e5).toISOString().slice(0,10);
+const kbPenulis=()=>Array.isArray(S.settings.kabar_penulis)?S.settings.kabar_penulis.filter(x=>x&&x.wa):[];
 PAGES.kabar=function(){
   const l=kbList().slice().sort((a,b)=>(b.penting?1:0)-(a.penting?1:0)||(Number(b.t)||0)-(Number(a.t)||0)),e=KB_EDIT?l.find(x=>x.id===KB_EDIT)||{}:{};
   const lbl='font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:4px',h=kbHari();
@@ -2161,20 +2165,47 @@ PAGES.kabar=function(){
     <label><span style="${lbl}">Judul</span><input class="inp" id="kbJudul" maxlength="80" placeholder="mis. Santunan anak yatim Jumat ini" value="${esc(e.judul||'')}"></label>
     <label style="display:block;margin-top:10px"><span style="${lbl}">Isi kabar</span><textarea class="inp" id="kbIsi" rows="5" maxlength="1500" placeholder="Tulis kabar untuk warga…">${esc(e.isi||'')}</textarea></label>
     <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-top:10px">
-      <label><span style="${lbl}">Tampil sampai (kosong = terus)</span><input class="inp" type="date" id="kbSampai" value="${esc(e.sampai||'')}"></label>
-      <label><span style="${lbl}">Link "Selengkapnya" (opsional)</span><input class="inp" id="kbLink" placeholder="mis. santunan.html" value="${esc(e.link||'')}"></label></div>
+      <label><span style="${lbl}">Tampil sampai (bawaan ${kbLama()} hari; kosong = terus)</span><input class="inp" type="date" id="kbSampai" value="${esc(KB_EDIT?(e.sampai||''):kbSampaiBawaan())}"></label>
+      <label><span style="${lbl}">Tautan tombol (opsional)</span><input class="inp" id="kbLink" placeholder="mis. santunan.html atau https://…" value="${esc(e.link||'')}"></label>
+      <label><span style="${lbl}">Tulisan di tombol</span><input class="inp" id="kbTombol" maxlength="30" placeholder="Selengkapnya" value="${esc(e.tombol||'')}"></label></div>
     <label style="display:flex;gap:10px;align-items:center;margin:12px 0 0;font-size:14px"><input type="checkbox" id="kbPenting" ${e.penting?'checked':''} style="width:20px;height:20px">📌 Penting (selalu paling atas)</label>
     <div style="margin-top:12px"><span style="${lbl}">Foto (opsional)</span>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><img id="kbPrev" alt="" style="width:84px;height:84px;object-fit:cover;border-radius:12px;background:var(--bg2,#f3f3f3);${(KB_FOTO&&KB_FOTO!=='hapus')||(e.foto&&KB_FOTO!=='hapus')?'':'display:none'}" ${KB_FOTO&&KB_FOTO!=='hapus'?`src="${KB_FOTO}"`:''}>
       <label class="btn btn-light" style="cursor:pointer">📷 Pilih foto<input type="file" accept="image/*" hidden onchange="kbPilihFoto(this)"></label>
       ${(e.foto||KB_FOTO)&&KB_FOTO!=='hapus'?'<button type="button" class="btn btn-light" onclick="KB_FOTO=\'hapus\';$(\'#kbPrev\').style.display=\'none\';this.remove()">Hapus foto</button>':''}</div></div>
     <button class="btn btn-g" style="margin-top:14px" onclick="kbSimpan(this)">${KB_EDIT?'💾 Simpan perubahan':'📢 Terbitkan kabar'}</button>
-    <p class="sm" style="margin:10px 0 0">Kabar tampil di halaman toko (2 teratas) dan beranda dashboard pembeli. Kabar baru diberi tanda <b>Baru</b>.</p></div>
+    <p class="sm" style="margin:10px 0 0">Kabar terbaru tampil di halaman toko dan beranda dashboard pembeli, plus tombol <b>Lihat semua</b>. Kabar baru diberi tanda <b>Baru</b>.</p></div>
   <div class="card"><div class="chead"><h3>📰 Daftar kabar (${l.length})</h3></div>
-    ${l.length?l.map(x=>{const s=st(x);return `<div class="detail-row" style="align-items:flex-start"><span style="white-space:normal;flex:1"><b>${esc(x.ikon||'📢')} ${esc(x.judul)}</b> ${x.penting?'📌':''}${x.foto?' 🖼️':''}<br><small style="color:var(--mut)">${esc(String(x.isi||'').slice(0,90))}${String(x.isi||'').length>90?'…':''}</small><br><small style="color:var(--mut)">${ago(Number(x.t)||Date.now())}${x.sampai?' · sampai '+esc(x.sampai):''}</small></span>
+    ${l.length?l.map(x=>{const s=st(x);return `<div class="detail-row" style="align-items:flex-start"><span style="white-space:normal;flex:1"><b>${esc(x.ikon||'📢')} ${esc(x.judul)}</b> ${x.penting?'📌':''}${x.foto?' 🖼️':''}${x.oleh?` <small style="color:var(--g2)">✍️ ${esc(x.oleh)}</small>`:''}<br><small style="color:var(--mut)">${esc(String(x.isi||'').slice(0,90))}${String(x.isi||'').length>90?'…':''}</small><br><small style="color:var(--mut)">${ago(Number(x.t)||Date.now())}${x.sampai?' · sampai '+esc(x.sampai):''}</small></span>
       <span style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><span class="badge ${s[1]}">${s[0]}</span>
-      <span style="display:flex;gap:6px"><button class="btn btn-light" style="padding:6px 10px" onclick="KB_EDIT='${esc(x.id)}';KB_FOTO=null;render();scrollTo(0,0)">✎</button><button class="btn btn-light" style="padding:6px 10px" onclick="kbTampil('${esc(x.id)}',this)">${x.tampil===false?'👁':'🙈'}</button><button class="btn btn-light" style="padding:6px 10px;color:#b91c1c" onclick="kbHapus('${esc(x.id)}',this)">🗑</button></span></span></div>`}).join(''):'<div class="empty" style="padding:14px">Belum ada kabar. Tulis kabar pertama di atas.</div>'}</div>`;
+      <span style="display:flex;gap:6px"><button class="btn btn-light" style="padding:6px 10px" onclick="KB_EDIT='${esc(x.id)}';KB_FOTO=null;render();scrollTo(0,0)">✎</button><button class="btn btn-light" style="padding:6px 10px" onclick="kbTampil('${esc(x.id)}',this)">${x.tampil===false?'👁':'🙈'}</button><button class="btn btn-light" style="padding:6px 10px;color:#b91c1c" onclick="kbHapus('${esc(x.id)}',this)">🗑</button></span></span></div>`}).join(''):'<div class="empty" style="padding:14px">Belum ada kabar. Tulis kabar pertama di atas.</div>'}</div>
+  <div class="card"><div class="chead"><h3>⏳ Masa tayang bawaan</h3></div>
+    <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"><label style="flex:1;min-width:160px"><span style="${lbl}">Kabar hilang otomatis setelah (hari)</span><input class="inp" type="number" id="kbAturHari" min="1" max="90" value="${kbLama()}"></label>
+    <button class="btn btn-g" onclick="kbSimpanHari(this)">Simpan</button></div>
+    <p class="sm" style="margin:8px 0 0">Dipakai untuk kabar baru dari admin (tanggal bisa diubah per kabar) dan menjadi batas paling lama untuk kabar dari penulis.</p></div>
+  <div class="card"><div class="chead"><h3>✍️ Penulis kabar (${kbPenulis().length})</h3></div>
+    <p class="sm" style="margin:0 0 10px">Perangkat desa / akun pilihan yang boleh menulis Kabar Desa dari <b>dashboard pembeli</b> mereka (menu <b>✍️ Tulis Kabar Desa</b>). Mereka hanya bisa mengubah & menghapus kabarnya sendiri; admin bisa menghapus semua kabar. Daftar ini hanya bisa dilihat admin.</p>
+    <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <label><span style="${lbl}">No. WhatsApp / ID akun pembeli</span><input class="inp" id="kpWa" placeholder="0812… atau PB0001"></label>
+      <label><span style="${lbl}">Nama tampil</span><input class="inp" id="kpNama" maxlength="40" placeholder="mis. Pak Kades"></label>
+      <label><span style="${lbl}">Keterangan</span><input class="inp" id="kpKet" maxlength="30" placeholder="mis. Perangkat desa"></label></div>
+    <button class="btn btn-g" style="margin-top:10px" onclick="kpTambah(this)">➕ Tambah penulis</button>
+    ${kbPenulis().length?kbPenulis().map(x=>`<div class="detail-row"><span style="white-space:normal;flex:1"><b>${esc(x.nama||'-')}</b>${x.ket?` · ${esc(x.ket)}`:''}<br><small style="color:var(--mut)">${esc(x.wa)}${namaWa(x.wa)?' · akun: '+esc(namaWa(x.wa)):' · ⚠️ belum punya akun pembeli'}</small></span><button class="btn btn-light" style="padding:6px 10px;color:#b91c1c" onclick="kpHapus('${esc(x.wa)}',this)">Cabut</button></div>`).join(''):'<div class="empty" style="padding:12px">Belum ada penulis selain admin.</div>'}</div>`;
 };
+async function kbSimpanHari(btn){const n=parseInt($('#kbAturHari').value,10);if(!(n>=1&&n<=90))return toast('Isi 1 sampai 90 hari');
+  await busy(btn,async()=>{const v={...(S.settings.kabar_aturan||{}),hari:n};await setSetting('kabar_aturan',v);S.settings.kabar_aturan=v;render();toast('Masa tayang bawaan: '+n+' hari')})}
+async function kpTambah(btn){
+  const isi=$('#kpWa').value.trim(),nama=$('#kpNama').value.trim(),ket=$('#kpKet').value.trim();
+  if(!isi||!nama)return toast('Isi No. WhatsApp / ID akun dan nama tampil');
+  let wa=phoneKey(isi);
+  if(/^pb/i.test(isi)){const m=members('pembeli').find(x=>String(x.kode||'').toUpperCase()===isi.toUpperCase());
+    const acc=S.settings.pembeli_accounts||{},k=m&&Object.keys(acc).find(w=>acc[w]&&acc[w].id===m.id);if(!k)return toast('ID akun pembeli '+isi+' tidak ditemukan');wa=k}
+  if(!/^62\d{8,13}$/.test(wa))return toast('Nomor WhatsApp tidak valid');
+  if(!namaWa(wa)&&!confirm('Nomor ini belum punya akun pembeli. Tetap tambahkan? (Ia perlu mendaftar akun pembeli dulu agar bisa menulis)'))return;
+  const nl=[...kbPenulis().filter(x=>phoneKey(x.wa)!==wa),{wa,nama,ket,t:Date.now()}];
+  await busy(btn,async()=>{await setSetting('kabar_penulis',nl);S.settings.kabar_penulis=nl;render();toast('✍️ '+nama+' sekarang bisa menulis Kabar Desa')})}
+async function kpHapus(wa,btn){const x=kbPenulis().find(y=>y.wa===wa);if(!x||!confirm('Cabut izin menulis kabar untuk '+(x.nama||wa)+'? Kabar yang sudah terbit tetap tampil.'))return;
+  const nl=kbPenulis().filter(y=>y.wa!==wa);await busy(btn,async()=>{await setSetting('kabar_penulis',nl);S.settings.kabar_penulis=nl;render();toast('Izin dicabut')})}
 async function kbPilihFoto(inp){const f=inp.files&&inp.files[0];inp.value='';if(!f)return;
   try{KB_FOTO=await new Promise((ok,no)=>{const r=new FileReader();r.onerror=no;r.onload=()=>{const im=new Image();im.onerror=no;im.onload=()=>{const k=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);ok(c.toDataURL('image/jpeg',.82))};im.src=r.result};r.readAsDataURL(f)});
     const p=$('#kbPrev');p.src=KB_FOTO;p.style.display=''}catch(e){toast('Foto tidak bisa dibaca')}}
@@ -2183,7 +2214,7 @@ async function kbSimpan(btn){
   if(!judul)return toast('Judul wajib diisi');
   const lama=kbList(),id=KB_EDIT||('k'+Date.now().toString(36)),e=lama.find(x=>x.id===id)||{};
   const foto=KB_FOTO==='hapus'?false:KB_FOTO?true:!!e.foto;
-  const rec={...e,id,ikon:$('#kbIkon').value||'📢',judul,isi,link:$('#kbLink').value.trim(),sampai:$('#kbSampai').value||'',penting:$('#kbPenting').checked,foto,t:e.t||Date.now(),ubah:Date.now()};
+  const rec={...e,id,ikon:$('#kbIkon').value||'📢',judul,isi,link:$('#kbLink').value.trim(),tombol:$('#kbTombol').value.trim(),sampai:$('#kbSampai').value||'',penting:$('#kbPenting').checked,foto,t:e.t||Date.now(),ubah:Date.now()};
   await busy(btn,async()=>{
     if(KB_FOTO&&KB_FOTO!=='hapus')await setSetting('foto_kabar_'+id,{foto:KB_FOTO,t:Date.now()});
     if(KB_FOTO==='hapus')await api('store_settings?key=eq.'+encodeURIComponent('foto_kabar_'+id),{method:'DELETE',headers:{Prefer:'return=minimal'}}).catch(()=>{});
