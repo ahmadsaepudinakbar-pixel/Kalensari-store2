@@ -224,8 +224,10 @@
       var s = stops[st.i], akhir = st.i === stops.length - 1, nomor = String(s.tel || "").replace(/\D/g, "");
       q(".ksn-step").innerHTML = '<span class="ksn-chip">📍 Tujuan' + (stops.length > 1 ? " " + (st.i + 1) + " dari " + stops.length : "") + "</span>";
       q("h3").innerHTML = "<span>" + s.e + "</span>" + esc(s.nama);
-      q(".ksn-ket").textContent = s.ket || "";
-      q(".ksn-ket").hidden = !s.ket;
+      // nomor HP selalu milik tujuan yang sedang dituju (toko -> no. toko, pembeli -> no. pembeli); tidak memakai nomor tujuan lain
+      var ket = s.ket || ""; if (!nomor && s.peran) ket += (ket ? " • " : "") + "No. HP " + s.peran + " belum ada";
+      q(".ksn-ket").textContent = ket;
+      q(".ksn-ket").hidden = !ket;
       q(".ksn-dots").innerHTML = stops.length > 1 ? stops.map(function (x, k) { return '<span class="' + (k < st.i ? "done" : k === st.i ? "now" : "") + '">' + x.e + " " + esc(x.nama) + "</span>"; }).join("›") : "";
       var peran = s.peran || "pembeli";
       q(".ksn-btns").hidden = !nomor;

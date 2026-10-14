@@ -472,7 +472,7 @@ async function muatTokoLoc(){
   if(Date.now() - TOKO_LOC_T < 300000) return;
   try{ const l = await getSetting("penjual_members", []); const m = {};
     (Array.isArray(l) ? l : []).forEach(x => { const n = x && (x.toko || x.usaha), la = Number(x && x.latitude), ln = Number(x && x.longitude);
-      if(n && Number.isFinite(la) && Number.isFinite(ln) && !(la === 0 && ln === 0)) m[String(n).trim().toLowerCase()] = {lat:la, lng:ln, nama:n, wa:normPhone(x.wa || x.whatsapp || "")}; });
+      if(n && Number.isFinite(la) && Number.isFinite(ln) && !(la === 0 && ln === 0)) m[String(n).trim().toLowerCase()] = {lat:la, lng:ln, nama:n, wa:normPhone(x.wa || x.whatsapp || x.no_wa || x.hp || x.telp || x.phone || "")}; });
     TOKO_LOC = m; TOKO_LOC_T = Date.now(); }catch(e){}
 }
 function tokoUrut(o){
@@ -983,7 +983,8 @@ function cardToko2(o, num, next){
   const toko = tokoUrut(o);
   const stTok = toko.map(t => t.loc ? {nama:t.nama, e:"🏪", lat:t.loc.lat, lng:t.loc.lng, ket:"Ambil pesanan", tel:t.loc.wa || "", peran:"toko"} : null);
   const langkah = toko.map((t, k) => `<div class="k2-s ${dikirim ? "beres" : k === 0 ? "aktif" : ""}"><span class="k2-n">${dikirim ? "✓" : k + 1}</span>`
-      + `<div class="k2-t"><small>Ambil di</small><b>${esc(t.nama)}</b>${!t.loc && !dikirim ? `<p>Lokasi toko belum diatur penjual</p>` : ""}</div>`
+      + `<div class="k2-t"><small>Ambil di</small><b>${esc(t.nama)}</b>${!t.loc && !dikirim ? `<p>Lokasi toko belum diatur penjual</p>` : ""}`
+      + (!dikirim && t.loc && t.loc.wa ? `<div class="k2-kon"><a class="k2-pil" href="tel:+${esc(t.loc.wa)}">📞 Telepon toko</a><a class="k2-pil" target="_blank" rel="noopener" href="https://wa.me/${esc(t.loc.wa)}">💬 WA toko</a></div>` : "") + `</div>`
       + (!dikirim && stTok[k] ? navBtn("🧭 Arah", "k2-arah", o.order_code, [stTok[k]]) : "") + `</div>`).join("")
     + `<div class="k2-s ${dikirim || !toko.length ? "aktif" : ""}"><span class="k2-n">${toko.length + 1}</span>`
       + `<div class="k2-t"><small>Antar ke</small><b>${esc(o.customer_name || "Pembeli")}</b><p>${esc(alamat)}</p>`
