@@ -288,7 +288,7 @@ body{background-color:#f4ebdf;background-image:none}
 
 /* ===== v40 Tampilan PRO kurir: tenang, rapi, satu warna aksi =====
    coklat = merek (header & tombol utama) • hijau = online/selesai • merah = peringatan */
-:root{--p-bg:#f5f1ec;--p-card:#fff;--p-line:#ece3d8;--p-ink:#2a1a0e;--p-mut:#7a6a5d;--p-br:#6e3618;--p-br2:#8a4a22;--p-ok:#1f8f4c;--p-okbg:#e8f6ed;--p-red:#c0392b;--p-sh:0 1px 2px rgba(60,35,15,.05),0 4px 14px rgba(60,35,15,.05)}
+:root{--p-bg:#e6dacb;--p-card:#fff;--p-line:#e4d6c6;--p-ink:#2a1a0e;--p-mut:#7a6a5d;--p-br:#6e3618;--p-br2:#8a4a22;--p-ok:#1f8f4c;--p-okbg:#e8f6ed;--p-red:#c0392b;--p-sh:0 1px 2px rgba(60,35,15,.08),0 6px 16px rgba(60,35,15,.09)}
 body{background:var(--p-bg)!important;background-image:none!important;color:var(--p-ink);-webkit-tap-highlight-color:transparent}
 .topbar{background:var(--p-br)!important;border-bottom:0!important;font-weight:600;letter-spacing:.2px}
 .wrap{padding:14px 14px 110px}
@@ -439,6 +439,32 @@ h2{color:var(--p-ink)!important}
 .nav{border-top:1px solid var(--p-line)!important}
 @media (max-width:360px){.kp-c b{font-size:15px}.kp-c{padding:10px}}
 @media (prefers-reduced-motion:reduce){.sk,.skl i,.pa-dot,.pa.baru,.card.offer{animation:none!important}}
+
+/* ===== v41 Pesanan aktif = POP-UP mengambang di atas menu bawah, latar gelap ===== */
+#kpAktif{position:fixed;left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:45;max-width:616px;margin:0 auto!important}
+body.ada-pa .wrap{padding-bottom:calc(110px + var(--pa-h,200px))}
+body[data-tab="pesanan"] #kpAktif{display:none!important}
+#kpAktif .pa{background:#fff;border:2.5px solid #f5c518;color:var(--p-ink);animation:naik .3s ease-out,paKuning 1.6s ease-in-out .3s infinite}
+@keyframes paKuning{0%,100%{border-color:#ffd60a;box-shadow:0 0 0 3px rgba(255,214,10,.45),0 0 18px rgba(255,200,0,.55),0 10px 26px rgba(60,35,15,.16)}50%{border-color:#f0dc8a;box-shadow:0 0 0 0 rgba(255,214,10,0),0 0 4px rgba(255,200,0,.15),0 10px 26px rgba(60,35,15,.12)}}
+#kpAktif .pa-h{background:#fffbea;border-bottom:1px solid #f6e7a8}
+#kpAktif .pa .cd{background:#7a3e00;color:#fff}
+#kpAktif .pa-ciut{background:#f3e9de;color:var(--p-br)}
+#kpAktif .pa.kecil{background:#fff}
+#kpAktif .pa.kecil span:nth-child(2){color:var(--p-mut)}#kpAktif .pa.kecil span:nth-child(2) b{color:var(--p-ink)}
+@media (prefers-reduced-motion:reduce){#kpAktif .pa{animation:none;box-shadow:0 0 0 3px rgba(255,214,10,.45),0 10px 26px rgba(60,35,15,.16)}}
+.pa-ciut{flex:none;margin-left:6px;width:30px;height:30px;border-radius:50%;border:0;font-size:17px;font-weight:900;line-height:1;cursor:pointer}
+.pa-h em+.pa-ciut{margin-left:6px}
+#kpAktif .pa.kecil{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
+.pa.kecil span:nth-child(2){flex:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pa.kecil .pa-ciut{margin:0}
+
+/* status lokasi kurir: titik + teks ringkas */
+#lokInfo.lok{display:inline-flex;align-items:center;gap:8px;margin:0 0 12px 4px!important;padding:6px 12px 6px 10px;border-radius:999px;background:#e8f6ed;color:#14502c!important;font-size:12.5px;font-weight:700}
+#lokInfo.lok[hidden]{display:none}
+#lokInfo.lok i{flex:none;width:8px;height:8px;border-radius:50%;background:#1f8f4c;box-shadow:0 0 0 3px rgba(31,143,76,.18)}
+#lokInfo.lok em{font-style:normal;font-weight:500;color:#3e6b4f}
+#lokInfo.lok.cari{background:#fff4e2;color:#7a4a00!important}#lokInfo.lok.cari i{background:#e08a00;box-shadow:0 0 0 3px rgba(224,138,0,.18)}
+#lokInfo.lok.err{display:flex;align-items:flex-start;border-radius:14px;background:#fdecea;color:#a32d2d!important;font-weight:600}#lokInfo.lok.err i{margin-top:5px;background:#c0392b;box-shadow:none}
 </style>
 </head>
 <body>
@@ -1443,8 +1469,8 @@ function lokInfoUI(){
   const el = $("lokInfo"); if(!el) return;
   const on = me && me.aktif !== false && !me.pending; el.hidden = !on; if(!on) return;
   const jam = me.lokT ? new Date(me.lokT).toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit"}) : "";
-  el.style.color = lokErr || !lokKurir(me) ? "#c0392b" : "#14502c";
-  el.textContent = lokErr ? "⚠️ " + lokErr : lokKurir(me) ? "📍 Lokasi aktif (±" + (me.lokAcc || 0) + " m) • diperbarui " + jam + "." + (PEMBAGIAN.mode === "radius" ? " Pesanan ditawarkan ke kurir terdekat dari toko." : "") : "📍 Mencari lokasi Anda…";
+  el.className = "hint lok " + (lokErr ? "err" : lokKurir(me) ? "ok" : "cari");
+  el.innerHTML = '<i></i><span>' + (lokErr ? esc(lokErr) : lokKurir(me) ? "Lokasi kurir aktif <em>• diperbarui " + jam + "</em>" : "Mencari lokasi Anda…") + '</span>';
 }
 async function lokSimpanKe(paksa){
   const p = lokKurir(me); if(!p) return;
@@ -2030,8 +2056,15 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
 
   // Kartu "Pesanan aktif" / "Pesanan baru" di Beranda
   function titik(p){ return p && Number.isFinite(+p.lat) && Number.isFinite(+p.lng); }
+  var paCiut = null;   // kode pesanan yang pop-up-nya sedang diciutkan
+  function paUkur(){ var box = $("kpAktif"); document.body.classList.toggle("ada-pa", !!(box && !box.hidden)); if(box && !box.hidden) document.body.style.setProperty("--pa-h", box.offsetHeight + "px"); }
   window.kokpitAktif = function(mine, offers){
     var box = $("kpAktif"); if(!box) return;
+    if(!box.dataset.pasang){ box.dataset.pasang = 1; box.addEventListener("click", function(e){
+      if(e.target.closest("[data-ciut]")){ paCiut = e.target.closest("[data-ciut]").dataset.ciut; e.stopPropagation(); return window.kokpitAktif(box._m, box._f); }
+      if(e.target.closest("[data-bukapa]")){ paCiut = null; return window.kokpitAktif(box._m, box._f); }
+    }); }
+    box._m = mine; box._f = offers; setTimeout(paUkur, 0);
     if(offers && offers.length){
       var f = offers[0], o0 = f.o, tr0 = transOf(o0);
       box.hidden = false;
@@ -2043,7 +2076,7 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
       if(window.tick) tick();
       return;
     }
-    if(!mine || !mine.length){ box.hidden = true; box.innerHTML = ""; return; }
+    if(!mine || !mine.length){ box.hidden = true; box.innerHTML = ""; paCiut = null; return; }
     var o = mine[0], tr = transOf(o), stops = [], judul = "", ket = "", st = "";
     var tel = o.customer_phone_normalized || normPhone(o.customer_phone);
     if(tr){
@@ -2063,7 +2096,11 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
     }
     var nav = stops.length ? navBtn("Navigasi", "", o.order_code, stops) : "";
     box.hidden = false;
-    box.innerHTML = '<div class="pa"><div class="pa-h"><span class="pa-dot"></span><b>Pesanan aktif</b> • ' + esc(o.order_code) + '<em>' + esc(st) + '</em></div>'
+    if(paCiut === o.order_code){
+      box.innerHTML = '<div class="pa kecil" data-bukapa="1" role="button" aria-label="Buka pesanan aktif"><span class="pa-dot"></span><span><b>Pesanan aktif</b> • ' + esc(judul) + '</span><button type="button" class="pa-ciut" data-bukapa="1" aria-label="Buka">⌃</button></div>';
+      return;
+    }
+    box.innerHTML = '<div class="pa"><div class="pa-h"><span class="pa-dot"></span><b>Pesanan aktif</b> • ' + esc(o.order_code) + '<em>' + esc(st) + '</em><button type="button" class="pa-ciut" data-ciut="' + esc(o.order_code) + '" aria-label="Kecilkan">⌄</button></div>'
       + '<div class="pa-b"><small>Tujuan berikutnya</small><b>' + esc(judul) + '</b>' + (ket ? '<p>' + esc(ket) + '</p>' : "")
       + '<div class="pa-a">' + nav + '<button type="button" class="pa-d' + (nav ? "" : " full") + '" data-ke="pesanan">Detail</button></div>'
       + (mine.length > 1 ? '<p class="hint pa-lain">+' + (mine.length - 1) + ' nota lain dalam antaran Anda</p>' : "") + '</div></div>';
@@ -2098,9 +2135,9 @@ document.querySelectorAll("[data-accordion]").forEach(head => {
 <script>
 (function(){
   var $=function(i){return document.getElementById(i)}, cur="home";
-  var HOME=[".hd","#stat","#aktifBox","#lokInfo","#lengkapiBox","#kpAktif","#kokpit","#kpTarget","#ringkas","#btnLihat","#kpNotif","#kpLay"], ORD=["#ordBox"], PROF=["#profBox","#setH","#layBox","#notifBox",".accordion-box","#ksLink"], UANG=["#saldoBox","#uangBox"];
+  var HOME=[".hd","#stat","#aktifBox","#lokInfo","#lengkapiBox","#kokpit","#kpTarget","#ringkas","#btnLihat","#kpNotif","#kpLay"], ORD=["#ordBox"], PROF=["#profBox","#setH","#layBox","#notifBox",".accordion-box","#ksLink"], UANG=["#saldoBox","#uangBox"];
   function all(l){var r=[];l.forEach(function(q){document.querySelectorAll(q).forEach(function(e){r.push(e)})});return r}
-  function show(t){ cur=t;
+  function show(t){ cur=t; document.body.dataset.tab=t;
     if(t==="uang"&&window.muatPenghasilan) window.muatPenghasilan();
     [[HOME,"home"],[ORD,"pesanan"],[PROF,"profil"],[UANG,"uang"]].forEach(function(g){all(g[0]).forEach(function(e){e.classList.toggle("tabhide",g[1]!==t)})});
     document.querySelectorAll("#nav button").forEach(function(b){b.classList.toggle("on",b.dataset.go===t)}); scrollTo(0,0) }
