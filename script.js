@@ -533,7 +533,7 @@ function singleCardHTML(p) {
   return `
    <article class="product${soldOut?" soldout":""}">
   <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
-        ${soldOut?'<span class="soldout-badge">STOK HABIS</span>':promoOn(p)?'<span class="sale-badge">PROMO</span>':''}${isUnggulan(p)?'<span class="ung-badge">⭐ Unggulan</span>':''}
+        ${soldOut?'<span class="soldout-badge">STOK HABIS</span>':promoOn(p)?'<span class="sale-badge">PROMO</span>':''}
       </div>
       <div class="product-body">
         <h3>${p.name}</h3>
@@ -553,7 +553,7 @@ function groupCardHTML(u) {
   return `
    <article class="product${v.every(isSoldOut)?" soldout":""}">
   <div class="product-img"><img src="${getProductImage(first.image)}" alt="${esc(u.group)}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
-        ${v.every(isSoldOut)?'<span class="soldout-badge">STOK HABIS</span>':v.some(promoOn)?'<span class="sale-badge">PROMO</span>':''}${v.some(isUnggulan)?'<span class="ung-badge">⭐ Unggulan</span>':''}
+        ${v.every(isSoldOut)?'<span class="soldout-badge">STOK HABIS</span>':v.some(promoOn)?'<span class="sale-badge">PROMO</span>':''}
       </div>
       <div class="product-body">
         <h3>${esc(u.group)}</h3>
@@ -839,6 +839,7 @@ function showProduct(id) {
       <div>
         <p class="eyebrow">${p.category} • ${p.seller}</p>
         <h2>${isGroup?esc(gname):p.name}</h2>
+        ${(isGroup?variants.some(isUnggulan):isUnggulan(p))?'<p class="ung-tag">⭐ Produk unggulan toko</p>':''}
         ${isGroup?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker">${variants.map(v=>`<button type="button" class="variant-chip${v.id===p.id?" active":""}" onclick="showProduct(${v.id})"><b>${esc(variantLabel(v))}</b><small>${isSoldOut(v)?"Habis":rupiah(currentPrice(v))}</small></button>`).join("")}</div></div>`:""}
         <div class="price" id="detailPrice">${isBuilder?`Racik sendiri${Number(currentPrice(p))>0?` • mulai ${rupiah(currentPrice(p))}`:""}${tLimit?` • maks ${rupiah(tLimit)}`:""}`:pv[detailVarian]?rupiah(pv[detailVarian].price):priceHTML(p)}</div>${pv.length?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker" id="varianPicker">${pv.map((v,i)=>`<button type="button" class="variant-chip${i===detailVarian?" active":""}${v.habis?" habis":""}" ${v.habis?"disabled":""} onclick="pilihVarian(${i})"><b>${esc(v.name)}</b><small>${v.habis?"Habis":rupiah(v.price)}</small></button>`).join("")}</div></div>`:""}${isBuilder&&Number(p.min_order)>0?`<p class="tp-min-info">🧾 Minimal order <b>${rupiah(p.min_order)}</b> per porsi</p>`:""}
         <p>Satuan: ${p.unit}</p>
