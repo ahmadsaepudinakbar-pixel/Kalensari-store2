@@ -52,6 +52,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 .pinw{position:relative;display:block}.pinw .fld{padding-right:50px}.pinw .lihat{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:20px;padding:6px 8px;cursor:pointer;line-height:1;opacity:.75}
 .btn:disabled{opacity:.6;cursor:wait}
 </style>
+<script src="referal-toko.js"></script>
 </head>
 <body>
 <div class="topbar"><a href="index.html">🛍️ KALENSARI STORE • ← Kembali ke toko</a></div>
@@ -89,6 +90,8 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
       <label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label></div>
       <label>Kode ajak tetangga <small style="font-weight:400;color:#8a7466">(opsional)</small><input id="rAjak" class="fld" maxlength="20" placeholder="mis. PB0012" autocapitalize="characters"></label>
       <p class="hint" id="rAjakInfo" style="margin:-4px 0 6px" hidden>🎉 Anda diajak tetangga. Setelah akun berhasil dibuat, tetangga Anda langsung dapat bonus saldo.</p>
+      <label>Kode toko pengajak <small style="font-weight:400;color:#8a7466">(opsional)</small><input id="rToko" class="fld" maxlength="12" placeholder="mis. PJ-0012" autocapitalize="characters"></label>
+      <p class="hint" id="rTokoInfo" style="margin:-4px 0 6px" hidden>🏪 Anda diajak oleh toko dengan kode <b id="rTokoKode"></b>.</p>
       <div id="rOtpBox" hidden style="margin-top:6px;background:#f2f9f4;border:1px solid #cfe9d6;border-radius:14px;padding:12px">
         <b style="font-size:15px">📲 Masukkan kode dari WhatsApp</b>
         <p class="hint" id="rOtpInfo" style="margin:4px 0 8px">Kode 6 angka sudah dikirim ke WhatsApp Anda.</p>
@@ -158,6 +161,7 @@ $("tabMasuk").onclick = () => showTab(true);
 $("tabDaftar").onclick = () => showTab(false);
 const nextUrl = () => { const n = sessionStorage.getItem("kalensari_next") || ""; if(n === "checkout"){ sessionStorage.removeItem("kalensari_next"); return "index.html#checkout"; } if(n.startsWith("url:")){ sessionStorage.removeItem("kalensari_next"); return n.slice(4); } return ""; };
 const go = () => setTimeout(() => { location.href = nextUrl() || ("dashboard-" + ROLE + ".html"); }, 700);
+{ const rt = window.KSRefToko ? KSRefToko.baca() : ""; if(rt){ $("rToko").value = rt; $("rTokoKode").textContent = rt; $("rTokoInfo").hidden = false; } }   // kode toko dari QR (referal-toko.js)
 { const q = new URLSearchParams(location.search).get("ajak"); if(q){ $("rAjak").value = q.toUpperCase(); $("rAjakInfo").hidden = false; try{ showTab(false); }catch(e){} } }
 // ===== OTP WhatsApp (fungsi server "otp-wa" + database supabase-otp-pembeli.sql) =====
 async function rpcAkun(fn, body){
@@ -210,6 +214,11 @@ async function daftarVerifikasi(){
     }
     if(!r || !r.ok){ $("rOtp").value = ""; return toast(r && r.pesan || "Kode salah"); }
     KSID.setSesi(ROLE, r.sesi);
+    const kodeToko = ($("rToko").value || "").trim();
+    if(kodeToko){   // catat toko pengajak (QR toko); gagal = diabaikan, akun tetap jadi (supabase-referal-toko.sql)
+      try{ const rt = await rpcAkun("catat_referal_toko", {p_wa:wa, p_pin:pin, p_kode:kodeToko}); if(rt && rt.ok){ toast("🏪 Terdaftar lewat toko " + (rt.toko || kodeToko)); await new Promise(x => setTimeout(x, 1500)); } }catch(e){}
+      try{ KSRefToko.hapus(); }catch(e){}
+    }
     if(ajak && caraLama){
       try{ const rj = await rpcAkun("pakai_kode_ajak", {p_wa:wa, p_pin:pin, p_kode:ajak}); if(rj && rj.ok === false) throw new Error(rj.pesan); toast("🎉 Kode ajak dipakai. Bonus masuk setelah pesanan pertama selesai."); }
       catch(e){ toast("Kode ajak belum bisa dipakai: " + (e.message || e) + ". Bisa dicoba lagi di menu Saldo voucher."); await new Promise(r => setTimeout(r, 1800)); }
