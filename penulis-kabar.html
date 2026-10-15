@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><script src="ks-ingat.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest-penulis.webmanifest">
+<meta name="theme-color" content="#7b3f1d">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/penulis-favicon-48.png">
+<link rel="apple-touch-icon" href="icons/penulis-apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Penulis KS">
+<script src="pwa.js" defer></script>
+<title>Penulis Berita – Kalensari</title>
+<style>
+:root{--brown:#7b3f1d;--ink:#3a1f10;--muted:#5c4638;--bg:#e4d3bf;--line:#d3bfa8;--chip:#f5e8d8;--green:#228b4e;--red:#b83c2b}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+.topbar{background:var(--brown);color:#fff;text-align:center;font-size:13px;font-weight:600;padding:10px 12px}
+.topbar a{color:#fff;text-decoration:none}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 60px}
+.hero{border-radius:28px;padding:26px;background:linear-gradient(120deg,#f8ead0 0%,#eef0d4 45%,#6f9f4e 100%);margin-bottom:16px}
+.tag{display:inline-block;background:var(--brown);color:#fff;font-weight:700;font-size:12px;padding:8px 14px;border-radius:999px}
+.hero h1{font-size:clamp(24px,5vw,32px);margin:14px 0 8px;line-height:1.2}.hero p{margin:0}
+.box{background:#fff;border:1px solid var(--line);border-radius:24px;padding:20px;margin-bottom:14px}
+label{display:block;font-weight:600;font-size:14px}
+.fld{display:block;width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:16px;margin:6px 0 12px;background:#fff;color:var(--ink)}
+.btn{display:block;width:100%;text-align:center;font:inherit;font-weight:700;font-size:17px;padding:14px 8px;border-radius:16px;border:1px solid var(--brown);background:#fff;color:var(--brown);cursor:pointer}
+.btn.wa{background:var(--green);border-color:var(--green);color:#fff}.btn.danger{border-color:var(--red);color:var(--red)}
+.btns{display:grid;gap:10px;margin-top:6px}
+.hint{font-size:13px;color:var(--muted);margin:4px 0 12px}
+.who{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.who b{font-size:16px}
+.mini{font:inherit;font-weight:700;font-size:13px;padding:8px 14px;border-radius:12px;border:1px solid var(--red);background:#fff;color:var(--red);cursor:pointer}
+.info{background:#fff3cd;border:1px solid #e3c766;color:#5a4300;border-radius:14px;padding:12px 14px;font-size:14px;font-weight:600}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99999;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="topbar"><a href="index.html">📰 KALENSARI STORE • Penulis Berita</a></div>
+<main class="wrap">
+  <section class="hero"><span class="tag">✍️ PENULIS KABAR DESA</span>
+    <h1>Tulis kabar untuk warga Kalensari</h1><p>Kabar Anda langsung tampil di halaman toko dan dashboard warga.</p></section>
+
+  <section class="box" id="bLogin" hidden>
+    <label>No. WhatsApp atau ID akun<input id="lWa" class="fld" type="text" inputmode="text" autocapitalize="characters" placeholder="08xxxxxxxxxx atau ID akun" autocomplete="username"></label>
+    <label>PIN<input id="lPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="current-password"></label>
+    <div class="btns"><button class="btn wa" id="btnMasuk" type="button">Masuk</button></div>
+    <p class="hint" style="margin-top:12px">Masuk dengan akun warga Kalensari Anda. Hanya akun yang ditunjuk admin sebagai penulis yang bisa menulis kabar. Belum punya akun? <a href="akun-pembeli.html#daftar">Daftar di sini</a>.</p>
+  </section>
+
+  <section id="bApp" hidden>
+    <div class="box who"><div><small>Masuk sebagai</small><br><b id="nama">…</b></div><button class="mini" id="btnKeluar" type="button">Keluar</button></div>
+    <div id="kabarTulis"></div>
+    <div id="bBukan" class="info" hidden>Akun ini belum terdaftar sebagai penulis kabar. Hubungi admin Kalensari agar akun Anda diberi izin menulis.</div>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+<script src="config.js" onerror="void 0"></script>
+<script src="akun-id.js"></script>
+<script src="harian.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 3200); }
+const normPhone = v => String(v||"").replace(/\D/g,"").replace(/^0/,"62");
+const LSget = (k, d) => { try{ const v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; }catch(e){ return d; } };
+const LSset = (k, v) => { try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} };
+const lockLeft = () => { const t = LSget("kalensari_penulis_try", {n:0,t:0}); return t.n >= 5 ? Math.max(0, Math.ceil((t.t + 60000 - Date.now())/1000)) : 0; };
+const failTry = () => { const t = LSget("kalensari_penulis_try", {n:0,t:0}); const n = (Date.now() - t.t > 60000 && t.n >= 5) ? 1 : t.n + 1; LSset("kalensari_penulis_try", {n, t:Date.now()}); };
+
+async function tampilApp(){
+  $("bLogin").hidden = true; $("bApp").hidden = false;
+  try{ const s = await KSID.saya("pembeli"); const d = (s && (s.data || s.akun || s)) || {}; $("nama").textContent = d.nama || "Akun saya"; }catch(e){ $("nama").textContent = "Akun saya"; }
+  const el = $("kabarTulis");
+  await KSHarian.penulis(el, {});
+  $("bBukan").hidden = !el.hidden;   // penulis() menyembunyikan kartu bila akun bukan penulis / sesi habis
+}
+function tampilLogin(){ $("bApp").hidden = true; $("bLogin").hidden = false; }
+
+$("btnMasuk").onclick = async () => {
+  const lk = lockLeft(); if(lk) return toast(`Terlalu banyak percobaan. Coba lagi ${lk} detik lagi.`);
+  const idWa = await KSID.keWA($("lWa").value, "pembeli").catch(() => null);
+  if(idWa === "") return toast("ID akun tidak ditemukan. Periksa lagi atau masuk dengan nomor WhatsApp.");
+  const wa = idWa || normPhone($("lWa").value), pin = $("lPin").value;
+  if(!wa || !pin) return toast("Isi nomor WhatsApp dan PIN");
+  $("btnMasuk").disabled = true;
+  try{
+    try{ await KSID.masuk("pembeli", wa, pin); }catch(er){ if(er.salahPin) failTry(); return toast(er.message || "Gagal masuk"); }
+    LSset("kalensari_penulis_try", {n:0,t:0}); $("lPin").value = "";
+    await tampilApp();
+  }finally{ $("btnMasuk").disabled = false; }
+};
+$("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
+$("btnKeluar").onclick = () => { if(!confirm("Keluar dari akun ini?")) return; KSID.hapusSesi("pembeli"); $("kabarTulis").innerHTML = ""; tampilLogin(); };
+
+(async () => { if(KSID.sesi("pembeli")) await tampilApp(); else tampilLogin(); })();
+</script>
+</body>
+</html>
