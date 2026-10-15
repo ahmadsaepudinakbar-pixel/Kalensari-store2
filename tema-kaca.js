@@ -65,9 +65,10 @@
     "@media(max-width:340px){html.tema-esp .header .nav{gap:3px!important;padding:0 6px}html.tema-esp .header .nav>button{width:34px;height:34px}html.tema-esp .header .brand{font-size:14px!important}}",
     "html.tema-esp .ksd-ic{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}",
     "html.tema-esp .ksd-ic{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}",
-    /* strip paling atas: satu baris, rapi */
-    "html.tema-esp .top-strip{background:linear-gradient(90deg,#6a3319,#8a4726 50%,#6a3319)!important;padding:7px 12px!important;font-size:12.5px!important;font-weight:700;letter-spacing:.2px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
-    "@media(max-width:340px){html.tema-esp .top-strip{font-size:11.5px!important;padding:6px 8px!important}}",
+    /* strip paling atas: cokelat gelap + emas, satu baris */
+    "html.tema-esp .top-strip{background:#4a2510!important;color:#f1d08a!important;border-bottom:1px solid #d9a441;padding:8px 12px!important;font-size:12px!important;font-weight:600;letter-spacing:.3px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+    "html.tema-esp .top-strip svg{width:14px;height:14px;vertical-align:-2px;margin-right:6px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}",
+    "@media(max-width:340px){html.tema-esp .top-strip{font-size:11px!important;padding:7px 8px!important}}",
     /* menu sederhana: daftar kecil di bawah header */
     "html.tema-esp .ks-menu{display:flex!important;flex-direction:column;position:fixed!important;top:var(--ksp-top,76px)!important;left:10px!important;right:auto!important;bottom:auto!important;width:min(270px,calc(100vw - 20px))!important;min-width:0!important;max-height:calc(100vh - var(--ksp-top,76px) - 14px);max-height:calc(100dvh - var(--ksp-top,76px) - 14px);overflow-y:auto;padding:6px!important;border:0!important;border-radius:18px!important;background:#fff!important;box-shadow:0 18px 44px -16px rgba(58,31,16,.5),0 0 0 1px #eadfd6!important;opacity:0;visibility:hidden;transform:translateY(-6px);transform-origin:top left;transition:opacity .15s,transform .18s,visibility 0s .18s}",
     "html.tema-esp .ks-menu.open{opacity:1;visibility:visible;transform:none;transition:opacity .15s,transform .18s}",
