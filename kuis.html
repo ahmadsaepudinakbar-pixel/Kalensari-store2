@@ -69,6 +69,12 @@ h2.t small{margin-left:auto;font-size:12px;color:var(--mu);font-weight:600}
 .why div span{font-size:24px}
 .undian{background:linear-gradient(135deg,#fff3d6,#ffe1a6);border:1px solid #f1cf86;border-radius:20px;padding:16px;display:flex;gap:14px;align-items:center}
 .undian .tk{font-size:46px}.undian b{display:block;font-size:17px}.undian small{color:#6b4a1d}
+.periode{margin-top:14px;border-radius:18px;padding:12px 14px;display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--ln);box-shadow:0 6px 18px #5b30140c}
+.periode .pi{flex:none;font-size:30px}.periode .pt{flex:1;min-width:0}.periode b{display:block;font-size:15px}.periode small{display:block;color:var(--mu);font-size:12.5px;line-height:1.4}
+.periode em{flex:none;font-style:normal;font-weight:900;font-size:13px;border-radius:999px;padding:5px 11px;background:var(--cr2);color:var(--br);white-space:nowrap}
+.periode.on{border-color:#bfe3c9;background:linear-gradient(90deg,#effaf2,#fff)}.periode.on em{background:var(--gr);color:#fff}
+.periode.jeda{border-color:#f1cf86;background:linear-gradient(90deg,#fff6df,#fff)}
+@media(max-width:520px){.periode{flex-wrap:wrap;row-gap:6px}.periode em{margin-left:42px}}
 
 .jenjang{display:grid;gap:10px}
 @media(min-width:760px){.jenjang{grid-template-columns:repeat(3,1fr)}}
@@ -213,7 +219,7 @@ footer{text-align:center;color:var(--mu);font-size:12px;padding:26px 0}
   <!-- BERANDA -->
   <section data-view="beranda">
     <div class="hero-banner">
-      <a href="#pilih" aria-label="Mulai Kuis Pintar"><picture><source media="(max-width:759px)" srcset="img/kuis-banner-hp.webp" type="image/webp" width="900" height="526"><source media="(max-width:759px)" srcset="img/kuis-banner-hp.jpg" width="900" height="526"><source srcset="img/kuis-banner.webp" type="image/webp"><img src="img/kuis-banner.jpg" width="1163" height="226" alt="Kuis Pintar Kalensari Store • Gratis • Belajar gratis, kumpulkan poin, tukarkan dengan kupon undian • Menangkan voucher belanja setiap bulan"></picture></a>
+      <a href="#pilih" aria-label="Mulai Kuis Pintar"><picture><source media="(max-width:759px)" srcset="img/kuis-banner-hp.webp" type="image/webp" width="900" height="526"><source media="(max-width:759px)" srcset="img/kuis-banner-hp.jpg" width="900" height="526"><source srcset="img/kuis-banner.webp" type="image/webp"><img src="img/kuis-banner.jpg" width="1163" height="226" alt="Kuis Pintar Kalensari Store • Gratis • Belajar gratis, kumpulkan poin, tukarkan dengan kupon undian • Menangkan voucher belanja setiap periode"></picture></a>
       <div class="hb-bawah">
         <p>Belajar gratis untuk pelajar SD, SMP, dan SMA. Jawab soal dengan benar, kumpulkan poin, lalu tukarkan dengan kupon undian voucher belanja!</p>
         <div class="acts"><a class="btn pri" href="#pilih">🚀 Mulai Kuis</a><a class="btn ol" href="#aturan">Cara ikut</a></div>
@@ -226,14 +232,16 @@ footer{text-align:center;color:var(--mu);font-size:12px;padding:26px 0}
       <button class="btn br" type="button" onclick="masuk()">Masuk / Daftar</button>
     </div>
 
+    <div id="periodeBox" class="periode" hidden></div>
+
     <div class="cards" style="margin-top:14px">
       <a class="card feat" href="#pilih"><span class="ic"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 7c4-1.6 8-1.6 12 1v18c-4-2.6-8-2.6-12-1z" fill="#7a3e20"/><path d="M28 7c-4-1.6-8-1.6-12 1v18c4-2.6 8-2.6 12-1z" fill="#5b2e14"/><path d="M6.5 11c2.6-.7 5-.5 7.4.6M6.5 15c2.6-.7 5-.5 7.4.6M18 11.6c2.4-1.1 4.8-1.3 7.4-.6M18 15.6c2.4-1.1 4.8-1.3 7.4-.6" stroke="#f8ecdc" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg></span><b>Kuis<br class="m"> Pelajar</b><span class="val vx">SD–SMA</span><small>SD, SMP, SMA</small></a>
       <a class="card feat" href="#poin"><span class="ic"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13" fill="#f2b231"/><circle cx="16" cy="16" r="10" fill="#ffd25e" stroke="#c88a12" stroke-width="1.5"/><text x="16" y="21.5" text-anchor="middle" font-size="14" font-weight="900" fill="#a86a06" font-family="Arial">$</text></svg></span><b>Poin<br class="m"> Saya</b><span class="val" id="fPoin">0</span><small>dari jawaban benar</small></a>
-      <a class="card feat" href="#poin"><span class="ic"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 10a2 2 0 0 1 2-2h20a2 2 0 0 1 2 2v3a3 3 0 0 0 0 6v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a3 3 0 0 0 0-6z" fill="#7a3e20"/><path d="M20 9v14" stroke="#f8ecdc" stroke-width="1.4" stroke-dasharray="2 2"/><path d="m11.5 12.5 1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z" fill="#f2b231"/></svg></span><b>Kupon<br class="m"> Undian</b><span class="val" id="fKupon">0</span><small>kupon bulan ini</small></a>
-      <a class="card feat" href="#hadiah"><span class="ic"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="13" width="22" height="15" rx="2" fill="#7a3e20"/><rect x="3.5" y="9" width="25" height="6" rx="1.5" fill="#5b2e14"/><path d="M14.5 9h3v19h-3z" fill="#f2b231"/><path d="M16 9c-2-4-7-5-7-1.8C9 9 13 9 16 9c3 0 7 0 7-1.8C23 4 18 5 16 9z" fill="none" stroke="#f2b231" stroke-width="1.8"/></svg></span><b>Undian<br class="m"> Bulanan</b><span class="val vx">Voucher</span><span class="val" id="fRank" hidden>–</span><small>voucher belanja <span id="fBenar" hidden></span></small></a>
+      <a class="card feat" href="#poin"><span class="ic"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 10a2 2 0 0 1 2-2h20a2 2 0 0 1 2 2v3a3 3 0 0 0 0 6v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a3 3 0 0 0 0-6z" fill="#7a3e20"/><path d="M20 9v14" stroke="#f8ecdc" stroke-width="1.4" stroke-dasharray="2 2"/><path d="m11.5 12.5 1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3z" fill="#f2b231"/></svg></span><b>Kupon<br class="m"> Undian</b><span class="val" id="fKupon">0</span><small>kupon periode ini</small></a>
+      <a class="card feat" href="#hadiah"><span class="ic"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="13" width="22" height="15" rx="2" fill="#7a3e20"/><rect x="3.5" y="9" width="25" height="6" rx="1.5" fill="#5b2e14"/><path d="M14.5 9h3v19h-3z" fill="#f2b231"/><path d="M16 9c-2-4-7-5-7-1.8C9 9 13 9 16 9c3 0 7 0 7-1.8C23 4 18 5 16 9z" fill="none" stroke="#f2b231" stroke-width="1.8"/></svg></span><b>Undian<br class="m"> Berhadiah</b><span class="val vx">Voucher</span><span class="val" id="fRank" hidden>–</span><small>voucher belanja <span id="fBenar" hidden></span></small></a>
     </div>
 
-    <a class="vcard" href="#pilih"><img src="img/kuis-voucher.webp" alt="" width="162" height="82"><span><b>Voucher Belanja<br>Kalensari Store</b><small id="vcardTxt">Menangkan voucher belanja setiap bulan!</small><em>Ikuti Sekarang →</em></span></a>
+    <a class="vcard" href="#pilih"><img src="img/kuis-voucher.webp" alt="" width="162" height="82"><span><b>Voucher Belanja<br>Kalensari Store</b><small id="vcardTxt">Menangkan voucher belanja setiap periode!</small><em>Ikuti Sekarang →</em></span></a>
 
     <div class="kt-head"><h2 class="t">Kuis Terbaru</h2><a href="#pilih">Lihat Semua →</a></div>
     <div id="kuisTerbaru" class="kt-list"></div>
@@ -246,11 +254,11 @@ footer{text-align:center;color:var(--mu);font-size:12px;padding:26px 0}
       <div><span>🎁</span>Juara 1–3 &amp; pemenang undian dapat voucher</div>
     </div>
 
-    <h2 class="t" id="hadiah">🏆 Hadiah bulan ini <small id="bulanTxt"></small></h2>
+    <h2 class="t" id="hadiah">🏆 Hadiah periode ini <small id="bulanTxt"></small></h2>
     <div class="prize" id="prize"></div>
     <div class="undian" style="margin-top:10px">
       <span class="tk">🎟️</span>
-      <div><b>Undian Setiap Bulan</b><small id="undianTxt">Kupon diundi di akhir bulan.</small></div>
+      <div><b>Undian Setiap Periode</b><small id="undianTxt">Kupon diundi saat periode berakhir.</small></div>
     </div>
 
     <div id="pemenangBox" hidden>
@@ -305,15 +313,15 @@ footer{text-align:center;color:var(--mu);font-size:12px;padding:26px 0}
       <p class="note" id="tukarInfo" style="margin:6px 0 0"></p>
       <div class="tukar"><input id="tukarN" type="number" min="1" max="100" value="1" inputmode="numeric" aria-label="Jumlah kupon"><button class="btn pri" type="button" id="tukarBtn" onclick="tukar()">Tukar sekarang</button></div>
     </div>
-    <h2 class="t">🎫 Kupon saya bulan ini <small id="kuponN"></small></h2>
+    <h2 class="t">🎫 Kupon saya periode ini <small id="kuponN"></small></h2>
     <div id="kuponList" class="kuponlist"></div>
-    <p class="note">Setiap kupon punya nomor unik dan ikut undian bulan berjalan. Makin banyak kupon, makin besar peluang menang. Satu orang paling banyak menang 1 hadiah undian per bulan.</p>
+    <p class="note">Setiap kupon punya nomor unik dan ikut undian periode yang sedang berjalan. Makin banyak kupon, makin besar peluang menang. Satu orang paling banyak menang 1 hadiah undian per periode.</p>
   </section>
 
   <!-- PERINGKAT -->
   <section data-view="peringkat" hidden>
     <h2 class="t">🏆 Papan peringkat <small id="rkBulan"></small></h2>
-    <p class="note" style="margin-top:-4px">Dihitung dari jumlah <b>jawaban benar</b> bulan ini (setiap soal hanya dihitung sekali). Juara 1, 2, 3 langsung mendapat hadiah.</p>
+    <p class="note" style="margin-top:-4px" id="rkNote">Dihitung dari jumlah <b>jawaban benar</b> selama periode berjalan (setiap soal hanya dihitung sekali). Juara 1, 2, 3 langsung mendapat hadiah.</p>
     <ol class="rank" id="rank"></ol>
   </section>
 
@@ -348,8 +356,15 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rp = n => "Rp" + Number(n || 0).toLocaleString("id-ID");
 const sesi = () => { try { return localStorage.getItem("kalensari_sesi_pembeli") || ""; } catch (e) { return ""; } };
-const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-const namaBulan = b => { const [y, m] = String(b || "").split("-"); return m ? BULAN[+m - 1] + " " + y : ""; };
+const TZ = { timeZone: "Asia/Jakarta" };
+const tgl = (d, th) => d ? new Date(d).toLocaleDateString("id-ID", { ...TZ, day: "numeric", month: "short", ...(th ? { year: "numeric" } : {}) }) : "";
+const jam = d => d ? new Date(d).toLocaleTimeString("id-ID", { ...TZ, hour: "2-digit", minute: "2-digit" }).replace(":", ".") : "";
+const rentang = p => p ? `${tgl(p.mulai)} – ${tgl(p.selesai, true)} pukul ${jam(p.selesai)} WIB` : "";
+function sisaWaktu(d) {
+  const ms = new Date(d) - Date.now(); if (!(ms > 0)) return "segera";
+  const h = Math.floor(ms / 864e5), j = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
+  return h >= 1 ? `${h} hari${j ? " " + j + " jam" : ""}` : j >= 1 ? `${j} jam ${m} menit` : `${Math.max(m, 1)} menit`;
+}
 let toastT; function toast(m, ms = 2600) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), ms); }
 
 async function rpc(fn, body = {}) {
@@ -388,37 +403,54 @@ function render() {
   $("#fPoin").textContent = (INFO.poin || 0).toLocaleString("id-ID");
   $("#fKupon").textContent = (INFO.kupon || []).length;
   $("#fRank").textContent = INFO.peringkat ? "#" + INFO.peringkat : "–";
-  $("#fBenar").textContent = (INFO.benar_bulan || 0) + " benar bulan ini";
-  $("#bulanTxt").textContent = namaBulan(INFO.bulan);
-  $("#rkBulan").textContent = namaBulan(INFO.bulan);
+  const P = INFO.periode, PB = INFO.berikut, PR = INFO.periode_peringkat;
+  $("#fBenar").textContent = (INFO.benar_periode || 0) + " benar periode ini";
+  // kotak periode
+  const pbx = $("#periodeBox");
+  if (P) {
+    pbx.className = "periode on"; pbx.hidden = false;
+    pbx.innerHTML = `<span class="pi">📅</span><span class="pt"><b>${esc(P.nama)} sedang berjalan</b><small>${esc(rentang(P))}</small></span><em>⏳ ${esc(sisaWaktu(P.selesai))} lagi</em>`;
+  } else if (PB || PR) {
+    pbx.className = "periode jeda"; pbx.hidden = false;
+    pbx.innerHTML = `<span class="pi">☕</span><span class="pt"><b>Masa jeda, belum ada periode berjalan</b><small>Tetap bisa latihan dan mengumpulkan poin, tetapi jawaban belum dihitung untuk peringkat. Tukar kupon dibuka lagi saat periode dimulai.${PB ? ` <b style="display:inline;font-size:inherit">${esc(PB.nama)}</b> mulai ${esc(tgl(PB.mulai, true))} pukul ${esc(jam(PB.mulai))} WIB.` : ""}</small></span>`;
+  } else pbx.hidden = true;
+  $("#bulanTxt").textContent = P ? P.nama : PB ? PB.nama : "";
+  $("#rkBulan").textContent = PR ? PR.nama + (PR.status === "selesai" ? " (selesai)" : "") : "";
+  $("#rkNote").innerHTML = PR && PR.status === "selesai"
+    ? `Hasil akhir <b>${esc(PR.nama)}</b>. Peringkat baru dimulai saat periode berikutnya berjalan${PB ? ` (${esc(tgl(PB.mulai, true))})` : ""}.`
+    : `Dihitung dari jumlah <b>jawaban benar</b> selama periode berjalan${P ? ` (${esc(rentang(P))})` : ""}. Setiap soal hanya dihitung sekali. Juara 1, 2, 3 langsung mendapat hadiah.`;
   const hj = a.hadiah_juara || [];
   $("#prize").innerHTML = ["🥇","🥈","🥉"].map((m, i) => `<div><span>${m}</span><small>Juara ${i + 1}</small><b>${hj[i] ? rp(hj[i]) : "-"}</b><small>voucher belanja</small></div>`).join("");
-  if ($("#vcardTxt") && a.jumlah_pemenang_undian) $("#vcardTxt").textContent = `${a.jumlah_pemenang_undian} pemenang undian × ${rp(a.hadiah_undian)} + hadiah juara 1–3 setiap bulan.`;
+  if ($("#vcardTxt") && a.jumlah_pemenang_undian) $("#vcardTxt").textContent = `${a.jumlah_pemenang_undian} pemenang undian × ${rp(a.hadiah_undian)} + hadiah juara 1–3 setiap periode.`;
   kuisTerbaru();
-  $("#undianTxt").textContent = a.jumlah_pemenang_undian ? `${a.jumlah_pemenang_undian} pemenang × ${rp(a.hadiah_undian)} voucher belanja. ${a.poin_per_kupon} poin = 1 kupon.` : "Kupon diundi di akhir bulan.";
+  const akhir = P ? ` Diundi otomatis ${tgl(P.selesai, true)} pukul ${jam(P.selesai)} WIB.` : "";
+  $("#undianTxt").textContent = a.jumlah_pemenang_undian ? `${a.jumlah_pemenang_undian} pemenang × ${rp(a.hadiah_undian)} voucher belanja. ${a.poin_per_kupon} poin = 1 kupon.${akhir}` : "Kupon diundi saat periode berakhir.";
   // poin & kupon
   $("#pPoin").textContent = (INFO.poin || 0).toLocaleString("id-ID");
   $("#pTotal").textContent = (INFO.poin_total || 0).toLocaleString("id-ID");
   const bisa = Math.floor((INFO.poin || 0) / (a.poin_per_kupon || 100));
-  $("#tukarInfo").innerHTML = INFO.login ? `${a.poin_per_kupon || 100} poin = 1 kupon. Poin Anda cukup untuk <b>${bisa}</b> kupon.` : `Masuk dulu untuk menukar poin. <a href="#" onclick="masuk();return false">Masuk</a>`;
-  $("#tukarN").max = Math.max(1, Math.min(100, bisa)); $("#tukarBtn").disabled = !INFO.login || bisa < 1;
+  $("#tukarInfo").innerHTML = !INFO.login ? `Masuk dulu untuk menukar poin. <a href="#" onclick="masuk();return false">Masuk</a>`
+    : !P ? `☕ Tukar kupon ditutup selama masa jeda.${PB ? ` Dibuka lagi ${esc(tgl(PB.mulai, true))} pukul ${esc(jam(PB.mulai))} WIB.` : ""} Poinmu tetap aman.`
+    : `${a.poin_per_kupon || 100} poin = 1 kupon untuk ${esc(P.nama)}. Poin Anda cukup untuk <b>${bisa}</b> kupon.`;
+  $("#tukarN").max = Math.max(1, Math.min(100, bisa)); $("#tukarBtn").disabled = !INFO.login || !P || bisa < 1;
   const kp = INFO.kupon || [];
   $("#kuponN").textContent = kp.length ? kp.length + " kupon" : "";
-  $("#kuponList").innerHTML = kp.length ? kp.map(k => `<span class="kupon">🎟️ ${esc(k)}</span>`).join("") : `<div class="empty" style="width:100%">Belum ada kupon bulan ini. Kumpulkan poin dari kuis lalu tukarkan di atas.</div>`;
+  $("#kuponList").innerHTML = kp.length ? kp.map(k => `<span class="kupon">🎟️ ${esc(k)}</span>`).join("") : `<div class="empty" style="width:100%">${P ? "Belum ada kupon periode ini. Kumpulkan poin dari kuis lalu tukarkan di atas." : "Belum ada periode berjalan."}</div>`;
   // peringkat
   const top = INFO.top || [];
   $("#rank").innerHTML = top.length ? top.map(r => `<li class="g${r.peringkat}${INFO.login && INFO.peringkat === r.peringkat ? " me" : ""}"><span class="no">${r.peringkat <= 3 ? ["🥇","🥈","🥉"][r.peringkat - 1] : r.peringkat}</span><b>${esc(r.nama)}</b><em>${r.benar} benar</em></li>`).join("")
-    + (INFO.login && INFO.peringkat > 10 ? `<li class="me"><span class="no">${INFO.peringkat}</span><b>Anda</b><em>${INFO.benar_bulan} benar</em></li>` : "")
-    : `<div class="empty">Belum ada peserta bulan ini. Jadilah yang pertama! 🚀</div>`;
+    + (INFO.login && INFO.peringkat > 10 ? `<li class="me"><span class="no">${INFO.peringkat}</span><b>Anda</b><em>${INFO.benar_periode} benar</em></li>` : "")
+    : `<div class="empty">${P || !PR ? "Belum ada peserta periode ini. Jadilah yang pertama! 🚀" : "Belum ada periode berjalan."}</div>`;
   // aturan
   $("#rules").innerHTML = [
     "Masuk dengan akun pembeli Kalensari Store (No. WhatsApp + PIN). Gratis, tanpa biaya apa pun.",
     "Pilih jenjang, kelas, dan mata pelajaran, lalu jawab soal pilihan A, B, C, atau D.",
     `Setiap jawaban benar mendapat <b>+${a.poin_benar || 10} poin</b>. Setiap soal hanya bisa dijawab satu kali.`,
     `Maksimal <b>${a.maks_soal_harian || 100} soal per hari</b> supaya adil untuk semua.`,
-    `Tukar <b>${a.poin_per_kupon || 100} poin = 1 kupon undian</b> bulan berjalan. Setiap kupon punya nomor unik.`,
-    `<b>Juara 1, 2, 3</b> tiap bulan = jawaban benar terbanyak bulan itu, langsung mendapat hadiah${hj.length ? " (" + hj.map(rp).join(" / ") + ")" : ""}.`,
-    `Di akhir bulan admin mengundi kupon: <b>${a.jumlah_pemenang_undian || 0} pemenang</b> masing-masing ${rp(a.hadiah_undian)}. Satu orang maksimal 1 hadiah undian per bulan.`,
+    `Lomba berjalan per <b>periode</b>${P ? ` (sekarang: ${esc(P.nama)}, ${esc(rentang(P))})` : PB ? ` (berikutnya: ${esc(PB.nama)}, ${esc(rentang(PB))})` : ""}. Di luar periode tetap bisa latihan dan dapat poin, tetapi jawaban tidak dihitung untuk peringkat.`,
+    `Tukar <b>${a.poin_per_kupon || 100} poin = 1 kupon undian</b> periode yang sedang berjalan. Setiap kupon punya nomor unik. Poin yang belum ditukar tidak hangus.`,
+    `<b>Juara 1, 2, 3</b> tiap periode = jawaban benar terbanyak selama periode itu, langsung mendapat hadiah${hj.length ? " (" + hj.map(rp).join(" / ") + ")" : ""}.`,
+    `Saat periode berakhir, kupon diundi: <b>${a.jumlah_pemenang_undian || 0} pemenang</b> masing-masing ${rp(a.hadiah_undian)}. Satu orang maksimal 1 hadiah undian per periode.`,
     "Hadiah berupa saldo voucher belanja yang langsung masuk ke akun pembeli dan bisa dipakai belanja di Kalensari Store.",
     "Pemenang diumumkan di halaman ini dan di popup Kalensari Store (nama disingkat, nomor disamarkan).",
     a.catatan ? esc(a.catatan) : ""
@@ -428,11 +460,11 @@ function render() {
 async function muatPemenang() {
   try {
     const p = await rpc("kuis_pemenang_terbit");
-    if (!p || !p.bulan) return;
-    $("#pemenangBox").hidden = false; $("#pmBulan").textContent = namaBulan(p.bulan);
+    if (!p || !p.nama) return;
+    $("#pemenangBox").hidden = false; $("#pmBulan").textContent = p.nama;
     const j = (p.juara || []).map(x => `<li class="g${x.peringkat}"><span class="no">${["🥇","🥈","🥉"][x.peringkat - 1] || x.peringkat}</span><b>${esc(x.nama)} <small class="note">${esc(x.wa)}</small></b><em>${rp(x.hadiah)}</em></li>`).join("");
     const u = (p.undian || []).map(x => `<li><span class="no">🎟️</span><b>${esc(x.nama)} <small class="note">${esc(x.kupon)}</small></b><em>${rp(x.hadiah)}</em></li>`).join("");
-    $("#pemenang").innerHTML = (j ? `<p class="note"><b>Juara bulan ${namaBulan(p.bulan)}</b></p><ol class="rank">${j}</ol>` : "") + (u ? `<p class="note"><b>Pemenang undian kupon</b></p><ol class="rank">${u}</ol>` : "");
+    $("#pemenang").innerHTML = (j ? `<p class="note"><b>Juara ${esc(p.nama)}</b></p><ol class="rank">${j}</ol>` : "") + (u ? `<p class="note"><b>Pemenang undian kupon</b></p><ol class="rank">${u}</ol>` : "");
   } catch (e) {}
 }
 

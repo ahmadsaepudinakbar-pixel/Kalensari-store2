@@ -9,8 +9,7 @@
   const BASE = String(C.supabaseUrl || "").replace(/\/$/, "");
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const rp = n => "Rp" + Number(n || 0).toLocaleString("id-ID");
-  const BLN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-  const nmB = b => { const [y, m] = String(b || "").split("-"); return m ? BLN[+m - 1] + " " + y : ""; };
+  const tgl = d => d ? new Date(d).toLocaleDateString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short", year: "numeric" }) : "";
 
   const st = document.createElement("style");
   st.textContent = `
@@ -68,8 +67,8 @@
       const r = await fetch(BASE + "/rest/v1/rpc/kuis_pemenang_terbit", { method: "POST", headers: { apikey: C.supabaseAnonKey, Authorization: "Bearer " + C.supabaseAnonKey, "Content-Type": "application/json" }, body: "{}" });
       if (!r.ok) return;
       const p = await r.json();
-      if (!p || !p.bulan || (!(p.juara || []).length && !(p.undian || []).length)) return;
-      const tanda = p.bulan + ":" + p.id;
+      if (!p || !p.periode_id || (!(p.juara || []).length && !(p.undian || []).length)) return;
+      const tanda = "P" + p.periode_id + ":" + p.id;
       let lihat = ""; try { lihat = localStorage.getItem(KUNCI) || ""; } catch (e) {}
       if (lihat === tanda) return;
       // jangan menumpuk dengan popup lain yang sedang terbuka
@@ -84,9 +83,9 @@
     const u = (p.undian || []).map(x => `<div class="kp-li"><span class="m">🎟️</span><span><b>${esc(x.nama)}</b><small>${esc(x.wa)} • Kupon ${esc(x.kupon)}</small></span><em>${rp(x.hadiah)}</em></div>`).join("");
     const el = document.createElement("div"); el.className = "kp-pop"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
     el.innerHTML = `<div class="kp-box"><button class="kp-x" type="button" aria-label="Tutup">×</button>
-      <div class="kp-head"><div class="t">🏆</div><h3>Pemenang Kuis Pintar</h3><p>${esc(nmB(p.bulan))} • Selamat kepada para pemenang!</p></div>
+      <div class="kp-head"><div class="t">🏆</div><h3>Pemenang Kuis Pintar</h3><p>${esc(p.nama)}${p.selesai ? " • berakhir " + esc(tgl(p.selesai)) : ""}<br>Selamat kepada para pemenang!</p></div>
       <div class="kp-body">${j ? `<h4>Juara jawaban benar terbanyak</h4>${j}` : ""}${u ? `<h4>Pemenang undian kupon</h4>${u}` : ""}
-      <a class="kp-cta" href="kuis.html">🎓 Ikut Kuis Pintar bulan ini</a>
+      <a class="kp-cta" href="kuis.html">🎓 Ikut Kuis Pintar sekarang</a>
       <div class="kp-note">Hadiah berupa saldo voucher belanja dan sudah masuk ke akun pemenang.</div></div></div>`;
     const tutup = () => { try { localStorage.setItem(KUNCI, tanda); } catch (e) {} el.remove(); };
     el.querySelector(".kp-x").onclick = tutup;

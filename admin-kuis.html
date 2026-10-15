@@ -67,15 +67,38 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 
 <div id="appView" hidden>
   <nav class="tabs" id="tabs">
-    <button data-t="ringkas" class="on">📊 Ringkasan</button><button data-t="impor">📥 Impor Excel</button><button data-t="soal">📚 Bank Soal</button><button data-t="pemenang">🏆 Pemenang</button><button data-t="aturan">⚙️ Aturan</button>
+    <button data-t="ringkas" class="on">📊 Ringkasan</button><button data-t="periode">📅 Periode</button><button data-t="impor">📥 Impor Excel</button><button data-t="soal">📚 Bank Soal</button><button data-t="pemenang">🏆 Pemenang</button><button data-t="aturan">⚙️ Aturan</button>
   </nav>
   <main>
     <!-- RINGKASAN -->
     <section data-p="ringkas">
-      <div class="row" style="margin-bottom:10px"><b>Bulan</b><select class="f" id="rkBulan" onchange="muatRingkas()"></select><button class="btn ol sm" onclick="muatRingkas()">↻ Muat ulang</button></div>
+      <div class="row" style="margin-bottom:10px"><b>Periode</b><select class="f" id="rkBulan" onchange="muatRingkas()"></select><button class="btn ol sm" onclick="muatRingkas()">↻ Muat ulang</button></div>
+      <p class="note" id="rkPeriode" style="margin:-4px 0 10px"></p>
       <div class="grid" id="rkStat"></div>
       <div class="card" style="margin-top:14px"><h3>🏆 Peringkat sementara (jawaban benar unik)</h3><div class="tw"><table><thead><tr><th>#</th><th>Nama</th><th>WhatsApp</th><th>Benar</th></tr></thead><tbody id="rkRank"></tbody></table></div></div>
       <div class="card"><h3>📚 Soal aktif per pelajaran</h3><div class="tw"><table><thead><tr><th>Jenjang</th><th>Kelas</th><th>Mapel</th><th>Soal</th></tr></thead><tbody id="rkMapel"></tbody></table></div></div>
+    </section>
+
+    <!-- PERIODE -->
+    <section data-p="periode" hidden>
+      <div class="card">
+        <h3>📅 Periode lomba</h3>
+        <p class="note">Juara & undian dihitung per periode. Jawaban benar dihitung hanya bila dijawab <b>selama</b> periode berjalan; kupon hanya bisa ditukar saat ada periode berjalan. Di luar periode (jeda) pelajar tetap bisa latihan & dapat poin. Periode tidak boleh bertabrakan. Semua waktu dalam WIB.</p>
+        <div class="row" style="margin-top:6px"><button class="btn br" onclick="formPeriode()">＋ Periode baru</button><button class="btn ol sm" onclick="muatRingkas()">↻ Muat ulang</button></div>
+      </div>
+      <div class="card" id="pdForm" hidden>
+        <h3 id="pdJudul">Periode baru</h3>
+        <label class="l">Nama periode<input class="f" id="pdNama" placeholder="mis. Periode 2 (Januari 2027)"></label>
+        <div class="grid">
+          <label class="l">Mulai (WIB)<input class="f" id="pdMulai" type="datetime-local"></label>
+          <label class="l">Selesai (WIB)<input class="f" id="pdSelesai" type="datetime-local"></label>
+        </div>
+        <div class="row" style="margin-top:8px"><span class="note">Isi cepat:</span><button class="btn ol sm" onclick="isiCepat(1)">1 bulan</button><button class="btn ol sm" onclick="isiCepat(2)">2 minggu</button><button class="btn ol sm" onclick="isiCepat(3)">1 minggu</button></div>
+        <label class="l" style="font-weight:600;color:var(--tx)"><input type="checkbox" id="pdOto" style="width:auto"> Otomatis saat periode berakhir: tetapkan juara 1–3, undi kupon, umumkan pemenang, dan kirim voucher</label>
+        <p class="note" style="margin:2px 0 0">Matikan bila Anda ingin memeriksa daftar pemenang dulu, lalu menerbitkannya sendiri di tab Pemenang.</p>
+        <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn ol" onclick="$('#pdForm').hidden=true">Batal</button><button class="btn br" onclick="simpanPeriode(this)">💾 Simpan periode</button></div>
+      </div>
+      <div class="card"><h3>Daftar periode</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Mulai</th><th>Selesai</th><th>Status</th><th>Kupon</th><th></th></tr></thead><tbody id="pdBody"></tbody></table></div></div>
     </section>
 
     <!-- IMPOR -->
@@ -114,13 +137,14 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
     <!-- PEMENANG -->
     <section data-p="pemenang" hidden>
       <div class="card">
-        <h3>🏆 Pemenang bulanan</h3>
-        <div class="row"><b>Bulan</b><select class="f" id="pmBulan" onchange="muatPemenang()"></select></div>
-        <p class="note">Urutan kerja: <b>1)</b> Tetapkan juara 1–3 (otomatis dari jawaban benar terbanyak). <b>2)</b> Undi kupon. <b>3)</b> Periksa daftar, lalu <b>Terbitkan</b>: pemenang tampil di popup toko dan hadiah otomatis masuk saldo voucher belanja pemenang. Sebaiknya dilakukan setelah bulan berakhir.</p>
+        <h3>🏆 Pemenang per periode</h3>
+        <div class="row"><b>Periode</b><select class="f" id="pmBulan" onchange="muatPemenang()"></select></div>
+        <div id="pmInfo" class="note" style="margin:8px 0"></div>
+        <p class="note">Periode <b>otomatis</b>: semua langkah di bawah berjalan sendiri saat periode berakhir. Periode <b>tidak otomatis</b>: setelah periode berakhir, <b>1)</b> tetapkan juara 1–3, <b>2)</b> undi kupon, <b>3)</b> periksa daftar lalu <b>Terbitkan</b>. Pemenang tampil di popup toko dan hadiah masuk saldo voucher belanja pemenang.</p>
         <div class="row">
-          <button class="btn br" onclick="aksiPm('kuis_admin_juara')">1️⃣ Tetapkan juara 1–3</button>
-          <span class="row"><button class="btn br" onclick="aksiPm('kuis_admin_undi')">2️⃣ Undi kupon</button><input class="f" id="pmN" type="number" min="0" max="100" style="width:70px" title="Jumlah pemenang undian"> orang</span>
-          <button class="btn gr" onclick="terbit()">3️⃣ Terbitkan + kirim voucher</button>
+          <button class="btn br pmAksi" onclick="aksiPm('kuis_admin_juara')">1️⃣ Tetapkan juara 1–3</button>
+          <span class="row"><button class="btn br pmAksi" onclick="aksiPm('kuis_admin_undi')">2️⃣ Undi kupon</button><input class="f" id="pmN" type="number" min="0" max="100" style="width:70px" title="Jumlah pemenang undian"> orang</span>
+          <button class="btn gr pmAksi" onclick="terbit()">3️⃣ Terbitkan + kirim voucher</button>
           <button class="btn rd" onclick="aksiPm('kuis_admin_sembunyi','Sembunyikan pemenang dari popup toko? (Voucher yang sudah masuk tidak ditarik)')">Sembunyikan</button>
         </div>
       </div>
@@ -144,7 +168,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
           <label class="l">Hadiah juara 3 (Rp)<input class="f" id="aJ3" type="number" min="0"></label>
         </div>
         <div class="grid">
-          <label class="l">Jumlah pemenang undian / bulan<input class="f" id="aNund" type="number" min="0"></label>
+          <label class="l">Jumlah pemenang undian / periode<input class="f" id="aNund" type="number" min="0"></label>
           <label class="l">Hadiah tiap pemenang undian (Rp)<input class="f" id="aHund" type="number" min="0"></label>
         </div>
         <label class="l">Catatan untuk pelajar<textarea class="f" id="aCatatan"></textarea></label>
@@ -216,28 +240,90 @@ function bukaTab(t) {
   tab = t;
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("[data-p]").forEach(s => s.hidden = s.dataset.p !== t);
-  if (t === "ringkas") muatRingkas(); if (t === "soal") muatSoal(); if (t === "pemenang") muatPemenang(); if (t === "aturan") muatAturan();
+  if (t === "ringkas" || t === "periode") muatRingkas(); if (t === "soal") muatSoal(); if (t === "pemenang") muatPemenang(); if (t === "aturan") muatAturan();
 }
-function bulanList() {
-  const out = [], d = new Date(); d.setDate(1);
-  for (let i = 0; i < 12; i++) { const y = d.getFullYear(), m = d.getMonth() + 1; out.push(`${y}-${String(m).padStart(2, "0")}`); d.setMonth(d.getMonth() - 1); }
-  return out;
+
+/* ---------- periode ---------- */
+const TZ = "Asia/Jakarta";
+const wib = d => d ? new Date(d).toLocaleString("id-ID", { timeZone: TZ, day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(/(\d{2})\.(\d{2})/, "$1:$2") + " WIB" : "-";
+// ISO -> nilai input datetime-local dalam WIB, dan sebaliknya
+const keInput = d => d ? new Date(d).toLocaleString("sv-SE", { timeZone: TZ }).replace(" ", "T").slice(0, 16) : "";
+const dariInput = v => v ? v + ":00+07:00" : null;
+const STATUS = { akan: '<span class="pill">Akan datang</span>', berjalan: '<span class="pill ok">Berjalan</span>', selesai: '<span class="pill off">Selesai</span>' };
+let DAFTAR = [];
+const labelP = p => `${p.nama} • ${p.status === "berjalan" ? "berjalan" : p.status === "akan" ? "akan datang" : "selesai"}`;
+function isiPilihanPeriode(r) {
+  DAFTAR = r.daftar_periode || [];
+  const cur = r.periode && r.periode.id;
+  for (const id of ["#rkBulan", "#pmBulan"]) {
+    const s = $(id), lama = s.value;
+    s.innerHTML = DAFTAR.length ? DAFTAR.map(p => `<option value="${p.id}">${esc(labelP(p))}</option>`).join("") : `<option value="">Belum ada periode</option>`;
+    s.value = DAFTAR.some(p => String(p.id) === lama) ? lama : (cur || "");
+  }
+  renderPeriode();
 }
-const BLN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
-const nmB = b => { const [y, m] = b.split("-"); return BLN[+m - 1] + " " + y; };
+function statusPeriode(p) {
+  if (p.status !== "selesai") return STATUS[p.status] || "";
+  return p.terbit ? '<span class="pill ok">Pemenang diumumkan</span>' : p.diproses_at ? '<span class="pill off">Selesai diproses</span>' : '<span class="pill no">Menunggu pemenang</span>';
+}
+function renderPeriode() {
+  $("#pdBody").innerHTML = DAFTAR.map(p => `<tr><td><b>${esc(p.nama)}</b><br><small class="note">${p.otomatis ? "⚙️ Otomatis" : "✋ Manual"}</small></td><td>${wib(p.mulai)}</td><td>${wib(p.selesai)}</td><td>${statusPeriode(p)}</td><td>${Number(p.kupon || 0).toLocaleString("id-ID")}</td>
+    <td style="white-space:nowrap">${p.terbit || p.diproses_at ? "" : `<button class="btn ol sm" onclick="formPeriode(${p.id})">Ubah</button> `}${!p.kupon && !p.terbit && !p.diproses_at ? `<button class="btn rd sm" onclick="hapusPeriode(${p.id})">Hapus</button>` : ""}</td></tr>`).join("")
+    || `<tr><td colspan="6" class="note">Belum ada periode. Klik "＋ Periode baru".</td></tr>`;
+}
+let editPeriode = null;
+function formPeriode(id) {
+  const p = DAFTAR.find(x => x.id === id);
+  editPeriode = p ? p.id : null;
+  $("#pdJudul").textContent = p ? "Ubah " + p.nama : "Periode baru";
+  if (p) { $("#pdNama").value = p.nama; $("#pdMulai").value = keInput(p.mulai); $("#pdSelesai").value = keInput(p.selesai); $("#pdOto").checked = !!p.otomatis; }
+  else { $("#pdNama").value = "Periode " + (DAFTAR.length + 1); $("#pdOto").checked = true; $("#pdMulai").value = ""; isiCepat(1); }
+  $("#pdForm").hidden = false; $("#pdForm").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+// mulai = setelah periode terakhir (atau sekarang); selesai = mulai + durasi
+function isiCepat(jenis) {
+  let mulai = $("#pdMulai").value ? new Date(dariInput($("#pdMulai").value)) : null;
+  if (!mulai) {
+    const akhir = DAFTAR.reduce((m, p) => p.id !== editPeriode && new Date(p.selesai) > m ? new Date(p.selesai) : m, new Date(0));
+    mulai = akhir > new Date() ? akhir : new Date(Math.ceil(Date.now() / 36e5) * 36e5);
+  }
+  const s = new Date(mulai);
+  if (jenis === 1) s.setMonth(s.getMonth() + 1); else s.setDate(s.getDate() + (jenis === 2 ? 14 : 7));
+  $("#pdMulai").value = keInput(mulai); $("#pdSelesai").value = keInput(s);
+}
+async function simpanPeriode(b) {
+  const nama = $("#pdNama").value.trim(), mulai = dariInput($("#pdMulai").value), selesai = dariInput($("#pdSelesai").value), oto = $("#pdOto").checked;
+  if (!nama || !mulai || !selesai) return toast("Isi nama, waktu mulai, dan waktu selesai");
+  if (new Date(selesai) <= new Date(mulai)) return toast("Waktu selesai harus setelah waktu mulai");
+  if (!confirm(`${editPeriode ? "Simpan perubahan" : "Buat"} periode "${nama}"?\n\nMulai: ${wib(mulai)}\nSelesai: ${wib(selesai)}\n${oto ? "Saat selesai: pemenang dihitung, diumumkan & voucher dikirim OTOMATIS." : "Saat selesai: admin menetapkan & menerbitkan pemenang sendiri."}`)) return;
+  b.disabled = true;
+  try {
+    const r = await rpc("kuis_admin_periode_simpan", { p_id: editPeriode, p_nama: nama, p_mulai: mulai, p_selesai: selesai, p_otomatis: oto });
+    $("#pdForm").hidden = true; toast("Periode disimpan"); tampilRingkas(r);
+  } catch (e) { toast(e.message, 5000); }
+  b.disabled = false;
+}
+async function hapusPeriode(id) {
+  const p = DAFTAR.find(x => x.id === id); if (!p || !confirm(`Hapus periode "${p.nama}"?`)) return;
+  try { tampilRingkas(await rpc("kuis_admin_periode_hapus", { p_id: id })); toast("Periode dihapus"); } catch (e) { toast(e.message, 5000); }
+}
 
 /* ---------- ringkasan ---------- */
 let RINGKAS = null;
+const pilihP = id => { const v = $(id).value; return v ? Number(v) : null; };
 async function muatRingkas() {
   $("#rkStat").innerHTML = `<div class="stat"><span class="spin"></span></div>`;
-  try {
-    const r = RINGKAS = await rpc("kuis_admin_ringkas", { p_bulan: $("#rkBulan").value });
-    const pj = r.per_jenjang || {};
-    $("#rkStat").innerHTML = [["Soal aktif", r.soal_aktif], ["Total soal", r.soal_total], ["SD / SMP / SMA", `${pj.SD || 0} / ${pj.SMP || 0} / ${pj.SMA || 0}`], ["Pemain bulan ini", r.pemain_bulan], ["Jawaban bulan ini", r.jawaban_bulan], ["Kupon bulan ini", r.kupon_bulan]]
-      .map(([k, v]) => `<div class="stat"><small>${k}</small><b>${typeof v === "number" ? v.toLocaleString("id-ID") : v}</b></div>`).join("");
-    $("#rkRank").innerHTML = (r.ranking || []).map(x => `<tr><td>${x.peringkat}</td><td>${esc(x.nama)}</td><td>${esc(waShow(x.wa))}</td><td><b>${x.benar}</b></td></tr>`).join("") || `<tr><td colspan="4" class="note">Belum ada jawaban benar bulan ini.</td></tr>`;
-    $("#rkMapel").innerHTML = (r.per_mapel || []).map(x => `<tr><td>${x.jenjang}</td><td>${x.kelas}</td><td>${esc(x.mapel)}</td><td>${Number(x.n).toLocaleString("id-ID")}</td></tr>`).join("") || `<tr><td colspan="4" class="note">Belum ada soal. Impor dari Excel dulu.</td></tr>`;
-  } catch (e) { $("#rkStat").innerHTML = `<div class="err">${esc(e.message)}${/kuis_admin_ringkas|PGRST202/.test(e.message) ? "<br>Jalankan supabase-kuis-pintar.sql di Supabase dulu." : ""}</div>`; }
+  try { tampilRingkas(await rpc("kuis_admin_ringkas", { p_periode: pilihP("#rkBulan") })); }
+  catch (e) { $("#rkStat").innerHTML = `<div class="err">${esc(e.message)}${/kuis_admin_ringkas|PGRST202|function/.test(e.message) ? "<br>Jalankan supabase-kuis-pintar.sql lalu supabase-kuis-periode.sql di Supabase dulu." : ""}</div>`; }
+}
+function tampilRingkas(r) {
+  RINGKAS = r; isiPilihanPeriode(r);
+  const p = r.periode, pj = r.per_jenjang || {};
+  $("#rkPeriode").innerHTML = p ? `${STATUS[p.status] || ""} <b>${esc(p.nama)}</b>: ${wib(p.mulai)} s.d. ${wib(p.selesai)}` : `Belum ada periode. Buat di tab <a href="#" onclick="bukaTab('periode');return false">📅 Periode</a>.`;
+  $("#rkStat").innerHTML = [["Soal aktif", r.soal_aktif], ["Total soal", r.soal_total], ["SD / SMP / SMA", `${pj.SD || 0} / ${pj.SMP || 0} / ${pj.SMA || 0}`], ["Pemain periode ini", r.pemain], ["Jawaban periode ini", r.jawaban], ["Kupon periode ini", r.kupon]]
+    .map(([k, v]) => `<div class="stat"><small>${k}</small><b>${typeof v === "number" ? v.toLocaleString("id-ID") : v}</b></div>`).join("");
+  $("#rkRank").innerHTML = (r.ranking || []).map(x => `<tr><td>${x.peringkat}</td><td>${esc(x.nama)}</td><td>${esc(waShow(x.wa))}</td><td><b>${x.benar}</b></td></tr>`).join("") || `<tr><td colspan="4" class="note">Belum ada jawaban benar di periode ini.</td></tr>`;
+  $("#rkMapel").innerHTML = (r.per_mapel || []).map(x => `<tr><td>${x.jenjang}</td><td>${x.kelas}</td><td>${esc(x.mapel)}</td><td>${Number(x.n).toLocaleString("id-ID")}</td></tr>`).join("") || `<tr><td colspan="4" class="note">Belum ada soal. Impor dari Excel dulu.</td></tr>`;
 }
 
 /* ---------- impor Excel ---------- */
@@ -371,31 +457,36 @@ async function simpanSoal(b) {
 let PM = null;
 async function muatPemenang() {
   $("#pmBody").innerHTML = `<tr><td colspan="7"><span class="spin"></span></td></tr>`;
-  try { PM = await rpc("kuis_admin_ringkas", { p_bulan: $("#pmBulan").value }); renderPm(); } catch (e) { $("#pmBody").innerHTML = `<tr><td colspan="7"><div class="err">${esc(e.message)}</div></td></tr>`; }
+  try { PM = await rpc("kuis_admin_ringkas", { p_periode: pilihP("#pmBulan") }); isiPilihanPeriode(PM); renderPm(); } catch (e) { $("#pmBody").innerHTML = `<tr><td colspan="7"><div class="err">${esc(e.message)}</div></td></tr>`; }
 }
+const namaPm = () => (PM && PM.periode && PM.periode.nama) || "periode ini";
 function renderPm() {
-  const p = PM.pemenang || [], terbit = p.some(x => x.terbit);
-  $("#pmStat").innerHTML = [["Pemain", PM.pemain_bulan], ["Kupon terkumpul", PM.kupon_bulan], ["Pemenang", p.length], ["Status", terbit ? "✅ Terbit" : p.length ? "Draf" : "Belum ada"], ["Total hadiah", rp(p.reduce((t, x) => t + (x.hadiah || 0), 0))]]
+  const p = PM.pemenang || [], terbit = p.some(x => x.terbit), pr = PM.periode;
+  const selesai = pr && pr.status === "selesai";
+  $("#pmInfo").innerHTML = !pr ? "Belum ada periode." : `${STATUS[pr.status] || ""} <b>${esc(pr.nama)}</b>: ${wib(pr.mulai)} s.d. ${wib(pr.selesai)} • ${pr.otomatis ? "⚙️ otomatis" : "✋ manual"}`
+    + (!selesai ? `<br>⏳ Tombol pemenang aktif setelah periode berakhir${pr.otomatis ? "; pada saat itu pemenang dihitung & voucher dikirim otomatis" : ""}.` : "");
+  document.querySelectorAll(".pmAksi").forEach(b => b.disabled = !selesai || (terbit && !b.classList.contains("gr")));
+  $("#pmStat").innerHTML = [["Pemain", PM.pemain], ["Kupon terkumpul", PM.kupon], ["Pemenang", p.length], ["Status", terbit ? "✅ Terbit" : p.length ? "Draf" : "Belum ada"], ["Total hadiah", rp(p.reduce((t, x) => t + (x.hadiah || 0), 0))]]
     .map(([k, v]) => `<div class="stat"><small>${k}</small><b style="font-size:20px">${typeof v === "number" ? v.toLocaleString("id-ID") : v}</b></div>`).join("");
   $("#pmBody").innerHTML = p.map(x => `<tr><td>${x.jenis === "juara" ? "🏆 Juara" : "🎟️ Undian"}</td><td>${x.peringkat}</td><td>${esc(x.nama)}</td><td>${esc(waShow(x.wa))}</td><td>${x.jenis === "juara" ? x.jumlah_benar + " benar" : esc(x.nomor_kupon)}</td><td>${rp(x.hadiah)}</td>
-    <td>${x.terbit ? '<span class="pill ok">Terbit</span>' : '<span class="pill">Draf</span>'} ${x.voucher_ok ? '<span class="pill ok">Voucher masuk</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="7" class="note">Belum ada pemenang untuk ${nmB($("#pmBulan").value)}. Klik "Tetapkan juara" dan "Undi kupon".</td></tr>`;
+    <td>${x.terbit ? '<span class="pill ok">Terbit</span>' : '<span class="pill">Draf</span>'} ${x.voucher_ok ? '<span class="pill ok">Voucher masuk</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="7" class="note">Belum ada pemenang untuk ${esc(namaPm())}.${PM.periode && PM.periode.status === "selesai" ? ' Klik "Tetapkan juara" dan "Undi kupon".' : ""}</td></tr>`;
 }
 async function aksiPm(fn, tanya) {
-  const bl = $("#pmBulan").value;
+  const id = pilihP("#pmBulan"); if (!id) return toast("Pilih periode dulu");
   if (tanya && !confirm(tanya)) return;
-  if (!tanya && fn === "kuis_admin_juara" && !confirm(`Tetapkan juara 1–3 ${nmB(bl)} dari peringkat saat ini? (Bisa diulang selama belum diterbitkan)`)) return;
-  if (fn === "kuis_admin_undi" && !confirm(`Undi ${$("#pmN").value || "?"} pemenang dari kupon ${nmB(bl)}? Hasil undian sebelumnya (jika ada & belum terbit) akan diganti.`)) return;
+  if (!tanya && fn === "kuis_admin_juara" && !confirm(`Tetapkan juara 1–3 ${namaPm()} dari peringkat akhir? (Bisa diulang selama belum diterbitkan)`)) return;
+  if (fn === "kuis_admin_undi" && !confirm(`Undi ${$("#pmN").value || "?"} pemenang dari kupon ${namaPm()}? Hasil undian sebelumnya (jika ada & belum terbit) akan diganti.`)) return;
   try {
-    const body = { p_bulan: bl }; if (fn === "kuis_admin_undi") body.p_jumlah = Number($("#pmN").value) || null;
-    PM = await rpc(fn, body); renderPm(); toast("Berhasil");
-  } catch (e) { toast(e.message, 4000); }
+    const body = { p_periode: id }; if (fn === "kuis_admin_undi") body.p_jumlah = Number($("#pmN").value) || null;
+    PM = await rpc(fn, body); isiPilihanPeriode(PM); renderPm(); toast("Berhasil");
+  } catch (e) { toast(e.message, 5000); }
 }
 async function terbit() {
-  const bl = $("#pmBulan").value, p = (PM && PM.pemenang) || [];
+  const id = pilihP("#pmBulan"), p = (PM && PM.pemenang) || [];
   if (!p.length) return toast("Belum ada pemenang");
   const total = p.filter(x => !x.voucher_ok).reduce((t, x) => t + (x.hadiah || 0), 0);
-  if (!confirm(`Terbitkan ${p.length} pemenang ${nmB(bl)}?\n\n• Pemenang tampil di popup Kalensari Store\n• ${rp(total)} saldo voucher masuk ke akun pemenang\n\nPastikan daftar sudah benar.`)) return;
-  try { PM = await rpc("kuis_admin_terbit", { p_bulan: bl, p_voucher: true }); renderPm(); toast("Pemenang diterbitkan 🎉"); } catch (e) { toast(e.message, 4000); }
+  if (!confirm(`Terbitkan ${p.length} pemenang ${namaPm()}?\n\n• Pemenang tampil di popup Kalensari Store\n• ${rp(total)} saldo voucher masuk ke akun pemenang\n\nPastikan daftar sudah benar.`)) return;
+  try { PM = await rpc("kuis_admin_terbit", { p_periode: id }); isiPilihanPeriode(PM); renderPm(); toast("Pemenang diterbitkan 🎉"); } catch (e) { toast(e.message, 5000); }
 }
 
 /* ---------- aturan ---------- */
@@ -421,10 +512,6 @@ async function simpanAturan(b) {
 /* ---------- mulai ---------- */
 function mulaiApp() {
   $("#loginView").hidden = true; $("#appView").hidden = false;
-  const bl = bulanList(), opt = bl.map(b => `<option value="${b}">${nmB(b)}</option>`).join("");
-  $("#rkBulan").innerHTML = opt; $("#pmBulan").innerHTML = opt;
-  // setelah tanggal 1–7, halaman pemenang otomatis membuka bulan lalu
-  if (new Date().getDate() <= 7) $("#pmBulan").value = bl[1];
   muatAturan(); bukaTab(tab);
 }
 (async () => {

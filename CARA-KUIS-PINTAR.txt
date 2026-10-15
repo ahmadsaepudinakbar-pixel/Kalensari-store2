@@ -1,56 +1,80 @@
 KALENSARI STORE • KUIS PINTAR
 =============================
 
+PEMBARUAN: LOMBA PER PERIODE (menggantikan hitungan per bulan kalender)
+-----------------------------------------------------------------------
 ISI ZIP (hanya file baru / yang berubah)
-  BARU   supabase-kuis-pintar.sql   database & fungsi kuis (jalankan di Supabase)
-  BARU   kuis.html                  halaman kuis untuk pelajar
-  BARU   admin-kuis.html            panel admin: impor Excel, bank soal, pemenang, aturan
-  BARU   kuis-pemenang.js           menu "Kuis Pintar" + tombol di toko + popup pemenang
-  GANTI  index.html                 tambah 1 baris: <script src="kuis-pemenang.js">
-  GANTI  admin.html                 tambah menu "Kuis Pintar" (membuka admin-kuis.html)
+  BARU   supabase-kuis-periode.sql  tabel periode + fungsi baru (jalankan di Supabase)
+  GANTI  kuis.html                  tampil periode berjalan / masa jeda + hitung mundur
+  GANTI  admin-kuis.html            tab baru "📅 Periode"; Ringkasan & Pemenang per periode
+  GANTI  kuis-pemenang.js           popup pemenang menampilkan nama periode
+  GANTI  dashboard-pembeli.html     teks "menangkan hadiah tiap periode"
+  GANTI  CARA-KUIS-PINTAR.txt       panduan ini
 
 LANGKAH PEMASANGAN
-1) Supabase > SQL Editor > New query > tempel isi supabase-kuis-pintar.sql > Run.
-   Aman diulang. Dipasang di project yang SAMA dengan toko (pakai akun pembeli
-   dan saldo voucher yang sudah ada).
-2) Unggah 6 file lainnya ke GitHub (satu folder dengan index.html).
-3) Buka Admin toko > menu "Kuis Pintar" (atau langsung admin-kuis.html).
-   - Tab Aturan: cek poin, hadiah juara 1-3, jumlah & nilai hadiah undian. Simpan.
-   - Tab Impor Excel: pilih file soal satu per satu > "Impor".
-     File kelas 1-6 SD Anda langsung bisa dipakai (kolom Kelas, Mata Pelajaran,
-     Pertanyaan, Pilihan A-D, Kunci Jawaban, Pembahasan Singkat). Sheet gabungan
-     dan sheet terpisah berisi soal yang sama: soal kembar otomatis dilewati,
-     jadi aman mengimpor ulang. Hasil uji: 8.545 soal unik dari 6 file.
-4) Buka kalensari.web.id > menu ☰ > "🎓 Kuis Pintar", masuk dengan akun pembeli, coba main.
+1) Supabase > SQL Editor > New query > tempel isi supabase-kuis-periode.sql > Run.
+   (supabase-kuis-pintar.sql harus sudah pernah dijalankan sebelumnya.)
+   Aman diulang. Data lama tidak hilang.
+   Pertama kali dijalankan, otomatis dibuat:
+     "Periode 1"  mulai hari pertama kuis dipakai  s.d.  27 Desember 2026 pukul 20.00 WIB
+     (otomatis: hadiah dihitung, diumumkan & dicairkan saat itu juga).
+     Kupon yang sudah ditukar sebelumnya ikut masuk Periode 1.
+   Bila database sudah punya tabel quiz_periode VERSI LAMA (kolom kode/tutup):
+     tabel itu otomatis diganti nama menjadi quiz_periode_lama (cadangan, tidak dihapus),
+     periodenya dipindah ke tabel baru, dan kupon lama tetap terhubung ke periodenya.
+     Fungsi lama kuis_periode_nama dihapus; kuis_tutup_otomatis tetap ada (memakai proses baru).
+   PENTING: bila suatu saat supabase-kuis-pintar.sql dijalankan ulang, jalankan lagi
+   supabase-kuis-periode.sql sesudahnya.
+2) Unggah file lainnya ke GitHub (satu folder dengan index.html).
+3) Admin Kuis > tab "📅 Periode": cek Periode 1, ubah jam selesai bila perlu,
+   lalu buat periode berikutnya (tombol isi cepat: 1 bulan / 2 minggu / 1 minggu).
 
-ALUR BULANAN ADMIN (awal bulan berikutnya)
-  Admin Kuis > Pemenang > pilih bulan lalu:
-  1. "Tetapkan juara 1–3"  -> otomatis dari jawaban benar unik terbanyak.
-  2. "Undi kupon"          -> acak dari kupon bulan itu (1 orang maks 1 hadiah undian;
-                              peluang sebanding jumlah kupon).
-  3. Periksa daftar, lalu "Terbitkan + kirim voucher":
-     - hadiah langsung masuk SALDO VOUCHER BELANJA akun pemenang
-       (tercatat di mutasi voucher, jenis "kuis")
-     - popup pemenang muncul di toko (sekali per HP), nama disingkat
-       (Asep S.) dan nomor disamarkan (0838****727).
-  Selama belum diterbitkan, juara & undian boleh diulang.
+ATURAN PERIODE
+  • Periode = nama + waktu mulai + waktu selesai (WIB). Tidak boleh bertabrakan.
+  • Juara 1–3 = jawaban benar terbanyak yang DIJAWAB SELAMA periode itu.
+    Seri -> yang lebih dulu mencapai jumlah itu.
+  • Tukar poin -> kupon hanya saat ada periode berjalan; kupon milik periode itu.
+  • Masa jeda (tidak ada periode berjalan): pelajar tetap bisa latihan & dapat poin,
+    tetapi jawaban tidak dihitung untuk peringkat dan tukar kupon ditutup.
+    Poin yang belum ditukar tidak hangus.
+    Catatan: soal yang sudah dijawab saat jeda tidak bisa dijawab ulang nanti.
+  • Periode OTOMATIS (bawaan): begitu waktu selesai lewat -> juara ditetapkan,
+    kupon diundi, pemenang diumumkan (popup toko) dan voucher masuk saldo pemenang.
+    Tidak perlu jadwal/cron: proses berjalan saat ada yang membuka toko/kuis/admin
+    pertama kali setelah waktu selesai. Voucher tidak pernah terkirim dua kali.
+  • Periode MANUAL (centang "otomatis" dimatikan): setelah periode berakhir, admin
+    di tab Pemenang menekan 1) Tetapkan juara 2) Undi kupon 3) Terbitkan.
+  • Tombol juara/undi/terbitkan TERKUNCI selama periode masih berjalan.
+  • Periode yang pemenangnya sudah diumumkan tidak bisa diubah. Periode yang
+    sudah punya kupon tidak bisa dihapus (ubah tanggalnya saja).
 
 ATURAN BAWAAN (bisa diubah di tab Aturan)
   +10 poin per jawaban benar • 100 poin = 1 kupon • maks 100 soal/hari/pelajar
-  Juara 1/2/3: Rp50.000 / Rp30.000 / Rp20.000 • 5 pemenang undian x Rp50.000
+  Juara 1/2/3: Rp50.000 / Rp30.000 / Rp20.000 • 5 pemenang undian x Rp50.000 per periode
+  Satu orang maksimal 1 hadiah undian per periode (peluang sebanding jumlah kupon).
 
 KEAMANAN
   - Kunci jawaban tidak pernah dikirim ke HP sebelum soal dijawab.
-  - Tiap soal hanya bisa dijawab sekali per pelajar (tidak bisa mengulang demi poin).
-  - Poin, kupon, dan peringkat dihitung di server, bukan di HP.
-  - Tabel kuis tidak bisa dibaca/diubah langsung dari web; hanya lewat fungsi.
-
-KAPASITAS (diuji di PostgreSQL)
-  8.550 soal = ±3 MB. 34.000 jawaban = ±5,4 MB (±160 byte/jawaban).
-  1 juta jawaban ≈ 160 MB, masih di bawah batas gratis 500 MB.
-  Bila suatu saat besar, riwayat jawaban lama (>1 tahun) boleh dihapus;
-  poin & kupon yang sudah didapat tidak ikut hilang.
+  - Tiap soal hanya bisa dijawab sekali per pelajar.
+  - Poin, kupon, peringkat, dan periode dihitung di server, bukan di HP.
+  - Tabel kuis (termasuk quiz_periode) tidak bisa dibaca/diubah langsung dari web.
 
 CATATAN PENTING
   Undian berhadiah (walau gratis) umumnya memerlukan izin Kementerian Sosial.
   Mohon dicek sebelum program diumumkan luas.
+
+
+PEMASANGAN AWAL KUIS (bila belum pernah)
+----------------------------------------
+1) Supabase > SQL Editor > jalankan supabase-kuis-pintar.sql, lalu supabase-kuis-periode.sql.
+2) Unggah kuis.html, admin-kuis.html, kuis-pemenang.js, index.html, admin.html ke GitHub.
+3) Admin toko > menu "Kuis Pintar" (atau admin-kuis.html):
+   - Tab Aturan: cek poin & hadiah. Simpan.
+   - Tab Impor Excel: pilih file soal satu per satu > "Impor".
+     Kolom: Kelas, Mata Pelajaran, Pertanyaan, Pilihan A-D, Kunci Jawaban, Pembahasan Singkat.
+     Soal kembar otomatis dilewati, jadi aman mengimpor ulang.
+4) Buka kalensari.web.id > menu ☰ > "🎓 Kuis Pintar", masuk dengan akun pembeli, coba main.
+
+KAPASITAS (diuji di PostgreSQL)
+  8.550 soal = ±3 MB. 34.000 jawaban = ±5,4 MB (±160 byte/jawaban).
+  1 juta jawaban ≈ 160 MB, masih di bawah batas gratis 500 MB.
