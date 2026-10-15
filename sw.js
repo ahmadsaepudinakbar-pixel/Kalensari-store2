@@ -2,7 +2,7 @@
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
    (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v55";
+const VERSION = "ks-v56";
 const CACHE = "kalensari-" + VERSION;
 const PRECACHE = [
   "./offline.html",
@@ -37,7 +37,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;      // biarkan cloud/Maps/Sheets/WA lewat langsung
   if (req.headers.has("range")) return;                 // musik/video (potongan data) biarkan langsung
-  if (/\.(mp3|mp4|m4a|ogg|wav|webm)$/i.test(url.pathname)) return;
+  if (/\.(mp3|mp4|m4a|ogg|wav|webm|apk)$/i.test(url.pathname)) return;   // file besar (musik/video/APK) jangan disimpan di cache
 
   e.respondWith(
     fetch(req)
