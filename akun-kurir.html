@@ -48,7 +48,13 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 [hidden]{display:none!important}
-.card{border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:10px;background:#fffaf2}.card h3{margin:0;font-size:15px}.card p{margin:4px 0;font-size:13px;color:var(--muted)}.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--chip)}.mini{display:inline-block;margin:6px 6px 0 0;font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:12px;border:1px solid var(--brown);background:#fff;color:var(--brown);text-decoration:none;cursor:pointer}.mini.g{background:var(--green);border-color:var(--green);color:#fff}.sw{display:flex;gap:10px;align-items:center;background:var(--chip);padding:12px 14px;border-radius:14px;margin:6px 0 12px;font-weight:600}</style>
+.card{border:1px solid var(--line);border-radius:16px;padding:12px;margin-top:10px;background:#fffaf2}.card h3{margin:0;font-size:15px}.card p{margin:4px 0;font-size:13px;color:var(--muted)}.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--chip)}.mini{display:inline-block;margin:6px 6px 0 0;font:inherit;font-weight:700;font-size:14px;padding:8px 14px;border-radius:12px;border:1px solid var(--brown);background:#fff;color:var(--brown);text-decoration:none;cursor:pointer}.mini.g{background:var(--green);border-color:var(--green);color:#fff}.selfie{display:flex;gap:14px;align-items:center;margin:6px 0 6px}
+.selfie-pv{width:96px;height:96px;flex:none;border-radius:50%;background:var(--chip);border:2px dashed var(--line);display:grid;place-items:center;font-size:40px;overflow:hidden}
+.selfie-pv.ada{border:3px solid var(--green);border-style:solid}
+.selfie-pv img{width:100%;height:100%;object-fit:cover;display:block}
+.selfie-btns{display:grid;gap:8px;flex:1}
+.selfie-btns .mini{margin:0;text-align:center}
+.sw{display:flex;gap:10px;align-items:center;background:var(--chip);padding:12px 14px;border-radius:14px;margin:6px 0 12px;font-weight:600}</style>
 </head>
 <body>
 <div class="topbar"><a href="index.html">🛍️ KALENSARI STORE • ← Kembali ke toko</a></div>
@@ -65,8 +71,22 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
     </div>
     <div id="fDaftar" hidden>
       <label>Nama lengkap<input id="rNama" class="fld" maxlength="60"></label>
+      <label>Alamat domisili<textarea id="rAlamat" class="fld" maxlength="200" placeholder="Dusun/RT/RW, Desa, Kecamatan" autocomplete="street-address" style="min-height:80px"></textarea></label>
+      <label>No. NIK (KTP)<input id="rNik" class="fld" type="text" inputmode="numeric" maxlength="16" placeholder="16 angka sesuai KTP" autocomplete="off"></label>
+      <p class="hint">NIK dan alamat hanya bisa dilihat admin dan tidak bisa diubah sendiri setelah tersimpan.</p>
       <label>Kendaraan<select id="rKend" class="fld"><option>Motor</option><option>Sepeda</option><option>Mobil</option></select></label>
       <label>No. WhatsApp<input id="rWa" class="fld" type="tel" inputmode="numeric" placeholder="08xxxxxxxxxx"></label>
+      <label style="margin-bottom:0">Foto selfie (jadi foto profil)</label>
+      <div class="selfie">
+        <div class="selfie-pv" id="rFotoPv">🤳</div>
+        <div class="selfie-btns">
+          <button type="button" class="mini g" id="btnSelfie">📷 Ambil selfie</button>
+          <button type="button" class="mini" id="btnGaleri">🖼️ Pilih dari galeri</button>
+        </div>
+      </div>
+      <input id="rFotoCam" type="file" accept="image/*" capture="user" hidden>
+      <input id="rFotoGal" type="file" accept="image/*" hidden>
+      <p class="hint" style="margin-top:6px">Wajah terlihat jelas, tanpa masker/kacamata hitam.</p>
       <div class="row2"><label>PIN<input id="rPin" class="fld" type="password" inputmode="numeric" maxlength="8" placeholder="4–8 angka" autocomplete="new-password"></label>
       <label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></label></div>
       <div class="btns"><button class="btn wa" id="btnDaftar" type="button">Buat akun</button></div>
@@ -128,10 +148,39 @@ function showTab(masuk){
 }
 $("tabMasuk").onclick = () => showTab(true);
 $("tabDaftar").onclick = () => showTab(false);
+
+let rFoto = null;
+function nikValid(n){ return /^\d{16}$/.test(n) && !/^(\d)\1{15}$/.test(n) && +n.slice(0,2) >= 11 && +n.slice(0,2) <= 92 && +n.slice(8,10) >= 1 && +n.slice(8,10) <= 12 && ((+n.slice(6,8) >= 1 && +n.slice(6,8) <= 31) || (+n.slice(6,8) >= 41 && +n.slice(6,8) <= 71)); }
+$("rNik").oninput = e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 16); };
+$("btnSelfie").onclick = () => $("rFotoCam").click();   // kamera depan (di HP)
+$("btnGaleri").onclick = () => $("rFotoGal").click();
+function prosesFoto(e){
+  const f = e.target.files && e.target.files[0]; e.target.value = ""; if(!f) return;
+  const r = new FileReader(); r.onerror = () => toast("Foto tidak bisa dibaca");
+  r.onload = () => { const im = new Image(); im.onerror = () => toast("File harus berupa gambar");
+    im.onload = () => { const z = Math.min(im.width, im.height), c = document.createElement("canvas"); c.width = c.height = 320;
+      c.getContext("2d").drawImage(im, (im.width - z) / 2, (im.height - z) / 2, z, z, 0, 0, 320, 320);
+      rFoto = c.toDataURL("image/jpeg", .82);
+      const pv = $("rFotoPv"); pv.classList.add("ada"); pv.innerHTML = ""; const i = document.createElement("img"); i.src = rFoto; i.alt = "Foto profil"; pv.appendChild(i);
+      $("btnSelfie").textContent = "📷 Ulangi selfie"; };
+    im.src = r.result; };
+  r.readAsDataURL(f);
+}
+$("rFotoCam").onchange = prosesFoto; $("rFotoGal").onchange = prosesFoto;
+async function rpcServer(fn, body){
+  const r = await fetch(String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/, "") + "/rest/v1/rpc/" + fn, {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, Authorization:"Bearer " + CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const t = await r.text(); let j = null; try{ j = JSON.parse(t); }catch(e){}
+  if(!r.ok) throw new Error(String((j && (j.message || j.hint)) || t || r.status).replace(/^SESI:\s*/, ""));
+  return j;
+}
 const go = () => setTimeout(() => { location.href = "dashboard-" + ROLE + ".html"; }, 700);
 $("btnDaftar").onclick = async () => {
   const nama = $("rNama").value.trim(), wa = normPhone($("rWa").value), pin = $("rPin").value, pin2 = $("rPin2").value;
+  const alamat = $("rAlamat").value.trim(), nik = $("rNik").value.replace(/\D/g, "");
   if(!nama) return toast("Nama wajib diisi");
+  if(alamat.length < 10) return toast("Isi alamat domisili dengan lengkap");
+  if(!nikValid(nik)) return toast("NIK harus 16 angka sesuai KTP");
+  if(!rFoto) return toast("Foto selfie wajib diisi");
   if(wa.length < 9 || wa.length > 15) return toast("Nomor WhatsApp tidak valid");
   if(!okPin(pin)) return toast("PIN harus 4–8 angka");
   if(pin !== pin2) return toast("Ulangi PIN tidak sama");
@@ -145,6 +194,24 @@ $("btnDaftar").onclick = async () => {
     await setSetting(ROLE + "_accounts", acc);
     await upsertMember({id, nama, wa, kendaraan:$("rKend").value, wilayah:"", aktif:true, pending:true, updated:Date.now()});
     await KSID.masuk(ROLE, wa, pin);
+    let lengkap = true, errNik = "";
+    // Foto selfie -> foto profil akun (sama dengan yang dipakai dashboard kurir)
+    try{
+      const sesi = KSID.sesi(ROLE);
+      if(cloudOn() && sesi){
+        try{ await rpcServer("foto_simpan", {p_sesi:sesi, p_peran:"kurir", p_jenis:"kurir", p_ref:"", p_value:{foto:rFoto, nama}}); }
+        catch(er){ if(/Could not find the function|PGRST202/i.test(er.message)) await setSetting("foto_kurir_" + id, {foto:rFoto, nama, t:Date.now()}); else throw er; }
+      } else await setSetting("foto_kurir_" + id, {foto:rFoto, nama, t:Date.now()});
+      await upsertMember({id, nama, wa, kendaraan:$("rKend").value, wilayah:"", aktif:true, pending:true, fotoOk:true, updated:Date.now()});
+    }catch(er){ lengkap = false; }
+    // NIK lewat fungsi server (hanya admin yang bisa membaca)
+    try{
+      if(cloudOn()){
+        await rpcServer("kurir_nik_simpan", {p_sesi:KSID.sesi(ROLE), p_nik:nik});
+        await rpcServer("kurir_alamat_simpan", {p_sesi:KSID.sesi(ROLE), p_alamat:alamat});   // alamat dirahasiakan seperti NIK
+      } else LSset("kalensari_kurir_nik_" + id, {nik, alamat});
+    }catch(er){ lengkap = false; errNik = er.message || ""; }
+    if(!lengkap){ toast(errNik ? errNik.slice(0, 110) : "Akun dibuat, tapi foto/NIK belum tersimpan. Lengkapi di dashboard."); await new Promise(r => setTimeout(r, 2200)); }
     sessionStorage.setItem(SESS, wa); try{ localStorage.setItem(SESS, wa); }catch(e){}
     toast("Akun dibuat. Mengarahkan ke dashboard...");
     go();
