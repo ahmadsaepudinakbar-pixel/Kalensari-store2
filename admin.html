@@ -907,8 +907,9 @@ persetujuan(){
 Object.assign(TITLES,{toko:['Daftar Toko','Penjual, jam buka, dan status toko'],kurir:['Daftar Kurir','Kurir yang sudah disetujui'],persetujuan:['Persetujuan','Pendaftar penjual, kurir, dan penyedia jasa']});
 let apTab='kurir';
 /* ===== NIK & foto kurir (wajib; NIK hanya terbaca admin, tersimpan di store_settings "kurir_nik" = {id:{nik,t}}) ===== */
-const nikData=id=>{const v=S.settings.kurir_nik;return v&&typeof v==='object'&&v[id]?v[id]:null};
-function kurirDataHtml(m){const n=nikData(m.id);return `<div class="sm">🪪 NIK: ${n?`<b>${esc(n.nik)}</b>`:'<b style="color:var(--red)">belum diisi</b>'} • 📷 Foto: ${m.fotoOk?'<b>ada</b>':'<b style="color:var(--red)">belum ada</b>'}</div>`}
+const nikData=id=>{const v=S.settings.kurir_nik;return v&&typeof v==='object'&&v[id]&&v[id].nik?v[id]:null};
+const alamatKurir=id=>{const v=S.settings.kurir_nik;return v&&typeof v==='object'&&v[id]&&v[id].alamat?String(v[id].alamat):''};
+function kurirDataHtml(m){const n=nikData(m.id);return `<div class="sm">🪪 NIK: ${n?`<b>${esc(n.nik)}</b>`:'<b style="color:var(--red)">belum diisi</b>'} • 📷 Foto: ${m.fotoOk?'<b>ada</b>':'<b style="color:var(--red)">belum ada</b>'}</div><div class="sm">🏠 Domisili: ${alamatKurir(m.id)?`<b>${esc(alamatKurir(m.id))}</b>`:'<b style="color:var(--red)">belum diisi</b>'}</div>`}
 const FKA={};
 async function muatFotoKurirAdmin(){
   for(const el of [...document.querySelectorAll('.ppl[data-kid]')]){
@@ -923,7 +924,7 @@ async function muatFotoKurirAdmin(){
 async function resetNik(id,btn){
   if(!confirm('Reset NIK kurir ini? Kurir harus mengisi NIK lagi sebelum bisa siap menerima antaran.'))return;
   await busy(btn,async()=>{
-    const nk=await readKey('kurir_nik',{});if(nk&&typeof nk==='object'&&nk[id]){delete nk[id];await setSetting('kurir_nik',nk);S.settings.kurir_nik=nk}
+    const nk=await readKey('kurir_nik',{});if(nk&&typeof nk==='object'&&nk[id]){const al=nk[id].alamat;if(al)nk[id]={alamat:al};else delete nk[id];await setSetting('kurir_nik',nk);S.settings.kurir_nik=nk}
     const arr=await readKey('kurir_members',[]),nl=(Array.isArray(arr)?arr:[]).map(x=>x&&x.id===id?{...x,nikOk:false,updated:Date.now()}:x);await setSetting('kurir_members',nl);S.settings.kurir_members=nl;
     closeModal();render();toast('NIK direset. Kurir diminta mengisi ulang.')});
 }
@@ -953,7 +954,7 @@ function memberMenu(gk,id){
   <div class="detail-row"><span>No. WA</span><b>${m.wa?'+'+esc(m.wa):'-'}</b></div>
   <div class="detail-row"><span>Keterangan</span><b>${esc(g.info(m))}</b></div>
   ${m.updated?`<div class="detail-row"><span>Diperbarui</span><b>${fmtDate(m.updated)}</b></div>`:''}
-  ${gk==='kurir'?`<div class="detail-row"><span>NIK</span><b>${nikData(m.id)?esc(nikData(m.id).nik):'belum diisi'}</b></div><div class="detail-row"><span>Foto profil</span><b>${m.fotoOk?'ada':'belum ada'}</b></div>`:''}
+  ${gk==='kurir'?`<div class="detail-row"><span>NIK</span><b>${nikData(m.id)?esc(nikData(m.id).nik):'belum diisi'}</b></div><div class="detail-row"><span>Alamat domisili</span><b>${alamatKurir(m.id)?esc(alamatKurir(m.id)):'belum diisi'}</b></div><div class="detail-row"><span>Foto profil</span><b>${m.fotoOk?'ada':'belum ada'}</b></div>`:''}
   <div class="mact" style="flex-direction:column">
     ${gk==='kurir'&&nikData(m.id)?`<button class="btn btn-light" onclick="resetNik('${jsq(id)}',this)">🪪 Reset NIK (kurir isi ulang)</button>`:''}
     ${gk==='penjual'&&m.pasarMalam?`<button class="btn btn-light" onclick="pmToggle('${jsq(id)}',this)">${pmCfg().pedagang.includes(id)&&m.pasarMalam?'🌙 Keluarkan dari Pasar Malam Jum’at':'🌙 Masukkan ke Pasar Malam Jum’at'}</button>`:''}
