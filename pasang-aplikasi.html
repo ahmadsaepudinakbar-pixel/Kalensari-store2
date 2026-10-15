@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"><script src="ks-ingat.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#7b3f1d">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kalensari">
+<meta name="description" content="Pasang aplikasi Kalensari Store (web atau APK Android), Mitra Kalensari, Pasar Malam Jum'at, Kurir Kalensari, dan Penulis Berita Kalensari langsung dari browser, tanpa Play Store.">
+<title>Pasang Aplikasi – Kalensari Store</title>
+<style>
+:root{--brown:#7b3f1d;--deep:#5b2c12;--ink:#3a1f10;--muted:#5c4638;--bg:#e4d3bf;--line:#d3bfa8;--chip:#f5e8d8;--green:#228b4e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}
+.topbar{background:var(--brown);color:#fff;text-align:center;font-size:13px;font-weight:600;padding:10px 12px}
+.topbar a{color:#fff;text-decoration:none}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 60px}
+.hero{border-radius:28px;padding:26px;background:linear-gradient(120deg,#f8ead0 0%,#eef0d4 45%,#6f9f4e 100%);margin-bottom:16px}
+.tag{display:inline-block;background:var(--brown);color:#fff;font-weight:700;font-size:12px;padding:8px 14px;border-radius:999px}
+.hero h1{font-size:clamp(26px,6vw,36px);margin:14px 0 8px;line-height:1.15}
+.hero p{margin:0 0 6px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.badges span{background:rgba(255,255,255,.75);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700}
+.note{background:#fff3cd;border:1px solid #e3c766;color:#5a4300;border-radius:14px;padding:10px 14px;margin-bottom:14px;font-size:14px;font-weight:600}
+.ok{background:#dff3e6;border-color:#9ccfae;color:#14502c}
+.grid{display:grid;gap:14px}
+.app{background:#fff;border:1px solid var(--line);border-radius:24px;padding:18px;display:grid;grid-template-columns:84px 1fr;gap:14px;align-items:start}
+.app img{width:84px;height:84px;border-radius:20px;object-fit:cover;display:block;background:var(--chip);box-shadow:0 2px 8px rgba(58,31,16,.18)}
+.app h2{margin:0 0 2px;font-size:20px;color:var(--brown)}
+.app .for{font-size:12px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.04em}
+.app p{margin:6px 0 8px;font-size:14px;color:var(--muted)}
+.app ul{margin:0 0 12px;padding-left:18px;font-size:14px;color:var(--muted)}
+.acts{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:block;text-align:center;text-decoration:none;font:inherit;font-weight:700;font-size:16px;padding:13px 8px;border-radius:14px;border:1px solid var(--brown);background:#fff;color:var(--brown);cursor:pointer}
+.btn.go{background:var(--green);border-color:var(--green);color:#fff}
+.btn.apk{grid-column:1/-1;background:var(--deep);border-color:var(--deep);color:#fff}
+.btn[disabled]{opacity:.6;cursor:default}
+.box{background:#fff;border:1px solid var(--line);border-radius:24px;padding:18px 20px;margin-top:16px}
+.box h3{margin:0 0 8px;color:var(--brown);font-size:18px}
+.box ol{margin:0 0 12px;padding-left:20px;font-size:14.5px}
+.box li{margin-bottom:5px}
+details{border-top:1px solid var(--line);padding:10px 0}details:first-of-type{border-top:0}
+summary{font-weight:700;cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+[hidden]{display:none!important}
+@media(max-width:380px){.app{grid-template-columns:64px 1fr}.app img{width:64px;height:64px;border-radius:16px}}
+</style>
+<script src="referal-toko.js"></script>
+</head>
+<body>
+<div class="topbar"><a href="index.html">🛍️ KALENSARI STORE • ← Kembali ke toko</a></div>
+<main class="wrap">
+  <section class="hero"><span class="tag">📲 PASANG APLIKASI</span>
+    <h1>Aplikasi Kalensari di HP Anda</h1>
+    <p>Pasang langsung dari browser. Gratis, tanpa Play Store, ukurannya ringan, dan ikonnya muncul di layar utama seperti aplikasi biasa.</p>
+    <div class="badges"><span>✅ Gratis</span><span>⚡ Ringan</span><span>🔄 Update otomatis</span></div>
+  </section>
+
+  <div id="stTerpasang" class="note ok" hidden>✅ Anda sedang membuka halaman ini dari aplikasi yang sudah terpasang.</div>
+  <div id="stIos" class="note" hidden>🍎 Di iPhone/iPad: buka halaman ini lewat <b>Safari</b>, lalu ikuti langkah “Cara pasang di iPhone” di bawah. Tombol Pasang hanya membuka aplikasinya.</div>
+
+  <div class="grid">
+    <article class="app" id="app-store">
+      <img src="icons/icon-192.png" alt="Ikon Kalensari Store" width="84" height="84">
+      <div><span class="for">Untuk warga & pembeli</span><h2>Kalensari Store</h2>
+        <p>Belanja makanan & minuman warga, pesan jasa, dan jelajahi lapak barter Desa Kalensari.</p>
+        <ul><li>Pesan dan lacak pesanan</li><li>Kabar Desa & promo harian</li><li>Satu akun untuk semua layanan</li></ul></div>
+      <div class="acts"><button type="button" class="btn go" id="pasangStore">📲 Pasang</button><a class="btn" href="index.html">Buka di browser</a></div>
+    </article>
+
+    <article class="app" id="app-mitra">
+      <img src="icons/penjual-192.png" alt="Ikon Mitra Kalensari" width="84" height="84">
+      <div><span class="for">Untuk penjual & pedagang</span><h2>Mitra Kalensari</h2>
+        <p>Kelola toko Anda: terima pesanan, atur produk dan promo, pantau saldo, dan cairkan penghasilan.</p>
+        <ul><li>Notifikasi pesanan masuk</li><li>Kelola produk & stok</li><li>Pasar Malam Jum'at</li></ul></div>
+      <div class="acts"><a class="btn go" href="penjual-app.html?pasang=1" data-pasang>📲 Pasang</a><a class="btn" href="penjual.html#daftar">Daftar jadi mitra</a><a class="btn apk" data-apk href="https://github.com/ahmadsaepudinakbar-pixel/Kalensari-store2/releases/download/v1/mitra-kalensari.apk" download>⬇️ Unduh APK Android (29 MB)</a></div>
+    </article>
+
+    <article class="app" id="app-pasarmalam">
+      <img src="icons/pasarmalam-192.png" alt="Ikon Pasar Malam Jum'at" width="84" height="84">
+      <div><span class="for">Untuk pedagang Pasar Malam</span><h2>Pasar Malam Jum'at</h2>
+        <p>Aplikasi pedagang lapak Pasar Malam Jum'at: isi menu, atur lapak buka atau libur, dan terima pesanan online.</p>
+        <ul><li>Pesanan masuk tiap Kamis malam (16.00–21.00 WIB)</li><li>Menu, harga, foto, dan varian</li><li>Saldo penjualan dan pencairan</li></ul></div>
+      <div class="acts"><a class="btn go" href="penjual-app.html?pm=1&amp;pasang=1" data-pasang>📲 Pasang</a><a class="btn" href="pedagang-pasar-malam.html">Daftar lapak</a></div>
+    </article>
+
+    <article class="app" id="app-kurir">
+      <img src="icons/kurir-192.png" alt="Ikon Kurir Kalensari" width="84" height="84">
+      <div><span class="for">Untuk kurir</span><h2>Kurir Kalensari</h2>
+        <p>Terima tawaran antar, navigasi ke alamat pembeli, dan pantau saldo serta riwayat antaran.</p>
+        <ul><li>Tawaran antar real-time</li><li>Navigasi & lacak lokasi</li><li>Saldo dan riwayat</li></ul></div>
+      <div class="acts"><a class="btn go" href="akun-kurir.html?pasang=1" data-pasang>📲 Pasang</a><a class="btn" href="akun-kurir.html#daftar">Daftar jadi kurir</a><a class="btn apk" data-apk href="https://github.com/ahmadsaepudinakbar-pixel/Kalensari-store2/releases/download/kurir/kurir-kalensari.apk" download>⬇️ Unduh APK Android (29 MB)</a></div>
+    </article>
+
+    <article class="app" id="app-penulis">
+      <img src="icons/penulis-192.png" alt="Ikon Penulis Berita Kalensari" width="84" height="84">
+      <div><span class="for">Untuk penulis kabar desa</span><h2>Penulis Berita Kalensari</h2>
+        <p>Tulis, ubah, dan hapus Kabar Desa yang langsung tampil untuk semua warga di toko dan dashboard.</p>
+        <ul><li>Tulis kabar dengan foto & tautan</li><li>Tayang otomatis ke seluruh warga</li><li>Khusus akun penulis yang ditunjuk admin</li></ul></div>
+      <div class="acts"><a class="btn go" href="penulis-kabar.html?pasang=1" data-pasang>📲 Pasang</a><a class="btn" href="penulis-kabar.html">Buka di browser</a><a class="btn apk" data-apk href="https://github.com/ahmadsaepudinakbar-pixel/Kalensari-store2/releases/download/penulis_kabar/Penulis.Berita.Kalensari.apk" download>⬇️ Unduh APK Android (3,3 MB)</a></div>
+    </article>
+  </div>
+
+  <section class="box" id="bApk">
+    <h3>📦 Aplikasi Android (APK)</h3>
+    <p class="small" style="margin:0 0 10px">Mitra Kalensari, Kurir Kalensari, dan Penulis Berita Kalensari juga tersedia sebagai aplikasi Android penuh (file APK), sambil menunggu Play Store. Cocok untuk HP yang notifikasinya sering tertunda di browser.</p>
+    <ol><li>Tekan <b>Unduh APK Android</b> pada kartu aplikasi di atas.</li><li>Buka file yang terunduh. Bila diminta, tekan <b>Pengaturan</b> lalu aktifkan <b>Izinkan dari sumber ini</b> untuk Chrome.</li><li>Tekan <b>Instal</b>. Bila Google Play Protect menampilkan peringatan “aplikasi tidak dikenal”, pilih <b>Detail</b> → <b>Tetap instal</b>. Peringatan ini muncul karena aplikasi belum ada di Play Store.</li><li>Buka aplikasinya dan masuk dengan akun Mitra/Kurir Anda.</li></ol>
+  </section>
+
+  <section class="box">
+    <h3>Cara pasang</h3>
+    <details open><summary>🤖 Android (Chrome)</summary>
+      <ol><li>Tekan tombol <b>Pasang</b> pada aplikasi yang Anda mau.</li><li>Untuk Kalensari Store, muncul kotak “Pasang aplikasi”: tekan <b>Pasang</b>. Untuk aplikasi lain, halaman aplikasinya terbuka dan muncul bilah <b>“Pasang aplikasi …”</b> di bawah layar: tekan <b>Pasang</b>.</li><li>Bila bilah tidak muncul: buka menu <b>⋮</b> Chrome, pilih <b>Instal aplikasi</b> (atau <b>Tambahkan ke layar utama</b>).</li><li>Ikon aplikasi akan muncul di layar utama dan laci aplikasi.</li></ol></details>
+    <details><summary>🍎 iPhone / iPad (Safari)</summary>
+      <ol><li>Buka halaman aplikasi yang Anda mau lewat <b>Safari</b> (bukan Chrome).</li><li>Tekan tombol <b>Bagikan</b> (kotak dengan panah ke atas).</li><li>Pilih <b>Tambah ke Layar Utama</b>, lalu tekan <b>Tambah</b>.</li></ol></details>
+    <details><summary>💻 Komputer (Chrome / Edge)</summary>
+      <ol><li>Buka halaman aplikasinya.</li><li>Klik ikon <b>Instal</b> di ujung kanan kolom alamat, lalu <b>Instal</b>.</li></ol></details>
+    <p class="small" style="margin:10px 0 0">Aplikasi ini perlu dibuka lewat browser modern dan koneksi internet. Beberapa aplikasi (Mitra, Pasar Malam, Kurir, Penulis) meminta Anda masuk dengan akun masing-masing.</p>
+  </section>
+
+  <section class="box">
+    <h3>Kenapa belum ada di Play Store?</h3>
+    <p class="small" style="margin:0">Versi Play Store sedang kami siapkan. Sampai saat itu, aplikasi di halaman ini adalah aplikasi yang sama persis: pasang sekali, otomatis terbarui, dan tidak memakan banyak ruang penyimpanan.</p>
+  </section>
+</main>
+<div class="toast" id="toast"></div>
+<script src="pwa.js" defer></script>
+<script>
+const $ = id => document.getElementById(id);
+function toast(t){ const el = $("toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 4500); }
+const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+$("stTerpasang").hidden = !standalone; $("stIos").hidden = !ios;
+if(ios){ document.querySelectorAll("[data-apk]").forEach(a => a.hidden = true); $("bApk").hidden = true; }   // APK hanya untuk Android
+
+/* Kalensari Store bisa dipasang langsung dari halaman ini (manifest halaman ini = Kalensari Store).
+   Aplikasi lain dipasang dari halamannya sendiri (browser hanya mengizinkan memasang halaman yang sedang dibuka). */
+let tunda = null;
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); tunda = e; });
+addEventListener("appinstalled", () => { tunda = null; toast("✅ Aplikasi terpasang. Cek layar utama HP Anda."); });
+$("pasangStore").onclick = async () => {
+  if(standalone) return toast("Kalensari Store sudah terpasang di HP ini.");
+  if(tunda){ tunda.prompt(); try{ await tunda.userChoice; }catch(e){} tunda = null; return; }
+  if(ios) return toast("Di iPhone: tekan Bagikan → Tambah ke Layar Utama.");
+  toast("Buka menu ⋮ Chrome lalu pilih “Instal aplikasi”. Bila tidak ada, aplikasi mungkin sudah terpasang.");
+};
+</script>
+</body>
+</html>
