@@ -1,6 +1,7 @@
 /* =====================================================================
-   KALENSARI STORE • TEMA "ESPRESSO EMAS" untuk header & menu ☰
-   - Header cokelat tua + garis emas, logo huruf elegan, ikon garis emas.
+   KALENSARI STORE • TEMA header "KACA PREMIUM" + menu ☰ "ESPRESSO EMAS"
+   - Header kapsul kaca melayang, ikon garis dalam kotak lembut,
+     keranjang tombol cokelat dengan angka emas.
    - Menu ☰ menjadi laci gelap dari kiri: profil + saldo voucher,
      bagian JELAJAHI (Kuis, Lapak Barter, Favorit, Daftar Toko) dan AKUN.
    - Tidak mengubah fungsi lama: tombol & menu yang dibuat skrip lain
@@ -44,24 +45,25 @@
   var G = "#d9a441", G2 = "#f1d08a";
   var st = document.createElement("style");
   st.textContent = [
-    /* strip atas + header */
-    "html.tema-esp .top-strip{background:#24120a;color:" + G2 + ";font-weight:600;letter-spacing:.4px;border-bottom:1px solid #d9a44133}",
-    "html.tema-esp .header{background:linear-gradient(135deg,#3a1d0e,#5b2e14)!important;border-bottom:0!important;box-shadow:0 10px 26px -14px rgba(0,0,0,.6)}",
-    "html.tema-esp .header:after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,transparent," + G + ",transparent);pointer-events:none}",
-    "html.tema-esp .header .nav{gap:6px!important}",
-    "html.tema-esp .header .brand{order:2;margin:0 auto 0 6px!important;color:#f7e3b5!important;font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:19px!important;letter-spacing:2px!important;white-space:nowrap;line-height:1}",
-    "html.tema-esp .header .brand span{color:" + G + ";font-weight:400}",
-    "html.tema-esp .header .nav>button{order:3;flex:none;position:relative;width:40px;height:40px;padding:0!important;margin:0!important;border-radius:50%;border:1px solid #d9a44166!important;background:#ffffff08!important;color:" + G2 + "!important;display:inline-grid;place-items:center;font-size:0!important;cursor:pointer;transition:background .2s,transform .15s}",
-    "html.tema-esp .header .nav>button:hover{background:#ffffff1a!important}",
+    /* header gaya A "Kaca Premium": kapsul kaca melayang, ikon dalam kotak lembut */
+    "html.tema-esp .header{background:linear-gradient(180deg,#fffaf6 55%,rgba(255,250,246,0))!important;border-bottom:0!important;box-shadow:none!important;padding:8px 0 6px}",
+    "html.tema-esp .header .nav{height:58px!important;gap:6px!important;padding:0 8px;border-radius:20px;background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 30px -14px rgba(58,31,16,.38),inset 0 0 0 1px rgba(255,255,255,.95),0 0 0 1px #eadfd6}",
+    "html.tema-esp .header .brand{order:3;margin:0 auto 0 4px!important;color:#4a2510!important;font-weight:900;font-size:20px!important;letter-spacing:.5px!important;white-space:nowrap;line-height:1}",
+    "html.tema-esp .header .brand span{color:#b5561f;font-weight:600}",
+    "html.tema-esp .header .nav>button{order:4;flex:none;position:relative;width:40px;height:40px;padding:0!important;margin:0!important;border:0!important;border-radius:14px!important;background:#f6ede4!important;color:#5b2e14!important;display:inline-grid;place-items:center;font-size:0!important;cursor:pointer;transition:background .2s,transform .15s}",
+    "html.tema-esp .header .nav>button:hover{background:#efe1d4!important}",
     "html.tema-esp .header .nav>button:active{transform:scale(.93)}",
-    "html.tema-esp .header #menuBtn{order:1}",
-    "html.tema-esp .header #shopBtn{display:none!important}",
+    "html.tema-esp .header #menuBtn{order:1;background:#5b2e14!important;color:#fff!important}",
+    "html.tema-esp .header #kabarBtn{order:2}",
     "html.tema-esp .header .ksd-ic{width:21px;height:21px}",
-    "html.tema-esp .header .cart-btn b,html.tema-esp .header .kabar-btn b{position:absolute!important;top:-4px!important;right:-4px!important;min-width:19px;height:19px;padding:0 5px;border-radius:999px;background:linear-gradient(135deg,#f5d27a,#c8901f)!important;color:#2c160a!important;font:900 11px/19px Arial,sans-serif!important;text-align:center;box-shadow:0 0 0 2px #3a1d0e!important;width:auto!important;display:block}",
+    "html.tema-esp .header .kabar-btn b{position:absolute!important;top:-4px!important;right:-4px!important;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#e8483b!important;color:#fff!important;font:800 10.5px/18px Arial,sans-serif!important;text-align:center;box-shadow:0 0 0 2px #fff!important}",
     "html.tema-esp .header .kabar-btn b[hidden]{display:none!important}",
-    "html.tema-esp .header .cart-btn{border-color:" + G + "!important;background:linear-gradient(135deg,#d9a44133,#d9a44111)!important}",
-    "@media(max-width:520px){html.tema-esp .header .brand{font-size:16px!important;letter-spacing:1.6px!important}html.tema-esp .header .brand span{display:block;font-family:Arial,sans-serif;font-size:9px;letter-spacing:4.4px;font-weight:700;margin-top:3px}html.tema-esp .header .nav>button{width:38px;height:38px}}",
-    "@media(max-width:350px){html.tema-esp .header .nav{gap:3px!important}html.tema-esp .header .nav>button{width:34px;height:34px}html.tema-esp .header .brand{font-size:14px!important;letter-spacing:1px!important}}",
+    "html.tema-esp .header .nav>.cart-btn{order:5!important;width:auto!important;display:inline-flex!important;align-items:center;gap:6px;padding:0 10px 0 11px!important;background:linear-gradient(135deg,#7a3e20,#4a2510)!important;color:#fff!important;box-shadow:0 6px 14px -8px #4a2510}",
+    "html.tema-esp .header .nav>.cart-btn:hover{background:linear-gradient(135deg,#86462a,#55301a)!important}",
+    "html.tema-esp .header .cart-btn b{position:static!important;display:inline-block!important;width:auto!important;height:auto!important;min-width:20px;background:#f5c542!important;color:#4a2510!important;border-radius:8px!important;font:900 12px/18px Arial,sans-serif!important;padding:0 6px;text-align:center;box-shadow:none!important}",
+    "@media(max-width:520px){html.tema-esp .header .container.nav{width:calc(100% - 20px)}html.tema-esp .header .brand{font-size:16px!important}html.tema-esp .header .brand span{display:block;font-size:9.5px;letter-spacing:3.2px;font-weight:800;margin-top:3px}html.tema-esp .header .nav>button{width:38px;height:38px}}",
+    "@media(max-width:375px){html.tema-esp .header #shopBtn{display:none!important}}",
+    "@media(max-width:340px){html.tema-esp .header .nav{gap:3px!important;padding:0 6px}html.tema-esp .header .nav>button{width:34px;height:34px}html.tema-esp .header .brand{font-size:14px!important}}",
     "html.tema-esp .ksd-ic{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}",
     /* laci */
     "html.tema-esp .ks-menu{display:flex!important;flex-direction:column;position:fixed!important;left:0!important;top:0!important;bottom:0;height:100%;width:min(330px,86vw);min-width:0!important;max-height:none;border:0!important;border-radius:0 24px 24px 0!important;padding:0!important;overflow:hidden;background:linear-gradient(180deg,#2c160a,#40200f 55%,#2c160a)!important;color:#f5e6c8;box-shadow:24px 0 60px rgba(0,0,0,.5)!important;transform:translateX(-104%);visibility:hidden;transition:transform .32s cubic-bezier(.2,.9,.3,1),visibility 0s .32s;z-index:1200!important}",
@@ -110,6 +112,7 @@
     gantiTeks(document.getElementById("kabarBtn"), "news");
     gantiTeks(document.getElementById("myOrdersBtn"), "box");
     gantiTeks(document.getElementById("cartBtn"), "bag");
+    gantiTeks(document.getElementById("shopBtn"), "store");
   }
   hiasHeader();
   new MutationObserver(hiasHeader).observe(nav, { childList: true });
