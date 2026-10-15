@@ -68,7 +68,7 @@
     /* menu sederhana: daftar kecil di bawah header */
     "html.tema-esp .ks-menu{display:flex!important;flex-direction:column;position:fixed!important;top:var(--ksp-top,76px)!important;left:10px!important;right:auto!important;bottom:auto!important;width:min(270px,calc(100vw - 20px))!important;min-width:0!important;max-height:calc(100vh - var(--ksp-top,76px) - 14px);max-height:calc(100dvh - var(--ksp-top,76px) - 14px);overflow-y:auto;padding:6px!important;border:0!important;border-radius:18px!important;background:#fff!important;box-shadow:0 18px 44px -16px rgba(58,31,16,.5),0 0 0 1px #eadfd6!important;opacity:0;visibility:hidden;transform:translateY(-6px);transform-origin:top left;transition:opacity .15s,transform .18s,visibility 0s .18s}",
     "html.tema-esp .ks-menu.open{opacity:1;visibility:visible;transform:none;transition:opacity .15s,transform .18s}",
-    "html.tema-esp .ksd-dim{position:fixed;inset:0;background:rgba(40,20,8,.25);z-index:1190;opacity:0;visibility:hidden;transition:opacity .2s,visibility 0s .2s}",
+    "html.tema-esp .ksd-dim{position:fixed;inset:0;background:rgba(40,20,8,.25);z-index:25;opacity:0;visibility:hidden;transition:opacity .2s,visibility 0s .2s}",
     "html.tema-esp .ksd-dim.on{opacity:1;visibility:visible;transition:opacity .2s}",
     "html.tema-esp .ks-menu .ksm-i{display:flex!important;align-items:center;gap:12px!important;width:100%!important;padding:11px 12px!important;margin:0!important;border:0!important;border-radius:12px!important;background:none!important;color:#3a1f10!important;font:inherit;font-weight:700!important;font-size:15px;text-align:left;text-decoration:none;cursor:pointer}",
     "html.tema-esp .ks-menu .ksm-i:hover,html.tema-esp .ks-menu .ksm-i:focus-visible{background:#f8efe7!important;outline:none}",
@@ -81,7 +81,6 @@
     "html.tema-esp .ks-menu #ksMenuKeluar .ksd-ic{width:22px;height:22px;color:#c0392b}",
     "html.tema-esp .ks-menu [hidden]{display:none!important}",
     "html.tema-esp .ksm-hr[hidden]{display:none!important}",
-    "html.tema-esp.ksd-kunci,html.tema-esp.ksd-kunci body{overflow:hidden!important}",
     "@media(prefers-reduced-motion:reduce){html.tema-esp .ks-menu,html.tema-esp .ksd-dim{transition:none!important}}"
   ].join("\n");
   document.head.appendChild(st);
@@ -150,7 +149,7 @@
     if (k === "fav") { if (typeof bukaFavorit === "function") bukaFavorit(true); }
     else if (k === "kabar") { var kb = document.getElementById("kabarBtn"); if (kb) kb.click(); }
   }, true);
-  function posisi() { m.style.setProperty("--ksp-top", Math.round(nav.getBoundingClientRect().bottom + 8) + "px"); }
+  function posisi() { m.style.setProperty("--ksp-top", Math.max(8, Math.min(Math.round(nav.getBoundingClientRect().bottom + 8), 140)) + "px"); }
   addEventListener("resize", posisi);
   btn.addEventListener("click", posisi, true);
   function isi() {
@@ -161,7 +160,6 @@
   new MutationObserver(function () {
     var buka = m.classList.contains("open");
     dim.classList.toggle("on", buka);
-    document.documentElement.classList.toggle("ksd-kunci", buka);
     if (buka) { posisi(); isi(); }
   }).observe(m, { attributes: true, attributeFilter: ["class"] });
 })();
