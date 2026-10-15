@@ -38,7 +38,7 @@
 
   // Sambutan kecil di halaman toko/pasang aplikasi (hanya saat dibuka lewat QR)
   document.addEventListener("DOMContentLoaded", function(){
-    if(!/(^|\/)(index\.html|pasang-aplikasi\.html|aplikasi\.html)?$/.test(location.pathname)) return;
+    if(!/(^|\/)(index\.html|aplikasi\.html)?$/.test(location.pathname)) return;
     var b = document.createElement("div");
     b.style.cssText = "position:fixed;left:12px;right:12px;top:12px;z-index:9998;background:#7b3f1d;color:#fff;border-radius:16px;padding:10px 12px;font:14px/1.35 system-ui,sans-serif;display:flex;gap:8px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.25)";
     b.innerHTML = '<span style="flex:1">🏪 Anda datang lewat toko <b>' + dariLink + '</b>. Pasang aplikasi lalu daftar: kode tokonya terisi otomatis.</span><button type="button" aria-label="Tutup" style="border:0;background:transparent;color:#fff;font:inherit;padding:6px 8px;cursor:pointer">✕</button>';
