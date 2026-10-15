@@ -97,6 +97,7 @@ hr{border:0;border-top:1px solid var(--line);margin:20px 0}
 <div class="toast" id="toast"></div>
 <script src="config.js" onerror="void 0"></script>
 <script src="akun-id.js"></script>
+<script src="selfie-kamera.js"></script>
 <script>
 
 const $ = id => document.getElementById(id);
@@ -152,19 +153,15 @@ $("tabDaftar").onclick = () => showTab(false);
 let rFoto = null;
 function nikValid(n){ return /^\d{16}$/.test(n) && !/^(\d)\1{15}$/.test(n) && +n.slice(0,2) >= 11 && +n.slice(0,2) <= 92 && +n.slice(8,10) >= 1 && +n.slice(8,10) <= 12 && ((+n.slice(6,8) >= 1 && +n.slice(6,8) <= 31) || (+n.slice(6,8) >= 41 && +n.slice(6,8) <= 71)); }
 $("rNik").oninput = e => { e.target.value = e.target.value.replace(/\D/g, "").slice(0, 16); };
-$("btnSelfie").onclick = () => $("rFotoCam").click();   // kamera depan (di HP)
+$("btnSelfie").onclick = () => KSSelfie.kamera(setFoto, () => $("rFotoCam").click());   // kamera depan di dalam halaman; bila gagal, pakai kamera bawaan HP
 $("btnGaleri").onclick = () => $("rFotoGal").click();
-function prosesFoto(e){
+function setFoto(data){
+  rFoto = data; const pv = $("rFotoPv"); pv.classList.add("ada"); pv.innerHTML = ""; const i = document.createElement("img"); i.src = data; i.alt = "Foto profil"; pv.appendChild(i);
+  $("btnSelfie").textContent = "📷 Ulangi selfie"; if(window.DRAFT) DRAFT.simpan();
+}
+async function prosesFoto(e){
   const f = e.target.files && e.target.files[0]; e.target.value = ""; if(!f) return;
-  const r = new FileReader(); r.onerror = () => toast("Foto tidak bisa dibaca");
-  r.onload = () => { const im = new Image(); im.onerror = () => toast("File harus berupa gambar");
-    im.onload = () => { const z = Math.min(im.width, im.height), c = document.createElement("canvas"); c.width = c.height = 320;
-      c.getContext("2d").drawImage(im, (im.width - z) / 2, (im.height - z) / 2, z, z, 0, 0, 320, 320);
-      rFoto = c.toDataURL("image/jpeg", .82);
-      const pv = $("rFotoPv"); pv.classList.add("ada"); pv.innerHTML = ""; const i = document.createElement("img"); i.src = rFoto; i.alt = "Foto profil"; pv.appendChild(i);
-      $("btnSelfie").textContent = "📷 Ulangi selfie"; };
-    im.src = r.result; };
-  r.readAsDataURL(f);
+  try{ setFoto(await KSSelfie.dariFile(f)); }catch(er){ toast(er.message || "Foto tidak bisa dibaca"); }
 }
 $("rFotoCam").onchange = prosesFoto; $("rFotoGal").onchange = prosesFoto;
 async function rpcServer(fn, body){
@@ -213,6 +210,7 @@ $("btnDaftar").onclick = async () => {
     }catch(er){ lengkap = false; errNik = er.message || ""; }
     if(!lengkap){ toast(errNik ? errNik.slice(0, 110) : "Akun dibuat, tapi foto/NIK belum tersimpan. Lengkapi di dashboard."); await new Promise(r => setTimeout(r, 2200)); }
     sessionStorage.setItem(SESS, wa); try{ localStorage.setItem(SESS, wa); }catch(e){}
+    DRAFT.hapus();
     toast("Akun dibuat. Mengarahkan ke dashboard...");
     go();
   }catch(e){ toast(e.message || "Gagal mendaftar"); }
@@ -234,7 +232,9 @@ $("btnMasuk").onclick = async () => {
   }catch(e){ toast(e.message || "Gagal masuk"); }
 };
 $("lPin").onkeydown = e => { if(e.key === "Enter") $("btnMasuk").click(); };
+window.DRAFT = KSSelfie.draft("kurir", ["rNama","rAlamat","rNik","rKend","rWa"], {get:() => ({foto:rFoto}), set:x => { if(x.foto) setFoto(x.foto); }});
 (() => {
+  if(DRAFT.pulihkan()){ showTab(false); }
   $("warn").hidden = cloudOn();
   if(location.hash === "#daftar") showTab(false);
   if((sessionStorage.getItem(SESS) || localStorage.getItem(SESS)) && window.KSID && KSID.sesi(ROLE)) location.replace("dashboard-" + ROLE + ".html");
