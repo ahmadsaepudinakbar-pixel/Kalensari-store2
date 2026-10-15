@@ -2,9 +2,8 @@
    KALENSARI STORE • TEMA "KACA PREMIUM" (Konsep A)
    - Header kapsul kaca melayang, ikon garis dalam kotak lembut,
      keranjang tombol cokelat dengan angka emas.
-   - Menu ☰ menjadi PANEL KARTU di bawah header: banner profil + saldo
-     voucher, 4 kartu (Kuis Pintar, Lapak Barter, Favorit saya, Kabar Desa),
-     daftar "Masuk sebagai" (Penjual, Penyedia Jasa, Kurir), dan Keluar.
+   - Menu ☰ SEDERHANA: daftar kecil di bawah header (Kuis Pintar, Lapak Barter,
+     Favorit saya, Kabar Desa | Warga Desa, Penjual, Penyedia Jasa, Kurir | Keluar).
    - Tidak mengubah fungsi lama: menu yang dibuat skrip lain (kuis-pemenang.js,
      keluar.js, favorit di script.js) tetap dipakai, hanya disusun ulang.
    Pasang di index.html PALING BAWAH (setelah kuis-pemenang.js), gantikan tema-espresso.js:
@@ -66,44 +65,23 @@
     "@media(max-width:340px){html.tema-esp .header .nav{gap:3px!important;padding:0 6px}html.tema-esp .header .nav>button{width:34px;height:34px}html.tema-esp .header .brand{font-size:14px!important}}",
     "html.tema-esp .ksd-ic{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}",
     "html.tema-esp .ksd-ic{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}",
-    /* panel kartu (Konsep A) */
-    "html.tema-esp .ks-menu{display:flex!important;flex-direction:column;position:fixed!important;top:var(--ksp-top,76px)!important;left:10px!important;right:10px!important;bottom:auto!important;width:auto!important;max-width:460px;min-width:0!important;margin:0 auto;max-height:calc(100vh - var(--ksp-top,76px) - 14px);max-height:calc(100dvh - var(--ksp-top,76px) - 14px);padding:0!important;border:0!important;border-radius:26px!important;background:#fffaf6!important;box-shadow:0 28px 60px -20px rgba(58,31,16,.55),0 0 0 1px rgba(234,223,214,.9)!important;opacity:0;visibility:hidden;transform:translateY(-10px) scale(.98);transform-origin:top left;transition:opacity .2s,transform .24s cubic-bezier(.2,.9,.3,1),visibility 0s .24s}",
-    "html.tema-esp .ks-menu.open{opacity:1;visibility:visible;transform:none;transition:opacity .2s,transform .24s cubic-bezier(.2,.9,.3,1)}",
-    "html.tema-esp .ksd-dim{position:fixed;inset:0;background:rgba(40,20,8,.38);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);z-index:1190;opacity:0;visibility:hidden;transition:opacity .25s,visibility 0s .25s}",
-    "html.tema-esp .ksd-dim.on{opacity:1;visibility:visible;transition:opacity .25s}",
-    "html.tema-esp .ksd-scroll{flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:14px 14px 6px}",
-    "html.tema-esp .ks-menu .ksp-ban{display:flex!important;align-items:center;gap:12px;width:auto!important;padding:14px 16px!important;margin:0 0 12px!important;border-radius:20px!important;background:linear-gradient(135deg,#7a3e20,#5a2c14)!important;color:#fff!important;text-decoration:none;font-weight:400!important}",
-    "html.tema-esp .ksp-av{flex:none;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ffe58a,#f0b93a);display:grid;place-items:center;font-size:30px;line-height:1;box-shadow:0 0 0 3px rgba(255,255,255,.22)}",
-    "html.tema-esp .ksp-who{min-width:0;flex:1}",
-    "html.tema-esp .ksp-who b{display:block;font-size:17px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
-    "html.tema-esp .ksp-who small{display:block;font-size:12.5px;opacity:.85;margin-top:2px;font-weight:600}",
-    "html.tema-esp .ksp-sal{flex:none;text-align:right}",
-    "html.tema-esp .ksp-sal small{display:block;font-size:11px;opacity:.85;font-weight:600}",
-    "html.tema-esp .ksp-sal b{display:block;font-size:18px;font-weight:900;color:#f5c542;white-space:nowrap}",
-    "html.tema-esp .ksp-sal[hidden]{display:none!important}",
-    "html.tema-esp .ksp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}",
-    "html.tema-esp .ks-menu .ksp-tile{position:relative;display:flex!important;flex-direction:column;align-items:flex-start!important;gap:3px!important;width:auto!important;min-height:112px;padding:12px 12px 12px!important;margin:0!important;border:0!important;border-radius:20px!important;background:#f8efe7!important;color:#3a1f10!important;text-align:left;text-decoration:none;font:inherit;cursor:pointer;transition:transform .12s,background .15s}",
-    "html.tema-esp .ks-menu .ksp-tile:hover{background:#f3e6da!important}html.tema-esp .ks-menu .ksp-tile:active{transform:scale(.97)}",
-    "html.tema-esp .ksp-em{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:25px;line-height:1;margin-bottom:6px}",
-    "html.tema-esp .ksp-tile b{font-size:15.5px;font-weight:900;line-height:1.2}",
-    "html.tema-esp .ksp-tile small{font-size:12.5px;color:#7a6455;font-weight:600;line-height:1.3}",
-    "html.tema-esp .ksp-tag{position:absolute;top:10px;right:10px;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:900;letter-spacing:.4px;background:#f5c542;color:#4a2510}",
-    "html.tema-esp .ksp-tag.baru{background:#4a2510;color:#fff}",
-    "html.tema-esp .ksp-sec{font-size:11px;letter-spacing:2px;color:#8f7a6b;font-weight:900;margin:16px 6px 4px}",
-    "html.tema-esp .ksp-roles>a{display:flex!important;align-items:center;gap:12px!important;width:100%;padding:9px 6px!important;margin:0!important;border:0!important;border-radius:16px!important;background:none!important;color:#3a1f10!important;text-decoration:none;font:inherit}",
-    "html.tema-esp .ksp-roles>a:hover,html.tema-esp .ksp-roles>a:focus-visible{background:#f8efe7!important;outline:none}",
-    "html.tema-esp .ksp-roles .ksp-em{width:46px;height:46px;margin:0;background:#f4ece4;font-size:24px}",
-    "html.tema-esp .ksp-roles span.t{min-width:0;flex:1}html.tema-esp .ksp-roles span.t b{display:block;font-size:16px;font-weight:900}html.tema-esp .ksp-roles span.t small{display:block;font-size:12.5px;color:#7a6455;font-weight:600;margin-top:1px}",
-    "html.tema-esp .ksp-roles .ksd-ic{width:18px;height:18px;color:#9a8678}",
-    "html.tema-esp .ksd-foot{border-top:1px solid #eadfd6;margin:0 14px;padding:6px 0 calc(8px + env(safe-area-inset-bottom))}",
-    "html.tema-esp .ksd-foot:empty,html.tema-esp .ksd-foot:not(:has(>:not([hidden]))){display:none}",
-    "html.tema-esp .ksd-foot>button{display:flex!important;align-items:center;gap:12px!important;width:100%;padding:8px 6px!important;margin:0!important;border:0!important;border-radius:16px!important;background:none!important;color:#c0392b!important;font-family:inherit;font-weight:900;font-size:16px;line-height:1.2;cursor:pointer;text-align:left}",
-    "html.tema-esp .ksd-foot>button:hover{background:#fdecea!important}",
-    "html.tema-esp #ksMenuKeluar{border-top:0!important;margin:0!important;border-radius:16px!important}",
-    "html.tema-esp .ksd-foot>button .ksd-ic{width:46px;height:46px;padding:12px;border-radius:14px;background:#fdecea;color:#c0392b}",
+    /* menu sederhana: daftar kecil di bawah header */
+    "html.tema-esp .ks-menu{display:flex!important;flex-direction:column;position:fixed!important;top:var(--ksp-top,76px)!important;left:10px!important;right:auto!important;bottom:auto!important;width:min(270px,calc(100vw - 20px))!important;min-width:0!important;max-height:calc(100vh - var(--ksp-top,76px) - 14px);max-height:calc(100dvh - var(--ksp-top,76px) - 14px);overflow-y:auto;padding:6px!important;border:0!important;border-radius:18px!important;background:#fff!important;box-shadow:0 18px 44px -16px rgba(58,31,16,.5),0 0 0 1px #eadfd6!important;opacity:0;visibility:hidden;transform:translateY(-6px);transform-origin:top left;transition:opacity .15s,transform .18s,visibility 0s .18s}",
+    "html.tema-esp .ks-menu.open{opacity:1;visibility:visible;transform:none;transition:opacity .15s,transform .18s}",
+    "html.tema-esp .ksd-dim{position:fixed;inset:0;background:rgba(40,20,8,.25);z-index:1190;opacity:0;visibility:hidden;transition:opacity .2s,visibility 0s .2s}",
+    "html.tema-esp .ksd-dim.on{opacity:1;visibility:visible;transition:opacity .2s}",
+    "html.tema-esp .ks-menu .ksm-i{display:flex!important;align-items:center;gap:12px!important;width:100%!important;padding:11px 12px!important;margin:0!important;border:0!important;border-radius:12px!important;background:none!important;color:#3a1f10!important;font:inherit;font-weight:700!important;font-size:15px;text-align:left;text-decoration:none;cursor:pointer}",
+    "html.tema-esp .ks-menu .ksm-i:hover,html.tema-esp .ks-menu .ksm-i:focus-visible{background:#f8efe7!important;outline:none}",
+    "html.tema-esp .ksm-e{flex:none;width:24px;text-align:center;font-size:19px;line-height:1}",
+    "html.tema-esp .ksm-t{margin-left:auto;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:900;letter-spacing:.4px;background:#f5c542;color:#4a2510}",
+    "html.tema-esp .ksm-t.baru{background:#4a2510;color:#fff}",
+    "html.tema-esp .ksm-n{margin-left:auto;font-size:12px;font-weight:800;color:#8f7a6b}",
+    "html.tema-esp .ksm-hr{height:1px;background:#eadfd6;margin:5px 8px;border:0}",
+    "html.tema-esp .ks-menu #ksMenuKeluar{color:#c0392b!important;border-top:0!important;margin:0!important;border-radius:12px!important}",
+    "html.tema-esp .ks-menu #ksMenuKeluar .ksd-ic{width:22px;height:22px;color:#c0392b}",
     "html.tema-esp .ks-menu [hidden]{display:none!important}",
+    "html.tema-esp .ksm-hr[hidden]{display:none!important}",
     "html.tema-esp.ksd-kunci,html.tema-esp.ksd-kunci body{overflow:hidden!important}",
-    "@media(max-width:360px){html.tema-esp .ksp-ban{padding:12px!important}html.tema-esp .ksp-sal b{font-size:15px}html.tema-esp .ksp-av{width:44px;height:44px;font-size:25px}}",
     "@media(prefers-reduced-motion:reduce){html.tema-esp .ks-menu,html.tema-esp .ksd-dim{transition:none!important}}"
   ].join("\n");
   document.head.appendChild(st);
@@ -124,43 +102,31 @@
   hiasHeader();
   new MutationObserver(hiasHeader).observe(nav, { childList: true });
 
-  /* ---------- panel kartu ---------- */
+  /* ---------- menu sederhana ---------- */
   var m = document.querySelector(".ks-menu");
   if (!m) return;
   var awal = [].slice.call(m.children);
   var fav0 = function () { try { var a = JSON.parse(localStorage.getItem("kalensari_favorit") || "[]"); return Array.isArray(a) ? a.length : 0; } catch (e) { return 0; } };
-  var tile = function (cls, em, bg, judul, ket, tag) {
-    return '<span class="ksp-em" style="background:' + bg + '">' + em + "</span><b>" + judul + "</b><small>" + ket + "</small>" + (tag ? '<span class="ksp-tag ' + (tag === "BARU" ? "baru" : "") + '">' + tag + "</span>" : "");
-  };
   m.innerHTML =
-    '<div class="ksd-scroll">' +
-      '<a class="ksp-ban" href="akun-pembeli.html"><span class="ksp-av">😊</span><span class="ksp-who"><b>Halo, Warga 👋</b><small>Masuk / daftar sebagai warga</small></span>' +
-        '<span class="ksp-sal" hidden><small>Saldo voucher</small><b>Rp0</b></span></a>' +
-      '<div class="ksp-grid">' +
-        '<a class="ksp-tile" role="menuitem" href="kuis.html">' + tile("", "🎓", "#fdecc8", "Kuis Pintar", "Belajar, dapat voucher", "GRATIS") + "</a>" +
-        '<a class="ksp-tile" role="menuitem" href="pasar.html">' + tile("", "🔁", "#dcecfb", "Lapak Barter", "Jual-beli &amp; tukar barang", "BARU") + "</a>" +
-        '<button class="ksp-tile" type="button" role="menuitem" data-fav-menu="1" data-ksp="fav">' + tile("", "❤️", "#fde0e0", "Favorit saya", "<i class=\"ksp-nfav\">" + fav0() + "</i> produk disimpan") + "</button>" +
-        '<button class="ksp-tile" type="button" role="menuitem" data-ksp="kabar">' + tile("", "📰", "#dff3e6", "Kabar Desa", "<i class=\"ksp-nkabar\">Lihat kabar</i>") + "</button>" +
-      "</div>" +
-      '<div class="ksp-sec">MASUK SEBAGAI</div>' +
-      '<div class="ksp-roles">' +
-        '<a role="menuitem" href="penjual.html"><span class="ksp-em">🏪</span><span class="t"><b>Penjual</b><small>Kelola toko &amp; pesanan</small></span>' + ic("dot") + "</a>" +
-        '<a role="menuitem" href="akun-jasa.html"><span class="ksp-em">🤝</span><span class="t"><b>Penyedia Jasa</b><small>Tawarkan jasa ke warga</small></span>' + ic("dot") + "</a>" +
-        '<a role="menuitem" href="akun-kurir.html"><span class="ksp-em">🛵</span><span class="t"><b>Kurir</b><small>Antar pesanan &amp; paket</small></span>' + ic("dot") + "</a>" +
-      "</div>" +
-    "</div>" +
-    '<div class="ksd-foot"></div>';
-  var foot = m.querySelector(".ksd-foot");
-  m.querySelectorAll("i").forEach(function (i) { i.style.fontStyle = "normal"; });
+    '<a class="ksm-i" role="menuitem" href="kuis.html"><span class="ksm-e">🎓</span>Kuis Pintar<span class="ksm-t">GRATIS</span></a>' +
+    '<a class="ksm-i" role="menuitem" href="pasar.html"><span class="ksm-e">🔁</span>Lapak Barter<span class="ksm-t baru">BARU</span></a>' +
+    '<button class="ksm-i" type="button" role="menuitem" data-fav-menu="1" data-ksp="fav"><span class="ksm-e">❤️</span>Favorit saya<span class="ksm-n"></span></button>' +
+    '<button class="ksm-i" type="button" role="menuitem" data-ksp="kabar"><span class="ksm-e">📰</span>Kabar Desa<span class="ksm-t baru" hidden></span></button>' +
+    '<hr class="ksm-hr">' +
+    '<a class="ksm-i" role="menuitem" href="akun-pembeli.html"><span class="ksm-e">👥</span>Warga Desa</a>' +
+    '<a class="ksm-i" role="menuitem" href="penjual.html"><span class="ksm-e">🏪</span>Penjual</a>' +
+    '<a class="ksm-i" role="menuitem" href="akun-jasa.html"><span class="ksm-e">🤝</span>Penyedia Jasa</a>' +
+    '<a class="ksm-i" role="menuitem" href="akun-kurir.html"><span class="ksm-e">🛵</span>Kurir</a>' +
+    '<hr class="ksm-hr ksm-hr-out" hidden>';
 
-  // item bawaan skrip lain: hanya Keluar yang dipindah ke bawah; sisanya sudah punya kartu sendiri
+  // Keluar (dibuat keluar.js) tetap dipakai, hanya dirapikan di bagian bawah
   function taruh(el, awalan) {
-    if (!el || el.nodeType !== 1 || el.closest(".ksd-scroll")) return;
+    if (!el || el.nodeType !== 1) return;
     if (!awalan && el.parentNode !== m) return;
     if (el.id === "ksMenuKeluar") {
-      foot.appendChild(el); hiasKeluar(el);
-      new MutationObserver(function () { hiasKeluar(el); }).observe(el, { childList: true });
-    } else if (!el.classList.contains("ksd-scroll") && !el.classList.contains("ksd-foot")) el.remove();
+      el.classList.add("ksm-i"); m.appendChild(el); hiasKeluar(el); sinkron();
+      new MutationObserver(function () { hiasKeluar(el); sinkron(); }).observe(el, { childList: true, attributes: true, attributeFilter: ["hidden"] });
+    } else if (!el.classList.contains("ksm-i") && !el.classList.contains("ksm-hr")) el.remove();
   }
   function hiasKeluar(el) {
     if (el.querySelector(":scope>.ksd-ic")) return;
@@ -168,12 +134,13 @@
     if (t && t.nodeType === 3) t.nodeValue = t.nodeValue.replace(EMOJI, "");
     el.insertAdjacentHTML("afterbegin", ic("out"));
   }
+  function sinkron() { var k = document.getElementById("ksMenuKeluar"), h = m.querySelector(".ksm-hr-out"); if (h) h.hidden = !k || k.hidden; }
   awal.forEach(function (el) { if (el.id === "ksMenuKeluar") taruh(el, true); });
   new MutationObserver(function (ms) {
-    ms.forEach(function (x) { [].slice.call(x.addedNodes).forEach(taruh); });
+    ms.forEach(function (x) { [].slice.call(x.addedNodes).forEach(function (n) { taruh(n); }); });
   }).observe(m, { childList: true });
 
-  /* buka / tutup: lapisan gelap, kunci gulir, posisi di bawah header, data profil */
+  /* buka / tutup: lapisan gelap tipis, kunci gulir, posisi di bawah header */
   var dim = document.createElement("div"); dim.className = "ksd-dim"; document.body.appendChild(dim);
   function tutup() { m.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
   dim.addEventListener("click", tutup);
@@ -183,55 +150,18 @@
     if (k === "fav") { if (typeof bukaFavorit === "function") bukaFavorit(true); }
     else if (k === "kabar") { var kb = document.getElementById("kabarBtn"); if (kb) kb.click(); }
   }, true);
-  function posisi() {
-    var r = nav.getBoundingClientRect();
-    m.style.setProperty("--ksp-top", Math.round(r.bottom + 10) + "px");
-  }
+  function posisi() { m.style.setProperty("--ksp-top", Math.round(nav.getBoundingClientRect().bottom + 8) + "px"); }
   addEventListener("resize", posisi);
   btn.addEventListener("click", posisi, true);
+  function isi() {
+    var n = fav0(), f = m.querySelector(".ksm-n"); if (f) f.textContent = n ? String(n) : "";
+    var kb = document.querySelector("#kabarBtn b"), k = m.querySelector('[data-ksp="kabar"] .ksm-t');
+    if (k) { var ada = kb && !kb.hidden && kb.textContent; k.hidden = !ada; k.textContent = ada ? kb.textContent + " BARU" : ""; }
+  }
   new MutationObserver(function () {
     var buka = m.classList.contains("open");
     dim.classList.toggle("on", buka);
     document.documentElement.classList.toggle("ksd-kunci", buka);
-    if (buka) { posisi(); isiDinamis(); muatProfil(); }
+    if (buka) { posisi(); isi(); }
   }).observe(m, { attributes: true, attributeFilter: ["class"] });
-
-  function isiDinamis() {
-    var f = m.querySelector(".ksp-nfav"); if (f) f.textContent = fav0();
-    var kb = document.querySelector("#kabarBtn b"), k = m.querySelector(".ksp-nkabar");
-    if (k) k.textContent = kb && !kb.hidden && kb.textContent ? kb.textContent + " kabar baru" : "Lihat kabar";
-  }
-
-  var profilT = 0;
-  function masukPembeli() {
-    try { if (localStorage.getItem("kalensari_sesi_pembeli")) return true; var v = JSON.parse(localStorage.getItem("kalensari_pembeli_login") || "null"); return !!(v && v.wa && v.exp > Date.now()); } catch (e) { return false; }
-  }
-  // data pembeli (nama + ID akun seperti PB0012) dibaca lewat server dengan sesi masuk
-  async function akunSaya() {
-    var C = window.CLOUD_CONFIG || {}, sesi = ""; try { sesi = localStorage.getItem("kalensari_sesi_pembeli") || ""; } catch (e) {}
-    if (!sesi || !C.enabled || !C.supabaseUrl) return null;
-    var r = await fetch(String(C.supabaseUrl).replace(/\/$/, "") + "/rest/v1/rpc/akun_saya", {
-      method: "POST", headers: { apikey: C.supabaseAnonKey, Authorization: "Bearer " + C.supabaseAnonKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ p_sesi: sesi, p_peran: "pembeli" })
-    });
-    var j = null; try { j = await r.json(); } catch (e) {}
-    return j && j.ok ? j : null;
-  }
-  async function muatProfil() {
-    var ban = m.querySelector(".ksp-ban"), who = m.querySelector(".ksp-who"), sal = m.querySelector(".ksp-sal");
-    if (!masukPembeli()) {
-      profilT = 0; sal.hidden = true; ban.setAttribute("href", "akun-pembeli.html");
-      who.innerHTML = "<b>Halo, Warga 👋</b><small>Masuk / daftar sebagai warga</small>";
-      return;
-    }
-    ban.setAttribute("href", "dashboard-pembeli.html");
-    if (Date.now() - profilT < 60000) return; profilT = Date.now();
-    try {
-      var j = await akunSaya(); if (!j) { profilT = 0; return; }
-      var d = j.data || {}, nama = String(d.nama || "").trim() || "Warga", depan = nama.split(/\s+/)[0];
-      who.innerHTML = "<b>Halo, " + esc(depan) + " 👋</b><small>Warga Desa" + (d.kode ? " • " + esc(d.kode) : "") + "</small>";
-      var s = typeof muatSaldoVoucher === "function" ? await muatSaldoVoucher(j.wa) : 0;
-      sal.querySelector("b").textContent = rp(s); sal.hidden = false;
-    } catch (e) { profilT = 0; }
-  }
 })();
