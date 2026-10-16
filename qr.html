@@ -21,13 +21,13 @@ small{display:block;margin-top:14px;color:#8b6d5c;line-height:1.5}
 canvas{width:100%;height:auto;display:block;border-radius:14px;box-shadow:0 10px 30px #5b30141f;background:#fff}
 @media(max-width:760px){.wrap{grid-template-columns:1fr}}
 @media print{@page{size:A5 portrait;margin:8mm}body{background:#fff}.ctl{display:none}.wrap{display:block;padding:0;max-width:none}canvas{box-shadow:none;border-radius:0;width:100%;max-height:194mm;object-fit:contain}}
-</style></head><body>
+</style><script src="config.js"></script></head><body>
 <div class="wrap">
 <div class="ctl">
 <h1>Template QRIS Toko</h1>
 <p class="s"><a href="penjual-app.html" style="color:var(--br);font-weight:800">← Kembali ke aplikasi penjual</a><br>Isi nama toko, unggah gambar QRIS, lalu unduh atau cetak untuk ditempel di lapak.</p>
 <label>Nama toko<input type="text" id="nama" maxlength="40" value="Nama Toko Anda"></label>
-<p id="akun" hidden style="margin:10px 0 0;padding:8px 10px;background:#eaf6ee;border-radius:10px;font-size:13px">✅ Terhubung ke akun penjual. Kode toko mengikuti akun dan tidak bisa diubah. Nama dan gambar QRIS tersimpan otomatis.</p>
+<p id="akun" hidden style="margin:10px 0 0;padding:8px 10px;background:#eaf6ee;border-radius:10px;font-size:13px">✅ Terhubung ke akun penjual. Kode toko mengikuti akun dan tidak bisa diubah. Nama dan gambar QRIS tersimpan otomatis di akun Anda.</p>
 <label>Kode toko<input type="text" id="kode" maxlength="12" value="KLS001"></label>
 <label>Gambar QRIS toko<input type="file" id="qr" accept="image/*"></label>
 <div class="btns"><button class="btn" id="unduh">Unduh PNG</button><button class="btn o" id="cetak">Cetak</button><button class="btn o" id="hapus" type="button">Hapus QRIS</button></div><p id="pesan" style="color:#b3261e;font-size:13px"></p>
@@ -44,8 +44,14 @@ const q=new URLSearchParams(location.search);
 const KEY="kalensari_qristpl_"+(q.get("kode")||"umum");let sv={};try{sv=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){}
 if(q.get("kode")){$("kode").value=q.get("kode");$("kode").readOnly=true;$("kode").style.background="#f3ebe5";$("akun").hidden=false}else if(sv.kode)$("kode").value=sv.kode;
 $("nama").value=sv.nama||q.get("nama")||$("nama").value;
-function simpan(){try{localStorage.setItem(KEY,JSON.stringify({nama:$("nama").value,kode:$("kode").value,qris:sv.qris||""}))}catch(e){$("pesan").textContent="Gambar terlalu besar untuk disimpan di HP ini, tapi tetap bisa diunduh."}}
+function simpanLokal(){try{localStorage.setItem(KEY,JSON.stringify({nama:$("nama").value,kode:$("kode").value,qris:sv.qris||""}))}catch(e){$("pesan").textContent="Gambar terlalu besar untuk disimpan di HP ini, tapi tetap bisa diunduh."}}
 if(sv.qris){qr.onload=()=>{qrOk=true;draw()};qr.src=sv.qris}
+const CC=window.CLOUD_CONFIG||{},cloudOn=!!(CC.enabled&&CC.supabaseUrl&&CC.supabaseAnonKey),SID=q.get("id")||"",API=String(CC.supabaseUrl||"").replace(/\/$/,""),HD={apikey:CC.supabaseAnonKey,Authorization:"Bearer "+CC.supabaseAnonKey,"Content-Type":"application/json"};
+function status(t,bad){const e=$("pesan");e.textContent=t;e.style.color=bad?"#b3261e":"#1f7a4d"}
+async function muatAkun(){if(!cloudOn||!SID)return;try{const r=await fetch(API+"/rest/v1/store_settings?select=value&key=eq."+encodeURIComponent("qris_tpl_"+SID),{headers:HD});const j=await r.json(),v=j&&j[0]&&j[0].value;if(v){if(v.nama){$("nama").value=v.nama;sv.nama=v.nama}sv.qris=v.qris||"";simpanLokal();if(sv.qris){qr.onload=()=>{qrOk=true;draw()};qr.src=sv.qris}else{qrOk=false}draw();status("☁️ Dimuat dari akun")}}catch(e){}}
+let tmAkun;function simpanAkun(){if(!cloudOn||!SID)return;clearTimeout(tmAkun);status("Menyimpan ke akun…");tmAkun=setTimeout(async()=>{const sesi=localStorage.getItem("kalensari_sesi_penjual")||"";if(!sesi){status("Belum tersimpan di akun: masuk ulang lewat aplikasi penjual (tersimpan di HP).",1);return}try{const r=await fetch(API+"/rest/v1/rpc/template_qris_simpan",{method:"POST",headers:HD,body:JSON.stringify({p_sesi:sesi,p_value:{nama:$("nama").value,qris:sv.qris||""}})});if(!r.ok){let m="";try{m=(await r.json()).message||""}catch(e){}throw new Error(m||r.status)}status("☁️ Tersimpan di akun")}catch(e){status("Gagal simpan ke akun: "+String(e.message||e).slice(0,90)+" (tersimpan di HP)",1)}},800)}
+function simpan(){simpanLokal();simpanAkun()}
+muatAkun();
 function rr(a,b,w,h,r){x.beginPath();x.roundRect(a,b,w,h,r)}
 function fit(t,w,max,min,wt){let s=max;do{x.font=wt+" "+s+"px "+F;if(x.measureText(t).width<=w)break;s-=2}while(s>min);return s}
 function draw(){
@@ -77,7 +83,7 @@ function draw(){
 base.onload=()=>{draw();if(document.fonts)document.fonts.load("800 40px Nunito").then(()=>document.fonts.load("900 40px Nunito")).then(draw).catch(()=>{})};
 base.src=BASE;
 $("nama").oninput=$("kode").oninput=()=>{simpan();draw()};
-$("qr").onchange=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const r=Math.min(1,900/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.round(im.width*r);cv.height=Math.round(im.height*r);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);const d=cv.toDataURL("image/png");sv.qris=d;$("pesan").textContent="";simpan();qr.onload=()=>{qrOk=true;draw()};qr.src=d;URL.revokeObjectURL(u)};im.src=u};
+$("qr").onchange=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const r=Math.min(1,900/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.round(im.width*r);cv.height=Math.round(im.height*r);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);let d="";for(const m of [900,700,520]){const rr=Math.min(1,m/Math.max(im.width,im.height));cv.width=Math.round(im.width*rr);cv.height=Math.round(im.height*rr);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);d=cv.toDataURL("image/png");if(d.length<=650000)break;d=cv.toDataURL("image/jpeg",.88);if(d.length<=650000)break}sv.qris=d;simpan();qr.onload=()=>{qrOk=true;draw()};qr.src=d;URL.revokeObjectURL(u)};im.src=u};
 $("hapus").onclick=()=>{sv.qris="";qrOk=false;$("qr").value="";simpan();draw()};
 $("unduh").onclick=()=>{c.toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="QRIS-"+($("kode").value.trim()||"toko")+".png";a.click()})};
 $("cetak").onclick=()=>window.print();
