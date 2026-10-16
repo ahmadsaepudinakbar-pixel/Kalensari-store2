@@ -131,6 +131,7 @@ footer a,footer button{color:var(--mut)}
 
 <header class="top">
   <div class="wrap">
+    <a class="icon-btn" href="index.html" aria-label="Kembali ke toko"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></a>
     <a class="brand" href="tv.html" aria-label="Kalensari TV, kembali ke awal">
       <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3l15 9-15 9z"/></svg></span>
       <b>Kalensari TV</b>
@@ -312,6 +313,21 @@ function tersaring(){
   });
 }
 
+/* ---------- musik latar toko: jeda saat video diputar, lanjut saat halaman ditutup ---------- */
+var musikDijeda=null;
+function jedaMusik(){
+  try{
+    var a=window.parent!==window&&window.parent.document.getElementById('bgMusic');
+    if(a&&!a.paused){a.pause();musikDijeda=a}
+  }catch(e){}
+}
+addEventListener('pagehide',function(){
+  try{
+    var off=localStorage.getItem('kalensari_music_off')==='1';
+    if(musikDijeda&&!off)musikDijeda.play().catch(function(){});
+  }catch(e){}
+});
+
 /* ---------- tampilan pengunjung ---------- */
 function render(){renderChips();renderStage();renderRow();if(isAdmin())renderPanel()}
 
@@ -338,6 +354,7 @@ function renderStage(autoplay){
     return;
   }
   var v=list.filter(function(x){return x.id===S.cur})[0];
+  if(autoplay)jedaMusik();
   var tags=(baru(v)?'<span class="tag baru">Baru</span>':'')+(v.tayang_sampai?'<span class="tag sisa">'+esc(sisa(v))+'</span>':'');
   var inner;
   if(autoplay){
