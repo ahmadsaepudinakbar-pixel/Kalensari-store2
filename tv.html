@@ -229,12 +229,13 @@ html[data-tema="gelap"] .ic-moon{display:none}
 /* ---------- tombol & mode layar miring ---------- */
 .btn-miring{display:inline-flex;align-items:center;gap:8px;margin:12px 4px 0;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--chip);color:var(--ink);font-size:.9rem;font-weight:600;box-shadow:var(--shadow)}
 .btn-miring svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.keluar-miring{display:none;position:absolute;z-index:3;top:10px;right:10px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1.6rem;line-height:1}
+.info-miring{display:none;position:absolute;z-index:3;left:50%;transform:translateX(-50%);bottom:max(24px,env(safe-area-inset-bottom));width:max-content;max-width:min(88%,520px);align-items:center;gap:10px;padding:10px 8px 10px 18px;border-radius:999px;background:rgba(232,238,248,.96);color:#1d2330;font-size:.85rem;line-height:1.35;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.info-miring.tampil{display:flex}
+.info-miring button{width:30px;height:30px;flex:0 0 auto;padding:0;border-radius:50%;border:0;background:rgba(0,0,0,.1);color:#1d2330;font-size:1.3rem;line-height:1;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .player:fullscreen{border-radius:0;aspect-ratio:auto;width:100%;height:100%;background:#000}
 .player:-webkit-full-screen{border-radius:0;aspect-ratio:auto;width:100%;height:100%;background:#000}
 /* cadangan bila browser tidak mendukung layar penuh: putar tampilan lewat CSS */
 .player.miring-css{position:fixed;z-index:1000;border-radius:0;aspect-ratio:auto;background:#000;top:0;left:0;width:100vw;height:100vh;width:100dvw;height:100dvh}
-.player.miring-css .keluar-miring{display:block}
 @media (orientation:portrait){
   .player.miring-css{width:100vh;height:100vw;width:100dvh;height:100dvw;transform-origin:top left;transform:rotate(90deg) translateY(-100%)}
 }
@@ -372,6 +373,7 @@ footer a,footer button{color:var(--mut)}
 
 <script src="config.js"></script>
 <script>
+var rw={play:false,fs:false},abaikan=0,infoTimer=0;
 (function(){
 'use strict';
 /* =====================================================================
@@ -536,7 +538,16 @@ function pilihCur(){
   if(!S.cur||!list.some(function(v){return v.id===S.cur}))S.cur=list[0].id;
   return list;
 }
+function dorong(k){   // tambah satu langkah riwayat supaya tombol kembali menutup lapisan ini dulu
+  if(rw[k])return;
+  try{history.pushState({ksTv:k},'',location.href);rw[k]=true}catch(e){}
+}
+function buang(k){    // lapisan ditutup dengan cara lain: hapus langkah riwayatnya
+  if(!rw[k])return;rw[k]=false;abaikan++;
+  try{history.back()}catch(e){abaikan--}
+}
 function renderStage(autoplay){
+  if(!autoplay&&rw.play)buang('play');   // pemutar diganti tampilan lain: buang entri riwayatnya
   var list=pilihCur(),box=$('#stage');
   if(!list.length){
     var teks=S.tabelBelum?'<b>Halaman ini belum aktif.</b>Admin perlu menjalankan supabase-tv.sql di Supabase.'
@@ -549,9 +560,9 @@ function renderStage(autoplay){
   }
   var v=list.filter(function(x){return x.id===S.cur})[0];
   if(autoplay){
-    jedaMusik();
+    jedaMusik();dorong('play');
     box.innerHTML='<div class="player"><iframe src="'+esc(embedUrl(v.yt_id))+'" title="'+esc(v.judul)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'
-      +'<button class="keluar-miring" type="button" data-miring-tutup aria-label="Tutup mode miring">&times;</button></div>'
+      +'<div class="info-miring" role="status"><span>Untuk keluar dari layar penuh, tekan tombol kembali</span><button type="button" data-info-tutup aria-label="Tutup pesan">&times;</button></div></div>'
       +'<button class="btn-miring" type="button" data-miring>'+IC_MIRING+'<span>Tonton layar miring</span></button>'
       +'<h1 class="judul">'+esc(v.judul)+'</h1>'
       +'<p class="meta">'+esc(v.kategori||'Tanpa kategori')+' &bull; '+umur(v)+'</p>';
@@ -620,14 +631,22 @@ $('#stage').addEventListener('click',function(e){
   if(e.target.closest('#hero'))renderStage(true);
 });
 /* ---------- layar miring ---------- */
+function infoMiring(on){
+  var i=document.querySelector('.player .info-miring');if(!i)return;
+  clearTimeout(infoTimer);i.classList.toggle('tampil',!!on);
+  if(on)infoTimer=setTimeout(function(){i.classList.remove('tampil')},8000);
+}
 function tutupMiringCss(){
+  try{var fe=document.fullscreenElement||document.webkitFullscreenElement;if(fe){var ex=document.exitFullscreen||document.webkitExitFullscreen;if(ex){var r=ex.call(document);if(r&&r.catch)r.catch(function(){})}}}catch(e){}
   var p=document.querySelector('.player.miring-css');
   if(p)p.classList.remove('miring-css');
   document.body.classList.remove('kunci-miring');
+  infoMiring(false);
 }
 function bukaMiring(){
   var p=document.querySelector('.player');if(!p)return;
   var rf=p.requestFullscreen||p.webkitRequestFullscreen;
+  dorong('fs');infoMiring(true);
   if(rf){
     var h=rf.call(p);
     var kunci=function(){
@@ -641,13 +660,25 @@ function bukaMiring(){
 function lepasMiring(){
   if(!(document.fullscreenElement||document.webkitFullscreenElement)){
     try{if(screen.orientation&&screen.orientation.unlock)screen.orientation.unlock()}catch(e){}
+    if(document.querySelector('.player.miring-css'))return;
+    infoMiring(false);buang('fs');
   }
 }
+/* Tombol kembali bertahap: layar penuh -> tutup layar penuh; video diputar -> kembali ke daftar; baru setelah itu keluar halaman */
+addEventListener('popstate',function(){
+  if(abaikan>0){abaikan--;return}
+  if(rw.fs){rw.fs=false;tutupMiringCss();return}
+  if(rw.play){rw.play=false;renderStage();return}
+});
+document.addEventListener('click',function(e){   // panah kembali di kiri atas ikut bertahap
+  var a=e.target.closest&&e.target.closest('a.icon-btn[href="index.html"]');
+  if(a&&(rw.fs||rw.play)){e.preventDefault();e.stopImmediatePropagation();history.back()}
+},true);
 document.addEventListener('fullscreenchange',lepasMiring);
 document.addEventListener('webkitfullscreenchange',lepasMiring);
 $('#stage').addEventListener('click',function(e){
   if(e.target.closest('[data-miring]'))bukaMiring();
-  else if(e.target.closest('[data-miring-tutup]'))tutupMiringCss();
+  else if(e.target.closest('[data-info-tutup]'))infoMiring(false);
 });
 $('#btnLihat').addEventListener('click',function(){S.semua=!S.semua;renderRow()});
 
