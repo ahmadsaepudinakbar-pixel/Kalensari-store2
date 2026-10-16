@@ -25,11 +25,12 @@ canvas{width:100%;height:auto;display:block;border-radius:14px;box-shadow:0 10px
 <div class="wrap">
 <div class="ctl">
 <h1>Template QRIS Toko</h1>
-<p class="s">Isi nama toko, unggah gambar QRIS, lalu unduh atau cetak untuk ditempel di lapak.</p>
+<p class="s"><a href="penjual-app.html" style="color:var(--br);font-weight:800">← Kembali ke aplikasi penjual</a><br>Isi nama toko, unggah gambar QRIS, lalu unduh atau cetak untuk ditempel di lapak.</p>
 <label>Nama toko<input type="text" id="nama" maxlength="40" value="Nama Toko Anda"></label>
+<p id="akun" hidden style="margin:10px 0 0;padding:8px 10px;background:#eaf6ee;border-radius:10px;font-size:13px">✅ Terhubung ke akun penjual. Kode toko mengikuti akun dan tidak bisa diubah. Nama dan gambar QRIS tersimpan otomatis.</p>
 <label>Kode toko<input type="text" id="kode" maxlength="12" value="KLS001"></label>
 <label>Gambar QRIS toko<input type="file" id="qr" accept="image/*"></label>
-<div class="btns"><button class="btn" id="unduh">Unduh PNG</button><button class="btn o" id="cetak">Cetak</button></div>
+<div class="btns"><button class="btn" id="unduh">Unduh PNG</button><button class="btn o" id="cetak">Cetak</button><button class="btn o" id="hapus" type="button">Hapus QRIS</button></div><p id="pesan" style="color:#b3261e;font-size:13px"></p>
 <small>Hasil PNG berukuran 2280 × 2760 px, tajam untuk dicetak sampai ukuran A5. Tautan bisa diisi otomatis: <b>?nama=Warung+Siti&amp;kode=KLS002</b></small>
 </div>
 <canvas id="c" width="2280" height="2760" aria-label="Pratinjau template QRIS"></canvas>
@@ -40,7 +41,11 @@ const S=2,c=document.getElementById("c"),x=c.getContext("2d");
 const $=i=>document.getElementById(i),BR="#632c0e",F='"Nunito","Arial Rounded MT Bold",Arial,sans-serif';
 const base=new Image(),qr=new Image();let qrOk=false;
 const q=new URLSearchParams(location.search);
-if(q.get("nama"))$("nama").value=q.get("nama");if(q.get("kode"))$("kode").value=q.get("kode");
+const KEY="kalensari_qristpl_"+(q.get("kode")||"umum");let sv={};try{sv=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){}
+if(q.get("kode")){$("kode").value=q.get("kode");$("kode").readOnly=true;$("kode").style.background="#f3ebe5";$("akun").hidden=false}else if(sv.kode)$("kode").value=sv.kode;
+$("nama").value=sv.nama||q.get("nama")||$("nama").value;
+function simpan(){try{localStorage.setItem(KEY,JSON.stringify({nama:$("nama").value,kode:$("kode").value,qris:sv.qris||""}))}catch(e){$("pesan").textContent="Gambar terlalu besar untuk disimpan di HP ini, tapi tetap bisa diunduh."}}
+if(sv.qris){qr.onload=()=>{qrOk=true;draw()};qr.src=sv.qris}
 function rr(a,b,w,h,r){x.beginPath();x.roundRect(a,b,w,h,r)}
 function fit(t,w,max,min,wt){let s=max;do{x.font=wt+" "+s+"px "+F;if(x.measureText(t).width<=w)break;s-=2}while(s>min);return s}
 function draw(){
@@ -71,8 +76,9 @@ function draw(){
 }
 base.onload=()=>{draw();if(document.fonts)document.fonts.load("800 40px Nunito").then(()=>document.fonts.load("900 40px Nunito")).then(draw).catch(()=>{})};
 base.src=BASE;
-$("nama").oninput=$("kode").oninput=draw;
-$("qr").onchange=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f);qr.onload=()=>{qrOk=true;draw()};qr.src=u};
+$("nama").oninput=$("kode").oninput=()=>{simpan();draw()};
+$("qr").onchange=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const r=Math.min(1,900/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.round(im.width*r);cv.height=Math.round(im.height*r);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);const d=cv.toDataURL("image/png");sv.qris=d;$("pesan").textContent="";simpan();qr.onload=()=>{qrOk=true;draw()};qr.src=d;URL.revokeObjectURL(u)};im.src=u};
+$("hapus").onclick=()=>{sv.qris="";qrOk=false;$("qr").value="";simpan();draw()};
 $("unduh").onclick=()=>{c.toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="QRIS-"+($("kode").value.trim()||"toko")+".png";a.click()})};
 $("cetak").onclick=()=>window.print();
 </script></body></html>
