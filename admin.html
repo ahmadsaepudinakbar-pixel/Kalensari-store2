@@ -957,6 +957,7 @@ function memberMenu(gk,id){
   ${gk==='kurir'?`<div class="detail-row"><span>NIK</span><b>${nikData(m.id)?esc(nikData(m.id).nik):'belum diisi'}</b></div><div class="detail-row"><span>Alamat domisili</span><b>${alamatKurir(m.id)?esc(alamatKurir(m.id)):'belum diisi'}</b></div><div class="detail-row"><span>Foto profil</span><b>${m.fotoOk?'ada':'belum ada'}</b></div>`:''}
   <div class="mact" style="flex-direction:column">
     ${gk==='kurir'&&nikData(m.id)?`<button class="btn btn-light" onclick="resetNik('${jsq(id)}',this)">🪪 Reset NIK (kurir isi ulang)</button>`:''}
+    ${gk==='penjual'?`<button class="btn btn-light" onclick="ubahWaPenjual('${jsq(id)}')">📱 Ubah nomor WhatsApp</button>`:''}
     ${gk==='penjual'&&m.pasarMalam?`<button class="btn btn-light" onclick="pmToggle('${jsq(id)}',this)">${pmCfg().pedagang.includes(id)&&m.pasarMalam?'🌙 Keluarkan dari Pasar Malam Jum’at':'🌙 Masukkan ke Pasar Malam Jum’at'}</button>`:''}
     <button class="btn btn-light" onclick="setPending('${gk}','${jsq(id)}',this)">⏸ Kembalikan ke menunggu persetujuan</button>
     <button class="btn btn-red" onclick="delMember('${gk}','${jsq(id)}',this)">${ico('trash')}Hapus akun</button>
@@ -977,6 +978,7 @@ async function editToko(name){
   <div class="field"><label>Alamat / Dusun</label><input class="inp" id="tkA" maxlength="150" value="${esc(m.dusun||'')}" placeholder="mis. Dusun Kaler RT 02"></div>
   <div class="field"><label>Titik lokasi toko (untuk ongkir & rute kurir) — geser peta sampai pin tepat di toko</label>${petaHTML('tk',240)}
     <label class="sm" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="tkLokOn" ${Number(m.latitude)?'checked':''}> Simpan titik lokasi ini</label></div>
+  ${m.id?`<div class="field"><label>No. WhatsApp penjual</label><div style="display:flex;gap:8px;align-items:center"><b style="flex:1">${m.wa?'+'+esc(m.wa):'-'}</b><button class="btn btn-light" type="button" onclick="ubahWaPenjual('${jsq(m.id)}')">📱 Ubah</button></div></div>`:''}
   <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="simpanToko('${jsq(s.name)}',this)">Simpan</button></div>`);
   tkMap=await pasangPeta('tk',m.latitude,m.longitude);
   if(tkMap)tkMap.on('movestart',()=>{const c=$('#tkLokOn');if(c)c.checked=true});
@@ -1056,6 +1058,39 @@ async function serahAda(name,btn){
     list[j]=rec;if(bayangan)list=list.filter(x=>x!==bayangan);
     await setSetting('penjual_members',list);S.settings.penjual_members=list;
     closeModal();render();toast(`"${name}" diserahkan ke ${rec.nama||'penjual'}`);
+  });
+}
+function ubahWaPenjual(id){
+  const m=members('penjual').find(x=>x.id===id);if(!m)return toast('Akun penjual tidak ditemukan');
+  const lama=waAkun(m)||phoneKey(m.wa),punya=!!waAkun(m);
+  modal(`<div class="chead"><h3 style="margin:0">📱 Ubah No. WhatsApp</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
+  <p class="sm" style="color:var(--mut);margin:0 0 10px">${esc(m.nama||'Penjual')}${m.toko||m.usaha?' • toko '+esc(m.toko||m.usaha):''}<br>Nomor sekarang: <b>${lama?'+'+esc(lama):'-'}</b></p>
+  <div class="field"><label>Nomor WhatsApp baru</label><input class="inp" id="uwWa" inputmode="tel" placeholder="08..."></div>
+  ${punya?`<div class="field"><label>PIN baru (4–8 angka) — wajib, karena PIN terkait dengan nomor</label><input class="inp" id="uwPin" inputmode="numeric" maxlength="8" value="${String(Math.floor(1000+Math.random()*9000))}"></div>
+  <small style="color:var(--mut);font-size:12px;display:block;margin:-6px 0 12px">Penjual harus masuk lagi memakai nomor & PIN baru. Produk, jadwal, dan saldo toko tidak berubah.</small>`:''}
+  <div class="mact"><button class="btn btn-o" onclick="closeModal()">Batal</button><button class="btn btn-g" onclick="simpanWaPenjual('${jsq(id)}',this)">Simpan</button></div>`);
+}
+async function simpanWaPenjual(id,btn){
+  const wa=phoneKey($('#uwWa').value),pinEl=$('#uwPin'),pin=pinEl?pinEl.value.trim():'';
+  if(wa.length<9||wa.length>15)return toast('Nomor WhatsApp tidak valid');
+  if(pinEl&&!/^\d{4,8}$/.test(pin))return toast('PIN harus 4–8 angka');
+  await busy(btn,async()=>{
+    const arr=await readKey('penjual_members',[]),list=Array.isArray(arr)?arr:[],i=list.findIndex(x=>x&&x.id===id);
+    if(i<0){toast('Akun penjual tidak ditemukan');return}
+    const acc=await readKey('penjual_accounts',{}),A=acc&&typeof acc==='object'&&!Array.isArray(acc)?acc:{};
+    const lama=Object.keys(A).find(w=>A[w]&&A[w].id===id)||'';
+    if(wa===lama||(!lama&&wa===phoneKey(list[i].wa))){toast('Nomor sama dengan yang sekarang');return}
+    if(A[wa]){toast('Nomor ini sudah dipakai akun penjual lain');return}
+    if(lama){A[wa]={...A[lama],h:await hashPinPenjual(wa,pin)};delete A[lama];await setSetting('penjual_accounts',A);S.settings.penjual_accounts=A}
+    list[i]={...list[i],wa,updated:Date.now()};
+    await setSetting('penjual_members',list);S.settings.penjual_members=list;
+    const nama=list[i].nama||'Penjual',toko=list[i].toko||list[i].usaha||'';
+    if(!lama){closeModal();render();toast('Nomor WhatsApp diperbarui');return}
+    const pesan=`Halo ${nama}, nomor WhatsApp akun toko${toko?' "'+toko+'"':''} di Kalensari Store sudah diganti.\n\nMasuk di: https://kalensari.web.id/penjual.html\nNo. WhatsApp: ${wa.replace(/^62/,'0')}\nPIN: ${pin}\n\nSilakan ganti PIN setelah masuk. Terima kasih 🙏`;
+    modal(`<h3>✅ Nomor WhatsApp diganti</h3>
+    <p class="sm" style="margin:0 0 10px">Kirim info masuk baru ini ke penjual:</p>
+    <div style="background:var(--gl);border-radius:12px;padding:12px;font-size:13px;white-space:pre-line">${esc(pesan)}</div>
+    <div class="mact"><button class="btn btn-o" onclick="closeModal();render()">Tutup</button><a class="btn btn-g" style="text-decoration:none" href="https://wa.me/${esc(wa)}?text=${encodeURIComponent(pesan)}" target="_blank" rel="noopener" onclick="setTimeout(()=>{closeModal();render()},300)">💬 Kirim via WhatsApp</a></div>`);
   });
 }
 function infoSerah(toko,nama,wa,pin){
