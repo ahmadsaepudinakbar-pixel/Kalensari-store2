@@ -249,6 +249,18 @@ footer a,footer button{color:var(--mut)}
 .wave{position:absolute;left:0;right:0;bottom:0;height:120px;z-index:0;pointer-events:none}
 .wave svg{display:block;width:100%;height:100%}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* ---------- konfirmasi keluar ---------- */
+.kk-bg{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.55)}
+.kk-bg.on{display:flex}
+.kk{width:100%;max-width:320px;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+.kk h3{margin:0 0 6px;font-size:1.05rem;font-weight:800}
+.kk p{margin:0 0 18px;font-size:.9rem;color:var(--sub);line-height:1.45}
+.kk-btn{display:flex;gap:10px;justify-content:flex-end}
+.kk-btn button{font:inherit;font-weight:700;font-size:.92rem;padding:10px 20px;border-radius:999px;border:1px solid var(--line);background:var(--chip);color:var(--ink);cursor:pointer}
+.kk-btn .kk-ya{background:var(--grad-btn);border-color:transparent;color:#fff}
+.kk-toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2001;background:rgba(20,20,30,.92);color:#fff;padding:9px 16px;border-radius:999px;font-size:.82rem;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100% - 32px);text-align:center}
+.kk-toast.on{opacity:1}
 </style>
 
 </head>
@@ -665,6 +677,7 @@ document.addEventListener('webkitfullscreenchange',cekKeluarMiring);
 /* tombol kembali di HP: tutup layar miring dulu, tetap di halaman ini */
 window.addEventListener('popstate',function(){
   if(!miringAktif)return;
+  window.tvBarusMiring=true;
   miringAktif=false;
   var ex=document.exitFullscreen||document.webkitExitFullscreen;
   if((document.fullscreenElement||document.webkitFullscreenElement)&&ex){try{var r=ex.call(document);if(r&&r.catch)r.catch(function(){})}catch(e){}}
@@ -874,6 +887,49 @@ $('#katList').addEventListener('click',async function(e){
 muat().then(function(){
   if(location.hash==='#kelola')bukaPanel();
 });
+})();
+</script>
+
+<div class="kk-bg" id="kkBg" role="presentation">
+  <div class="kk" role="alertdialog" aria-modal="true" aria-labelledby="kkJudul" aria-describedby="kkIsi">
+    <h3 id="kkJudul">Yakin keluar Kalensari TV?</h3>
+    <p id="kkIsi">Anda akan kembali ke dashboard toko.</p>
+    <div class="kk-btn"><button type="button" id="kkTidak">Tidak</button><button type="button" class="kk-ya" id="kkYa">Ya</button></div>
+  </div>
+</div>
+<div class="kk-toast" id="kkToast" role="status"></div>
+<script>
+(function(){
+  var bg=document.getElementById('kkBg'),toast=document.getElementById('kkToast'),tt,terakhir=0;
+  function jaga(){try{history.pushState({tvJaga:1},'')}catch(e){}}
+  function terbuka(){return bg.classList.contains('on')}
+  function buka(){bg.classList.add('on');document.getElementById('kkTidak').focus()}
+  function tutup(){bg.classList.remove('on')}
+  function info(t){toast.textContent=t;toast.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('on')},1600)}
+  jaga();
+  function jagaAwal(){try{if(!(history.state&&history.state.tvJaga))jaga()}catch(e){}}
+  ['pointerdown','keydown','touchstart'].forEach(function(n){window.addEventListener(n,jagaAwal,{once:true,passive:true})});
+  window.addEventListener('popstate',function(){
+    if(window.tvBarusMiring){window.tvBarusMiring=false;return}
+    jaga();buka();
+  });
+  document.getElementById('kkTidak').addEventListener('click',tutup);
+  document.getElementById('kkYa').addEventListener('click',function(){location.href='index.html'});
+  bg.addEventListener('click',function(e){if(e.target===bg)tutup()});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&terbuka())tutup()});
+  var btnKembali=document.querySelector('a.icon-btn[href="index.html"]');
+  if(btnKembali)btnKembali.addEventListener('click',function(e){e.preventDefault();buka()});
+  var logo=document.querySelector('a.brand');
+  if(logo){
+    logo.setAttribute('aria-label','Kalensari TV, ketuk 2 kali untuk kembali ke dashboard');
+    logo.addEventListener('click',function(e){
+      e.preventDefault();
+      if(e.detail===0){buka();return}
+      var n=Date.now();
+      if(n-terakhir<400){terakhir=0;buka()}
+      else{terakhir=n;info('Ketuk 2 kali untuk kembali ke dashboard')}
+    });
+  }
 })();
 </script>
 </body>
