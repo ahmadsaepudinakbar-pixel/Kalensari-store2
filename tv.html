@@ -419,7 +419,7 @@ function sisa(v){
   var ms=tgl(v.tayang_sampai)-Date.now();
   if(ms<=0)return 'Sudah habis';
   var h=Math.ceil(ms/36e5);
-  return h<24?'Tayang '+h+' jam lagi':'Tayang '+Math.ceil(h/24)+' hari lagi';
+  return h<24?'Masa tayang '+h+' jam lagi':'Masa tayang '+Math.ceil(h/24)+' hari lagi';
 }
 function umur(v){
   var d=Math.floor((Date.now()-tgl(v.created_at))/864e5);
@@ -587,14 +587,14 @@ function renderRow(){
   $('#row').innerHTML=tampil.map(function(v){
     return '<button class="item" type="button" data-id="'+v.id+'"><span class="thumb"><img src="'+thumb(v.yt_id)+'" alt="" loading="lazy">'
       +'<span class="mini">'+IC_PLAY+'</span>'
-      +(v.tayang_sampai?'<span class="sisa">'+'Masa tayang '+esc(sisa(v).replace('Tayang ',''))+'</span>':'')
+      +(v.tayang_sampai?'<span class="sisa">'+esc(sisa(v))+'</span>':'')
       +'</span><span class="tx"><span class="jd">'+esc(v.judul)+'</span><small>'+esc(v.kategori||'')+'</small></span></button>';
   }).join('');
 }
 
 function sisaPendek(v){
   var h=Math.ceil((tgl(v.tayang_sampai)-Date.now())/36e5);
-  return h<24?h+' jam lagi':Math.ceil(h/24)+' hari lagi';
+  return h<24?'Masa tayang '+h+' jam lagi':'Masa tayang '+Math.ceil(h/24)+' hari lagi';
 }
 function renderSoon(){
   var list=tersaring().filter(function(v){return v.tayang_sampai}).sort(function(a,b){return tgl(a.tayang_sampai)-tgl(b.tayang_sampai)}).slice(0,8);
