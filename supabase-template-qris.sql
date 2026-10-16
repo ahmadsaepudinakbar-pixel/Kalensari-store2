@@ -22,6 +22,9 @@ begin
   q := coalesce(p_value->>'qris', '');
   if q <> '' and not public.ks_foto_sah(q) then raise exception 'Gambar QRIS harus JPG/PNG/WEBP dan tidak terlalu besar'; end if;
   val := jsonb_build_object('nama', left(coalesce(p_value->>'nama', ''), 40), 'qris', q,
+                            'sk', greatest(40,   least(200, coalesce((p_value->>'sk')::numeric, 100))),
+                            'gx', greatest(-200, least(200, coalesce((p_value->>'gx')::numeric, 0))),
+                            'gy', greatest(-200, least(200, coalesce((p_value->>'gy')::numeric, 0))),
                             't', (extract(epoch from now()) * 1000)::bigint);
   insert into public.store_settings (key, value) values ('qris_tpl_' || v_id, val)
   on conflict (key) do update set value = excluded.value;

@@ -18,6 +18,8 @@ input:focus-visible,.btn:focus-visible{outline:3px solid #c98a5e;outline-offset:
 .btn{flex:1;border:0;border-radius:12px;padding:13px 16px;font:inherit;font-weight:800;cursor:pointer;background:var(--br);color:#fff}
 .btn.o{background:#fff;color:var(--br);border:1.5px solid var(--br)}
 small{display:block;margin-top:14px;color:#8b6d5c;line-height:1.5}
+input[type=range]{display:block;width:100%;margin:8px 0 0;accent-color:var(--br)}
+.atur{margin-top:14px;padding:12px;background:#fff;border:1px solid var(--ln);border-radius:12px}.atur[hidden]{display:none}.atur label{margin:10px 0 0;display:flex;justify-content:space-between;align-items:baseline}.atur label:first-of-type{margin-top:0}.atur label b{color:var(--br);font-weight:800}.atur .btn{flex:none;width:100%;margin-top:12px;padding:10px 14px}
 canvas{width:100%;height:auto;display:block;border-radius:14px;box-shadow:0 10px 30px #5b30141f;background:#fff}
 @media(max-width:760px){.wrap{grid-template-columns:1fr}}
 @media print{@page{size:A5 portrait;margin:8mm}body{background:#fff}.ctl{display:none}.wrap{display:block;padding:0;max-width:none}canvas{box-shadow:none;border-radius:0;width:100%;max-height:194mm;object-fit:contain}}
@@ -30,6 +32,13 @@ canvas{width:100%;height:auto;display:block;border-radius:14px;box-shadow:0 10px
 <p id="akun" hidden style="margin:10px 0 0;padding:8px 10px;background:#eaf6ee;border-radius:10px;font-size:13px">✅ Terhubung ke akun penjual. Kode toko mengikuti akun dan tidak bisa diubah. Nama dan gambar QRIS tersimpan otomatis di akun Anda.</p>
 <label>Kode toko<input type="text" id="kode" maxlength="12" value="KLS001"></label>
 <label>Gambar QRIS toko<input type="file" id="qr" accept="image/*"></label>
+<div class="atur" id="atur" hidden>
+<label for="sk">Ukuran QR <b id="skV">100%</b></label><input type="range" id="sk" min="40" max="200" step="1" value="100">
+<label for="gx">Geser kiri ⇄ kanan <b id="gxV">0</b></label><input type="range" id="gx" min="-200" max="200" step="1" value="0">
+<label for="gy">Geser atas ⇅ bawah <b id="gyV">0</b></label><input type="range" id="gy" min="-200" max="200" step="1" value="0">
+<button class="btn o" id="aturUlang" type="button">↺ Atur ulang ukuran &amp; posisi</button>
+<small style="margin-top:8px">Perbesar untuk memotong pinggiran putih pada gambar QRIS; perkecil bila terlalu besar. Bagian yang keluar dari kotak putih otomatis terpotong.</small>
+</div>
 <div class="btns"><button class="btn" id="unduh">Unduh PNG</button><button class="btn o" id="cetak">Cetak</button><button class="btn o" id="hapus" type="button">Hapus QRIS</button></div><p id="pesan" style="color:#b3261e;font-size:13px"></p>
 <small>Hasil PNG berukuran 2280 × 2760 px, tajam untuk dicetak sampai ukuran A5. Tautan bisa diisi otomatis: <b>?nama=Warung+Siti&amp;kode=KLS002</b></small>
 </div>
@@ -44,12 +53,15 @@ const q=new URLSearchParams(location.search);
 const KEY="kalensari_qristpl_"+(q.get("kode")||"umum");let sv={};try{sv=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){}
 if(q.get("kode")){$("kode").value=q.get("kode");$("kode").readOnly=true;$("kode").style.background="#f3ebe5";$("akun").hidden=false}else if(sv.kode)$("kode").value=sv.kode;
 $("nama").value=sv.nama||q.get("nama")||$("nama").value;
-function simpanLokal(){try{localStorage.setItem(KEY,JSON.stringify({nama:$("nama").value,kode:$("kode").value,qris:sv.qris||""}))}catch(e){$("pesan").textContent="Gambar terlalu besar untuk disimpan di HP ini, tapi tetap bisa diunduh."}}
-if(sv.qris){qr.onload=()=>{qrOk=true;draw()};qr.src=sv.qris}
+const lim=(v,a,b,d)=>{v=Number(v);return isFinite(v)?Math.max(a,Math.min(b,v)):d};
+let SK=lim(sv.sk,40,200,100),GX=lim(sv.gx,-200,200,0),GY=lim(sv.gy,-200,200,0);
+function atur(){$("sk").value=SK;$("gx").value=GX;$("gy").value=GY;$("skV").textContent=SK+"%";$("gxV").textContent=GX;$("gyV").textContent=GY;$("atur").hidden=!qrOk}
+function simpanLokal(){try{localStorage.setItem(KEY,JSON.stringify({nama:$("nama").value,kode:$("kode").value,qris:sv.qris||"",sk:SK,gx:GX,gy:GY}))}catch(e){$("pesan").textContent="Gambar terlalu besar untuk disimpan di HP ini, tapi tetap bisa diunduh."}}
+if(sv.qris){qr.onload=()=>{qrOk=true;draw();atur()};qr.src=sv.qris}
 const CC=window.CLOUD_CONFIG||{},cloudOn=!!(CC.enabled&&CC.supabaseUrl&&CC.supabaseAnonKey),SID=q.get("id")||"",API=String(CC.supabaseUrl||"").replace(/\/$/,""),HD={apikey:CC.supabaseAnonKey,Authorization:"Bearer "+CC.supabaseAnonKey,"Content-Type":"application/json"};
 function status(t,bad){const e=$("pesan");e.textContent=t;e.style.color=bad?"#b3261e":"#1f7a4d"}
-async function muatAkun(){if(!cloudOn||!SID)return;try{const r=await fetch(API+"/rest/v1/store_settings?select=value&key=eq."+encodeURIComponent("qris_tpl_"+SID),{headers:HD});const j=await r.json(),v=j&&j[0]&&j[0].value;if(v){if(v.nama){$("nama").value=v.nama;sv.nama=v.nama}sv.qris=v.qris||"";simpanLokal();if(sv.qris){qr.onload=()=>{qrOk=true;draw()};qr.src=sv.qris}else{qrOk=false}draw();status("☁️ Dimuat dari akun")}}catch(e){}}
-let tmAkun;function simpanAkun(){if(!cloudOn||!SID)return;clearTimeout(tmAkun);status("Menyimpan ke akun…");tmAkun=setTimeout(async()=>{const sesi=localStorage.getItem("kalensari_sesi_penjual")||"";if(!sesi){status("Belum tersimpan di akun: masuk ulang lewat aplikasi penjual (tersimpan di HP).",1);return}try{const r=await fetch(API+"/rest/v1/rpc/template_qris_simpan",{method:"POST",headers:HD,body:JSON.stringify({p_sesi:sesi,p_value:{nama:$("nama").value,qris:sv.qris||""}})});if(!r.ok){let m="";try{m=(await r.json()).message||""}catch(e){}throw new Error(m||r.status)}status("☁️ Tersimpan di akun")}catch(e){status("Gagal simpan ke akun: "+String(e.message||e).slice(0,90)+" (tersimpan di HP)",1)}},800)}
+async function muatAkun(){if(!cloudOn||!SID)return;try{const r=await fetch(API+"/rest/v1/store_settings?select=value&key=eq."+encodeURIComponent("qris_tpl_"+SID),{headers:HD});const j=await r.json(),v=j&&j[0]&&j[0].value;if(v){if(v.nama){$("nama").value=v.nama;sv.nama=v.nama}sv.qris=v.qris||"";if(v.sk!=null){SK=lim(v.sk,40,200,100);GX=lim(v.gx,-200,200,0);GY=lim(v.gy,-200,200,0)}simpanLokal();if(sv.qris){qr.onload=()=>{qrOk=true;draw();atur()};qr.src=sv.qris}else{qrOk=false}draw();status("☁️ Dimuat dari akun")}}catch(e){}}
+let tmAkun;function simpanAkun(){if(!cloudOn||!SID)return;clearTimeout(tmAkun);status("Menyimpan ke akun…");tmAkun=setTimeout(async()=>{const sesi=localStorage.getItem("kalensari_sesi_penjual")||"";if(!sesi){status("Belum tersimpan di akun: masuk ulang lewat aplikasi penjual (tersimpan di HP).",1);return}try{const r=await fetch(API+"/rest/v1/rpc/template_qris_simpan",{method:"POST",headers:HD,body:JSON.stringify({p_sesi:sesi,p_value:{nama:$("nama").value,qris:sv.qris||"",sk:SK,gx:GX,gy:GY}})});if(!r.ok){let m="";try{m=(await r.json()).message||""}catch(e){}throw new Error(m||r.status)}status("☁️ Tersimpan di akun")}catch(e){status("Gagal simpan ke akun: "+String(e.message||e).slice(0,90)+" (tersimpan di HP)",1)}},800)}
 function simpan(){simpanLokal();simpanAkun()}
 muatAkun();
 function rr(a,b,w,h,r){x.beginPath();x.roundRect(a,b,w,h,r)}
@@ -60,7 +72,7 @@ function draw(){
  // panel QRIS
  x.fillStyle=BR;rr(272,395,598,567,40);x.fill();
  x.fillStyle="#fff";rr(286,409,570,539,28);x.fill();
- if(qrOk){const mw=530,mh=499,r=Math.min(mw/qr.width,mh/qr.height),w=qr.width*r,h=qr.height*r;x.drawImage(qr,571-w/2,678.5-h/2,w,h)}
+ if(qrOk){const mw=530,mh=499,r=Math.min(mw/qr.width,mh/qr.height)*SK/100,w=qr.width*r,h=qr.height*r;x.save();rr(286,409,570,539,28);x.clip();x.drawImage(qr,571+GX-w/2,678.5+GY-h/2,w,h);x.restore()}
  else{x.setLineDash([14,10]);x.strokeStyle="#c9a994";x.lineWidth=3;rr(316,439,510,479,20);x.stroke();x.setLineDash([]);
   x.fillStyle="#a98670";x.textAlign="center";x.font="800 34px "+F;x.fillText("Unggah gambar QRIS",571,670);x.font="700 24px "+F;x.fillText("di kolom sebelah kiri",571,708)}
  // nama + kode toko
@@ -83,8 +95,10 @@ function draw(){
 base.onload=()=>{draw();if(document.fonts)document.fonts.load("800 40px Nunito").then(()=>document.fonts.load("900 40px Nunito")).then(draw).catch(()=>{})};
 base.src=BASE;
 $("nama").oninput=$("kode").oninput=()=>{simpan();draw()};
-$("qr").onchange=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const r=Math.min(1,900/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.round(im.width*r);cv.height=Math.round(im.height*r);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);let d="";for(const m of [900,700,520]){const rr=Math.min(1,m/Math.max(im.width,im.height));cv.width=Math.round(im.width*rr);cv.height=Math.round(im.height*rr);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);d=cv.toDataURL("image/png");if(d.length<=650000)break;d=cv.toDataURL("image/jpeg",.88);if(d.length<=650000)break}sv.qris=d;simpan();qr.onload=()=>{qrOk=true;draw()};qr.src=d;URL.revokeObjectURL(u)};im.src=u};
-$("hapus").onclick=()=>{sv.qris="";qrOk=false;$("qr").value="";simpan();draw()};
+$("qr").onchange=e=>{const f=e.target.files[0];if(!f)return;const u=URL.createObjectURL(f),im=new Image();im.onload=()=>{const r=Math.min(1,900/Math.max(im.width,im.height)),cv=document.createElement("canvas");cv.width=Math.round(im.width*r);cv.height=Math.round(im.height*r);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);let d="";for(const m of [900,700,520]){const rr=Math.min(1,m/Math.max(im.width,im.height));cv.width=Math.round(im.width*rr);cv.height=Math.round(im.height*rr);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);d=cv.toDataURL("image/png");if(d.length<=650000)break;d=cv.toDataURL("image/jpeg",.88);if(d.length<=650000)break}sv.qris=d;SK=100;GX=0;GY=0;simpan();qr.onload=()=>{qrOk=true;draw();atur()};qr.src=d;URL.revokeObjectURL(u)};im.src=u};
+$("hapus").onclick=()=>{sv.qris="";qrOk=false;$("qr").value="";SK=100;GX=0;GY=0;simpan();draw();atur()};
+["sk","gx","gy"].forEach(i=>$(i).oninput=()=>{SK=lim($("sk").value,40,200,100);GX=lim($("gx").value,-200,200,0);GY=lim($("gy").value,-200,200,0);atur();draw();simpan()});
+$("aturUlang").onclick=()=>{SK=100;GX=0;GY=0;atur();draw();simpan()};
 $("unduh").onclick=()=>{c.toBlob(b=>{const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="QRIS-"+($("kode").value.trim()||"toko")+".png";a.click()})};
 $("cetak").onclick=()=>window.print();
 </script></body></html>
