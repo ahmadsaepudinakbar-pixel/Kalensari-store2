@@ -150,6 +150,19 @@ html[data-tema="gelap"] .ic-moon{display:none}
 .item small{display:block;margin:4px 0 0;font-size:.82rem;color:var(--mut)}
 .item.now{border-color:var(--accent)}
 
+/* ---------- masa tayang akan habis (slide) ---------- */
+.soon .lain-head{gap:10px}
+.soon .lain-head h2{font-size:clamp(1.05rem,4.6vw,1.4rem);min-width:0}
+.soon .lain-head h2 svg{width:26px;height:26px;flex:0 0 auto}
+.geser{display:flex;gap:8px;flex:0 0 auto}
+.geser[hidden]{display:none}
+.slider{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.slider::-webkit-scrollbar{display:none}
+.slider .item{display:block;flex:0 0 min(72%,270px);scroll-snap-align:start}
+.sisa2{position:absolute;right:8px;bottom:8px;max-width:calc(100% - 16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(20,20,30,.78);color:#ffd54a}
+.sisa2.dekat{background:#e5262f;color:#fff}
+.soon{margin-top:8px}
+
 /* ---------- panel kelola ---------- */
 .panel{margin:26px 0 8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
 .panel[hidden]{display:none}
@@ -204,6 +217,7 @@ html[data-tema="gelap"] .ic-moon{display:none}
   .player{width:min(100%,calc((100vh - 150px)*16/9))}
   .judul{font-size:1rem;margin-top:8px}
   #lain{grid-column:2;grid-row:2}
+  #soon{grid-column:1/-1}
   .lain-head{margin:6px 2px 8px}
   .row{grid-template-columns:1fr;overflow-y:auto;max-height:calc(100vh - 140px);gap:10px;padding:2px 4px 8px 2px}
   .item{display:grid;grid-template-columns:44% 1fr;align-items:start}
@@ -275,6 +289,13 @@ footer a,footer button{color:var(--mut)}
   <div id="lain" hidden>
     <div class="lain-head"><h2><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.5 10h17v10a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 20z"/><path fill="currentColor" d="M3.2 6.3 18.6 2.2l.9 3.2L4.1 9.5zM10 4.6l2.2 2.4M14.8 3.4l2.2 2.4" stroke="#fff" stroke-width=".6"/><rect x="7" y="13" width="6" height="2.4" rx="1" fill="#fff" opacity=".85"/></svg>Video lainnya</h2><button class="lihat" id="btnLihat" type="button" hidden><span>Lihat Semua</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>
     <div class="row" id="row"></div>
+  </div>
+
+  <div id="soon" class="soon" hidden>
+    <div class="lain-head"><h2><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Masa tayang akan habis</h2>
+      <div class="geser" id="soonNav"><button class="icon-btn sm" id="soonPrev" type="button" aria-label="Geser ke kiri"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><button class="icon-btn sm" id="soonNext" type="button" aria-label="Geser ke kanan"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>
+    </div>
+    <div class="slider" id="slider" role="group" aria-label="Video yang masa tayangnya akan habis"></div>
   </div>
 
   <!-- ===== Panel kelola (hanya tampil setelah admin masuk) ===== -->
@@ -463,7 +484,7 @@ addEventListener('pagehide',function(){
 });
 
 /* ---------- tampilan pengunjung ---------- */
-function render(){renderChips();renderStage();renderRow();if(isAdmin())renderPanel()}
+function render(){renderChips();renderStage();renderRow();renderSoon();if(isAdmin())renderPanel()}
 
 /* ikon & warna kategori */
 var IK={
@@ -559,6 +580,24 @@ function renderRow(){
   }).join('');
 }
 
+function sisaPendek(v){
+  var h=Math.ceil((tgl(v.tayang_sampai)-Date.now())/36e5);
+  return h<24?h+' jam lagi':Math.ceil(h/24)+' hari lagi';
+}
+function renderSoon(){
+  var list=tersaring().filter(function(v){return v.tayang_sampai}).sort(function(a,b){return tgl(a.tayang_sampai)-tgl(b.tayang_sampai)}).slice(0,8);
+  $('#soon').hidden=!list.length;
+  $('#soonNav').hidden=list.length<2;
+  $('#slider').innerHTML=list.map(function(v){
+    var dekat=tgl(v.tayang_sampai)-Date.now()<=3*864e5;
+    return '<button class="item" type="button" data-id="'+v.id+'"><span class="thumb"><img src="'+thumb(v.yt_id)+'" alt="" loading="lazy">'
+      +'<span class="mini">'+IC_PLAY+'</span>'
+      +(v.kategori?'<span class="kat-badge" style="background:'+katWarna(v.kategori)+'">'+esc(v.kategori)+'</span>':'')
+      +'<span class="sisa2'+(dekat?' dekat':'')+'">'+esc(sisaPendek(v))+'</span>'
+      +'</span><span class="tx"><span class="jd">'+esc(v.judul)+'</span><small>'+esc(sisa(v))+'</small></span></button>';
+  }).join('');
+}
+
 $('#chips').addEventListener('click',function(e){
   var b=e.target.closest('.chip');if(!b)return;
   S.filter=b.dataset.k;S.semua=false;render();
@@ -626,12 +665,20 @@ $('#row').addEventListener('click',function(e){
   renderStage(true);renderRow();
   $('#stage').scrollIntoView({behavior:'smooth',block:'start'});
 });
+$('#slider').addEventListener('click',function(e){
+  var b=e.target.closest('.item');if(!b)return;
+  S.cur=Number(b.dataset.id);
+  renderStage(true);renderRow();
+  $('#stage').scrollIntoView({behavior:'smooth',block:'start'});
+});
+$('#soonPrev').addEventListener('click',function(){var s=$('#slider');s.scrollBy({left:-s.clientWidth*.8,behavior:'smooth'})});
+$('#soonNext').addEventListener('click',function(){var s=$('#slider');s.scrollBy({left:s.clientWidth*.8,behavior:'smooth'})});
 $('#btnCari').addEventListener('click',function(){
   var box=$('#boxCari'),on=!box.classList.contains('on');
   box.classList.toggle('on',on);this.setAttribute('aria-expanded',on);
   if(on)$('#inCari').focus();else{S.q='';$('#inCari').value='';render()}
 });
-$('#inCari').addEventListener('input',function(){S.q=this.value;renderStage();renderRow()});
+$('#inCari').addEventListener('input',function(){S.q=this.value;renderStage();renderRow();renderSoon()});
 
 /* ---------- panel kelola ---------- */
 function isAdmin(){return !$('#panel').hidden&&!!auth}
