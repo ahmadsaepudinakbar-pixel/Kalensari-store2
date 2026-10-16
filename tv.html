@@ -1,135 +1,541 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Halaman video YouTube">
-  <title>Video YouTube</title>
-  <style>
-    :root {
-      color-scheme: light;
-      --bg: #f5f3ee;
-      --card: #ffffff;
-      --text: #252525;
-      --accent: #c62828;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Kalensari TV: drama China, drama Indo, dan movie pilihan.">
+<title>Kalensari TV</title>
+<style>
+:root{
+  --bg:#f7f1e8;
+  --card:#ffffff;
+  --ink:#2b1d16;
+  --mut:#76655a;
+  --line:#e6dccf;
+  --accent:#1f6b4a;
+  --accent-soft:#e3f0e8;
+  --stage:#1d1a17;
+  --red:#b3261e;
+  --red-soft:#fbe6e3;
+  --r:14px;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI","Trebuchet MS",system-ui,-apple-system,Arial,sans-serif;line-height:1.45;min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #f2a93b;outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-    * { box-sizing: border-box; }
+.wrap{width:min(100% - 24px,960px);margin:0 auto}
 
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
+/* ---------- bilah atas ---------- */
+.top{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:10px;padding:10px 0}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;text-decoration:none;color:inherit}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:var(--stage);display:grid;place-items:center}
+.brand-mark svg{width:16px;height:16px;fill:#fff;margin-left:2px}
+.brand b{font-size:1.1rem;letter-spacing:.2px}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center}
+.icon-btn svg{width:19px;height:19px;stroke:var(--ink);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.top .cari{display:none;padding:0 0 10px}
+.top .cari.on{display:block}
+.cari input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);font-size:16px}
 
-    header {
-      padding: 24px 16px;
-      text-align: center;
-      background: var(--accent);
-      color: #fff;
-    }
+/* ---------- chip kategori ---------- */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:7px 15px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:.92rem;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
 
-    header h1 {
-      margin: 0 0 8px;
-      font-size: clamp(1.5rem, 4vw, 2.2rem);
-    }
+/* ---------- pemutar utama ---------- */
+.stage{margin-top:10px}
+.player{position:relative;aspect-ratio:16/9;background:var(--stage);border-radius:var(--r);overflow:hidden}
+.player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.poster{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;background:var(--stage)}
+.poster img{width:100%;height:100%;object-fit:cover;display:block;opacity:.92}
+.play{position:absolute;left:50%;top:50%;width:68px;height:68px;margin:-34px 0 0 -34px;border-radius:50%;background:rgba(255,255,255,.95);display:grid;place-items:center;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.play svg{width:28px;height:28px;fill:var(--stage);margin-left:4px}
+.poster:hover .play{background:#fff}
+.tag{position:absolute;top:10px;font-size:.75rem;padding:3px 9px;border-radius:6px;font-weight:600;pointer-events:none}
+.tag.baru{left:10px;background:var(--red);color:#fff}
+.tag.sisa{right:10px;background:rgba(255,255,255,.95);color:var(--mut)}
+.judul{margin:12px 2px 0;font-size:1.15rem;font-weight:700;line-height:1.3}
+.meta{margin:2px 2px 0;font-size:.9rem;color:var(--mut)}
+.kosong{padding:34px 16px;text-align:center;color:var(--mut);background:var(--card);border:1px dashed var(--line);border-radius:var(--r);margin-top:14px}
+.kosong b{display:block;color:var(--ink);margin-bottom:2px}
 
-    header p {
-      margin: 0;
-      opacity: 0.95;
-    }
+/* ---------- video lainnya ---------- */
+.lain-head{display:flex;justify-content:space-between;align-items:baseline;margin:22px 2px 8px}
+.lain-head h2{margin:0;font-size:1rem}
+.lain-head span{font-size:.8rem;color:var(--mut)}
+.row{display:flex;gap:12px;overflow-x:auto;padding:2px 2px 14px;scroll-snap-type:x proximity}
+.item{flex:0 0 min(46%,190px);text-align:left;background:none;border:0;padding:0;scroll-snap-align:start}
+.thumb{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:var(--stage)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .mini{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.18);opacity:0;transition:opacity .15s}
+.item:hover .mini,.item:focus-visible .mini{opacity:1}
+.mini svg{width:26px;height:26px;fill:#fff}
+.thumb .sisa{position:absolute;right:5px;bottom:5px;font-size:.68rem;padding:1px 7px;border-radius:5px;background:rgba(255,255,255,.95);color:var(--mut)}
+.item p{margin:6px 1px 0;font-size:.85rem;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.item small{display:block;margin:1px 1px 0;font-size:.75rem;color:var(--mut)}
+.item.now .thumb{outline:3px solid var(--accent)}
 
-    main {
-      width: min(100% - 32px, 1000px);
-      margin: 32px auto;
-    }
+/* ---------- panel kelola ---------- */
+.panel{margin:26px 0 8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.panel[hidden]{display:none}
+.panel,.stage{scroll-margin-top:70px}
+.panel h2{margin:0 0 12px;font-size:1.05rem}
+.panel h3{margin:20px 0 8px;font-size:.95rem}
+.panel label{display:block;font-size:.85rem;color:var(--mut);margin:10px 0 4px}
+.panel input[type=text],.panel input[type=email],.panel input[type=password],.panel select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:16px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){.grid2{grid-template-columns:1fr}}
+.cek{display:flex!important;align-items:center;gap:8px;color:var(--ink)!important;font-size:.92rem!important;margin:12px 0!important}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 16px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:600}
+.btn.full{width:100%}
+.btn.ghost{background:var(--card);color:var(--accent)}
+.btn:disabled{opacity:.55;cursor:default}
+.pesan{margin:10px 0 0;font-size:.88rem;min-height:1.2em}
+.pesan.err{color:var(--red)}
+.pesan.ok{color:var(--accent)}
+.panel-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
+.panel-top h2{margin:0}
+.link{background:none;border:0;padding:6px 2px;color:var(--mut);text-decoration:underline;font-size:.85rem}
+.kat-list{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px;padding:0;list-style:none}
+.kat-list li{display:flex;align-items:center;gap:2px;padding:4px 4px 4px 12px;border-radius:999px;background:var(--accent-soft);font-size:.9rem}
+.kat-list button{width:28px;height:28px;border-radius:50%;border:0;background:transparent;color:var(--red);font-size:1.1rem;line-height:1}
+.kat-list button:hover{background:var(--red-soft)}
+.kat-add{display:flex;gap:8px}
+.kat-add input{flex:1}
+.adm{margin:0;padding:0;list-style:none}
+.adm li{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.adm img{width:62px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;background:var(--stage);flex:0 0 auto}
+.adm .tx{flex:1;min-width:0}
+.adm .tx b{display:block;font-size:.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm .tx small{color:var(--mut);font-size:.76rem}
+.adm .tx small.habis{color:var(--red);font-weight:600}
+.adm button{width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;flex:0 0 auto}
+.adm button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.adm .pin.on{background:#fff3d6;border-color:#f2c46b;color:#9a6200}
+.adm .del{color:var(--red)}
+.adm .del:hover{background:var(--red-soft)}
 
-    .video-card {
-      background: var(--card);
-      padding: clamp(16px, 3vw, 28px);
-      border-radius: 16px;
-      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
-    }
-
-    .video-frame {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      overflow: hidden;
-      border-radius: 12px;
-      background: #111;
-    }
-
-    .video-frame iframe {
-      display: block;
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
-
-    .video-card h2 {
-      margin: 20px 0 8px;
-      font-size: 1.35rem;
-    }
-
-    .video-card p {
-      margin: 0;
-      line-height: 1.6;
-      color: #555;
-    }
-
-    .open-youtube {
-      display: inline-block;
-      margin-top: 18px;
-      padding: 11px 16px;
-      background: var(--accent);
-      color: #fff;
-      text-decoration: none;
-      border-radius: 8px;
-      font-weight: bold;
-    }
-
-    .open-youtube:hover { background: #a91f1f; }
-
-    footer {
-      padding: 20px 16px;
-      text-align: center;
-      color: #666;
-      font-size: 0.9rem;
-    }
-  </style>
+footer{padding:24px 0 36px;text-align:center;font-size:.85rem;color:var(--mut)}
+footer a,footer button{color:var(--mut)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
 </head>
 <body>
-  <header>
-    <h1>Video YouTube</h1>
-    <p>Tonton video langsung dari halaman ini</p>
-  </header>
 
-  <main>
-    <section class="video-card" aria-labelledby="video-title">
-      <div class="video-frame">
-        <iframe
-          src="https://www.youtube.com/embed/yWlpCdoXTpY"
-          title="Video YouTube"
-          loading="lazy"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowfullscreen>
-        </iframe>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="tv.html" aria-label="Kalensari TV, kembali ke awal">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3l15 9-15 9z"/></svg></span>
+      <b>Kalensari TV</b>
+    </a>
+    <button class="icon-btn" id="btnCari" type="button" aria-label="Cari video" aria-expanded="false" aria-controls="boxCari">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    </button>
+  </div>
+  <div class="wrap cari" id="boxCari">
+    <label class="sr" for="inCari">Cari judul video</label>
+    <input id="inCari" type="search" placeholder="Cari judul video" autocomplete="off">
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="chips" id="chips" role="group" aria-label="Kategori"></div>
+
+  <section class="stage" id="stage" aria-live="polite"></section>
+
+  <div id="lain" hidden>
+    <div class="lain-head"><h2>Video lainnya</h2><span>geser →</span></div>
+    <div class="row" id="row"></div>
+  </div>
+
+  <!-- ===== Panel kelola (hanya tampil setelah admin masuk) ===== -->
+  <section class="panel" id="panel" hidden aria-label="Kelola video">
+    <!-- masuk admin -->
+    <div id="boxMasuk">
+      <h2>Masuk sebagai admin</h2>
+      <p style="margin:0 0 4px;color:var(--mut);font-size:.9rem">Pakai email dan kata sandi admin yang sama dengan halaman admin toko.</p>
+      <label for="lEmail">Email</label>
+      <input id="lEmail" type="email" autocomplete="username">
+      <label for="lPass">Kata sandi</label>
+      <input id="lPass" type="password" autocomplete="current-password">
+      <div style="margin-top:14px"><button class="btn full" id="btnMasuk" type="button">Masuk</button></div>
+      <p class="pesan" id="pesanMasuk" role="status"></p>
+    </div>
+
+    <!-- kelola -->
+    <div id="boxKelola" hidden>
+      <div class="panel-top">
+        <h2>Tambah video</h2>
+        <button class="link" id="btnKeluar" type="button">Keluar</button>
       </div>
 
-      <h2 id="video-title">Video pilihan</h2>
-      <p>Video YouTube ditampilkan langsung di halaman ini. Tekan tombol putar pada video untuk mulai menonton.</p>
-      <a class="open-youtube"
-         href="https://www.youtube.com/watch?v=yWlpCdoXTpY"
-         target="_blank"
-         rel="noopener noreferrer">Buka di YouTube</a>
-    </section>
-  </main>
+      <label for="fLink">Link YouTube</label>
+      <input id="fLink" type="text" inputmode="url" placeholder="https://youtu.be/..." autocomplete="off">
+      <div class="grid2">
+        <div><label for="fKat">Kategori</label><select id="fKat"></select></div>
+        <div><label for="fMasa">Masa tayang</label>
+          <select id="fMasa">
+            <option value="0">Tanpa batas</option>
+            <option value="1">1 hari</option>
+            <option value="3">3 hari</option>
+            <option value="7">7 hari</option>
+            <option value="30">30 hari</option>
+          </select>
+        </div>
+      </div>
+      <label for="fJudul">Judul</label>
+      <input id="fJudul" type="text" maxlength="120" autocomplete="off" placeholder="Contoh: Drama China episode 1">
+      <label class="cek"><input type="checkbox" id="fPin"> Jadikan video utama (disematkan)</label>
+      <button class="btn full" id="btnTambah" type="button">Tambah video</button>
+      <p class="pesan" id="pesanTambah" role="status"></p>
 
-  <footer>
-    &copy; 2026 Halaman Video YouTube
-  </footer>
+      <h3>Kategori</h3>
+      <ul class="kat-list" id="katList"></ul>
+      <div class="kat-add">
+        <label class="sr" for="fKatBaru">Nama kategori baru</label>
+        <input id="fKatBaru" type="text" maxlength="30" placeholder="Nama kategori baru" autocomplete="off">
+        <button class="btn ghost" id="btnKatTambah" type="button">Tambah</button>
+      </div>
+      <p class="pesan" id="pesanKat" role="status"></p>
+
+      <h3>Video aktif <span id="jml" style="color:var(--mut);font-weight:400"></span></h3>
+      <ul class="adm" id="adm"></ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">&copy; Kalensari TV &nbsp;&middot;&nbsp; <button class="link" id="btnKelola" type="button">Kelola video</button></div>
+</footer>
+
+<script src="config.js"></script>
+<script>
+(function(){
+'use strict';
+/* =====================================================================
+   KALENSARI TV
+   Data di Supabase (tabel tv_video & tv_kategori, lihat supabase-tv.sql).
+   Login admin memakai sesi yang sama dengan admin.html.
+   ===================================================================== */
+var CFG=window.CLOUD_CONFIG||{};
+var BASE=String(CFG.supabaseUrl||'').replace(/\/$/,'');
+var KEY=CFG.supabaseAnonKey||'';
+var AUTH_KEY='kalensari_admin_auth';
+var $=function(s){return document.querySelector(s)};
+
+var auth=null;
+try{auth=JSON.parse(sessionStorage.getItem(AUTH_KEY)||'null')}catch(e){}
+var saveAuth=function(a){auth=a;try{a?sessionStorage.setItem(AUTH_KEY,JSON.stringify(a)):sessionStorage.removeItem(AUTH_KEY)}catch(e){}};
+
+var S={kat:[],vid:[],filter:'Semua',cur:null,q:'',err:'',tabelBelum:false};
+
+/* ---------- util ---------- */
+function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function ytId(s){
+  s=String(s||'').trim();
+  if(/^[A-Za-z0-9_-]{11}$/.test(s))return s;
+  var m=s.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/))([A-Za-z0-9_-]{11})/);
+  return m?m[1]:'';
+}
+function thumb(id){return 'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg'}
+function tgl(v){return new Date(v).getTime()}
+function habis(v){return v.tayang_sampai&&tgl(v.tayang_sampai)<=Date.now()}
+function sisa(v){
+  if(!v.tayang_sampai)return '';
+  var ms=tgl(v.tayang_sampai)-Date.now();
+  if(ms<=0)return 'Sudah habis';
+  var h=Math.ceil(ms/36e5);
+  return h<24?'Tayang '+h+' jam lagi':'Tayang '+Math.ceil(h/24)+' hari lagi';
+}
+function umur(v){
+  var d=Math.floor((Date.now()-tgl(v.created_at))/864e5);
+  return d<=0?'ditambahkan hari ini':d===1?'ditambahkan kemarin':'ditambahkan '+d+' hari lalu';
+}
+function baru(v){return Date.now()-tgl(v.created_at)<2*864e5}
+var IC_PLAY='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>';
+
+/* ---------- API ---------- */
+async function authReq(grant,body){
+  var r=await fetch(BASE+'/auth/v1/token?grant_type='+grant,{method:'POST',headers:{apikey:KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  var d=await r.json().catch(function(){return{}});
+  if(!r.ok)throw new Error(d.error_description||d.msg||d.message||('HTTP '+r.status));
+  return{access_token:d.access_token,refresh_token:d.refresh_token,expires_at:d.expires_at||Math.floor(Date.now()/1000)+(d.expires_in||3600),email:(d.user&&d.user.email)||''};
+}
+async function fresh(){
+  if(!auth||!auth.refresh_token)return false;
+  if(auth.expires_at*1000-Date.now()>60000)return true;
+  try{var a=await authReq('refresh_token',{refresh_token:auth.refresh_token});a.email=auth.email;saveAuth(a);return true}
+  catch(e){saveAuth(null);return false}
+}
+async function rest(path,opt){
+  opt=opt||{};
+  var tok=auth?auth.access_token:KEY;
+  var h=Object.assign({apikey:KEY,Authorization:'Bearer '+tok,'Content-Type':'application/json'},opt.headers||{});
+  var r=await fetch(BASE+'/rest/v1/'+path,Object.assign({},opt,{headers:h}));
+  if(!r.ok){
+    var m='';try{var j=await r.json();m=j.message||j.hint||''}catch(e){}
+    var err=new Error(m||('HTTP '+r.status));err.status=r.status;throw err;
+  }
+  return r.status===204?null:r.json().catch(function(){return null});
+}
+
+/* ---------- muat data ---------- */
+async function muat(){
+  S.err='';S.tabelBelum=false;
+  if(!BASE||!KEY){S.err='config.js belum berisi data Supabase.';render();return}
+  await fresh();
+  try{
+    var r=await Promise.all([
+      rest('tv_kategori?select=*&order=urutan.asc,id.asc'),
+      rest('tv_video?select=*&order=sematkan.desc,created_at.desc')
+    ]);
+    S.kat=r[0]||[];S.vid=r[1]||[];
+  }catch(e){
+    S.kat=[];S.vid=[];
+    if(/tv_video|tv_kategori|PGRST205|does not exist/i.test(e.message)||e.status===404){S.tabelBelum=true}
+    S.err=e.message;
+  }
+  render();
+}
+function aktif(){return S.vid.filter(function(v){return !habis(v)})}
+function tersaring(){
+  var q=S.q.trim().toLowerCase();
+  return aktif().filter(function(v){
+    return (S.filter==='Semua'||v.kategori===S.filter)&&(!q||v.judul.toLowerCase().indexOf(q)>-1);
+  });
+}
+
+/* ---------- tampilan pengunjung ---------- */
+function render(){renderChips();renderStage();renderRow();if(isAdmin())renderPanel()}
+
+function renderChips(){
+  var h='<button class="chip" type="button" data-k="Semua" aria-pressed="'+(S.filter==='Semua')+'">Semua</button>';
+  S.kat.forEach(function(k){h+='<button class="chip" type="button" data-k="'+esc(k.nama)+'" aria-pressed="'+(S.filter===k.nama)+'">'+esc(k.nama)+'</button>'});
+  $('#chips').innerHTML=h;
+}
+function pilihCur(){
+  var list=tersaring();
+  if(!list.length){S.cur=null;return list}
+  if(!S.cur||!list.some(function(v){return v.id===S.cur}))S.cur=list[0].id;
+  return list;
+}
+function renderStage(autoplay){
+  var list=pilihCur(),box=$('#stage');
+  if(!list.length){
+    var teks=S.tabelBelum?'<b>Halaman ini belum aktif.</b>Admin perlu menjalankan supabase-tv.sql di Supabase.'
+      :S.err?'<b>Video belum bisa dimuat.</b>Periksa sambungan internet lalu muat ulang halaman.'
+      :S.q?'<b>Tidak ada hasil.</b>Coba kata kunci lain.'
+      :S.filter!=='Semua'?'<b>Belum ada video di '+esc(S.filter)+'.</b>Pilih kategori lain atau lihat Semua.'
+      :'<b>Belum ada video.</b>Video akan muncul di sini setelah ditambahkan.';
+    box.innerHTML='<div class="kosong">'+teks+'</div>';
+    return;
+  }
+  var v=list.filter(function(x){return x.id===S.cur})[0];
+  var tags=(baru(v)?'<span class="tag baru">Baru</span>':'')+(v.tayang_sampai?'<span class="tag sisa">'+esc(sisa(v))+'</span>':'');
+  var inner;
+  if(autoplay){
+    inner='<iframe src="https://www.youtube.com/embed/'+v.yt_id+'?autoplay=1&rel=0" title="'+esc(v.judul)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
+  }else{
+    inner='<button class="poster" type="button" id="btnPutar" aria-label="Putar: '+esc(v.judul)+'"><img src="'+thumb(v.yt_id)+'" alt=""><span class="play">'+IC_PLAY+'</span></button>'+tags;
+  }
+  box.innerHTML='<div class="player">'+inner+'</div>'
+    +'<h1 class="judul">'+esc(v.judul)+'</h1>'
+    +'<p class="meta">'+esc(v.kategori||'Tanpa kategori')+' &bull; '+umur(v)+'</p>';
+}
+function renderRow(){
+  var list=tersaring(),lain=list.filter(function(v){return v.id!==S.cur});
+  $('#lain').hidden=!lain.length;
+  $('#row').innerHTML=lain.map(function(v){
+    return '<button class="item" type="button" data-id="'+v.id+'"><div class="thumb"><img src="'+thumb(v.yt_id)+'" alt="" loading="lazy"><span class="mini">'+IC_PLAY+'</span>'
+      +(v.tayang_sampai?'<span class="sisa">'+esc(sisa(v).replace('Tayang ',''))+'</span>':'')
+      +'</div><p>'+esc(v.judul)+'</p><small>'+esc(v.kategori||'')+'</small></button>';
+  }).join('');
+}
+
+$('#chips').addEventListener('click',function(e){
+  var b=e.target.closest('.chip');if(!b)return;
+  S.filter=b.dataset.k;render();
+});
+$('#stage').addEventListener('click',function(e){
+  if(e.target.closest('#btnPutar'))renderStage(true);
+});
+$('#row').addEventListener('click',function(e){
+  var b=e.target.closest('.item');if(!b)return;
+  S.cur=Number(b.dataset.id);
+  renderStage(true);renderRow();
+  $('#stage').scrollIntoView({behavior:'smooth',block:'start'});
+});
+$('#btnCari').addEventListener('click',function(){
+  var box=$('#boxCari'),on=!box.classList.contains('on');
+  box.classList.toggle('on',on);this.setAttribute('aria-expanded',on);
+  if(on)$('#inCari').focus();else{S.q='';$('#inCari').value='';render()}
+});
+$('#inCari').addEventListener('input',function(){S.q=this.value;renderStage();renderRow()});
+
+/* ---------- panel kelola ---------- */
+function isAdmin(){return !$('#panel').hidden&&!!auth}
+function pesan(id,t,jenis){var p=$(id);p.textContent=t||'';p.className='pesan'+(jenis?' '+jenis:'')}
+
+function bukaPanel(){
+  $('#panel').hidden=false;
+  var masuk=!!(auth&&auth.refresh_token);
+  $('#boxMasuk').hidden=masuk;$('#boxKelola').hidden=!masuk;
+  if(masuk){renderPanel()}
+  $('#panel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('#btnKelola').addEventListener('click',function(){
+  if(!$('#panel').hidden&&!auth){$('#panel').hidden=true;return}
+  bukaPanel();
+});
+
+$('#btnMasuk').addEventListener('click',async function(){
+  var em=$('#lEmail').value.trim(),pw=$('#lPass').value,btn=this;
+  if(!em||!pw){pesan('#pesanMasuk','Isi email dan kata sandi.','err');return}
+  btn.disabled=true;btn.textContent='Memeriksa...';pesan('#pesanMasuk','');
+  try{
+    var sess=await authReq('password',{email:em,password:pw});
+    var r=await fetch(BASE+'/rest/v1/rpc/is_admin',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+sess.access_token,'Content-Type':'application/json'},body:'{}'});
+    if(!r.ok)throw new Error('cek-admin-gagal');
+    if((await r.json())!==true){
+      fetch(BASE+'/auth/v1/logout',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+sess.access_token}}).catch(function(){});
+      throw new Error('bukan-admin');
+    }
+    saveAuth(sess);$('#lPass').value='';
+    $('#boxMasuk').hidden=true;$('#boxKelola').hidden=false;
+    await muat();
+  }catch(e){
+    var m=String(e.message||e);
+    pesan('#pesanMasuk',m==='bukan-admin'?'Akun ini bukan admin.':m==='cek-admin-gagal'?'Jalankan supabase-admin-auth.sql di Supabase dulu.':/invalid|credentials/i.test(m)?'Email atau kata sandi salah.':'Gagal masuk: '+m.slice(0,80),'err');
+  }finally{btn.disabled=false;btn.textContent='Masuk'}
+});
+$('#lPass').addEventListener('keydown',function(e){if(e.key==='Enter')$('#btnMasuk').click()});
+
+$('#btnKeluar').addEventListener('click',async function(){
+  if(auth)fetch(BASE+'/auth/v1/logout',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+auth.access_token}}).catch(function(){});
+  saveAuth(null);$('#panel').hidden=true;await muat();
+});
+
+function renderPanel(){
+  /* pilihan kategori di formulir */
+  var sel=$('#fKat'),lama=sel.value;
+  sel.innerHTML=S.kat.length?S.kat.map(function(k){return '<option>'+esc(k.nama)+'</option>'}).join(''):'<option value="">(belum ada kategori)</option>';
+  if(lama&&S.kat.some(function(k){return k.nama===lama}))sel.value=lama;
+
+  /* daftar kategori */
+  $('#katList').innerHTML=S.kat.length?S.kat.map(function(k){
+    return '<li><span>'+esc(k.nama)+'</span><button type="button" data-hapus-kat="'+k.id+'" aria-label="Hapus kategori '+esc(k.nama)+'">&times;</button></li>';
+  }).join(''):'<li>Belum ada kategori</li>';
+
+  /* daftar video */
+  $('#jml').textContent='('+S.vid.length+')';
+  $('#adm').innerHTML=S.vid.length?S.vid.map(function(v){
+    var h=habis(v);
+    return '<li><img src="'+thumb(v.yt_id)+'" alt="" loading="lazy">'
+      +'<div class="tx"><b>'+esc(v.judul)+'</b><small'+(h?' class="habis"':'')+'>'+esc(v.kategori||'Tanpa kategori')+' &bull; '+(h?'Masa tayang habis':v.tayang_sampai?esc(sisa(v)):'Tanpa batas')+'</small></div>'
+      +'<button class="pin'+(v.sematkan?' on':'')+'" type="button" data-pin="'+v.id+'" aria-pressed="'+!!v.sematkan+'" aria-label="'+(v.sematkan?'Lepas sematan':'Sematkan')+': '+esc(v.judul)+'"><svg viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9 6.6 19.8l1.1-6.1L3.2 9.4l6.1-.8z"/></svg></button>'
+      +'<button class="del" type="button" data-hapus="'+v.id+'" aria-label="Hapus video: '+esc(v.judul)+'"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></li>';
+  }).join(''):'<li style="color:var(--mut);font-size:.9rem">Belum ada video. Tambahkan lewat formulir di atas.</li>';
+
+  if(S.tabelBelum)pesan('#pesanTambah','Tabel belum ada. Jalankan supabase-tv.sql di Supabase.','err');
+}
+
+/* tempel link -> coba isi judul otomatis */
+var cobaJudul=0;
+$('#fLink').addEventListener('input',async function(){
+  var id=ytId(this.value);
+  if(!id||$('#fJudul').value.trim())return;
+  var n=++cobaJudul;
+  try{
+    var r=await fetch('https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+id));
+    if(!r.ok)return;
+    var d=await r.json();
+    if(n===cobaJudul&&!$('#fJudul').value.trim())$('#fJudul').value=String(d.title||'').slice(0,120);
+  }catch(e){/* tidak apa-apa, judul diisi manual */}
+});
+
+$('#btnTambah').addEventListener('click',async function(){
+  var btn=this,id=ytId($('#fLink').value),judul=$('#fJudul').value.trim(),kat=$('#fKat').value,hari=Number($('#fMasa').value),pin=$('#fPin').checked;
+  if(!id){pesan('#pesanTambah','Link YouTube tidak dikenali. Tempel link dari tombol Bagikan di YouTube.','err');return}
+  if(!judul){pesan('#pesanTambah','Isi judul video.','err');return}
+  if(!kat){pesan('#pesanTambah','Buat kategori dulu di bagian Kategori.','err');return}
+  btn.disabled=true;pesan('#pesanTambah','Menyimpan...');
+  try{
+    if(!(await fresh()))throw new Error('Sesi habis, masuk lagi.');
+    if(pin)await rest('tv_video?sematkan=eq.true',{method:'PATCH',body:JSON.stringify({sematkan:false})});
+    var baris={yt_id:id,judul:judul,kategori:kat,sematkan:pin,tayang_sampai:hari?new Date(Date.now()+hari*864e5).toISOString():null};
+    var r=await rest('tv_video',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(baris)});
+    $('#fLink').value='';$('#fJudul').value='';$('#fPin').checked=false;
+    S.filter='Semua';S.cur=r&&r[0]?r[0].id:null;
+    await muat();
+    pesan('#pesanTambah','Video ditambahkan.','ok');
+  }catch(e){
+    pesan('#pesanTambah','Gagal menambah: '+String(e.message).slice(0,100),'err');
+    if(/Sesi/.test(e.message)){$('#boxMasuk').hidden=false;$('#boxKelola').hidden=true}
+  }finally{btn.disabled=false}
+});
+
+$('#adm').addEventListener('click',async function(e){
+  var del=e.target.closest('[data-hapus]'),pin=e.target.closest('[data-pin]');
+  try{
+    if(!(await fresh()))throw new Error('Sesi habis, masuk lagi.');
+    if(del){
+      var v=S.vid.filter(function(x){return x.id===Number(del.dataset.hapus)})[0];
+      if(!v||!confirm('Hapus video "'+v.judul+'"?'))return;
+      await rest('tv_video?id=eq.'+v.id,{method:'DELETE'});
+      await muat();
+    }else if(pin){
+      var id=Number(pin.dataset.pin),sudah=S.vid.some(function(x){return x.id===id&&x.sematkan});
+      if(!sudah)await rest('tv_video?sematkan=eq.true',{method:'PATCH',body:JSON.stringify({sematkan:false})});
+      await rest('tv_video?id=eq.'+id,{method:'PATCH',body:JSON.stringify({sematkan:!sudah})});
+      await muat();
+    }
+  }catch(err){pesan('#pesanTambah','Gagal: '+String(err.message).slice(0,100),'err')}
+});
+
+/* kategori: tambah & hapus */
+$('#btnKatTambah').addEventListener('click',async function(){
+  var nama=$('#fKatBaru').value.trim().replace(/\s+/g,' ');
+  if(!nama){pesan('#pesanKat','Isi nama kategori.','err');return}
+  if(S.kat.some(function(k){return k.nama.toLowerCase()===nama.toLowerCase()})){pesan('#pesanKat','Kategori itu sudah ada.','err');return}
+  this.disabled=true;
+  try{
+    if(!(await fresh()))throw new Error('Sesi habis, masuk lagi.');
+    var urut=S.kat.reduce(function(m,k){return Math.max(m,k.urutan||0)},0)+1;
+    await rest('tv_kategori',{method:'POST',body:JSON.stringify({nama:nama,urutan:urut})});
+    $('#fKatBaru').value='';
+    await muat();
+    pesan('#pesanKat','Kategori ditambahkan.','ok');
+  }catch(e){pesan('#pesanKat','Gagal: '+String(e.message).slice(0,100),'err')}
+  finally{this.disabled=false}
+});
+$('#fKatBaru').addEventListener('keydown',function(e){if(e.key==='Enter')$('#btnKatTambah').click()});
+$('#katList').addEventListener('click',async function(e){
+  var b=e.target.closest('[data-hapus-kat]');if(!b)return;
+  var k=S.kat.filter(function(x){return x.id===Number(b.dataset.hapusKat)})[0];if(!k)return;
+  var n=S.vid.filter(function(v){return v.kategori===k.nama}).length;
+  var tanya='Hapus kategori "'+k.nama+'"?'+(n?'\n\n'+n+' video di dalamnya tidak ikut terhapus. Video itu tetap tampil di Semua, tanpa kategori.':'');
+  if(!confirm(tanya))return;
+  try{
+    if(!(await fresh()))throw new Error('Sesi habis, masuk lagi.');
+    await rest('tv_kategori?id=eq.'+k.id,{method:'DELETE'});
+    if(S.filter===k.nama)S.filter='Semua';
+    await muat();
+    pesan('#pesanKat','Kategori dihapus.','ok');
+  }catch(err){pesan('#pesanKat','Gagal: '+String(err.message).slice(0,100),'err')}
+});
+
+/* ---------- mulai ---------- */
+muat().then(function(){
+  if(location.hash==='#kelola')bukaPanel();
+});
+})();
+</script>
 </body>
 </html>
