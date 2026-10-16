@@ -22,7 +22,7 @@ header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius
 .btn.red{background:var(--red)}.btn.lt{background:#fff;color:var(--br2);border:1px solid var(--line)}.btn:disabled{opacity:.55}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.row .btn{flex:1;min-width:110px}
 .tabs{display:flex;gap:6px;position:sticky;top:calc(56px + env(safe-area-inset-top,0));z-index:4;background:var(--bg);padding:8px 0}
-.tab{flex:1;border:0;background:#fff;border-radius:12px;padding:10px 4px;font:inherit;font-size:13px;font-weight:600;color:var(--br2);position:relative}
+.tab{flex:1;border:0;background:#fff;border-radius:12px;padding:10px 2px;font:inherit;font-size:12px;font-weight:600;color:var(--br2);position:relative}
 .tab.on{background:var(--br);color:#fff}.tab i{font-style:normal;background:var(--red);color:#fff;border-radius:999px;font-size:11px;padding:1px 7px;margin-left:4px}
 .amt{font-size:19px;font-weight:700;color:var(--g)}.mut{color:var(--mut);font-size:13px}
 .empty{text-align:center;color:var(--mut);padding:30px 10px}
@@ -71,7 +71,8 @@ header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius
       <div class="mut">Saat aplikasi ditutup / layar mati, suara ditentukan Android: Pengaturan → Aplikasi → Admin Notif → Pemberitahuan → Suara.</div>
     </details>
     <div class="tabs">
-      <button class="tab on" data-t="qris">💳 QRIS<i id="bq" class="hide">0</i></button>
+      <button class="tab on" data-t="pesanan">🛍️ Pesanan<i id="bp" class="hide">0</i></button>
+      <button class="tab" data-t="qris">💳 QRIS<i id="bq" class="hide">0</i></button>
       <button class="tab" data-t="topup">💰 Isi Saldo<i id="bt" class="hide">0</i></button>
       <button class="tab" data-t="cair">💸 Pencairan<i id="bc" class="hide">0</i></button>
     </div>
@@ -93,7 +94,7 @@ const wk=v=>String(v||'').replace(/\D/g,'').replace(/^0/,'62');
 const fmt=t=>{try{return new Date(t).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
 let auth=(()=>{try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch(e){return null}})();
 const saveAuth=a=>{auth=a;try{a?localStorage.setItem(AUTH_KEY,JSON.stringify(a)):localStorage.removeItem(AUTH_KEY)}catch(e){}};
-let tab='qris',D={qris:[],topup:[],cair:[]},first=true,busyLoad=false;
+let tab='pesanan',D={pesanan:[],qris:[],topup:[],cair:[]},first=true,busyLoad=false;
 
 function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),3200)}
 async function authReq(grant,body){
@@ -158,7 +159,8 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{tab=b.dataset.t;docu
 async function muat(manual){
   if(busyLoad||!auth)return;busyLoad=true;
   try{
-    const [q,t,ct,ck]=await Promise.all([
+    const [po,q,t,ct,ck]=await Promise.all([
+      api('orders?select=*&status=in.(menunggu,baru,diproses,dikirim)&order=created_at.desc&limit=80').catch(()=>null),
       api('orders?select=*&pay_status=eq.verifikasi&order=created_at.desc&limit=60').catch(()=>[]),
       api('kurir_topup?select=id,nama,wa,jumlah,status,t&status=eq.menunggu&order=t.desc&limit=60').catch(()=>[]),
       readKey('cair_toko',[]).catch(()=>[]),
@@ -166,6 +168,7 @@ async function muat(manual){
     ]);
     // QRIS: satukan nota satu grup (1 QR bisa membayar beberapa nota)
     const g=new Map();(Array.isArray(q)?q:[]).forEach(o=>{const k=o.grup?'g'+o.grup:'o'+o.id;const e=g.get(k)||{key:k,grup:o.grup||null,ids:[],kode:[],total:0,nama:o.customer_name,wa:o.customer_phone,t:o.pay_klaim_at||o.created_at};e.ids.push(o.id);e.kode.push(o.order_code||('#'+o.id));e.total+=Number(o.total)||0;g.set(k,e)});
+    if(Array.isArray(po))D.pesanan=po;
     D.qris=[...g.values()];
     D.topup=(Array.isArray(t)?t:[]).map(x=>({...x,key:'t'+x.id}));
     const tk=(Array.isArray(ct)?ct:[]).filter(x=>x&&x.status==='menunggu').map(x=>({...x,src:'toko',key:'ct'+(x.id||x.t||((x.toko||x.nama||'')+x.jumlah))}));
@@ -237,12 +240,12 @@ function nadaInit(){
   nadaTampil();
 }
 async function kabari(){
-  const all=[...D.qris,...D.topup,...D.cair],s=seen(),baru=all.filter(x=>!s.has(x.key));
+  const pBaru=D.pesanan.filter(isBaru).map(o=>({...o,key:'p'+o.id})),all=[...pBaru,...D.qris,...D.topup,...D.cair],s=seen(),baru=all.filter(x=>!s.has(x.key));
   try{localStorage.setItem(SEEN_KEY,JSON.stringify([...new Set([...s,...all.map(x=>x.key)])].slice(-400)))}catch(e){}
   if(first){first=false;return}
   if(!baru.length)return;
-  const bq=baru.filter(x=>D.qris.includes(x)),bt=baru.filter(x=>D.topup.includes(x)),bc=baru.filter(x=>D.cair.includes(x));
-  const msg=[];if(bq.length)msg.push(`💳 ${bq.length} QRIS perlu dicek`);if(bt.length)msg.push(`💰 ${bt.length} isi saldo`);if(bc.length)msg.push(`💸 ${bc.length} pencairan`);
+  const bp=baru.filter(x=>pBaru.includes(x)),bq=baru.filter(x=>D.qris.includes(x)),bt=baru.filter(x=>D.topup.includes(x)),bc=baru.filter(x=>D.cair.includes(x));
+  const msg=[];if(bp.length)msg.push(`🛍️ ${bp.length} pesanan baru`);if(bq.length)msg.push(`💳 ${bq.length} QRIS perlu dicek`);if(bt.length)msg.push(`💰 ${bt.length} isi saldo`);if(bc.length)msg.push(`💸 ${bc.length} pencairan`);
   bunyi(msg.join(' • '));
   toast(msg.join(' • '));
   if(document.hidden&&'Notification' in window&&Notification.permission==='granted'){
@@ -250,13 +253,57 @@ async function kabari(){
   }
 }
 
+/* ===== PESANAN: terima / tolak / diproses / selesai ===== */
+const stP=o=>String(o.status||'menunggu').toLowerCase();
+const isBaru=o=>['menunggu','baru'].includes(stP(o));
+const cleanMap=t=>String(t||'').replace(/\s*__KS_MAP__-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?__END__\s*/g,' ').trim();
+const belumLunasQris=o=>/^qris/i.test(String(o.payment||''))&&o.pay_status!=='lunas';
+function kartuPesanan(o){
+  const st=stP(o),items=Array.isArray(o.items)?o.items:[],tr=items[0]&&items[0].layanan?items[0]:null;
+  const stTag=isBaru(o)?'<span class="tag">🆕 Baru</span>':st==='diproses'?'<span class="tag" style="background:#e3eefc;color:#1d4f91">⚙️ Diproses</span>':'<span class="tag" style="background:#e6f4ea;color:#17692f">🛵 Dikirim</span>';
+  const byr=belumLunasQris(o)?' <span class="tag" style="background:#fde8e8;color:#b91c1c">💳 QRIS belum lunas</span>':o.pay_status==='tunggu_wa'?' <span class="tag">📞 Tunggu konfirmasi WA</span>':'';
+  const brg=tr?`${tr.layanan==='paket'?'📦 Kirim paket':'🛵 Ojek'} · ${String(tr.km||'-').replace('.',',')} km`:items.slice(0,5).map(it=>`${esc(it.name)} × ${Number(it.qty)||1}`).join('<br>')+(items.length>5?`<br>+${items.length-5} item lain`:'');
+  const alamat=cleanMap(o.address),cat=cleanMap(o.note);
+  const aksi=isBaru(o)?`<button class="btn red" onclick="pesananAksi(${Number(o.id)},'tolak',this)">✖ Tolak</button><button class="btn" onclick="pesananAksi(${Number(o.id)},'terima',this)">✅ Terima &amp; proses</button>`
+    :st==='diproses'?`<button class="btn red" onclick="pesananAksi(${Number(o.id)},'tolak',this)">✖ Batalkan</button><button class="btn" onclick="pesananAksi(${Number(o.id)},'selesai',this)">✔ Selesai</button>`
+    :`<button class="btn" onclick="pesananAksi(${Number(o.id)},'selesai',this)">✔ Selesai</button>`;
+  return `<div class="card">${stTag}${byr}
+    <div style="margin-top:6px"><b>${esc(o.order_code||('#'+o.id))}</b> · ${esc(o.customer_name||'Pembeli')}</div>
+    <div class="amt">${rp(o.total)}</div>
+    <div class="mut" style="margin-top:4px">${brg}</div>
+    ${alamat?`<div class="mut" style="margin-top:4px">📍 ${esc(alamat)}</div>`:''}${cat?`<div class="mut">📝 ${esc(cat)}</div>`:''}
+    <div class="mut" style="margin-top:4px">${esc(o.payment||'-')} · ${fmt(o.created_at)}${o.kurir_nama?' · 🛵 '+esc(o.kurir_nama):''}</div>
+    <div class="row">${o.customer_phone?`<a class="btn lt" style="text-decoration:none;text-align:center" href="https://wa.me/${wk(o.customer_phone)}" target="_blank" rel="noopener">💬 WA</a>`:''}${aksi}</div></div>`;
+}
+async function pesananAksi(id,aksi,btn){
+  const o=D.pesanan.find(x=>Number(x.id)===Number(id));if(!o)return;
+  const kode=o.order_code||('#'+o.id),t=new Date().toISOString();let body,dari,ok;
+  if(aksi==='terima'){
+    if(belumLunasQris(o)&&!confirm(`${kode} memakai QRIS dan BELUM tercatat lunas.\nTetap diterima & diproses?`))return;
+    body={status:'diproses',updated_at:t};dari='menunggu,baru';ok='✅ Pesanan diterima & diproses'}
+  else if(aksi==='selesai'){
+    if(!confirm(`Tandai ${kode} SELESAI?\n\nSaldo toko & upah kurir akan dihitung.`))return;
+    body={status:'selesai',updated_at:t};dari='diproses,dikirim';ok='✔ Pesanan selesai'}
+  else{
+    const al=prompt(`${isBaru(o)?'Tolak':'Batalkan'} pesanan ${kode} (${rp(o.total)})?\n\nTulis alasan (akan dilihat pembeli):`,isBaru(o)?'Stok habis':'');
+    if(al===null)return;
+    body={status:'dibatalkan',batal_alasan:('Ditolak admin'+(al.trim()?': '+al.trim():'')).slice(0,120),batal_at:t,updated_at:t};dari='menunggu,baru,diproses';ok='✖ Pesanan dibatalkan'}
+  await lock(btn,async()=>{
+    /* filter status: bila kurir/penjual sudah mengubahnya lebih dulu, tidak ditimpa */
+    const r=await api('orders?id=eq.'+Number(id)+'&status=in.('+dari+')',{method:'PATCH',body:JSON.stringify(body)});
+    toast(Array.isArray(r)&&r.length?ok:'Status pesanan sudah berubah, data dimuat ulang');
+    await muat();
+  });
+}
+
 /* ===== tampilan ===== */
 function badge(id,n){const e=$(id);e.textContent=n;e.classList.toggle('hide',!n)}
 function render(){
-  badge('#bq',D.qris.length);badge('#bt',D.topup.length);badge('#bc',D.cair.length);
-  try{navigator.setAppBadge&&(D.qris.length+D.topup.length+D.cair.length?navigator.setAppBadge(D.qris.length+D.topup.length+D.cair.length):navigator.clearAppBadge())}catch(e){}
+  const nP=D.pesanan.filter(isBaru).length;badge('#bp',nP);badge('#bq',D.qris.length);badge('#bt',D.topup.length);badge('#bc',D.cair.length);
+  try{navigator.setAppBadge&&(nP+D.qris.length+D.topup.length+D.cair.length?navigator.setAppBadge(nP+D.qris.length+D.topup.length+D.cair.length):navigator.clearAppBadge())}catch(e){}
   const L=$('#list');
-  if(tab==='qris')L.innerHTML=D.qris.length?D.qris.map(x=>`<div class="card"><span class="tag">🔎 Menunggu cek mutasi</span>
+  if(tab==='pesanan')L.innerHTML=D.pesanan.length?D.pesanan.map(kartuPesanan).join(''):'<div class="empty">Belum ada pesanan aktif 🎉</div>';
+  else if(tab==='qris')L.innerHTML=D.qris.length?D.qris.map(x=>`<div class="card"><span class="tag">🔎 Menunggu cek mutasi</span>
     <div style="margin-top:6px"><b>${esc(x.nama||'Pembeli')}</b> · ${esc(x.kode.join(', '))}</div>
     <div class="amt">${rp(x.total)}</div><div class="mut">Klaim bayar ${fmt(x.t)}${x.ids.length>1?' · '+x.ids.length+' nota':''}</div>
     <div id="bk-${esc(x.key)}"></div>
@@ -331,7 +378,7 @@ async function cair(key,ok,btn){
 function start(){
   $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#who').textContent=auth&&auth.email||'';
   if(window.KSNotif)KSNotif.kartu($('#notifBox'),{key:'admin_push',token:async()=>{await fresh();return auth.access_token},extra:{email:(auth&&auth.email)||''},
-    judul:'🔔 Aktifkan notifikasi HP',ajakan:'Agar HP berbunyi saat ada QRIS, isi saldo, atau pencairan — walau aplikasi ditutup.',aktifTeks:'HP ini akan berbunyi untuk QRIS, isi saldo & pencairan.',tanpaMatikan:true});
+    judul:'🔔 Aktifkan notifikasi HP',ajakan:'Agar HP berbunyi saat ada pesanan baru, QRIS, isi saldo, atau pencairan — walau aplikasi ditutup.',aktifTeks:'HP ini akan berbunyi untuk pesanan, QRIS, isi saldo & pencairan.',tanpaMatikan:true});
   muat(true);
 }
 setInterval(()=>{if(auth&&!$('#app').classList.contains('hide'))muat()},15000);
