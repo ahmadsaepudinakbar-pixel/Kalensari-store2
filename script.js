@@ -2042,7 +2042,7 @@ body.ks-frame-open{overflow:hidden}`;
 // ===== PEMBAYARAN QRIS OTOMATIS (iPaymu lewat Supabase Edge Function "ipaymu-qris" + VPS IP statis) =====
 // Pembeli memilih "QRIS" saat checkout -> muncul QRIS dengan nominal sesuai total pesanan.
 // Setelah dibayar, status pesanan otomatis "Lunas" (dicek tiap beberapa detik + callback iPaymu).
-var QRIS_OTOMATIS=false;   // true = QRIS otomatis iPaymu (butuh Edge Function ipaymu-qris). false = pakai QRIS statis toko (nominal terisi otomatis, dicek admin)
+var QRIS_OTOMATIS=true;   // true = QRIS otomatis iPaymu (butuh Edge Function ipaymu-qris). false = pakai QRIS statis toko (nominal terisi otomatis, dicek admin)
 var QRIS_STATIS=null;     // diisi dari Admin > Pengaturan > "QRIS Pembayaran Pesanan" (store_settings: qris_statis)
 try{const c=JSON.parse(localStorage.getItem("kalensari_qris_statis")||"null");if(c&&typeof c==="object")QRIS_STATIS=c;}catch(e){}
 var QRIS_FN="ipaymu-qris";
@@ -2093,7 +2093,7 @@ async function bayarQris(code,waMsg){
     // CADANGAN: QRIS otomatis gagal (mis. server proxy/iPaymu gangguan) -> pakai QRIS statis toko + unggah bukti
     if(qrisCadanganSiap()){
       await bayarStatis(code,waMsg);
-      if(qpCode===code){const b=document.getElementById("qpBody");if(b&&b.querySelector(".qp-qr img")&&!b.querySelector(".qp-cadangan"))b.insertAdjacentHTML("afterbegin",'<div class="qp-st qp-cadangan" style="background:#fff4d6;color:#6b3a00;margin-bottom:10px">⚠️ QRIS otomatis sedang gangguan. Silakan bayar dengan <b>QRIS toko</b> di bawah ini, lalu unggah bukti bayarnya. Admin akan segera mengecek.</div>');}
+      {const b=document.getElementById("qpBody");if(b&&!b.querySelector(".qp-cadangan"))b.insertAdjacentHTML("afterbegin",'<div class="qp-st qp-cadangan" style="background:#fff4d6;color:#6b3a00;margin-bottom:10px;font-size:13px">⚠️ QRIS otomatis sedang gangguan. Silakan bayar dengan <b>QRIS toko</b> di bawah ini, lalu unggah bukti bayarnya. Admin akan segera mengecek.<br><small style="word-break:break-word">Info teknis: '+esc((e&&e.message)||"tidak diketahui")+'</small></div>');}
       return;
     }
     qpRender(`<h2>💳 QRIS</h2><div class="qp-st bad">QRIS sedang gangguan sebentar.</div><p>Pesanan Anda tetap tersimpan. Coba lagi beberapa menit lagi lewat 📦 Pesanan Saya, atau hubungi toko lewat WhatsApp untuk cara bayar lain.</p><details style="font-size:12px;color:#8a7466;margin:-4px 0 10px"><summary>Info teknis</summary>${esc(e&&e.message||"")}</details><div class="qp-acts"><button class="btn primary" type="button" onclick="bayarQris('${esc(code)}')">↻ Coba lagi</button><a class="btn outline" target="_blank" rel="noopener" href="${waLink(qpWa||("Halo KALENSARI STORE, saya ingin membayar pesanan "+code))}">💬 WhatsApp toko</a><button class="btn light" type="button" onclick="tutupQris()">Tutup</button></div>`);
