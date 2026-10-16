@@ -229,7 +229,8 @@ html[data-tema="gelap"] .ic-moon{display:none}
 /* ---------- tombol & mode layar miring ---------- */
 .btn-miring{display:inline-flex;align-items:center;gap:8px;margin:12px 4px 0;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--chip);color:var(--ink);font-size:.9rem;font-weight:600;box-shadow:var(--shadow)}
 .btn-miring svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.keluar-miring{display:none;position:absolute;z-index:3;top:10px;right:10px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1.6rem;line-height:1}
+.keluar-miring{display:none;position:absolute;z-index:3;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(255,255,255,.55);background:rgba(0,0,0,.65);color:#fff;font-size:1.8rem;line-height:1;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.player:fullscreen .keluar-miring,.player:-webkit-full-screen .keluar-miring{display:block}
 .player:fullscreen{border-radius:0;aspect-ratio:auto;width:100%;height:100%;background:#000}
 .player:-webkit-full-screen{border-radius:0;aspect-ratio:auto;width:100%;height:100%;background:#000}
 /* cadangan bila browser tidak mendukung layar penuh: putar tampilan lewat CSS */
@@ -551,7 +552,7 @@ function renderStage(autoplay){
   if(autoplay){
     jedaMusik();
     box.innerHTML='<div class="player"><iframe src="'+esc(embedUrl(v.yt_id))+'" title="'+esc(v.judul)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'
-      +'<button class="keluar-miring" type="button" data-miring-tutup aria-label="Tutup mode miring">&times;</button></div>'
+      +'<button class="keluar-miring" type="button" data-miring-tutup aria-label="Keluar dari layar penuh" title="Keluar dari layar penuh">&times;</button></div>'
       +'<button class="btn-miring" type="button" data-miring>'+IC_MIRING+'<span>Tonton layar miring</span></button>'
       +'<h1 class="judul">'+esc(v.judul)+'</h1>'
       +'<p class="meta">'+esc(v.kategori||'Tanpa kategori')+' &bull; '+umur(v)+'</p>';
@@ -621,6 +622,7 @@ $('#stage').addEventListener('click',function(e){
 });
 /* ---------- layar miring ---------- */
 function tutupMiringCss(){
+  try{var fe=document.fullscreenElement||document.webkitFullscreenElement;if(fe){var ex=document.exitFullscreen||document.webkitExitFullscreen;if(ex){var r=ex.call(document);if(r&&r.catch)r.catch(function(){})}}}catch(e){}
   var p=document.querySelector('.player.miring-css');
   if(p)p.classList.remove('miring-css');
   document.body.classList.remove('kunci-miring');
