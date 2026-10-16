@@ -319,8 +319,8 @@ footer a,footer button{color:var(--mut)}
         <button class="link" id="btnKeluar" type="button">Keluar</button>
       </div>
 
-      <label for="fLink">Link YouTube</label>
-      <input id="fLink" type="text" inputmode="url" placeholder="https://youtu.be/..." autocomplete="off">
+      <label for="fLink">Link YouTube atau Facebook</label>
+      <input id="fLink" type="text" inputmode="url" placeholder="https://youtu.be/... atau https://www.facebook.com/..." autocomplete="off">
       <div class="grid2">
         <div><label for="fKat">Kategori</label><select id="fKat"></select></div>
         <div><label for="fMasa">Masa tayang</label>
@@ -399,7 +399,19 @@ function ytId(s){
   var m=s.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/|v\/))([A-Za-z0-9_-]{11})/);
   return m?m[1]:'';
 }
-function thumb(id){return 'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg'}
+var FB_RE=/^https?:\/\/(?:[a-z0-9-]+\.)?(?:facebook\.com|fb\.com|fb\.watch)\/\S+$/i;
+function sumberId(s){
+  s=String(s||'').trim();
+  var y=ytId(s);if(y)return y;
+  return FB_RE.test(s)?'fb:'+s:'';
+}
+function isFb(id){return String(id||'').indexOf('fb:')===0}
+var FB_COVER='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1b2a5a"/><stop offset="1" stop-color="#0d1530"/></linearGradient></defs><rect width="640" height="400" fill="url(#g)"/><circle cx="320" cy="180" r="62" fill="#ff7a1a"/><path d="M302 148v64l54-32z" fill="#fff"/><text x="320" y="300" font-family="Arial,sans-serif" font-size="30" font-weight="700" fill="#ffffff" text-anchor="middle">Video Facebook</text></svg>');
+function embedUrl(id){
+  if(isFb(id))return 'https://www.facebook.com/plugins/video.php?href='+encodeURIComponent(id.slice(3))+'&show_text=false&autoplay=true';
+  return 'https://www.youtube.com/embed/'+id+'?autoplay=1&rel=0';
+}
+function thumb(id){return isFb(id)?FB_COVER:'https://i.ytimg.com/vi/'+id+'/hqdefault.jpg'}
 function tgl(v){return new Date(v).getTime()}
 function habis(v){return v.tayang_sampai&&tgl(v.tayang_sampai)<=Date.now()}
 function sisa(v){
@@ -511,7 +523,7 @@ function katWarna(n){
   return KAT_PALET[h%KAT_PALET.length];
 }
 function ucfirst(t){t=String(t||'');return t.charAt(0).toUpperCase()+t.slice(1)}
-function thumbBesar(id){return 'https://i.ytimg.com/vi/'+id+'/maxresdefault.jpg'}
+function thumbBesar(id){return isFb(id)?FB_COVER:'https://i.ytimg.com/vi/'+id+'/maxresdefault.jpg'}
 
 function renderChips(){
   var h='<button class="chip" type="button" data-k="Semua" aria-pressed="'+(S.filter==='Semua')+'">'+katIcon('Semua')+'Semua</button>';
@@ -538,7 +550,7 @@ function renderStage(autoplay){
   var v=list.filter(function(x){return x.id===S.cur})[0];
   if(autoplay){
     jedaMusik();
-    box.innerHTML='<div class="player"><iframe src="https://www.youtube.com/embed/'+v.yt_id+'?autoplay=1&rel=0" title="'+esc(v.judul)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'
+    box.innerHTML='<div class="player"><iframe src="'+esc(embedUrl(v.yt_id))+'" title="'+esc(v.judul)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'
       +'<button class="keluar-miring" type="button" data-miring-tutup aria-label="Tutup mode miring">&times;</button></div>'
       +'<button class="btn-miring" type="button" data-miring>'+IC_MIRING+'<span>Tonton layar miring</span></button>'
       +'<h1 class="judul">'+esc(v.judul)+'</h1>'
@@ -762,8 +774,8 @@ $('#fLink').addEventListener('input',async function(){
 });
 
 $('#btnTambah').addEventListener('click',async function(){
-  var btn=this,id=ytId($('#fLink').value),judul=$('#fJudul').value.trim(),kat=$('#fKat').value,hari=Number($('#fMasa').value),pin=$('#fPin').checked;
-  if(!id){pesan('#pesanTambah','Link YouTube tidak dikenali. Tempel link dari tombol Bagikan di YouTube.','err');return}
+  var btn=this,id=sumberId($('#fLink').value),judul=$('#fJudul').value.trim(),kat=$('#fKat').value,hari=Number($('#fMasa').value),pin=$('#fPin').checked;
+  if(!id){pesan('#pesanTambah','Link tidak dikenali. Tempel link YouTube atau link video Facebook (dari tombol Bagikan).','err');return}
   if(!judul){pesan('#pesanTambah','Isi judul video.','err');return}
   if(!kat){pesan('#pesanTambah','Buat kategori dulu di bagian Kategori.','err');return}
   btn.disabled=true;pesan('#pesanTambah','Menyimpan...');
