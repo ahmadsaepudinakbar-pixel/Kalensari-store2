@@ -99,17 +99,40 @@ function toast(t){const e=document.createElement('div');e.className='toast';e.te
 async function authReq(grant,body){
   const r=await fetch(`${BASE}/auth/v1/token?grant_type=${grant}`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(d.error_description||d.msg||d.message||('HTTP '+r.status));
+  if(!r.ok){const er=new Error(d.error_description||d.msg||d.message||('HTTP '+r.status));er.status=r.status;throw er}
   return{access_token:d.access_token,refresh_token:d.refresh_token,expires_at:d.expires_at||Math.floor(Date.now()/1000)+(d.expires_in||3600),email:(d.user&&d.user.email)||''};
 }
-async function fresh(){
+/* Sesi admin notif TIDAK boleh keluar sendiri. Hanya dihapus bila server benar-benar menolak
+   token (dicabut/tidak sah). Jaringan putus / server sibuk / sinyal lemah = tetap masuk, coba lagi. */
+let freshP=null;
+function syncAuth(){try{const a=JSON.parse(localStorage.getItem(AUTH_KEY)||'null');if(a&&a.refresh_token&&(!auth||(a.expires_at||0)>=(auth.expires_at||0)))auth=a}catch(e){}}
+async function fresh(force){
+  syncAuth();
   if(!auth||!auth.refresh_token)throw new Error('login');
+  if(force)auth.expires_at=0;
   if(auth.expires_at*1000-Date.now()>60000)return;
-  try{saveAuth({...await authReq('refresh_token',{refresh_token:auth.refresh_token}),email:auth.email})}catch(e){saveAuth(null);throw new Error('login')}
+  if(freshP)return freshP;
+  freshP=(async()=>{
+    for(let i=0;i<3;i++){
+      try{saveAuth({...await authReq('refresh_token',{refresh_token:auth.refresh_token}),email:auth.email});return}
+      catch(e){
+        if(e.status===400||e.status===401||e.status===403){
+          syncAuth();  /* mungkin tab/jendela lain sudah memperbarui token */
+          if(auth&&auth.expires_at*1000-Date.now()>60000)return;
+          saveAuth(null);throw new Error('login');
+        }
+        await new Promise(r=>setTimeout(r,1500*(i+1)));
+      }
+    }
+    throw new Error('offline');
+  })().finally(()=>{freshP=null});
+  return freshP;
 }
 async function api(path,opt={}){
-  try{await fresh()}catch(e){showLogin();throw e}
-  const r=await fetch(`${BASE}/rest/v1/${path}`,{...opt,headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json',Prefer:'return=representation',...(opt.headers||{})}});
+  try{await fresh()}catch(e){if(e.message==='login')showLogin();throw e}
+  const go=()=>fetch(`${BASE}/rest/v1/${path}`,{...opt,headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json',Prefer:'return=representation',...(opt.headers||{})}});
+  let r=await go();
+  if(r.status===401){try{await fresh(true)}catch(e){if(e.message==='login')showLogin();throw e}r=await go()}
   const t=await r.text();if(!r.ok)throw new Error(t||('HTTP '+r.status));return t?JSON.parse(t):[];
 }
 const readKey=async(k,def)=>{const r=await api('store_settings?select=value&key=eq.'+encodeURIComponent(k));return r[0]&&r[0].value!=null?r[0].value:def};
@@ -315,6 +338,10 @@ setInterval(()=>{if(auth&&!$('#app').classList.contains('hide'))muat()},15000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&auth)muat()});
 if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='bunyi-pesanan'){if((nadaPref.pilih||'lagu')!=='lagu')bunyi();muat()}});
 nadaInit();
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+/* saat aplikasi dibuka lagi / jaringan kembali: segarkan sesi & data tanpa minta login */
+window.addEventListener('online',()=>{if(auth)muat()});
+window.addEventListener('pageshow',()=>{syncAuth();if(auth&&!$('#app').classList.contains('hide'))muat()});
 if(auth&&auth.refresh_token)start();else showLogin();
 </script>
 </body>
