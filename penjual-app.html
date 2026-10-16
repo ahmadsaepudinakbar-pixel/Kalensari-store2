@@ -707,18 +707,36 @@ function tips(){return `<div class="sh-tips" style="margin:0 0 12px"><span aria-
 bind.tips=()=>document.querySelectorAll("#v [data-k]").forEach(e=>e.onclick=()=>go(e.dataset.k));
 /* ===== QR TOKO & AJAK PELANGGAN: pelanggan scan -> pasang aplikasi -> kode toko terisi otomatis saat daftar (referal-toko.js) ===== */
 function qrUrl(){const u=new URL("index.html",location.href);u.search="";u.hash="";u.searchParams.set("toko",me.kode||"");u.searchParams.set("pasang","1");return u.toString()}
+function qrAwal(){const n=String(me.toko||me.usaha||me.nama||"Toko Anda");return{nama:n.slice(0,26),ajak:"Scan untuk pasang aplikasi",pesan:"Ingin belanja di toko "+n+"? Tapi malas keluar rumah? Pesan saja di:",warna:"#7b3f1d"}}
+const QR_WARNA=["#7b3f1d","#1f7a4d","#1d5fa8","#b3261e","#6a3fa0","#222222"];
+function qrOpsi(){const a=qrAwal(),s=LG("kalensari_qrposter_"+me.id,null)||{};return{nama:s.nama??a.nama,ajak:s.ajak??a.ajak,pesan:s.pesan??a.pesan,warna:s.warna??a.warna}}
 function qr(){if(!me.kode)return `<div class="card"><b>Kode toko belum tersedia</b><p style="font-size:13px;color:var(--mu)">Akun Anda belum punya kode toko. Hubungi admin Kalensari Store.</p></div>`;
-  return `<div class="card" style="text-align:center"><b style="font-size:16px">${esc(me.toko||me.usaha||me.nama||"Toko Anda")}</b>
-  <p style="font-size:13px;color:var(--mu);margin:6px 0 0">Tempel QR ini di warung. Pelanggan yang scan diarahkan memasang aplikasi, lalu kode toko Anda terisi otomatis saat mereka mendaftar.</p>
-  <div style="display:grid;place-items:center;margin:12px 0"><canvas id="qrCv" width="280" height="280" style="max-width:100%;border:1px solid var(--ln);border-radius:12px"></canvas></div>
-  <p style="margin:0;font-size:13px">Kode toko: <b>${esc(me.kode)}</b></p><p id="qrJml" style="margin:4px 0 10px;font-size:13px;color:var(--mu)"></p>
-  <button class="btn" id="qrUnduh">⬇️ Unduh QR (PNG)</button><button class="btn" id="qrBagi" style="margin-top:8px">📤 Bagikan link</button><button class="btn" id="qrSalin" style="margin-top:8px">🔗 Salin link</button></div>`}
+  const o=qrOpsi();
+  return `<div class="card" style="text-align:center"><b style="font-size:16px">QR Toko Anda</b>
+  <p style="font-size:13px;color:var(--mu);margin:6px 0 0">Ubah tulisan dan warna dulu, lihat hasilnya di bawah, lalu unduh atau bagikan. Pelanggan yang scan diarahkan memasang aplikasi, lalu kode toko Anda terisi otomatis saat mereka mendaftar.</p>
+  <div style="display:grid;place-items:center;margin:12px 0"><canvas id="qrCv" width="420" height="540" style="width:100%;max-width:300px;height:auto;border:1px solid var(--ln);border-radius:12px"></canvas></div>
+  <p style="margin:0;font-size:13px">Kode toko: <b>${esc(me.kode)}</b> <small style="color:var(--mu)">(tetap, tidak bisa diubah)</small></p><p id="qrJml" style="margin:4px 0 10px;font-size:13px;color:var(--mu)"></p>
+  <div style="text-align:left;border-top:1px solid var(--ln);padding-top:10px"><b style="font-size:14px">✏️ Ubah tampilan</b>
+  <label for="qrNama" style="margin-top:8px">Nama toko di poster</label><input class="fld" id="qrNama" maxlength="26" value="${esc(o.nama)}">
+  <label for="qrAjak">Tulisan ajakan</label><input class="fld" id="qrAjak" maxlength="40" value="${esc(o.ajak)}">
+  <label for="qrPesan">Pesan saat dibagikan</label><textarea class="fld" id="qrPesan" maxlength="200">${esc(o.pesan)}</textarea>
+  <label>Warna</label><div id="qrWarna" style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px">${QR_WARNA.map(w=>`<button type="button" class="qrW" data-w="${w}" aria-label="Warna ${w}" style="width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1.5px var(--ln);background:${w};cursor:pointer"></button>`).join("")}</div>
+  <button class="btn o" id="qrReset" type="button" style="margin-top:8px">↩️ Kembalikan ke awal</button></div>
+  <button class="btn" id="qrUnduh" style="margin-top:14px">⬇️ Unduh QR (PNG)</button><button class="btn" id="qrBagi" style="margin-top:8px">📤 Bagikan link</button><button class="btn" id="qrSalin" style="margin-top:8px">🔗 Salin link</button></div>`}
 function qrGambar(cv,q,W){const n=q.getModuleCount(),m=2,c=W/(n+2*m),x=cv.getContext("2d");cv.width=cv.height=W;x.fillStyle="#fff";x.fillRect(0,0,W,W);x.fillStyle="#000";for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))x.fillRect(Math.floor((k+m)*c),Math.floor((r+m)*c),Math.ceil(c),Math.ceil(c))}
 bind.qr=async()=>{if(!me.kode)return;const url=qrUrl();let q;
   try{if(!window.qrcode)await new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)});q=qrcode(0,"M");q.addData(url);q.make();qrGambar($("qrCv"),q,280)}catch(e){return toast("QR gagal dibuat. Periksa koneksi internet.")}
-  $("qrUnduh").onclick=()=>{const W=420,c=document.createElement("canvas"),x=(c.width=W,c.height=540,c.getContext("2d")),t=document.createElement("canvas");qrGambar(t,q,360);x.fillStyle="#fff";x.fillRect(0,0,W,540);x.fillStyle="#7b3f1d";x.textAlign="center";x.font="bold 26px sans-serif";x.fillText(String(me.toko||me.usaha||me.nama||"").slice(0,26),W/2,50);x.font="16px sans-serif";x.fillStyle="#3a1f10";x.fillText("Scan untuk pasang aplikasi",W/2,80);x.drawImage(t,30,100,360,360);x.font="bold 18px sans-serif";x.fillText("Kalensari Store",W/2,490);x.font="14px sans-serif";x.fillText("Kode toko: "+me.kode,W/2,515);const a=document.createElement("a");a.href=c.toDataURL("image/png");a.download="QR-"+me.kode+".png";a.click()};
+  const bacaO=()=>{const a=qrAwal(),g=i=>($(i)?$(i).value:"");return{nama:g("qrNama").trim()||a.nama,ajak:g("qrAjak").trim()||a.ajak,pesan:g("qrPesan").trim()||a.pesan,warna:QR_WARNA.includes(window.__qrW)?window.__qrW:qrOpsi().warna}};
+  const poster=o=>{const W=420,H=540,c=document.createElement("canvas"),x=(c.width=W,c.height=H,c.getContext("2d")),t=document.createElement("canvas");qrGambar(t,q,360);x.fillStyle="#fff";x.fillRect(0,0,W,H);x.fillStyle=o.warna;x.textAlign="center";let fs=26;do{x.font="bold "+fs+"px sans-serif";fs-=1}while(x.measureText(o.nama).width>W-40&&fs>14);x.fillText(o.nama,W/2,50);x.font="16px sans-serif";x.fillText(o.ajak.slice(0,40),W/2,80);x.drawImage(t,30,100,360,360);x.font="bold 18px sans-serif";x.fillText("Kalensari Store",W/2,490);x.font="14px sans-serif";x.fillText("Kode toko: "+me.kode,W/2,515);return c};
+  const gambar=()=>{const o=bacaO(),cv=$("qrCv");if(!cv)return;cv.width=420;cv.height=540;cv.getContext("2d").drawImage(poster(o),0,0);document.querySelectorAll(".qrW").forEach(b=>{b.style.boxShadow=b.dataset.w===o.warna?"0 0 0 3px "+o.warna:"0 0 0 1.5px var(--ln)"})};
+  const simpan=()=>{LS("kalensari_qrposter_"+me.id,bacaO());gambar()};
+  window.__qrW=qrOpsi().warna;gambar();
+  ["qrNama","qrAjak","qrPesan"].forEach(i=>{$(i).oninput=simpan});
+  document.querySelectorAll(".qrW").forEach(b=>b.onclick=()=>{window.__qrW=b.dataset.w;simpan()});
+  $("qrReset").onclick=()=>{try{localStorage.removeItem("kalensari_qrposter_"+me.id)}catch(e){}const a=qrAwal();$("qrNama").value=a.nama;$("qrAjak").value=a.ajak;$("qrPesan").value=a.pesan;window.__qrW=a.warna;gambar();toast("Tampilan dikembalikan ke awal")};
+  $("qrUnduh").onclick=()=>{const a=document.createElement("a");a.href=poster(bacaO()).toDataURL("image/png");a.download="QR-"+me.kode+".png";a.click()};
   $("qrSalin").onclick=async()=>{try{await navigator.clipboard.writeText(url);toast("Link disalin")}catch(e){prompt("Salin link ini:",url)}};
-  $("qrBagi").onclick=async()=>{const teks="Ingin belanja di toko "+(me.toko||me.usaha||me.nama||"kami")+"? Tapi malas keluar rumah? Pesan saja di:";if(navigator.share){try{await navigator.share({title:"Kalensari Store",text:teks,url})}catch(e){}}else{window.open("https://wa.me/?text="+encodeURIComponent(teks+" "+url),"_blank")}};
+  $("qrBagi").onclick=async()=>{const teks=bacaO().pesan;if(navigator.share){try{await navigator.share({title:"Kalensari Store",text:teks,url})}catch(e){}}else{window.open("https://wa.me/?text="+encodeURIComponent(teks+" "+url),"_blank")}};
   try{const b=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,""),r=await fetch(b+"/rest/v1/rpc/jumlah_referal_toko",{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:"Bearer "+CLOUD_CONFIG.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({p_kode:me.kode})});if(r.ok){const n=await r.json(),e=$("qrJml");if(e)e.textContent="👥 "+n+" pelanggan mendaftar lewat QR/kode Anda • 🎁 Bonus Rp2.000 saldo penjualan tiap pelanggan baru"}}catch(e){}};
 /* ===== BERANDA KHUSUS PASAR MALAM (penjual-app.html?pm=1) ===== */
 function pmJadwalKartu(){let x;try{x=statusToko()}catch(e){x={st:"muat"}}
