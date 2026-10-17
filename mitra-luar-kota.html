@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mitra Luar Kota – Kalensari Store</title><link rel="icon" href="favicon.ico">
+<style>
+:root{--brown:#7b3f1d;--ink:#3a1f10;--muted:#5c4638;--bg:#e4d3bf;--line:#d3bfa8;--chip:#f5e8d8;--green:#228b4e;--red:#b83c2b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui,sans-serif;line-height:1.45}
+.top{background:var(--brown);color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px}.top a,.top button{color:#fff;background:none;border:0;font:inherit;cursor:pointer;text-decoration:none}
+.wrap{max-width:680px;margin:0 auto;padding:16px 14px 60px}.box{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}
+.hero{border-radius:26px;padding:24px;background:linear-gradient(120deg,#f8ead0,#eef0d4 50%,#6f9f4e);margin-bottom:14px}.hero h1{font-size:clamp(23px,5vw,31px);margin:10px 0 6px;line-height:1.2}.tag{display:inline-block;background:var(--brown);color:#fff;font-weight:700;font-size:12px;padding:7px 13px;border-radius:999px}
+h2{font-size:17px;margin:0 0 10px}label{display:block;font-weight:600;font-size:14px}ol,ul{margin:6px 0 0;padding-left:20px}li{margin:4px 0}
+.fld{display:block;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:16px;margin:5px 0 11px;background:#fff;color:var(--ink)}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{font:inherit;font-weight:700;padding:12px 14px;border-radius:14px;border:1px solid var(--brown);background:#fff;color:var(--brown);cursor:pointer}
+.btn.p{background:var(--brown);color:#fff}.btn:disabled{opacity:.5}.sm{font-size:13px;color:var(--muted)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}.tab{border:1px solid var(--line);background:var(--chip);color:var(--ink);padding:11px;border-radius:999px;font:inherit;font-weight:700;cursor:pointer}.tab.on{background:var(--brown);border-color:var(--brown);color:#fff}
+.warn{background:#fff3cd;border:1px solid #e3c766;color:#5a4300;border-radius:14px;padding:10px 14px;font-weight:600;font-size:14px;margin-bottom:12px}
+.it{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:center}.it:first-child{border-top:0}.it img,.ph{width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--chip);flex:none;display:grid;place-items:center}
+.it .t{flex:1;min-width:0}.it b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}[hidden]{display:none!important}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;z-index:9}#toast.on{opacity:1}
+</style></head><body>
+<div class="top"><a href="index.html">← Kalensari Store</a><span>🌍 Mitra Luar Kota</span><button id="keluar" hidden>Keluar</button></div>
+<div class="wrap">
+<div id="vInfo">
+<div class="hero"><span class="tag">Program Mitra</span><h1>Jadi mitra Kalensari Store dari luar kota</h1><p style="margin:0">Punya produk kosmetik, perawatan tubuh, atau suplemen? Pasarkan di Kalensari Store dan kirim ke pembeli lewat J&amp;T. Akun mitra terpisah dari akun penjual warga.</p></div>
+<div class="box"><h2>Cara kerja</h2><ol><li>Daftar akun mitra dan lengkapi nomor izin edar (BPOM/NIB).</li><li>Admin memeriksa data Anda, lalu menyetujui akun.</li><li>Pasang produk dari dashboard: harga, berat, stok, dan foto.</li><li>Produk tampil di Kalensari Store dengan label <b>"Kirim J&amp;T dari kota Anda"</b>.</li></ol></div>
+<div class="box"><h2>Aturan produk</h2><ul><li>Wajib punya izin edar BPOM. Produk tanpa izin akan dinonaktifkan.</li><li>Obat hanya boleh dari apotek / pihak berizin. Obat keras dan resep tidak boleh dijual.</li><li>Isi berat produk (gram) termasuk kemasan, agar ongkir J&amp;T tepat.</li><li>Nama toko harus unik dan tidak sama dengan toko warga.</li></ul></div>
+</div>
+<div id="vMasuk"><div class="tabs"><button class="tab on" id="tMasuk">Masuk</button><button class="tab" id="tDaftar">Daftar mitra</button></div>
+<div class="box" id="fMasuk"><label>No. WhatsApp<input id="lWa" class="fld" inputmode="tel" placeholder="08xxxxxxxxxx"></label><label>PIN<input id="lPin" class="fld" type="password" inputmode="numeric" maxlength="8"></label><button id="bMasuk" class="btn p" style="width:100%">Masuk</button><p class="sm" style="margin:10px 0 0">Lupa PIN? Hubungi admin lewat WhatsApp.</p></div>
+<div class="box" id="fDaftar" hidden><label>Nama pemilik<input id="rNama" class="fld" maxlength="60"></label><label>Nama toko<input id="rToko" class="fld" maxlength="60" placeholder="mis. Rani Beauty"></label>
+<label>No. WhatsApp<input id="rWa" class="fld" inputmode="tel" placeholder="08xxxxxxxxxx"></label>
+<div class="r2"><label>Kota / kabupaten asal kirim<input id="rKota" class="fld" maxlength="60"></label><label>Provinsi<input id="rProv" class="fld" maxlength="40"></label></div>
+<label>Alamat pengirim (untuk jemput J&amp;T)<input id="rAlamat" class="fld" maxlength="200"></label>
+<label>Jenis produk<select id="rJenis" class="fld"><option>Kosmetik</option><option>Perawatan tubuh</option><option>Suplemen / herbal</option><option>Obat (apotek berizin)</option></select></label>
+<label>No. izin edar BPOM / NIB<input id="rIzin" class="fld" maxlength="80" placeholder="mis. NA18xxxxxxxxxx"></label>
+<div class="r2"><label>PIN (4–8 angka)<input id="rPin" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div>
+<button id="bDaftar" class="btn p" style="width:100%">Daftar</button><p class="sm" style="margin:10px 0 0">Setelah daftar, akun menunggu persetujuan admin.</p></div></div>
+<div id="vDash" hidden>
+<div class="box"><h2 id="hNama" style="margin:0"></h2><div class="sm" id="hInfo"></div></div>
+<div id="vTunggu" class="warn" hidden></div>
+<div id="vIsi" hidden>
+<div class="box"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h2 style="margin:0">Produk saya</h2><button class="btn p" id="bBaru">+ Tambah</button></div><div id="daftar" class="sm">Memuat…</div></div>
+<div class="box" id="form" hidden><h2 id="fJudul">Produk baru</h2>
+<label>Nama produk<input id="fNama" class="fld" maxlength="80"></label>
+<div class="r2"><label>Harga (Rp)<input id="fHarga" class="fld" type="number" inputmode="numeric" min="0"></label><label>Berat (gram)<input id="fBerat" class="fld" type="number" inputmode="numeric" min="1" placeholder="dengan kemasan"></label></div>
+<div class="r2"><label>Stok<input id="fStok" class="fld" type="number" inputmode="numeric" min="0"></label><label>Kategori<input id="fKat" class="fld" list="kats" value="Kosmetik"><datalist id="kats"><option>Kosmetik</option><option>Perawatan Tubuh</option><option>Suplemen &amp; Herbal</option><option>Obat</option></datalist></label></div>
+<label>Deskripsi / komposisi<textarea id="fDesk" class="fld" rows="3" maxlength="600"></textarea></label>
+<label>Status<select id="fStatus" class="fld"><option value="Show">Tampilkan</option><option value="Sold">Stok habis</option><option value="Hide">Sembunyikan</option></select></label>
+<label>Foto produk<input id="fFoto" class="fld" type="file" accept="image/*"></label><img id="fPv" alt="" style="max-width:120px;border-radius:12px;display:none;margin-bottom:10px">
+<div class="r2"><button class="btn" id="bBatal">Batal</button><button class="btn p" id="bSimpan">Simpan</button></div><button class="btn" id="bHapus" style="width:100%;margin-top:10px;color:var(--red);border-color:var(--red)" hidden>Hapus produk</button></div>
+</div></div></div><div id="toast"></div>
+<script src="config.js"></script>
+<script>
+const $=i=>document.getElementById(i),C=window.CLOUD_CONFIG,B=String(C.supabaseUrl).replace(/\/$/,""),SK="kalensari_sesi_mitra";let me=null,P=[],edit=null,foto=null;
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rp=n=>"Rp"+Number(n||0).toLocaleString("id-ID"),sesi=()=>{try{return localStorage.getItem(SK)||""}catch(e){return""}};
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),2800)}
+async function rpc(fn,body){const r=await fetch(B+"/rest/v1/rpc/"+fn,{method:"POST",headers:{apikey:C.supabaseAnonKey,Authorization:"Bearer "+C.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify(body)});const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
+ if(!r.ok){const m=String((j&&(j.message||j.hint))||r.status);throw new Error(/Could not find the function|PGRST202/i.test(m)?"Database belum siap: jalankan supabase-mitra-luar-kota.sql":m)}
+ if(j&&j.ok===false)throw new Error(j.pesan||"Gagal");return j}
+const tab=d=>{$("fMasuk").hidden=d;$("fDaftar").hidden=!d;$("tMasuk").classList.toggle("on",!d);$("tDaftar").classList.toggle("on",d)};$("tMasuk").onclick=()=>tab(false);$("tDaftar").onclick=()=>tab(true);
+$("bDaftar").onclick=async()=>{const pin=$("rPin").value;if(pin!==$("rPin2").value)return toast("Ulangi PIN tidak sama");const b=$("bDaftar");b.disabled=true;
+ try{await rpc("mitra_daftar",{p_wa:$("rWa").value,p_pin:pin,p_nama:$("rNama").value,p_toko:$("rToko").value,p_kota:$("rKota").value,p_provinsi:$("rProv").value,p_jenis:$("rJenis").value,p_izin:$("rIzin").value,p_alamat:$("rAlamat").value});
+ toast("Pendaftaran terkirim. Tunggu persetujuan admin.");$("lWa").value=$("rWa").value;$("lPin").value=pin;await masuk()}catch(e){toast(e.message)}b.disabled=false};
+async function masuk(){const j=await rpc("mitra_masuk",{p_wa:$("lWa").value,p_pin:$("lPin").value});try{localStorage.setItem(SK,j.sesi)}catch(e){}me=j.data;tampil()}
+$("bMasuk").onclick=async()=>{const b=$("bMasuk");b.disabled=true;try{await masuk()}catch(e){toast(e.message)}b.disabled=false};
+$("keluar").onclick=()=>{try{localStorage.removeItem(SK)}catch(e){}location.reload()};
+async function init(){if(!sesi())return;try{me=(await rpc("mitra_saya",{p_sesi:sesi()})).data;tampil()}catch(e){try{localStorage.removeItem(SK)}catch(x){}}}
+function tampil(){$("vInfo").hidden=true;$("vMasuk").hidden=true;$("vDash").hidden=false;$("keluar").hidden=false;$("hNama").textContent=me.toko;
+ $("hInfo").textContent=[[me.kota,me.provinsi].filter(Boolean).join(", "),me.jenis,"Izin: "+me.izin].filter(Boolean).join(" • ");const t=$("vTunggu");
+ if(me.status==="aktif"){t.hidden=true;$("vIsi").hidden=false;muat();return}$("vIsi").hidden=true;t.hidden=false;
+ t.textContent=({menunggu:"⏳ Akun menunggu persetujuan admin. Anda bisa memasang produk setelah disetujui.",ditolak:"Pendaftaran ditolak. Hubungi admin untuk informasi.",nonaktif:"Akun dinonaktifkan. Hubungi admin."})[me.status]||me.status}
+async function muat(){try{P=await rpc("mitra_produk_list",{p_sesi:sesi()});gambar()}catch(e){$("daftar").textContent=e.message}}
+function gambar(){$("daftar").innerHTML=P.map(p=>`<div class="it">${p.image?`<img src="${esc(p.image)}" alt="">`:`<div class="ph">📦</div>`}<div class="t"><b>${esc(p.name)}</b><span class="sm">${rp(p.price)} • ${p.berat_gram||"?"} g • stok ${p.stock==null?"-":p.stock} • ${({Show:"Tampil",Sold:"Stok habis",Hide:"Disembunyikan"})[p.status]||p.status}</span></div><button class="btn" onclick="ubah(${p.id})">Ubah</button></div>`).join("")||"Belum ada produk. Ketuk + Tambah."}
+function buka(p){edit=p||null;foto=null;$("form").hidden=false;$("fJudul").textContent=p?"Ubah produk":"Produk baru";$("bHapus").hidden=!p;$("fNama").value=p?p.name:"";$("fHarga").value=p?p.price:"";$("fBerat").value=p&&p.berat_gram||"";$("fStok").value=p&&p.stock!=null?p.stock:"";$("fKat").value=p?p.category:"Kosmetik";$("fDesk").value=p&&p.description||"";$("fStatus").value=p&&p.status||"Show";$("fFoto").value="";const v=$("fPv");v.style.display=p&&p.image?"block":"none";if(p&&p.image)v.src=p.image;$("form").scrollIntoView({behavior:"smooth"})}
+window.ubah=id=>buka(P.find(p=>p.id==id));$("bBaru").onclick=()=>buka(null);$("bBatal").onclick=()=>{$("form").hidden=true};
+$("fFoto").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const k=Math.min(1,700/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);foto=c.toDataURL("image/jpeg",.75);$("fPv").src=foto;$("fPv").style.display="block"};im.src=URL.createObjectURL(f)};
+$("bSimpan").onclick=async()=>{const st=$("fStok").value,data={name:$("fNama").value,price:$("fHarga").value,berat_gram:$("fBerat").value,stock:st,category:$("fKat").value,description:$("fDesk").value,status:$("fStatus").value};if(foto)data.image=foto;
+ const b=$("bSimpan");b.disabled=true;try{await rpc("mitra_produk_simpan",{p_sesi:sesi(),p_id:edit?edit.id:null,p_data:data});toast("Produk tersimpan");$("form").hidden=true;await muat()}catch(e){toast(e.message)}b.disabled=false};
+$("bHapus").onclick=async()=>{if(!edit||!confirm("Hapus produk ini?"))return;try{await rpc("mitra_produk_hapus",{p_sesi:sesi(),p_id:edit.id});toast("Produk dihapus");$("form").hidden=true;await muat()}catch(e){toast(e.message)}};
+init();
+</script></body></html>
