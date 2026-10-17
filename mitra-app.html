@@ -1,0 +1,173 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest-mitra.webmanifest"><meta name="theme-color" content="#7b3f1d">
+<link rel="icon" type="image/png" href="icons/mitra-favicon-48.png"><link rel="apple-touch-icon" href="icons/mitra-apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Mitra Luar Kota">
+<meta name="robots" content="noindex"><script src="pwa.js" defer></script>
+<title>Aplikasi Mitra Luar Kota – Kalensari Store</title>
+<style>
+:root{--b:#7b3f1d;--b2:#a0592c;--ink:#3a1f10;--mu:#6b5546;--bg:#f6ede2;--ln:#e3d3c0;--chip:#f5e8d8;--ok:#228b4e;--red:#b83c2b;--warn:#fff3cd}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{height:100%}
+body{margin:0;background:#e4d3bf;color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+[hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}
+#auth,#app{max-width:480px;height:100%;margin:0 auto;background:var(--bg);position:relative;display:flex;flex-direction:column;overflow:hidden}
+#auth{overflow:auto;padding:28px 22px 40px;background:linear-gradient(#fff6e8,#f1dfc9);display:block}
+#auth .logo{display:block;width:132px;height:132px;margin:0 auto 6px;object-fit:contain}
+#auth h1{margin:4px 0 2px;font-size:26px;text-align:center;color:var(--b)}#auth .lead{margin:0 0 18px;text-align:center;color:var(--mu);font-size:14px}
+.btn{display:block;width:100%;padding:13px;border-radius:14px;border:2px solid var(--b);background:var(--b);color:#fff;font-weight:700;cursor:pointer;margin-top:10px;text-align:center;text-decoration:none}
+.btn.o{background:#fff;color:var(--b)}.btn.d{background:#fff;border-color:var(--red);color:var(--red)}.btn.s{width:auto;display:inline-block;padding:8px 14px;margin:0;font-size:13.5px}.btn:disabled{opacity:.55}
+.fld{width:100%;padding:12px 14px;border:1px solid var(--ln);border-radius:12px;background:#fff;margin:5px 0 12px;font-size:16px}textarea.fld{min-height:84px;resize:vertical}
+label{font-weight:600;font-size:13.5px;display:block}.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}.seg button{border:1px solid var(--ln);background:var(--chip);padding:11px;border-radius:999px;font-weight:700;cursor:pointer}.seg button.on{background:var(--b);border-color:var(--b);color:#fff}
+.box{background:#fff;border:1px solid var(--ln);border-radius:18px;padding:16px}
+.hint{font-size:12.5px;color:var(--mu);margin:2px 0 12px}.fs{margin:6px 0 2px;font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--b);text-transform:uppercase}
+#hd{background:linear-gradient(135deg,var(--b),var(--b2));color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;display:flex;align-items:center;gap:12px;font-weight:700;font-size:17px}
+#hd .t{flex:1;min-width:0}#hd .t span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hd small{display:block;font-weight:400;font-size:12px;opacity:.85}#hd button{background:none;border:0;color:#fff;font-size:22px;cursor:pointer;padding:2px 6px}
+#v{flex:1;overflow:auto;padding:14px 14px 90px}
+#nav{display:flex;background:#fff;border-top:1px solid var(--ln);padding-bottom:env(safe-area-inset-bottom,0px)}#nav button{flex:1;background:none;border:0;padding:8px 0;font-size:11.5px;color:var(--mu);cursor:pointer}#nav button b{display:block;font-size:20px;font-weight:400}#nav button.on{color:var(--b);font-weight:700}
+h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:12px;margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}.stats div{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:10px 2px;font-size:11.5px;color:var(--mu)}.stats b{display:block;font-size:22px;color:var(--ink)}
+.warn{background:var(--warn);border:1px solid #e3c766;color:#5a4300;border-radius:14px;padding:11px 14px;font-weight:600;font-size:14px;margin-bottom:12px}.warn.bad{background:#f9dcd8;border-color:#e3a39a;color:#7a2318}
+.it{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--ln)}.it:first-child{border-top:0}
+.it .im{width:60px;height:60px;border-radius:12px;background:var(--chip);flex:none;display:grid;place-items:center;font-size:24px;overflow:hidden}.it .im img{width:100%;height:100%;object-fit:cover}
+.it .t{flex:1;min-width:0}.it b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.it .m{font-size:12.5px;color:var(--mu)}
+.bd{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:var(--chip);color:var(--b)}.bd.ok{background:#d6f0de;color:#14532d}.bd.no{background:#f6d6d2;color:#7a2318}.bd.wt{background:#fff3cd;color:#5a4300}
+.chips{display:flex;gap:6px;overflow-x:auto;margin:8px 0;scrollbar-width:none}.chips button{flex:none;border:1px solid var(--ln);background:#fff;border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer}.chips button.on{background:var(--b);color:#fff;border-color:var(--b)}
+.kv{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--ln);font-size:14px}.kv:first-child{border-top:0}.kv span{width:104px;flex:none;color:var(--mu)}.kv b{font-weight:600;word-break:break-word}
+.fab{position:absolute;right:16px;bottom:calc(72px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:50%;border:0;background:var(--b);color:#fff;font-size:30px;box-shadow:0 4px 14px rgba(60,30,10,.35);cursor:pointer;z-index:5}
+#dr{position:absolute;inset:0;background:var(--bg);z-index:20;display:flex;flex-direction:column}
+#dr .hd2{background:linear-gradient(135deg,var(--b),var(--b2));color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px}#dr .hd2 button{background:none;border:0;color:#fff;font-size:24px;cursor:pointer}
+#dr .bd2{flex:1;overflow:auto;padding:14px 14px 30px}
+#fPv{max-width:130px;border-radius:12px;display:none;margin:0 0 12px}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;max-width:90%;z-index:99}#toast.on{opacity:1}
+.empty{text-align:center;color:var(--mu);padding:28px 10px}
+</style></head><body>
+
+<section id="auth">
+  <img class="logo" src="icons/logo-mitra-luarkota.png" alt="Mitra Luar Kota Kalensari Store">
+  <h1>Mitra Luar Kota</h1><p class="lead">Pasarkan produk Anda di Kalensari Store dan kirim ke pembeli lewat J&amp;T dan JNE.</p>
+  <div class="seg"><button id="tMasuk" class="on">Masuk</button><button id="tDaftar">Daftar mitra</button></div>
+  <div class="box" id="fMasuk">
+    <label>No. WhatsApp<input id="lWa" class="fld" inputmode="tel" autocomplete="username" placeholder="08xxxxxxxxxx"></label>
+    <label>PIN<input id="lPin" class="fld" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password"></label>
+    <button id="bMasuk" class="btn">Masuk</button><p class="hint" style="margin:12px 0 0">Lupa PIN? Hubungi admin lewat WhatsApp.</p>
+  </div>
+  <div class="box" id="fDaftar" hidden>
+    <div class="fs">Data pemilik &amp; toko</div>
+    <label>Nama pemilik<input id="rNama" class="fld" maxlength="60"></label>
+    <label>Nama toko<input id="rToko" class="fld" maxlength="60" placeholder="mis. Rani Beauty"></label>
+    <label>No. WhatsApp<input id="rWa" class="fld" inputmode="tel" placeholder="08xxxxxxxxxx"></label>
+    <div class="fs">Asal pengiriman</div>
+    <div class="r2"><label>Kota / kabupaten<input id="rKota" class="fld" maxlength="60"></label><label>Provinsi<input id="rProv" class="fld" maxlength="40"></label></div>
+    <label>Alamat pengirim (untuk jemput kurir)<input id="rAlamat" class="fld" maxlength="200"></label>
+    <div class="fs">Produk &amp; izin</div>
+    <label>Jenis produk<select id="rJenis" class="fld"><option>Kosmetik</option><option>Perawatan tubuh</option><option>Suplemen / herbal</option><option>Obat (apotek berizin)</option></select></label>
+    <label>No. izin edar BPOM / NIB<input id="rIzin" class="fld" maxlength="80" placeholder="mis. NA18xxxxxxxxxx"></label>
+    <div class="fs">Keamanan akun</div>
+    <div class="r2"><label>PIN (4–8 angka)<input id="rPin" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div>
+    <button id="bDaftar" class="btn">Daftar</button><p class="hint" style="margin:12px 0 0">Setelah daftar, akun diperiksa dan disetujui admin dulu sebelum bisa memasang produk.</p>
+  </div>
+  <a class="btn o" href="index.html" style="margin-top:16px">← Ke Kalensari Store</a>
+</section>
+
+<div id="app" hidden>
+  <header id="hd"></header><main id="v"></main><button class="fab" id="fab" hidden aria-label="Tambah produk">+</button><nav id="nav"></nav>
+  <div id="dr" hidden>
+    <div class="hd2"><button id="drX" aria-label="Tutup">←</button><span id="fJudul">Produk baru</span></div>
+    <div class="bd2">
+      <div class="fs">Info produk</div>
+      <label>Nama produk<input id="fNama" class="fld" maxlength="80"></label>
+      <div class="r2"><label>Harga (Rp)<input id="fHarga" class="fld" type="number" inputmode="numeric" min="0"></label><label>Stok<input id="fStok" class="fld" type="number" inputmode="numeric" min="0"></label></div>
+      <label>Kategori<input id="fKat" class="fld" list="kats" value="Kosmetik"><datalist id="kats"><option>Kosmetik</option><option>Perawatan Tubuh</option><option>Suplemen &amp; Herbal</option><option>Obat</option></datalist></label>
+      <div class="fs">Pengiriman</div>
+      <label>Berat (gram)<input id="fBerat" class="fld" type="number" inputmode="numeric" min="1" placeholder="termasuk kemasan"></label>
+      <p class="hint" style="margin-top:-6px">Isi berat sudah dengan kemasan, agar ongkirnya tepat.</p>
+      <div class="fs">Penjelasan produk</div>
+      <label>Khasiat<textarea id="fKhasiat" class="fld" rows="3" maxlength="250" placeholder="Contoh: melembapkan kulit, membantu meredakan nyeri"></textarea></label>
+      <label>Deskripsi / komposisi<textarea id="fDesk" class="fld" rows="3" maxlength="320"></textarea></label>
+      <div class="fs">Tampilan di toko</div>
+      <label>Status<select id="fStatus" class="fld"><option value="Show">Tampilkan</option><option value="Sold">Stok habis</option><option value="Hide">Sembunyikan</option></select></label>
+      <label>Foto produk<input id="fFoto" class="fld" type="file" accept="image/*"></label><img id="fPv" alt="">
+      <button class="btn" id="bSimpan">Simpan</button><button class="btn d" id="bHapus" hidden>Hapus produk</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script>
+const $=i=>document.getElementById(i),C=window.CLOUD_CONFIG||{},B=String(C.supabaseUrl||"").replace(/\/$/,""),SK="kalensari_sesi_mitra";
+let me=null,P=[],tab="home",q="",flt="all",edit=null,foto=null;
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rp=n=>"Rp"+Number(n||0).toLocaleString("id-ID"),sesi=()=>{try{return localStorage.getItem(SK)||""}catch(e){return""}};
+const ST={Show:["Tampil","ok"],Sold:["Stok habis","wt"],Hide:["Disembunyikan","no"]};
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),2800)}
+async function rpc(fn,body){const r=await fetch(B+"/rest/v1/rpc/"+fn,{method:"POST",headers:{apikey:C.supabaseAnonKey,Authorization:"Bearer "+C.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify(body)});
+ const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
+ if(!r.ok){const m=String((j&&(j.message||j.hint))||r.status);throw new Error(/Could not find the function|PGRST202/i.test(m)?"Database belum siap: jalankan supabase-mitra-luar-kota.sql":m)}
+ if(j&&j.ok===false)throw new Error(j.pesan||"Gagal");return j}
+const keluar=()=>{try{localStorage.removeItem(SK)}catch(e){}location.reload()};
+const sesiHabis=e=>/Sesi berakhir/i.test(String(e&&e.message))&&(keluar(),true);
+
+/* ===== MASUK / DAFTAR ===== */
+const seg=d=>{$("fMasuk").hidden=d;$("fDaftar").hidden=!d;$("tMasuk").classList.toggle("on",!d);$("tDaftar").classList.toggle("on",d)};
+$("tMasuk").onclick=()=>seg(false);$("tDaftar").onclick=()=>seg(true);
+async function masuk(){const j=await rpc("mitra_masuk",{p_wa:$("lWa").value,p_pin:$("lPin").value});try{localStorage.setItem(SK,j.sesi)}catch(e){}me=j.data;bukaApp()}
+$("bMasuk").onclick=async()=>{const b=$("bMasuk");b.disabled=true;try{await masuk()}catch(e){toast(e.message)}b.disabled=false};
+$("bDaftar").onclick=async()=>{const pin=$("rPin").value;if(pin!==$("rPin2").value)return toast("Ulangi PIN tidak sama");const b=$("bDaftar");b.disabled=true;
+ try{await rpc("mitra_daftar",{p_wa:$("rWa").value,p_pin:pin,p_nama:$("rNama").value,p_toko:$("rToko").value,p_kota:$("rKota").value,p_provinsi:$("rProv").value,p_jenis:$("rJenis").value,p_izin:$("rIzin").value,p_alamat:$("rAlamat").value});
+ toast("Pendaftaran terkirim. Tunggu persetujuan admin.");$("lWa").value=$("rWa").value;$("lPin").value=pin;await masuk()}catch(e){toast(e.message)}b.disabled=false};
+
+/* ===== APLIKASI ===== */
+function bukaApp(){$("auth").hidden=true;$("app").hidden=false;go("home");if(me.status==="aktif")muat()}
+function go(t){tab=t;q="";flt="all";gambar()}
+async function muat(){try{P=await rpc("mitra_produk_list",{p_sesi:sesi()});gambar()}catch(e){if(!sesiHabis(e))toast(e.message)}}
+async function segarkan(){try{me=(await rpc("mitra_saya",{p_sesi:sesi()})).data}catch(e){if(sesiHabis(e))return}if(me.status==="aktif")await muat();else gambar()}
+const aktif=()=>me&&me.status==="aktif";
+const pesanStatus=()=>({menunggu:"⏳ Akun sedang diperiksa admin. Anda bisa memasang produk setelah disetujui.",ditolak:"Pendaftaran ditolak. Hubungi admin untuk informasi.",nonaktif:"Akun dinonaktifkan sementara. Hubungi admin."})[me.status]||"";
+function gambar(){
+ $("hd").innerHTML=`<div class="t"><span>${esc(me.toko)}</span><small>🌍 ${esc([me.kota,me.provinsi].filter(Boolean).join(", ")||"Mitra luar kota")}</small></div><button onclick="segarkan()" aria-label="Muat ulang">⟳</button>`;
+ $("nav").innerHTML=[["home","🏠","Beranda"],["prod","📦","Produk"],["akun","👤","Akun"]].map(([k,i,l])=>`<button class="${tab===k?"on":""}" onclick="go('${k}')"><b>${i}</b>${l}</button>`).join("");
+ $("fab").hidden=!(tab==="prod"&&aktif());
+ const v=$("v");v.innerHTML=tab==="home"?vHome():tab==="prod"?vProd():vAkun();
+ if(tab==="prod"){const s=$("cari");if(s&&q){s.focus();s.setSelectionRange(q.length,q.length)}}
+}
+function vHome(){
+ const tampil=P.filter(p=>p.status==="Show").length,habis=P.filter(p=>p.status==="Sold"||(p.stock!=null&&p.stock<=0)).length,stok=P.reduce((t,p)=>t+(Number(p.stock)||0),0);
+ const tnf=P.filter(p=>!p.image).length,tnk=P.filter(p=>!/^Khasiat:/.test(p.description||"")).length;
+ return `${aktif()?"":`<div class="warn ${me.status==="menunggu"?"":"bad"}">${pesanStatus()}</div>`}
+ <div class="stats"><div><b>${P.length}</b>Produk</div><div><b>${tampil}</b>Tampil</div><div><b>${habis}</b>Habis</div><div><b>${stok}</b>Total stok</div></div>
+ ${aktif()?`<button class="btn" onclick="buka(null)">+ Tambah produk</button>`:""}
+ ${aktif()&&P.length&&(tnf||tnk)?`<h3>Lengkapi produk Anda</h3><div class="card">${tnf?`<div class="kv"><span>📷 Foto</span><b>${tnf} produk belum ada foto</b></div>`:""}${tnk?`<div class="kv"><span>✨ Khasiat</span><b>${tnk} produk belum diisi khasiat</b></div>`:""}</div>`:""}
+ <h3>Cara pengiriman</h3><div class="card" style="font-size:14px">Produk Anda tampil di Kalensari Store dengan label <b>“dikirim dari ${esc(me.kota||"kota Anda")}”</b>. Pesanan dikirim lewat J&amp;T atau JNE. Pastikan <b>berat produk</b> sudah diisi dengan kemasan agar ongkirnya tepat.</div>
+ <h3>Aturan produk</h3><div class="card" style="font-size:14px"><ul style="margin:0;padding-left:18px"><li>Wajib punya izin edar BPOM. Produk tanpa izin akan dinonaktifkan.</li><li>Obat hanya boleh dari apotek / pihak berizin. Obat keras dan resep tidak boleh dijual.</li></ul></div>`}
+function vProd(){
+ if(!aktif())return `<div class="warn ${me.status==="menunggu"?"":"bad"}">${pesanStatus()}</div>`;
+ const ql=q.toLowerCase(),L=P.filter(p=>(flt==="all"||p.status===flt)&&(!ql||String(p.name).toLowerCase().includes(ql)));
+ const ch=[["all","Semua"],["Show","Tampil"],["Sold","Habis"],["Hide","Sembunyi"]].map(([k,l])=>`<button class="${flt===k?"on":""}" onclick="flt='${k}';gambar()">${l}${k==="all"?" ("+P.length+")":""}</button>`).join("");
+ return `<input id="cari" class="fld" style="margin:0" placeholder="🔍 Cari produk..." value="${esc(q)}" oninput="q=this.value;gambar()"><div class="chips">${ch}</div>
+ <div class="card" style="padding:4px 12px">${L.map(p=>`<div class="it"><div class="im">${p.image?`<img src="${esc(p.image)}" alt="" loading="lazy">`:"📦"}</div><div class="t"><b>${esc(p.name)}</b><div class="m">${rp(p.price)} • ${p.berat_gram||"?"} g • stok ${p.stock==null?"-":p.stock}</div><span class="bd ${(ST[p.status]||["",""])[1]}">${(ST[p.status]||[p.status])[0]}</span></div><button class="btn o s" onclick="ubah(${p.id})">Ubah</button></div>`).join("")||`<div class="empty">${P.length?"Tidak ada produk yang cocok.":"Belum ada produk. Ketuk + untuk menambah."}</div>`}</div>`}
+function vAkun(){
+ const st={aktif:["Aktif","ok"],menunggu:["Menunggu persetujuan","wt"],ditolak:["Ditolak","no"],nonaktif:["Nonaktif","no"]}[me.status]||[me.status,""];
+ const kv=(k,v)=>v?`<div class="kv"><span>${k}</span><b>${esc(v)}</b></div>`:"";
+ return `<div class="card"><div style="margin-bottom:6px"><b style="font-size:17px">${esc(me.toko)}</b> <span class="bd ${st[1]}">${st[0]}</span></div>
+ ${kv("Pemilik",me.nama)}${kv("WhatsApp",me.wa?"+"+me.wa:"")}${kv("Kota asal",[me.kota,me.provinsi].filter(Boolean).join(", "))}${kv("Alamat pengirim",me.alamat)}${kv("Jenis produk",me.jenis)}${kv("Izin edar",me.izin)}</div>
+ <p class="hint">Untuk mengubah data toko atau PIN, hubungi admin lewat WhatsApp.</p>
+ <a class="btn o" href="index.html">🛍️ Lihat Kalensari Store</a><button class="btn d" onclick="if(confirm('Keluar dari akun mitra?'))keluar()">Keluar</button>`}
+
+/* ===== FORM PRODUK ===== */
+function buka(p){edit=p||null;foto=null;$("dr").hidden=false;$("fJudul").textContent=p?"Ubah produk":"Produk baru";$("bHapus").hidden=!p;
+ $("fNama").value=p?p.name:"";$("fHarga").value=p?p.price:"";$("fBerat").value=p&&p.berat_gram||"";$("fStok").value=p&&p.stock!=null?p.stock:"";$("fKat").value=p?p.category:"Kosmetik";
+ {const d=String(p&&p.description||""),m=d.match(/^Khasiat: ([\s\S]*?)(?:\n\n([\s\S]*))?$/);$("fKhasiat").value=m?m[1]:"";$("fDesk").value=m?(m[2]||""):d}
+ $("fStatus").value=p&&p.status||"Show";$("fFoto").value="";const v=$("fPv");v.style.display=p&&p.image?"block":"none";if(p&&p.image)v.src=p.image;$("dr").querySelector(".bd2").scrollTop=0}
+window.ubah=id=>buka(P.find(p=>p.id==id));$("fab").onclick=()=>buka(null);$("drX").onclick=()=>{$("dr").hidden=true};
+$("fFoto").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const k=Math.min(1,700/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);foto=c.toDataURL("image/jpeg",.75);$("fPv").src=foto;$("fPv").style.display="block"};im.src=URL.createObjectURL(f)};
+$("bSimpan").onclick=async()=>{const kh=$("fKhasiat").value.trim(),data={name:$("fNama").value,price:$("fHarga").value,berat_gram:$("fBerat").value,stock:$("fStok").value,category:$("fKat").value,
+  description:((kh?"Khasiat: "+kh+"\n\n":"")+$("fDesk").value.trim()).slice(0,600),status:$("fStatus").value};if(foto)data.image=foto;
+ const b=$("bSimpan");b.disabled=true;try{await rpc("mitra_produk_simpan",{p_sesi:sesi(),p_id:edit?edit.id:null,p_data:data});toast("Produk tersimpan");$("dr").hidden=true;await muat()}catch(e){if(!sesiHabis(e))toast(e.message)}b.disabled=false};
+$("bHapus").onclick=async()=>{if(!edit||!confirm("Hapus produk ini?"))return;try{await rpc("mitra_produk_hapus",{p_sesi:sesi(),p_id:edit.id});toast("Produk dihapus");$("dr").hidden=true;await muat()}catch(e){if(!sesiHabis(e))toast(e.message)}};
+
+/* ===== MULAI ===== */
+async function init(){if(!sesi())return;try{me=(await rpc("mitra_saya",{p_sesi:sesi()})).data;bukaApp()}catch(e){try{localStorage.removeItem(SK)}catch(x){}}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&me&&$("dr").hidden)segarkan()});
+init();
+</script></body></html>

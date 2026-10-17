@@ -15,7 +15,7 @@
     btn = document.createElement("div");
     btn.style.cssText = "position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;display:flex;gap:6px;align-items:center;background:#7b3f1d;color:#fff;border-radius:999px;padding:6px 6px 6px 16px;box-shadow:0 4px 14px rgba(0,0,0,.3);font:600 14px Roboto,system-ui,sans-serif";
     var mf = (document.querySelector('link[rel=manifest]') || {}).getAttribute ? document.querySelector('link[rel=manifest]').getAttribute("href") || "" : "";
-    var nama = /pasarmalam/.test(mf) ? "Pasar Malam Jum'at" : /penjual/.test(mf) ? "Kalensari Mitra Toko" : /kurir/.test(mf) ? "Kalensari Kurir" : /adminnotif/.test(mf) ? "Admin Notif" : /penulis/.test(mf) ? "Penulis Berita Kalensari" : "Kalensari";
+    var nama = /mitra/.test(mf) ? "Mitra Luar Kota" : /pasarmalam/.test(mf) ? "Pasar Malam Jum'at" : /penjual/.test(mf) ? "Kalensari Mitra Toko" : /kurir/.test(mf) ? "Kalensari Kurir" : /adminnotif/.test(mf) ? "Admin Notif" : /penulis/.test(mf) ? "Penulis Berita Kalensari" : "Kalensari";
     btn.innerHTML = '<span>📲 Pasang aplikasi ' + nama + '</span><button type="button" id="ksInstallGo" style="border:0;background:#228b4e;color:#fff;font:inherit;border-radius:999px;padding:8px 14px;cursor:pointer">Pasang</button><button type="button" id="ksInstallX" aria-label="Tutup" style="border:0;background:transparent;color:#fff;font:inherit;padding:8px 10px;cursor:pointer">✕</button>';
     document.body.appendChild(btn);
     document.getElementById("ksInstallGo").onclick = function(){
