@@ -11,7 +11,7 @@ body{margin:0;background:#e4d3bf;color:var(--ink);font:15px/1.4 system-ui,-apple
 [hidden]{display:none!important}button,input,select,textarea{font:inherit;color:inherit}
 #auth,#app{max-width:480px;height:100%;margin:0 auto;background:var(--bg);position:relative;display:flex;flex-direction:column;overflow:hidden}
 #auth{overflow:auto;padding:28px 22px 40px;background:linear-gradient(#fff6e8,#f1dfc9);display:block}
-#auth .logo{display:block;width:132px;height:132px;margin:0 auto 6px;object-fit:contain}
+.mban{display:block;width:100%;height:auto;border-radius:16px;margin-bottom:12px}#auth .mban{margin:0 0 14px}#auth .logo{display:block;width:132px;height:132px;margin:0 auto 6px;object-fit:contain}
 #auth h1{margin:4px 0 2px;font-size:26px;text-align:center;color:var(--b)}#auth .lead{margin:0 0 18px;text-align:center;color:var(--mu);font-size:14px}
 .btn{display:block;width:100%;padding:13px;border-radius:14px;border:2px solid var(--b);background:var(--b);color:#fff;font-weight:700;cursor:pointer;margin-top:10px;text-align:center;text-decoration:none}
 .btn.o{background:#fff;color:var(--b)}.btn.d{background:#fff;border-color:var(--red);color:var(--red)}.btn.s{width:auto;display:inline-block;padding:8px 14px;margin:0;font-size:13.5px}.btn:disabled{opacity:.55}
@@ -43,8 +43,8 @@ h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(-
 </style></head><body>
 
 <section id="auth">
-  <img class="logo" src="icons/logo-mitra-luarkota.png" alt="Mitra Luar Kota Kalensari Store">
-  <h1>Mitra Luar Kota</h1><p class="lead">Pasarkan produk Anda di Kalensari Store dan kirim ke pembeli lewat J&amp;T dan JNE.</p>
+  <picture><source srcset="mitra-banner.webp" type="image/webp"><img class="mban" src="mitra-banner.jpg" alt="Selamat datang Mitra Luar Kota Kalensari Store" width="1600" height="600"></picture>
+  <p class="lead">Pasarkan produk Anda di Kalensari Store dan kirim ke pembeli lewat J&amp;T dan JNE.</p>
   <div class="seg"><button id="tMasuk" class="on">Masuk</button><button id="tDaftar">Daftar mitra</button></div>
   <div class="box" id="fMasuk">
     <label>No. WhatsApp<input id="lWa" class="fld" inputmode="tel" autocomplete="username" placeholder="08xxxxxxxxxx"></label>
@@ -135,7 +135,7 @@ function gambar(){
 function vHome(){
  const tampil=P.filter(p=>p.status==="Show").length,habis=P.filter(p=>p.status==="Sold"||(p.stock!=null&&p.stock<=0)).length,stok=P.reduce((t,p)=>t+(Number(p.stock)||0),0);
  const tnf=P.filter(p=>!p.image).length,tnk=P.filter(p=>!/^Khasiat:/.test(p.description||"")).length;
- return `${aktif()?"":`<div class="warn ${me.status==="menunggu"?"":"bad"}">${pesanStatus()}</div>`}
+ return `<picture><source srcset="mitra-banner.webp" type="image/webp"><img class="mban" src="mitra-banner.jpg" alt="Selamat datang Mitra Luar Kota Kalensari Store" width="1600" height="600"></picture>${aktif()?"":`<div class="warn ${me.status==="menunggu"?"":"bad"}">${pesanStatus()}</div>`}
  <div class="stats"><div><b>${P.length}</b>Produk</div><div><b>${tampil}</b>Tampil</div><div><b>${habis}</b>Habis</div><div><b>${stok}</b>Total stok</div></div>
  ${aktif()?`<button class="btn" onclick="buka(null)">+ Tambah produk</button>`:""}
  ${aktif()&&P.length&&(tnf||tnk)?`<h3>Lengkapi produk Anda</h3><div class="card">${tnf?`<div class="kv"><span>📷 Foto</span><b>${tnf} produk belum ada foto</b></div>`:""}${tnk?`<div class="kv"><span>✨ Khasiat</span><b>${tnk} produk belum diisi khasiat</b></div>`:""}</div>`:""}
