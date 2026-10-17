@@ -438,6 +438,8 @@ async function loadAll(silent){
     S.topup=Array.isArray(kt)?kt:[];S.potong=Array.isArray(km)?km:[];
     S.products=Array.isArray(p)?p:[];S.orders=Array.isArray(o)?o:[];
     S.settings={};(Array.isArray(s)?s:[]).forEach(r=>S.settings[r.key]=r.value);
+    // Mitra luar kota (tabel terpisah, lewat fungsi admin; null bila supabase-mitra-luar-kota.sql belum dipasang)
+    try{const mm=await api('rpc/mitra_admin_daftar',{method:'POST',body:'{}'});S.mitra=Array.isArray(mm)?mm:[]}catch(e){S.mitra=null}
     S.loaded=true;render();if(!silent)toast('Data terbaru dimuat');
   }catch(e){if(e.message!=='login'){console.error(e);toast('Gagal memuat data: '+String(e.message).slice(0,70))}}
 }
@@ -514,12 +516,12 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['kabar','Kabar Desa','doc'],['pasarmalam','Pasar Malam Jum’at','store'],['harian','Absen & Promo Ongkir','check'],['lapak','Lapak Barter','tag'],['kuis','Kuis Pintar','check'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['keamanan','Keamanan & Backup','lock'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['mitra','Mitra Luar Kota','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['kabar','Kabar Desa','doc'],['pasarmalam','Pasar Malam Jum’at','store'],['harian','Absen & Promo Ongkir','check'],['lapak','Lapak Barter','tag'],['kuis','Kuis Pintar','check'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['keamanan','Keamanan & Backup','lock'],['pengaturan','Pengaturan','gear']
 ];
 /* Kelompok menu per pihak. '' = tampil langsung tanpa kelompok. Kunci yang tidak tercantum masuk "Lainnya". */
 const GRUP=[
   ['','',['dashboard','pesanan','persetujuan']],
-  ['🏪','Toko & Produk',['produk','kategori','toko','pasarmalam','promosi','laporan']],
+  ['🏪','Toko & Produk',['produk','kategori','toko','mitra','pasarmalam','promosi','laporan']],
   ['👥','Warga Desa (Pembeli)',['pelanggan','voucher','harian','kabar','ulasan','resetpin','lapak','kuis']],
   ['🛵','Kurir',['kurir','cod']],
   ['🤝','Penyedia Jasa',['jasa']],
@@ -533,6 +535,7 @@ function badgeMenu(k){
   try{
     if(k==='pesanan'){const n=S.orders.filter(o=>['Baru','Diproses'].includes(stLabel(o.status))).length;return n?[n,'']:null}
     if(k==='persetujuan'){const n=pendingTotal();return n?[n,'var(--orange)']:null}
+    if(k==='mitra'){const n=pendingOf('mitra').length;return n?[n,'var(--orange)']:null}
     if(k==='pasarmalam'){const n=pmMinta().length;return n?[n,'var(--orange)']:null}
     if(k==='refund'){const n=refundTunggu().length;return n?[n,'#ef4444']:null}
     if(k==='cair'){const n=cairTunggu().length;return n?[n,'var(--orange)']:null}
@@ -832,10 +835,11 @@ lainnya(){
 const GROUPS=[
   {k:'kurir',label:'Kurir',em:'🛵',info:m=>[m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-'},
   {k:'jasa',label:'Penyedia Jasa',em:'🤝',info:m=>[m.kategori,m.dusun].filter(Boolean).join(' • ')||'-'},
-  {k:'penjual',label:'Penjual',em:'🏪',info:m=>(m.pasarMalam?'🌙 Pasar Malam Jum’at • ':'')+([m.toko||m.usaha,m.jualan,m.dusun].filter(Boolean).join(' • ')||'-')}
+  {k:'penjual',label:'Penjual',em:'🏪',info:m=>(m.pasarMalam?'🌙 Pasar Malam Jum’at • ':'')+([m.toko||m.usaha,m.jualan,m.dusun].filter(Boolean).join(' • ')||'-')},
+  {k:'mitra',label:'Mitra Luar Kota',em:'🌍',info:m=>[m.toko,[m.kota,m.provinsi].filter(Boolean).join(', '),m.jenis].filter(Boolean).join(' • ')||'-'}
 ];
 const members=k=>(Array.isArray(S.settings[k+'_members'])?S.settings[k+'_members']:[]).filter(Boolean);
-const pendingOf=k=>members(k).filter(m=>m.pending===true);
+const pendingOf=k=>k==='mitra'?(Array.isArray(S.mitra)?S.mitra:[]).filter(m=>m.status==='menunggu'):members(k).filter(m=>m.pending===true);
 const pendingTotal=()=>GROUPS.reduce((t,g)=>t+pendingOf(g.k).length,0);
 async function readKey(key,def){const r=await api('store_settings?select=value&key=eq.'+encodeURIComponent(key));return r[0]&&r[0].value!=null?r[0].value:def}
 const sKey=n=>String(n||'').trim().toLowerCase();
@@ -900,12 +904,40 @@ persetujuan(){
   const g=GROUPS.find(x=>x.k===apTab)||GROUPS[0],rows=pendingOf(g.k);
   return `<div class="toolbar"><p class="sm" style="color:var(--mut);flex:1;margin:0">Pendaftar baru menunggu di sini. Setelah disetujui, mereka bisa memakai dashboard masing-masing.</p><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="tabs">${GROUPS.map(x=>`<button class="tab ${x.k===g.k?'on':''}" onclick="apTab='${x.k}';render()">${x.em} ${x.label}<span class="n">${pendingOf(x.k).length}</span></button>`).join('')}</div>
-  <div class="cards" id="list">${rows.map((m,i)=>`<div class="lc" style="align-items:flex-start"><div class="ppl" ${g.k==='kurir'?`data-kid="${esc(m.id)}"`:''} style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b> ${kodeChip(m.kode)}<div class="sm">📱 ${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">${g.em} ${esc(g.info(m))}</div>${g.k==='kurir'?kurirDataHtml(m):''}${m.updated?`<div class="sm">Daftar ${ago(m.updated)}</div>`:''}
+  <div class="cards" id="list">${rows.map((m,i)=>`<div class="lc" style="align-items:flex-start"><div class="ppl" ${g.k==='kurir'?`data-kid="${esc(m.id)}"`:''} style="background:${colors[i%colors.length]}">${esc(initials(m.nama))}</div><div class="meta"><b>${esc(m.nama||'(tanpa nama)')}</b> ${kodeChip(m.kode)}<div class="sm">📱 ${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">${g.em} ${esc(g.info(m))}</div>${g.k==='mitra'?`<div class="sm">📄 Izin edar: <b>${esc(m.izin)}</b></div><div class="sm">📍 ${esc(m.alamat||'-')}</div>`:''}${g.k==='kurir'?kurirDataHtml(m):''}${(m.updated||m.dibuat)?`<div class="sm">Daftar ${ago(m.updated||m.dibuat)}</div>`:''}
     <div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-g" style="padding:8px 14px;font-size:13px" onclick="approve('${g.k}','${jsq(m.id)}',true,this)">✓ Setujui</button><button class="btn btn-red" style="padding:8px 14px;font-size:13px" onclick="approve('${g.k}','${jsq(m.id)}',false,this)">✕ Tolak</button></div></div><div class="right-col">${waLink(m.wa)}</div></div>`).join('')||`<div class="empty">Tidak ada ${g.label.toLowerCase()} yang menunggu persetujuan</div>`}</div>`;
 }
 });
 Object.assign(TITLES,{toko:['Daftar Toko','Penjual, jam buka, dan status toko'],kurir:['Daftar Kurir','Kurir yang sudah disetujui'],persetujuan:['Persetujuan','Pendaftar penjual, kurir, dan penyedia jasa']});
 let apTab='kurir';
+/* ===== MITRA LUAR KOTA: persetujuan & kelola (data di tabel mitra_luar_kota, lewat fungsi mitra_admin_* di Supabase) ===== */
+Object.assign(TITLES,{mitra:['Mitra Luar Kota','Mitra yang mengirim dari kota asal (J&T / JNE)']});
+const mitraRpc=(fn,body)=>api('rpc/'+fn,{method:'POST',body:JSON.stringify(body||{})});
+async function approveMitra(id,ok,btn){
+  if(ok&&!confirm('Sudah memeriksa nomor izin edar (BPOM/NIB) mitra ini?'))return;
+  if(!ok&&!confirm('Tolak pendaftaran mitra ini?'))return;
+  await busy(btn,async()=>{await mitraRpc('mitra_admin_atur',{p_id:Number(id),p_status:ok?'aktif':'ditolak'});toast(ok?'Mitra disetujui':'Pendaftaran mitra ditolak');await loadAll(true)});
+}
+async function mitraStatus(id,st,btn){
+  if(st==='aktif'&&!confirm('Sudah memeriksa nomor izin edar (BPOM/NIB) mitra ini?'))return;
+  if(st==='nonaktif'&&!confirm('Nonaktifkan mitra ini? Semua produknya disembunyikan dari toko.'))return;
+  if(st==='ditolak'&&!confirm('Tolak mitra ini? Semua produknya disembunyikan dari toko.'))return;
+  await busy(btn,async()=>{await mitraRpc('mitra_admin_atur',{p_id:Number(id),p_status:st});toast('Status mitra diperbarui');await loadAll(true)});
+}
+async function mitraPin(id){
+  const p=prompt('PIN baru mitra (4-8 angka):');if(!p)return;
+  try{await mitraRpc('mitra_admin_pin',{p_id:Number(id),p_pin:p});toast('PIN diganti. Sesi lama dikeluarkan.')}catch(e){toast('Gagal: '+String(e.message).slice(0,70))}
+}
+Object.assign(PAGES,{mitra(){
+  if(!Array.isArray(S.mitra))return `<div class="empty">Data mitra belum bisa dimuat.<br>Jalankan <b>supabase-mitra-luar-kota.sql</b> di Supabase, lalu tekan Muat ulang.<div style="margin-top:12px"><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div></div>`;
+  const ql=q.toLowerCase(),pm=pendingOf('mitra').length,list=S.mitra.filter(m=>[m.toko,m.nama,m.wa,m.kota,m.izin].join(' ').toLowerCase().includes(ql));
+  const stCls={aktif:'b-Selesai',menunggu:'b-Diproses',ditolak:'b-Batal',nonaktif:'b-Batal'},stTxt={aktif:'Aktif',menunggu:'Menunggu',ditolak:'Ditolak',nonaktif:'Nonaktif'};
+  const aksi={aktif:['btn-g','✓ Setujui / aktifkan'],ditolak:['btn-red','✕ Tolak'],nonaktif:['btn-light','Nonaktifkan']};
+  return `${pm?`<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;background:var(--ol)"><b style="flex:1">${pm} mitra menunggu persetujuan</b><button class="btn btn-g" onclick="apTab='mitra';go('persetujuan')">Lihat</button></div>`:''}
+  <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari toko / nama / nomor WA / kota / izin..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
+  <div class="cards" id="list">${list.map((m,i)=>`<div class="lc" style="align-items:flex-start"><div class="ppl" style="background:${colors[i%colors.length]}">${esc(initials(m.toko||m.nama))}</div><div class="meta"><b>${esc(m.toko)}</b> ${chip(stTxt[m.status]||esc(m.status),stCls[m.status]||'')}<div class="sm">👤 ${esc(m.nama)} • 📱 ${m.wa?'+'+esc(m.wa):'-'}</div><div class="sm">🌍 ${esc([m.kota,m.provinsi].filter(Boolean).join(', ')||'-')}${m.jenis?' • '+esc(m.jenis):''}</div><div class="sm">📄 Izin edar: <b>${esc(m.izin)}</b> • 📦 ${Number(m.produk)||0} produk</div>${m.alamat?`<div class="sm">📍 ${esc(m.alamat)}</div>`:''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${['aktif','ditolak','nonaktif'].filter(x=>x!==m.status).map(x=>`<button class="btn ${aksi[x][0]}" style="padding:8px 14px;font-size:13px" onclick="mitraStatus(${Number(m.id)},'${x}',this)">${aksi[x][1]}</button>`).join('')}<button class="btn btn-light" style="padding:8px 14px;font-size:13px" onclick="mitraPin(${Number(m.id)})">🔑 Reset PIN</button></div></div><div class="right-col">${waLink(m.wa)}</div></div>`).join('')||'<div class="empty">Belum ada mitra luar kota</div>'}</div>`;
+}});
 /* ===== NIK & foto kurir (wajib; NIK hanya terbaca admin, tersimpan di store_settings "kurir_nik" = {id:{nik,t}}) ===== */
 const nikData=id=>{const v=S.settings.kurir_nik;return v&&typeof v==='object'&&v[id]&&v[id].nik?v[id]:null};
 const alamatKurir=id=>{const v=S.settings.kurir_nik;return v&&typeof v==='object'&&v[id]&&v[id].alamat?String(v[id].alamat):''};
@@ -930,6 +962,7 @@ async function resetNik(id,btn){
 }
 
 async function approve(gk,id,ok,btn){
+  if(gk==='mitra')return approveMitra(id,ok,btn);
   const g=GROUPS.find(x=>x.k===gk);
   if(!ok&&!confirm('Tolak dan hapus pendaftaran ini? Orangnya bisa mendaftar ulang.'))return;
   await busy(btn,async()=>{

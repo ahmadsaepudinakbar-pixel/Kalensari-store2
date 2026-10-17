@@ -75,6 +75,7 @@ header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius
       <button class="tab" data-t="qris">💳 QRIS<i id="bq" class="hide">0</i></button>
       <button class="tab" data-t="topup">💰 Isi Saldo<i id="bt" class="hide">0</i></button>
       <button class="tab" data-t="cair">💸 Pencairan<i id="bc" class="hide">0</i></button>
+      <button class="tab" data-t="mitra">🌍 Mitra<i id="bm" class="hide">0</i></button>
     </div>
     <div id="list"></div>
   </div>
@@ -94,7 +95,7 @@ const wk=v=>String(v||'').replace(/\D/g,'').replace(/^0/,'62');
 const fmt=t=>{try{return new Date(t).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
 let auth=(()=>{try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch(e){return null}})();
 const saveAuth=a=>{auth=a;try{a?localStorage.setItem(AUTH_KEY,JSON.stringify(a)):localStorage.removeItem(AUTH_KEY)}catch(e){}};
-let tab='pesanan',D={pesanan:[],qris:[],lunas:[],topup:[],cair:[]},first=true,busyLoad=false;
+let tab='pesanan',D={pesanan:[],qris:[],lunas:[],topup:[],cair:[],mitra:[]},first=true,busyLoad=false;
 
 function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),3200)}
 async function authReq(grant,body){
@@ -159,15 +160,18 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{tab=b.dataset.t;docu
 async function muat(manual){
   if(busyLoad||!auth)return;busyLoad=true;
   try{
-    const [po,q,t,ct,ck,lu]=await Promise.all([
+    const [po,q,t,ct,ck,lu,mt]=await Promise.all([
       api('orders?select=*&status=in.(menunggu,baru,diproses,dikirim)&order=created_at.desc&limit=80').catch(()=>null),
       api('orders?select=*&pay_status=eq.verifikasi&order=created_at.desc&limit=60').catch(()=>[]),
       api('kurir_topup?select=id,nama,wa,jumlah,status,t&status=eq.menunggu&order=t.desc&limit=60').catch(()=>[]),
       readKey('cair_toko',[]).catch(()=>[]),
       api('kurir_cair?select=*&status=eq.menunggu&order=t.desc&limit=60').catch(()=>[]),
       // QRIS yang sudah LUNAS otomatis lewat iPaymu (24 jam terakhir): sudah punya pay_order_id (QR iPaymu dibuat), bukan hasil ACC manual / lunas-otomatis-waktu
-      api('orders?select=*&payment=ilike.qris*&pay_status=eq.lunas&pay_order_id=not.is.null&paid_at=gte.'+encodeURIComponent(new Date(Date.now()-864e5).toISOString())+'&order=paid_at.desc&limit=60').catch(()=>[])
+      api('orders?select=*&payment=ilike.qris*&pay_status=eq.lunas&pay_order_id=not.is.null&paid_at=gte.'+encodeURIComponent(new Date(Date.now()-864e5).toISOString())+'&order=paid_at.desc&limit=60').catch(()=>[]),
+      // pendaftar mitra luar kota yang menunggu persetujuan (null bila SQL mitra belum dipasang)
+      api('rpc/mitra_admin_daftar',{method:'POST',body:'{}'}).catch(()=>null)
     ]);
+    if(Array.isArray(mt))D.mitra=mt.filter(m=>m.status==='menunggu').map(m=>({...m,key:'m'+m.id}));
     // QRIS: satukan nota satu grup (1 QR bisa membayar beberapa nota)
     const g=new Map();(Array.isArray(q)?q:[]).forEach(o=>{const k=o.grup?'g'+o.grup:'o'+o.id;const e=g.get(k)||{key:k,grup:o.grup||null,ids:[],kode:[],total:0,nama:o.customer_name,wa:o.customer_phone,t:o.pay_klaim_at||o.created_at};e.ids.push(o.id);e.kode.push(o.order_code||('#'+o.id));e.total+=Number(o.total)||0;g.set(k,e)});
     if(Array.isArray(po))D.pesanan=po;
@@ -245,12 +249,12 @@ function nadaInit(){
   nadaTampil();
 }
 async function kabari(){
-  const pBaru=D.pesanan.filter(isBaru).map(o=>({...o,key:'p'+o.id})),all=[...pBaru,...D.qris,...D.lunas,...D.topup,...D.cair],s=seen(),baru=all.filter(x=>!s.has(x.key));
+  const pBaru=D.pesanan.filter(isBaru).map(o=>({...o,key:'p'+o.id})),all=[...pBaru,...D.qris,...D.lunas,...D.topup,...D.cair,...D.mitra],s=seen(),baru=all.filter(x=>!s.has(x.key));
   try{localStorage.setItem(SEEN_KEY,JSON.stringify([...new Set([...s,...all.map(x=>x.key)])].slice(-400)))}catch(e){}
   if(first){first=false;return}
   if(!baru.length)return;
-  const bp=baru.filter(x=>pBaru.includes(x)),bq=baru.filter(x=>D.qris.includes(x)),bl=baru.filter(x=>D.lunas.includes(x)),bt=baru.filter(x=>D.topup.includes(x)),bc=baru.filter(x=>D.cair.includes(x));
-  const msg=[];if(bp.length)msg.push(`🛍️ ${bp.length} pesanan baru`);if(bq.length)msg.push(`💳 ${bq.length} QRIS perlu dicek`);if(bl.length)msg.push(`✅ ${bl.length} QRIS lunas (iPaymu) • ${rp(bl.reduce((t,x)=>t+x.total,0))}`);if(bt.length)msg.push(`💰 ${bt.length} isi saldo`);if(bc.length)msg.push(`💸 ${bc.length} pencairan`);
+  const bp=baru.filter(x=>pBaru.includes(x)),bq=baru.filter(x=>D.qris.includes(x)),bl=baru.filter(x=>D.lunas.includes(x)),bt=baru.filter(x=>D.topup.includes(x)),bc=baru.filter(x=>D.cair.includes(x)),bm=baru.filter(x=>D.mitra.includes(x));
+  const msg=[];if(bp.length)msg.push(`🛍️ ${bp.length} pesanan baru`);if(bq.length)msg.push(`💳 ${bq.length} QRIS perlu dicek`);if(bl.length)msg.push(`✅ ${bl.length} QRIS lunas (iPaymu) • ${rp(bl.reduce((t,x)=>t+x.total,0))}`);if(bt.length)msg.push(`💰 ${bt.length} isi saldo`);if(bc.length)msg.push(`💸 ${bc.length} pencairan`);if(bm.length)msg.push(`🌍 ${bm.length} pendaftar mitra luar kota`);
   bunyi(msg.join(' • '));
   toast(msg.join(' • '));
   if(document.hidden&&'Notification' in window&&Notification.permission==='granted'){
@@ -309,10 +313,22 @@ function kartuLunas(){
     <div class="amt">${rp(x.total)}</div><div class="mut">Dibayar ${fmt(x.t)}${x.ids.length>1?' · '+x.ids.length+' nota':''}</div>
     ${x.wa?`<div class="row"><a class="btn lt" style="text-decoration:none;text-align:center" href="https://wa.me/${wk(x.wa)}" target="_blank" rel="noopener">💬 WA</a></div>`:''}</div>`).join('')+(D.qris.length?'<div class="mut" style="margin:10px 2px 8px;font-weight:700">🔎 Menunggu cek mutasi (QRIS toko)</div>':'');
 }
+function kartuMitra(){
+  if(!D.mitra.length)return '<div class="empty">Tidak ada pendaftar mitra yang menunggu 🎉</div>';
+  return D.mitra.map(x=>`<div class="card"><span class="tag">🌍 Mitra luar kota</span>
+    <div style="margin-top:6px"><b>${esc(x.toko)}</b></div>
+    <div class="mut">👤 ${esc(x.nama)}${x.jenis?' · '+esc(x.jenis):''}<br>📍 ${esc([x.kota,x.provinsi].filter(Boolean).join(', ')||'-')}${x.alamat?'<br>'+esc(x.alamat):''}<br>📄 Izin edar: <b>${esc(x.izin)}</b><br>${fmt(x.dibuat)}</div>
+    <div class="row">${x.wa?`<a class="btn lt" style="text-decoration:none;text-align:center" href="https://wa.me/${wk(x.wa)}" target="_blank" rel="noopener">💬 WA</a>`:''}<button class="btn red" onclick="mitraAksi(${Number(x.id)},false,this)">✖ Tolak</button><button class="btn" onclick="mitraAksi(${Number(x.id)},true,this)">✅ Setujui</button></div></div>`).join('');
+}
+async function mitraAksi(id,ok,btn){
+  if(ok&&!confirm('Sudah memeriksa nomor izin edar (BPOM/NIB) mitra ini?'))return;
+  if(!ok&&!confirm('Tolak pendaftaran mitra ini?'))return;
+  await lock(btn,async()=>{await api('rpc/mitra_admin_atur',{method:'POST',body:JSON.stringify({p_id:Number(id),p_status:ok?'aktif':'ditolak'})});D.mitra=D.mitra.filter(x=>Number(x.id)!==Number(id));render();toast(ok?'✅ Mitra disetujui':'Pendaftaran mitra ditolak')});
+}
 function badge(id,n){const e=$(id);e.textContent=n;e.classList.toggle('hide',!n)}
 function render(){
-  const nP=D.pesanan.filter(isBaru).length;badge('#bp',nP);badge('#bq',D.qris.length);badge('#bt',D.topup.length);badge('#bc',D.cair.length);
-  try{navigator.setAppBadge&&(nP+D.qris.length+D.topup.length+D.cair.length?navigator.setAppBadge(nP+D.qris.length+D.topup.length+D.cair.length):navigator.clearAppBadge())}catch(e){}
+  const nP=D.pesanan.filter(isBaru).length;badge('#bp',nP);badge('#bq',D.qris.length);badge('#bt',D.topup.length);badge('#bc',D.cair.length);badge('#bm',D.mitra.length);
+  try{navigator.setAppBadge&&(nP+D.qris.length+D.topup.length+D.cair.length+D.mitra.length?navigator.setAppBadge(nP+D.qris.length+D.topup.length+D.cair.length+D.mitra.length):navigator.clearAppBadge())}catch(e){}
   const L=$('#list');
   if(tab==='pesanan')L.innerHTML=D.pesanan.length?D.pesanan.map(kartuPesanan).join(''):'<div class="empty">Belum ada pesanan aktif 🎉</div>';
   else if(tab==='qris')L.innerHTML=kartuLunas()+(D.qris.length?D.qris.map(x=>`<div class="card"><span class="tag">🔎 Menunggu cek mutasi</span>
@@ -323,6 +339,7 @@ function render(){
   else if(tab==='topup')L.innerHTML=D.topup.length?D.topup.map(x=>`<div class="card"><b>${esc(x.nama||'Kurir')}</b> minta isi saldo
     <div class="amt">${rp(x.jumlah)}</div><div class="mut">${fmt(x.t)}</div><div id="bk-${esc(x.key)}"></div>
     <div class="row"><button class="btn lt" onclick="buktiTopup(${x.id},'${esc(x.key)}')">🧾 Bukti</button><button class="btn red" onclick="topup(${x.id},false,this)">Tolak</button><button class="btn" onclick="topup(${x.id},true,this)">✅ ACC</button></div></div>`).join(''):'<div class="empty">Tidak ada permintaan isi saldo 🎉</div>';
+  else if(tab==='mitra')L.innerHTML=kartuMitra();
   else L.innerHTML=D.cair.length?D.cair.map(x=>{const net=x.diterima!=null?x.diterima:x.jumlah;return`<div class="card"><span class="tag">${x.src==='kurir'?'🛵 Kurir':'🏪 Toko'}</span>
     <div style="margin-top:6px"><b>${esc(x.nama||x.toko||'-')}</b></div>
     <div class="amt">Transfer ${rp(net)}</div><div class="mut">${x.biaya?'Saldo '+rp(x.jumlah)+' − biaya bank '+rp(x.biaya)+'<br>':''}Ke: ${esc(x.rek||'-')}<br>${fmt(x.t)}</div>
@@ -390,7 +407,7 @@ async function cair(key,ok,btn){
 function start(){
   $('#login').classList.add('hide');$('#app').classList.remove('hide');$('#who').textContent=auth&&auth.email||'';
   if(window.KSNotif)KSNotif.kartu($('#notifBox'),{key:'admin_push',token:async()=>{await fresh();return auth.access_token},extra:{email:(auth&&auth.email)||''},
-    judul:'🔔 Aktifkan notifikasi HP',ajakan:'Agar HP berbunyi saat ada pesanan baru, QRIS, isi saldo, atau pencairan — walau aplikasi ditutup.',aktifTeks:'HP ini akan berbunyi untuk pesanan, QRIS, isi saldo & pencairan.',tanpaMatikan:true});
+    judul:'🔔 Aktifkan notifikasi HP',ajakan:'Agar HP berbunyi saat ada pesanan baru, QRIS, isi saldo, pencairan, atau pendaftar mitra — walau aplikasi ditutup.',aktifTeks:'HP ini akan berbunyi untuk pesanan, QRIS, isi saldo & pencairan.',tanpaMatikan:true});
   muat(true);
 }
 setInterval(()=>{if(auth&&!$('#app').classList.contains('hide'))muat()},15000);
