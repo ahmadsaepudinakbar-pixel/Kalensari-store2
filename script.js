@@ -272,13 +272,11 @@ const shippingFeeFor=n=>{const v=shippingFees[sellerKey(n)],d=Number(shippingFee
 let sellerLocs=readLS("kalensari_seller_locs",{});
 let sellerLocsOk=false; // true setelah daftar penjual (beserta titik lokasinya) berhasil dimuat dari server
 // Toko di keranjang (yang dicentang) yang BELUM punya titik lokasi -> checkout tidak boleh dilanjutkan.
-// Mitra LUAR KOTA (dikirim via J&T) tidak punya titik lokasi & tidak ikut rute kurir lokal.
-const isLuar=n=>/\(Luar Kota\)\s*$/i.test(String(n||""));
 function tokoTanpaTitik(){
   if(!CLOUD_CONFIG?.enabled)return [];
   if(!(sellerLocsOk||Object.keys(sellerLocs).length))return []; // data lokasi belum termuat: jangan memblokir keliru
   const n=new Map();
-  cartGroups().filter(g=>g.on&&!isLuar(g.name)).forEach(g=>{const l=sellerLocs[g.k];if(!(l&&validLL(l.lat,l.lng)))n.set(g.k,g.name);});
+  cartGroups().filter(g=>g.on&&!g.luar).forEach(g=>{const l=sellerLocs[g.k];if(!(l&&validLL(l.lat,l.lng)))n.set(g.k,g.name);});
   return [...n.values()];
 }
 // ===== TAMBAHAN ONGKIR CUACA HUJAN (diatur admin: Ongkir > Mode hujan; disimpan di shipping_fees.__hujan / __hujanRp) =====
@@ -540,7 +538,7 @@ function singleCardHTML(p) {
       <div class="product-body">
         <h3>${p.name}</h3>
         <div class="price">${builder?`Racik sendiri${Number(currentPrice(p))>0?` • mulai ${rupiah(currentPrice(p))}`:""}${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
-        <small>${nVar?`${nVar} pilihan varian`:p.unit}${!soldOut&&stokOf(p)!==null&&stokOf(p)<=5?` • <b class="sisa">Sisa ${stokOf(p)}</b>`:""}</small><small class="seller">👤 ${p.seller}</small>${p.luar_kota?`<small class="seller" style="color:#b45309;font-weight:700">🌍 Kirim J&T dari ${esc(p.asal_kota||"luar kota")}${p.berat_gram?` • ${p.berat_gram} g`:""}</small>`:""}${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
+        <small>${nVar?`${nVar} pilihan varian`:p.unit}${!soldOut&&stokOf(p)!==null&&stokOf(p)<=5?` • <b class="sisa">Sisa ${stokOf(p)}</b>`:""}</small><small class="seller">👤 ${p.seller}</small>${p.luar_kota?`<small class="seller" style="color:#b45309;font-weight:700">🌍 Dikirim dari ${esc(p.asal_kota||"luar kota")}${p.berat_gram?` • ${p.berat_gram} g`:""}</small>`:""}${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
         ${sClosed?`<small class="hours closed">🔒 ${esc(sellerWhy(p))}</small>`:""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
@@ -924,13 +922,15 @@ function cartData() {
 function cartGroups(){
   const m=new Map();
   cartData().forEach(p=>{const k=sellerKey(p.seller);if(!m.has(k))m.set(k,{k,name:String(p.seller||"Toko").trim(),all:[]});p.on=!(cart[p.idx]&&cart[p.idx].off);m.get(k).all.push(p);});
-  // SATU KURIR per checkout: rute toko 1 -> toko 2 -> ... -> pembeli. Tiap nota = ongkir pertama tokonya;
-  // tambahan jarak (toko terakhir -> pembeli) masuk ke nota toko terakhir. Total ongkir = rute gabungan.
+  // DUA BAGIAN dalam SATU keranjang:
+  //  (1) toko warga Kalensari -> SATU kurir desa: rute toko 1 -> toko 2 -> ... -> pembeli; ongkir pertama tiap toko + tambahan jarak (toko terakhir -> pembeli)
+  //  (2) paket mitra luar kota (products.luar_kota) -> dikirim J&T; TIDAK ikut rute kurir desa, tanpa ongkir jarak/hujan
   const gs=[...m.values()].map(g=>{const items=g.all.filter(p=>p.on),sub=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0);
-    return {...g,items,sub,on:items.length>0,full:items.length===g.all.length,closed:items.some(p=>allSellersClosed(p))};});
-  const route=shippingRoute(gs.filter(g=>g.on&&!isLuar(g.name)).flatMap(g=>g.items)),lastK=route.last?sellerKey(route.last.name):"";
-  return gs.map(g=>{const last=g.on&&g.k===lastK,base=isLuar(g.name)?0:shippingFeeFor(g.name);
-    return {...g,route,last,base,urut:route.stops.findIndex(x=>sellerKey(x.name)===g.k)+1,fee:g.on?base+(last?route.extra+route.rain:0):0};});
+    return {...g,items,sub,on:items.length>0,full:items.length===g.all.length,closed:items.some(p=>allSellersClosed(p)),
+      luar:g.all.some(p=>!!p.luar_kota),gram:items.reduce((s,p)=>s+(Number(p.berat_gram)||0)*p.qty,0)};});
+  const route=shippingRoute(gs.filter(g=>g.on&&!g.luar).flatMap(g=>g.items)),lastK=route.last?sellerKey(route.last.name):"";
+  return gs.map(g=>{const last=g.on&&!g.luar&&g.k===lastK,base=g.luar?0:shippingFeeFor(g.name);
+    return {...g,route,last,base,urut:g.luar?0:route.stops.findIndex(x=>sellerKey(x.name)===g.k)+1,fee:g.on?base+(last?route.extra+route.rain:0):0};});
 }
 const selItems=()=>cartGroups().filter(g=>g.on).flatMap(g=>g.items);
 function setOff(idxs,off){idxs.forEach(i=>{if(cart[i]){if(off)cart[i].off=true;else delete cart[i].off;}});saveCart();renderCart();}
@@ -939,7 +939,7 @@ function toggleToko(k){const g=cartGroups().find(x=>x.k===k);if(g)setOff(g.all.m
 function toggleSemuaToko(){const gs=cartGroups(),all=gs.every(g=>g.full);setOff(gs.flatMap(g=>g.all.map(p=>p.idx)),all);}
 function ongkirTeks(g){
   if(!g.on)return{v:rupiah(0),s:"tidak dipilih"};
-  if(isLuar(g.name))return{v:"J&T",s:"dikirim lewat J&T • ongkir dikonfirmasi admin"};
+  if(g.luar)return{v:"Dikonfirmasi admin",s:`kirim J&T dari kota asal${g.gram?` • ±${g.gram.toLocaleString("id-ID")} g`:""} • ongkir via WhatsApp`};
   const multi=g.route.stops.length>1,ke=multi?` • ${g.last?"jemputan terakhir":`jemputan ke-${g.urut}`}`:"";
   if(g.last&&g.route.state==="nostore")return{v:rupiah(g.base),s:"lokasi toko belum diatur • admin konfirmasi"};
   return{v:g.base>0?rupiah(g.base):"Gratis",s:`ongkir pertama toko${ke}`};
@@ -955,17 +955,17 @@ function jarakInfo(sel){
 function renderCart() {
   const gs=cartGroups(),sel=gs.filter(g=>g.on),subtotal=sel.reduce((t,g)=>t+g.sub,0),shipping=sel.reduce((t,g)=>t+g.fee,0);
   const semua=gs.length&&gs.every(g=>g.full);
+  const lok=gs.filter(g=>!g.luar),luar=gs.filter(g=>g.luar),selL=lok.filter(g=>g.on),selX=luar.filter(g=>g.on);
+  const jarakHTML=(()=>{const j=jarakInfo(selL);return j?`<div class="cg cg-jarak"><div class="cg-ship" style="border-top:0;padding-top:2px"><span>📏 <b>Tambahan jarak</b><small>${j.s}</small></span><b>${j.v}</b></div></div>`:""})(),hujanHTML=(selL.length&&rainFee()>0?`<div class="cg cg-jarak cg-hujan"><div class="cg-ship" style="border-top:0;padding-top:2px"><span>🌧️ <b>Tambahan cuaca hujan</b><small>Kurir tetap mengantar saat hujan • sekali per pengiriman</small></span><b>+${rupiah(rainFee())}</b></div></div>`:"");
   document.getElementById("cartItems").innerHTML=gs.length?(gs.reduce((t,g)=>t+g.all.length,0)>1?`<label class="cg-all"><input type="checkbox" ${semua?"checked":""} data-ind="${sel.length&&!semua?1:""}" onchange="toggleSemuaToko()"> Pilih semua <small>(${sel.reduce((t,g)=>t+g.items.length,0)}/${gs.reduce((t,g)=>t+g.all.length,0)} produk dipilih)</small></label>`:"")
-    +gs.slice().sort((a,b)=>(b.on-a.on)||(a.urut-b.urut)).map(g=>{const o=ongkirTeks(g);return `<div class="cg${g.on?"":" off"}">
-    <label class="cg-head"><input type="checkbox" ${g.full?"checked":""} data-ind="${g.on&&!g.full?1:""}" onchange="toggleToko('${esc(g.k).replace(/'/g,"&#39;")}')"><span>🏪 <b>${esc(g.name)}</b>${g.closed?' <em class="cg-tutup">Tutup</em>':""}</span></label>
+    +[["cs-lokal","🏘️ Toko Warga Kalensari","dijemput & diantar kurir desa",lok.slice().sort((a,b)=>(b.on-a.on)||(a.urut-b.urut))],["cs-luar","📦 Paket Mitra Luar Kota","dikirim lewat J&T dari kota asal mitra",luar.slice().sort((a,b)=>b.on-a.on)]].map(([cls,jd,ket,arr])=>!arr.length?"":`<div class="cs-head ${cls}" style="${cls==="cs-lokal"?"background:#e8f7ee;color:#14532d":"background:#fff4e0;color:#92400e"};margin:12px 0 6px;padding:8px 12px;border-radius:12px;display:flex;flex-direction:column;gap:1px;font-size:15px"><b>${jd}</b><small style="font-weight:600;opacity:.85">${ket}</small></div>`+arr.map(g=>{const o=ongkirTeks(g);return `<div class="cg${g.on?"":" off"}">
+    <label class="cg-head"><input type="checkbox" ${g.full?"checked":""} data-ind="${g.on&&!g.full?1:""}" onchange="toggleToko('${esc(g.k).replace(/'/g,"&#39;")}')"><span>${g.luar?"📦":"🏪"} <b>${esc(g.name)}</b>${g.luar&&g.all[0].asal_kota?` <small style="color:#b45309">• ${esc(g.all[0].asal_kota)}</small>`:""}${g.closed?' <em class="cg-tutup">Tutup</em>':""}</span></label>
     ${g.all.map(p=>`<div class="cart-row${p.on?"":" off"}"><input class="cr-cek" type="checkbox" ${p.on?"checked":""} onchange="toggleProduk(${p.idx})" aria-label="Pilih ${esc(p.name)}"><div class="cr-foto">${p.image?`<img src="${getProductImage(p.image)}" alt="" loading="lazy" onerror="this.remove()">`:""}<span>🍽️</span></div><div class="cart-info"><div class="cart-name">${p.name}</div><div class="cart-price">${rupiah(currentPrice(p))} × ${p.qty}</div>${p.varHabis||p.varHilang?`<small style="display:block;color:#b3261e;font-weight:700">⚠️ Varian ${p.varHilang?"sudah tidak dijual":"sedang habis"} — hapus item ini</small>`:p.kurangMin?`<small style="display:block;color:#b33d00;font-weight:700">⚠️ Kurang ${rupiah(p.kurangMin)} dari minimal order</small>`:""}</div>
       <div class="qty"><button onclick="changeQty(${p.idx},-1)">−</button><b>${p.qty}</b><button onclick="changeQty(${p.idx},1)">+</button></div>
       <button class="cart-remove" type="button" title="Hapus produk" aria-label="Hapus ${p.name} dari keranjang" onclick="removeFromCart(${p.idx})">🗑️</button></div>`).join("")}
-    <div class="cg-ship"><span>🛵 Ongkir<small>${o.s}</small></span><b>${o.v}</b></div>
-    <div class="cg-sum"><span>Total toko ini</span><b>${rupiah(g.sub+(g.on?g.base:0))}</b></div></div>`}).join("")
-    +(()=>{const j=jarakInfo(sel);return j?`<div class="cg cg-jarak"><div class="cg-ship" style="border-top:0;padding-top:2px"><span>📏 <b>Tambahan jarak</b><small>${j.s}</small></span><b>${j.v}</b></div></div>`:""})()
-    +(sel.length&&rainFee()>0?`<div class="cg cg-jarak cg-hujan"><div class="cg-ship" style="border-top:0;padding-top:2px"><span>🌧️ <b>Tambahan cuaca hujan</b><small>Kurir tetap mengantar saat hujan • sekali per pengiriman</small></span><b>+${rupiah(rainFee())}</b></div></div>`:"")
-    +(gs.length>1?`<p class="cg-note">ℹ️ Tiap toko jadi <b>nota terpisah</b>, tapi semuanya dijemput & diantar <b>1 kurir</b>${sel.length>1&&sel[0].route.stops.length>1?` (rute: ${sel[0].route.stops.map(x=>esc(x.name)).join(" → ")} → rumah Anda)`:""}. Produk yang tidak dicentang tetap tersimpan di keranjang.</p>`:"")
+    <div class="cg-ship"><span>${g.luar?"🚚 Ongkir J&amp;T":"🛵 Ongkir"}<small>${o.s}</small></span><b>${o.v}</b></div>
+    <div class="cg-sum"><span>Total toko ini</span><b>${rupiah(g.sub+(g.on?g.base:0))}</b></div></div>`}).join("")+(cls==="cs-lokal"?jarakHTML+hujanHTML:"")).join("")
+    +(gs.length>1||luar.length?`<p class="cg-note">ℹ️ ${gs.length>1?"Tiap toko jadi <b>nota terpisah</b>.":""}${lok.length>1?` Toko warga dijemput & diantar <b>1 kurir desa</b>${selL.length>1&&selL[0].route.stops.length>1?` (rute: ${selL[0].route.stops.map(x=>esc(x.name)).join(" → ")} → rumah Anda)`:""}.`:""}${luar.length?` Paket luar kota dikirim lewat <b>J&T</b>, terpisah dari kurir desa; ongkirnya dikonfirmasi admin lewat WhatsApp.`:""} Produk yang tidak dicentang tetap tersimpan di keranjang.</p>`:"")
     :`<div class="empty-state"><b>🛒 Keranjang masih kosong</b>Yuk pilih makanan atau minuman favoritmu.</div>`;
   document.querySelectorAll('#cartItems [data-ind="1"]').forEach(x=>{x.indeterminate=true});
   document.getElementById("cartItemLabel").textContent=`${cart.reduce((s,i)=>s+i.qty,0)} item`;
@@ -973,10 +973,11 @@ function renderCart() {
   document.getElementById("cartShipping").textContent=rupiah(shipping);
   {const old=document.getElementById("cartShipBreakdown");if(old)old.hidden=true;}
   {const tot=document.querySelector("#checkoutForm .checkout-total");if(tot){let cb=document.getElementById("coShipBreakdown");if(!cb){cb=document.createElement("div");cb.id="coShipBreakdown";cb.className="ship-breakdown";tot.insertAdjacentElement("beforebegin",cb);}
-    cb.hidden=!sel.length;cb.innerHTML=`<div class="ship-head">${sel.length>1?`${sel.length} toko • ${sel.length} nota • 1 kurir`:"Rincian pesanan"}</div>`+sel.slice().sort((a,b)=>a.urut-b.urut).map((g,i)=>{const o=ongkirTeks(g);return `<div class="ship-row"><span>${sel.length>1?`Nota ${i+1} • `:""}🏪 ${esc(g.name)}<small class="ship-sub">Barang ${rupiah(g.sub)} • Ongkir ${o.v} (${o.s})</small></span><b>${rupiah(g.sub+g.base)}</b></div>`}).join("")
-      +(()=>{const j=jarakInfo(sel);return j?`<div class="ship-row ship-jarak"><span>📏 Tambahan jarak<small class="ship-sub">${j.s}</small></span><b>${j.v}</b></div>`:""})()
-      +(sel.length&&rainFee()>0?`<div class="ship-row ship-jarak"><span>🌧️ Tambahan cuaca hujan<small class="ship-sub">Berlaku selama cuaca hujan, sekali per pengiriman</small></span><b>+${rupiah(rainFee())}</b></div>`:"")
-      +(sel.length>1?`<p class="ship-note">🛵 Satu kurir menjemput ${sel[0].route.stops.map(x=>esc(x.name)).join(" → ")} lalu mengantar ke rumah Anda. ${"QRIS"===String(document.querySelector('#checkoutForm select[name="payment"]')?.value||"")?"Bayar QRIS cukup <b>sekali</b> untuk semua nota.":""}</p>`:"");}}
+    cb.hidden=!sel.length;cb.innerHTML=`<div class="ship-head">${sel.length>1?`${sel.length} nota${selL.length?` • 🏘️ ${selL.length} toko warga, 1 kurir desa`:""}${selX.length?` • 📦 ${selX.length} paket luar kota (J&T)`:""}`:"Rincian pesanan"}</div>`+sel.slice().sort((a,b)=>(a.luar-b.luar)||(a.urut-b.urut)).map((g,i)=>{const o=ongkirTeks(g);return `<div class="ship-row"><span>${sel.length>1?`Nota ${i+1} • `:""}${g.luar?"📦":"🏪"} ${esc(g.name)}<small class="ship-sub">Barang ${rupiah(g.sub)} • Ongkir ${o.v} (${o.s})</small></span><b>${rupiah(g.sub+g.base)}</b></div>`}).join("")
+      +(()=>{const j=jarakInfo(selL);return j?`<div class="ship-row ship-jarak"><span>📏 Tambahan jarak<small class="ship-sub">${j.s}</small></span><b>${j.v}</b></div>`:""})()
+      +(selL.length&&rainFee()>0?`<div class="ship-row ship-jarak"><span>🌧️ Tambahan cuaca hujan<small class="ship-sub">Berlaku selama cuaca hujan, sekali per pengiriman</small></span><b>+${rupiah(rainFee())}</b></div>`:"")
+      +(selL.length>1?`<p class="ship-note">🛵 Satu kurir menjemput ${selL[0].route.stops.map(x=>esc(x.name)).join(" → ")} lalu mengantar ke rumah Anda. ${"QRIS"===String(document.querySelector('#checkoutForm select[name="payment"]')?.value||"")?"Bayar QRIS cukup <b>sekali</b> untuk semua nota.":""}</p>`:"")
+      +(selX.length?`<p class="ship-note">📦 Paket luar kota dikirim lewat J&amp;T. Ongkir J&amp;T belum termasuk di total ini; admin mengonfirmasinya lewat WhatsApp.</p>`:"");}}
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutBtn").disabled=!sel.length;
@@ -1074,7 +1075,7 @@ function alasanTidakBisaPesan(){
   const jam=closed.filter(p=>p.status==="Show"&&!allSellersClosed(p)&&!isInHours(p));
   if(jam.length) a.push(`🕒 Belum waktunya: ${jam.map(p=>`<b>${esc(p.name)}</b> (tersedia ${esc(hoursText(p))})`).join(", ")}.`);
   {const tt=tokoTanpaTitik();if(tt.length)a.push(`📍 Toko <b>${esc(tt.join(", "))}</b> belum memiliki titik lokasi, jadi ongkir & rute kurir belum bisa dihitung. Hapus/hilangkan centang produknya, atau coba lagi setelah penjual mengatur lokasi tokonya.`);}
-  if(KS_KURIR===0&&cartGroups().some(g=>g.on&&!isLuar(g.name))) a.push("🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");
+  if(KS_KURIR===0&&cartGroups().some(g=>g.on&&!g.luar)) a.push("🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");
   return a;
 }
 function renderCekPesan(){
@@ -1158,7 +1159,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   if(!cartGroups().some(g=>g.on)){alert("Centang minimal satu produk yang ingin di-checkout.");return;}
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
   {const tt=tokoTanpaTitik();if(tt.length){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n📍 Toko "+tt.join(", ")+" belum memiliki titik lokasi, jadi ongkir & rute kurir belum bisa dihitung. Hapus produk toko itu dari keranjang, atau coba lagi setelah penjual mengatur lokasi tokonya.");return;}}
-  {KS_KURIR=await jumlahKurirAktif();if(KS_KURIR===0&&cartGroups().some(g=>g.on&&!isLuar(g.name))){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");return;}}
+  {KS_KURIR=await jumlahKurirAktif();if(KS_KURIR===0&&cartGroups().some(g=>g.on&&!g.luar)){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");return;}}
   const f=new FormData(e.target);
   const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
   const _la=document.getElementById("ksMapLat")?.value, _ln=document.getElementById("ksMapLng")?.value;
@@ -1194,7 +1195,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   // COD: kata sandi sekarang. QRIS: kata sandi diminta setelah pembayaran lunas.
   if(!pakaiQris&&!pinSaldo&&!(await mintaKataSandi(checkoutBuyer.wa)))return;
   // ===== PESANAN DIPISAH PER TOKO: tiap toko yang dicentang = 1 nota, 1 kurir, ongkir sendiri =====
-  const groups=groups0.slice().sort((a,b)=>a.urut-b.urut),createdAt=new Date().toISOString();
+  const groups=groups0.slice().sort((a,b)=>(a.luar-b.luar)||(a.urut-b.urut)),createdAt=new Date().toISOString();
   const kodeST=window.KSST?KSST.buatKode():"";
   const codes=[];for(const g of groups){let c=await makeUniqueOrderCode();while(codes.includes(c))c=await makeUniqueOrderCode();codes.push(c);}
   const grup=groups.length>1?"G-"+codes[0]:null;
@@ -1204,9 +1205,9 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   const mapText=hasMap?`\nLokasi Maps: ${ksMapsSearch(`${mapLat},${mapLng}`)}`:"";
   const notaText=groups.map((g,i)=>{const r=g.route,pl=payloads[i];
     const hj=g.last&&r.rain>0?` + hujan ${rupiah(r.rain)}`:"";
-    const ship=!g.last?`${pl.shipping>0?rupiah(pl.shipping):"Gratis"} (ongkir pertama toko)`:r.state==="ok"?`${pl.shipping>0?rupiah(pl.shipping):"Gratis"} (jarak ${g.name} → pembeli ${fmtKm(r.km)} km${hj})`:`${rupiah(pl.shipping)} (jarak belum terhitung, mohon konfirmasi)`;
-    return `NOTA ${i+1} • ${codes[i]}\nToko: ${g.name}\n${g.items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n")}\nSubtotal: ${rupiah(pl.subtotal)}\nOngkir: ${ship}\nTotal nota: ${rupiah(pl.total)}`;}).join("\n\n");
-  const msg=`Halo KALENSARI STORE, saya ingin memesan${groups.length>1?` dari ${groups.length} toko (${groups.length} nota, diantar 1 kurir)`:""}:\n\n${groups.length>1&&routeNote?`RUTE KURIR: ${rt.stops.map((x,i)=>`${i+1}. ${x.name}`).join(" → ")} → Pembeli\n\n`:""}${notaText}\n\n${groups.length>1?`TOTAL SEMUA NOTA: ${rupiah(totalAll)}\n\n`:""}Nama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${payment}`;
+    const ship=g.luar?`Dikonfirmasi admin (kirim J&T${g.gram?`, ±${g.gram} g`:""})`:!g.last?`${pl.shipping>0?rupiah(pl.shipping):"Gratis"} (ongkir pertama toko)`:r.state==="ok"?`${pl.shipping>0?rupiah(pl.shipping):"Gratis"} (jarak ${g.name} → pembeli ${fmtKm(r.km)} km${hj})`:`${rupiah(pl.shipping)} (jarak belum terhitung, mohon konfirmasi)`;
+    return `NOTA ${i+1} • ${codes[i]}\n${g.luar?"📦 PAKET LUAR KOTA (J&T) • Toko":"🏘️ Toko warga"}: ${g.name}\n${g.items.map(p=>`- ${p.name} x${p.qty} = ${rupiah(currentPrice(p)*p.qty)}`).join("\n")}\nSubtotal: ${rupiah(pl.subtotal)}\nOngkir: ${ship}\nTotal nota: ${rupiah(pl.total)}`;}).join("\n\n");
+  const msg=`Halo KALENSARI STORE, saya ingin memesan${groups.length>1?` dari ${groups.length} toko (${groups.length} nota${groups.some(g=>!g.luar)?", warga diantar 1 kurir desa":""}${groups.some(g=>g.luar)?", paket luar kota via J&T":""})`:""}:\n\n${groups.length>1&&routeNote?`RUTE KURIR: ${rt.stops.map((x,i)=>`${i+1}. ${x.name}`).join(" → ")} → Pembeli\n\n`:""}${notaText}\n\n${groups.length>1?`TOTAL SEMUA NOTA: ${rupiah(totalAll)}\n\n`:""}Nama: ${buyerName}\nNo. WhatsApp: ${phone}\nAlamat: ${address}\nCatatan: ${userNote||"-"}${mapText}\nPembayaran: ${payment}`;
   const msgWA=kodeST?msg+`\n\n🔑 Kode serah terima: ${kodeST}\n(sebutkan ke kurir hanya saat pesanan sudah diterima)`:msg;
 
   // Simpan lokal terlebih dahulu agar Pesanan Saya langsung berisi semua nota.
@@ -1233,7 +1234,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   renderMyOrders();
   if(kodeST) for(const c of codes) await KSST.daftarkan(c,kodeST);
   // satu QRIS untuk semua nota (nominal = total semua nota)
-  const sukses={codes,groups:groups.map((g,i)=>({nama:g.name,items:g.items.map(p=>({n:p.name,q:p.qty,h:currentPrice(p)*p.qty})),sub:payloads[i].subtotal,ong:payloads[i].shipping,tot:payloads[i].total})),total:totalAll,payment,kodeST,codTahan,wa:checkoutBuyer.wa,nama:buyerName,address,t:createdAt};
+  const sukses={codes,groups:groups.map((g,i)=>({nama:g.luar?g.name+" (paket luar kota • J&T)":g.name,items:g.items.map(p=>({n:p.name,q:p.qty,h:currentPrice(p)*p.qty})),sub:payloads[i].subtotal,ong:payloads[i].shipping,tot:payloads[i].total})),total:totalAll,payment,kodeST,codTahan,wa:checkoutBuyer.wa,nama:buyerName,address,t:createdAt};
   if(pakaiStatis)sukses.pinOk=true;   // kata sandi sudah dimasukkan di atas; jangan diminta lagi saat lunas
   let lunasSaldo=false;
   if(pakaiSaldo>0){
