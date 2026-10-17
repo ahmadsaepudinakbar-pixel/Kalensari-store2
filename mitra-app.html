@@ -54,11 +54,11 @@ h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(-
   </div>
   <div class="box" id="fDaftar" hidden>
     <div class="fs">Data pemilik &amp; toko</div>
-    <label>Foto profil toko<input id="rFoto" class="fld" type="file" accept="image/*"></label>
-    <img id="rFotoPv" class="avt" alt="Pratinjau foto profil toko" hidden>
     <label>Nama pemilik<input id="rNama" class="fld" maxlength="60"></label>
     <label>Nama toko<input id="rToko" class="fld" maxlength="60" placeholder="mis. Rani Beauty"></label>
     <label>Alamat toko<input id="rAlamatToko" class="fld" maxlength="200" placeholder="Jalan, kecamatan, kota, kode pos"></label>
+    <label>Foto profil toko<input id="rFoto" class="fld" type="file" accept="image/*"></label>
+    <img id="rFotoPv" class="avt" alt="Pratinjau foto profil toko" hidden>
     <label>No. WhatsApp<input id="rWa" class="fld" inputmode="tel" placeholder="08xxxxxxxxxx"></label>
     <div class="fs">Asal pengiriman</div>
     <div class="r2"><label>Kota / kabupaten<input id="rKota" class="fld" maxlength="60"></label><label>Provinsi<input id="rProv" class="fld" maxlength="40"></label></div>
@@ -98,6 +98,13 @@ h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(-
 </div>
 <div id="toast"></div>
 
+<div id="cropWrap" hidden style="position:fixed;inset:0;z-index:200;background:rgba(30,15,5,.82);display:flex;align-items:center;justify-content:center;padding:16px">
+<div style="background:#fff;border-radius:18px;padding:16px;width:100%;max-width:340px;text-align:center;font-family:system-ui,sans-serif;color:#3a1f10">
+<b style="display:block;margin-bottom:4px">Atur foto profil toko</b><small style="display:block;color:#6b5546;margin-bottom:10px">Geser foto dan atur zoom sampai pas di lingkaran</small>
+<div id="cropBox" style="position:relative;width:280px;height:280px;max-width:100%;margin:0 auto;overflow:hidden;border-radius:12px;background:#222;touch-action:none;cursor:grab"><img id="cropImg" alt="" draggable="false" style="position:absolute;left:0;top:0;max-width:none;user-select:none;-webkit-user-drag:none"><div style="position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 400px rgba(0,0,0,.45);border:2px solid #fff;pointer-events:none"></div></div>
+<input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1" style="width:100%;margin:14px 0 6px" aria-label="Zoom">
+<div style="display:flex;gap:10px;margin-top:6px"><button type="button" id="cropBatal" style="flex:1;padding:12px;border-radius:12px;border:1px solid #7b3f1d;background:#fff;color:#7b3f1d;font:inherit;font-weight:700;cursor:pointer">Batal</button><button type="button" id="cropOk" style="flex:1;padding:12px;border-radius:12px;border:1px solid #7b3f1d;background:#7b3f1d;color:#fff;font:inherit;font-weight:700;cursor:pointer">Pakai foto</button></div>
+</div></div>
 <script src="config.js"></script>
 <script>
 const $=i=>document.getElementById(i),C=window.CLOUD_CONFIG||{},B=String(C.supabaseUrl||"").replace(/\/$/,""),SK="kalensari_sesi_mitra";
@@ -121,7 +128,16 @@ $("bMasuk").onclick=async()=>{const b=$("bMasuk");b.disabled=true;try{await masu
 /* ===== FOTO PROFIL TOKO + OTP WHATSAPP (kode dikirim fungsi server "otp-wa", sama seperti pendaftaran pembeli) ===== */
 let fotoToko=null,daftarWa="";
 const nWa=t=>{const d=String(t||"").replace(/\D/g,"");return d.startsWith("0")?"62"+d.slice(1):d.startsWith("8")?"62"+d:d};
-$("rFoto").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const s=Math.min(im.width,im.height),c=document.createElement("canvas");c.width=c.height=360;c.getContext("2d").drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,360,360);fotoToko=c.toDataURL("image/jpeg",.82);$("rFotoPv").src=fotoToko;$("rFotoPv").hidden=false;URL.revokeObjectURL(im.src)};im.onerror=()=>toast("Foto tidak bisa dibaca");im.src=URL.createObjectURL(f)};
+let cropIm=null,cS=1,cB=1,cX=0,cY=0;const CV=280;
+function cropRender(){const w=cropIm.width*cS,h=cropIm.height*cS;cX=Math.min(0,Math.max(CV-w,cX));cY=Math.min(0,Math.max(CV-h,cY));const e=$("cropImg");e.style.width=w+"px";e.style.height=h+"px";e.style.left=cX+"px";e.style.top=cY+"px"}
+function cropBuka(f){const im=new Image();im.onload=()=>{cropIm=im;cB=Math.max(CV/im.width,CV/im.height);cS=cB;cX=(CV-im.width*cS)/2;cY=(CV-im.height*cS)/2;$("cropZoom").value=1;$("cropImg").src=im.src;$("cropWrap").hidden=false;cropRender()};im.onerror=()=>toast("Foto tidak bisa dibaca");im.src=URL.createObjectURL(f)}
+$("rFoto").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)cropBuka(f)};
+$("cropZoom").oninput=e=>{const n=cB*Number(e.target.value),px=(CV/2-cX)/cS,py=(CV/2-cY)/cS;cS=n;cX=CV/2-px*cS;cY=CV/2-py*cS;cropRender()};
+{let d=null;const bx=$("cropBox");bx.onpointerdown=e=>{d={x:e.clientX,y:e.clientY,cx:cX,cy:cY};bx.setPointerCapture(e.pointerId);bx.style.cursor="grabbing"};
+ bx.onpointermove=e=>{if(!d)return;cX=d.cx+(e.clientX-d.x);cY=d.cy+(e.clientY-d.y);cropRender()};
+ bx.onpointerup=bx.onpointercancel=()=>{d=null;bx.style.cursor="grab"}}
+$("cropBatal").onclick=()=>{$("cropWrap").hidden=true;cropIm=null};
+$("cropOk").onclick=()=>{if(!cropIm)return;const c=document.createElement("canvas");c.width=c.height=360;c.getContext("2d").drawImage(cropIm,-cX/cS,-cY/cS,CV/cS,CV/cS,0,0,360,360);fotoToko=c.toDataURL("image/jpeg",.85);$("rFotoPv").src=fotoToko;$("rFotoPv").hidden=false;$("cropWrap").hidden=true;cropIm=null};
 document.querySelectorAll(".otp-in").forEach(x=>x.oninput=()=>{x.value=x.value.replace(/\D/g,"").slice(0,6)});
 async function kirimOtp(wa){const r=await fetch(B+"/functions/v1/otp-wa",{method:"POST",headers:{apikey:C.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({wa,tujuan:"daftar"})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.pesan||("Gagal mengirim kode ("+r.status+")"))}
 function hitungMundur(el,link,detik){link.style.pointerEvents="none";link.style.opacity=".5";const t0=Date.now(),iv=setInterval(()=>{const s=detik-Math.floor((Date.now()-t0)/1000);if(s<=0){clearInterval(iv);el.textContent="";link.style.pointerEvents="";link.style.opacity=""}else el.textContent="("+s+" detik)"},500)}
