@@ -843,6 +843,16 @@ async function petaLacak(box, v, tuju){
 }
 // diam = pembaruan otomatis di belakang layar: tanpa tulisan "Memuat...", dan tampilan hanya digambar ulang bila ada status yang berubah
 let ORD_SIG = "", ORD_SIBUK = false;
+/* ===== Tahap & resi pengiriman dari Mitra Luar Kota (supabase-pembeli-resi.sql) ===== */
+let RESI = {};
+async function muatResi(){ RESI = {}; try{ const r = await rpc("pesanan_resi", {p_sesi:KSPesanan.sesi(ROLE)}); (r || []).forEach(x => (RESI[x.kode] = RESI[x.kode] || []).push(x)); }catch(e){} }
+const LACAK_URL = {"J&T":"https://jet.co.id/track", "JNE":"https://www.jne.co.id/tracking-trace"};
+function infoResi(o){
+  const a = RESI[o.order_code]; if(!a || !a.length) return "";
+  return a.map(r => { const bx = 'style="margin-top:8px;padding:10px 12px;border-radius:12px;background:#fff8e8;border:1px solid #ecd9b8;font-size:13px;line-height:1.45"';
+    if(r.tahap !== "dikirim") return `<div ${bx}>📦 <b>${esc(r.toko)}</b> sedang mengemas pesananmu.</div>`;
+    return `<div ${bx}>🚚 <b>Dikirim via ${esc(r.kurir)}</b> dari ${esc(r.toko)}<br>Resi: <b>${esc(r.resi)}</b><div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap"><button type="button" data-salin="${esc(r.resi)}" style="border:1px solid #7b3f1d;background:#fff;color:#7b3f1d;border-radius:999px;padding:5px 12px;font:inherit;font-weight:700;cursor:pointer">Salin resi</button>${LACAK_URL[r.kurir] ? `<a href="${LACAK_URL[r.kurir]}" target="_blank" rel="noopener" style="border:1px solid #7b3f1d;background:#7b3f1d;color:#fff;border-radius:999px;padding:5px 12px;font-weight:700;text-decoration:none">Lacak paket ›</a>` : ""}</div></div>`; }).join("");
+}
 async function loadOrders(diam){
   const box = $("orders");
   if(diam === true){ if(ORD_SIBUK) return; } else box.innerHTML = '<p class="hint">Memuat...</p>';
@@ -850,7 +860,8 @@ async function loadOrders(diam){
   try{
     const ab = await pesananSaya();
     const rows = [...new Map(ab.map(o => [o.order_code || o.id, o])).values()].sort((x, y) => new Date(y.created_at||0) - new Date(x.created_at||0));
-    const sig = rows.map(o => [o.order_code, o.status, o.pay_status, o.kurir_id, o.total].join(":")).join("|");
+    await muatResi();
+    const sig = rows.map(o => [o.order_code, o.status, o.pay_status, o.kurir_id, o.total].join(":")).join("|") + "#" + JSON.stringify(RESI);
     if(diam === true && sig === ORD_SIG) return;
     ORD_SIG = sig;
     if($("oWaktu")) $("oWaktu").textContent = "Diperbarui " + new Date().toLocaleTimeString("id-ID", {hour:"2-digit", minute:"2-digit"});
@@ -860,11 +871,12 @@ async function loadOrders(diam){
     if(window.KSUlasan){ await KSUlasan.muat(rows); KSUlasan.pasang(box, loadOrders); }
     if(window.KSTip){ await KSTip.muat(rows); KSTip.pasang(box, loadOrders); }
     if(window.KSST){ await KSST.muatInfo(rows.filter(o => o.status === "selesai" && Date.now() - new Date(o.updated_at || o.created_at || 0) < 4*864e5).map(o => o.order_code)); KSST.pasang(box, WA, loadOrders); }
-    box.innerHTML = rows.length ? rows.map((o, i) => trOf(o) ? kartuKirim(o) : `<div class="card oc c${i % 4}" data-st="${esc(o.status || "menunggu")}"><div class="oc-top"><span class="oc-ic${fotoPesanan(o) ? " ft" : ""}">${fotoPesanan(o) ? `<img src="${esc(fotoPesanan(o))}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('ft');this.outerHTML=OC_IC.tas">${jmlJenis(o) > 1 ? `<em>+${jmlJenis(o) - 1}</em>` : ""}` : OC_IC.tas}</span><div class="oc-main"><div class="oc-h"><b>${esc(o.order_code || "Pesanan")}</b><span class="oc-st s-${esc(o.status || "menunggu")}">${OC_IC[o.status] || OC_IC.menunggu}${esc(labelSt(o))}</span></div><p class="oc-r">${OC_IC.kal}${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p class="oc-r">${OC_IC.item}<span>${itemsText(o)}</span></p><div class="oc-tot"><b>Total ${fmtRp(o.total)}</b>· ${esc(o.payment || "")}</div></div><span class="oc-ill">${ocGambar(o)}</span></div>${o.status === "dikirim" ? `<button type="button" class="oc-lacak" data-lacak="${esc(o.order_code)}"><span>🛵</span><b>Lacak kurir</b><small>Lihat posisi kurir di peta</small><em>›</em></button>` : ""}${infoBayar(o)}${infoBatal(o)}${infoCashback(o)}${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}${window.KSTip ? KSTip.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
+    box.innerHTML = rows.length ? rows.map((o, i) => trOf(o) ? kartuKirim(o) : `<div class="card oc c${i % 4}" data-st="${esc(o.status || "menunggu")}"><div class="oc-top"><span class="oc-ic${fotoPesanan(o) ? " ft" : ""}">${fotoPesanan(o) ? `<img src="${esc(fotoPesanan(o))}" alt="" loading="lazy" onerror="this.parentNode.classList.remove('ft');this.outerHTML=OC_IC.tas">${jmlJenis(o) > 1 ? `<em>+${jmlJenis(o) - 1}</em>` : ""}` : OC_IC.tas}</span><div class="oc-main"><div class="oc-h"><b>${esc(o.order_code || "Pesanan")}</b><span class="oc-st s-${esc(o.status || "menunggu")}">${OC_IC[o.status] || OC_IC.menunggu}${esc(labelSt(o))}</span></div><p class="oc-r">${OC_IC.kal}${new Date(o.created_at).toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"})}</p><p class="oc-r">${OC_IC.item}<span>${itemsText(o)}</span></p><div class="oc-tot"><b>Total ${fmtRp(o.total)}</b>· ${esc(o.payment || "")}</div></div><span class="oc-ill">${ocGambar(o)}</span></div>${o.status === "dikirim" ? `<button type="button" class="oc-lacak" data-lacak="${esc(o.order_code)}"><span>🛵</span><b>Lacak kurir</b><small>Lihat posisi kurir di peta</small><em>›</em></button>` : ""}${infoResi(o)}${infoBayar(o)}${infoBatal(o)}${infoCashback(o)}${window.KSST ? KSST.html(o) : ""}${window.KSPW ? KSPW.html(o) : ""}${window.KSUlasan ? KSUlasan.html(o) : ""}${window.KSTip ? KSTip.html(o) : ""}</div>`).join("") : '<p class="hint">Belum ada pesanan dengan nomor ini.</p>';
     ORD_MAP = Object.fromEntries(rows.map(o => [o.order_code, o]));
     lipatPesanan(box, rows);
     if(window.KSPW && KSPW.grupPasang) KSPW.grupPasang(box, rows);   // ringkasan multi toko (diproses / menunggu / batal + voucher)
     box.querySelectorAll("[data-lacak]").forEach(b => b.onclick = () => lacakKurir(b.dataset.lacak));
+    box.querySelectorAll("[data-salin]").forEach(b => b.onclick = () => { const t = b.dataset.salin; const ok = () => { b.textContent = "Tersalin ✓"; }; try{ navigator.clipboard.writeText(t).then(ok, () => prompt("Salin kode resi:", t)); }catch(e){ prompt("Salin kode resi:", t); } });
     saringPesanan();
   }catch(e){ if(diam !== true) box.innerHTML = '<p class="hint">' + esc(e.message) + '</p>'; }
   finally{ ORD_SIBUK = false; }
