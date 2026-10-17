@@ -317,7 +317,7 @@ function kartuMitra(){
   if(!D.mitra.length)return '<div class="empty">Tidak ada pendaftar mitra yang menunggu 🎉</div>';
   return D.mitra.map(x=>`<div class="card"><span class="tag">🌍 Mitra luar kota</span>
     <div style="margin-top:6px"><b>${esc(x.toko)}</b></div>
-    <div class="mut">👤 ${esc(x.nama)}${x.jenis?' · '+esc(x.jenis):''}<br>📍 ${esc([x.kota,x.provinsi].filter(Boolean).join(', ')||'-')}${x.alamat?'<br>'+esc(x.alamat):''}<br>📄 Izin edar: <b>${esc(x.izin)}</b><br>${fmt(x.dibuat)}</div>
+    <div class="mut">👤 ${esc(x.nama)}${x.jenis?' · '+esc(x.jenis):''}<br>📍 ${esc([x.kota,x.provinsi].filter(Boolean).join(', ')||'-')}${(x.alamat_toko||x.alamat)?'<br>'+esc(x.alamat_toko||x.alamat):''}${x.ongkir_desa?'<br>🚚 Ongkir ke Kalensari: Rp '+Number(x.ongkir_desa).toLocaleString('id-ID'):''}<br>📄 Izin edar: <b>${esc(x.izin)}</b><br>${fmt(x.dibuat)}</div>
     <div class="row">${x.wa?`<a class="btn lt" style="text-decoration:none;text-align:center" href="https://wa.me/${wk(x.wa)}" target="_blank" rel="noopener">💬 WA</a>`:''}<button class="btn red" onclick="mitraAksi(${Number(x.id)},false,this)">✖ Tolak</button><button class="btn" onclick="mitraAksi(${Number(x.id)},true,this)">✅ Setujui</button></div></div>`).join('');
 }
 async function mitraAksi(id,ok,btn){

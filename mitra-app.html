@@ -55,10 +55,11 @@ h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(-
     <div class="fs">Data pemilik &amp; toko</div>
     <label>Nama pemilik<input id="rNama" class="fld" maxlength="60"></label>
     <label>Nama toko<input id="rToko" class="fld" maxlength="60" placeholder="mis. Rani Beauty"></label>
+    <label>Alamat toko<input id="rAlamatToko" class="fld" maxlength="200" placeholder="Jalan, kecamatan, kota, kode pos"></label>
     <label>No. WhatsApp<input id="rWa" class="fld" inputmode="tel" placeholder="08xxxxxxxxxx"></label>
     <div class="fs">Asal pengiriman</div>
     <div class="r2"><label>Kota / kabupaten<input id="rKota" class="fld" maxlength="60"></label><label>Provinsi<input id="rProv" class="fld" maxlength="40"></label></div>
-    <label>Alamat pengirim (untuk jemput kurir)<input id="rAlamat" class="fld" maxlength="200"></label>
+    <label>Ongkos kirim JNT/JNE dari Toko anda ke desa Kalensari<input id="rOngkir" class="fld" inputmode="numeric" maxlength="9" placeholder="mis. 15000"></label>
     <div class="fs">Produk &amp; izin</div>
     <label>Jenis produk<select id="rJenis" class="fld"><option>Kosmetik</option><option>Perawatan tubuh</option><option>Suplemen / herbal</option><option>Obat (apotek berizin)</option></select></label>
     <label>No. izin edar BPOM / NIB<input id="rIzin" class="fld" maxlength="80" placeholder="mis. NA18xxxxxxxxxx"></label>
@@ -114,7 +115,7 @@ $("tMasuk").onclick=()=>seg(false);$("tDaftar").onclick=()=>seg(true);
 async function masuk(){const j=await rpc("mitra_masuk",{p_wa:$("lWa").value,p_pin:$("lPin").value});try{localStorage.setItem(SK,j.sesi)}catch(e){}me=j.data;bukaApp()}
 $("bMasuk").onclick=async()=>{const b=$("bMasuk");b.disabled=true;try{await masuk()}catch(e){toast(e.message)}b.disabled=false};
 $("bDaftar").onclick=async()=>{const pin=$("rPin").value;if(pin!==$("rPin2").value)return toast("Ulangi PIN tidak sama");const b=$("bDaftar");b.disabled=true;
- try{await rpc("mitra_daftar",{p_wa:$("rWa").value,p_pin:pin,p_nama:$("rNama").value,p_toko:$("rToko").value,p_kota:$("rKota").value,p_provinsi:$("rProv").value,p_jenis:$("rJenis").value,p_izin:$("rIzin").value,p_alamat:$("rAlamat").value});
+ try{await rpc("mitra_daftar",{p_wa:$("rWa").value,p_pin:pin,p_nama:$("rNama").value,p_toko:$("rToko").value,p_kota:$("rKota").value,p_provinsi:$("rProv").value,p_jenis:$("rJenis").value,p_izin:$("rIzin").value,p_alamat_toko:$("rAlamatToko").value,p_ongkir:$("rOngkir").value});
  toast("Pendaftaran terkirim. Tunggu persetujuan admin.");$("lWa").value=$("rWa").value;$("lPin").value=pin;await masuk()}catch(e){toast(e.message)}b.disabled=false};
 
 /* ===== APLIKASI ===== */
@@ -150,7 +151,7 @@ function vAkun(){
  const st={aktif:["Aktif","ok"],menunggu:["Menunggu persetujuan","wt"],ditolak:["Ditolak","no"],nonaktif:["Nonaktif","no"]}[me.status]||[me.status,""];
  const kv=(k,v)=>v?`<div class="kv"><span>${k}</span><b>${esc(v)}</b></div>`:"";
  return `<div class="card"><div style="margin-bottom:6px"><b style="font-size:17px">${esc(me.toko)}</b> <span class="bd ${st[1]}">${st[0]}</span></div>
- ${kv("Pemilik",me.nama)}${kv("WhatsApp",me.wa?"+"+me.wa:"")}${kv("Kota asal",[me.kota,me.provinsi].filter(Boolean).join(", "))}${kv("Alamat pengirim",me.alamat)}${kv("Jenis produk",me.jenis)}${kv("Izin edar",me.izin)}</div>
+ ${kv("Pemilik",me.nama)}${kv("WhatsApp",me.wa?"+"+me.wa:"")}${kv("Kota asal",[me.kota,me.provinsi].filter(Boolean).join(", "))}${kv("Alamat toko",me.alamat_toko||me.alamat)}${kv("Ongkir ke Kalensari",me.ongkir_desa?"Rp "+Number(me.ongkir_desa).toLocaleString("id-ID"):"")}${kv("Jenis produk",me.jenis)}${kv("Izin edar",me.izin)}</div>
  <p class="hint">Untuk mengubah data toko atau PIN, hubungi admin lewat WhatsApp.</p>
  <a class="btn o" href="index.html">🛍️ Lihat Kalensari Store</a><button class="btn d" onclick="if(confirm('Keluar dari akun mitra?'))keluar()">Keluar</button>`}
 

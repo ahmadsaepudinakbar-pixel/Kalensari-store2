@@ -27,9 +27,10 @@ h2{font-size:17px;margin:0 0 10px}label{display:block;font-weight:600;font-size:
 <div id="vMasuk"><div class="tabs"><button class="tab on" id="tMasuk">Masuk</button><button class="tab" id="tDaftar">Daftar mitra</button></div>
 <div class="box" id="fMasuk"><label>No. WhatsApp<input id="lWa" class="fld" inputmode="tel" placeholder="08xxxxxxxxxx"></label><label>PIN<input id="lPin" class="fld" type="password" inputmode="numeric" maxlength="8"></label><button id="bMasuk" class="btn p" style="width:100%">Masuk</button><p class="sm" style="margin:10px 0 0">Lupa PIN? Hubungi admin lewat WhatsApp.</p></div>
 <div class="box" id="fDaftar" hidden><label>Nama pemilik<input id="rNama" class="fld" maxlength="60"></label><label>Nama toko<input id="rToko" class="fld" maxlength="60" placeholder="mis. Rani Beauty"></label>
+<label>Alamat toko<input id="rAlamatToko" class="fld" maxlength="200" placeholder="Jalan, kecamatan, kota, kode pos"></label>
 <label>No. WhatsApp<input id="rWa" class="fld" inputmode="tel" placeholder="08xxxxxxxxxx"></label>
 <div class="r2"><label>Kota / kabupaten asal kirim<input id="rKota" class="fld" maxlength="60"></label><label>Provinsi<input id="rProv" class="fld" maxlength="40"></label></div>
-<label>Alamat pengirim (untuk jemput J&amp;T)<input id="rAlamat" class="fld" maxlength="200"></label>
+<label>Ongkos kirim JNT/JNE dari Toko anda ke desa Kalensari<input id="rOngkir" class="fld" inputmode="numeric" maxlength="9" placeholder="mis. 15000"></label>
 <label>Jenis produk<select id="rJenis" class="fld"><option>Kosmetik</option><option>Perawatan tubuh</option><option>Suplemen / herbal</option><option>Obat (apotek berizin)</option></select></label>
 <label>No. izin edar BPOM / NIB<input id="rIzin" class="fld" maxlength="80" placeholder="mis. NA18xxxxxxxxxx"></label>
 <div class="r2"><label>PIN (4–8 angka)<input id="rPin" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div>
@@ -60,7 +61,7 @@ async function rpc(fn,body){const r=await fetch(B+"/rest/v1/rpc/"+fn,{method:"PO
  if(j&&j.ok===false)throw new Error(j.pesan||"Gagal");return j}
 const tab=d=>{$("fMasuk").hidden=d;$("fDaftar").hidden=!d;$("tMasuk").classList.toggle("on",!d);$("tDaftar").classList.toggle("on",d)};$("tMasuk").onclick=()=>tab(false);$("tDaftar").onclick=()=>tab(true);
 $("bDaftar").onclick=async()=>{const pin=$("rPin").value;if(pin!==$("rPin2").value)return toast("Ulangi PIN tidak sama");const b=$("bDaftar");b.disabled=true;
- try{await rpc("mitra_daftar",{p_wa:$("rWa").value,p_pin:pin,p_nama:$("rNama").value,p_toko:$("rToko").value,p_kota:$("rKota").value,p_provinsi:$("rProv").value,p_jenis:$("rJenis").value,p_izin:$("rIzin").value,p_alamat:$("rAlamat").value});
+ try{await rpc("mitra_daftar",{p_wa:$("rWa").value,p_pin:pin,p_nama:$("rNama").value,p_toko:$("rToko").value,p_kota:$("rKota").value,p_provinsi:$("rProv").value,p_jenis:$("rJenis").value,p_izin:$("rIzin").value,p_alamat_toko:$("rAlamatToko").value,p_ongkir:$("rOngkir").value});
  toast("Pendaftaran terkirim. Tunggu persetujuan admin.");$("lWa").value=$("rWa").value;$("lPin").value=pin;await masuk()}catch(e){toast(e.message)}b.disabled=false};
 async function masuk(){const j=await rpc("mitra_masuk",{p_wa:$("lWa").value,p_pin:$("lPin").value});try{localStorage.setItem(SK,j.sesi)}catch(e){}me=j.data;tampil()}
 $("bMasuk").onclick=async()=>{const b=$("bMasuk");b.disabled=true;try{await masuk()}catch(e){toast(e.message)}b.disabled=false};
