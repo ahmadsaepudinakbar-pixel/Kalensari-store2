@@ -832,7 +832,7 @@ lainnya(){
 const GROUPS=[
   {k:'kurir',label:'Kurir',em:'🛵',info:m=>[m.kendaraan,m.wilayah].filter(Boolean).join(' • ')||'-'},
   {k:'jasa',label:'Penyedia Jasa',em:'🤝',info:m=>[m.kategori,m.dusun].filter(Boolean).join(' • ')||'-'},
-  {k:'penjual',label:'Penjual',em:'🏪',info:m=>(m.pasarMalam?'🌙 Pasar Malam Jum’at • ':'')+([m.toko||m.usaha,m.jualan,m.dusun].filter(Boolean).join(' • ')||'-')}
+  {k:'penjual',label:'Penjual',em:'🏪',info:m=>(m.luarKota?'🌍 LUAR KOTA • '+[m.kota,m.prov].filter(Boolean).join(', ')+' • '+(m.jenisProduk||'-')+' • izin: '+(m.izin||'BELUM ADA')+' • ':'')+(m.pasarMalam?'🌙 Pasar Malam Jum’at • ':'')+([m.toko||m.usaha,m.jualan,m.dusun].filter(Boolean).join(' • ')||'-')}
 ];
 const members=k=>(Array.isArray(S.settings[k+'_members'])?S.settings[k+'_members']:[]).filter(Boolean);
 const pendingOf=k=>members(k).filter(m=>m.pending===true);
@@ -935,6 +935,7 @@ async function approve(gk,id,ok,btn){
   await busy(btn,async()=>{
     const key=gk+'_members',arr=await readKey(key,[]),list=Array.isArray(arr)?arr:[],m=list.find(x=>x&&x.id===id);
     if(!m){toast('Data tidak ditemukan, mungkin sudah diproses');await loadAll(true);return}
+    if(ok&&gk==='penjual'&&m.luarKota&&!confirm('Mitra LUAR KOTA ('+(m.jenisProduk||'-')+'). Sudah memeriksa nomor izin edar "'+(m.izin||'-')+'" di BPOM/NIB? Setujui?'))return;
     if(ok&&gk==='kurir'&&(!nikData(id)||!m.fotoOk)&&!confirm('Kurir ini belum melengkapi '+[!nikData(id)?'NIK':'',!m.fotoOk?'foto profil':''].filter(Boolean).join(' dan ')+'. Tetap setujui?'))return;
     if(ok){const upd={...m,pending:false,updated:Date.now()};if(gk==='jasa')upd.status='Show';const nl=list.map(x=>x&&x.id===id?upd:x);await setSetting(key,nl);S.settings[key]=nl;let ext='';if(gk==='penjual'&&m.pasarMalam){await pmAtur(c=>{if(!c.pedagang.includes(id))c.pedagang.push(id)});await pmSyncJadwal().catch(()=>{});ext=' + masuk daftar Pasar Malam'}if(gk==='kurir'){const sa=await beriSaldoAwal(id);if(sa)ext=` + saldo awal ${rp(biaya().saldoAwal)}`}toast(`${m.nama||'Akun'} disetujui${ext}`)}
     else{await removeMember(gk,id,list);toast('Pendaftaran ditolak')}
