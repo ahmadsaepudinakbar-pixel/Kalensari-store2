@@ -142,6 +142,7 @@ h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(-
 <div id="resiWrap" hidden style="position:fixed;inset:0;z-index:200;background:rgba(30,15,5,.82);display:flex;align-items:center;justify-content:center;padding:16px">
 <div style="background:#fff;border-radius:18px;padding:18px;width:100%;max-width:340px;color:#3a1f10">
 <b style="display:block;font-size:17px;margin-bottom:4px">🚚 Kirim paket</b><small id="rsInfo" style="display:block;color:#6b5546;margin-bottom:10px"></small>
+<div id="rsHp" style="background:#fff8e8;border:1px solid #ecd9b8;border-radius:12px;padding:9px 11px;font-size:13px;margin-bottom:10px" hidden></div>
 <label>Kurir<select id="rsKurir" class="fld"><option>J&amp;T</option><option>JNE</option></select></label>
 <label>Kode resi<input id="rsNo" class="fld" maxlength="30" autocapitalize="characters" autocomplete="off" placeholder="mis. JP1234567890"></label>
 <div style="display:flex;gap:10px"><button type="button" id="rsBatal" class="btn o" style="margin:0">Batal</button><button type="button" id="rsOk" class="btn" style="margin:0">OK</button></div>
@@ -149,7 +150,7 @@ h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(-
 <script src="config.js"></script>
 <script>
 const $=i=>document.getElementById(i),C=window.CLOUD_CONFIG||{},B=String(C.supabaseUrl||"").replace(/\/$/,""),SK="kalensari_sesi_mitra";
-let me=null,S=null,O=null,J=null,JD=null,P=[],tab="home",q="",flt="all",edit=null,foto=null;
+let me=null,ADM="",S=null,O=null,J=null,JD=null,P=[],tab="home",q="",flt="all",edit=null,foto=null;
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const rp=n=>"Rp"+Number(n||0).toLocaleString("id-ID"),sesi=()=>{try{return localStorage.getItem(SK)||""}catch(e){return""}};
 const ST={Show:["Tampil","ok"],Sold:["Stok habis","wt"],Hide:["Disembunyikan","no"]};
@@ -208,7 +209,7 @@ function go(t){tab=t;if(t!=="jam")JD=null;q="";flt="all";gambar();$("v").scrollT
 async function muatSaldo(){try{S=await rpc("mitra_saldo",{p_sesi:sesi()})}catch(e){if(sesiHabis(e))return;S={err:/Database belum siap/i.test(e.message)?"Fitur saldo belum aktif: jalankan supabase-mitra-saldo.sql":e.message}}}
 async function muatPesanan(){try{O=await rpc("mitra_pesanan",{p_sesi:sesi()})}catch(e){if(sesiHabis(e))return;O={err:/Database belum siap/i.test(e.message)?"Fitur pesanan belum aktif: jalankan supabase-mitra-pesanan.sql":e.message}}}
 async function muatJam(){try{J=await rpc("mitra_jam",{p_sesi:sesi()})}catch(e){if(sesiHabis(e))return;J={err:/Database belum siap/i.test(e.message)?"Fitur jam toko belum aktif: jalankan supabase-mitra-jam.sql":e.message}}}
-async function muat(){try{await Promise.all([muatJam(),muatPesanan(),rpc("mitra_produk_list",{p_sesi:sesi()}).then(r=>{P=r}),muatSaldo()]);gambar()}catch(e){if(!sesiHabis(e))toast(e.message)}}
+async function muat(){try{await Promise.all([waAdmin().then(n=>{ADM=n}),muatJam(),muatPesanan(),rpc("mitra_produk_list",{p_sesi:sesi()}).then(r=>{P=r}),muatSaldo()]);gambar()}catch(e){if(!sesiHabis(e))toast(e.message)}}
 async function segarkan(){try{me=(await rpc("mitra_saya",{p_sesi:sesi()})).data}catch(e){if(sesiHabis(e))return}if(me.status==="aktif")await muat();else gambar()}
 const aktif=()=>me&&me.status==="aktif";
 const pesanStatus=()=>({menunggu:"⏳ Akun sedang diperiksa admin. Anda bisa memasang produk setelah disetujui.",ditolak:"Pendaftaran ditolak. Hubungi admin untuk informasi.",nonaktif:"Akun dinonaktifkan sementara. Hubungi admin."})[me.status]||"";
@@ -271,18 +272,22 @@ function vPesanan(){
  if(O.err)return `<div class="warn bad">${esc(O.err)}</div>`;
  const L=O.filter(o=>flt==="all"||grupP(o)===flt),n=g=>O.filter(o=>grupP(o)===g).length;
  const ch=[["all","Semua ("+O.length+")"],["baru","Baru ("+n("baru")+")"],["kemas","Dikemas"],["kirim","Dikirim"],["selesai","Selesai"]].map(([k,l])=>`<button class="${flt===k?"on":""}" onclick="flt='${k}';gambar()">${l}</button>`).join("");
- return `<div class="chips">${ch}</div>`+(L.length?L.map(o=>{const g=PS[grupP(o)],sub=o.items.reduce((t,i)=>t+i.qty*i.harga,0),wa=nWa(o.wa);
+ return `<div class="chips">${ch}</div><p class="hint" style="margin:0 0 8px">🔒 Nomor WhatsApp pembeli dirahasiakan. Di resi, pakai nomor admin sebagai telepon penerima; admin yang meneruskan ke pembeli.</p>`+(L.length?L.map(o=>{const g=PS[grupP(o)],sub=o.items.reduce((t,i)=>t+i.qty*i.harga,0);
   return `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b>${esc(o.kode)}</b><div class="m" style="font-size:12.5px;color:var(--mu)">${tgl(o.tgl)}${o.bayar?" • "+esc(o.bayar):""}</div></div><span class="bd ${g[1]}">${g[0]}</span></div>
   <div style="margin:8px 0">${o.items.map(i=>`<div class="kv" style="padding:5px 0"><b style="flex:1">${esc(i.nama)}</b><span style="width:auto">${i.qty} × ${rp(i.harga)}</span></div>`).join("")}<div class="kv"><b style="flex:1">Total produk Anda</b><b>${rp(sub)}</b></div></div>
-  <div class="kv"><span style="width:70px">Pembeli</span><b>${esc(o.nama||"-")}</b></div><div class="kv"><span style="width:70px">Alamat</span><b>${esc(o.alamat||"-")}</b></div>${o.catatan?`<div class="kv"><span style="width:70px">Catatan</span><b>${esc(o.catatan)}</b></div>`:""}
+  <div class="kv"><span style="width:70px">Pembeli</span><b>${esc(o.nama||"-")}</b></div><div class="kv"><span style="width:70px">Alamat</span><b>${esc(o.alamat||"-")}</b></div>${hpAdmin()?`<div class="kv"><span style="width:70px">No. HP</span><b>${esc(hpAdmin())} <small style="font-weight:500;color:var(--mu)">(nomor admin, untuk resi)</small></b></div>`:""}${o.catatan?`<div class="kv"><span style="width:70px">Catatan</span><b>${esc(o.catatan)}</b></div>`:""}
   ${o.resi?`<div class="kv"><span style="width:70px">Resi</span><b>${esc(o.kurir)} • ${esc(o.resi)}</b></div>`:""}
   ${!["selesai","batal"].includes(grupP(o))?`<button type="button" class="btn s" style="margin:8px 6px 0 0" onclick="${grupP(o)==="baru"||grupP(o)==="proses"?"kemas":"bukaResi"}(${O.indexOf(o)})">${o.resi?"✏️ Ubah resi":grupP(o)==="kemas"?"🚚 Kirim paket":"📦 Sedang dikemas"}</button>`:""}
-  ${wa.length>=10?`<a class="btn o s" style="margin-top:8px" target="_blank" rel="noopener" href="https://wa.me/${wa}">💬 Hubungi pembeli</a>`:""}</div>`}).join(""):`<div class="empty">Belum ada pesanan${flt==="all"?"":" di kategori ini"}</div>`)}
+  <button type="button" class="btn o s" style="margin-top:8px" onclick="salinPenerima(${O.indexOf(o)})">📋 Salin data penerima</button> <button type="button" class="btn o s" style="margin-top:8px" onclick="adminPesanan(${O.indexOf(o)})">💬 Ada kendala? Hubungi admin</button></div>`}).join(""):`<div class="empty">Belum ada pesanan${flt==="all"?"":" di kategori ini"}</div>`)}
 async function kemas(i){const o=O[i];if(!o||!confirm("Tandai pesanan "+o.kode+" sedang dikemas?"))return;
  try{await rpc("mitra_dikemas",{p_sesi:sesi(),p_kode:o.kode});toast("Pesanan ditandai sedang dikemas");await muatPesanan();gambar()}
  catch(e){if(!sesiHabis(e))toast(/Could not find|belum siap/i.test(e.message)?"Fitur ini belum aktif: jalankan supabase-mitra-resi.sql terbaru":e.message)}}
+async function adminPesanan(i){const o=O[i];if(!o)return;const n=await waAdmin();return n?void window.open("https://wa.me/"+n+"?text="+encodeURIComponent("Halo admin, saya mitra luar kota "+me.toko+". Saya ingin bertanya soal pesanan "+o.kode),"_blank"):toast("Nomor admin belum tersedia")}
+const hpAdmin=()=>/^62\d{8,13}$/.test(ADM)?"0"+ADM.slice(2):"";
+function salinPenerima(i){const o=O[i];if(!o)return;const t=[o.nama||"",hpAdmin(),o.alamat||"","Ref: "+o.kode].filter(Boolean).join("\n");
+ try{navigator.clipboard.writeText(t).then(()=>toast("Data penerima tersalin"),()=>prompt("Salin data penerima:",t))}catch(e){prompt("Salin data penerima:",t)}}
 let resiIdx=-1;
-function bukaResi(i){const o=O[i];if(!o)return;resiIdx=i;$("rsInfo").textContent="Pesanan "+o.kode;$("rsKurir").value=o.kurir||"J&T";$("rsNo").value=o.resi||"";$("resiWrap").hidden=false;setTimeout(()=>$("rsNo").focus(),50)}
+function bukaResi(i){const o=O[i];if(!o)return;resiIdx=i;$("rsInfo").textContent="Pesanan "+o.kode;$("rsKurir").value=o.kurir||"J&T";$("rsNo").value=o.resi||"";{const h=hpAdmin(),b=$("rsHp");b.hidden=!h;b.innerHTML=h?`📞 Di resi, tulis <b>telepon penerima: ${esc(h)}</b> (nomor admin Kalensari Store) dan kode pesanan <b>${esc(o.kode)}</b> di kolom catatan/isi paket.`:""}$("resiWrap").hidden=false;setTimeout(()=>$("rsNo").focus(),50)}
 $("rsBatal").onclick=()=>{$("resiWrap").hidden=true};
 $("rsOk").onclick=async()=>{const o=O[resiIdx],r=$("rsNo").value.replace(/\s/g,"");if(!o)return;if(!/^[A-Za-z0-9]{5,30}$/.test(r))return toast("Kode resi tidak valid (5-30 huruf/angka)");
  const b=$("rsOk");b.disabled=true;try{await rpc("mitra_kirim",{p_sesi:sesi(),p_kode:o.kode,p_kurir:$("rsKurir").value,p_resi:r});$("resiWrap").hidden=true;toast("Resi tersimpan, pesanan ditandai dikirim");await muatPesanan();gambar()}
