@@ -139,10 +139,17 @@ h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(-
 <input id="cropZoom" type="range" min="1" max="3" step="0.01" value="1" style="width:100%;margin:14px 0 6px" aria-label="Zoom">
 <div style="display:flex;gap:10px;margin-top:6px"><button type="button" id="cropBatal" style="flex:1;padding:12px;border-radius:12px;border:1px solid #7b3f1d;background:#fff;color:#7b3f1d;font:inherit;font-weight:700;cursor:pointer">Batal</button><button type="button" id="cropOk" style="flex:1;padding:12px;border-radius:12px;border:1px solid #7b3f1d;background:#7b3f1d;color:#fff;font:inherit;font-weight:700;cursor:pointer">Pakai foto</button></div>
 </div></div>
+<div id="resiWrap" hidden style="position:fixed;inset:0;z-index:200;background:rgba(30,15,5,.82);display:flex;align-items:center;justify-content:center;padding:16px">
+<div style="background:#fff;border-radius:18px;padding:18px;width:100%;max-width:340px;color:#3a1f10">
+<b style="display:block;font-size:17px;margin-bottom:4px">🚚 Kirim paket</b><small id="rsInfo" style="display:block;color:#6b5546;margin-bottom:10px"></small>
+<label>Kurir<select id="rsKurir" class="fld"><option>J&amp;T</option><option>JNE</option></select></label>
+<label>Kode resi<input id="rsNo" class="fld" maxlength="30" autocapitalize="characters" autocomplete="off" placeholder="mis. JP1234567890"></label>
+<div style="display:flex;gap:10px"><button type="button" id="rsBatal" class="btn o" style="margin:0">Batal</button><button type="button" id="rsOk" class="btn" style="margin:0">OK</button></div>
+</div></div>
 <script src="config.js"></script>
 <script>
 const $=i=>document.getElementById(i),C=window.CLOUD_CONFIG||{},B=String(C.supabaseUrl||"").replace(/\/$/,""),SK="kalensari_sesi_mitra";
-let me=null,S=null,O=null,P=[],tab="home",q="",flt="all",edit=null,foto=null;
+let me=null,S=null,O=null,J=null,JD=null,P=[],tab="home",q="",flt="all",edit=null,foto=null;
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const rp=n=>"Rp"+Number(n||0).toLocaleString("id-ID"),sesi=()=>{try{return localStorage.getItem(SK)||""}catch(e){return""}};
 const ST={Show:["Tampil","ok"],Sold:["Stok habis","wt"],Hide:["Disembunyikan","no"]};
@@ -197,10 +204,11 @@ $("bDaftar").onclick=async()=>{const b=$("bDaftar"),err=cekForm();if(err)return 
 
 /* ===== APLIKASI ===== */
 function bukaApp(){$("auth").hidden=true;$("app").hidden=false;go("home");if(me.status==="aktif")muat()}
-function go(t){tab=t;q="";flt="all";gambar();$("v").scrollTop=0}
+function go(t){tab=t;if(t!=="jam")JD=null;q="";flt="all";gambar();$("v").scrollTop=0}
 async function muatSaldo(){try{S=await rpc("mitra_saldo",{p_sesi:sesi()})}catch(e){if(sesiHabis(e))return;S={err:/Database belum siap/i.test(e.message)?"Fitur saldo belum aktif: jalankan supabase-mitra-saldo.sql":e.message}}}
 async function muatPesanan(){try{O=await rpc("mitra_pesanan",{p_sesi:sesi()})}catch(e){if(sesiHabis(e))return;O={err:/Database belum siap/i.test(e.message)?"Fitur pesanan belum aktif: jalankan supabase-mitra-pesanan.sql":e.message}}}
-async function muat(){try{await Promise.all([muatPesanan(),rpc("mitra_produk_list",{p_sesi:sesi()}).then(r=>{P=r}),muatSaldo()]);gambar()}catch(e){if(!sesiHabis(e))toast(e.message)}}
+async function muatJam(){try{J=await rpc("mitra_jam",{p_sesi:sesi()})}catch(e){if(sesiHabis(e))return;J={err:/Database belum siap/i.test(e.message)?"Fitur jam toko belum aktif: jalankan supabase-mitra-jam.sql":e.message}}}
+async function muat(){try{await Promise.all([muatJam(),muatPesanan(),rpc("mitra_produk_list",{p_sesi:sesi()}).then(r=>{P=r}),muatSaldo()]);gambar()}catch(e){if(!sesiHabis(e))toast(e.message)}}
 async function segarkan(){try{me=(await rpc("mitra_saya",{p_sesi:sesi()})).data}catch(e){if(sesiHabis(e))return}if(me.status==="aktif")await muat();else gambar()}
 const aktif=()=>me&&me.status==="aktif";
 const pesanStatus=()=>({menunggu:"⏳ Akun sedang diperiksa admin. Anda bisa memasang produk setelah disetujui.",ditolak:"Pendaftaran ditolak. Hubungi admin untuk informasi.",nonaktif:"Akun dinonaktifkan sementara. Hubungi admin."})[me.status]||"";
@@ -209,21 +217,22 @@ function gambar(){
  $("hd").innerHTML=`<button id="shMn" onclick="go('info')" aria-label="Menu">☰</button><span class="sh-logo"><img src="icons/logo-mitra.png" alt=""><span><b>Kalensari <em>Store</em></b><small>Akun Mitra Luar Kota <span class="sh-pill ${st[1]}">${st[0]}</span></small></span></span><button class="sh-ib" onclick="segarkan()" aria-label="Muat ulang">⟳</button><button class="sh-ib" onclick="go('akun')" aria-label="Profil toko">🏪</button>`;
  $("nav").innerHTML=[["home","🏠","Beranda"],["prod","📦","Produk"],["pesanan","🧾","Pesanan"],["saldo","💰","Saldo"],["akun","👤","Akun"]].map(([k,i,l])=>`<button class="${tab===k?"on":""}" onclick="go('${k}')"><b>${i}</b>${l}</button>`).join("");
  $("fab").hidden=!(tab==="prod"&&aktif());
- const v=$("v");v.innerHTML=tab==="home"?vHome():tab==="prod"?vProd():tab==="saldo"?vSaldo():tab==="pesanan"?vPesanan():tab==="info"?vInfo():vAkun();
+ const v=$("v");v.innerHTML=tab==="home"?vHome():tab==="prod"?vProd():tab==="saldo"?vSaldo():tab==="pesanan"?vPesanan():tab==="jam"?vJam():tab==="info"?vInfo():vAkun();
  if(tab==="prod"){const s=$("cari");if(s&&q){s.focus();s.setSelectionRange(q.length,q.length)}}
 }
 function vHome(){
  const tampil=P.filter(p=>p.status==="Show").length,habis=P.filter(p=>p.status==="Sold"||(p.stock!=null&&p.stock<=0)).length,stok=P.reduce((t,p)=>t+(Number(p.stock)||0),0);
  const tnf=P.filter(p=>!p.image).length,tnk=P.filter(p=>!/^Khasiat:/.test(p.description||"")).length;
  const stN={aktif:"Aktif",menunggu:"Menunggu",ditolak:"Ditolak",nonaktif:"Nonaktif"}[me.status]||me.status;
- const menu=[["prod","📦","Kelola Produk"],["tambah","➕","Tambah Produk"],["pesanan","🧾","Pesanan Masuk"],["saldo","💰","Saldo"],["kirim","🚚","Pengiriman"],["aturan","📋","Aturan"],["akun","👤","Akun Saya"],["toko","🛍️","Lihat Toko"],["admin","💬","Hubungi Admin"],["keluar","🚪","Keluar"]];
+ const menu=[["prod","📦","Kelola Produk"],["tambah","➕","Tambah Produk"],["pesanan","🧾","Pesanan Masuk"],["jam","🕒","Jam Toko"],["saldo","💰","Saldo"],["kirim","🚚","Pengiriman"],["aturan","📋","Aturan"],["akun","👤","Akun Saya"],["toko","🛍️","Lihat Toko"],["admin","💬","Hubungi Admin"],["keluar","🚪","Keluar"]];
  return `<picture><source srcset="mitra-banner.webp" type="image/webp"><img class="sh-ban" src="mitra-banner.jpg" alt="Selamat datang Mitra Luar Kota Kalensari Store" width="1600" height="800"></picture>
  ${aktif()?"":`<div class="warn ${me.status==="menunggu"?"":"bad"}">${pesanStatus()}</div>`}
  ${kartuSaldo(true)}
+ ${kartuJam()}
  <div class="sh-top"><div class="sh-st"><div onclick="flt='all';go('prod')"><i>🛍️</i><span><small>Produk</small><b>${P.length}</b></span></div><div onclick="go('prod');flt='Show';gambar()"><i>👁️</i><span><small>Tampil</small><b>${tampil}</b></span></div>
   <div class="${habis?"hot":""}" onclick="go('prod');flt='Sold';gambar()"><i>⚠️</i><span><small>Habis</small><b>${habis}</b></span></div><div onclick="flt='all';go('prod')"><i>📦</i><span><small>Stok</small><b>${stok}</b></span></div></div></div>
  <div class="sh-rt" onclick="go('akun')">${me.foto?`<img class="sh-av" src="${esc(me.foto)}" alt="">`:`<span class="sh-av" aria-hidden="true">🏪</span>`}<div class="sh-rt-t"><b>${esc(me.toko)}</b><small>🌍 ${esc([me.kota,me.provinsi].filter(Boolean).join(", ")||"Mitra luar kota")}</small></div><span class="sh-rt-go">Lihat Detail ›</span></div>
- ${aktif()&&Array.isArray(O)&&O.some(o=>o.status==="baru")?`<div class="warn" style="cursor:pointer" onclick="go('pesanan')">🧾 <b>${O.filter(o=>o.status==="baru").length} pesanan baru</b> menunggu dikirim ›</div>`:""}
+ ${aktif()&&Array.isArray(O)&&O.some(o=>grupP(o)==="baru")?`<div class="warn" style="cursor:pointer" onclick="go('pesanan')">🧾 <b>${O.filter(o=>grupP(o)==="baru").length} pesanan baru</b> menunggu dikemas ›</div>`:""}
  ${aktif()&&P.some(tipis)?`<div class="warn" style="cursor:pointer" onclick="flt='all';go('prod')">⚠️ <b>${P.filter(tipis).length} produk stok menipis</b>${P.filter(tipis).slice(0,3).map(p=>`<div class="m" style="font-weight:500;margin-top:3px">${esc(p.name)} • sisa ${p.stock}</div>`).join("")}<div class="m" style="font-weight:700;margin-top:4px">Segera tambah stok ›</div></div>`:""}
  ${aktif()&&P.length&&(tnf||tnk)?`<div class="card"><b>Lengkapi produk Anda</b>${tnf?`<div class="kv"><span>📷 Foto</span><b>${tnf} produk belum ada foto</b></div>`:""}${tnk?`<div class="kv"><span>✨ Khasiat</span><b>${tnk} produk belum diisi khasiat</b></div>`:""}</div>`:""}
  <div class="sh-mh"><h3>Menu Utama</h3><button type="button" onclick="go('info')">Lihat Semua ›</button></div>
@@ -254,19 +263,64 @@ async function ajukanTarik(){const b=$("bTarik"),v=i=>$(i).value.trim();if(!v("t
  if(!confirm("Ajukan penarikan "+rp(v("tJml"))+" ke "+v("tBank")+" "+v("tRek")+"?"))return;b.disabled=true;
  try{await rpc("mitra_tarik_ajukan",{p_sesi:sesi(),p_jumlah:parseInt(v("tJml"),10),p_bank:v("tBank"),p_rekening:v("tRek"),p_nama:v("tNama")});toast("Penarikan diajukan, menunggu admin");await muatSaldo();gambar()}
  catch(e){if(!sesiHabis(e))toast(e.message);b.disabled=false}}
-const grupP=st=>st==="baru"?"baru":st==="selesai"?"selesai":/batal|ditolak|gagal/.test(st)?"batal":"proses";
-const PS={baru:["Baru","wt"],proses:["Diproses","pr"],selesai:["Selesai","ok"],batal:["Batal","no"]};
+const grupP=o=>o.status==="selesai"?"selesai":/batal|ditolak|gagal/.test(o.status)?"batal":o.resi?"kirim":o.tahap==="dikemas"?"kemas":o.status==="baru"?"baru":"proses";
+const PS={baru:["Baru","wt"],proses:["Diproses","pr"],kirim:["Dikirim","pr"],kemas:["Dikemas","wt"],selesai:["Selesai","ok"],batal:["Batal","no"]};
 function vPesanan(){
  if(!aktif())return `<div class="warn ${me.status==="menunggu"?"":"bad"}">${pesanStatus()}</div>`;
  if(!O)return `<div class="empty">Memuat pesanan...</div>`;
  if(O.err)return `<div class="warn bad">${esc(O.err)}</div>`;
- const L=O.filter(o=>flt==="all"||grupP(o.status)===flt),n=g=>O.filter(o=>grupP(o.status)===g).length;
- const ch=[["all","Semua ("+O.length+")"],["baru","Baru ("+n("baru")+")"],["proses","Diproses"],["selesai","Selesai"]].map(([k,l])=>`<button class="${flt===k?"on":""}" onclick="flt='${k}';gambar()">${l}</button>`).join("");
- return `<div class="chips">${ch}</div>`+(L.length?L.map(o=>{const g=PS[grupP(o.status)],sub=o.items.reduce((t,i)=>t+i.qty*i.harga,0),wa=nWa(o.wa);
+ const L=O.filter(o=>flt==="all"||grupP(o)===flt),n=g=>O.filter(o=>grupP(o)===g).length;
+ const ch=[["all","Semua ("+O.length+")"],["baru","Baru ("+n("baru")+")"],["kemas","Dikemas"],["kirim","Dikirim"],["selesai","Selesai"]].map(([k,l])=>`<button class="${flt===k?"on":""}" onclick="flt='${k}';gambar()">${l}</button>`).join("");
+ return `<div class="chips">${ch}</div>`+(L.length?L.map(o=>{const g=PS[grupP(o)],sub=o.items.reduce((t,i)=>t+i.qty*i.harga,0),wa=nWa(o.wa);
   return `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div><b>${esc(o.kode)}</b><div class="m" style="font-size:12.5px;color:var(--mu)">${tgl(o.tgl)}${o.bayar?" • "+esc(o.bayar):""}</div></div><span class="bd ${g[1]}">${g[0]}</span></div>
   <div style="margin:8px 0">${o.items.map(i=>`<div class="kv" style="padding:5px 0"><b style="flex:1">${esc(i.nama)}</b><span style="width:auto">${i.qty} × ${rp(i.harga)}</span></div>`).join("")}<div class="kv"><b style="flex:1">Total produk Anda</b><b>${rp(sub)}</b></div></div>
   <div class="kv"><span style="width:70px">Pembeli</span><b>${esc(o.nama||"-")}</b></div><div class="kv"><span style="width:70px">Alamat</span><b>${esc(o.alamat||"-")}</b></div>${o.catatan?`<div class="kv"><span style="width:70px">Catatan</span><b>${esc(o.catatan)}</b></div>`:""}
+  ${o.resi?`<div class="kv"><span style="width:70px">Resi</span><b>${esc(o.kurir)} • ${esc(o.resi)}</b></div>`:""}
+  ${!["selesai","batal"].includes(grupP(o))?`<button type="button" class="btn s" style="margin:8px 6px 0 0" onclick="${grupP(o)==="baru"||grupP(o)==="proses"?"kemas":"bukaResi"}(${O.indexOf(o)})">${o.resi?"✏️ Ubah resi":grupP(o)==="kemas"?"🚚 Kirim paket":"📦 Sedang dikemas"}</button>`:""}
   ${wa.length>=10?`<a class="btn o s" style="margin-top:8px" target="_blank" rel="noopener" href="https://wa.me/${wa}">💬 Hubungi pembeli</a>`:""}</div>`}).join(""):`<div class="empty">Belum ada pesanan${flt==="all"?"":" di kategori ini"}</div>`)}
+async function kemas(i){const o=O[i];if(!o||!confirm("Tandai pesanan "+o.kode+" sedang dikemas?"))return;
+ try{await rpc("mitra_dikemas",{p_sesi:sesi(),p_kode:o.kode});toast("Pesanan ditandai sedang dikemas");await muatPesanan();gambar()}
+ catch(e){if(!sesiHabis(e))toast(/Could not find|belum siap/i.test(e.message)?"Fitur ini belum aktif: jalankan supabase-mitra-resi.sql terbaru":e.message)}}
+let resiIdx=-1;
+function bukaResi(i){const o=O[i];if(!o)return;resiIdx=i;$("rsInfo").textContent="Pesanan "+o.kode;$("rsKurir").value=o.kurir||"J&T";$("rsNo").value=o.resi||"";$("resiWrap").hidden=false;setTimeout(()=>$("rsNo").focus(),50)}
+$("rsBatal").onclick=()=>{$("resiWrap").hidden=true};
+$("rsOk").onclick=async()=>{const o=O[resiIdx],r=$("rsNo").value.replace(/\s/g,"");if(!o)return;if(!/^[A-Za-z0-9]{5,30}$/.test(r))return toast("Kode resi tidak valid (5-30 huruf/angka)");
+ const b=$("rsOk");b.disabled=true;try{await rpc("mitra_kirim",{p_sesi:sesi(),p_kode:o.kode,p_kurir:$("rsKurir").value,p_resi:r});$("resiWrap").hidden=true;toast("Resi tersimpan, pesanan ditandai dikirim");await muatPesanan();gambar()}
+ catch(e){if(!sesiHabis(e))toast(/Could not find|belum siap/i.test(e.message)?"Fitur resi belum aktif: jalankan supabase-mitra-resi.sql":e.message)}b.disabled=false};
+const HARI=["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+function jamStatus(){
+ if(!J||J.err)return null;if(J.tutup)return{open:false,why:"Ditutup manual"};const s=J.jadwal;if(!s)return{open:true,why:"Tanpa jadwal (buka terus)"};
+ const wib=d=>new Date(d.toLocaleString("en-US",{timeZone:"Asia/Jakarta"})),f=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+ const n=wib(new Date()),y=wib(new Date(Date.now()-864e5)),m=n.getHours()*60+n.getMinutes(),mn=t=>{const x=String(t||"").match(/^(\d{1,2}):(\d{2})/);return x?+x[1]*60+ +x[2]:null};
+ const off=(d,t)=>(s.off||[]).includes(d.getDay())||(s.h||[]).includes(f(d)),o=mn(s.o),c=mn(s.c),ht=o!==null&&c!==null&&o!==c;
+ const ok=!ht?!off(n):o<c?!off(n)&&m>=o&&m<c:(m>=o&&!off(n))||(m<c&&!off(y));
+ return ok?{open:true,why:ht?"Buka "+s.o+"–"+s.c+" WIB":"Sesuai jadwal"}:{open:false,why:off(n)?"Libur hari ini":"Buka "+s.o+"–"+s.c+" WIB"}}
+function kartuJam(){const st=jamStatus();if(!st)return J&&J.err?`<div class="card" style="font-size:13px">🕒 ${esc(J.err)}</div>`:"";
+ return `<div class="sh-rt" onclick="go('jam')"><span class="sh-av" aria-hidden="true" style="font-size:22px">🕒</span><div class="sh-rt-t"><b>Toko ${st.open?"buka":"tutup"} sekarang</b><small>${esc(st.why)}</small></div><span class="sh-rt-go">Atur jam ›</span></div>`}
+function vJam(){
+ if(!aktif())return `<div class="warn ${me.status==="menunggu"?"":"bad"}">${pesanStatus()}</div>`;
+ if(!J)return `<div class="empty">Memuat...</div>`;if(J.err)return `<div class="warn bad">${esc(J.err)}</div>`;
+ if(!JD)JD=JSON.parse(JSON.stringify(Object.assign({o:"",c:"",off:[],h:[]},J.jadwal||{})));
+ const st=jamStatus();
+ return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b style="font-size:16px">${st.open?"🟢 Toko buka":"🔴 Toko tutup"}</b><div class="m" style="font-size:12.5px;color:var(--mu)">${esc(st.why)}</div></div>
+  <button class="btn s ${J.tutup?"":"d"}" onclick="tutupManual(${!J.tutup})">${J.tutup?"Buka toko lagi":"Tutup sekarang"}</button></div>
+  <p class="hint" style="margin:10px 0 0">Saat toko tutup, produk Anda tidak bisa dipesan pembeli. Pesanan yang sudah masuk tetap perlu diproses.</p></div>
+ <h3>Jadwal otomatis (WIB)</h3><div class="card"><div class="r2"><label>Jam buka<input type="time" class="fld" value="${esc(JD.o||"")}" onchange="JD.o=this.value"></label><label>Jam tutup<input type="time" class="fld" value="${esc(JD.c||"")}" onchange="JD.c=this.value"></label></div>
+  <div class="fs">Hari libur tiap pekan</div><div class="chips" style="flex-wrap:wrap">${HARI.map((h,i)=>`<button type="button" class="${JD.off.includes(i)?"on":""}" onclick="tglHari(${i})">${h}</button>`).join("")}</div>
+  <div class="fs" style="margin-top:12px">Tanggal libur khusus</div>
+  <div style="display:flex;gap:8px"><input id="jTgl" type="date" class="fld" style="margin:0"><button type="button" class="btn o s" onclick="tambahTgl()">Tambah</button></div>
+  <div class="chips" style="flex-wrap:wrap;margin-top:8px">${JD.h.slice().sort().map((d,i)=>`<button type="button" onclick="hapusTgl('${esc(d)}')">${esc(d.split("-").reverse().join("/"))} ✕</button>`).join("")||`<span class="hint">Belum ada</span>`}</div>
+  <button class="btn" onclick="simpanJadwal()">Simpan jadwal</button>${J.jadwal?`<button class="btn d" onclick="hapusJadwal()">Hapus jadwal (buka terus)</button>`:""}
+  <p class="hint" style="margin:10px 0 0">Kosongkan jam buka/tutup kalau hanya ingin mengatur hari libur.</p></div>`}
+async function jamAtur(jenis,val,pesan){try{await rpc("mitra_jam_atur",{p_sesi:sesi(),p_jenis:jenis,p_value:val});toast(pesan);JD=null;await muatJam();gambar()}catch(e){if(!sesiHabis(e))toast(/Could not find|belum siap/i.test(e.message)?"Fitur jam toko belum aktif: jalankan supabase-mitra-jam.sql":e.message)}}
+const tutupManual=t=>t&&!confirm("Tutup toko sekarang? Produk tidak bisa dipesan sampai Anda buka lagi.")?0:jamAtur("tutup",{tutup:t},t?"Toko ditutup":"Toko dibuka");
+function tglHari(i){const a=JD.off,x=a.indexOf(i);x<0?a.push(i):a.splice(x,1);gambar()}
+function tambahTgl(){const v=$("jTgl").value;if(!v)return toast("Pilih tanggalnya dulu");if(!JD.h.includes(v))JD.h.push(v);gambar()}
+function hapusTgl(d){JD.h=JD.h.filter(x=>x!==d);gambar()}
+function simpanJadwal(){if(!!JD.o!==!!JD.c)return toast("Isi jam buka DAN jam tutup");if(JD.off.length>6)return toast("Minimal 1 hari buka dalam seminggu");
+ if(!JD.o&&!JD.off.length&&!JD.h.length)return toast("Belum ada jadwal yang diisi");
+ const v={off:JD.off,h:JD.h};if(JD.o){v.o=JD.o;v.c=JD.c}jamAtur("jadwal",v,"Jadwal disimpan")}
+const hapusJadwal=()=>confirm("Hapus jadwal? Toko akan buka terus.")&&jamAtur("jadwal",null,"Jadwal dihapus");
 function vInfo(){
  return `<h3 style="margin-top:4px">Cara pengiriman</h3><div class="card" style="font-size:14px">Produk Anda tampil di Kalensari Store dengan label <b>“dikirim dari ${esc(me.kota||"kota Anda")}”</b>. Pesanan dikirim lewat J&amp;T atau JNE. Pastikan <b>berat produk</b> sudah diisi dengan kemasan agar ongkirnya tepat.</div>
  <h3>Aturan produk</h3><div class="card" style="font-size:14px"><ul style="margin:0;padding-left:18px"><li>Wajib punya izin edar BPOM. Produk tanpa izin akan dinonaktifkan.</li><li>Obat hanya boleh dari apotek / pihak berizin. Obat keras dan resep tidak boleh dijual.</li><li>Nama toko harus unik dan tidak sama dengan toko warga.</li></ul></div>
@@ -280,6 +334,7 @@ async function menuAksi(k){
  if(k==="akun")return go("akun");
  if(k==="saldo")return go("saldo");
  if(k==="pesanan")return go("pesanan");
+ if(k==="jam")return go("jam");
  if(k==="toko")return void(location.href="index.html");
  if(k==="admin"){const n=await waAdmin();return n?void window.open("https://wa.me/"+n+"?text="+encodeURIComponent("Halo admin, saya mitra luar kota "+me.toko),"_blank"):toast("Nomor admin belum tersedia")}
  if(k==="keluar"&&confirm("Keluar dari akun mitra?"))keluar()}
