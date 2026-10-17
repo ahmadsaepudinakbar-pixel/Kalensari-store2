@@ -5,7 +5,7 @@ create extension if not exists pgcrypto with schema extensions;
 create table if not exists public.mitra_luar_kota (
   id bigint generated always as identity primary key,
   wa text not null unique, pin_hash text not null,
-  nama text not null, toko text not null, kota text not null, provinsi text, jenis text, izin text not null, alamat text, alamat_toko text, ongkir_desa integer,
+  nama text not null, toko text not null, kota text not null, provinsi text, jenis text, izin text not null, alamat text, alamat_toko text, ongkir_desa integer, foto text,
   status text not null default 'menunggu' check (status in ('menunggu','aktif','ditolak','nonaktif')),
   gagal int not null default 0, kunci_sampai timestamptz, dibuat timestamptz not null default now());
 create unique index if not exists mitra_toko_uniq on public.mitra_luar_kota (lower(btrim(toko)));
@@ -14,6 +14,7 @@ create table if not exists public.mitra_sesi (
   exp timestamptz not null default now() + interval '30 days');
 alter table public.mitra_luar_kota add column if not exists alamat_toko text;
 alter table public.mitra_luar_kota add column if not exists ongkir_desa integer;
+alter table public.mitra_luar_kota add column if not exists foto text;
 alter table public.mitra_luar_kota enable row level security;
 alter table public.mitra_sesi enable row level security;
 revoke all on public.mitra_luar_kota, public.mitra_sesi from anon, authenticated;
@@ -30,7 +31,7 @@ create or replace function public.mitra_wa(t text) returns text language sql imm
 
 create or replace function public.mitra_data(m public.mitra_luar_kota) returns jsonb language sql immutable as $$
   select jsonb_build_object('id', m.id, 'wa', m.wa, 'nama', m.nama, 'toko', m.toko, 'kota', m.kota, 'provinsi', m.provinsi,
-                            'jenis', m.jenis, 'izin', m.izin, 'alamat', m.alamat, 'alamat_toko', m.alamat_toko, 'ongkir_desa', m.ongkir_desa, 'status', m.status) $$;
+                            'jenis', m.jenis, 'izin', m.izin, 'alamat', m.alamat, 'alamat_toko', m.alamat_toko, 'ongkir_desa', m.ongkir_desa, 'foto', m.foto, 'status', m.status) $$;
 
 create or replace function public.mitra_sesi_row(p_sesi text) returns public.mitra_luar_kota
 language plpgsql security definer set search_path = public as $$
@@ -43,9 +44,10 @@ end $$;
 revoke all on function public.mitra_sesi_row(text) from public, anon, authenticated;
 
 drop function if exists public.mitra_daftar(text,text,text,text,text,text,text,text,text);
-create or replace function public.mitra_daftar(p_wa text, p_pin text, p_nama text, p_toko text, p_kota text, p_provinsi text, p_jenis text, p_izin text, p_alamat_toko text, p_ongkir text)
+drop function if exists public.mitra_daftar(text,text,text,text,text,text,text,text,text,text);
+create or replace function public.mitra_daftar(p_wa text, p_pin text, p_nama text, p_toko text, p_kota text, p_provinsi text, p_jenis text, p_izin text, p_alamat_toko text, p_ongkir text, p_foto text, p_otp text)
 returns jsonb language plpgsql security definer set search_path = public, extensions as $$
-declare w text := public.mitra_wa(p_wa); t text := btrim(coalesce(p_toko, ''));
+declare w text := public.mitra_wa(p_wa); t text := btrim(coalesce(p_toko, '')); salah text;
 begin
   if length(w) < 10 or length(w) > 15 then return jsonb_build_object('ok', false, 'pesan', 'Nomor WhatsApp tidak valid'); end if;
   if coalesce(p_pin, '') !~ '^[0-9]{4,8}$' then return jsonb_build_object('ok', false, 'pesan', 'PIN harus 4-8 angka'); end if;
@@ -59,9 +61,15 @@ begin
               where s.key = 'penjual_members' and public.ks_k(coalesce(nullif(btrim(x->>'toko'), ''), x->>'usaha')) = public.ks_k(t))
      or exists (select 1 from public.products p where public.ks_milik_toko(p.seller, t)) then
     return jsonb_build_object('ok', false, 'pesan', 'Nama toko sudah dipakai, pilih nama lain'); end if;
-  insert into public.mitra_luar_kota (wa, pin_hash, nama, toko, kota, provinsi, jenis, izin, alamat_toko, ongkir_desa)
+  if coalesce(p_foto, '') !~ '^data:image/(jpeg|png|webp);base64,' then return jsonb_build_object('ok', false, 'pesan', 'Foto profil toko wajib diisi'); end if;
+  if length(p_foto) > 400000 then return jsonb_build_object('ok', false, 'pesan', 'Foto profil terlalu besar'); end if;
+  if exists (select 1 from public.mitra_luar_kota where wa = w) then return jsonb_build_object('ok', false, 'pesan', 'Nomor WhatsApp sudah terdaftar. Silakan masuk.'); end if;
+  -- OTP WhatsApp (kode dikirim fungsi server otp-wa, tabel pembeli_otp dari supabase-otp-pembeli.sql)
+  salah := public.ks_cek_otp(w, 'daftar', p_otp);
+  if salah is not null then return jsonb_build_object('ok', false, 'pesan', salah); end if;
+  insert into public.mitra_luar_kota (wa, pin_hash, nama, toko, kota, provinsi, jenis, izin, alamat_toko, ongkir_desa, foto)
   values (w, extensions.crypt(p_pin, extensions.gen_salt('bf')), left(btrim(p_nama), 60), t, left(btrim(p_kota), 60), left(btrim(coalesce(p_provinsi, '')), 40),
-          left(btrim(coalesce(p_jenis, '')), 40), left(btrim(p_izin), 80), left(btrim(p_alamat_toko), 200), regexp_replace(p_ongkir, '\D', '', 'g')::integer);
+          left(btrim(coalesce(p_jenis, '')), 40), left(btrim(p_izin), 80), left(btrim(p_alamat_toko), 200), regexp_replace(p_ongkir, '\D', '', 'g')::integer, p_foto);
   return jsonb_build_object('ok', true);
 exception when unique_violation then
   return jsonb_build_object('ok', false, 'pesan', 'Nomor WhatsApp atau nama toko sudah terdaftar');
@@ -149,7 +157,7 @@ begin
 end $$;
 
 do $$ declare f text; begin
-  foreach f in array array['mitra_daftar(text,text,text,text,text,text,text,text,text,text)','mitra_masuk(text,text)','mitra_saya(text)','mitra_produk_list(text)',
+  foreach f in array array['mitra_daftar(text,text,text,text,text,text,text,text,text,text,text,text)','mitra_masuk(text,text)','mitra_saya(text)','mitra_produk_list(text)',
     'mitra_produk_simpan(text,bigint,jsonb)','mitra_produk_hapus(text,bigint)','mitra_admin_daftar()','mitra_admin_atur(bigint,text)','mitra_admin_pin(bigint,text)'] loop
     execute 'revoke all on function public.' || f || ' from public';
     execute 'grant execute on function public.' || f || ' to anon, authenticated';

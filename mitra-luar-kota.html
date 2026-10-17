@@ -6,7 +6,7 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Roboto,system-ui,sans-serif;line-height:1.45}
 .top{background:var(--brown);color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px}.top a,.top button{color:#fff;background:none;border:0;font:inherit;cursor:pointer;text-decoration:none}
 .wrap{max-width:680px;margin:0 auto;padding:16px 14px 60px}.box{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}
-.mban{display:block;width:100%;height:auto;border-radius:20px;margin-bottom:14px}.hero{border-radius:26px;padding:24px;background:linear-gradient(120deg,#f8ead0,#eef0d4 50%,#6f9f4e);margin-bottom:14px}.hero h1{font-size:clamp(23px,5vw,31px);margin:10px 0 6px;line-height:1.2}.tag{display:inline-block;background:var(--brown);color:#fff;font-weight:700;font-size:12px;padding:7px 13px;border-radius:999px}
+.mban{display:block;width:100%;height:auto;border-radius:20px;margin-bottom:14px}.avt{display:block;width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid var(--line);margin:-4px 0 12px}.avt[hidden]{display:none}.hero{border-radius:26px;padding:24px;background:linear-gradient(120deg,#f8ead0,#eef0d4 50%,#6f9f4e);margin-bottom:14px}.hero h1{font-size:clamp(23px,5vw,31px);margin:10px 0 6px;line-height:1.2}.tag{display:inline-block;background:var(--brown);color:#fff;font-weight:700;font-size:12px;padding:7px 13px;border-radius:999px}
 h2{font-size:17px;margin:0 0 10px}label{display:block;font-weight:600;font-size:14px}ol,ul{margin:6px 0 0;padding-left:20px}li{margin:4px 0}
 .fld{display:block;width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:16px;margin:5px 0 11px;background:#fff;color:var(--ink)}
 .r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{font:inherit;font-weight:700;padding:12px 14px;border-radius:14px;border:1px solid var(--brown);background:#fff;color:var(--brown);cursor:pointer}
@@ -27,7 +27,9 @@ h2{font-size:17px;margin:0 0 10px}label{display:block;font-weight:600;font-size:
 </div>
 <div id="vMasuk"><div class="tabs"><button class="tab on" id="tMasuk">Masuk</button><button class="tab" id="tDaftar">Daftar mitra</button></div>
 <div class="box" id="fMasuk"><label>No. WhatsApp<input id="lWa" class="fld" inputmode="tel" placeholder="08xxxxxxxxxx"></label><label>PIN<input id="lPin" class="fld" type="password" inputmode="numeric" maxlength="8"></label><button id="bMasuk" class="btn p" style="width:100%">Masuk</button><p class="sm" style="margin:10px 0 0">Lupa PIN? Hubungi admin lewat WhatsApp.</p></div>
-<div class="box" id="fDaftar" hidden><label>Nama pemilik<input id="rNama" class="fld" maxlength="60"></label><label>Nama toko<input id="rToko" class="fld" maxlength="60" placeholder="mis. Rani Beauty"></label>
+<div class="box" id="fDaftar" hidden><label>Foto profil toko<input id="rFoto" class="fld" type="file" accept="image/*"></label>
+<img id="rFotoPv" class="avt" alt="Pratinjau foto profil toko" hidden>
+<label>Nama pemilik<input id="rNama" class="fld" maxlength="60"></label><label>Nama toko<input id="rToko" class="fld" maxlength="60" placeholder="mis. Rani Beauty"></label>
 <label>Alamat toko<input id="rAlamatToko" class="fld" maxlength="200" placeholder="Jalan, kecamatan, kota, kode pos"></label>
 <label>No. WhatsApp<input id="rWa" class="fld" inputmode="tel" placeholder="08xxxxxxxxxx"></label>
 <div class="r2"><label>Kota / kabupaten asal kirim<input id="rKota" class="fld" maxlength="60"></label><label>Provinsi<input id="rProv" class="fld" maxlength="40"></label></div>
@@ -35,6 +37,7 @@ h2{font-size:17px;margin:0 0 10px}label{display:block;font-weight:600;font-size:
 <label>Jenis produk<select id="rJenis" class="fld"><option>Kosmetik</option><option>Perawatan tubuh</option><option>Suplemen / herbal</option><option>Obat (apotek berizin)</option></select></label>
 <label>No. izin edar BPOM / NIB<input id="rIzin" class="fld" maxlength="80" placeholder="mis. NA18xxxxxxxxxx"></label>
 <div class="r2"><label>PIN (4–8 angka)<input id="rPin" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div>
+<div id="rOtpBox" hidden><p class="sm" id="rOtpInfo"></p><label>Kode OTP dari WhatsApp (6 angka)<input id="rOtp" class="fld otp-in" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456"></label><p class="sm"><a href="#" id="rUlang">Kirim ulang kode</a> <span id="rTunggu"></span></p></div>
 <button id="bDaftar" class="btn p" style="width:100%">Daftar</button><p class="sm" style="margin:10px 0 0">Setelah daftar, akun menunggu persetujuan admin.</p></div></div>
 <div id="vDash" hidden>
 <div class="box"><h2 id="hNama" style="margin:0"></h2><div class="sm" id="hInfo"></div></div>
@@ -61,9 +64,32 @@ async function rpc(fn,body){const r=await fetch(B+"/rest/v1/rpc/"+fn,{method:"PO
  if(!r.ok){const m=String((j&&(j.message||j.hint))||r.status);throw new Error(/Could not find the function|PGRST202/i.test(m)?"Database belum siap: jalankan supabase-mitra-luar-kota.sql":m)}
  if(j&&j.ok===false)throw new Error(j.pesan||"Gagal");return j}
 const tab=d=>{$("fMasuk").hidden=d;$("fDaftar").hidden=!d;$("tMasuk").classList.toggle("on",!d);$("tDaftar").classList.toggle("on",d)};$("tMasuk").onclick=()=>tab(false);$("tDaftar").onclick=()=>tab(true);
-$("bDaftar").onclick=async()=>{const pin=$("rPin").value;if(pin!==$("rPin2").value)return toast("Ulangi PIN tidak sama");const b=$("bDaftar");b.disabled=true;
- try{await rpc("mitra_daftar",{p_wa:$("rWa").value,p_pin:pin,p_nama:$("rNama").value,p_toko:$("rToko").value,p_kota:$("rKota").value,p_provinsi:$("rProv").value,p_jenis:$("rJenis").value,p_izin:$("rIzin").value,p_alamat_toko:$("rAlamatToko").value,p_ongkir:$("rOngkir").value});
- toast("Pendaftaran terkirim. Tunggu persetujuan admin.");$("lWa").value=$("rWa").value;$("lPin").value=pin;await masuk()}catch(e){toast(e.message)}b.disabled=false};
+/* ===== FOTO PROFIL TOKO + OTP WHATSAPP (kode dikirim fungsi server "otp-wa", sama seperti pendaftaran pembeli) ===== */
+let fotoToko=null,daftarWa="";
+const nWa=t=>{const d=String(t||"").replace(/\D/g,"");return d.startsWith("0")?"62"+d.slice(1):d.startsWith("8")?"62"+d:d};
+$("rFoto").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const s=Math.min(im.width,im.height),c=document.createElement("canvas");c.width=c.height=360;c.getContext("2d").drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,360,360);fotoToko=c.toDataURL("image/jpeg",.82);$("rFotoPv").src=fotoToko;$("rFotoPv").hidden=false;URL.revokeObjectURL(im.src)};im.onerror=()=>toast("Foto tidak bisa dibaca");im.src=URL.createObjectURL(f)};
+document.querySelectorAll(".otp-in").forEach(x=>x.oninput=()=>{x.value=x.value.replace(/\D/g,"").slice(0,6)});
+async function kirimOtp(wa){const r=await fetch(B+"/functions/v1/otp-wa",{method:"POST",headers:{apikey:C.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({wa,tujuan:"daftar"})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.pesan||("Gagal mengirim kode ("+r.status+")"))}
+function hitungMundur(el,link,detik){link.style.pointerEvents="none";link.style.opacity=".5";const t0=Date.now(),iv=setInterval(()=>{const s=detik-Math.floor((Date.now()-t0)/1000);if(s<=0){clearInterval(iv);el.textContent="";link.style.pointerEvents="";link.style.opacity=""}else el.textContent="("+s+" detik)"},500)}
+function cekForm(){const v=i=>$(i).value.trim(),wa=nWa($("rWa").value);
+ if(!fotoToko)return "Foto profil toko wajib diisi";
+ if(!v("rNama")||!v("rToko")||!v("rAlamatToko")||!v("rKota")||!v("rIzin"))return "Lengkapi nama pemilik, nama toko, alamat toko, kota, dan nomor izin edar";
+ if(wa.length<10||wa.length>15)return "Nomor WhatsApp tidak valid";
+ if(!v("rOngkir").replace(/\D/g,""))return "Isi ongkos kirim ke desa Kalensari (angka)";
+ if(!/^\d{4,8}$/.test($("rPin").value))return "PIN harus 4–8 angka";
+ if($("rPin").value!==$("rPin2").value)return "Ulangi PIN tidak sama";return ""}
+async function otpKirim(){const wa=nWa($("rWa").value);await kirimOtp(wa);daftarWa=wa;$("rOtpBox").hidden=false;$("rOtpInfo").innerHTML="Kode 6 angka sudah dikirim ke WhatsApp <b>+"+esc(wa)+"</b>. Berlaku 5 menit.";$("rWa").readOnly=true;hitungMundur($("rTunggu"),$("rUlang"),60);setTimeout(()=>$("rOtp").focus(),100)}
+$("rUlang").onclick=async e=>{e.preventDefault();try{await otpKirim();toast("📲 Kode baru dikirim ke WhatsApp")}catch(er){toast(er.message)}};
+$("bDaftar").onclick=async()=>{const b=$("bDaftar"),err=cekForm();if(err)return toast(err);b.disabled=true;
+ if(b.dataset.step!=="otp"){const t=b.textContent;b.textContent="Mengirim kode...";
+  try{await otpKirim();b.textContent="✅ Verifikasi & daftar";b.dataset.step="otp";toast("📲 Kode dikirim ke WhatsApp")}
+  catch(e){b.textContent=t;toast(/sudah terdaftar/i.test(e.message)?"Nomor ini sudah terdaftar di Kalensari (akun pembeli atau mitra). Masuk, atau pakai nomor WhatsApp lain.":e.message)}
+  b.disabled=false;return}
+ const otp=$("rOtp").value.trim();if(!/^\d{6}$/.test(otp)){b.disabled=false;return toast("Masukkan 6 angka kode dari WhatsApp")}
+ const pin=$("rPin").value;
+ try{await rpc("mitra_daftar",{p_wa:daftarWa,p_pin:pin,p_nama:$("rNama").value,p_toko:$("rToko").value,p_kota:$("rKota").value,p_provinsi:$("rProv").value,p_jenis:$("rJenis").value,p_izin:$("rIzin").value,p_alamat_toko:$("rAlamatToko").value,p_ongkir:$("rOngkir").value,p_foto:fotoToko,p_otp:otp});
+  toast("Pendaftaran terkirim. Tunggu persetujuan admin.");$("lWa").value=daftarWa;$("lPin").value=pin;await masuk()}
+ catch(e){if(/kode/i.test(e.message))$("rOtp").value="";toast(e.message)}b.disabled=false};
 async function masuk(){const j=await rpc("mitra_masuk",{p_wa:$("lWa").value,p_pin:$("lPin").value});try{localStorage.setItem(SK,j.sesi)}catch(e){}me=j.data;tampil()}
 $("bMasuk").onclick=async()=>{const b=$("bMasuk");b.disabled=true;try{await masuk()}catch(e){toast(e.message)}b.disabled=false};
 $("keluar").onclick=()=>{try{localStorage.removeItem(SK)}catch(e){}location.reload()};

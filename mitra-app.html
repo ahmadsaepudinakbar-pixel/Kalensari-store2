@@ -19,6 +19,7 @@ body{margin:0;background:#e4d3bf;color:var(--ink);font:15px/1.4 system-ui,-apple
 label{font-weight:600;font-size:13.5px;display:block}.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}.seg button{border:1px solid var(--ln);background:var(--chip);padding:11px;border-radius:999px;font-weight:700;cursor:pointer}.seg button.on{background:var(--b);border-color:var(--b);color:#fff}
 .box{background:#fff;border:1px solid var(--ln);border-radius:18px;padding:16px}
+.avt{display:block;width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid var(--ln);margin:-4px 0 12px}.avt[hidden]{display:none}#hd .hav{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.6);flex:none}
 .hint{font-size:12.5px;color:var(--mu);margin:2px 0 12px}.fs{margin:6px 0 2px;font-size:12px;font-weight:800;letter-spacing:.4px;color:var(--b);text-transform:uppercase}
 #hd{background:linear-gradient(135deg,var(--b),var(--b2));color:#fff;padding:calc(12px + env(safe-area-inset-top,0px)) 14px 12px;display:flex;align-items:center;gap:12px;font-weight:700;font-size:17px}
 #hd .t{flex:1;min-width:0}#hd .t span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#hd small{display:block;font-weight:400;font-size:12px;opacity:.85}#hd button{background:none;border:0;color:#fff;font-size:22px;cursor:pointer;padding:2px 6px}
@@ -53,6 +54,8 @@ h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(-
   </div>
   <div class="box" id="fDaftar" hidden>
     <div class="fs">Data pemilik &amp; toko</div>
+    <label>Foto profil toko<input id="rFoto" class="fld" type="file" accept="image/*"></label>
+    <img id="rFotoPv" class="avt" alt="Pratinjau foto profil toko" hidden>
     <label>Nama pemilik<input id="rNama" class="fld" maxlength="60"></label>
     <label>Nama toko<input id="rToko" class="fld" maxlength="60" placeholder="mis. Rani Beauty"></label>
     <label>Alamat toko<input id="rAlamatToko" class="fld" maxlength="200" placeholder="Jalan, kecamatan, kota, kode pos"></label>
@@ -65,6 +68,7 @@ h3{margin:16px 0 8px;font-size:15px}.card{background:#fff;border:1px solid var(-
     <label>No. izin edar BPOM / NIB<input id="rIzin" class="fld" maxlength="80" placeholder="mis. NA18xxxxxxxxxx"></label>
     <div class="fs">Keamanan akun</div>
     <div class="r2"><label>PIN (4–8 angka)<input id="rPin" class="fld" type="password" inputmode="numeric" maxlength="8"></label><label>Ulangi PIN<input id="rPin2" class="fld" type="password" inputmode="numeric" maxlength="8"></label></div>
+    <div id="rOtpBox" hidden><p class="hint" id="rOtpInfo"></p><label>Kode OTP dari WhatsApp (6 angka)<input id="rOtp" class="fld otp-in" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="123456"></label><p class="hint"><a href="#" id="rUlang">Kirim ulang kode</a> <span id="rTunggu"></span></p></div>
     <button id="bDaftar" class="btn">Daftar</button><p class="hint" style="margin:12px 0 0">Setelah daftar, akun diperiksa dan disetujui admin dulu sebelum bisa memasang produk.</p>
   </div>
   <a class="btn o" href="index.html" style="margin-top:16px">← Ke Kalensari Store</a>
@@ -114,9 +118,32 @@ const seg=d=>{$("fMasuk").hidden=d;$("fDaftar").hidden=!d;$("tMasuk").classList.
 $("tMasuk").onclick=()=>seg(false);$("tDaftar").onclick=()=>seg(true);
 async function masuk(){const j=await rpc("mitra_masuk",{p_wa:$("lWa").value,p_pin:$("lPin").value});try{localStorage.setItem(SK,j.sesi)}catch(e){}me=j.data;bukaApp()}
 $("bMasuk").onclick=async()=>{const b=$("bMasuk");b.disabled=true;try{await masuk()}catch(e){toast(e.message)}b.disabled=false};
-$("bDaftar").onclick=async()=>{const pin=$("rPin").value;if(pin!==$("rPin2").value)return toast("Ulangi PIN tidak sama");const b=$("bDaftar");b.disabled=true;
- try{await rpc("mitra_daftar",{p_wa:$("rWa").value,p_pin:pin,p_nama:$("rNama").value,p_toko:$("rToko").value,p_kota:$("rKota").value,p_provinsi:$("rProv").value,p_jenis:$("rJenis").value,p_izin:$("rIzin").value,p_alamat_toko:$("rAlamatToko").value,p_ongkir:$("rOngkir").value});
- toast("Pendaftaran terkirim. Tunggu persetujuan admin.");$("lWa").value=$("rWa").value;$("lPin").value=pin;await masuk()}catch(e){toast(e.message)}b.disabled=false};
+/* ===== FOTO PROFIL TOKO + OTP WHATSAPP (kode dikirim fungsi server "otp-wa", sama seperti pendaftaran pembeli) ===== */
+let fotoToko=null,daftarWa="";
+const nWa=t=>{const d=String(t||"").replace(/\D/g,"");return d.startsWith("0")?"62"+d.slice(1):d.startsWith("8")?"62"+d:d};
+$("rFoto").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const s=Math.min(im.width,im.height),c=document.createElement("canvas");c.width=c.height=360;c.getContext("2d").drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,360,360);fotoToko=c.toDataURL("image/jpeg",.82);$("rFotoPv").src=fotoToko;$("rFotoPv").hidden=false;URL.revokeObjectURL(im.src)};im.onerror=()=>toast("Foto tidak bisa dibaca");im.src=URL.createObjectURL(f)};
+document.querySelectorAll(".otp-in").forEach(x=>x.oninput=()=>{x.value=x.value.replace(/\D/g,"").slice(0,6)});
+async function kirimOtp(wa){const r=await fetch(B+"/functions/v1/otp-wa",{method:"POST",headers:{apikey:C.supabaseAnonKey,"Content-Type":"application/json"},body:JSON.stringify({wa,tujuan:"daftar"})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.pesan||("Gagal mengirim kode ("+r.status+")"))}
+function hitungMundur(el,link,detik){link.style.pointerEvents="none";link.style.opacity=".5";const t0=Date.now(),iv=setInterval(()=>{const s=detik-Math.floor((Date.now()-t0)/1000);if(s<=0){clearInterval(iv);el.textContent="";link.style.pointerEvents="";link.style.opacity=""}else el.textContent="("+s+" detik)"},500)}
+function cekForm(){const v=i=>$(i).value.trim(),wa=nWa($("rWa").value);
+ if(!fotoToko)return "Foto profil toko wajib diisi";
+ if(!v("rNama")||!v("rToko")||!v("rAlamatToko")||!v("rKota")||!v("rIzin"))return "Lengkapi nama pemilik, nama toko, alamat toko, kota, dan nomor izin edar";
+ if(wa.length<10||wa.length>15)return "Nomor WhatsApp tidak valid";
+ if(!v("rOngkir").replace(/\D/g,""))return "Isi ongkos kirim ke desa Kalensari (angka)";
+ if(!/^\d{4,8}$/.test($("rPin").value))return "PIN harus 4–8 angka";
+ if($("rPin").value!==$("rPin2").value)return "Ulangi PIN tidak sama";return ""}
+async function otpKirim(){const wa=nWa($("rWa").value);await kirimOtp(wa);daftarWa=wa;$("rOtpBox").hidden=false;$("rOtpInfo").innerHTML="Kode 6 angka sudah dikirim ke WhatsApp <b>+"+esc(wa)+"</b>. Berlaku 5 menit.";$("rWa").readOnly=true;hitungMundur($("rTunggu"),$("rUlang"),60);setTimeout(()=>$("rOtp").focus(),100)}
+$("rUlang").onclick=async e=>{e.preventDefault();try{await otpKirim();toast("📲 Kode baru dikirim ke WhatsApp")}catch(er){toast(er.message)}};
+$("bDaftar").onclick=async()=>{const b=$("bDaftar"),err=cekForm();if(err)return toast(err);b.disabled=true;
+ if(b.dataset.step!=="otp"){const t=b.textContent;b.textContent="Mengirim kode...";
+  try{await otpKirim();b.textContent="✅ Verifikasi & daftar";b.dataset.step="otp";toast("📲 Kode dikirim ke WhatsApp")}
+  catch(e){b.textContent=t;toast(/sudah terdaftar/i.test(e.message)?"Nomor ini sudah terdaftar di Kalensari (akun pembeli atau mitra). Masuk, atau pakai nomor WhatsApp lain.":e.message)}
+  b.disabled=false;return}
+ const otp=$("rOtp").value.trim();if(!/^\d{6}$/.test(otp)){b.disabled=false;return toast("Masukkan 6 angka kode dari WhatsApp")}
+ const pin=$("rPin").value;
+ try{await rpc("mitra_daftar",{p_wa:daftarWa,p_pin:pin,p_nama:$("rNama").value,p_toko:$("rToko").value,p_kota:$("rKota").value,p_provinsi:$("rProv").value,p_jenis:$("rJenis").value,p_izin:$("rIzin").value,p_alamat_toko:$("rAlamatToko").value,p_ongkir:$("rOngkir").value,p_foto:fotoToko,p_otp:otp});
+  toast("Pendaftaran terkirim. Tunggu persetujuan admin.");$("lWa").value=daftarWa;$("lPin").value=pin;await masuk()}
+ catch(e){if(/kode/i.test(e.message))$("rOtp").value="";toast(e.message)}b.disabled=false};
 
 /* ===== APLIKASI ===== */
 function bukaApp(){$("auth").hidden=true;$("app").hidden=false;go("home");if(me.status==="aktif")muat()}
@@ -126,7 +153,7 @@ async function segarkan(){try{me=(await rpc("mitra_saya",{p_sesi:sesi()})).data}
 const aktif=()=>me&&me.status==="aktif";
 const pesanStatus=()=>({menunggu:"⏳ Akun sedang diperiksa admin. Anda bisa memasang produk setelah disetujui.",ditolak:"Pendaftaran ditolak. Hubungi admin untuk informasi.",nonaktif:"Akun dinonaktifkan sementara. Hubungi admin."})[me.status]||"";
 function gambar(){
- $("hd").innerHTML=`<div class="t"><span>${esc(me.toko)}</span><small>🌍 ${esc([me.kota,me.provinsi].filter(Boolean).join(", ")||"Mitra luar kota")}</small></div><button onclick="segarkan()" aria-label="Muat ulang">⟳</button>`;
+ $("hd").innerHTML=`${me.foto?`<img class="hav" src="${esc(me.foto)}" alt="">`:""}<div class="t"><span>${esc(me.toko)}</span><small>🌍 ${esc([me.kota,me.provinsi].filter(Boolean).join(", ")||"Mitra luar kota")}</small></div><button onclick="segarkan()" aria-label="Muat ulang">⟳</button>`;
  $("nav").innerHTML=[["home","🏠","Beranda"],["prod","📦","Produk"],["akun","👤","Akun"]].map(([k,i,l])=>`<button class="${tab===k?"on":""}" onclick="go('${k}')"><b>${i}</b>${l}</button>`).join("");
  $("fab").hidden=!(tab==="prod"&&aktif());
  const v=$("v");v.innerHTML=tab==="home"?vHome():tab==="prod"?vProd():vAkun();
@@ -150,7 +177,7 @@ function vProd(){
 function vAkun(){
  const st={aktif:["Aktif","ok"],menunggu:["Menunggu persetujuan","wt"],ditolak:["Ditolak","no"],nonaktif:["Nonaktif","no"]}[me.status]||[me.status,""];
  const kv=(k,v)=>v?`<div class="kv"><span>${k}</span><b>${esc(v)}</b></div>`:"";
- return `<div class="card"><div style="margin-bottom:6px"><b style="font-size:17px">${esc(me.toko)}</b> <span class="bd ${st[1]}">${st[0]}</span></div>
+ return `<div class="card">${me.foto?`<img class="avt" style="margin:0 auto 10px" src="${esc(me.foto)}" alt="Foto profil toko">`:""}<div style="margin-bottom:6px"><b style="font-size:17px">${esc(me.toko)}</b> <span class="bd ${st[1]}">${st[0]}</span></div>
  ${kv("Pemilik",me.nama)}${kv("WhatsApp",me.wa?"+"+me.wa:"")}${kv("Kota asal",[me.kota,me.provinsi].filter(Boolean).join(", "))}${kv("Alamat toko",me.alamat_toko||me.alamat)}${kv("Ongkir ke Kalensari",me.ongkir_desa?"Rp "+Number(me.ongkir_desa).toLocaleString("id-ID"):"")}${kv("Jenis produk",me.jenis)}${kv("Izin edar",me.izin)}</div>
  <p class="hint">Untuk mengubah data toko atau PIN, hubungi admin lewat WhatsApp.</p>
  <a class="btn o" href="index.html">🛍️ Lihat Kalensari Store</a><button class="btn d" onclick="if(confirm('Keluar dari akun mitra?'))keluar()">Keluar</button>`}
