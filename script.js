@@ -272,11 +272,13 @@ const shippingFeeFor=n=>{const v=shippingFees[sellerKey(n)],d=Number(shippingFee
 let sellerLocs=readLS("kalensari_seller_locs",{});
 let sellerLocsOk=false; // true setelah daftar penjual (beserta titik lokasinya) berhasil dimuat dari server
 // Toko di keranjang (yang dicentang) yang BELUM punya titik lokasi -> checkout tidak boleh dilanjutkan.
+// Mitra LUAR KOTA (dikirim via J&T) tidak punya titik lokasi & tidak ikut rute kurir lokal.
+const isLuar=n=>/\(Luar Kota\)\s*$/i.test(String(n||""));
 function tokoTanpaTitik(){
   if(!CLOUD_CONFIG?.enabled)return [];
   if(!(sellerLocsOk||Object.keys(sellerLocs).length))return []; // data lokasi belum termuat: jangan memblokir keliru
   const n=new Map();
-  cartGroups().filter(g=>g.on).forEach(g=>{const l=sellerLocs[g.k];if(!(l&&validLL(l.lat,l.lng)))n.set(g.k,g.name);});
+  cartGroups().filter(g=>g.on&&!isLuar(g.name)).forEach(g=>{const l=sellerLocs[g.k];if(!(l&&validLL(l.lat,l.lng)))n.set(g.k,g.name);});
   return [...n.values()];
 }
 // ===== TAMBAHAN ONGKIR CUACA HUJAN (diatur admin: Ongkir > Mode hujan; disimpan di shipping_fees.__hujan / __hujanRp) =====
@@ -926,8 +928,8 @@ function cartGroups(){
   // tambahan jarak (toko terakhir -> pembeli) masuk ke nota toko terakhir. Total ongkir = rute gabungan.
   const gs=[...m.values()].map(g=>{const items=g.all.filter(p=>p.on),sub=items.reduce((s,p)=>s+currentPrice(p)*p.qty,0);
     return {...g,items,sub,on:items.length>0,full:items.length===g.all.length,closed:items.some(p=>allSellersClosed(p))};});
-  const route=shippingRoute(gs.filter(g=>g.on).flatMap(g=>g.items)),lastK=route.last?sellerKey(route.last.name):"";
-  return gs.map(g=>{const last=g.on&&g.k===lastK,base=shippingFeeFor(g.name);
+  const route=shippingRoute(gs.filter(g=>g.on&&!isLuar(g.name)).flatMap(g=>g.items)),lastK=route.last?sellerKey(route.last.name):"";
+  return gs.map(g=>{const last=g.on&&g.k===lastK,base=isLuar(g.name)?0:shippingFeeFor(g.name);
     return {...g,route,last,base,urut:route.stops.findIndex(x=>sellerKey(x.name)===g.k)+1,fee:g.on?base+(last?route.extra+route.rain:0):0};});
 }
 const selItems=()=>cartGroups().filter(g=>g.on).flatMap(g=>g.items);
@@ -937,6 +939,7 @@ function toggleToko(k){const g=cartGroups().find(x=>x.k===k);if(g)setOff(g.all.m
 function toggleSemuaToko(){const gs=cartGroups(),all=gs.every(g=>g.full);setOff(gs.flatMap(g=>g.all.map(p=>p.idx)),all);}
 function ongkirTeks(g){
   if(!g.on)return{v:rupiah(0),s:"tidak dipilih"};
+  if(isLuar(g.name))return{v:"J&T",s:"dikirim lewat J&T • ongkir dikonfirmasi admin"};
   const multi=g.route.stops.length>1,ke=multi?` • ${g.last?"jemputan terakhir":`jemputan ke-${g.urut}`}`:"";
   if(g.last&&g.route.state==="nostore")return{v:rupiah(g.base),s:"lokasi toko belum diatur • admin konfirmasi"};
   return{v:g.base>0?rupiah(g.base):"Gratis",s:`ongkir pertama toko${ke}`};
@@ -1071,7 +1074,7 @@ function alasanTidakBisaPesan(){
   const jam=closed.filter(p=>p.status==="Show"&&!allSellersClosed(p)&&!isInHours(p));
   if(jam.length) a.push(`🕒 Belum waktunya: ${jam.map(p=>`<b>${esc(p.name)}</b> (tersedia ${esc(hoursText(p))})`).join(", ")}.`);
   {const tt=tokoTanpaTitik();if(tt.length)a.push(`📍 Toko <b>${esc(tt.join(", "))}</b> belum memiliki titik lokasi, jadi ongkir & rute kurir belum bisa dihitung. Hapus/hilangkan centang produknya, atau coba lagi setelah penjual mengatur lokasi tokonya.`);}
-  if(KS_KURIR===0) a.push("🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");
+  if(KS_KURIR===0&&cartGroups().some(g=>g.on&&!isLuar(g.name))) a.push("🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");
   return a;
 }
 function renderCekPesan(){
@@ -1155,7 +1158,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   if(!cartGroups().some(g=>g.on)){alert("Centang minimal satu produk yang ingin di-checkout.");return;}
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
   {const tt=tokoTanpaTitik();if(tt.length){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n📍 Toko "+tt.join(", ")+" belum memiliki titik lokasi, jadi ongkir & rute kurir belum bisa dihitung. Hapus produk toko itu dari keranjang, atau coba lagi setelah penjual mengatur lokasi tokonya.");return;}}
-  {KS_KURIR=await jumlahKurirAktif();if(KS_KURIR===0){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");return;}}
+  {KS_KURIR=await jumlahKurirAktif();if(KS_KURIR===0&&cartGroups().some(g=>g.on&&!isLuar(g.name))){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");return;}}
   const f=new FormData(e.target);
   const phone=phoneShow(checkoutBuyer.wa), buyerName=checkoutBuyer.nama;
   const _la=document.getElementById("ksMapLat")?.value, _ln=document.getElementById("ksMapLng")?.value;
