@@ -1,0 +1,404 @@
+/* =====================================================================
+   KALENSARI STORE • TEMA BARU "Hangat Beranda"
+   Mengikuti desain referensi: header cokelat melengkung + logo, kolom cari,
+   banner geser, kategori bulat, banner promo, kartu produk dengan tombol "+",
+   dan navigasi bawah (Beranda / Pesanan / Favorit / Akun).
+   Dimuat SETELAH style.css. Semua fitur lama tetap dipakai (ID & fungsi sama).
+   ===================================================================== */
+:root{
+  --kb-cokelat:#5a3018;
+  --kb-cokelat-gelap:#46230f;
+  --kb-cokelat-2:#7a3e20;
+  --kb-krem:#fbf6ef;
+  --kb-kuning:#f8b93a;
+  --kb-teks:#3b2314;
+  --kb-redup:#8a6f5d;
+  --kb-garis:#eadbcc;
+  --kb-nav-h:76px;
+}
+
+html.tk body{
+  background:var(--kb-krem);
+  color:var(--kb-teks);
+  font-family:"Nunito","Segoe UI",Arial,sans-serif;
+}
+html.tk .top-strip{display:none!important}
+html.tk :where(button,a,input,select):focus-visible{outline:3px solid var(--kb-kuning);outline-offset:2px}
+
+/* ---------- ikon garis buatan sendiri ---------- */
+html.tk .hs-btn svg,html.tk .pc-btn svg,html.tk .lihat-semua svg,
+html.tk .hdr-search-btn svg,html.tk .hdr-mini-search svg{
+  width:16px;height:16px;flex:none;fill:none;stroke:currentColor;
+  stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round
+}
+
+/* =====================================================================
+   HEADER
+   ===================================================================== */
+/* header dipecah: .hdr-bar (menempel saat digulir) + .hdr-curve (lengkung + kolom cari) */
+html.tk .header{display:contents}
+html.tk .hdr-bar{
+  position:sticky;top:0;z-index:30;padding-top:10px;
+  background:var(--kb-cokelat);
+  box-shadow:0 6px 16px -10px rgba(0,0,0,0)
+}
+html.hs-stuck.tk .hdr-bar{box-shadow:0 8px 18px -10px rgba(40,18,6,.75)}
+html.tk .hdr-curve{
+  position:relative;z-index:2;background:var(--kb-cokelat);
+  border-radius:0 0 50% 50%/0 0 30px 30px;
+  box-shadow:0 12px 20px -14px rgba(58,31,16,.8)
+}
+html.tk main{padding-top:38px}
+html.tk.tema-esp .header .container.nav{
+  position:relative;height:60px!important;margin:0 auto;padding:0;gap:4px!important;
+  background:none!important;box-shadow:none!important;border-radius:0!important;
+  -webkit-backdrop-filter:none!important;backdrop-filter:none!important
+}
+@media(max-width:520px){html.tk.tema-esp .header .container.nav{width:92%}}
+
+/* merek: logo + tulisan */
+html.tk.tema-esp .header .brand{
+  order:1;display:flex;align-items:center;gap:10px;
+  margin:0 auto 0 0!important;color:#fff!important;text-decoration:none;white-space:nowrap
+}
+html.tk .brand-logo{
+  width:54px;height:54px;border-radius:50%;background:#fff;
+  border:3px solid var(--kb-kuning);object-fit:cover;flex:none;
+  box-shadow:0 4px 10px -4px rgba(0,0,0,.5)
+}
+html.tk.tema-esp .header .brand .brand-tx{
+  display:flex;flex-direction:column;gap:1px;margin:0;letter-spacing:normal;
+  font-size:inherit;font-weight:inherit;color:#fff
+}
+html.tk .brand-tx b{font:800 25px/1 "Baloo 2","Nunito",sans-serif;color:#fff;letter-spacing:.2px}
+html.tk .brand-tx i{
+  display:flex;align-items:center;gap:6px;font:700 15px/1 "Baloo 2","Nunito",sans-serif;
+  font-style:normal;color:var(--kb-kuning)
+}
+html.tk .brand-tx i::before,html.tk .brand-tx i::after{content:"";width:13px;height:2px;border-radius:2px;background:currentColor}
+@media(max-width:380px){
+  html.tk .brand-logo{width:46px;height:46px}
+  html.tk .brand-tx b{font-size:21px}
+  html.tk .brand-tx i{font-size:13px}
+}
+
+/* tombol ikon di header */
+html.tk.tema-esp .header .nav>button{
+  width:42px;height:42px;border-radius:50%!important;position:relative;
+  background:transparent!important;color:#fff!important;box-shadow:none!important
+}
+html.tk.tema-esp .header .nav>button:hover{background:rgba(255,255,255,.12)!important}
+html.tk.tema-esp .header .ksd-ic{width:26px;height:26px;stroke-width:1.7}
+html.tk.tema-esp .header .nav>.cart-btn{
+  order:4!important;width:42px!important;padding:0!important;display:inline-grid!important;
+  background:transparent!important;box-shadow:none!important
+}
+html.tk.tema-esp .header .cart-btn b{
+  position:absolute!important;top:1px;right:-1px;display:inline-block!important;
+  min-width:19px;height:19px;padding:0 4px;border-radius:10px!important;
+  background:#e8483b!important;color:#fff!important;
+  font:800 11px/19px "Nunito",Arial,sans-serif!important;text-align:center;
+  box-shadow:0 0 0 2px var(--kb-cokelat-gelap)!important
+}
+html.tk.tema-esp .header .cart-btn b.nol{display:none!important}
+html.tk.tema-esp .header #kabarBtn{order:3}
+html.tk.tema-esp .header .kabar-btn b{box-shadow:0 0 0 2px var(--kb-cokelat-gelap)!important}
+html.tk.tema-esp .header #hdrSearchMini{order:2;display:none}
+html.tk.hs-stuck.tema-esp .header #hdrSearchMini{display:inline-grid}
+html.tk.tema-esp .header #hdrSearchMini svg{width:24px;height:24px}
+html.tk.tema-esp .header #shopBtn{display:none!important}
+html.tk.tema-esp .header #menuBtn{order:6;background:rgba(255,255,255,.14)!important}
+html.tk.tema-esp .header #myOrdersBtn{order:5;background:rgba(255,255,255,.14)!important}
+@media(max-width:900px){
+  html.tk.tema-esp .header #menuBtn,
+  html.tk.tema-esp .header #myOrdersBtn{display:none!important}
+}
+
+/* kolom cari */
+html.tk .hdr-search{position:relative;margin-bottom:-26px;padding-top:6px}
+html.tk .hdr-search-btn{
+  width:100%;height:50px;display:flex;align-items:center;gap:10px;padding:0 18px;
+  border:0;border-radius:999px;background:#fff;color:#a39386;cursor:pointer;
+  font:600 13.5px "Nunito",Arial,sans-serif;text-align:left;
+  box-shadow:0 10px 22px -10px rgba(58,31,16,.55)
+}
+html.tk .hdr-search-btn svg{width:22px;height:22px;stroke:#7a5b46}
+html.tk .hdr-search-btn span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* =====================================================================
+   BANNER GESER (HERO)
+   ===================================================================== */
+html.tk .hero{position:relative;margin-top:8px}
+html.tk .hero-track{
+  display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
+  scroll-behavior:smooth;scrollbar-width:none;border-radius:22px;
+  box-shadow:0 16px 30px -18px rgba(58,31,16,.75)
+}
+html.tk .hero-track::-webkit-scrollbar{display:none}
+html.tk .hero-slide{
+  flex:0 0 100%;scroll-snap-align:center;scroll-snap-stop:always;position:relative;overflow:hidden;
+  min-height:178px;display:flex;align-items:center;padding:20px 16px 30px 20px;color:#fff;
+  background:linear-gradient(100deg,#46230f 0%,#6a3819 55%,#8a5128 100%)
+}
+html.tk .hero-slide.hs-2{background:linear-gradient(100deg,#6b3317 0%,#a85a22 60%,#c8802f 100%)}
+html.tk .hero-slide.hs-3{background:linear-gradient(100deg,#2c4528 0%,#3d6636 60%,#5a8a4a 100%)}
+html.tk .hero-slide::after{
+  content:"";position:absolute;left:-30px;bottom:-60px;width:170px;height:170px;border-radius:50%;
+  background:rgba(255,255,255,.05);pointer-events:none
+}
+html.tk .hs-tx{position:relative;z-index:2;max-width:58%}
+html.tk .hs-script{
+  display:block;font:700 26px/1 "Caveat","Nunito",cursive;font-style:normal;color:#fff;
+  transform:rotate(-3deg);transform-origin:left;margin-bottom:2px
+}
+html.tk .hero-slide h1{
+  margin:0;font:800 clamp(19px,5.6vw,30px)/1.1 "Baloo 2","Nunito",sans-serif;color:#fff
+}
+html.tk .hero-slide p{margin:6px 0 12px;font:600 13px/1.35 "Nunito",sans-serif;color:rgba(255,255,255,.92)}
+html.tk .hs-btn{
+  display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;
+  background:var(--kb-kuning);color:var(--kb-cokelat-gelap);text-decoration:none;
+  font:800 14px "Nunito",sans-serif;box-shadow:0 8px 16px -8px rgba(0,0,0,.55)
+}
+html.tk .hs-btn:active{transform:scale(.97)}
+html.tk .hs-img{
+  position:absolute;right:-13%;top:50%;transform:translateY(-50%);width:58%;aspect-ratio:1;
+  border-radius:50%;overflow:hidden;display:grid;place-items:center;z-index:1;
+  background:radial-gradient(circle at 35% 30%,#fff7e6,#f2d5a4);
+  box-shadow:0 0 0 7px rgba(255,255,255,.14),0 20px 32px -12px rgba(0,0,0,.6)
+}
+html.tk .hs-img img{width:100%;height:100%;max-width:none;object-fit:cover}
+html.tk .hs-img img[hidden]{display:none}
+html.tk .hs-emoji{font-size:74px;line-height:1;filter:drop-shadow(0 8px 8px rgba(0,0,0,.25))}
+html.tk .hs-img.has-img .hs-emoji{display:none}
+
+html.tk .hero-dots{position:absolute;left:20px;bottom:11px;display:flex;gap:6px;z-index:3}
+html.tk .hero-dots button{
+  width:8px;height:8px;padding:0;border:0;border-radius:8px;background:rgba(255,255,255,.55);
+  cursor:pointer;transition:width .25s,background .25s
+}
+html.tk .hero-dots button.on{width:22px;background:#fff}
+
+html.tk .music-btn{
+  position:absolute;right:12px;top:12px;left:auto;bottom:auto;z-index:4;
+  width:38px;height:38px;border:0;font-size:18px;background:rgba(255,255,255,.92);
+  box-shadow:0 6px 14px -6px rgba(0,0,0,.5)
+}
+html.tk .music-btn:not(.wait){animation:none}
+
+@media(min-width:700px){
+  html.tk .hero-slide{min-height:250px;padding:30px 36px 38px}
+  html.tk .hs-tx{max-width:52%}
+  html.tk .hs-script{font-size:34px}
+  html.tk .hero-slide p{font-size:16px}
+  html.tk .hs-btn{font-size:16px;padding:11px 22px}
+  html.tk .hs-img{width:auto;height:122%;right:3%}
+  html.tk .hs-emoji{font-size:120px}
+  html.tk .hero-dots{left:36px;bottom:16px}
+}
+
+/* program harian (absen / promo ongkir / menu baru) */
+html.tk #ksHarian{margin-top:12px!important}
+
+/* =====================================================================
+   KATEGORI BULAT
+   ===================================================================== */
+html.tk .category-section{padding:0;margin-top:14px}
+html.tk .category-section .section-title{display:none}
+html.tk .categories{
+  display:flex;flex-wrap:nowrap;gap:4px;overflow-x:auto;padding:14px 8px 12px;
+  background:#fff;border-radius:22px;scrollbar-width:none;
+  box-shadow:0 12px 26px -20px rgba(58,31,16,.7),0 0 0 1px rgba(122,62,32,.05)
+}
+html.tk .categories .cat,
+html.tk .categories .cat:hover,
+html.tk .categories .cat.active,
+html.tk .categories .cat.cat-toko,
+html.tk .categories .cat.cat-toko.active,
+html.tk .categories .cat.cat-toko:hover,
+html.tk .categories .cat.cat-pm,
+html.tk .categories .cat.cat-pm.active,
+html.tk .categories .cat.cat-pm:hover{
+  flex:1 0 76px;max-width:118px;display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:2px 0 0;border:0;border-radius:0;background:none;color:#4a2b17;
+  font:700 12.5px/1.2 "Nunito",sans-serif;white-space:normal;text-align:center
+}
+html.tk .cat-ic{
+  width:58px;height:58px;border-radius:50%;display:grid;place-items:center;
+  background:var(--c,#f1e7de);font-size:28px;line-height:1;transition:box-shadow .15s,transform .15s
+}
+html.tk .cat:active .cat-ic{transform:scale(.94)}
+html.tk .cat.active .cat-ic{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--kb-cokelat-2)}
+html.tk .cat-semua .cat-ic{color:var(--kb-cokelat)}
+html.tk .cat-semua .cat-ic svg{width:26px;height:26px}
+html.tk .cat-tx{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  max-width:100%;word-break:break-word
+}
+html.tk .cat.active .cat-tx{color:var(--kb-cokelat);font-weight:900}
+
+/* =====================================================================
+   BANNER PROMO
+   ===================================================================== */
+html.tk .promo-wrap{margin-top:14px}
+html.tk .promo-card{
+  position:relative;overflow:hidden;display:flex;align-items:center;min-height:152px;
+  padding:18px 16px 18px 20px;border-radius:22px;
+  background:linear-gradient(100deg,#fbe4cc 0%,#f8d4b0 100%)
+}
+html.tk .promo-card::before{
+  content:"";position:absolute;right:-14%;bottom:-48%;width:78%;aspect-ratio:1.5;
+  background:#f3c48f;border-radius:50%;opacity:.75
+}
+html.tk .pc-tx{position:relative;z-index:2;max-width:56%}
+html.tk .pc-tx h2{margin:0;font:800 clamp(20px,5.8vw,30px)/1.08 "Baloo 2","Nunito",sans-serif;color:var(--kb-cokelat)}
+html.tk .pc-tx p{margin:6px 0 12px;font:600 13px/1.35 "Nunito",sans-serif;color:#4a2b17}
+html.tk .pc-btn{
+  display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border:0;border-radius:999px;
+  background:var(--kb-cokelat);color:#fff;font:800 14px "Nunito",sans-serif;cursor:pointer
+}
+html.tk .pc-btn:active{transform:scale(.97)}
+html.tk .pc-art{position:absolute;right:8px;top:0;bottom:0;width:42%;display:grid;place-items:center;z-index:1}
+html.tk .pc-ph{
+  width:min(132px,100%);aspect-ratio:1;border-radius:50%;overflow:hidden;display:grid;place-items:center;
+  background:#fff4e4;box-shadow:0 14px 24px -12px rgba(90,48,24,.65)
+}
+html.tk .pc-ph img{width:100%;height:100%;max-width:none;object-fit:cover}
+html.tk .pc-ph img[hidden]{display:none}
+html.tk .pc-ph.has-img .pc-emoji{display:none}
+html.tk .pc-emoji{font-size:62px;line-height:1}
+html.tk .pc-badge{
+  position:absolute;top:14px;right:2px;z-index:3;padding:9px 13px;border-radius:18px 18px 18px 4px;
+  background:var(--kb-cokelat);color:#fff;text-align:center;transform:rotate(-7deg);
+  font:800 12px/1.1 "Baloo 2","Nunito",sans-serif;box-shadow:0 8px 14px -8px rgba(0,0,0,.6)
+}
+@media(min-width:700px){
+  html.tk .promo-card{min-height:190px;padding:26px 36px}
+  html.tk .pc-tx p{font-size:15px}
+  html.tk .pc-ph{width:160px}
+  html.tk .pc-art{right:5%}
+}
+
+/* =====================================================================
+   MENU PILIHAN (daftar produk)
+   ===================================================================== */
+html.tk .products-section{padding:22px 0 8px}
+html.tk .products-section .section-title{margin:0 0 10px;display:flex;align-items:center;justify-content:space-between}
+html.tk .products-section .section-title h2{margin:0;font:800 clamp(22px,6vw,28px)/1.1 "Baloo 2","Nunito",sans-serif;color:var(--kb-cokelat)}
+html.tk .lihat-semua{
+  display:inline-flex;align-items:center;gap:3px;padding:6px 0;border:0;background:none;
+  color:var(--kb-cokelat);font:700 14px "Nunito",sans-serif;cursor:pointer
+}
+
+html.tk .shop-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px}
+html.tk .shop-toolbar .search-box{display:none}
+html.tk .shop-toolbar .search-box:has(#searchInput:not(:placeholder-shown)){
+  display:flex;flex:1 0 100%;order:-1;min-height:42px;background:#fff;border-radius:999px;border:1px solid var(--kb-garis)
+}
+html.tk .shop-toolbar .store-btn,
+html.tk .shop-toolbar select{
+  width:auto;margin:0;padding:8px 14px;border-radius:999px;border:1px solid var(--kb-garis);
+  background:#fff;color:var(--kb-cokelat);font:700 13px "Nunito",sans-serif;cursor:pointer
+}
+html.tk .shop-toolbar select{padding-right:10px}
+
+html.tk .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(min-width:640px){html.tk .product-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}}
+@media(min-width:960px){html.tk .product-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+html.tk .product{
+  border:0;border-radius:18px;background:#fff;overflow:hidden;
+  box-shadow:0 12px 24px -18px rgba(58,31,16,.8),0 0 0 1px rgba(122,62,32,.05)
+}
+html.tk .product:hover{transform:none;box-shadow:0 12px 24px -18px rgba(58,31,16,.8),0 0 0 1px rgba(122,62,32,.05)}
+html.tk .product-img{height:auto;flex:none;aspect-ratio:4/3;cursor:pointer;background:#f3e3d6}
+html.tk .product-body{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:8px;align-items:center;
+  padding:10px 12px 12px;min-height:0
+}
+html.tk .product-body>h3{
+  grid-column:1/-1;grid-row:1;margin:0 0 4px;cursor:pointer;
+  font:700 14.5px/1.25 "Nunito",sans-serif;color:var(--kb-teks)
+}
+html.tk .product-body>.price{grid-column:1;grid-row:2;margin:0;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px;font:800 14.5px/1.25 "Nunito",sans-serif;color:var(--kb-cokelat)}
+html.tk .product-body>.product-actions{grid-column:2;grid-row:2;margin:0;display:block}
+html.tk .product-body>small{grid-column:1/-1;margin:3px 0 0;font:600 11.5px/1.35 "Nunito",sans-serif;color:var(--kb-redup)}
+html.tk .product-body>small:first-of-type{margin-top:4px}
+html.tk .product-actions .btn:not(.add-fab){display:none}
+html.tk .product-actions .add-fab{
+  position:relative;width:36px;height:36px;padding:0!important;flex:none;border-radius:50%!important;
+  background:var(--kb-cokelat);color:#fff;font-size:0!important;display:block;
+  box-shadow:0 8px 14px -8px rgba(58,31,16,.8)
+}
+html.tk .add-fab::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:linear-gradient(#fff,#fff) center/100% 2.6px no-repeat,linear-gradient(#fff,#fff) center/2.6px 100% no-repeat}
+html.tk .add-fab:active{transform:scale(.92)}
+html.tk .product .add-fab[disabled]{background:#d8cbc0;box-shadow:none;opacity:1}
+html.tk .product.soldout .product-img img{filter:grayscale(.7);opacity:.7}
+html.tk .sale-badge{
+  top:8px;left:8px;padding:4px 10px;background:var(--kb-cokelat);color:#fff;
+  font:800 11px "Nunito",sans-serif
+}
+
+/* bar filter (toko / favorit / promo) */
+html.tk .seller-filter-bar{border-radius:14px}
+
+/* ajakan bantuan WhatsApp */
+html.tk .wa-banner{background:none;margin-top:26px;padding:0}
+html.tk .wa-inner{
+  background:linear-gradient(100deg,var(--kb-cokelat-gelap),var(--kb-cokelat-2));
+  color:#fff;border-radius:22px;padding:20px 22px
+}
+html.tk .wa-inner h2{font-family:"Baloo 2","Nunito",sans-serif}
+
+/* =====================================================================
+   PENCARIAN CEPAT (dibuka dari kolom cari di header)
+   ===================================================================== */
+html.tk .search-float{display:none!important}
+html.tk .quick-search-panel{
+  position:fixed;left:0;right:0;margin:0 auto;top:var(--qs-top,150px);bottom:auto;
+  width:min(560px,calc(100vw - 28px));z-index:60;border-radius:20px
+}
+
+/* =====================================================================
+   NAVIGASI BAWAH
+   ===================================================================== */
+html.tk .bottom-nav{display:none}
+@media(max-width:900px){
+  html.tk .bottom-nav{
+    display:grid;grid-template-columns:repeat(4,1fr);position:fixed;z-index:35;
+    left:10px;right:10px;margin:0 auto;max-width:560px;
+    bottom:calc(8px + env(safe-area-inset-bottom,0px));padding:8px 6px 4px;
+    background:#fff;border-radius:28px;
+    box-shadow:0 16px 34px -12px rgba(58,31,16,.6),0 0 0 1px rgba(122,62,32,.06)
+  }
+  html.tk .bn{
+    position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:4px 0 10px;border:0;background:none;cursor:pointer;
+    color:#9a8a7d;font:700 12.5px "Nunito",sans-serif
+  }
+  html.tk .bn svg{width:27px;height:27px;fill:#aa9a8c;stroke:none;transition:fill .15s}
+  html.tk .bn svg .ln{fill:none;stroke:#fff;stroke-width:1.9;stroke-linecap:round}
+  html.tk .bn.on{color:var(--kb-cokelat)}
+  html.tk .bn.on svg{fill:var(--kb-cokelat)}
+  html.tk .bn.on::after{
+    content:"";position:absolute;bottom:3px;width:30px;height:3px;border-radius:3px;background:var(--kb-cokelat)
+  }
+  html.tk .bn:active svg{transform:scale(.9)}
+
+  /* ruang agar isi & footer tidak tertutup bar bawah */
+  html.tk footer{padding-bottom:calc(35px + var(--kb-nav-h) + env(safe-area-inset-bottom,0px))}
+  html.tk .toast{bottom:calc(var(--kb-nav-h) + 22px + env(safe-area-inset-bottom,0px))}
+
+  /* menu Akun muncul di atas bar bawah */
+  html.tk.tema-esp .ks-menu{
+    top:auto!important;left:auto!important;right:10px!important;
+    bottom:calc(var(--kb-nav-h) + 14px + env(safe-area-inset-bottom,0px))!important;
+    transform-origin:bottom right;
+    max-height:calc(100vh - var(--kb-nav-h) - 40px);max-height:calc(100dvh - var(--kb-nav-h) - 40px)
+  }
+}
+
+@media(prefers-reduced-motion:reduce){
+  html.tk .hero-track{scroll-behavior:auto}
+  html.tk .hero-dots button,html.tk .cat-ic{transition:none}
+}

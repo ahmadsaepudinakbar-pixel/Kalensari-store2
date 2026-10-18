@@ -438,12 +438,32 @@ function shuffleKey(id){let h=2166136261^shuffleBlock;const s=String(id);for(let
 const activeSellerName=()=>{if(!activeSeller)return"";for(const p of products){const n=sellerList(p).find(x=>sellerKey(x)===activeSeller);if(n)return n;}return activeSeller;};
 const productHasSeller=(p,k)=>sellerList(p).some(n=>sellerKey(n)===k);
 
+// Ikon + warna pastel untuk tile kategori (dicocokkan dari nama kategori)
+const KS_CAT_IKON=[
+  [/seblak|mie|mi\b|bakso|soto|kuah|ramen/i,"🍜","#ffe3a3"],
+  [/minum|es\b|kopi|teh|jus|boba|susu|cendol|dawet/i,"🥤","#fbd3d3"],
+  [/camil|snack|gorengan|jajan|keripik|cireng|cilok/i,"🍟","#ffe0b8"],
+  [/kue|dessert|roti|donat|manis|eskrim|es krim|martabak/i,"🍰","#e6dcfb"],
+  [/sembako|sayur|buah|bumbu|beras|telur|minyak/i,"🥬","#d3efd0"],
+  [/makan|nasi|berat|lauk|ayam|ikan|lele|geprek|prasmanan/i,"🍛","#ffe3a3"]
+];
+const KS_CAT_WARNA=["#ffe3a3","#fbd3d3","#ffe0b8","#e6dcfb","#d3efd0","#dbe8fb"];
+function ksCatIkon(nama,i){
+  for(const [re,ik,w] of KS_CAT_IKON){if(re.test(nama))return{ik,w};}
+  return{ik:"🍽️",w:KS_CAT_WARNA[i%KS_CAT_WARNA.length]};
+}
+const KS_SEMUA_SVG='<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><circle cx="16" cy="8" r="3.2" fill="currentColor"/><circle cx="8" cy="16" r="3.2" fill="currentColor"/><circle cx="16" cy="16" r="3.2" fill="currentColor"/></svg>';
 function renderCategories() {
   const cats=["Semua",...new Set(products.map(p=>p.category))];
-  const tokoLbl=activeSeller&&!pmKeySet().has(activeSeller)?`🏪 ${esc(activeSellerName())}`:"🏪 Toko";
-  document.getElementById("categories").innerHTML=cats.map(c=>`<button class="cat ${c===activeCategory&&!(c==="Semua"&&activeSeller)?"active":""}" onclick="setCategory(${JSON.stringify(c).replace(/"/g,'&quot;')})">${esc(c)}</button>`).join("")
-    +`<button type="button" class="cat cat-toko${activeSeller&&!pmKeySet().has(activeSeller)?" active":""}" onclick="openShopPanel()">${tokoLbl}</button>`
-    +(pmTombolMuncul()||(activeSeller&&pmKeySet().has(activeSeller))?`<button type="button" class="cat cat-pm${activeSeller&&pmKeySet().has(activeSeller)?" active":""}" onclick="bukaInfoPasarMalam()">🌙 Pasar Malam</button>`:"");
+  const tokoAktif=activeSeller&&!pmKeySet().has(activeSeller);
+  const tokoLbl=tokoAktif?esc(activeSellerName()):"Toko";
+  const tile=(ik,w,teks)=>`<span class="cat-ic" style="--c:${w}">${ik}</span><span class="cat-tx">${teks}</span>`;
+  document.getElementById("categories").innerHTML=cats.map((c,i)=>{
+    const d=c==="Semua"?{ik:KS_SEMUA_SVG,w:"#f1e7de"}:ksCatIkon(c,i);
+    return `<button class="cat ${c===activeCategory&&!(c==="Semua"&&activeSeller)?"active":""}${c==="Semua"?" cat-semua":""}" onclick="setCategory(${JSON.stringify(c).replace(/"/g,'&quot;')})">${tile(d.ik,d.w,esc(c))}</button>`;
+  }).join("")
+    +`<button type="button" class="cat cat-toko${tokoAktif?" active":""}" onclick="openShopPanel()">${tile("🏪","#dbe8fb",tokoLbl)}</button>`
+    +(pmTombolMuncul()||(activeSeller&&pmKeySet().has(activeSeller))?`<button type="button" class="cat cat-pm${activeSeller&&pmKeySet().has(activeSeller)?" active":""}" onclick="bukaInfoPasarMalam()">${tile("🌙","#2b150a","Pasar Malam")}</button>`:"");
   renderSellerBar();
 }
 function setCategory(c) {
@@ -532,17 +552,17 @@ function singleCardHTML(p) {
   const builder=parseToppings(p).length>0, tLimit=Number(p.topping_limit)||0, sClosed=allSellersClosed(p), soldOut=isSoldOut(p), nVar=parseVariants(p).length;
   return `
    <article class="product${soldOut?" soldout":""}">
-  <div class="product-img"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
+  <div class="product-img" onclick="showProduct(${p.id})"><img src="${getProductImage(p.image)}" alt="${p.name}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
         ${soldOut?'<span class="soldout-badge">STOK HABIS</span>':promoOn(p)?'<span class="sale-badge">PROMO</span>':''}
       </div>
       <div class="product-body">
-        <h3>${p.name}</h3>
+        <h3 onclick="showProduct(${p.id})">${p.name}</h3>
         <div class="price">${builder?`Racik sendiri${Number(currentPrice(p))>0?` • mulai ${rupiah(currentPrice(p))}`:""}${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
         <small>${nVar?`${nVar} pilihan varian`:p.unit}${!soldOut&&stokOf(p)!==null&&stokOf(p)<=5?` • <b class="sisa">Sisa ${stokOf(p)}</b>`:""}</small><small class="seller">👤 ${p.seller}</small>${p.luar_kota?`<small class="seller" style="color:#b45309;font-weight:700">🌍 Dikirim dari ${esc(p.asal_kota||"luar kota")}${p.berat_gram?` • ${p.berat_gram} g`:""}</small>`:""}${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
         ${sClosed?`<small class="hours closed">🔒 ${esc(sellerWhy(p))}</small>`:""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
-          ${builder||nVar?`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="showProduct(${p.id})">${soldOut?"Stok Habis":builder?"Pilih Topping":"Pilih Varian"}</button>`:`<button class="btn primary" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="addToCart(${p.id})">${soldOut?"Stok Habis":"+ Keranjang"}</button>`}
+          ${builder||nVar?`<button class="btn primary add-fab" aria-label="${builder||nVar?'Pilih opsi':'Tambah ke keranjang'} ${esc(p.name)}" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="showProduct(${p.id})">${soldOut?"Stok Habis":builder?"Pilih Topping":"Pilih Varian"}</button>`:`<button class="btn primary add-fab" aria-label="${builder||nVar?'Pilih opsi':'Tambah ke keranjang'} ${esc(p.name)}" ${isInHours(p)&&!sClosed&&!soldOut?"":"disabled"} onclick="addToCart(${p.id})">${soldOut?"Stok Habis":"+ Keranjang"}</button>`}
         </div>
       </div>
     </article>`;
@@ -552,16 +572,16 @@ function groupCardHTML(u) {
   const sellers=[...new Set(v.flatMap(sellerList))].join(", ");
   return `
    <article class="product${v.every(isSoldOut)?" soldout":""}">
-  <div class="product-img"><img src="${getProductImage(first.image)}" alt="${esc(u.group)}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
+  <div class="product-img" onclick="showProduct(${first.id})"><img src="${getProductImage(first.image)}" alt="${esc(u.group)}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='🖼️'">
         ${v.every(isSoldOut)?'<span class="soldout-badge">STOK HABIS</span>':v.some(promoOn)?'<span class="sale-badge">PROMO</span>':''}
       </div>
       <div class="product-body">
-        <h3>${esc(u.group)}</h3>
+        <h3 onclick="showProduct(${first.id})">${esc(u.group)}</h3>
         <div class="price">${min===max?rupiah(min):`Mulai ${rupiah(min)}`}</div>
         <small>${v.length} pilihan varian</small><small class="seller">👤 ${esc(sellers)}</small>${v.every(x=>allSellersClosed(x))?`<small class="hours closed">🔒 ${esc(sellerWhy(v[0]))}</small>`:""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${first.id})">Detail</button>
-          <button class="btn primary" onclick="showProduct(${first.id})">Pilih Varian</button>
+          <button class="btn primary add-fab" aria-label="Pilih varian ${esc(u.group)}" onclick="showProduct(${first.id})">Pilih Varian</button>
         </div>
       </div>
     </article>`;
