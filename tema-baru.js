@@ -163,13 +163,20 @@
      --------------------------------------------------------------- */
   (function () {
     var tr = $("heroTrack"), dots = $("heroDots"); if (!tr || !dots) return;
-    var n = tr.children.length, cur = 0, jeda = 0, timer;
-    for (var i = 0; i < n; i++) {
-      var b = d.createElement("button");
-      b.type = "button"; b.setAttribute("aria-label", "Banner " + (i + 1));
-      (function (k) { b.addEventListener("click", function () { ke(k); jeda = Date.now() + 9000; }); })(i);
-      dots.appendChild(b);
+    var cur = 0, jeda = 0, timer;
+    // jumlah banner yang tampil (banner yang dihapus admin disembunyikan)
+    function jml() { var c = 0; [].forEach.call(tr.children, function (x) { if (x.style.display !== "none") c++; }); return c || 1; }
+    function bangunDots() {
+      dots.innerHTML = "";
+      var n = jml();
+      for (var i = 0; i < n; i++) {
+        var b = d.createElement("button");
+        b.type = "button"; b.setAttribute("aria-label", "Banner " + (i + 1));
+        (function (k) { b.addEventListener("click", function () { ke(k); jeda = Date.now() + 9000; }); })(i);
+        dots.appendChild(b);
+      }
     }
+    bangunDots();
     function tandai() {
       [].forEach.call(dots.children, function (x, k) { x.classList.toggle("on", k === cur); });
     }
@@ -189,10 +196,12 @@
     if (!gerakKurang) {
       timer = setInterval(function () {
         if (d.hidden || Date.now() < jeda || !terlihat()) return;
-        ke((cur + 1) % n);
+        ke((cur + 1) % jml());
       }, 5500);
     }
     tandai();
+    // dipanggil banner-tema.js setelah admin menambah/menghapus banner
+    w.ksHeroRefresh = function () { cur = 0; tr.scrollLeft = 0; bangunDots(); tandai(); };
   })();
 
   /* ---------------------------------------------------------------
