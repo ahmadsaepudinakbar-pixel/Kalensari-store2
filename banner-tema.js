@@ -16,7 +16,7 @@
     {k:"hero3",nama:"Banner 3 • Peduli",tipe:"hero"}
   ];
   var PROMO={k:"promo",nama:"Promo Spesial Hari Ini",tipe:"promo"};
-  var MAKS_BARU=5;   // banner tambahan maksimal (total tampil <= 8)
+  var MAKS_BARU=10;   // banner tambahan maksimal (total tampil <= 13)
   function tambahList(){return Array.isArray(cfg.tambah)?cfg.tambah:[];}
   function hapusList(){return Array.isArray(cfg.hapus)?cfg.hapus:[];}
   // semua kotak yang bisa diatur backgroundnya: 3 banner bawaan + banner tambahan + promo
@@ -365,7 +365,7 @@
     }).join("");
     var a=warnaOk(c.a)?c.a:L[0].a,b=warnaOk(c.b)?c.b:L[0].b;
     var ov=c.m==="foto"?(Number(c.ov)||0):(s.tipe==="hero"?35:50);
-    return '<div class="bn-card"'+(hidden?' style="opacity:.6"':"")+'><b>'+esc(s.nama)+(hidden?" (disembunyikan)":"")+'</b>'+teks+
+    return '<div class="bn-card" data-k="'+s.k+'"'+(hidden?' style="opacity:.6"':"")+'><b>'+esc(s.nama)+(hidden?" (disembunyikan)":"")+'</b>'+teks+
       '<small class="bn-ukuran">👁️ Pratinjau (seperti tampilan di HP) — ikut berubah saat Anda mengatur</small>'+
       '<div class="bn-pvw">'+prevHtml(s,nadaSlot(s))+'</div>'+
       '<div class="bn-row"><button type="button" class="bn-chip'+(c.m==="def"||!c.m?" on":"")+'" data-bn="def" data-s="'+s.k+'">↩︎ Bawaan</button>'+sw+'</div>'+
@@ -396,8 +396,10 @@
     if(!panel)return;
     panel.innerHTML='<div class="bn-head"><h4>🎨 Template Banner</h4><button type="button" class="bn-x" data-bn="tutup" aria-label="Tutup">✕</button></div>'+
       '<p class="bn-note">Hanya mengganti <b>background</b>. Teks, tombol, dan fitur kotak tidak berubah. Banner geser pakai warna/foto <b>gelap</b> agar teks putih terbaca; Promo pakai warna/foto <b>terang</b>. Geser slider untuk mengatur lapisan agar teks tetap jelas. Foto otomatis dikompres (lebar maks 1200 px, sekitar 150 KB) supaya web tetap ringan.</p>'+
-      '<div class="bn-row"><button type="button" class="bn-chip on" data-bn="tambah"'+(tambahList().length>=MAKS_BARU?" disabled":"")+'>➕ Tambah banner atas</button><small class="bn-ukuran">Maksimal '+MAKS_BARU+' banner tambahan. Banner bawaan boleh dihapus (disembunyikan) dan dipulihkan lagi.</small></div>'+
-      slots().map(kartu).join("")+
+      '<div class="bn-row"><button type="button" class="bn-chip on" data-bn="tambah"'+(tambahList().length>=MAKS_BARU?" disabled":"")+'>➕ Banner baru</button><small class="bn-ukuran">Maksimal '+MAKS_BARU+' banner tambahan. Banner bawaan boleh dihapus (disembunyikan) dan dipulihkan lagi.</small></div>'+
+      slots().filter(function(x){return x.tipe==="hero";}).map(kartu).join("")+
+      '<div class="bn-row" style="justify-content:center;margin:2px 0 12px"><button type="button" class="bn-chip on" data-bn="tambah"'+(tambahList().length>=MAKS_BARU?" disabled":"")+'>➕ Banner baru ('+tambahList().length+'/'+MAKS_BARU+')</button></div>'+
+      slots().filter(function(x){return x.tipe!=="hero";}).map(kartu).join("")+
       '<button type="button" class="btn primary bn-save" data-bn="simpan">💾 Simpan untuk semua pengunjung</button>';
     slots().forEach(function(s){var c=cfg[s.k];if(c&&c.m==="foto"&&foto[s.k])segarPrev(s.k);});
   }
@@ -443,6 +445,7 @@
         if(tambahList().length>=MAKS_BARU){toast("Maksimal "+MAKS_BARU+" banner tambahan");return;}
         var nb={id:"x"+Date.now().toString(36),em:"Baru!",judul:"Judul banner",teks:"Tulis keterangan di sini",tombol:"Lihat",link:"#products",emoji:"🎉"};
         cfg.tambah=tambahList().concat([nb]);bangunHero();terapkanSemua();gambarPanel();
+        try{var nk=panel.querySelector('.bn-card[data-k="'+nb.id+'"]');if(nk){nk.scrollIntoView({behavior:"smooth",block:"center"});var fj=nk.querySelector('input[data-f="judul"]');if(fj){fj.focus({preventScroll:true});fj.select();}}}catch(e){}
         toast("➕ Banner ditambahkan. Isi tulisannya lalu tekan Simpan.");return;
       }
       if(a==="hapus-b"){
