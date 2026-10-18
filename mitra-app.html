@@ -44,9 +44,18 @@ label{font-weight:600;font-size:13.5px;display:block}.r2{display:grid;grid-templ
 .sh-rt-t{flex:1;min-width:0}.sh-rt-t>b{display:block;font-size:14.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sh-rt-t small{display:block;font-size:12.5px;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sh-rt-go{flex:none;background:var(--chip);color:var(--b);font-weight:800;font-size:12px;border-radius:999px;padding:6px 10px}
 .sh-mh{display:flex;align-items:center;justify-content:space-between;margin:14px 2px 8px}.sh-mh h3{margin:0;font-size:18px;color:var(--ink)}.sh-mh button{border:0;background:none;color:var(--b);font:inherit;font-weight:800;font-size:13.5px;cursor:pointer}
-.sh-menu{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-.sh-menu button{display:flex;flex-direction:column;align-items:center;gap:6px;background:#fff;border:1px solid var(--ln);border-radius:14px;padding:10px 2px 8px;font:inherit;font-weight:700;font-size:11px;color:var(--ink);cursor:pointer;line-height:1.2}
-.sh-menu i{font-style:normal;width:38px;height:38px;border-radius:50%;background:var(--chip);display:grid;place-items:center;font-size:19px}
+.sh-feat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.mf{position:relative;display:flex;align-items:center;gap:10px;border:0;border-radius:20px;padding:14px 12px;font:inherit;text-align:left;cursor:pointer;color:#fff;box-shadow:0 8px 18px rgba(90,44,18,.18);transition:transform .15s}
+.mf:nth-child(1){background:linear-gradient(135deg,#7b3f1d,#b0602b)}.mf:nth-child(2){background:linear-gradient(135deg,#eaa31c,#f6c850);color:#3a1f10}
+.mf i{font-style:normal;width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,.24);display:grid;place-items:center;font-size:22px;flex:none}
+.mf b{display:block;font-size:14px;line-height:1.15}.mf small{display:block;font-size:11px;opacity:.92;margin-top:3px}
+.mf em{position:absolute;top:-7px;right:-4px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#e5483a;color:#fff;font-style:normal;font-weight:800;font-size:12px;line-height:18px;text-align:center;border:2px solid #fff;box-sizing:border-box}
+.sh-menu{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 6px;background:#fff;border-radius:22px;padding:16px 8px;box-shadow:0 4px 16px rgba(90,44,18,.08)}
+.mn{display:flex;flex-direction:column;align-items:center;gap:7px;background:none;border:0;padding:0;font:inherit;cursor:pointer;color:var(--ink);transition:transform .15s}
+.mn i{font-style:normal;width:100%;max-width:60px;aspect-ratio:1;border-radius:19px;background:linear-gradient(145deg,var(--c1),var(--c2));display:grid;place-items:center;font-size:25px;box-shadow:0 5px 12px rgba(90,44,18,.12),inset 0 1px 0 rgba(255,255,255,.65)}
+.mn span{font-size:11.5px;font-weight:700;line-height:1.2;text-align:center}
+.mf:active,.mn:active{transform:scale(.95)}
+.mo{width:100%;margin-top:14px;padding:12px;border-radius:16px;border:1.5px solid #efc9c2;background:#fff;color:var(--red);font:inherit;font-weight:800;font-size:13px;cursor:pointer}
 .sh-tips{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#5a2c12,#8a4a24);color:#fff;border-radius:14px;padding:8px 10px;margin:12px 0 16px;cursor:pointer}
 .sh-tips>span{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:16px}.sh-tips>div{flex:1;min-width:0}.sh-tips b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sh-tips button{flex:none;border:0;background:#fff;color:#5a2c12;font:inherit;font-weight:800;font-size:12px;border-radius:999px;padding:7px 10px;cursor:pointer}
@@ -225,6 +234,7 @@ function vHome(){
  const tampil=P.filter(p=>p.status==="Show").length,habis=P.filter(p=>p.status==="Sold"||(p.stock!=null&&p.stock<=0)).length,stok=P.reduce((t,p)=>t+(Number(p.stock)||0),0);
  const tnf=P.filter(p=>!p.image).length,tnk=P.filter(p=>!/^Khasiat:/.test(p.description||"")).length;
  const stN={aktif:"Aktif",menunggu:"Menunggu",ditolak:"Ditolak",nonaktif:"Nonaktif"}[me.status]||me.status;
+ const nb=Array.isArray(O)?O.filter(o=>grupP(o)==="baru").length:0,MC={tambah:["#e3f4e8","#b9e3c6"],saldo:["#fff1c9","#ffd979"],jam:["#e5ecfb","#bccdf2"],kirim:["#ffe3d6","#ffbf9f"],toko:["#f3e3fa","#dcb9ee"],aturan:["#e8eef0","#c6d4d9"],akun:["#fde4ea","#f6b9c9"],admin:["#dff3f1","#aee0da"]};
  const menu=[["prod","📦","Kelola Produk"],["tambah","➕","Tambah Produk"],["pesanan","🧾","Pesanan Masuk"],["jam","🕒","Jam Toko"],["saldo","💰","Saldo"],["kirim","🚚","Pengiriman"],["aturan","📋","Aturan"],["akun","👤","Akun Saya"],["toko","🛍️","Lihat Toko"],["admin","💬","Hubungi Admin"],["keluar","🚪","Keluar"]];
  return `<picture><source srcset="mitra-banner.webp" type="image/webp"><img class="sh-ban" src="mitra-banner.jpg" alt="Selamat datang Mitra Luar Kota Kalensari Store" width="1600" height="800"></picture>
  ${aktif()?"":`<div class="warn ${me.status==="menunggu"?"":"bad"}">${pesanStatus()}</div>`}
@@ -237,7 +247,9 @@ function vHome(){
  ${aktif()&&P.some(tipis)?`<div class="warn" style="cursor:pointer" onclick="flt='all';go('prod')">⚠️ <b>${P.filter(tipis).length} produk stok menipis</b>${P.filter(tipis).slice(0,3).map(p=>`<div class="m" style="font-weight:500;margin-top:3px">${esc(p.name)} • sisa ${p.stock}</div>`).join("")}<div class="m" style="font-weight:700;margin-top:4px">Segera tambah stok ›</div></div>`:""}
  ${aktif()&&P.length&&(tnf||tnk)?`<div class="card"><b>Lengkapi produk Anda</b>${tnf?`<div class="kv"><span>📷 Foto</span><b>${tnf} produk belum ada foto</b></div>`:""}${tnk?`<div class="kv"><span>✨ Khasiat</span><b>${tnk} produk belum diisi khasiat</b></div>`:""}</div>`:""}
  <div class="sh-mh"><h3>Menu Utama</h3><button type="button" onclick="go('info')">Lihat Semua ›</button></div>
- <div class="sh-menu">${menu.map(([k,e,t])=>`<button type="button" onclick="menuAksi('${k}')"><i aria-hidden="true">${e}</i>${t}</button>`).join("")}</div>
+ <div class="sh-feat"><button type="button" class="mf" onclick="menuAksi('pesanan')"><i aria-hidden="true">🧾</i><div><b>Pesanan Masuk</b><small>${nb?nb+" pesanan baru":"Belum ada yang baru"}</small></div>${nb?`<em>${nb}</em>`:""}</button><button type="button" class="mf" onclick="menuAksi('prod')"><i aria-hidden="true">📦</i><div><b>Kelola Produk</b><small>${P.length} produk</small></div></button></div>
+ <div class="sh-menu">${menu.filter(m=>MC[m[0]]).map(([k,e,t])=>`<button type="button" class="mn" style="--c1:${MC[k][0]};--c2:${MC[k][1]}" onclick="menuAksi('${k}')"><i aria-hidden="true">${e}</i><span>${t}</span></button>`).join("")}</div>
+ <button type="button" class="mo" onclick="menuAksi('keluar')">🚪 Keluar</button>
  <div class="sh-tips" onclick="go('info')"><span aria-hidden="true">💡</span><div><b>Tips tingkatkan penjualan</b></div><button type="button">Lihat ›</button></div>`}
 const STOK_TIPIS=5,tipis=p=>p.status!=="Hide"&&p.stock!=null&&Number(p.stock)>0&&Number(p.stock)<=STOK_TIPIS;
 const tgl=t=>{try{return new Date(t).toLocaleDateString("id-ID",{day:"numeric",month:"short",year:"numeric"})}catch(e){return""}};
@@ -264,8 +276,9 @@ async function ajukanTarik(){const b=$("bTarik"),v=i=>$(i).value.trim();if(!v("t
  if(!confirm("Ajukan penarikan "+rp(v("tJml"))+" ke "+v("tBank")+" "+v("tRek")+"?"))return;b.disabled=true;
  try{await rpc("mitra_tarik_ajukan",{p_sesi:sesi(),p_jumlah:parseInt(v("tJml"),10),p_bank:v("tBank"),p_rekening:v("tRek"),p_nama:v("tNama")});toast("Penarikan diajukan, menunggu admin");await muatSaldo();gambar()}
  catch(e){if(!sesiHabis(e))toast(e.message);b.disabled=false}}
-const grupP=o=>o.status==="selesai"?"selesai":/batal|ditolak|gagal/.test(o.status)?"batal":o.resi?"kirim":o.tahap==="dikemas"?"kemas":o.status==="baru"?"baru":"proses";
-const PS={baru:["Baru","wt"],proses:["Diproses","pr"],kirim:["Dikirim","pr"],kemas:["Dikemas","wt"],selesai:["Selesai","ok"],batal:["Batal","no"]};
+const belumBayar=o=>o.pay==="tunggu_wa"||(/qris/i.test(o.bayar||"")&&o.pay!=="lunas");
+const grupP=o=>o.status==="selesai"?"selesai":/batal|ditolak|gagal/.test(o.status)?"batal":belumBayar(o)?"bayar":o.resi?"kirim":o.tahap==="dikemas"?"kemas":o.status==="baru"||o.status==="menunggu"?"baru":"proses";
+const PS={baru:["Baru","wt"],proses:["Diproses","pr"],kirim:["Dikirim","pr"],kemas:["Dikemas","wt"],bayar:["Menunggu bayar","wt"],selesai:["Selesai","ok"],batal:["Batal","no"]};
 function vPesanan(){
  if(!aktif())return `<div class="warn ${me.status==="menunggu"?"":"bad"}">${pesanStatus()}</div>`;
  if(!O)return `<div class="empty">Memuat pesanan...</div>`;
@@ -277,8 +290,9 @@ function vPesanan(){
   <div style="margin:8px 0">${o.items.map(i=>`<div class="kv" style="padding:5px 0"><b style="flex:1">${esc(i.nama)}</b><span style="width:auto">${i.qty} × ${rp(i.harga)}</span></div>`).join("")}<div class="kv"><b style="flex:1">Total produk Anda</b><b>${rp(sub)}</b></div></div>
   <div class="kv"><span style="width:70px">Pembeli</span><b>${esc(o.nama||"-")}</b></div><div class="kv"><span style="width:70px">Alamat</span><b>${esc(o.alamat||"-")}</b></div>${hpAdmin()?`<div class="kv"><span style="width:70px">No. HP</span><b>${esc(hpAdmin())} <small style="font-weight:500;color:var(--mu)">(nomor admin, untuk resi)</small></b></div>`:""}${o.catatan?`<div class="kv"><span style="width:70px">Catatan</span><b>${esc(o.catatan)}</b></div>`:""}
   ${o.resi?`<div class="kv"><span style="width:70px">Resi</span><b>${esc(o.kurir)} • ${esc(o.resi)}</b></div>`:""}
-  ${!["selesai","batal"].includes(grupP(o))?`<button type="button" class="btn s" style="margin:8px 6px 0 0" onclick="${grupP(o)==="baru"||grupP(o)==="proses"?"kemas":"bukaResi"}(${O.indexOf(o)})">${o.resi?"✏️ Ubah resi":grupP(o)==="kemas"?"🚚 Kirim paket":"📦 Sedang dikemas"}</button>`:""}
-  <button type="button" class="btn o s" style="margin-top:8px" onclick="salinPenerima(${O.indexOf(o)})">📋 Salin data penerima</button> <button type="button" class="btn o s" style="margin-top:8px" onclick="adminPesanan(${O.indexOf(o)})">💬 Ada kendala? Hubungi admin</button></div>`}).join(""):`<div class="empty">Belum ada pesanan${flt==="all"?"":" di kategori ini"}</div>`)}
+  ${grupP(o)==="bayar"?`<div class="hint" style="margin:6px 0 0">⏳ Menunggu pembayaran pembeli. Belum perlu dikemas.</div>`:""}
+  ${!["selesai","batal","bayar"].includes(grupP(o))?`<button type="button" class="btn s" style="margin:8px 6px 0 0" onclick="${grupP(o)==="baru"||grupP(o)==="proses"?"kemas":"bukaResi"}(${O.indexOf(o)})">${o.resi?"✏️ Ubah resi":grupP(o)==="kemas"?"🚚 Kirim paket":"📦 Sedang dikemas"}</button>`:""}
+  ${["bayar","batal"].includes(grupP(o))?"":`<button type="button" class="btn o s" style="margin-top:8px" onclick="cetakLabel(${O.indexOf(o)})">🖨️ Cetak label</button> `}<button type="button" class="btn o s" style="margin-top:8px" onclick="salinPenerima(${O.indexOf(o)})">📋 Salin data penerima</button> <button type="button" class="btn o s" style="margin-top:8px" onclick="adminPesanan(${O.indexOf(o)})">💬 Ada kendala? Hubungi admin</button></div>`}).join(""):`<div class="empty">Belum ada pesanan${flt==="all"?"":" di kategori ini"}</div>`)}
 async function kemas(i){const o=O[i];if(!o||!confirm("Tandai pesanan "+o.kode+" sedang dikemas?"))return;
  try{await rpc("mitra_dikemas",{p_sesi:sesi(),p_kode:o.kode});toast("Pesanan ditandai sedang dikemas");await muatPesanan();gambar()}
  catch(e){if(!sesiHabis(e))toast(/Could not find|belum siap/i.test(e.message)?"Fitur ini belum aktif: jalankan supabase-mitra-resi.sql terbaru":e.message)}}
@@ -286,6 +300,12 @@ async function adminPesanan(i){const o=O[i];if(!o)return;const n=await waAdmin()
 const hpAdmin=()=>/^62\d{8,13}$/.test(ADM)?"0"+ADM.slice(2):"";
 function salinPenerima(i){const o=O[i];if(!o)return;const t=[o.nama||"",hpAdmin(),o.alamat||"","Ref: "+o.kode].filter(Boolean).join("\n");
  try{navigator.clipboard.writeText(t).then(()=>toast("Data penerima tersalin"),()=>prompt("Salin data penerima:",t))}catch(e){prompt("Salin data penerima:",t)}}
+const hpLokal=w=>/^62\d{8,13}$/.test(w||"")?"0"+String(w).slice(2):String(w||"");
+function cetakLabel(i){const o=O[i];if(!o)return;const w=window.open("","_blank");if(!w)return toast("Izinkan pop-up untuk mencetak label");
+ w.document.write(`<!doctype html><meta charset="utf-8"><title>Label ${esc(o.kode)}</title><style>@page{size:A6;margin:6mm}body{font:13px/1.35 Arial,sans-serif;color:#222;margin:0}.h{background:#7b3f1d;color:#fff;padding:8px 10px;font-weight:700;font-size:15px}.k{font-size:24px;font-weight:800;margin:4px 0}.l{font-size:10px;color:#666;letter-spacing:.5px;margin-top:10px}.b{border-top:1px solid #bbb;padding-top:2px;margin-top:8px}</style><div class="h">KALENSARI STORE – Paket Mitra</div><div class="l">KODE PESANAN</div><div class="k">${esc(o.kode)}</div>
+<div class="b"><div class="l">PENGIRIM</div><b>${esc(me.toko)}</b><br>${esc([me.alamat_toko||me.alamat,me.kota].filter(Boolean).join(", "))}${me.wa?"<br>Telp: "+esc(hpLokal(me.wa)):""}</div>
+<div class="b"><div class="l">PENERIMA</div><b style="font-size:15px">${esc(o.nama||"Pembeli")}</b>${hpAdmin()?"<br><b>Telp: "+esc(hpAdmin())+"</b>":""}<br>${esc(o.alamat||"")}</div>
+<div class="b"><div class="l">ISI PAKET</div>${o.items.map(x=>"• "+esc(x.nama)+" ×"+x.qty).join("<br>")}</div>${o.catatan?`<div class="b"><div class="l">CATATAN</div>${esc(o.catatan)}</div>`:""}<script>setTimeout(function(){print()},300)<\/script>`);w.document.close()}
 let resiIdx=-1;
 function bukaResi(i){const o=O[i];if(!o)return;resiIdx=i;$("rsInfo").textContent="Pesanan "+o.kode;$("rsKurir").value=o.kurir||"J&T";$("rsNo").value=o.resi||"";{const h=hpAdmin(),b=$("rsHp");b.hidden=!h;b.innerHTML=h?`📞 Di resi, tulis <b>telepon penerima: ${esc(h)}</b> (nomor admin Kalensari Store) dan kode pesanan <b>${esc(o.kode)}</b> di kolom catatan/isi paket.`:""}$("resiWrap").hidden=false;setTimeout(()=>$("rsNo").focus(),50)}
 $("rsBatal").onclick=()=>{$("resiWrap").hidden=true};
