@@ -11,7 +11,7 @@
    ===================================================================== */
 (function(){
   if(window.KSCrop) return;
-  const RASIO = {"1:1":1, "4:3":4/3, "3:4":3/4, "16:9":16/9, "2:1":2, "3:1":3, "bulat":1};
+  const RASIO = {"1:1":1, "4:3":4/3, "3:4":3/4, "16:9":16/9, "2:1":2, "3:1":3, "1200:70":1200/70, "bulat":1};
   const MAKS = 1600;
   const css = `.ksc{position:fixed;inset:0;z-index:100000;background:#120a06;display:flex;flex-direction:column;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
 .ksc-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 8px}
@@ -73,7 +73,7 @@
       const el = document.createElement("div"); el.className = "ksc";
       el.innerHTML = `<div class="ksc-top"><div><b>✂️ Potong foto</b><small>${esc(opsi.judul || "Geser & cubit untuk mengatur")}</small></div><button class="ksc-ib" data-a="putar" type="button">⟳ Putar</button></div>
         <div class="ksc-st"><canvas></canvas></div>
-        <div class="ksc-bar"><div class="ksc-chips">${(opsi.kunci ? [mode] : ["1:1", "4:3", "3:4", "16:9", "asli"].concat(["bulat", "2:1", "3:1"].indexOf(mode) >= 0 ? [mode] : []))
+        <div class="ksc-bar"><div class="ksc-chips">${(opsi.kunci ? [mode] : ["1:1", "4:3", "3:4", "16:9", "asli"].concat(["bulat", "2:1", "3:1", "1200:70"].indexOf(mode) >= 0 ? [mode] : []))
           .map(k => `<button type="button" data-r="${k}" class="${k === mode ? "on" : ""}">${k === "asli" ? "Asli" : k === "bulat" ? "⭕ Bulat" : k}</button>`).join("")}</div>
           <div class="ksc-zoom">➖<input type="range" min="0" max="100" value="0" aria-label="Zoom">➕</div>
           <div class="ksc-act"><button class="ksc-b1" data-a="batal" type="button">Batal</button><button class="ksc-b1" data-a="lewati" type="button">Tanpa potong</button><button class="ksc-b2" data-a="ok" type="button">✅ Pakai foto</button></div></div>`;

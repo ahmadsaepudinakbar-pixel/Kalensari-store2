@@ -83,6 +83,12 @@
       "#adminBanner .bn-prev{position:relative;overflow:hidden;display:flex;align-items:center;box-sizing:border-box;min-height:32cqw;padding:3.3cqw 2.8cqw 6cqw 3.9cqw;border-radius:4cqw;border:1px solid #eadfd6;line-height:1.2}"+
       "#adminBanner .bn-prev.bn-promo{min-height:25.5cqw;padding:2.8cqw 2.8cqw 2.8cqw 3.9cqw}"+
       "#adminBanner .bn-pt{position:relative;z-index:2;max-width:92%}"+
+      "#adminBanner .bn-prev.bn-hero{min-height:0;height:19.4cqw;padding:1.7cqw 3.3cqw 3.3cqw 3.9cqw}"+
+      "#adminBanner .bn-hero .bn-pt{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:3.3cqw;align-items:center;width:100%;max-width:none}"+
+      "#adminBanner .bn-hero .bn-ph{grid-column:1;grid-row:1;font-size:3.9em;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}"+
+      "#adminBanner .bn-hero .bn-pp{grid-column:1;grid-row:2;margin:.1em 0 0;font-size:2.9em;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"+
+      "#adminBanner .bn-hero .bn-pb{grid-column:2;grid-row:1/3;white-space:nowrap}"+
+      "#adminBanner .bn-hero .bn-pc{display:none}"+
       "#adminBanner .bn-ps{display:block;font:700 5.3em/1 'Caveat','Nunito',cursive;font-style:normal;transform:rotate(-3deg);transform-origin:left;margin-bottom:.1em}"+
       "#adminBanner .bn-ph{display:block;font:800 4.2em/1.1 'Baloo 2','Nunito',sans-serif}"+
       "#adminBanner .bn-promo .bn-ph{font-size:4.4em;line-height:1.08}"+
@@ -318,7 +324,7 @@
     var isi=T.img?'<img src="'+esc(T.img)+'" alt="">':'<i>'+esc(T.emo)+'</i>';
     return '<div class="bn-prev '+(hero?"bn-hero":"bn-promo")+'" data-s="'+s.k+'" data-tone="'+tone+'" style="background:'+bg+';color:'+tc+'">'+deco+
       '<div class="bn-pt" style="font-size:'+(ts*1)+'cqw">'+
-        (T.em?'<em class="bn-ps">'+esc(T.em)+'</em>':'')+
+        (T.em&&!hero?'<em class="bn-ps">'+esc(T.em)+'</em>':'')+
         '<strong class="bn-ph">'+esc(T.h)+'</strong>'+
         (T.p?'<span class="bn-pp">'+esc(T.p)+'</span>':'')+
         (T.b?'<span class="bn-pb" style="background:'+bb+';color:'+bc+'">'+esc(T.b)+' ›</span>':'')+
@@ -372,10 +378,10 @@
         '<label class="bn-l">Kiri <input type="color" data-bn="a" data-s="'+s.k+'" value="'+a+'"></label>'+
         '<label class="bn-l">Kanan <input type="color" data-bn="b" data-s="'+s.k+'" value="'+b+'"></label></div>'+
       '<div class="bn-row"><label class="bn-chip'+(c.m==="foto"?" on":"")+'" style="cursor:pointer">🖼️ '+(foto[s.k]?"Ganti foto":"Pakai foto")+
-        '<input type="file" accept="image/*" data-crop="'+(s.tipe==="hero"?"2:1":"3:1")+'" data-bn="file" data-s="'+s.k+'" hidden></label></div>'+
-      '<small class="bn-ukuran">📐 Ukuran foto ideal: <b>'+(s.tipe==="hero"?"1200 × 600 px (perbandingan 2:1)":"1200 × 400 px (perbandingan 3:1)")+'</b>. '+
-        (s.tipe==="hero"?"Teks ada di sisi kiri dan lingkaran foto menu di kanan, jadi pakai foto yang tidak ramai. ":"Teks di kiri dan foto menu bulat di kanan, jadi pakai foto yang tidak ramai. ")+
-        'Di komputer kotak tampil lebih lebar, jadi bagian atas/bawah foto bisa terpotong: taruh objek penting di tengah.</small>'+
+        '<input type="file" accept="image/*" data-crop="'+(s.tipe==="hero"?"1200:70":"3:1")+'" data-bn="file" data-s="'+s.k+'" hidden></label></div>'+
+      '<small class="bn-ukuran">📐 Ukuran foto ideal: <b>'+(s.tipe==="hero"?"1200 × 70 px (banner tipis, perbandingan sekitar 17:1)":"1200 × 400 px (perbandingan 3:1)")+'</b>. '+
+        (s.tipe==="hero"?"Judul dan tombol tampil di atas foto, jadi pakai foto yang tidak terlalu ramai. ":"Teks di kiri dan foto menu bulat di kanan, jadi pakai foto yang tidak ramai. ")+
+        (s.tipe==="hero"?'Di HP kotak lebih sempit, jadi sisi kiri/kanan foto bisa terpotong: taruh objek penting di tengah.':'Di komputer kotak tampil lebih lebar, jadi bagian atas/bawah foto bisa terpotong: taruh objek penting di tengah.')+'</small>'+
       (c.m==="foto"?'<div class="bn-row"><label class="bn-l" style="flex:1">'+(s.tipe==="hero"?"🌑 Lapisan gelap":"☀️ Lapisan terang")+' <b class="bn-pct">'+ov+'%</b> <input type="range" min="0" max="90" step="5" value="'+ov+'" data-bn="ov" data-s="'+s.k+'"></label></div>'+
         '<small class="bn-ukuran">'+(s.tipe==="hero"?"Geser ke kanan supaya foto lebih gelap dan teks putih lebih jelas.":"Geser ke kanan supaya foto lebih pudar dan teks cokelat lebih jelas.")+'</small>':'')+
     '<div class="bn-row"><b class="bn-l">✍️ Warna tulisan</b>'+
