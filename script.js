@@ -1406,6 +1406,10 @@ function kartuPesanan(o){
   const langkah=urut.map((x,i)=>`<div class="ps-step ${st==="dibatalkan"?"x":i<idx?"done":i===idx?"now":""}"><span>${IKON_PS[x]}</span><small>${statusLabel(x)}</small></div>`).join('<i class="ps-line"></i>');
   const tokoTx=[...new Set((o.items||[]).map(x=>x.seller).filter(Boolean))].join(", ");
   const item=(o.items||[]).map(x=>`${esc(x.name)} ×${x.qty}`).join(" • ")+(tokoTx?` <span class="ps-toko">(${esc(tokoTx)})</span>`:"");
+  // Foto pesanan: dari item pesanan, cadangan dari daftar produk (cocok id / nama dasar)
+  const fotoItem=x=>{let im=x&&x.image;if(!im&&typeof products!=="undefined"&&Array.isArray(products)){const pr=products.find(q=>q&&x&&q.id===x.id)||products.find(q=>q&&x&&x.name&&String(x.name).indexOf(q.name)===0);im=pr&&pr.image;}return im?getProductImage(im):"";};
+  const fotos=(o.items||[]).map(x=>({src:fotoItem(x),nm:x.name||""})).filter(f=>f.src);
+  const fotoHtml=fotos.length?`<div class="ps-fotos">${fotos.slice(0,4).map(f=>`<img src="${esc(f.src)}" alt="${esc(f.nm)}" loading="lazy" onerror="this.remove()">`).join("")}${fotos.length>4?`<span class="ps-fotos-lebih">+${fotos.length-4}</span>`:""}</div>`:"";
   const bisaQris=(QRIS_OTOMATIS||modeStatis())&&o.payment==="QRIS"&&o.pay_status!=="lunas"&&st!=="dibatalkan"&&!lokal;
   const aksi=bisaQris?`<button class="ps-aksi" type="button" onclick="bayarQris('${esc(o.order_code)}')">${SVG_QR}<span>${o.pay_status==="verifikasi"?"Lihat status pembayaran":"Bayar & upload bukti"}</span><em>›</em></button>`
     :st==="dikirim"&&!lokal?`<button class="ps-aksi" type="button" onclick="lacakKurir('${esc(o.order_code)}')"><b>🛵</b><span>Lacak kurir</span><em>›</em></button>`:"";
@@ -1416,6 +1420,7 @@ function kartuPesanan(o){
     <div class="ps-steps">${langkah}</div>
     <div class="ps-row"><span class="ps-av">${SVG_ORANG}</span><div><b>${esc(o.customer_name||"")}</b><small>${SVG_TELP}${esc(o.customer_phone||"")}</small></div></div>
     <div class="ps-row"><span class="ps-av ps-av2">${SVG_TAS}</span><div class="ps-item">${item}</div></div>
+    ${fotoHtml}
     <div class="ps-tot"><strong>${rupiah(o.total||0)}</strong>${aksi}</div>
     ${o.pay_status==="verifikasi"&&st==="menunggu"?'<div class="order-hint">🔎 Bukti transfer terkirim • menunggu verifikasi admin</div>':(bisaQris&&st==="menunggu"?'<div class="order-hint">⚠️ Belum berhasil: unggah bukti transfer dalam 15 menit sejak pesan, atau pesanan dibatalkan otomatis</div>':"")}
     ${o.pay_status==="tunggu_wa"&&st==="menunggu"?'<div class="order-hint">📞 Menunggu konfirmasi admin lewat WhatsApp (pesanan COD pertama)</div>':""}
