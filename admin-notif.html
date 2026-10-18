@@ -92,6 +92,8 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rp=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
 const wk=v=>String(v||'').replace(/\D/g,'').replace(/^0/,'62');
+const sKey=v=>String(v||'').trim().toLowerCase();
+let PJ=[]; // daftar penjual (penjual_members) untuk tombol WA penjual
 const fmt=t=>{try{return new Date(t).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
 let auth=(()=>{try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch(e){return null}})();
 const saveAuth=a=>{auth=a;try{a?localStorage.setItem(AUTH_KEY,JSON.stringify(a)):localStorage.removeItem(AUTH_KEY)}catch(e){}};
@@ -160,7 +162,7 @@ document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{tab=b.dataset.t;docu
 async function muat(manual){
   if(busyLoad||!auth)return;busyLoad=true;
   try{
-    const [po,q,t,ct,ck,lu,mt]=await Promise.all([
+    const [po,q,t,ct,ck,lu,mt,pm]=await Promise.all([
       api('orders?select=*&status=in.(menunggu,baru,diproses,dikirim)&order=created_at.desc&limit=80').catch(()=>null),
       api('orders?select=*&pay_status=eq.verifikasi&order=created_at.desc&limit=60').catch(()=>[]),
       api('kurir_topup?select=id,nama,wa,jumlah,status,t&status=eq.menunggu&order=t.desc&limit=60').catch(()=>[]),
@@ -169,8 +171,10 @@ async function muat(manual){
       // QRIS yang sudah LUNAS otomatis lewat iPaymu (24 jam terakhir): sudah punya pay_order_id (QR iPaymu dibuat), bukan hasil ACC manual / lunas-otomatis-waktu
       api('orders?select=*&payment=ilike.qris*&pay_status=eq.lunas&pay_order_id=not.is.null&paid_at=gte.'+encodeURIComponent(new Date(Date.now()-864e5).toISOString())+'&order=paid_at.desc&limit=60').catch(()=>[]),
       // pendaftar mitra luar kota yang menunggu persetujuan (null bila SQL mitra belum dipasang)
-      api('rpc/mitra_admin_daftar',{method:'POST',body:'{}'}).catch(()=>null)
+      api('rpc/mitra_admin_daftar',{method:'POST',body:'{}'}).catch(()=>null),
+      readKey('penjual_members',[]).catch(()=>null)
     ]);
+    if(Array.isArray(pm))PJ=pm;
     if(Array.isArray(mt))D.mitra=mt.filter(m=>m.status==='menunggu').map(m=>({...m,key:'m'+m.id}));
     // QRIS: satukan nota satu grup (1 QR bisa membayar beberapa nota)
     const g=new Map();(Array.isArray(q)?q:[]).forEach(o=>{const k=o.grup?'g'+o.grup:'o'+o.id;const e=g.get(k)||{key:k,grup:o.grup||null,ids:[],kode:[],total:0,nama:o.customer_name,wa:o.customer_phone,t:o.pay_klaim_at||o.created_at};e.ids.push(o.id);e.kode.push(o.order_code||('#'+o.id));e.total+=Number(o.total)||0;g.set(k,e)});
@@ -276,13 +280,18 @@ function kartuPesanan(o){
   const aksi=isBaru(o)?`<button class="btn red" onclick="pesananAksi(${Number(o.id)},'tolak',this)">✖ Tolak</button><button class="btn" onclick="pesananAksi(${Number(o.id)},'terima',this)">✅ Terima &amp; proses</button>`
     :st==='diproses'?`<button class="btn red" onclick="pesananAksi(${Number(o.id)},'tolak',this)">✖ Batalkan</button><button class="btn" onclick="pesananAksi(${Number(o.id)},'selesai',this)">✔ Selesai</button>`
     :`<button class="btn" onclick="pesananAksi(${Number(o.id)},'selesai',this)">✔ Selesai</button>`;
+  // WA penjual: muncul selama pesanan masih Baru (penjual belum merespons) agar admin bisa menagih
+  const pjBtn=isBaru(o)&&!tr&&!belumLunasQris(o)&&o.pay_status!=='tunggu_wa'?[...new Set(items.map(it=>sKey(it.seller)).filter(Boolean))].map(k=>{
+    const m=PJ.find(x=>x&&sKey(x.toko||x.usaha)===k),no=m?wk(m.wa):'';if(!no)return '';
+    const nm=m.toko||m.usaha||'penjual',pesan='Halo '+nm+', ada pesanan '+(o.order_code||('#'+o.id))+' yang belum diterima. Mohon segera dicek & diproses di aplikasi penjual ya.';
+    return `<a class="btn lt" style="text-decoration:none;text-align:center" href="https://wa.me/${no}?text=${encodeURIComponent(pesan)}" target="_blank" rel="noopener">📞 WA penjual (${esc(nm)})</a>`}).join(''):'';
   return `<div class="card">${stTag}${byr}
     <div style="margin-top:6px"><b>${esc(o.order_code||('#'+o.id))}</b> · ${esc(o.customer_name||'Pembeli')}</div>
     <div class="amt">${rp(o.total)}</div>
     <div class="mut" style="margin-top:4px">${brg}</div>
     ${alamat?`<div class="mut" style="margin-top:4px">📍 ${esc(alamat)}</div>`:''}${cat?`<div class="mut">📝 ${esc(cat)}</div>`:''}
     <div class="mut" style="margin-top:4px">${esc(o.payment||'-')} · ${fmt(o.created_at)}${o.kurir_nama?' · 🛵 '+esc(o.kurir_nama):''}</div>
-    <div class="row">${o.customer_phone?`<a class="btn lt" style="text-decoration:none;text-align:center" href="https://wa.me/${wk(o.customer_phone)}" target="_blank" rel="noopener">💬 WA</a>`:''}${aksi}</div></div>`;
+    <div class="row">${o.customer_phone?`<a class="btn lt" style="text-decoration:none;text-align:center" href="https://wa.me/${wk(o.customer_phone)}" target="_blank" rel="noopener">💬 WA</a>`:''}${pjBtn}${aksi}</div></div>`;
 }
 async function pesananAksi(id,aksi,btn){
   const o=D.pesanan.find(x=>Number(x.id)===Number(id));if(!o)return;
