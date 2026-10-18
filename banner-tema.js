@@ -134,28 +134,33 @@
     }catch(e){console.warn("Banner tema:",e);}
   }
 
-  /* ---------- kompres foto ---------- */
+  /* ---------- kompres foto otomatis (supaya web tidak berat) ---------- */
+  // Target: lebar maks 1200 px, hasil <= ~150 KB. Pakai WebP bila browser mendukung (lebih kecil), cadangan JPEG.
+  var TARGET_CHAR=200000;   // panjang data-URL ≈ 150 KB
+  function webpDidukung(){try{var c=document.createElement("canvas");c.width=c.height=1;return c.toDataURL("image/webp").indexOf("data:image/webp")===0;}catch(e){return false;}}
   function kompres(file){
     return new Promise(function(ok,gagal){
       if(!file||!/^image\//.test(file.type||""))return gagal(new Error("Pilih file foto (JPG/PNG)"));
-      var url=URL.createObjectURL(file),img=new Image();
+      var url=URL.createObjectURL(file),img=new Image(),awal=file.size||0;
       img.onerror=function(){URL.revokeObjectURL(url);gagal(new Error("Foto tidak bisa dibaca"));};
       img.onload=function(){
         URL.revokeObjectURL(url);
-        var sisi=1200,q=0.78,out="";
-        for(var i=0;i<8;i++){
-          var k=Math.min(1,sisi/Math.max(img.width,img.height)),c=document.createElement("canvas");
+        var fmt=webpDidukung()?"image/webp":"image/jpeg",lebar=Math.min(1200,img.width),q=0.8,out="";
+        for(var i=0;i<10;i++){
+          var k=lebar/img.width,c=document.createElement("canvas");
           c.width=Math.max(1,Math.round(img.width*k));c.height=Math.max(1,Math.round(img.height*k));
-          var x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);
-          out=c.toDataURL("image/jpeg",q);
-          if(out.length<=300000)return ok(out);
-          q=Math.max(0.5,q-0.07);sisi=Math.round(sisi*0.85);
+          var x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);
+          x.imageSmoothingQuality="high";x.drawImage(img,0,0,c.width,c.height);
+          out=c.toDataURL(fmt,q);
+          if(out.length<=TARGET_CHAR)return ok({url:out,awal:awal,akhir:Math.round(out.length*0.75)});
+          if(q>0.55)q=Math.round((q-0.1)*100)/100;else lebar=Math.round(lebar*0.85);
         }
-        gagal(new Error("Foto terlalu besar, coba foto lain"));
+        gagal(new Error("Foto terlalu rumit untuk dikecilkan, coba foto lain"));
       };
       img.src=url;
     });
   }
+  function kb(n){return n>=1048576?(n/1048576).toFixed(1)+" MB":Math.max(1,Math.round(n/1024))+" KB";}
 
   /* ---------- panel admin ---------- */
   var panel=null,tombol=null,buka=false;
@@ -192,7 +197,7 @@
   function gambarPanel(){
     if(!panel)return;
     panel.innerHTML='<div class="bn-head"><h4>🎨 Template Banner</h4><button type="button" class="bn-x" data-bn="tutup" aria-label="Tutup">✕</button></div>'+
-      '<p class="bn-note">Hanya mengganti <b>background</b>. Teks, tombol, dan fitur kotak tidak berubah. Banner geser pakai warna/foto <b>gelap</b> agar teks putih terbaca; Promo pakai warna/foto <b>terang</b>. Geser slider untuk mengatur lapisan agar teks tetap jelas.</p>'+
+      '<p class="bn-note">Hanya mengganti <b>background</b>. Teks, tombol, dan fitur kotak tidak berubah. Banner geser pakai warna/foto <b>gelap</b> agar teks putih terbaca; Promo pakai warna/foto <b>terang</b>. Geser slider untuk mengatur lapisan agar teks tetap jelas. Foto otomatis dikompres (lebar maks 1200 px, sekitar 150 KB) supaya web tetap ringan.</p>'+
       SLOT.map(kartu).join("")+
       '<button type="button" class="btn primary bn-save" data-bn="simpan">💾 Simpan untuk semua pengunjung</button>';
   }
@@ -244,11 +249,11 @@
       var t=e.target;if(!t.dataset||t.dataset.bn!=="file"||!t.files||!t.files[0])return;
       var k=t.dataset.s;
       try{
-        var url=await kompres(t.files[0]);
-        foto[k]=url;dirtyFoto[k]=true;
+        var hasil=await kompres(t.files[0]);
+        foto[k]=hasil.url;dirtyFoto[k]=true;
         atur(k,{m:"foto",ov:(cfg[k]&&cfg[k].ov!=null)?cfg[k].ov:(slotOf(k).tipe==="hero"?35:50)});
         terapkan(slotOf(k));gambarPanel();
-        toast("🖼️ Foto dipasang. Tekan Simpan agar tampil untuk semua pengunjung.");
+        toast("🖼️ Foto dikompres otomatis: "+kb(hasil.awal)+" → "+kb(hasil.akhir)+". Tekan Simpan.");
       }catch(err){toast("⚠️ "+(err&&err.message||"Foto gagal dipakai"));}
       t.value="";
     });
