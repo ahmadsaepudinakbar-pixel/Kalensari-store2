@@ -304,7 +304,7 @@
     panel=document.createElement("div");panel.id="adminBanner";panel.hidden=true;
     list.parentNode.insertBefore(panel,list);
     tombol.addEventListener("click",function(){buka=!buka;panel.hidden=!buka;tombol.classList.toggle("active",buka);if(buka)gambarPanel();});
-    if(location.hash==="#atur-banner"){setTimeout(function(){if(!buka)tombol.click();try{panel.scrollIntoView({behavior:"smooth",block:"start"});}catch(e){}},300);}
+    if(location.hash==="#atur-banner"){var ivB=setInterval(function(){var ap=$("adminPanel");if(ap&&!ap.hidden){clearInterval(ivB);if(!buka)tombol.click();try{panel.scrollIntoView({behavior:"smooth",block:"start"});}catch(e){}}},400);setTimeout(function(){clearInterval(ivB);},300000);}
     panel.addEventListener("click",async function(e){
       var t=e.target.closest("[data-bn]");if(!t)return;
       var a=t.dataset.bn,k=t.dataset.s;
@@ -367,5 +367,7 @@
   }
   // tunggu script.js selesai menyiapkan koneksi, lalu ambil dari database
   setTimeout(muatCloud,600);
+  // dibuka dari Admin > Tampilan: tampilkan form login admin (setelah login, panel banner terbuka)
+  if(location.hash==="#atur-banner"){setTimeout(function(){try{if(typeof openAdmin==="function")openAdmin();}catch(e){}},900);}
   window.KSBannerTema={terapkan:terapkanSemua,muat:muatCloud};
 })();
