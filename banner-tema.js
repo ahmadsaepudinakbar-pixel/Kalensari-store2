@@ -71,6 +71,7 @@
       "#adminBanner label.bn-l{display:flex;align-items:center;gap:6px;font-size:13px}"+
       "#adminBanner input[type=color]{width:44px;height:34px;padding:0;border:1px solid #d9c9bd;border-radius:8px;background:#fff}"+
       "#adminBanner input[type=range]{flex:1;min-width:120px;accent-color:#7a3e20}"+
+      "#adminBanner .bn-ukuran{display:block;font-size:12px;color:#6a5a50;line-height:1.4;margin:2px 0 4px}"+
       "#adminBanner .bn-save{width:100%;margin-top:4px}";
     document.head.appendChild(st);
   })();
@@ -141,7 +142,7 @@
       img.onerror=function(){URL.revokeObjectURL(url);gagal(new Error("Foto tidak bisa dibaca"));};
       img.onload=function(){
         URL.revokeObjectURL(url);
-        var sisi=1100,q=0.78,out="";
+        var sisi=1200,q=0.78,out="";
         for(var i=0;i<8;i++){
           var k=Math.min(1,sisi/Math.max(img.width,img.height)),c=document.createElement("canvas");
           c.width=Math.max(1,Math.round(img.width*k));c.height=Math.max(1,Math.round(img.height*k));
@@ -180,8 +181,12 @@
         '<label class="bn-l">Kiri <input type="color" data-bn="a" data-s="'+s.k+'" value="'+a+'"></label>'+
         '<label class="bn-l">Kanan <input type="color" data-bn="b" data-s="'+s.k+'" value="'+b+'"></label></div>'+
       '<div class="bn-row"><label class="bn-chip'+(c.m==="foto"?" on":"")+'" style="cursor:pointer">🖼️ '+(foto[s.k]?"Ganti foto":"Pakai foto")+
-        '<input type="file" accept="image/*" data-crop="16:9" data-bn="file" data-s="'+s.k+'" hidden></label>'+
-        (c.m==="foto"?'<label class="bn-l" style="flex:1">Gelap/terang <input type="range" min="0" max="90" step="5" value="'+ov+'" data-bn="ov" data-s="'+s.k+'"></label>':'')+'</div>'+
+        '<input type="file" accept="image/*" data-crop="'+(s.tipe==="hero"?"2:1":"3:1")+'" data-bn="file" data-s="'+s.k+'" hidden></label></div>'+
+      '<small class="bn-ukuran">📐 Ukuran foto ideal: <b>'+(s.tipe==="hero"?"1200 × 600 px (perbandingan 2:1)":"1200 × 400 px (perbandingan 3:1)")+'</b>. '+
+        (s.tipe==="hero"?"Teks ada di sisi kiri dan lingkaran foto menu di kanan, jadi pakai foto yang tidak ramai. ":"Teks di kiri dan foto menu bulat di kanan, jadi pakai foto yang tidak ramai. ")+
+        'Di komputer kotak tampil lebih lebar, jadi bagian atas/bawah foto bisa terpotong: taruh objek penting di tengah.</small>'+
+      (c.m==="foto"?'<div class="bn-row"><label class="bn-l" style="flex:1">'+(s.tipe==="hero"?"🌑 Lapisan gelap":"☀️ Lapisan terang")+' <b class="bn-pct">'+ov+'%</b> <input type="range" min="0" max="90" step="5" value="'+ov+'" data-bn="ov" data-s="'+s.k+'"></label></div>'+
+        '<small class="bn-ukuran">'+(s.tipe==="hero"?"Geser ke kanan supaya foto lebih gelap dan teks putih lebih jelas.":"Geser ke kanan supaya foto lebih pudar dan teks cokelat lebih jelas.")+'</small>':'')+
     '</div>';
   }
   function gambarPanel(){
@@ -233,7 +238,7 @@
       var a=t.dataset.bn,k=t.dataset.s;
       if(a==="a"||a==="b"){var c=cfg[k]||{};var o={m:"warna"};o[a]=t.value;if(!warnaOk(c.a)||!warnaOk(c.b)){var L=TPL[slotOf(k).tipe];o.a=o.a||L[0].a;o.b=o.b||L[0].b;}atur(k,o);terapkan(slotOf(k));
         var card=t.closest(".bn-card"),pv=card&&card.querySelector(".bn-prev");if(pv)pv.style.backgroundImage=prevBg(slotOf(k));}
-      if(a==="ov"){atur(k,{ov:Number(t.value)});terapkan(slotOf(k));}
+      if(a==="ov"){atur(k,{ov:Number(t.value)});terapkan(slotOf(k));var pc=t.closest(".bn-card");pc=pc&&pc.querySelector(".bn-pct");if(pc)pc.textContent=t.value+"%";}
     });
     panel.addEventListener("change",async function(e){
       var t=e.target;if(!t.dataset||t.dataset.bn!=="file"||!t.files||!t.files[0])return;
