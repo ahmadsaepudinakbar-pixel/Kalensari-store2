@@ -2506,7 +2506,18 @@ const isFav=id=>favorit.includes(Number(id));
 function toggleFav(id,ev){if(ev){ev.stopPropagation();ev.preventDefault();}id=Number(id);const on=!isFav(id);favorit=on?[...favorit,id]:favorit.filter(x=>x!==id);localStorage.setItem("kalensari_favorit",JSON.stringify(favorit));
   document.querySelectorAll(`[data-fav="${id}"]`).forEach(b=>{b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);b.textContent=favLabel(on);});
   showToast(on?"❤️ Disimpan ke favorit":"Dihapus dari favorit");if(hanyaFavorit)renderProducts();}
-function bukaFavorit(on=true){hanyaFavorit=on;if(on){activeCategory="Semua";activeSeller="";}renderProducts();if(on)document.getElementById("productGrid")?.scrollIntoView({behavior:"smooth",block:"start"});}
+// Belum ada favorit: tampilkan pop up saja (jangan ganti tampilan jadi kosong, supaya tidak terkesan produknya hilang)
+function popupFavoritKosong(){
+  if(document.getElementById("favKosongPop"))return;
+  const ov=document.createElement("div");ov.id="favKosongPop";ov.setAttribute("role","dialog");ov.setAttribute("aria-modal","true");
+  ov.style.cssText="position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.5);display:grid;place-items:center;padding:20px";
+  ov.innerHTML='<div style="background:#fff;border-radius:20px;max-width:340px;width:100%;padding:24px 20px 18px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.25)"><div style="font-size:42px;line-height:1">🤍</div><h3 style="margin:10px 0 6px;font-size:20px;color:#2e201a">Belum ada favorit</h3><p style="margin:0 0 16px;color:#6a5a50;font-size:15px;line-height:1.5">Buka <b>Detail</b> produk lalu ketuk 🤍 <b>Simpan ke favorit</b>.</p><button type="button" style="width:100%;border:0;border-radius:999px;padding:12px;background:#5b3017;color:#fff;font:inherit;font-weight:800;font-size:16px;cursor:pointer">Mengerti</button></div>';
+  const tutup=()=>ov.remove();
+  ov.addEventListener("click",e=>{if(e.target===ov)tutup();});
+  ov.querySelector("button").onclick=tutup;
+  document.body.appendChild(ov);
+}
+function bukaFavorit(on=true){if(on&&!favorit.length){popupFavoritKosong();return;}hanyaFavorit=on;if(on){activeCategory="Semua";activeSeller="";}renderProducts();if(on)document.getElementById("productGrid")?.scrollIntoView({behavior:"smooth",block:"start"});}
 const favLabel=on=>on?"❤️ Favorit saya":"🤍 Simpan ke favorit";
 const favBtn=p=>`<button type="button" class="fav-pill${isFav(p.id)?" on":""}" data-fav="${p.id}" aria-pressed="${isFav(p.id)}" onclick="toggleFav(${p.id},event)">${favLabel(isFav(p.id))}</button>`;
 // Tombol favorit hanya di halaman Detail produk (kartu produk tetap rapi)
