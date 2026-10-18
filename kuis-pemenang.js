@@ -54,7 +54,7 @@
     const ref = document.getElementById("lapakCard") || document.querySelector(".wa-banner") || document.querySelector("footer");
     if (!ref) return;
     const sec = document.createElement("section"); sec.className = "container"; sec.id = "kpTombol";
-    sec.innerHTML = '<a class="kp-tombol" href="kuis.html"><img class="lg" src="img/kuis-logo.webp" alt="" width="194" height="174" loading="lazy"><span><b>Kuis Pintar Kalensari</b><small>Belajar gratis SD • SMP • SMA, kumpulkan poin, menangkan voucher!</small></span><i>Main ›</i></a>';
+    sec.innerHTML = '<a class="kp-tombol" href="kuis.html"><img class="lg" src="img/kuis-anak-banner.webp" alt="" width="274" height="184" loading="lazy"><span><b>Kuis Pintar <em>Kalensari</em></b><small>Belajar gratis SD • SMP • SMA, kumpulkan poin, menangkan voucher!</small></span><i>Main →</i></a>';
     ref.parentNode.insertBefore(sec, ref);
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pasangTombol); else pasangTombol();
