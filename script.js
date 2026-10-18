@@ -1602,7 +1602,7 @@ function getProductImage(imagePath) {
       floatBtn.setAttribute('aria-expanded','false');
       floatBtn.classList.remove('active');
       input.value='';
-      result.innerHTML='Ketik nama produk untuk mencari.';
+      result.innerHTML='';
     }
 
     function getMatches(keyword){
@@ -1618,7 +1618,7 @@ function getProductImage(imagePath) {
     function renderQuickResults(keyword){
       const q=normalize(keyword);
       if(!q){
-        result.innerHTML='Ketik nama produk untuk mencari.';
+        result.innerHTML='';
         return;
       }
 
