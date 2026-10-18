@@ -165,6 +165,9 @@
     var c=cfg[s.k]||{m:"def"};
     el.classList.remove("bn-foto","bn-set");
     el.style.background="";el.style.removeProperty("--bn-lingkar");el.removeAttribute("data-tone");
+    // tulisan sendiri: warna (tc) & ukuran (ts, persen)
+    if(warnaOk(c.tc)){el.classList.add("bn-tc");el.style.setProperty("--bn-tc",c.tc);}else{el.classList.remove("bn-tc");el.style.removeProperty("--bn-tc");}
+    var ts=Number(c.ts);if(ts>=60&&ts<=180&&ts!==100)el.style.setProperty("--bn-ts",String(ts/100));else el.style.removeProperty("--bn-ts");
     if(c.m==="preset"){
       var t=tplDari(s,c);if(!t)return;
       el.style.background="linear-gradient(100deg,"+t.a+" 0%,"+t.b+" 100%)";
@@ -289,6 +292,16 @@
         'Di komputer kotak tampil lebih lebar, jadi bagian atas/bawah foto bisa terpotong: taruh objek penting di tengah.</small>'+
       (c.m==="foto"?'<div class="bn-row"><label class="bn-l" style="flex:1">'+(s.tipe==="hero"?"🌑 Lapisan gelap":"☀️ Lapisan terang")+' <b class="bn-pct">'+ov+'%</b> <input type="range" min="0" max="90" step="5" value="'+ov+'" data-bn="ov" data-s="'+s.k+'"></label></div>'+
         '<small class="bn-ukuran">'+(s.tipe==="hero"?"Geser ke kanan supaya foto lebih gelap dan teks putih lebih jelas.":"Geser ke kanan supaya foto lebih pudar dan teks cokelat lebih jelas.")+'</small>':'')+
+    '<div class="bn-row"><b class="bn-l">✍️ Warna tulisan</b>'+
+      '<button type="button" class="bn-chip'+(warnaOk(c.tc)?"":" on")+'" data-bn="tc-auto" data-s="'+s.k+'">Otomatis</button>'+
+      '<button type="button" class="bn-chip'+(c.tc==="#ffffff"?" on":"")+'" data-bn="tc-putih" data-s="'+s.k+'">Putih</button>'+
+      '<button type="button" class="bn-chip'+(c.tc==="#3b1e12"?" on":"")+'" data-bn="tc-coklat" data-s="'+s.k+'">Cokelat</button>'+
+      '<label class="bn-l">Pilih <input type="color" data-bn="tc" data-s="'+s.k+'" value="'+(warnaOk(c.tc)?c.tc:"#ffffff")+'"></label></div>'+
+    '<div class="bn-row"><b class="bn-l">🔠 Ukuran tulisan</b>'+
+      '<button type="button" class="bn-chip" data-bn="ts-" data-s="'+s.k+'" aria-label="Kecilkan tulisan">−</button>'+
+      '<b class="bn-pct">'+(Number(c.ts)||100)+'%</b>'+
+      '<button type="button" class="bn-chip" data-bn="ts+" data-s="'+s.k+'" aria-label="Besarkan tulisan">+</button>'+
+      '<button type="button" class="bn-chip" data-bn="ts0" data-s="'+s.k+'">Reset</button></div>'+
     (aksi?'<div class="bn-row">'+aksi+'</div>':"")+
     '</div>';
   }
@@ -308,7 +321,7 @@
     try{
       if(ada(adminEnsureFresh))await adminEnsureFresh();
       var bersih={};
-      slots().forEach(function(s){if(cfg[s.k]&&cfg[s.k].m&&cfg[s.k].m!=="def")bersih[s.k]=cfg[s.k];});
+      slots().forEach(function(s){var cc=cfg[s.k];if(cc&&((cc.m&&cc.m!=="def")||cc.tc||(cc.ts&&Number(cc.ts)!==100)))bersih[s.k]=cc;});
       if(hapusList().length)bersih.hapus=hapusList().slice();
       if(tambahList().length)bersih.tambah=tambahList().map(function(b){return {id:String(b.id),em:String(b.em||"").slice(0,40),judul:String(b.judul||"").slice(0,60),teks:String(b.teks||"").slice(0,90),tombol:String(b.tombol||"").slice(0,24),link:String(b.link||"").slice(0,200),emoji:String(b.emoji||"").slice(0,4)};});
       var body=[{key:"tema_banner",value:bersih}];
@@ -357,7 +370,11 @@
         try{localStorage.removeItem(LS_FOTO+k);}catch(e){}
         bangunHero();terapkanSemua();gambarPanel();toast("🗑️ Banner dihapus. Tekan Simpan.");return;
       }
-      if(a==="def"){delete cfg[k];terapkan(slotOf(k));gambarPanel();return;}
+      if(a==="def"){var cd=cfg[k]||{},keep={};if(cd.tc)keep.tc=cd.tc;if(cd.ts)keep.ts=cd.ts;if(keep.tc||keep.ts)cfg[k]=keep;else delete cfg[k];terapkan(slotOf(k));gambarPanel();return;}
+      if(a==="tc-auto"){atur(k,{tc:""});terapkan(slotOf(k));gambarPanel();return;}
+      if(a==="tc-putih"){atur(k,{tc:"#ffffff"});terapkan(slotOf(k));gambarPanel();return;}
+      if(a==="tc-coklat"){atur(k,{tc:"#3b1e12"});terapkan(slotOf(k));gambarPanel();return;}
+      if(a==="ts-"||a==="ts+"||a==="ts0"){var cs=Number((cfg[k]||{}).ts)||100,ns=a==="ts0"?100:Math.max(60,Math.min(180,cs+(a==="ts+"?10:-10)));atur(k,{ts:ns});terapkan(slotOf(k));gambarPanel();return;}
       if(a==="preset"){atur(k,{m:"preset",p:t.dataset.p});terapkan(slotOf(k));gambarPanel();return;}
       if(a==="warna"){var L=TPL[slotOf(k).tipe];var c=cfg[k]||{};atur(k,{m:"warna",a:warnaOk(c.a)?c.a:L[0].a,b:warnaOk(c.b)?c.b:L[0].b});terapkan(slotOf(k));gambarPanel();return;}
     });
@@ -371,6 +388,7 @@
       }
       if(a==="a"||a==="b"){var c=cfg[k]||{};var o={m:"warna"};o[a]=t.value;if(!warnaOk(c.a)||!warnaOk(c.b)){var L=TPL[slotOf(k).tipe];o.a=o.a||L[0].a;o.b=o.b||L[0].b;}atur(k,o);terapkan(slotOf(k));
         var card=t.closest(".bn-card"),pv=card&&card.querySelector(".bn-prev");if(pv)pv.style.backgroundImage=prevBg(slotOf(k));}
+      if(a==="tc"){atur(k,{tc:t.value});terapkan(slotOf(k));return;}
       if(a==="ov"){atur(k,{ov:Number(t.value)});terapkan(slotOf(k));var pc=t.closest(".bn-card");pc=pc&&pc.querySelector(".bn-pct");if(pc)pc.textContent=t.value+"%";}
     });
     panel.addEventListener("change",async function(e){
