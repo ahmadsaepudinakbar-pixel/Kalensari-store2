@@ -56,6 +56,19 @@
     const sec = document.createElement("section"); sec.className = "container"; sec.id = "kpTombol";
     sec.innerHTML = '<a class="kp-tombol" href="kuis.html"><img class="lg" src="img/kuis-anak-banner.webp" alt="" width="274" height="184" loading="lazy"><span><b>Kuis Pintar <em>Kalensari</em></b><small>Belajar gratis SD • SMP • SMA, kumpulkan poin, menangkan voucher!</small></span><i>Main →</i></a>';
     ref.parentNode.insertBefore(sec, ref);
+    // gambar kartu bisa diganti admin: Admin > Tampilan (store_settings "foto_kuis_kartu")
+    const img = sec.querySelector("img.lg"), AMAN = /^data:image\//;
+    try { const c = localStorage.getItem("ks_kuis_foto"); if (c && AMAN.test(c)) img.src = c; } catch (e) {}
+    try {
+      if (typeof cloudFetch === "function" && C && C.enabled) {
+        cloudFetch("store_settings?select=value&key=eq.foto_kuis_kartu").then(r => {
+          const v = Array.isArray(r) && r[0] && r[0].value, f = v && typeof v.foto === "string" && AMAN.test(v.foto) ? v.foto : "";
+          if (f) img.src = f;
+          else if (Array.isArray(r)) img.src = "img/kuis-anak-banner.webp";
+          try { f ? localStorage.setItem("ks_kuis_foto", f) : localStorage.removeItem("ks_kuis_foto"); } catch (e) {}
+        }).catch(() => {});
+      }
+    } catch (e) {}
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pasangTombol); else pasangTombol();
 

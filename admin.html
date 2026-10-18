@@ -516,7 +516,7 @@ async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{r
 /* ========== NAVIGASI ========== */
 const MENU=[
   ['dashboard','Dashboard','home'],['pesanan','Pesanan','doc'],['produk','Produk','box'],['kategori','Kategori','list'],
-  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['mitra','Mitra Luar Kota','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['kabar','Kabar Desa','doc'],['pasarmalam','Pasar Malam Jum’at','store'],['harian','Absen & Promo Ongkir','check'],['lapak','Lapak Barter','tag'],['kuis','Kuis Pintar','check'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['keamanan','Keamanan & Backup','lock'],['pengaturan','Pengaturan','gear']
+  ['pelanggan','Pelanggan','users'],['toko','Daftar Toko','store'],['mitra','Mitra Luar Kota','store'],['kurir','Daftar Kurir','truck'],['jasa','Jasa','tool'],['persetujuan','Persetujuan','check'],['promosi','Promosi','tag'],['laporan','Laporan','chart'],['keuangan','Keuangan','bag'],['cair','Pencairan Saldo','rp'],['setoran','Setoran QRIS','rp'],['cod','COD & Gagal antar','truck'],['refund','Refund & Toko Tutup','rp'],['voucher','Voucher & Ajak Tetangga','tag'],['kabar','Kabar Desa','doc'],['pasarmalam','Pasar Malam Jum’at','store'],['harian','Absen & Promo Ongkir','check'],['lapak','Lapak Barter','tag'],['kuis','Kuis Pintar','check'],['ulasan','Ulasan Pembeli','check'],['resetpin','Reset PIN Warga','users'],['keamanan','Keamanan & Backup','lock'],['tampilan','Tampilan','edit'],['pengaturan','Pengaturan','gear']
 ];
 /* Kelompok menu per pihak. '' = tampil langsung tanpa kelompok. Kunci yang tidak tercantum masuk "Lainnya". */
 const GRUP=[
@@ -526,7 +526,7 @@ const GRUP=[
   ['🛵','Kurir',['kurir','cod']],
   ['🤝','Penyedia Jasa',['jasa']],
   ['💰','Keuangan',['keuangan','cair','setoran','refund']],
-  ['⚙️','Sistem',['keamanan','pengaturan']]
+  ['⚙️','Sistem',['tampilan','keamanan','pengaturan']]
 ];
 (()=>{const ada=new Set(GRUP.flatMap(g=>g[2])),sisa=MENU.map(m=>m[0]).filter(k=>!ada.has(k));if(sisa.length)GRUP.push(['📁','Lainnya',sisa])})();
 const MENU_BY=Object.fromEntries(MENU.map(m=>[m[0],m]));
@@ -620,6 +620,7 @@ function render(){
   const [t,s]=TITLES[route];$('#pTitle').textContent=t;$('#pSub').textContent=s;
   $('#content').innerHTML=S.loaded||route==='lainnya'?PAGES[route]():'<div class="empty">Memuat data toko...</div>';
   if(route==='pengaturan'&&QR_TOPUP===null){QR_TOPUP=undefined;muatQrTopup()}
+  if(route==='tampilan'&&KUIS_FOTO===undefined){KUIS_FOTO=null;muatKuisFoto()}
   if(route==='pengaturan'&&QRS===null){QRS=undefined;muatQrs()}
   if(route==='keamanan'&&LOG.data===null&&!LOG.muat)muatLog();
   if(route==='pengaturan'&&window.KSNotif&&$('#admNotif'))KSNotif.kartu($('#admNotif'),{key:'admin_push',token:async()=>{await fresh();return auth.access_token},extra:{email:(auth&&auth.email)||''},judul:'Aktifkan di perangkat ini',ajakan:'Perangkat ini akan berbunyi saat ada pesanan atau pendaftar baru, walaupun halaman admin ditutup.',aktifTeks:'Perangkat ini menerima kabar pesanan & pendaftar baru.'});
@@ -1961,6 +1962,34 @@ async function qaSimpan(btn){
 async function qsHapus(btn){if(!confirm('Hapus QRIS pembayaran? Pembeli tidak bisa memilih QRIS sampai Anda mengisi lagi.'))return;
   await busy(btn,async()=>{await api('store_settings?key=eq.qris_statis',{method:'DELETE',headers:{Prefer:'return=minimal'}});QRS={};delete S.settings.qris_statis;render();toast('QRIS dihapus')})}
 
+/* ===== MENU TAMPILAN: banner beranda + gambar kartu Kuis Pintar =====
+   store_settings "foto_kuis_kartu" = {foto, t}  (diawali foto_ agar tidak ikut dimuat massal) */
+let KUIS_FOTO;   // undefined = belum dimuat, '' = bawaan, data:... = foto sendiri
+async function muatKuisFoto(){try{const v=await readKey('foto_kuis_kartu',null);KUIS_FOTO=v&&v.foto||''}catch(e){KUIS_FOTO=''}if(route==='tampilan')render()}
+function kuisKompres(f){return new Promise((ok,no)=>{const r=new FileReader();r.onerror=no;r.onload=()=>{const im=new Image();im.onerror=no;im.onload=()=>{const k=Math.min(1,700/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);const x=c.getContext('2d');x.drawImage(im,0,0,c.width,c.height);let d=c.toDataURL('image/webp',.85);if(d.indexOf('data:image/webp')!==0)d=c.toDataURL('image/jpeg',.85);ok(d)};im.src=r.result};r.readAsDataURL(f)})}
+async function unggahKuisFoto(inp){const f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  if(!/^image\//.test(f.type||'')){toast('Pilih file gambar (JPG/PNG/WebP)');return}
+  try{const foto=await kuisKompres(f);await setSetting('foto_kuis_kartu',{foto,t:Date.now()});KUIS_FOTO=foto;render();toast('✅ Gambar kartu Kuis disimpan')}catch(e){toast('Gagal menyimpan gambar: '+String(e.message||e).slice(0,60))}}
+async function hapusKuisFoto(btn){if(!confirm('Kembalikan ke gambar bawaan?'))return;await busy(btn,async()=>{await api('store_settings?key=eq.foto_kuis_kartu',{method:'DELETE',headers:{Prefer:'return=minimal'}});KUIS_FOTO='';render();toast('Kembali ke gambar bawaan')})}
+PAGES.tampilan=function(){
+  const lbl='font-size:12px;color:var(--mut);font-weight:600;display:block;margin-bottom:4px';
+  const gbr=KUIS_FOTO?KUIS_FOTO:'img/kuis-anak-banner.webp';
+  return `<div class="card" style="margin-bottom:16px"><div class="chead"><h3>🎨 Banner Beranda</h3></div>
+    <p class="sm" style="margin:0 0 12px">Ganti warna atau foto 3 banner geser dan kotak Promo Spesial, ubah judul, tombol & link, tambah banner baru (maks. 5), atau sembunyikan banner bawaan.</p>
+    <a class="btn btn-g" href="index.html#atur-banner" target="_blank" rel="noopener">Buka editor banner ↗</a>
+    <p class="sm" style="margin:10px 0 0">Editor terbuka di halaman beranda toko (harus login admin di sana).</p></div>
+  <div class="card"><div class="chead"><h3>🧒 Gambar Kartu Kuis Pintar</h3></div>
+    <p class="sm" style="margin:0 0 12px">Gambar di sisi kiri kartu “Kuis Pintar Kalensari” pada beranda. Disarankan gambar landscape ±3:2 dengan latar krem/transparan (otomatis dikecilkan).</p>
+    <span style="${lbl}">Pratinjau</span>
+    <div style="background:#fdf1e3;border-radius:18px;padding:8px;display:flex;align-items:center;gap:12px;max-width:420px">
+      ${KUIS_FOTO===null?'<span class="sm">Memuat…</span>':`<img src="${esc(gbr)}" alt="Gambar kartu Kuis" style="width:120px;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:12px">`}
+      <div><b style="color:#3b1e12">Kuis Pintar <span style="color:#5a2a14">Kalensari</span></b><div class="sm">Belajar gratis SD • SMP • SMA</div></div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+      <label class="btn btn-light" style="cursor:pointer">🖼️ ${KUIS_FOTO?'Ganti':'Unggah'} gambar<input type="file" accept="image/*" hidden onchange="unggahKuisFoto(this)"></label>
+      ${KUIS_FOTO?'<button type="button" class="btn btn-light" onclick="hapusKuisFoto(this)">Kembalikan bawaan</button>':''}</div>
+    <p class="sm" style="margin:10px 0 0">Perubahan tampil di beranda setelah halaman dimuat ulang.</p></div>`;
+};
+Object.assign(TITLES,{tampilan:['Tampilan','Banner beranda & gambar kartu Kuis Pintar']});
 /* QRIS isi saldo kurir: store_settings "foto_qris_topup" = {foto, t} (diawali foto_ agar tidak ikut dimuat massal) */
 let QR_TOPUP=null;
 async function muatQrTopup(){try{const v=await readKey('foto_qris_topup',null);QR_TOPUP=v&&v.foto||''}catch(e){QR_TOPUP=''}if(route==='pengaturan')render()}
