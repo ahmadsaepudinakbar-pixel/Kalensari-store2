@@ -269,6 +269,16 @@ const sellerKey=n=>String(n||"").trim().toLowerCase();
 // Kode toko (PJ0015 / PJ-0015 / pj 15) -> nama toko. Diisi dari penjual_members, disimpan di HP supaya link toko langsung terbuka.
 const normKodeToko=v=>{const m=String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").match(/^([A-Z]{2})0*(\d{1,6})$/);return m?m[1]+m[2].padStart(4,"0"):"";};
 var kodeTokoMap={},kodeTokoSiap=false,tokoLinkTunda="";
+const tokoDariKode=v=>{const kd=normKodeToko(v);return kd&&kodeTokoMap[kd]||"";};
+const kodeDariToko=k=>Object.keys(kodeTokoMap).find(kd=>kodeTokoMap[kd]===k)||"";
+// Cari toko: cocok ID toko (PJ0015 / pj15 / PJ-0015) atau nama toko. Hasil: [{k, name, kode, n}]
+function cariToko(q){
+  q=String(q||"").trim().toLowerCase();if(!q)return[];
+  const m=new Map(),viaKode=tokoDariKode(q);
+  products.filter(p=>isVisible(p)&&!pmProduk(p)).forEach(p=>sellerList(p).forEach(n=>{const k=sellerKey(n);if(!m.has(k))m.set(k,{k,name:n,n:0});m.get(k).n++;}));
+  return [...m.values()].filter(r=>r.k===viaKode||r.k.includes(q)).map(r=>({...r,kode:kodeDariToko(r.k)}))
+    .sort((a,b)=>(b.k===viaKode)-(a.k===viaKode)||a.name.localeCompare(b.name,"id")).slice(0,4);
+}
 try{const c=JSON.parse(localStorage.getItem("kalensari_kode_toko")||"{}");if(c&&typeof c==="object")kodeTokoMap=c;}catch(e){}
 const shippingFeeFor=n=>{const v=shippingFees[sellerKey(n)],d=Number(shippingFees.__default)||0;return(v===undefined||v===null||v==="")?d:(Number(v)||0);};
 // ===== ONGKIR = ongkir pertama toko + tambahan per KM (jarak garis lurus toko TERAKHIR di rute -> titik pembeli) =====
@@ -696,7 +706,8 @@ function tampilDekatBar(aktif){
 function renderProducts() {
   const q=document.getElementById("searchInput").value.toLowerCase().trim();
   const sort=document.getElementById("sortSelect").value;
-  let list=products.filter(p=>isVisible(p) && (activeCategory==="Semua"||p.category===activeCategory) && (activeSeller?productHasSeller(p,activeSeller):!pmProduk(p)) && (p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q)||String(p.seller||"").toLowerCase().includes(q)||groupName(p).toLowerCase().includes(q)));
+  const tokoQ=q?tokoDariKode(q):"";   // ketik ID toko (PJ0015) -> semua produk toko itu
+  let list=products.filter(p=>isVisible(p) && (activeCategory==="Semua"||p.category===activeCategory) && (activeSeller?productHasSeller(p,activeSeller):!pmProduk(p)) && ((tokoQ&&productHasSeller(p,tokoQ))||p.name.toLowerCase().includes(q)||p.category.toLowerCase().includes(q)||String(p.seller||"").toLowerCase().includes(q)||groupName(p).toLowerCase().includes(q)));
   // Bawaan saat "Semua": urutan acak per blok 20 menit (dropdown Urutan tetap diutamakan)
   if(activeCategory==="Semua"&&!activeSeller&&!["priceAsc","price-low","priceDesc","price-high","name"].includes(sort)) list.sort((a,b)=>shuffleKey(groupName(a)||a.id)-shuffleKey(groupName(b)||b.id)||Number(a.id)-Number(b.id));
   // Menu menurut cuaca: hanya di tampilan bawaan "Semua" (tanpa pencarian & tanpa urutan pilihan pembeli)
@@ -1668,12 +1679,18 @@ function getProductImage(imagePath) {
       }
 
       const matches=getMatches(q);
-      if(!matches.length){
-        result.innerHTML=`<div class="quick-search-empty">Produk <b>“${clean(keyword)}”</b> tidak ditemukan.</div>`;
+      const tokoL=typeof cariToko==='function'?cariToko(q):[];
+      const tokoH=tokoL.map(t=>`
+        <button type="button" class="quick-search-item qs-toko" data-toko-k="${clean(t.k)}">
+          <span class="quick-search-item-name">🏪 ${clean(t.name)}<small>${t.kode?clean(t.kode)+' • ':''}${t.n} menu • buka halaman toko</small></span>
+          <span class="quick-search-item-price">›</span>
+        </button>`).join('');
+      if(!matches.length&&!tokoL.length){
+        result.innerHTML=`<div class="quick-search-empty">Produk atau toko <b>“${clean(keyword)}”</b> tidak ditemukan.</div>`;
         return;
       }
 
-      result.innerHTML=matches.map(p=>`
+      result.innerHTML=tokoH+matches.map(p=>`
         <button type="button" class="quick-search-item" data-product-id="${Number(p.id)}">
           <span class="quick-search-item-name">${clean(p.name)}</span>
           <span class="quick-search-item-price">${typeof currentPrice==='function' && typeof rupiah==='function' ? rupiah(currentPrice(p)) : ''}</span>
@@ -1694,12 +1711,19 @@ function getProductImage(imagePath) {
         e.preventDefault();
         closePanel();
       } else if(e.key==='Enter'){
-        const first=result.querySelector('[data-product-id]');
+        const first=result.querySelector('[data-toko-k],[data-product-id]');
         if(first) first.click();
       }
     });
 
     result.addEventListener('click',e=>{
+      const tk=e.target.closest('[data-toko-k]');
+      if(tk){
+        closePanel();
+        if(mainInput) mainInput.value='';
+        if(typeof bukaHalamanToko==='function') bukaHalamanToko(tk.dataset.tokoK); else if(typeof setSeller==='function') setSeller(tk.dataset.tokoK);
+        return;
+      }
       const item=e.target.closest('[data-product-id]');
       if(!item) return;
       const id=Number(item.dataset.productId);
