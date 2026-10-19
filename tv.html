@@ -227,6 +227,8 @@ html[data-tema="gelap"] .ic-moon{display:none}
 }
 
 /* ---------- tombol & mode layar miring ---------- */
+.aksi-tonton{display:flex;flex-wrap:wrap;gap:8px;margin:12px 4px 0}
+.aksi-tonton .btn-miring{margin:0}
 .btn-miring{display:inline-flex;align-items:center;gap:8px;margin:12px 4px 0;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--chip);color:var(--ink);font-size:.9rem;font-weight:600;box-shadow:var(--shadow)}
 .btn-miring svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .keluar-miring{display:none;position:absolute;z-index:3;top:10px;right:10px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1.6rem;line-height:1}
@@ -234,7 +236,9 @@ html[data-tema="gelap"] .ic-moon{display:none}
 .player:-webkit-full-screen{border-radius:0;aspect-ratio:auto;width:100%;height:100%;background:#000}
 /* cadangan bila browser tidak mendukung layar penuh: putar tampilan lewat CSS */
 .player.miring-css{position:fixed;z-index:1000;border-radius:0;aspect-ratio:auto;background:#000;top:0;left:0;width:100vw;height:100vh;width:100dvw;height:100dvh}
-.player.miring-css .keluar-miring{display:block}
+/* layar datar: layar penuh tanpa memutar (tetap tegak) */
+.player.penuh-css{position:fixed;z-index:1000;border-radius:0;aspect-ratio:auto;background:#000;top:0;left:0;width:100vw;height:100vh;width:100dvw;height:100dvh}
+.player.miring-css .keluar-miring,.player.penuh-css .keluar-miring{display:block}
 @media (orientation:portrait){
   .player.miring-css{width:100vh;height:100vw;width:100dvh;height:100dvw;transform-origin:top left;transform:rotate(90deg) translateY(-100%)}
 }
@@ -438,6 +442,7 @@ function umur(v){
   return d<=0?'ditambahkan hari ini':d===1?'ditambahkan kemarin':'ditambahkan '+d+' hari lalu';
 }
 function baru(v){return Date.now()-tgl(v.created_at)<2*864e5}
+var IC_DATAR='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/></svg>';
 var IC_MIRING='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 12h.01M18 12h.01"/></svg>';
 var IC_PLAY='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>';
 
@@ -564,7 +569,8 @@ function renderStage(autoplay){
     jedaMusik();
     box.innerHTML='<div class="player"><iframe src="'+esc(embedUrl(v.yt_id))+'" title="'+esc(v.judul)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'
       +'<button class="keluar-miring" type="button" data-miring-tutup aria-label="Tutup mode miring">&times;</button></div>'
-      +'<button class="btn-miring" type="button" data-miring>'+IC_MIRING+'<span>Tonton layar miring</span></button>'
+      +'<div class="aksi-tonton"><button class="btn-miring" type="button" data-miring>'+IC_MIRING+'<span>Layar miring</span></button>'
+      +'<button class="btn-miring" type="button" data-datar>'+IC_DATAR+'<span>Layar datar</span></button></div>'
       +'<h1 class="judul">'+esc(v.judul)+'</h1>'
       +'<p class="meta">'+esc(v.kategori||'Tanpa kategori')+' &bull; '+umur(v)+'</p>';
     return;
@@ -633,8 +639,8 @@ $('#stage').addEventListener('click',function(e){
 });
 /* ---------- layar miring ---------- */
 function tutupMiringCss(){
-  var p=document.querySelector('.player.miring-css');
-  if(p)p.classList.remove('miring-css');
+  var p=document.querySelector('.player.miring-css,.player.penuh-css');
+  if(p){p.classList.remove('miring-css');p.classList.remove('penuh-css')}
   document.body.classList.remove('kunci-miring');
 }
 var miringAktif=false;
@@ -649,18 +655,20 @@ function selesaiMiring(){
   miringAktif=false;
   try{if(history.state&&history.state.miring)history.back()}catch(e){}
 }
-function bukaMiring(){
+function bukaMiring(datar){
   var p=document.querySelector('.player');if(!p)return;
   catatMiring();
+  var kelas=datar?'penuh-css':'miring-css';
   var rf=p.requestFullscreen||p.webkitRequestFullscreen;
   if(rf){
     var h=rf.call(p);
     var kunci=function(){
+      if(datar)return; /* layar datar: jangan kunci arah, biar mengikuti HP */
       try{var o=screen.orientation&&screen.orientation.lock&&screen.orientation.lock('landscape');if(o&&o.catch)o.catch(function(){})}catch(e){}
     };
-    if(h&&h.then){h.then(kunci,function(){p.classList.add('miring-css');document.body.classList.add('kunci-miring')})}else{kunci()}
+    if(h&&h.then){h.then(kunci,function(){p.classList.add(kelas);document.body.classList.add('kunci-miring')})}else{kunci()}
   }else{
-    p.classList.add('miring-css');document.body.classList.add('kunci-miring');
+    p.classList.add(kelas);document.body.classList.add('kunci-miring');
   }
 }
 function lepasMiring(){
@@ -670,7 +678,7 @@ function lepasMiring(){
 }
 function cekKeluarMiring(){
   lepasMiring();
-  if(!(document.fullscreenElement||document.webkitFullscreenElement)&&!document.querySelector('.player.miring-css'))selesaiMiring();
+  if(!(document.fullscreenElement||document.webkitFullscreenElement)&&!document.querySelector('.player.miring-css,.player.penuh-css'))selesaiMiring();
 }
 document.addEventListener('fullscreenchange',cekKeluarMiring);
 document.addEventListener('webkitfullscreenchange',cekKeluarMiring);
@@ -685,7 +693,8 @@ window.addEventListener('popstate',function(){
   lepasMiring();
 });
 $('#stage').addEventListener('click',function(e){
-  if(e.target.closest('[data-miring]'))bukaMiring();
+  if(e.target.closest('[data-miring]'))bukaMiring(false);
+  else if(e.target.closest('[data-datar]'))bukaMiring(true);
   else if(e.target.closest('[data-miring-tutup]')){tutupMiringCss();selesaiMiring()}
 });
 $('#btnLihat').addEventListener('click',function(){S.semua=!S.semua;renderRow()});
