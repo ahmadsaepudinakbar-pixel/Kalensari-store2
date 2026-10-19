@@ -25,6 +25,7 @@ button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
 input,select,textarea{font:inherit;color:inherit}
 svg.i{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
 .hide{display:none!important}
+#lihatBar{position:sticky;top:0;z-index:999;background:#1d4fa8;color:#fff;font:600 13px/1.4 system-ui,sans-serif;text-align:center;padding:8px 12px}
 
 /* LOGIN */
 #login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#e9f8ef 0%,#fff 45%,#e3f5ea 100%);padding:24px}
@@ -397,7 +398,16 @@ async function fresh(){
   try{saveAuth({...await authReq('refresh_token',{refresh_token:auth.refresh_token}),email:auth.email})}
   catch(e){saveAuth(null);throw new Error('login')}
 }
+// ADMIN LIHAT SAJA (supabase-admin-lihat.sql): semua perintah ubah data ditahan di sini, dan database juga menolaknya.
+let ADMIN_LIHAT=false;const RPC_BACA=['mitra_admin_daftar','is_admin','admin_peran'];
+function lihatSaja(){toast('🔒 Mode lihat saja: akun ini tidak bisa mengubah data');const e=new Error('Mode lihat saja');e.lihat=true;return e}
 async function api(path,opt={}){
+  if(ADMIN_LIHAT&&opt.method&&!/^(GET|HEAD)$/i.test(opt.method)){
+    const fn=(/^rpc\/([a-z_]+)/.exec(path)||[])[1];
+    if(!fn||!RPC_BACA.includes(fn))throw lihatSaja();
+    let q='';try{const b=JSON.parse(opt.body||'{}');q=Object.entries(b).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)).join('&')}catch(e){}
+    path='rpc/'+fn+(q?'?'+q:'');opt={...opt,method:'GET'};delete opt.body;
+  }
   try{await fresh()}catch(e){sessionExpired();throw e}
   const r=await fetch(`${BASE}/rest/v1/${path}`,{...opt,headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json',Prefer:'return=representation',...(opt.headers||{})}});
   const t=await r.text();
@@ -511,7 +521,7 @@ const initials=n=>String(n||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).joi
 function toast(t){const d=document.createElement('div');d.className='toast';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),2600)}
 function modal(html){$('#modalRoot').innerHTML=`<div class="modal" onclick="if(event.target===this)closeModal()"><div class="mbox">${html}</div></div>`}
 function closeModal(){$('#modalRoot').innerHTML='';tmap=null}
-async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{return await fn()}catch(e){if(e.message!=='login'){console.error(e);toast('Gagal menyimpan: '+String(e.message).slice(0,80))}}finally{if(btn){btn.disabled=false;btn.style.opacity=''}}}
+async function busy(btn,fn){if(btn){btn.disabled=true;btn.style.opacity=.6}try{return await fn()}catch(e){if(e.lihat)return;if(e.message!=='login'){console.error(e);toast('Gagal menyimpan: '+String(e.message).slice(0,80))}}finally{if(btn){btn.disabled=false;btn.style.opacity=''}}}
 
 /* ========== NAVIGASI ========== */
 const MENU=[
@@ -585,15 +595,23 @@ async function doLogin(){
   btn.disabled=true;const t=btn.textContent;btn.textContent='Memeriksa...';
   try{
     const sess=await authReq('password',{email:em,password:pw});
-    const r=await fetch(`${BASE}/rest/v1/rpc/is_admin`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+sess.access_token,'Content-Type':'application/json'},body:'{}'});
+    const r=await fetch(`${BASE}/rest/v1/rpc/is_admin`,{method:'GET',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+sess.access_token}});
     if(!r.ok)throw new Error('cek-admin-gagal');
     if((await r.json())!==true){fetch(`${BASE}/auth/v1/logout`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+sess.access_token}}).catch(()=>{});throw new Error('bukan-admin')}
-    saveAuth(sess);$('#lPass').value='';enterApp();
-    api('rpc/admin_catat',{method:'POST',body:JSON.stringify({p_aksi:'masuk',p_info:(navigator.userAgent.match(/\(([^)]+)\)/)||['',''])[1].slice(0,100)})}).catch(()=>{});
+    saveAuth(sess);$('#lPass').value='';await cekPeran();enterApp();
+    if(!ADMIN_LIHAT)api('rpc/admin_catat',{method:'POST',body:JSON.stringify({p_aksi:'masuk',p_info:(navigator.userAgent.match(/\(([^)]+)\)/)||['',''])[1].slice(0,100)})}).catch(()=>{});
   }catch(e){
     const m=String(e.message||e);
     toast(m==='bukan-admin'?'Akun ini bukan admin':m==='cek-admin-gagal'?'Jalankan supabase-admin-auth.sql di Supabase dulu':/invalid|credentials/i.test(m)?'Email atau kata sandi salah':/confirm/i.test(m)?'Email admin belum dikonfirmasi':'Gagal masuk: '+m.slice(0,70));
   }finally{btn.disabled=false;btn.textContent=t}
+}
+async function cekPeran(){
+  try{const p=await api('rpc/admin_peran');ADMIN_LIHAT=p==='lihat'}catch(e){ADMIN_LIHAT=false}   // fungsi belum ada = admin lama (penuh)
+  try{if(auth){auth.peran=ADMIN_LIHAT?'lihat':'penuh';sessionStorage.setItem(AUTH_KEY,JSON.stringify(auth))}}catch(e){}
+  document.body.classList.toggle('admin-lihat',ADMIN_LIHAT);
+  let b=document.getElementById('lihatBar');
+  if(ADMIN_LIHAT&&!b){b=document.createElement('div');b.id='lihatBar';b.textContent='👁️ Mode lihat saja: akun ini hanya bisa melihat data, tidak bisa mengubah apa pun.';document.body.prepend(b)}
+  if(!ADMIN_LIHAT&&b)b.remove();
 }
 function enterApp(){
   $('#login').classList.add('hide');$('#app').classList.remove('hide');
@@ -605,7 +623,7 @@ function enterApp(){
 }
 // notifikasi diketuk saat admin sudah terbuka -> pindah ke halaman yang dituju
 addEventListener('hashchange',()=>{if(!auth||$('#app').classList.contains('hide'))return;const [hr,ht]=decodeURIComponent(location.hash.slice(1)).split('-');if(hr&&PAGES[hr]){if(hr==='persetujuan'&&ht)apTab=ht;go(hr);loadAll(true).then(()=>{if(hr==='persetujuan'&&ht&&route==='persetujuan'){apTab=ht;render()}}).catch(()=>{});history.replaceState(null,'',location.pathname)}});
-function logout(){
+function logout(){ADMIN_LIHAT=false;document.body.classList.remove('admin-lihat');document.getElementById('lihatBar')?.remove();
   if(auth&&auth.access_token)fetch(`${BASE}/auth/v1/logout`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+auth.access_token}}).catch(()=>{});
   saveAuth(null);S.loaded=false;$('#app').classList.add('hide');$('#login').classList.remove('hide');toggleSide(false);closeModal();
 }
@@ -2136,7 +2154,7 @@ function exportCSV(){
 
 /* ========== MULAI ========== */
 $('#lPass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
-if(auth&&auth.refresh_token)enterApp();
+if(auth&&auth.refresh_token){ADMIN_LIHAT=auth.peran==='lihat';cekPeran().finally(enterApp);}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 // Pesanan baru dimuat ulang otomatis tiap 60 detik.
 
