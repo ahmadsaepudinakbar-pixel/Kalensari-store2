@@ -26,7 +26,7 @@ canvas{position:sticky;top:12px;align-self:start}
 canvas{order:-1;top:8px;z-index:20;width:auto;max-width:100%;max-height:44vh;margin:0 auto;box-shadow:0 0 0 10px var(--bg),0 8px 20px #5b30142e;border-radius:12px}
 .ctl{order:0}}
 @media print{@page{size:A5 portrait;margin:8mm}body{background:#fff}.ctl{display:none}.wrap{display:block;padding:0;max-width:none}canvas{position:static;box-shadow:none;border-radius:0;width:100%;max-height:194mm;object-fit:contain;order:0;margin:0}}
-</style><script src="config.js"></script></head><body>
+</style><script src="config.js"></script><script src="qris-statis.js"></script></head><body>
 <div class="wrap">
 <div class="ctl">
 <h1>Template QRIS Toko</h1>
@@ -67,7 +67,20 @@ async function muatAkun(){if(!cloudOn||!SID)return;try{const r=await fetch(API+"
 let sudahAuto=false;function autoUnduh(){if(sudahAuto||!q.get("unduh")||!qrOk)return;sudahAuto=true;const go=()=>setTimeout(()=>$("unduh").click(),400);if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{draw();go()});else go()}
 let tmAkun;function simpanAkun(){if(!cloudOn||!SID)return;clearTimeout(tmAkun);status("Menyimpan ke akun…");tmAkun=setTimeout(async()=>{const sesi=localStorage.getItem("kalensari_sesi_penjual")||"";if(!sesi){status("Belum tersimpan di akun: masuk ulang lewat aplikasi penjual (tersimpan di HP).",1);return}try{const r=await fetch(API+"/rest/v1/rpc/template_qris_simpan",{method:"POST",headers:HD,body:JSON.stringify({p_sesi:sesi,p_value:{nama:$("nama").value,qris:sv.qris||"",sk:SK,gx:GX,gy:GY}})});if(!r.ok){let m="";try{m=(await r.json()).message||""}catch(e){}throw new Error(m||r.status)}status("☁️ Tersimpan di akun")}catch(e){status("Gagal simpan ke akun: "+String(e.message||e).slice(0,90)+" (tersimpan di HP)",1)}},800)}
 function simpan(){simpanLokal();simpanAkun()}
-muatAkun();
+function muatSkrip(u){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=u;s.onload=ok;s.onerror=()=>no(new Error("gagal memuat pustaka QR"));document.head.appendChild(s)})}
+/* Toko belum punya gambar QRIS sendiri -> pakai QRIS pembayaran Kalensari Store (admin > Pengaturan > QRIS Pembayaran Pesanan), supaya poster tetap bisa diunduh tanpa unggah. */
+async function pakaiQrisPlatform(){
+ if(sv.qris||qrOk||!cloudOn||!window.QRISStatis)return;
+ try{
+  const r=await fetch(API+"/rest/v1/store_settings?select=value&key=eq.qris_statis",{headers:HD}),j=await r.json(),v=j&&j[0]&&j[0].value,raw=v&&v.raw?QRISStatis.bersihkan(v.raw):"";
+  if(!raw||!QRISStatis.cek(raw).ok){status("QRIS pembayaran Kalensari belum diatur di admin (Pengaturan). Poster belum bisa diunduh.",1);return}
+  if(!window.qrcode)await muatSkrip("https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js");
+  const g=qrcode(0,"M");g.addData(raw);g.make();
+  qr.onload=()=>{qrOk=true;draw();atur();status("Memakai QRIS pembayaran Kalensari Store (toko belum punya gambar QRIS sendiri).");autoUnduh()};
+  qr.src=g.createDataURL(8,4);
+ }catch(e){status("Gagal menyiapkan QR: "+String(e.message||e).slice(0,60),1)}
+}
+muatAkun().then(pakaiQrisPlatform);
 function rr(a,b,w,h,r){x.beginPath();x.roundRect(a,b,w,h,r)}
 function fit(t,w,max,min,wt){let s=max;do{x.font=wt+" "+s+"px "+F;if(x.measureText(t).width<=w)break;s-=2}while(s>min);return s}
 function draw(){
