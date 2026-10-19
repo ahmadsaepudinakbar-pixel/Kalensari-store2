@@ -884,7 +884,7 @@ toko(){
   <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari toko / pemilik / nomor WA / ID..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-g" onclick="tambahToko()">➕ Tambah Toko</button><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('store')}</div><div class="lbl">Total Toko</div><div class="val">${all.length}</div></div>
   <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('check')}</div><div class="lbl" style="color:var(--blue)">Buka Sekarang</div><div class="val">${openN}</div></div></div>
-  <div class="cards" id="list">${list.map((s,i)=>{const st=sellerState(s.name),m=s.member,forced=!!closedMap()[sKey(s.name)];return `<div class="lc" style="align-items:flex-start"><div class="cat-ic" style="background:${colors[i%colors.length]}">🏪</div><div class="meta"><b>${esc(s.name)}</b> ${m&&punyaAkun(m)?kodeChip(m.kode):''}
+  <div class="cards" id="list">${list.map((s,i)=>{const st=sellerState(s.name),m=s.member,forced=!!closedMap()[sKey(s.name)];return `<div class="lc" style="align-items:flex-start"><div class="cat-ic"${m&&m.id?` data-tid="${esc(m.id)}"`:''} style="background:${colors[i%colors.length]}">🏪</div><div class="meta"><b>${esc(s.name)}</b> ${m&&punyaAkun(m)?kodeChip(m.kode):''}
     <div class="sm">${m&&punyaAkun(m)?esc([m.nama,m.wa?'+'+m.wa:'',m.dusun].filter(Boolean).join(' • ')):'Belum punya akun penjual'+(m&&m.dusun?' • '+esc(m.dusun):'')}${m&&Number(m.latitude)?' • 📍':''}</div>
     <div class="sm">${s.count} produk • 🕒 ${esc(schedText(schedMap()[sKey(s.name)]))}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">${st.open?chip('🟢 Buka sekarang','b-Selesai'):chip('🔒 Tutup'+(st.why?' • '+esc(st.why):''),'b-Batal')}</div>
@@ -954,6 +954,19 @@ async function muatFotoKurirAdmin(){
 }
 {const _render=render;render=function(){_render();if(route==='kurir'||route==='persetujuan')setTimeout(muatFotoKurirAdmin,0)}}
 {const _rl=refreshList;refreshList=function(){_rl();if(route==='kurir'||route==='persetujuan')setTimeout(muatFotoKurirAdmin,0)}}
+/* ===== Foto profil toko di Daftar Toko (foto yang diunggah penjual: store_settings "foto_toko_<ID penjual>") ===== */
+const FTA={},fotoSah=u=>typeof u==='string'&&/^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+\/=]+$/.test(u);
+async function muatFotoTokoAdmin(){
+  const els=[...document.querySelectorAll('.cat-ic[data-tid]')];
+  await Promise.all(els.map(async el=>{
+    const id=el.dataset.tid;
+    if(!(id in FTA)){try{const v=await readKey('foto_toko_'+id,null);FTA[id]=v&&fotoSah(v.foto)?v.foto:''}catch(e){FTA[id]=''}}
+    if(FTA[id]&&el.isConnected){el.style.backgroundImage=`url('${FTA[id]}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';el.style.cursor='pointer';
+      el.onclick=()=>modal(`<h3>📷 Foto profil toko</h3><img src="${FTA[id]}" alt="Foto toko" style="width:100%;border-radius:14px"><div class="mact"><a class="btn btn-g" style="text-decoration:none" href="${FTA[id]}" download="foto-toko.jpg">⬇️ Unduh</a><button class="btn" onclick="closeModal()">Tutup</button></div>`)}
+  }));
+}
+{const _r2=render;render=function(){_r2();if(route==='toko')setTimeout(muatFotoTokoAdmin,0)}}
+{const _rl2=refreshList;refreshList=function(){_rl2();if(route==='toko')setTimeout(muatFotoTokoAdmin,0)}}
 async function resetNik(id,btn){
   if(!confirm('Reset NIK kurir ini? Kurir harus mengisi NIK lagi sebelum bisa siap menerima antaran.'))return;
   await busy(btn,async()=>{
