@@ -2797,12 +2797,64 @@ function keamananPage(){
     <p class="sm" id="bkInfo" style="color:var(--mut);font-size:12px;margin-top:8px">${(()=>{try{const t=localStorage.getItem('ks_backup_t');return t?'Backup terakhir dari perangkat ini: '+fmtDate(Number(t)):'Belum pernah backup dari perangkat ini.'}catch(e){return ''}})()}</p>
     <p class="sm" style="color:#b45309;font-size:12px;margin-top:6px">⚠️ File backup berisi data pribadi pembeli & mitra. Jangan dibagikan ke siapa pun.</p></div>
   </div>
+  ${rsHtml()}
   <div class="card"><div class="chead"><h3>📜 Catatan aktivitas admin</h3><button class="btn btn-light" style="padding:6px 10px" onclick="LOG.data=null;muatLog();render()">↻ Muat ulang</button></div>
     <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:10px">Semua perubahan yang dilakukan akun admin tercatat otomatis oleh server (siapa, kapan, apa yang berubah) dan tidak bisa dihapus dari aplikasi. Disimpan 180 hari.</p>
     ${LOG.data===null?'<div class="empty" style="padding:14px">Memuat catatan...</div>':LOG.err?`<div class="empty" style="padding:14px">⚠️ ${esc(LOG.err)}</div>`:
     `<div class="chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${tabs.map(t=>`<button class="btn ${LOG.tabel===t?'btn-g':'btn-light'}" style="padding:5px 10px;font-size:12px" onclick="LOG.tabel='${esc(t)}';render()">${esc(LOG_NAMA[t]||t)}</button>`).join('')}</div>
     ${lf.length?lf.map(x=>{const a=LOG_AKSI[x.aksi]||['•',x.aksi,'#64748b'];return `<div class="detail-row" style="display:block;padding:10px 0"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><span style="white-space:normal"><b style="color:${a[2]}">${a[0]} ${esc(a[1])}</b> · ${esc(LOG_NAMA[x.tabel]||x.tabel)}${x.kunci?` <b>${esc(x.kunci)}</b>`:''}</span><small style="color:var(--mut);white-space:nowrap">${fmtDate(x.t)}</small></div><div class="sm" style="color:var(--mut)">${esc(x.email||'-')}</div>${logIsi(x)}</div>`}).join(''):'<div class="empty" style="padding:14px">Belum ada aktivitas tercatat</div>'}`}
   </div>`;
+}
+/* ========== PULIHKAN DARI BACKUP ==========
+   Pilih file kalensari-backup-*.json -> dibandingkan dengan data sekarang -> centang yang mau dikembalikan.
+   Aman: tidak ada data yang DIHAPUS. Produk & pengaturan terpilih ditulis ulang seperti di backup.
+   Pesanan, saldo & mutasi sengaja TIDAK dipulihkan (bisa membuat saldo / pesanan ganda). */
+const RS={b:null,nama:'',prod:[],set:[],muat:false,err:'',hasil:''};
+const RS_LEWAT=/^(foto_|lacak_|antar_|kurir_ord_|stoklog_|retur_|laporan_|admin_push$|.*_push_|admin_pin_hash$)/;
+const rsSama=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const RS_KOLOM=['name','price','sale','status','category','stock','seller','unit','image','variants','toppings','praorder'];
+async function rsPilih(inp){
+  const f=inp.files&&inp.files[0];inp.value='';if(!f)return;
+  RS.muat=true;RS.err='';RS.hasil='';RS.b=null;render();
+  try{
+    const isi=JSON.parse(await f.text());
+    if(!isi||isi.aplikasi!=='Kalensari Store'||!isi.data||typeof isi.data!=='object')throw new Error('Ini bukan file backup Kalensari Store (kalensari-backup-....json).');
+    const [pNow,sNow]=await Promise.all([ambilSemua('products','id.asc'),api('store_settings?select=key,value&key=not.like.foto_*')]);
+    const pm=new Map((pNow||[]).map(x=>[Number(x.id),x])),sm=new Map((sNow||[]).map(x=>[x.key,x.value]));
+    RS.prod=(isi.data.products||[]).filter(x=>x&&x.id!=null).map(x=>{const now=pm.get(Number(x.id));
+      if(!now)return{row:x,jenis:'hilang',ket:'Sudah dihapus',on:true};
+      const beda=RS_KOLOM.filter(k=>k in x&&!rsSama(x[k]??null,now[k]??null));if(!beda.length)return null;
+      const ket=beda.includes('status')?`Status ${now.status||'-'} → ${x.status||'-'}`+(beda.length>1?` • +${beda.length-1} lainnya`:''):'Diubah: '+beda.map(k=>({name:'nama',price:'harga',sale:'promo',category:'kategori',stock:'stok',image:'foto',variants:'varian',toppings:'topping',unit:'satuan',seller:'toko'}[k]||k)).join(', ');
+      return{row:x,jenis:'beda',ket,on:beda.includes('status')}}).filter(Boolean);
+    RS.set=(isi.data.store_settings||[]).filter(x=>x&&x.key&&!RS_LEWAT.test(x.key)).map(x=>!sm.has(x.key)?{row:x,jenis:'hilang',on:true}:(rsSama(sm.get(x.key),x.value)?null:{row:x,jenis:'beda',on:false})).filter(Boolean);
+    RS.b=isi;RS.nama=f.name;
+  }catch(e){RS.err=String(e.message||e).slice(0,160)}
+  RS.muat=false;render();
+}
+function rsHtml(){
+  const kartu=x=>`<div class="card"><div class="chead"><h3>♻️ Pulihkan dari backup</h3></div>${x}</div>`;
+  const pilihFile=`<label class="btn btn-light full" style="cursor:pointer;justify-content:center">📂 Pilih file backup (.json)<input type="file" accept="application/json,.json" hidden onchange="rsPilih(this)"></label>`;
+  const ket=`<p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:10px">Pilih file <b>kalensari-backup-....json</b> hasil Unduh Backup. Isinya dibandingkan dengan data sekarang, lalu Anda centang produk / pengaturan yang ingin dikembalikan. <b>Tidak ada data yang dihapus.</b> Pesanan & saldo tidak ikut dipulihkan supaya tidak ganda.</p>`;
+  if(RS.muat)return kartu(ket+'<div class="empty" style="padding:14px">Membaca file & membandingkan data…</div>');
+  if(!RS.b)return kartu(ket+pilihFile+(RS.err?`<p class="sm" style="color:#c0392b;margin-top:8px">⚠️ ${esc(RS.err)}</p>`:'')+(RS.hasil?`<p class="sm" style="color:#16a34a;margin-top:8px">${esc(RS.hasil)}</p>`:''));
+  const j=RS.b.jumlah||{},baris=(l,t,ix)=>l.map((x,i)=>`<label style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer"><input type="checkbox" ${x.on?'checked':''} onchange="RS.${t}[${i}].on=this.checked" style="width:18px;height:18px;margin-top:2px;flex:none"><span style="min-width:0">${ix(x)}</span></label>`).join('');
+  const pH=RS.prod.length?baris(RS.prod,'prod',x=>`<b>${esc(x.row.name||'Produk '+x.row.id)}</b> <small style="color:var(--mut)">#${esc(x.row.id)} • ${esc(x.row.seller||'-')}</small><br><small style="color:${x.jenis==='hilang'?'#c0392b':'#b45309'};font-weight:700">${x.jenis==='hilang'?'🗑️ ':'✏️ '}${esc(x.ket)}</small>`):'<div class="empty" style="padding:10px">✅ Semua produk sama dengan backup</div>';
+  const sH=RS.set.length?baris(RS.set,'set',x=>`<b>${esc(x.row.key)}</b><br><small style="color:${x.jenis==='hilang'?'#c0392b':'#b45309'};font-weight:700">${x.jenis==='hilang'?'🗑️ Tidak ada sekarang':'✏️ Isinya berbeda • menimpa isi sekarang'}</small>${/_members$/.test(x.row.key)&&x.jenis==='beda'?'<br><small style="color:#c0392b">⚠️ Daftar akun: akun yang mendaftar / berubah setelah tanggal backup akan hilang.</small>':''}`):'<div class="empty" style="padding:10px">✅ Semua pengaturan sama dengan backup</div>';
+  return kartu(`<p class="sm" style="margin-bottom:10px">📄 <b>${esc(RS.nama)}</b><br>Dibuat ${esc(fmtDate(RS.b.dibuat))} • ${j.products||0} produk, ${j.orders||0} pesanan</p>
+    <h4 style="margin:10px 0 4px">📦 Produk yang berbeda (${RS.prod.length})</h4>${pH}
+    <h4 style="margin:16px 0 4px">⚙️ Pengaturan & akun yang berbeda (${RS.set.length})</h4><p class="sm" style="color:var(--mut);font-size:12px">Yang isinya berbeda sengaja tidak dicentang. Centang hanya bila Anda yakin ingin kembali ke isi backup.</p>${sH}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn btn-g" style="flex:1" onclick="rsJalankan(this)">♻️ Pulihkan yang dicentang</button><button class="btn btn-light" onclick="RS.b=null;RS.err='';render()">Batal</button></div>`);
+}
+async function rsJalankan(btn){
+  const pr=RS.prod.filter(x=>x.on).map(x=>x.row),st=RS.set.filter(x=>x.on).map(x=>x.row);
+  if(!pr.length&&!st.length)return toast('Belum ada yang dicentang');
+  if(!confirm(`Pulihkan dari backup?\n\n• ${pr.length} produk\n• ${st.length} pengaturan / akun\n\nData terpilih dikembalikan seperti di backup. Data lain tidak berubah dan tidak ada yang dihapus.`))return;
+  await busy(btn,async()=>{
+    for(let i=0;i<pr.length;i+=20)await apiProd('products?on_conflict=id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'}},pr.slice(i,i+20));
+    for(const x of st){await setSetting(x.key,x.value);S.settings[x.key]=x.value}
+    RS.b=null;RS.hasil=`✅ Dipulihkan: ${pr.length} produk, ${st.length} pengaturan.`;
+    toast('Backup dipulihkan');LOG.data=null;await loadAll(true);render();
+  });
 }
 async function simpanBatas(btn){
   const n=(id,d)=>Math.max(1,Math.round(Number($('#'+id).value)||d));
