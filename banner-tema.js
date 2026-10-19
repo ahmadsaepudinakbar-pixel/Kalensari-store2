@@ -32,7 +32,22 @@
     if(s.tipe==="promo")return document.querySelector("#promoWrap .promo-card");
     return document.querySelector('#heroTrack .hero-slide[data-bn="'+s.k+'"]');
   }
-  function jumlahTampil(){return BAWAAN.filter(function(x){return hapusList().indexOf(x.k)<0;}).length+tambahList().length;}
+  function jumlahTampil(){return BAWAAN.filter(function(x){return hapusList().indexOf(x.k)<0&&!habis(x.k);}).length+tambahList().filter(function(b){return !habis(b.id);}).length;}
+  /* ---------- hapus otomatis: tiap banner / foto promo boleh punya batas waktu tampil ---------- */
+  function sampaiMap(){var m=cfg.sampai;return m&&typeof m==="object"&&!Array.isArray(m)?m:{};}
+  function sampaiOf(k){var t=Number(sampaiMap()[k]);return t>0?t:0;}
+  function habis(k){var t=sampaiOf(k);return t>0&&Date.now()>=t;}
+  function setSampai(k,t){var m=Object.assign({},sampaiMap());if(t>0)m[k]=t;else delete m[k];if(Object.keys(m).length)cfg.sampai=m;else delete cfg.sampai;}
+  function dua(n){return (n<10?"0":"")+n;}
+  function keInput(t){if(!t)return "";var d=new Date(t);return d.getFullYear()+"-"+dua(d.getMonth()+1)+"-"+dua(d.getDate())+"T"+dua(d.getHours())+":"+dua(d.getMinutes());}
+  function teksWaktu(t){var d=new Date(t),B=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];return d.getDate()+" "+B[d.getMonth()]+" "+d.getFullYear()+", "+dua(d.getHours())+"."+dua(d.getMinutes());}
+  // saat batas waktu terdekat tiba (halaman masih terbuka) -> sembunyikan otomatis
+  var habisT=null;
+  function jadwalHabis(){
+    clearTimeout(habisT);var now=Date.now(),m=sampaiMap(),min=0;
+    Object.keys(m).forEach(function(k){var t=Number(m[k]);if(t>now&&(!min||t<min))min=t;});
+    if(min)habisT=setTimeout(function(){bangunHero();terapkanSemua();if(panel&&buka)gambarPanel();},Math.min(min-now+500,6*3600000));
+  }
   // Template: banner geser = warna gelap (teks putih); promo = warna terang (teks cokelat)
   var TPL={
     hero:[
@@ -61,7 +76,8 @@
     var c=cfg.promo||{},l=Array.isArray(c.fl)?c.fl.filter(function(x){return /^promo(_[a-z0-9]+)?$/.test(String(x));}):[];
     return l.length?l:["promo"];
   }
-  function promoFoto(){return promoList().filter(function(k){return !!foto[k];});}
+  function promoSemua(){return promoList().filter(function(k){return !!foto[k];});}   // semua foto (untuk editor)
+  function promoFoto(){return promoSemua().filter(function(k){return !habis(k);});}   // yang masih berlaku (tampil di beranda)
   // foto utama sebuah kotak (promo = foto pertama di daftar)
   function fs(s){if(!s)return "";if(s.tipe==="promo"){var l=promoFoto();return l.length?foto[l[0]]:"";}return foto[s.k]||"";}
   function fotoKeys(){var r=slots().map(function(s){return s.k;});promoList().forEach(function(k){if(r.indexOf(k)<0)r.push(k);});return r;}
@@ -86,6 +102,11 @@
       "html.tk .promo-card .pc-tx h2,html.tk .promo-card .pc-tx p{transition:color .6s ease}"+
       "@media(prefers-reduced-motion:reduce){html.tk .promo-card .bn-fade i{transition-duration:.01s}}"+
       "#adminBanner .bn-thumbs{gap:8px}"+"#adminBanner input[type=file][hidden]{display:none!important}"+
+      "#adminBanner .bn-fr{align-items:flex-start;flex-wrap:nowrap}#adminBanner .bn-fr .bn-th{flex:0 0 96px;margin-top:4px}"+
+      "#adminBanner .bn-fw{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}#adminBanner .bn-wrow{flex-direction:column;align-items:stretch;gap:4px}"+
+      "#adminBanner .bn-wk{flex-wrap:wrap;font-weight:700}#adminBanner .bn-wk input{flex:1;min-width:170px;padding:7px 8px;border:1px solid #d9c9bd;border-radius:8px;font:inherit;font-size:13px;background:#fff;margin:0;display:inline-block;width:auto}"+
+      "#adminBanner .bn-fw .bn-chip,#adminBanner .bn-wrow .bn-chip{align-self:flex-start;padding:5px 10px;font-size:12px}"+
+      "#adminBanner .bn-habis{color:#b3261e;font-weight:700}"+
       "#adminBanner .bn-th{position:relative;width:84px;aspect-ratio:3/1;border-radius:8px;background:#eee center/cover no-repeat;box-shadow:0 0 0 1px #d9c9bd}"+
       "#adminBanner .bn-th b{position:absolute;left:4px;top:3px;font-size:11px;line-height:1;background:rgba(0,0,0,.6);color:#fff;border-radius:6px;padding:2px 5px}"+
       "#adminBanner .bn-th button{position:absolute;right:-7px;top:-7px;width:22px;height:22px;border-radius:50%;border:0;background:#b3261e;color:#fff;font-size:12px;line-height:22px;padding:0;cursor:pointer}"+
@@ -154,15 +175,18 @@
   }
   function bangunHero(){
     var tr=$("heroTrack");if(!tr)return;
-    BAWAAN.forEach(function(x){var el=tr.querySelector('[data-bn="'+x.k+'"]');if(el)el.style.display=hapusList().indexOf(x.k)>=0?"none":"";});
+    BAWAAN.forEach(function(x){var el=tr.querySelector('[data-bn="'+x.k+'"]');if(el)el.style.display=(hapusList().indexOf(x.k)>=0||habis(x.k))?"none":"";});
     [].slice.call(tr.querySelectorAll(".bn-custom")).forEach(function(el){
       if(!tambahList().some(function(b){return b.id===el.getAttribute("data-bn");}))el.remove();
     });
     tambahList().forEach(function(b){
       var el=tr.querySelector('.bn-custom[data-bn="'+b.id+'"]');
       if(!el){el=document.createElement("article");el.className="hero-slide bn-custom";el.setAttribute("data-bn",b.id);el.innerHTML=SLIDE_HTML;tr.appendChild(el);}
-      isiSlide(el,b);
+      isiSlide(el,b);el.style.display=habis(b.id)?"none":"";
     });
+    // semua banner sudah berakhir -> tampilkan banner 1 supaya beranda tidak kosong
+    if(![].some.call(tr.children,function(x){return x.style.display!=="none";})){var f1=tr.querySelector('[data-bn="hero1"]');if(f1)f1.style.display="";}
+    jadwalHabis();
     if(ada(window.ksHeroRefresh))window.ksHeroRefresh();
   }
 
@@ -390,6 +414,7 @@
   function kartu(s){
     var c=cfg[s.k]||{m:"def"},L=TPL[s.tipe];
     var hidden=s.bawaan&&s.tipe==="hero"&&hapusList().indexOf(s.k)>=0;
+    var lewat=s.tipe==="hero"&&habis(s.k);
     var bx=!s.bawaan?tambahList().filter(function(x){return x.id===s.k;})[0]:null;
     var aksi="";
     if(s.tipe==="hero"&&s.bawaan){
@@ -404,15 +429,15 @@
     }).join("");
     var a=warnaOk(c.a)?c.a:L[0].a,b=warnaOk(c.b)?c.b:L[0].b;
     var ov=c.m==="foto"?(Number(c.ov)||0):(s.tipe==="hero"?35:50);
-    return '<div class="bn-card" data-k="'+s.k+'"'+(hidden?' style="opacity:.6"':"")+'><b>'+esc(s.nama)+(hidden?" (disembunyikan)":"")+'</b>'+teks+
+    return '<div class="bn-card" data-k="'+s.k+'"'+(hidden||lewat?' style="opacity:.6"':"")+'><b>'+esc(s.nama)+(hidden?" (disembunyikan)":(lewat?" (⌛ sudah berakhir)":""))+'</b>'+teks+
       '<small class="bn-ukuran">👁️ Pratinjau (seperti tampilan di HP) — ikut berubah saat Anda mengatur</small>'+
       '<div class="bn-pvw">'+prevHtml(s,nadaSlot(s))+'</div>'+
       '<div class="bn-row"><button type="button" class="bn-chip'+(c.m==="def"||!c.m?" on":"")+'" data-bn="def" data-s="'+s.k+'">↩︎ Bawaan</button>'+sw+'</div>'+
       '<div class="bn-row"><button type="button" class="bn-chip'+(c.m==="warna"?" on":"")+'" data-bn="warna" data-s="'+s.k+'">🎨 Warna sendiri</button>'+
         '<label class="bn-l">Kiri <input type="color" data-bn="a" data-s="'+s.k+'" value="'+a+'"></label>'+
         '<label class="bn-l">Kanan <input type="color" data-bn="b" data-s="'+s.k+'" value="'+b+'"></label></div>'+
-      '<div class="bn-row"><label class="bn-chip'+(c.m==="foto"?" on":"")+'" style="cursor:pointer">🖼️ '+(fs(s)?(s.tipe==="promo"&&promoFoto().length>1?"Ganti foto 1":"Ganti foto"):"Pakai foto")+
-        '<input type="file" accept="image/*" data-crop="'+(s.tipe==="hero"?"2:1":"3:1")+'" data-bn="file" data-s="'+s.k+'"'+(s.tipe==="promo"?' data-fk="'+(promoFoto()[0]||"promo")+'"':"")+' hidden></label></div>'+
+      '<div class="bn-row"><label class="bn-chip'+(c.m==="foto"?" on":"")+'" style="cursor:pointer">🖼️ '+(fs(s)?(s.tipe==="promo"&&promoSemua().length>1?"Ganti foto 1":"Ganti foto"):"Pakai foto")+
+        '<input type="file" accept="image/*" data-crop="'+(s.tipe==="hero"?"2:1":"3:1")+'" data-bn="file" data-s="'+s.k+'"'+(s.tipe==="promo"?' data-fk="'+(promoSemua()[0]||"promo")+'"':"")+' hidden></label></div>'+
       (s.tipe==="promo"&&c.m==="foto"&&fs(s)?promoPanel(c):"")+
       '<small class="bn-ukuran">📐 Ukuran foto ideal: <b>'+(s.tipe==="hero"?"1200 × 600 px (perbandingan 2:1)":"1200 × 400 px (perbandingan 3:1)")+'</b>. '+
         (s.tipe==="hero"?"Teks ada di sisi kiri dan lingkaran foto menu di kanan, jadi pakai foto yang tidak ramai. ":"Teks di kiri dan foto menu bulat di kanan, jadi pakai foto yang tidak ramai. ")+
@@ -429,16 +454,27 @@
       '<b class="bn-pct">'+(Number(c.ts)||100)+'%</b>'+
       '<button type="button" class="bn-chip" data-bn="ts+" data-s="'+s.k+'" aria-label="Besarkan tulisan">+</button>'+
       '<button type="button" class="bn-chip" data-bn="ts0" data-s="'+s.k+'">Reset</button></div>'+
+    (s.tipe==="hero"&&!hidden?'<div class="bn-row bn-wrow">'+waktuHtml(s.k)+'</div>':"")+
     (aksi?'<div class="bn-row">'+aksi+'</div>':"")+
     '</div>';
   }
+  // isian "hapus otomatis" untuk satu banner / satu foto promo
+  function waktuHtml(k){
+    var t=sampaiOf(k),st;
+    if(!t)st='<small class="bn-ukuran">Tampil terus (tanpa batas waktu)</small>';
+    else if(habis(k))st='<small class="bn-ukuran bn-habis">⌛ Sudah berakhir '+teksWaktu(t)+' — tidak tampil lagi di beranda. Dihapus permanen saat Anda menekan Simpan.</small>';
+    else st='<small class="bn-ukuran">Otomatis hilang pada <b>'+teksWaktu(t)+'</b></small>';
+    return '<label class="bn-l bn-wk">⏰ Hapus otomatis <input type="datetime-local" data-bn="sampai" data-s="'+k+'" value="'+keInput(t)+'"></label>'+
+      (t?'<button type="button" class="bn-chip" data-bn="sampai-x" data-s="'+k+'">Tanpa batas</button>':'')+st;
+  }
   function promoPanel(c){
-    var L=promoFoto(),dt=Number(c.dt)||5;
+    var L=promoSemua(),dt=Number(c.dt)||5;
     return '<div class="bn-row"><b class="bn-l">🎞️ Foto bergantian (memudar) — '+L.length+'/'+MAKS_PROMO+'</b></div>'+
-      '<div class="bn-row bn-thumbs">'+L.map(function(k,i){
-        return '<span class="bn-th" style="background-image:url(\''+foto[k]+'\')"><b>'+(i+1)+'</b><button type="button" data-bn="foto-x" data-s="promo" data-fk="'+k+'" aria-label="Hapus foto '+(i+1)+'">✕</button></span>';
+      L.map(function(k,i){
+        return '<div class="bn-row bn-fr"><span class="bn-th" style="background-image:url(\''+foto[k]+'\')'+(habis(k)?';opacity:.45':'')+'"><b>'+(i+1)+'</b><button type="button" data-bn="foto-x" data-s="promo" data-fk="'+k+'" aria-label="Hapus foto '+(i+1)+'">✕</button></span>'+
+          '<div class="bn-fw">'+waktuHtml(k)+'</div></div>';
       }).join("")+
-      (L.length<MAKS_PROMO?'<label class="bn-chip" style="cursor:pointer">➕ Tambah foto<input type="file" accept="image/*" data-crop="3:1" data-bn="file" data-s="promo" data-fk="baru" hidden></label>':"")+'</div>'+
+      (L.length<MAKS_PROMO?'<div class="bn-row"><label class="bn-chip" style="cursor:pointer">➕ Tambah foto<input type="file" accept="image/*" data-crop="3:1" data-bn="file" data-s="promo" data-fk="baru" hidden></label></div>':"")+
       (L.length>1?'<div class="bn-row"><b class="bn-l">⏱️ Ganti tiap</b>'+[3,5,8,12].map(function(v){return '<button type="button" class="bn-chip'+(dt===v?" on":"")+'" data-bn="dt" data-s="promo" data-v="'+v+'">'+v+' detik</button>';}).join("")+'</div>':"")+
       '<small class="bn-ukuran">'+(L.length>1?"Foto tampil bergantian dengan efek memudar, urut dari nomor 1.":"Tambah foto ke-2 dst. supaya kotak promo berganti-ganti foto dengan efek memudar.")+' Maksimal '+MAKS_PROMO+' foto (makin banyak foto, beranda makin lama dimuat).</small>';
   }
@@ -455,7 +491,19 @@
   }
   function atur(k,nilai){cfg[k]=Object.assign({},cfg[k]||{},nilai);}
 
+  // yang sudah lewat batas waktunya dihapus permanen (foto ikut dihapus dari database)
+  function bersihkanHabis(){
+    var n=0;
+    promoSemua().forEach(function(k){if(habis(k)){delete foto[k];delete dirtyFoto[k];if(fotoHapus.indexOf(k)<0)fotoHapus.push(k);setSampai(k,0);n++;try{localStorage.removeItem(LS_FOTO+k);}catch(e){}}});
+    if(n){var sisa=promoSemua(),cp=cfg.promo||{};if(sisa.length)cp.fl=sisa;else{cp.m="def";delete cp.fl;}cfg.promo=cp;}
+    tambahList().forEach(function(b){if(habis(b.id)){cfg.tambah=tambahList().filter(function(x){return x.id!==b.id;});delete cfg[b.id];if(foto[b.id]){delete foto[b.id];fotoHapus.push(b.id);}delete dirtyFoto[b.id];setSampai(b.id,0);n++;}});
+    BAWAAN.forEach(function(x){if(habis(x.k)){if(hapusList().indexOf(x.k)<0)cfg.hapus=hapusList().concat([x.k]);setSampai(x.k,0);n++;}});
+    Object.keys(sampaiMap()).forEach(function(k){if(!slotOf(k)&&!foto[k])setSampai(k,0);});
+    if(n){bangunHero();terapkanSemua();if(panel&&buka)gambarPanel();}
+    return n;
+  }
   async function simpanSemua(){
+    var nHabis=bersihkanHabis();
     simpanLokal();
     if(!cloudOn()){toast("🎨 Banner disimpan di perangkat ini");return;}
     try{
@@ -463,6 +511,7 @@
       var bersih={};
       slots().forEach(function(s){var cc=cfg[s.k];if(cc&&((cc.m&&cc.m!=="def")||cc.tc||(cc.ts&&Number(cc.ts)!==100)))bersih[s.k]=cc;});
       if(hapusList().length)bersih.hapus=hapusList().slice();
+      if(Object.keys(sampaiMap()).length)bersih.sampai=Object.assign({},sampaiMap());
       if(tambahList().length)bersih.tambah=tambahList().map(function(b){return {id:String(b.id),em:String(b.em||"").slice(0,40),judul:String(b.judul||"").slice(0,60),teks:String(b.teks||"").slice(0,90),tombol:String(b.tombol||"").slice(0,24),link:String(b.link||"").slice(0,200),emoji:String(b.emoji||"").slice(0,4)};});
       var body=[{key:"tema_banner",value:bersih}];
       Object.keys(dirtyFoto).forEach(function(k){if(foto[k])body.push({key:"foto_banner_"+k,value:{foto:foto[k]}});});
@@ -471,7 +520,7 @@
       for(var i=0;i<fotoHapus.length;i++){try{await cloudFetch("store_settings?key=eq."+encodeURIComponent("foto_banner_"+fotoHapus[i]),{method:"DELETE"});}catch(e){}}
       fotoHapus=[];
       dirtyFoto={};cfg=bersih;
-      toast("✅ Banner tersimpan untuk semua pengunjung");
+      toast("✅ Banner tersimpan untuk semua pengunjung"+(nHabis?" • "+nHabis+" yang sudah berakhir dihapus permanen":""));
     }catch(e){
       console.warn("Simpan banner:",e);
       toast("⚠️ Belum tersimpan online. Pastikan sudah masuk sebagai admin.");
@@ -507,18 +556,19 @@
       if(a==="hapus-x"){
         if(jumlahTampil()<=1){toast("Sisakan minimal 1 banner");return;}
         if(!confirm("Hapus banner ini?"))return;
-        cfg.tambah=tambahList().filter(function(x){return x.id!==k;});delete cfg[k];
+        cfg.tambah=tambahList().filter(function(x){return x.id!==k;});delete cfg[k];setSampai(k,0);
         if(foto[k]){delete foto[k];fotoHapus.push(k);}delete dirtyFoto[k];
         try{localStorage.removeItem(LS_FOTO+k);}catch(e){}
         bangunHero();terapkanSemua();gambarPanel();toast("🗑️ Banner dihapus. Tekan Simpan.");return;
       }
+      if(a==="sampai-x"){setSampai(k,0);bangunHero();terapkanSemua();gambarPanel();toast("⏰ Batas waktu dihapus. Tekan Simpan.");return;}
       if(a==="dt"){atur("promo",{dt:Number(t.dataset.v)||5});terapkan(slotOf("promo"));gambarPanel();toast("⏱️ Foto promo berganti tiap "+t.dataset.v+" detik. Tekan Simpan.");return;}
       if(a==="foto-x"){
         var fx=t.dataset.fk;if(!foto[fx])return;
         if(!confirm("Hapus foto ini dari kotak promo?"))return;
-        delete foto[fx];delete dirtyFoto[fx];if(fotoHapus.indexOf(fx)<0)fotoHapus.push(fx);
+        delete foto[fx];delete dirtyFoto[fx];if(fotoHapus.indexOf(fx)<0)fotoHapus.push(fx);setSampai(fx,0);
         try{localStorage.removeItem(LS_FOTO+fx);}catch(e){}
-        var sisa=promoFoto();
+        var sisa=promoSemua();
         if(sisa.length)atur("promo",{fl:sisa});else{var cp=cfg.promo||{};cp.m="def";delete cp.fl;cfg.promo=cp;}
         terapkan(slotOf("promo"));gambarPanel();toast("🗑️ Foto dihapus. Tekan Simpan.");return;
       }
@@ -544,13 +594,21 @@
       if(a==="ov"){atur(k,{ov:Number(t.value)});terapkan(slotOf(k));var pc=t.closest(".bn-card");pc=pc&&pc.querySelector(".bn-pct");if(pc)pc.textContent=t.value+"%";segarPrev(k);}
     });
     panel.addEventListener("change",async function(e){
-      var t=e.target;if(!t.dataset||t.dataset.bn!=="file"||!t.files||!t.files[0])return;
+      var t=e.target;
+      if(t.dataset&&t.dataset.bn==="sampai"){
+        var kk=t.dataset.s,ms=t.value?new Date(t.value).getTime():0;
+        if(t.value&&!(ms>0)){toast("⚠️ Tanggal tidak valid");return;}
+        if(ms&&ms<=Date.now()&&!confirm("Waktu itu sudah lewat, jadi banner/foto ini langsung hilang dari beranda. Lanjutkan?")){gambarPanel();return;}
+        setSampai(kk,ms);bangunHero();terapkanSemua();gambarPanel();
+        toast(ms?"⏰ Akan hilang otomatis pada "+teksWaktu(ms)+". Tekan Simpan.":"⏰ Tampil terus. Tekan Simpan.");return;
+      }
+      if(!t.dataset||t.dataset.bn!=="file"||!t.files||!t.files[0])return;
       var k=t.dataset.s,fk=t.dataset.fk||k;
       try{
         var hasil=await kompres(t.files[0]);
-        if(fk==="baru"){if(promoFoto().length>=MAKS_PROMO)throw new Error("Maksimal "+MAKS_PROMO+" foto");fk="promo_"+Date.now().toString(36);}
+        if(fk==="baru"){if(promoSemua().length>=MAKS_PROMO)throw new Error("Maksimal "+MAKS_PROMO+" foto");fk="promo_"+Date.now().toString(36);}
         foto[fk]=hasil.url;dirtyFoto[fk]=true;fotoHapus=fotoHapus.filter(function(x){return x!==fk;});
-        if(slotOf(k).tipe==="promo"){var pl=promoFoto();if(pl.indexOf(fk)<0)pl.push(fk);atur("promo",{fl:pl});}
+        if(slotOf(k).tipe==="promo"){var pl=promoSemua();if(pl.indexOf(fk)<0)pl.push(fk);atur("promo",{fl:pl});}
         atur(k,{m:"foto",ov:(cfg[k]&&cfg[k].ov!=null)?cfg[k].ov:(slotOf(k).tipe==="hero"?35:50)});
         terapkan(slotOf(k));gambarPanel();
         toast("🖼️ Foto dikompres otomatis: "+kb(hasil.awal)+" → "+kb(hasil.akhir)+". Tekan Simpan.");
