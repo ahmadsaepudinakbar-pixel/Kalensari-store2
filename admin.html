@@ -1071,9 +1071,11 @@ async function qrToko(name){
   const poster='qr.html?nama='+encodeURIComponent(v&&v.nama||s.name)+'&kode='+encodeURIComponent(m.kode||'')+'&id='+encodeURIComponent(m.id);
   modal(`<div class="chead"><h3 style="margin:0">📱 QR — ${esc(s.name)}</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
   <p class="sm" style="margin:0 0 10px;color:var(--mut)">Kode toko: <b style="color:var(--tx,#222)">${esc(m.kode||'-')}</b></p>
-  ${gagal?'<div class="empty">Gagal memuat data QR. Coba lagi.</div>':img?`<div style="display:grid;place-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px"><img src="${img}" alt="QRIS ${esc(s.name)}" style="max-width:100%;max-height:300px;object-fit:contain"></div>`:'<div class="empty">QRIS toko ini belum aktif.<br><span class="sm">Penjual perlu memasang gambar QRIS lewat aplikasi penjual. Setelah aktif, QR bisa diunduh dari sini.</span></div>'}
+  ${gagal?'<div class="empty">Gagal memuat data QR. Coba lagi.</div>':img?`<div style="display:grid;place-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px"><img src="${img}" alt="QRIS ${esc(s.name)}" style="max-width:100%;max-height:300px;object-fit:contain"></div>`:'<div class="empty">Belum ada gambar QRIS untuk toko ini.<br><span class="sm">Unggah di bawah, atau penjual bisa mengunggahnya sendiri lewat aplikasi penjual.</span></div>'}
+  <input type="file" id="qtIn" accept="image/*" hidden onchange="qrTokoUnggah(this,'${jn}')">
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-    ${img?`<a class="btn btn-g" style="text-decoration:none" href="${esc(poster)}&unduh=1" target="_blank" rel="noopener">⬇️ Unduh poster QR (PNG)</a><a class="btn btn-light" style="text-decoration:none" href="${img}" download="QRIS-${esc(kode)}.${ext}">⬇️ Gambar QRIS saja</a>`:''}
+    <button class="btn ${img?'btn-light':'btn-g'}" type="button" onclick="$('#qtIn').click()">📤 ${img?'Ganti':'Unggah'} gambar QRIS</button>
+    ${img?`<a class="btn btn-g" style="text-decoration:none" href="${esc(poster)}&unduh=1" target="_blank" rel="noopener">⬇️ Unduh poster QR (PNG)</a><a class="btn btn-light" style="text-decoration:none" href="${img}" download="QRIS-${esc(kode)}.${ext}">⬇️ Gambar QRIS saja</a><button class="btn btn-red" type="button" onclick="qrTokoHapus('${jn}',this)">Hapus</button>`:''}
   </div>
   ${img?`<a class="btn btn-light full" style="text-decoration:none;margin-top:10px;text-align:center" href="${esc(poster)}" target="_blank" rel="noopener">🖨️ Buka / cetak poster</a>`:''}`);
 }
