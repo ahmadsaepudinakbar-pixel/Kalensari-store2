@@ -727,8 +727,33 @@ function tips(){return `<div class="sh-tips" style="margin:0 0 12px"><span aria-
   <button class="btn" data-k="prods" style="margin-top:6px">📦 Ke Kelola Produk</button>`}
 bind.tips=()=>document.querySelectorAll("#v [data-k]").forEach(e=>e.onclick=()=>go(e.dataset.k));
 /* ===== QR TOKO & AJAK PELANGGAN: pelanggan scan -> pasang aplikasi -> kode toko terisi otomatis saat daftar (referal-toko.js) ===== */
+// Poster QR Share v2: nama toko tidak dipotong. 1 baris (huruf mengecil sampai 20px), bila masih kepanjangan -> 2 baris.
+function ksPosterQr(q,nama,kode,o){
+  o=Object.assign({ajak:"Scan untuk pasang aplikasi",warna:"#7b3f1d"},o||{});
+  const gbr=(cv,W)=>{const n=q.getModuleCount(),m=2,c=W/(n+2*m),x=cv.getContext("2d");cv.width=cv.height=W;x.fillStyle="#fff";x.fillRect(0,0,W,W);x.fillStyle="#000";for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))x.fillRect(Math.floor((k+m)*c),Math.floor((r+m)*c),Math.ceil(c),Math.ceil(c))};
+  const W=420,H=540,c=document.createElement("canvas"),x=(c.width=W,c.height=H,c.getContext("2d")),maks=W-40;
+  nama=String(nama||"Toko Anda").replace(/\s+/g," ").trim().slice(0,60);
+  const lebar=(t,f)=>{x.font="bold "+f+"px sans-serif";return x.measureText(t).width};
+  let baris=[nama],fs=26;
+  while(fs>20&&lebar(nama,fs)>maks)fs--;
+  if(lebar(nama,fs)>maks){                       // pecah jadi 2 baris di spasi yang paling seimbang
+    const k=nama.split(" ");let best=null;
+    for(let i=1;i<k.length;i++){const a=k.slice(0,i).join(" "),b=k.slice(i).join(" "),w=Math.max(lebar(a,22),lebar(b,22));if(!best||w<best.w)best={a,b,w}}
+    baris=best?[best.a,best.b]:[nama];fs=22;
+    while(fs>15&&Math.max(...baris.map(t=>lebar(t,fs)))>maks)fs--;
+    baris=baris.map(t=>{if(lebar(t,fs)<=maks)return t;while(t.length>3&&lebar(t+"…",fs)>maks)t=t.slice(0,-1);return t+"…"});
+  }
+  const dua=baris.length>1,qs=dua?336:360,qy=dua?118:100,qx=(W-qs)/2;
+  const t=document.createElement("canvas");gbr(t,qs);
+  x.fillStyle="#fff";x.fillRect(0,0,W,H);x.fillStyle=o.warna;x.textAlign="center";x.font="bold "+fs+"px sans-serif";
+  if(dua){x.fillText(baris[0],W/2,40);x.fillText(baris[1],W/2,40+fs+4)}else x.fillText(baris[0],W/2,50);
+  x.font="16px sans-serif";x.fillText(o.ajak.slice(0,40),W/2,dua?40+fs+4+28:80);
+  x.drawImage(t,qx,qy,qs,qs);
+  x.font="bold 18px sans-serif";x.fillText("Kalensari Store",W/2,490);x.font="14px sans-serif";x.fillText("Kode toko: "+kode,W/2,515);
+  return c;
+}
 function qrUrl(){const u=new URL("index.html",location.href);u.search="";u.hash="";u.searchParams.set("toko",me.kode||"");u.searchParams.set("pasang","1");return u.toString()}
-function qrAwal(){const n=String(me.toko||me.usaha||me.nama||"Toko Anda");return{nama:n.slice(0,26),ajak:"Scan untuk pasang aplikasi",pesan:"Ingin belanja di toko "+n+"? Tapi malas keluar rumah? Pesan saja di:",warna:"#7b3f1d"}}
+function qrAwal(){const n=String(me.toko||me.usaha||me.nama||"Toko Anda");return{nama:n,ajak:"Scan untuk pasang aplikasi",pesan:"Ingin belanja di toko "+n+"? Tapi malas keluar rumah? Pesan saja di:",warna:"#7b3f1d"}}
 const QR_WARNA=["#7b3f1d","#1f7a4d","#1d5fa8","#b3261e","#6a3fa0","#222222"];
 function qrOpsi(){return qrAwal()}
 function qr(){if(!me.kode)return `<div class="card"><b>Kode toko belum tersedia</b><p style="font-size:13px;color:var(--mu)">Akun Anda belum punya kode toko. Hubungi admin Kalensari Store.</p></div>`;
@@ -742,7 +767,7 @@ function qrGambar(cv,q,W){const n=q.getModuleCount(),m=2,c=W/(n+2*m),x=cv.getCon
 bind.qr=async()=>{if(!me.kode)return;const url=qrUrl();let q;
   try{if(!window.qrcode)await new Promise((ok,no)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js";s.onload=ok;s.onerror=no;document.head.appendChild(s)});q=qrcode(0,"M");q.addData(url);q.make();qrGambar($("qrCv"),q,280)}catch(e){return toast("QR gagal dibuat. Periksa koneksi internet.")}
   const bacaO=()=>qrAwal();
-  const poster=o=>{const W=420,H=540,c=document.createElement("canvas"),x=(c.width=W,c.height=H,c.getContext("2d")),t=document.createElement("canvas");qrGambar(t,q,360);x.fillStyle="#fff";x.fillRect(0,0,W,H);x.fillStyle=o.warna;x.textAlign="center";let fs=26;do{x.font="bold "+fs+"px sans-serif";fs-=1}while(x.measureText(o.nama).width>W-40&&fs>14);x.fillText(o.nama,W/2,50);x.font="16px sans-serif";x.fillText(o.ajak.slice(0,40),W/2,80);x.drawImage(t,30,100,360,360);x.font="bold 18px sans-serif";x.fillText("Kalensari Store",W/2,490);x.font="14px sans-serif";x.fillText("Kode toko: "+me.kode,W/2,515);return c};
+  const poster=o=>ksPosterQr(q,o.nama,me.kode,{ajak:o.ajak,warna:o.warna});
   const gambar=()=>{const o=bacaO(),cv=$("qrCv");if(!cv)return;cv.width=420;cv.height=540;cv.getContext("2d").drawImage(poster(o),0,0)};
   try{localStorage.removeItem("kalensari_qrposter_"+me.id)}catch(e){}
   gambar();
