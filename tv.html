@@ -400,7 +400,7 @@ footer a,footer button{color:var(--mut)}
   </svg>
 </div>
 
-<script src="config.js"></script>
+<script src="config.js"></script><script src="admin-2fa.js?v=1"></script>
 <script>
 (function(){
 'use strict';
@@ -838,7 +838,7 @@ $('#btnMasuk').addEventListener('click',async function(){
   if(!em||!pw){pesan('#pesanMasuk','Isi email dan kata sandi.','err');return}
   btn.disabled=true;btn.textContent='Memeriksa...';pesan('#pesanMasuk','');
   try{
-    var sess=await authReq('password',{email:em,password:pw});
+    var sess=await authReq('password',{email:em,password:pw});sess=await KS2FA.naikkan(sess);
     var r=await fetch(BASE+'/rest/v1/rpc/is_admin',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+sess.access_token,'Content-Type':'application/json'},body:'{}'});
     if(!r.ok)throw new Error('cek-admin-gagal');
     if((await r.json())!==true){

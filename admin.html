@@ -374,7 +374,7 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
 </svg>
 
-<script src="config.js"></script><script src="filter-kata.js"></script><script src="crop.js"></script><script src="qris-statis.js"></script>
+<script src="config.js"></script><script src="admin-2fa.js?v=1"></script><script src="filter-kata.js"></script><script src="crop.js"></script><script src="qris-statis.js"></script>
 <script src="notif.js"></script>
 <script>
 /* =====================================================================
@@ -594,7 +594,7 @@ async function doLogin(){
   if(!BASE||!CFG.supabaseAnonKey){toast('config.js belum berisi data Supabase');return}
   btn.disabled=true;const t=btn.textContent;btn.textContent='Memeriksa...';
   try{
-    const sess=await authReq('password',{email:em,password:pw});
+    let sess=await authReq('password',{email:em,password:pw});sess=await KS2FA.naikkan(sess);   // verifikasi 2 langkah (admin-2fa.js)
     const r=await fetch(`${BASE}/rest/v1/rpc/is_admin`,{method:'GET',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+sess.access_token}});
     if(!r.ok)throw new Error('cek-admin-gagal');
     if((await r.json())!==true){fetch(`${BASE}/auth/v1/logout`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+sess.access_token}}).catch(()=>{});throw new Error('bukan-admin')}
@@ -2815,6 +2815,7 @@ function keamananPage(){
     <p class="sm" id="bkInfo" style="color:var(--mut);font-size:12px;margin-top:8px">${(()=>{try{const t=localStorage.getItem('ks_backup_t');return t?'Backup terakhir dari perangkat ini: '+fmtDate(Number(t)):'Belum pernah backup dari perangkat ini.'}catch(e){return ''}})()}</p>
     <p class="sm" style="color:#b45309;font-size:12px;margin-top:6px">⚠️ File backup berisi data pribadi pembeli & mitra. Jangan dibagikan ke siapa pun.</p></div>
   </div>
+  ${akunAmanHtml()}
   ${rsHtml()}
   <div class="card"><div class="chead"><h3>📜 Catatan aktivitas admin</h3><button class="btn btn-light" style="padding:6px 10px" onclick="LOG.data=null;muatLog();render()">↻ Muat ulang</button></div>
     <p class="sm" style="color:var(--mut);font-size:12px;margin-bottom:10px">Semua perubahan yang dilakukan akun admin tercatat otomatis oleh server (siapa, kapan, apa yang berubah) dan tidak bisa dihapus dari aplikasi. Disimpan 180 hari.</p>
@@ -2823,6 +2824,36 @@ function keamananPage(){
     ${lf.length?lf.map(x=>{const a=LOG_AKSI[x.aksi]||['•',x.aksi,'#64748b'];return `<div class="detail-row" style="display:block;padding:10px 0"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><span style="white-space:normal"><b style="color:${a[2]}">${a[0]} ${esc(a[1])}</b> · ${esc(LOG_NAMA[x.tabel]||x.tabel)}${x.kunci?` <b>${esc(x.kunci)}</b>`:''}</span><small style="color:var(--mut);white-space:nowrap">${fmtDate(x.t)}</small></div><div class="sm" style="color:var(--mut)">${esc(x.email||'-')}</div>${logIsi(x)}</div>`}).join(''):'<div class="empty" style="padding:14px">Belum ada aktivitas tercatat</div>'}`}
   </div>`;
 }
+/* ========== KEAMANAN AKUN ADMIN ==========
+   2FA (admin-2fa.js + supabase-admin-2fa.sql), ganti kata sandi, keluar dari semua perangkat,
+   dan keluar otomatis bila panel tidak disentuh selama DIAM_MENIT. */
+const AK={st:null,muat:false};const DIAM_MENIT=30;
+async function muatAkunAman(){if(AK.muat||!window.KS2FA)return;AK.muat=true;try{await fresh();AK.st=await KS2FA.status(auth.access_token)}catch(e){AK.st={err:String(e.message||e).slice(0,100)}}AK.muat=false;if(route==='keamanan')render()}
+function akunAmanHtml(){
+  if(!AK.st&&!AK.muat)setTimeout(muatAkunAman,0);
+  const st=AK.st,on=st&&st.aktif;
+  return `<div class="card"><div class="chead"><h3>🔐 Keamanan akun admin</h3></div>
+    <div class="detail-row" style="display:block;padding:8px 0"><b>Verifikasi 2 langkah (2FA)</b><br>${!st?'<span class="sm" style="color:var(--mut)">Memeriksa…</span>':st.err?`<span class="sm" style="color:#c0392b">⚠️ ${esc(st.err)}</span>`:on?'<span class="sm" style="color:#16a34a;font-weight:700">✅ Aktif • setiap masuk wajib kode dari aplikasi Authenticator</span>':'<span class="sm" style="color:#c0392b;font-weight:700">⚠️ Belum aktif • keluar lalu masuk lagi untuk memasangnya</span>'}</div>
+    <div class="detail-row" style="display:block;padding:8px 0"><b>Keluar otomatis</b><br><span class="sm" style="color:var(--mut)">Panel admin keluar sendiri bila tidak disentuh selama ${DIAM_MENIT} menit.</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn btn-light" style="flex:1;min-width:150px" onclick="gantiSandi(this)">🔑 Ganti kata sandi</button>
+      <button class="btn btn-light" style="flex:1;min-width:150px;color:#c0392b" onclick="keluarSemua(this)">🚪 Keluar dari semua perangkat</button></div>
+    <p class="sm" style="color:var(--mut);font-size:12px;margin-top:8px">HP hilang / ganti HP? Hapus 2FA lewat Supabase SQL Editor (perintahnya ada di bawah file supabase-admin-2fa.sql), lalu masuk lagi untuk memasang ulang.</p></div>`;
+}
+async function gantiSandi(btn){
+  const a=prompt('Kata sandi BARU (minimal 10 karakter, campur huruf, angka & simbol):');if(a===null)return;
+  if(a.length<10||!/[a-zA-Z]/.test(a)||!/\d/.test(a))return toast('Kata sandi minimal 10 karakter dan berisi huruf + angka');
+  if(prompt('Ketik ulang kata sandi baru:')!==a)return toast('Kata sandi tidak sama');
+  await busy(btn,async()=>{await fresh();const r=await fetch(`${BASE}/auth/v1/user`,{method:'PUT',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:JSON.stringify({password:a})});
+    const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.msg||d.message||('HTTP '+r.status));toast('✅ Kata sandi diganti. Pakai kata sandi baru saat masuk berikutnya.')});
+}
+async function keluarSemua(btn){
+  if(!confirm('Keluar dari SEMUA perangkat?\n\nSemua HP / laptop yang sedang masuk dengan akun admin ini akan keluar, termasuk perangkat ini.'))return;
+  await busy(btn,async()=>{await fresh();await KS2FA.keluarSemua(auth.access_token);saveAuth(null);location.reload()});
+}
+// keluar otomatis saat panel tidak disentuh
+(function(){let t=Date.now();['pointerdown','keydown','scroll','touchstart'].forEach(e=>addEventListener(e,()=>{t=Date.now()},{passive:true}));
+  setInterval(()=>{if(auth&&!$('#app').classList.contains('hide')&&Date.now()-t>DIAM_MENIT*60000){t=Date.now();logout();toast('Keluar otomatis: panel admin tidak dipakai '+DIAM_MENIT+' menit')}},30000)})();
 /* ========== PULIHKAN DARI BACKUP ==========
    Pilih file kalensari-backup-*.json -> dibandingkan dengan data sekarang -> centang yang mau dikembalikan.
    Aman: tidak ada data yang DIHAPUS. Produk & pengaturan terpilih ditulis ulang seperti di backup.

@@ -1,0 +1,28 @@
+KEAMANAN AKUN ADMIN • KALENSARI STORE
+=====================================
+
+YANG BARU
+- Verifikasi 2 langkah (2FA): setiap admin masuk = email + kata sandi + kode 6 angka
+  dari aplikasi Google Authenticator di HP. Kata sandi bocor pun akun tetap aman.
+  Berlaku di semua tempat login admin: admin.html, admin-notif.html, admin-kuis.html,
+  jasa.html, tv.html, dan menu ⚙️ Admin di toko.
+- Keluar otomatis bila panel admin tidak disentuh 30 menit.
+- Admin > Sistem > Keamanan & Backup > kotak "🔐 Keamanan akun admin":
+  status 2FA, Ganti kata sandi, Keluar dari semua perangkat.
+
+URUTAN PASANG (ikuti urutannya)
+1) Unggah semua file di zip ini ke GitHub (folder paling atas), Commit, tunggu Actions ✅.
+2) Pasang aplikasi "Google Authenticator" di HP Anda (Play Store, gratis).
+3) Buka kalensari.web.id/admin.html > masuk dengan email & sandi.
+   Muncul "Pasang verifikasi 2 langkah" + gambar QR.
+   Di Google Authenticator: + > Pindai kode QR > arahkan ke layar > ketik 6 angkanya.
+4) Setelah berhasil masuk, baru jalankan supabase-admin-2fa.sql di Supabase > SQL Editor.
+   Hasil: tabel email / peran / dua_fa_aktif (akun Anda harus "true").
+   Mulai saat ini database menolak akses admin tanpa kode 2FA.
+5) Admin ke-2 juga akan diminta memasang 2FA di HP-nya sendiri saat pertama masuk.
+
+HP HILANG / GANTI HP
+- Supabase > SQL Editor, jalankan (ganti emailnya):
+  delete from auth.mfa_factors where user_id = (select id from auth.users where lower(email) = lower('email@anda.com'));
+- Lalu masuk lagi ke admin.html dan pindai QR baru di HP baru.
+- Curiga ada orang lain masuk? Tekan "Keluar dari semua perangkat", lalu "Ganti kata sandi".

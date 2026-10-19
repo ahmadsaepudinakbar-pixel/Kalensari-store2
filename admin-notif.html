@@ -81,7 +81,7 @@ header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius
   </div>
 </div>
 
-<script src="config.js"></script>
+<script src="config.js"></script><script src="admin-2fa.js?v=1"></script>
 <script src="notif.js"></script>
 <script src="dering.js"></script>
 <script src="pwa.js"></script>
@@ -146,7 +146,7 @@ function showLogin(){$('#app').classList.add('hide');$('#login').classList.remov
 async function masuk(){
   $('#lerr').textContent='';const b=$('#goLogin');b.disabled=true;b.textContent='Memeriksa...';
   try{
-    const s=await authReq('password',{email:$('#em').value.trim(),password:$('#pw').value});saveAuth(s);
+    let s=await authReq('password',{email:$('#em').value.trim(),password:$('#pw').value});s=await KS2FA.naikkan(s);saveAuth(s);
     const r=await fetch(`${BASE}/rest/v1/rpc/is_admin`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:'{}'});
     if((await r.json())!==true){saveAuth(null);throw new Error('Akun ini bukan admin.')}
     $('#pw').value='';start();

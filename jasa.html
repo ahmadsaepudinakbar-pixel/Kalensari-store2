@@ -135,7 +135,7 @@ textarea.fld{min-height:90px;resize:vertical}
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 
-<script src="config.js" onerror="void 0"></script><script src="crop.js"></script>
+<script src="config.js" onerror="void 0"></script><script src="admin-2fa.js?v=1"></script><script src="crop.js"></script>
 <script>
 // ====== PENGATURAN ======
 const ADMIN_WA = "6281234567890"; // nomor WhatsApp admin (untuk tombol Daftar) — ganti dengan nomor asli
@@ -372,7 +372,7 @@ async function formLogin(){
     const em = $("admEmail").value.trim(), pw = $("pinIn").value; if(!em || !pw) return toast("Isi email dan kata sandi admin");
     $("pinOk").disabled = true; $("pinOk").textContent = "Memeriksa...";
     try{
-      const sess = await authReq("password", {email:em, password:pw});
+      let sess = await authReq("password", {email:em, password:pw}); sess = await KS2FA.naikkan(sess);
       if(!(await isAdminToken(sess.access_token))) throw new Error("bukan-admin");
       saveAuth(sess); await loadKat(); masukAdmin();
     }catch(e){ const m = String(e.message || e); toast(m === "bukan-admin" ? "Akun ini bukan admin" : m === "cek-admin-gagal" ? "Jalankan supabase-admin-auth.sql di Supabase dulu" : /invalid|credentials/i.test(m) ? "Email atau kata sandi salah" : "Gagal masuk: " + m.slice(0,60)); }

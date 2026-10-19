@@ -59,7 +59,7 @@ async function adminEnsureFresh(){
   catch(e){console.warn("Sesi admin habis:",e);saveAdminAuth(null);if(typeof adminLoggedIn!=="undefined")adminLoggedIn=false;}
 }
 async function adminSignIn(email,password){
-  const sess=await adminAuthRequest("password",{email,password});
+  let sess=await adminAuthRequest("password",{email,password});if(window.KS2FA)sess=await KS2FA.naikkan(sess);   // verifikasi 2 langkah (admin-2fa.js)
   const base=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
   const r=await fetch(`${base}/rest/v1/rpc/is_admin`,{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:`Bearer ${sess.access_token}`,"Content-Type":"application/json"},body:"{}"});
   if(!r.ok)throw new Error("cek-admin-gagal");
