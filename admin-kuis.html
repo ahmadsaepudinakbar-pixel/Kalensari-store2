@@ -41,6 +41,11 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 .drop{border:2px dashed var(--ln);border-radius:16px;padding:26px;text-align:center;background:#fffaf5}
 .drop.over{border-color:var(--br);background:#fff1e3}
 .prog{height:10px;background:#f1e6dc;border-radius:99px;overflow:hidden}.prog i{display:block;height:100%;background:var(--gr);width:0;transition:.2s}
+.vk{border:1px solid var(--ln);border-radius:14px;padding:12px;margin-bottom:10px;background:#fff}.vk.ok{border-color:#bfe3c9;background:#f6fcf8}.vk.bahaya{border-color:#f3c3bd;background:#fffafa}
+.vk-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.vk-h b{font-size:15px}.vk-h .pill{margin-left:auto}
+.vk-s{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin:10px 0}.vk-s div{background:#faf6f2;border-radius:10px;padding:6px 8px;font-size:12px;color:var(--mu)}.vk-s div b{display:block;font-size:15px;color:var(--tx)}
+.vk-f{margin:0 0 8px;padding:0;list-style:none;font-size:13px}.vk-f li{padding:3px 0}.vk-f .w{color:#b42318;font-weight:700}.vk-f .i{color:var(--mu)}
+.vk-a{display:flex;gap:8px;flex-wrap:wrap}
 .err{background:#fdecea;color:#8e2a1c;border-radius:10px;padding:10px;font-size:13px;margin-top:8px;max-height:220px;overflow:auto}
 .okb{background:#e6f6ec;color:#1b6a3a;border-radius:10px;padding:10px;font-size:14px;margin-top:8px}
 .soal{max-width:420px;white-space:pre-wrap;word-break:break-word}
@@ -94,8 +99,8 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
           <label class="l">Selesai (WIB)<input class="f" id="pdSelesai" type="datetime-local"></label>
         </div>
         <div class="row" style="margin-top:8px"><span class="note">Isi cepat:</span><button class="btn ol sm" onclick="isiCepat(1)">1 bulan</button><button class="btn ol sm" onclick="isiCepat(2)">2 minggu</button><button class="btn ol sm" onclick="isiCepat(3)">1 minggu</button></div>
-        <label class="l" style="font-weight:600;color:var(--tx)"><input type="checkbox" id="pdOto" style="width:auto"> Otomatis saat periode berakhir: tetapkan juara 1–3, undi kupon, umumkan pemenang, dan kirim voucher</label>
-        <p class="note" style="margin:2px 0 0">Matikan bila Anda ingin memeriksa daftar pemenang dulu, lalu menerbitkannya sendiri di tab Pemenang.</p>
+        <label class="l" style="font-weight:600;color:var(--tx)"><input type="checkbox" id="pdOto" style="width:auto"> Otomatis saat periode berakhir: tetapkan juara 1–3 dan undi kupon (lalu menunggu verifikasi Anda sebelum diumumkan &amp; voucher dikirim)</label>
+        <p class="note" style="margin:2px 0 0">Matikan bila Anda ingin menekan sendiri tombol "Tetapkan juara" dan "Undi kupon". Dalam dua cara ini, hadiah tetap baru cair setelah Anda verifikasi dan terbitkan di tab Pemenang.</p>
         <div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn ol" onclick="$('#pdForm').hidden=true">Batal</button><button class="btn br" onclick="simpanPeriode(this)">💾 Simpan periode</button></div>
       </div>
       <div class="card"><h3>Daftar periode</h3><div class="tw"><table><thead><tr><th>Nama</th><th>Mulai</th><th>Selesai</th><th>Status</th><th>Kupon</th><th></th></tr></thead><tbody id="pdBody"></tbody></table></div></div>
@@ -140,7 +145,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
         <h3>🏆 Pemenang per periode</h3>
         <div class="row"><b>Periode</b><select class="f" id="pmBulan" onchange="muatPemenang()"></select></div>
         <div id="pmInfo" class="note" style="margin:8px 0"></div>
-        <p class="note">Periode <b>otomatis</b>: semua langkah di bawah berjalan sendiri saat periode berakhir. Periode <b>tidak otomatis</b>: setelah periode berakhir, <b>1)</b> tetapkan juara 1–3, <b>2)</b> undi kupon, <b>3)</b> periksa daftar lalu <b>Terbitkan</b>. Pemenang tampil di popup toko dan hadiah masuk saldo voucher belanja pemenang.</p>
+        <p class="note">Periode <b>otomatis</b>: saat periode berakhir, juara 1–3 dihitung dan kupon diundi sendiri, lalu <b>menunggu verifikasi Anda</b>. Periode <b>tidak otomatis</b>: <b>1)</b> tetapkan juara 1–3, <b>2)</b> undi kupon. Lalu untuk keduanya: periksa tiap pemenang di bawah, tekan <b>✅ Setujui</b> atau <b>⛔ Tolak</b>, baru <b>3) Terbitkan</b>. Hadiah baru masuk saldo pemenang setelah diterbitkan.</p>
         <div class="row">
           <button class="btn br pmAksi" onclick="aksiPm('kuis_admin_juara')">1️⃣ Tetapkan juara 1–3</button>
           <span class="row"><button class="btn br pmAksi" onclick="aksiPm('kuis_admin_undi')">2️⃣ Undi kupon</button><input class="f" id="pmN" type="number" min="0" max="100" style="width:70px" title="Jumlah pemenang undian"> orang</span>
@@ -149,7 +154,9 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
         </div>
       </div>
       <div class="grid" id="pmStat" style="margin-bottom:14px"></div>
-      <div class="card"><h3>Daftar pemenang</h3><div class="tw"><table><thead><tr><th>Jenis</th><th>#</th><th>Nama</th><th>WhatsApp</th><th>Benar / Kupon</th><th>Hadiah</th><th>Status</th></tr></thead><tbody id="pmBody"></tbody></table></div></div>
+      <div class="card"><h3>🔎 Verifikasi pemenang <button class="btn gr" style="margin-left:auto;padding:7px 12px;font-size:13px" id="pmOkSemua" onclick="setujuiSemua()" hidden>✅ Setujui semua</button></h3>
+        <p class="note" style="margin:-4px 0 10px">Tanda ⚠️ muncul otomatis bila ada yang mencurigakan (menjawab terlalu cepat, nama sama dengan akun lain di 50 besar, dll). Tanda bukan bukti curang: periksa dulu, misalnya tanyakan langsung ke pemenang. Pemenang yang ditolak <b>diganti otomatis</b>.</p>
+        <div id="pmBody"></div><div id="pmDq"></div></div>
     </section>
 
     <!-- ATURAN -->
@@ -295,7 +302,7 @@ async function simpanPeriode(b) {
   const nama = $("#pdNama").value.trim(), mulai = dariInput($("#pdMulai").value), selesai = dariInput($("#pdSelesai").value), oto = $("#pdOto").checked;
   if (!nama || !mulai || !selesai) return toast("Isi nama, waktu mulai, dan waktu selesai");
   if (new Date(selesai) <= new Date(mulai)) return toast("Waktu selesai harus setelah waktu mulai");
-  if (!confirm(`${editPeriode ? "Simpan perubahan" : "Buat"} periode "${nama}"?\n\nMulai: ${wib(mulai)}\nSelesai: ${wib(selesai)}\n${oto ? "Saat selesai: pemenang dihitung, diumumkan & voucher dikirim OTOMATIS." : "Saat selesai: admin menetapkan & menerbitkan pemenang sendiri."}`)) return;
+  if (!confirm(`${editPeriode ? "Simpan perubahan" : "Buat"} periode "${nama}"?\n\nMulai: ${wib(mulai)}\nSelesai: ${wib(selesai)}\n${oto ? "Saat selesai: juara & undian dihitung OTOMATIS, lalu menunggu verifikasi Anda sebelum voucher dikirim." : "Saat selesai: admin menetapkan & menerbitkan pemenang sendiri."}`)) return;
   b.disabled = true;
   try {
     const r = await rpc("kuis_admin_periode_simpan", { p_id: editPeriode, p_nama: nama, p_mulai: mulai, p_selesai: selesai, p_otomatis: oto });
@@ -456,20 +463,58 @@ async function simpanSoal(b) {
 /* ---------- pemenang ---------- */
 let PM = null;
 async function muatPemenang() {
-  $("#pmBody").innerHTML = `<tr><td colspan="7"><span class="spin"></span></td></tr>`;
-  try { PM = await rpc("kuis_admin_ringkas", { p_periode: pilihP("#pmBulan") }); isiPilihanPeriode(PM); renderPm(); } catch (e) { $("#pmBody").innerHTML = `<tr><td colspan="7"><div class="err">${esc(e.message)}</div></td></tr>`; }
+  $("#pmBody").innerHTML = `<span class="spin"></span>`;
+  try { PM = await rpc("kuis_admin_ringkas", { p_periode: pilihP("#pmBulan") }); isiPilihanPeriode(PM); await muatCek(); renderPm(); } catch (e) { $("#pmBody").innerHTML = `<div class="err">${esc(e.message)}</div>`; }
 }
 const namaPm = () => (PM && PM.periode && PM.periode.nama) || "periode ini";
+function bahayaPm(x) {          // -> [{w:true/false, t:"..."}]
+  const f = [], tot = x.total || 0, akur = tot ? Math.round(x.benar / tot * 100) : 0, cepatPct = tot ? x.cepat / tot : 0;
+  if (x.cepat >= 5 && cepatPct >= .2) f.push({ w: true, t: `${x.cepat} jawaban (${Math.round(cepatPct * 100)}%) diberikan kurang dari 3 detik setelah jawaban sebelumnya` });
+  if (tot >= 10 && x.median_jeda > 0 && x.median_jeda < 4) f.push({ w: true, t: `Rata-rata hanya ${String(x.median_jeda).replace(".", ",")} detik per soal (sangat cepat untuk membaca soal)` });
+  if (x.nama_sama > 0) f.push({ w: true, t: `Ada ${x.nama_sama} akun lain bernama "${x.nama}" di 50 besar (mungkin akun ganda)` });
+  if (tot >= 30 && akur >= 98) f.push({ w: true, t: `Hampir semua benar (${akur}%) dari ${tot} soal` });
+  if (x.jenis === "juara" && x.hari === 1 && tot >= 50) f.push({ w: true, t: `Semua ${tot} soal dijawab dalam 1 hari` });
+  const kl = (x.kelas || []).map(k => `${k.kelas} (${k.n})`).join(", ");
+  if (kl) f.push({ w: false, t: `Soal yang paling banyak dijawab: ${kl}` });
+  return f;
+}
 function renderPm() {
-  const p = PM.pemenang || [], terbit = p.some(x => x.terbit), pr = PM.periode;
-  const selesai = pr && pr.status === "selesai";
+  const p = (PM.cek && PM.cek.pemenang) || PM.pemenang || [], terbit = p.some(x => x.terbit), pr = PM.periode, adaCek = !!PM.cek;
+  const selesai = pr && pr.status === "selesai", belum = p.filter(x => x.status_cek && x.status_cek !== "ok").length;
   $("#pmInfo").innerHTML = !pr ? "Belum ada periode." : `${STATUS[pr.status] || ""} <b>${esc(pr.nama)}</b>: ${wib(pr.mulai)} s.d. ${wib(pr.selesai)} • ${pr.otomatis ? "⚙️ otomatis" : "✋ manual"}`
-    + (!selesai ? `<br>⏳ Tombol pemenang aktif setelah periode berakhir${pr.otomatis ? "; pada saat itu pemenang dihitung & voucher dikirim otomatis" : ""}.` : "");
-  document.querySelectorAll(".pmAksi").forEach(b => b.disabled = !selesai || (terbit && !b.classList.contains("gr")));
-  $("#pmStat").innerHTML = [["Pemain", PM.pemain], ["Kupon terkumpul", PM.kupon], ["Pemenang", p.length], ["Status", terbit ? "✅ Terbit" : p.length ? "Draf" : "Belum ada"], ["Total hadiah", rp(p.reduce((t, x) => t + (x.hadiah || 0), 0))]]
+    + (!selesai ? `<br>⏳ Tombol pemenang aktif setelah periode berakhir${pr.otomatis ? "; saat itu pemenang dihitung otomatis lalu menunggu verifikasi Anda" : ""}.` : "")
+    + (selesai && p.length && !terbit && belum ? `<br><b style="color:#b45309">⏳ ${belum} pemenang menunggu verifikasi.</b> Hadiah belum cair sampai semua disetujui dan diterbitkan.` : "")
+    + (!adaCek && p.length ? `<br><b style="color:#b42318">Jalankan supabase-kuis-adil.sql untuk fitur verifikasi.</b>` : "");
+  document.querySelectorAll(".pmAksi").forEach(b => b.disabled = !selesai || (terbit && !b.classList.contains("gr")) || (b.classList.contains("gr") && adaCek && belum > 0));
+  $("#pmOkSemua").hidden = !adaCek || terbit || !belum;
+  $("#pmStat").innerHTML = [["Pemain", PM.pemain], ["Kupon terkumpul", PM.kupon], ["Pemenang", p.length], ["Status", terbit ? "✅ Terbit" : belum ? `⏳ ${belum} belum dicek` : p.length ? "Siap terbit" : "Belum ada"], ["Total hadiah", rp(p.reduce((t, x) => t + (x.hadiah || 0), 0))]]
     .map(([k, v]) => `<div class="stat"><small>${k}</small><b style="font-size:20px">${typeof v === "number" ? v.toLocaleString("id-ID") : v}</b></div>`).join("");
-  $("#pmBody").innerHTML = p.map(x => `<tr><td>${x.jenis === "juara" ? "🏆 Juara" : "🎟️ Undian"}</td><td>${x.peringkat}</td><td>${esc(x.nama)}</td><td>${esc(waShow(x.wa))}</td><td>${x.jenis === "juara" ? x.jumlah_benar + " benar" : esc(x.nomor_kupon)}</td><td>${rp(x.hadiah)}</td>
-    <td>${x.terbit ? '<span class="pill ok">Terbit</span>' : '<span class="pill">Draf</span>'} ${x.voucher_ok ? '<span class="pill ok">Voucher masuk</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="7" class="note">Belum ada pemenang untuk ${esc(namaPm())}.${PM.periode && PM.periode.status === "selesai" ? ' Klik "Tetapkan juara" dan "Undi kupon".' : ""}</td></tr>`;
+  $("#pmBody").innerHTML = p.map(x => {
+    const f = adaCek ? bahayaPm(x) : [], ada = f.some(y => y.w), ok = x.status_cek === "ok", tot = x.total || 0;
+    const st = x.terbit ? '<span class="pill ok">✅ Terbit</span>' + (x.voucher_ok ? ' <span class="pill ok">Voucher masuk</span>' : "") : ok ? `<span class="pill ok">✅ Disetujui${x.cek_oleh ? " • " + esc(String(x.cek_oleh).split("@")[0]) : ""}</span>` : '<span class="pill no">⏳ Menunggu verifikasi</span>';
+    return `<div class="vk${ok ? " ok" : ada ? " bahaya" : ""}"><div class="vk-h"><b>${x.jenis === "juara" ? "🏆 Juara " + x.peringkat : "🎟️ Undian #" + x.peringkat}</b> • ${esc(x.nama)} <span class="note">${esc(waShow(x.wa))}</span>${st}</div>
+      ${adaCek ? `<div class="vk-s"><div><b>${x.jenis === "juara" ? x.jumlah_benar : esc(x.nomor_kupon || "-")}</b>${x.jenis === "juara" ? "jawaban benar" : "nomor kupon"}</div><div><b>${tot}</b>soal dijawab</div><div><b>${tot ? Math.round(x.benar / tot * 100) : 0}%</b>ketepatan</div><div><b>${String(x.median_jeda || 0).replace(".", ",")} dtk</b>rata-rata / soal</div><div><b>${x.hari || 0}</b>hari bermain</div><div><b>${rp(x.hadiah)}</b>hadiah</div></div>
+      <ul class="vk-f">${f.map(y => `<li class="${y.w ? "w" : "i"}">${y.w ? "⚠️" : "ℹ️"} ${esc(y.t)}</li>`).join("") || '<li class="i">✅ Tidak ada tanda bahaya</li>'}</ul>` : `<p class="note">${x.jenis === "juara" ? x.jumlah_benar + " benar" : esc(x.nomor_kupon)} • ${rp(x.hadiah)}</p>`}
+      ${adaCek && !x.terbit ? `<div class="vk-a">${ok ? "" : `<button class="btn gr" onclick="setujuiPm(${x.id})">✅ Setujui</button>`}<button class="btn rd" onclick="tolakPm(${x.id},'${esc(String(x.nama || "").replace(/'/g, ""))}')">⛔ Tolak &amp; ganti</button></div>` : ""}</div>`;
+  }).join("") || `<div class="note">Belum ada pemenang untuk ${esc(namaPm())}.${PM.periode && PM.periode.status === "selesai" ? ' Klik "Tetapkan juara" dan "Undi kupon".' : ""}</div>`;
+  const dq = (PM.cek && PM.cek.diskualifikasi) || [];
+  $("#pmDq").innerHTML = dq.length ? `<h3 style="margin-top:14px">⛔ Didiskualifikasi periode ini</h3>` + dq.map(d => `<div class="vk"><div class="vk-h"><b>${esc(waShow(d.wa))}</b><span class="note">${esc(d.alasan || "")} • ${esc(String(d.oleh || "").split("@")[0])}</span>${terbit ? "" : `<button class="btn ol" style="margin-left:auto;padding:6px 10px;font-size:12px" onclick="batalTolak('${esc(d.wa)}')">Batalkan</button>`}</div></div>`).join("") : "";
+}
+async function muatCek() { try { PM.cek = await rpc("kuis_admin_cek", { p_periode: pilihP("#pmBulan") }); } catch (e) { PM.cek = null; } }
+async function setujuiPm(id) { try { PM.cek = await rpc("kuis_admin_setujui", { p_id: id }); renderPm(); toast("✅ Disetujui"); } catch (e) { toast(e.message, 5000); } }
+async function setujuiSemua() {
+  const n = ((PM.cek && PM.cek.pemenang) || []).filter(x => x.status_cek !== "ok").length;
+  if (!confirm(`Setujui ${n} pemenang yang belum dicek?\n\nPastikan Anda sudah memeriksa tanda bahaya ⚠️ di tiap pemenang.`)) return;
+  try { PM.cek = await rpc("kuis_admin_setujui_semua", { p_periode: pilihP("#pmBulan") }); renderPm(); toast("✅ Semua disetujui"); } catch (e) { toast(e.message, 5000); }
+}
+async function tolakPm(id, nama) {
+  const al = prompt(`Tolak ${nama || "pemenang ini"}?\n\nPemain didiskualifikasi dari SEMUA hadiah periode ini (juara & undian), lalu diganti otomatis oleh peringkat berikutnya / undian ulang.\n\nTulis alasannya:`);
+  if (al === null) return; if (!al.trim()) return toast("Alasan wajib diisi");
+  try { PM.cek = await rpc("kuis_admin_tolak", { p_id: id, p_alasan: al.trim() }); renderPm(); toast("⛔ Ditolak • pemenang pengganti sudah dipilih"); } catch (e) { toast(e.message, 5000); }
+}
+async function batalTolak(wa) {
+  if (!confirm("Batalkan diskualifikasi? Juara 1–3 dihitung ulang (undian tidak diubah).")) return;
+  try { PM.cek = await rpc("kuis_admin_batal_tolak", { p_periode: pilihP("#pmBulan"), p_wa: wa }); renderPm(); toast("Diskualifikasi dibatalkan"); } catch (e) { toast(e.message, 5000); }
 }
 async function aksiPm(fn, tanya) {
   const id = pilihP("#pmBulan"); if (!id) return toast("Pilih periode dulu");
@@ -478,15 +523,16 @@ async function aksiPm(fn, tanya) {
   if (fn === "kuis_admin_undi" && !confirm(`Undi ${$("#pmN").value || "?"} pemenang dari kupon ${namaPm()}? Hasil undian sebelumnya (jika ada & belum terbit) akan diganti.`)) return;
   try {
     const body = { p_periode: id }; if (fn === "kuis_admin_undi") body.p_jumlah = Number($("#pmN").value) || null;
-    PM = await rpc(fn, body); isiPilihanPeriode(PM); renderPm(); toast("Berhasil");
+    PM = await rpc(fn, body); isiPilihanPeriode(PM); await muatCek(); renderPm(); toast("Berhasil");
   } catch (e) { toast(e.message, 5000); }
 }
 async function terbit() {
   const id = pilihP("#pmBulan"), p = (PM && PM.pemenang) || [];
   if (!p.length) return toast("Belum ada pemenang");
+  if (PM.cek && (PM.cek.pemenang || []).some(x => x.status_cek !== "ok")) return toast("Setujui atau tolak semua pemenang dulu");
   const total = p.filter(x => !x.voucher_ok).reduce((t, x) => t + (x.hadiah || 0), 0);
   if (!confirm(`Terbitkan ${p.length} pemenang ${namaPm()}?\n\n• Pemenang tampil di popup Kalensari Store\n• ${rp(total)} saldo voucher masuk ke akun pemenang\n\nPastikan daftar sudah benar.`)) return;
-  try { PM = await rpc("kuis_admin_terbit", { p_periode: id }); isiPilihanPeriode(PM); renderPm(); toast("Pemenang diterbitkan 🎉"); } catch (e) { toast(e.message, 5000); }
+  try { PM = await rpc("kuis_admin_terbit", { p_periode: id }); isiPilihanPeriode(PM); await muatCek(); renderPm(); toast("Pemenang diterbitkan 🎉"); } catch (e) { toast(e.message, 5000); }
 }
 
 /* ---------- aturan ---------- */
