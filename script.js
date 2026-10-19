@@ -266,6 +266,10 @@ const checkAdminPin=async()=>false; // PIN lama tidak dipakai lagi; admin masuk 
 const BASE_CATEGORIES=["Makanan","Minuman","Es Krim","Buah-buahan"];
 const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])].filter(c=>!removedCategories.includes(c)||products.some(p=>p.category===c));
 const sellerKey=n=>String(n||"").trim().toLowerCase();
+// Kode toko (PJ0015 / PJ-0015 / pj 15) -> nama toko. Diisi dari penjual_members, disimpan di HP supaya link toko langsung terbuka.
+const normKodeToko=v=>{const m=String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").match(/^([A-Z]{2})0*(\d{1,6})$/);return m?m[1]+m[2].padStart(4,"0"):"";};
+var kodeTokoMap={},kodeTokoSiap=false,tokoLinkTunda="";
+try{const c=JSON.parse(localStorage.getItem("kalensari_kode_toko")||"{}");if(c&&typeof c==="object")kodeTokoMap=c;}catch(e){}
 const shippingFeeFor=n=>{const v=shippingFees[sellerKey(n)],d=Number(shippingFees.__default)||0;return(v===undefined||v===null||v==="")?d:(Number(v)||0);};
 // ===== ONGKIR = ongkir pertama toko + tambahan per KM (jarak garis lurus toko TERAKHIR di rute -> titik pembeli) =====
 // Titik toko diambil dari lokasi yang disimpan penjual (penjual_members.latitude/longitude, dicocokkan lewat nama toko).
@@ -379,13 +383,16 @@ async function loadCloudSettings(){
       if(r.key==="tutup_toko"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){tutupToko=r.value;localStorage.setItem("kalensari_tutup_toko",JSON.stringify(tutupToko));}
       if(r.key==="closed_sellers"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){closedSellers=r.value;localStorage.setItem("kalensari_closed_sellers",JSON.stringify(closedSellers));}
       if(r.key==="penjual_members"&&Array.isArray(r.value)){r.value.forEach(x=>{if(x&&x.id)sellerIdMap[x.id]=sellerKey(x.toko||x.usaha)});pmSimpanMembers(r.value);}
+      if(/_members$/.test(r.key)&&Array.isArray(r.value)){r.value.forEach(x=>{const kd=normKodeToko(x&&x.kode),nm=sellerKey(x&&(x.toko||x.usaha));if(kd&&nm)kodeTokoMap[kd]=nm;});kodeTokoSiap=true;}
       if(r.key==="pasar_malam"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){PM_CFG={...PM_DEF,...r.value};try{localStorage.setItem("kalensari_pasar_malam",JSON.stringify(PM_CFG));}catch(e){}}
       if(r.key==="cod_aturan"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){codAturan={...codAturan,...r.value};}
       if(r.key==="qris_statis"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){QRIS_STATIS=r.value;try{localStorage.setItem("kalensari_qris_statis",JSON.stringify(r.value));}catch(e){}}
     });
     if(!(rows||[]).some(r=>r.key==="qris_statis")&&Array.isArray(rows)){QRIS_STATIS=null;try{localStorage.removeItem("kalensari_qris_statis");}catch(e){}}
+    if(kodeTokoSiap){try{localStorage.setItem("kalensari_kode_toko",JSON.stringify(kodeTokoMap));}catch(e){}}
+    kodeTokoSiap=true;selesaikanTokoLink();
     return true;
-  }catch(e){console.error("Supabase pengaturan toko:",e);return false;}
+  }catch(e){console.error("Supabase pengaturan toko:",e);if(tokoLinkTunda){tokoLinkTunda="";bukaHalamanToko("");showToast("Toko belum bisa dimuat. Periksa internet lalu buka link-nya lagi.");}return false;}
 }
 async function saveStoreSettings(){
   localStorage.setItem("kalensari_categories",JSON.stringify(customCategories));
@@ -483,10 +490,20 @@ function renderSellerBar(){
   const grid=document.getElementById("productGrid");if(!grid)return;
   let bar=document.getElementById("sellerFilterBar");
   if(!bar){bar=document.createElement("div");bar.id="sellerFilterBar";bar.className="seller-filter-bar";grid.parentNode.insertBefore(bar,grid);}
-  if(!activeSeller){bar.hidden=true;bar.innerHTML="";return;}
-  const n=activeSellerName(),closed=sellerClosed(n);
-  bar.hidden=false;
-  const sfF=(shopFotos||{})[activeSeller];bar.innerHTML=`<span>${sfF?`<i class="sf-foto" style="background-image:url('${sfF}')"></i>`:"🏪"} Produk dari <b>${esc(n)}</b>${closed?' <em class="sf-closed">Tutup</em>':""}</span>${window.KSHarian?KSHarian.tombolIkuti(activeSeller):""}<button type="button" onclick="setSeller('')">× Semua toko</button>`;
+  document.body.classList.toggle("ks-mode-toko",!!activeSeller);
+  const h2=document.querySelector("#products .section-title h2");
+  if(h2){if(!h2.dataset.asli)h2.dataset.asli=h2.textContent;h2.textContent=activeSeller?"Menu Toko":h2.dataset.asli;}
+  if(!activeSeller){bar.hidden=true;bar.innerHTML="";bar.classList.remove("sf-toko");return;}
+  bar.hidden=false;bar.classList.add("sf-toko");
+  if(activeSeller.startsWith("#")){bar.innerHTML=`<div class="sf-top"><i class="sf-foto sf-big">🏪</i><div class="sf-info"><b>Memuat toko…</b><small>Kode ${esc(activeSeller.slice(1))}</small></div></div>`;return;}
+  const n=activeSellerName(),closed=sellerClosed(n),sfF=(shopFotos||{})[activeSeller];
+  const jd=sellerSchedule[activeSeller],jam=jd&&jd.o&&jd.c&&jd.o!==jd.c?`🕓 ${esc(jd.o)}–${esc(jd.c)}`:"";
+  const jml=products.filter(p=>isVisible(p)&&sellerList(p).some(x=>sellerKey(x)===activeSeller)).length;
+  const st=closed?`<em class="sf-closed">Tutup</em>`:'<em class="sf-open">Buka</em>';
+  bar.innerHTML=`<button type="button" class="sf-back" onclick="setSeller('')" aria-label="Kembali ke semua toko">‹ Semua toko</button>
+  <div class="sf-top">${sfF?`<i class="sf-foto sf-big" style="background-image:url('${sfF}')"></i>`:`<i class="sf-foto sf-big">${esc(shopInitials(n))}</i>`}
+  <div class="sf-info"><b>${esc(n)}</b><small>${st}${jam?" • "+jam:""}${jml?" • "+jml+" menu":""}</small></div></div>
+  <div class="sf-acts">${window.KSHarian?KSHarian.tombolIkuti(activeSeller):""}</div>`;
 }
 // Daftar toko diambil otomatis dari nama penjual di tiap produk (produk multi-penjual masuk ke tiap toko).
 function shopRows(){
@@ -706,7 +723,7 @@ function renderProducts() {
   });
   document.getElementById("resultInfo").textContent=`${units.length} produk`;
   renderSellerBar();
-  document.getElementById("productGrid").innerHTML=units.length?units.map(u=>u.single?singleCardHTML(u.single):(u.variants.length>1?groupCardHTML(u):singleCardHTML(u.variants[0]))).join(""):`<div class="empty-state"><b>😔 Produk tidak ditemukan</b>Coba kata kunci atau kategori lain.</div>`;
+  document.getElementById("productGrid").innerHTML=units.length?units.map(u=>u.single?singleCardHTML(u.single):(u.variants.length>1?groupCardHTML(u):singleCardHTML(u.variants[0]))).join(""):(activeSeller&&activeSeller.startsWith("#")?`<div class="empty-state"><b>⏳ Memuat menu toko…</b>Sebentar ya.</div>`:activeSeller&&!(document.getElementById("searchInput")?.value||"").trim()?`<div class="empty-state"><b>🏪 Toko ini belum punya menu yang tampil</b>Coba lagi nanti, atau lihat toko lain.</div>`:`<div class="empty-state"><b>😔 Produk tidak ditemukan</b>Coba kata kunci atau kategori lain.</div>`);
 }
 // ===== MENU PRASMANAN / RACIK SENDIRI (mis. Seblak Prasmanan) =====
 // Topping disimpan di produk sebagai teks, satu baris = "Nama | Harga". Batas belanja per porsi = topping_limit.
@@ -1276,8 +1293,25 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
 document.getElementById("year").textContent=new Date().getFullYear();
 renderCategories();renderProducts();updateCartCount();renderCart();
 if(new URLSearchParams(location.search).get("pesanan")){ history.replaceState(null,"",location.pathname); setTimeout(()=>document.getElementById("myOrdersBtn")?.click(),400); }
-// ?toko=Nama Toko -> langsung tampilkan produk toko itu (dipakai tombol "Lihat Toko Saya" di aplikasi penjual)
-{const tk=new URLSearchParams(location.search).get("toko");if(tk){history.replaceState(null,"",location.pathname);activeSeller=sellerKey(tk);activeCategory="Semua";renderCategories();renderProducts();setTimeout(()=>document.getElementById("products")?.scrollIntoView({behavior:"smooth"}),700);}}
+// ?toko=PJ0015 (link/QR share penjual) atau ?toko=Nama Toko ("Lihat Toko Saya") -> buka halaman toko itu.
+// Parameter lain (mis. pasang=1 untuk tawaran pasang aplikasi) tetap dibiarkan.
+function bukaHalamanToko(k){activeSeller=k||"";activeCategory="Semua";renderCategories();renderProducts();window.scrollTo(0,0);}
+function selesaikanTokoLink(){
+  if(!tokoLinkTunda)return;
+  const k=kodeTokoMap[tokoLinkTunda];
+  if(!k&&!kodeTokoSiap)return;             // daftar toko belum termuat, tunggu
+  const kd=tokoLinkTunda;tokoLinkTunda="";
+  if(k)bukaHalamanToko(k);
+  else{bukaHalamanToko("");showToast("Toko dengan kode "+kd+" tidak ditemukan.");}
+}
+{const q=new URLSearchParams(location.search),tk=(q.get("toko")||q.get("ref")||"").trim();
+ if(tk){q.delete("toko");q.delete("ref");const sisa=q.toString();history.replaceState(null,"",location.pathname+(sisa?"?"+sisa:"")+location.hash);
+  const kd=normKodeToko(tk),namaAda=products.some(p=>sellerList(p).some(n=>sellerKey(n)===sellerKey(tk)));
+  if(kd&&!namaAda){
+    if(kodeTokoMap[kd])bukaHalamanToko(kodeTokoMap[kd]);
+    else{tokoLinkTunda=kd;bukaHalamanToko("#"+kd);}   // sementara "Memuat toko…" sampai daftar toko termuat
+  }else bukaHalamanToko(sellerKey(tk));
+ }}
 if(location.hash==="#checkout"){ history.replaceState(null,"",location.pathname); if(cart.length) setTimeout(()=>document.getElementById("checkoutBtn").click(),400); }
 (async()=>{ if(CLOUD_CONFIG?.enabled){ updateCloudStatus("☁️ Menghubungkan ke database..."); const ok=await loadCloudProducts(); await loadCloudSettings(); setTimeout(muatFotoToko,800); if(ok){renderCategories();renderProducts();renderCart();updateCloudStatus("☁️ Produk tersinkron online");} else updateCloudStatus("⚠️ Cloud belum tersambung. Periksa config.js dan SQL Supabase."); window.KSHarian&&KSHarian.siap(); } })();
 
