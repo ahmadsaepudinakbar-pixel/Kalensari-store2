@@ -888,7 +888,7 @@ toko(){
     <div class="sm">${m&&punyaAkun(m)?esc([m.nama,m.wa?'+'+m.wa:'',m.dusun].filter(Boolean).join(' • ')):'Belum punya akun penjual'+(m&&m.dusun?' • '+esc(m.dusun):'')}${m&&Number(m.latitude)?' • 📍':''}</div>
     <div class="sm">${s.count} produk • 🕒 ${esc(schedText(schedMap()[sKey(s.name)]))}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center">${st.open?chip('🟢 Buka sekarang','b-Selesai'):chip('🔒 Tutup'+(st.why?' • '+esc(st.why):''),'b-Batal')}</div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn ${forced?'btn-g':'btn-red'}" style="padding:7px 12px;font-size:12px" onclick="toggleShop('${jsq(s.name)}',this)">${forced?'Buka lagi':'Tutup paksa'}</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="schedForm('${jsq(s.name)}')">🕒 Jadwal</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="prodFilter='Semua';go('produk');q='${jsq(s.name)}';render()">Produk</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="editToko('${jsq(s.name)}')">✏️ Edit</button>${m&&punyaAkun(m)?'':`<button class="btn btn-g" style="padding:7px 12px;font-size:12px" onclick="serahkanToko('${jsq(s.name)}')">🤝 Serahkan</button>`}</div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn ${forced?'btn-g':'btn-red'}" style="padding:7px 12px;font-size:12px" onclick="toggleShop('${jsq(s.name)}',this)">${forced?'Buka lagi':'Tutup paksa'}</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="schedForm('${jsq(s.name)}')">🕒 Jadwal</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="prodFilter='Semua';go('produk');q='${jsq(s.name)}';render()">Produk</button><button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="editToko('${jsq(s.name)}')">✏️ Edit</button>${m&&punyaAkun(m)?`<button class="btn btn-light" style="padding:7px 12px;font-size:12px" onclick="qrToko('${jsq(s.name)}')">📱 QR</button>`:''}${m&&punyaAkun(m)?'':`<button class="btn btn-g" style="padding:7px 12px;font-size:12px" onclick="serahkanToko('${jsq(s.name)}')">🤝 Serahkan</button>`}</div></div>
     <div class="right-col">${m&&punyaAkun(m)?waLink(m.wa):''}${m&&punyaAkun(m)?`<button class="more" onclick="memberMenu('penjual','${jsq(m.id)}')">${ico('dots')}</button>`:''}</div></div>`}).join('')||'<div class="empty">Belum ada toko</div>'}</div>`;
 },
 kurir(){
@@ -1046,6 +1046,21 @@ async function simpanToko(name,btn){
     await setSetting('penjual_members',list);S.settings.penjual_members=list;
     tkMap=null;closeModal();render();toast('Toko disimpan'+(n?` • ${n} produk ikut diganti namanya`:''));
   });
+}
+/* ========== LIHAT & UNDUH QR / QRIS TOKO (admin) ==========
+   Gambar QRIS yang diunggah penjual tersimpan di store_settings "qris_tpl_<ID penjual>" = {nama,qris(data URL),sk,gx,gy}. */
+async function qrToko(name){
+  const s=tokoOf(name);if(!s||!s.member)return;const m=s.member,kode=m.kode||'toko';
+  modal(`<div class="chead"><h3 style="margin:0">📱 QR Toko</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div><p class="sm" style="color:var(--mut)">Memuat…</p>`);
+  let v=null,gagal=false;try{v=await readKey('qris_tpl_'+m.id,null)}catch(e){gagal=true}
+  const img=v&&typeof v.qris==='string'&&/^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+\/=]+$/.test(v.qris)?v.qris:'';
+  const ext=/^data:image\/jpe?g/.test(img)?'jpg':/^data:image\/webp/.test(img)?'webp':'png';
+  const poster='qr.html?nama='+encodeURIComponent(v&&v.nama||s.name)+'&kode='+encodeURIComponent(m.kode||'')+'&id='+encodeURIComponent(m.id);
+  modal(`<div class="chead"><h3 style="margin:0">📱 QR — ${esc(s.name)}</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div>
+  <p class="sm" style="margin:0 0 10px;color:var(--mut)">Kode toko: <b style="color:var(--tx,#222)">${esc(m.kode||'-')}</b></p>
+  ${gagal?'<div class="empty">Gagal memuat data QR. Coba lagi.</div>':img?`<div style="display:grid;place-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px"><img src="${img}" alt="QRIS ${esc(s.name)}" style="max-width:100%;max-height:340px;object-fit:contain"></div>
+  <div class="mact" style="margin-top:12px"><a class="btn btn-g" style="text-decoration:none" href="${img}" download="QRIS-${esc(kode)}.${ext}">⬇️ Unduh gambar QRIS</a></div>`:'<div class="empty">Penjual ini belum mengunggah gambar QRIS.<br><span class="sm">Penjual mengunggahnya lewat aplikasi penjual &gt; QR Toko &gt; Template QRIS.</span></div>'}
+  <a class="btn btn-light full" style="text-decoration:none;margin-top:10px;text-align:center" href="${esc(poster)}" target="_blank" rel="noopener">🖨️ Buka poster Template QRIS (unduh PNG / cetak)</a>`);
 }
 /* ========== TAMBAH TOKO BARU (admin) ========== */
 async function tambahToko(){
