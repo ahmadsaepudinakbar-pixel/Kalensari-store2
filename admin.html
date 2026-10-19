@@ -282,8 +282,12 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
 .kb small{color:var(--mut);font-size:12px}
 .kb-go{display:flex;align-items:center;gap:4px;color:var(--blue);font-weight:700;font-size:13px;white-space:nowrap}.kb-go svg.i{width:16px;height:16px}
 .kb-rinci{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+.vcard .detail-row>b{white-space:nowrap;padding-left:8px}.kb-vlbl{margin-top:14px;font-size:12.5px;font-weight:700}.kb-vlbl span{font-weight:500;color:var(--mut)}.kb-vlbl+.kb-rinci{margin-top:8px;padding-top:0;border-top:0;grid-template-columns:repeat(3,1fr)}.kb-rinci:has(.kb-c:nth-child(5)){grid-template-columns:repeat(5,1fr)}
 .kb-c{background:var(--bg);border-radius:12px;padding:10px 12px}.kb-c small{display:block;font-size:11.5px}.kb-c b{font-size:15px}
 .kb-c b.p{color:var(--g2)}.kb-c b.m{color:var(--red)}
+@media(max-width:600px){.kb-vlbl+.kb-rinci{grid-template-columns:1fr 1fr}}
+@media(max-width:1200px){.kb-rinci:has(.kb-c:nth-child(5)){grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.kb-rinci:has(.kb-c:nth-child(5)){grid-template-columns:1fr 1fr}}
 @media(max-width:900px){.kb-rinci{grid-template-columns:1fr 1fr}.kb-go{display:none}.kb-top{align-items:flex-start}}
 [data-theme="dark"] .kb{border-color:#1f3a2a}[data-theme="dark"] .kb-per{color:#4ade80}[data-theme="dark"] .kb-c b.p{color:#4ade80}
 .dash-alert:empty{display:none}.dash-alert{display:grid;gap:10px;margin-bottom:16px}.dash-alert>.card{margin:0!important}
@@ -441,12 +445,16 @@ async function loadAll(silent){
     S.mapUsage=Array.isArray(mu)?mu:null;
     // saldo kurir (tabel dari supabase-saldo-kurir.sql; kosong bila belum dipasang)
     const sejak=new Date(Date.now()-400*864e5).toISOString();
-    const [ks,kt,km,kc,ku]=await Promise.all([
+    const [ks,kt,km,kc,ku,vm,vs]=await Promise.all([
       api('kurir_saldo?select=kurir_id,saldo,kredit').catch(()=>api('kurir_saldo?select=kurir_id,saldo').catch(()=>null)),
       api('kurir_topup?select=id,kurir_id,nama,wa,jumlah,status,catatan,t,diproses_t&order=t.desc&limit=100').catch(()=>null),
       api('kurir_mutasi?select=jumlah,t&jenis=eq.potong&t=gt.'+encodeURIComponent(sejak)+'&limit=10000').catch(()=>null),
       api('kurir_cair?select=*&order=t.desc&limit=100').catch(()=>null),
-      api('kurir_mutasi?select=order_code&jenis=eq.upah&t=gt.'+encodeURIComponent(sejak)+'&limit=10000').catch(()=>null)]);
+      api('kurir_mutasi?select=order_code&jenis=eq.upah&t=gt.'+encodeURIComponent(sejak)+'&limit=10000').catch(()=>null),
+      // voucher belanja pembeli: uang pembeli yang jadi saldo voucher (refund) & voucher dipakai checkout
+      api('pembeli_mutasi?select=jumlah,jenis,t&jenis=in.(refund,pakai)&order=t.asc,id.asc&limit=50000').catch(()=>null),
+      api('pembeli_saldo?select=saldo&saldo=gt.0&limit=20000').catch(()=>null)]);
+    S.vmut=Array.isArray(vm)?vm:null;vHitungDana();S.vberedar=Array.isArray(vs)?vs.reduce((t,x)=>t+(Number(x.saldo)||0),0):null;
     S.kcair=Array.isArray(kc)?kc:null;S.upah=new Set((Array.isArray(ku)?ku:[]).map(x=>x.order_code));
     S.saldo=Array.isArray(ks)?Object.fromEntries(ks.map(x=>[x.kurir_id,Number(x.saldo)||0])):null;S.kredit=Array.isArray(ks)?Object.fromEntries(ks.map(x=>[x.kurir_id,Number(x.kredit)||0])):{};
     S.topup=Array.isArray(kt)?kt:[];S.potong=Array.isArray(km)?km:[];
@@ -3112,7 +3120,26 @@ function kuHitung(r){
   const potKurir=(S.potong||[]).filter(x=>inR(x.t,r)).reduce((t,x)=>t+Math.abs(Number(x.jumlah)||0),0);
   const cat=kuCatatan().filter(x=>inR(x.t,r)),masukLain=cat.filter(x=>x.jenis==='masuk').reduce((t,x)=>t+(Number(x.jumlah)||0),0),keluar=cat.filter(x=>x.jenis!=='masuk').reduce((t,x)=>t+(Number(x.jumlah)||0),0);
   const biayaQris=Math.round(qrisLunas*qrisPersen()/100),bersih=potKurir+masukLain-biayaQris-keluar;
-  return {os,barang,ongkir,omset,cara,qrisLunas,potKurir,masukLain,keluar,biayaQris,bersih,cat};
+  // Voucher belanja (TERPISAH dari pendapatan bersih): uang titipan pembeli, bukan milik Kalensari Store
+  const vm=(S.vmut||[]).filter(x=>inR(x.t,r));
+  const vMasuk=vm.filter(x=>x.jenis==='refund').reduce((t,x)=>t+Math.abs(Number(x.jumlah)||0),0);
+  const vPakai=vm.filter(x=>x.jenis==='pakai').reduce((t,x)=>t+Math.abs(Number(x.jumlah)||0),0);
+  const vBersih=vm.filter(x=>x.jenis==='pakai').reduce((t,x)=>t+(Number(x.dariBersih)||0),0);   // voucher yang melebihi dana voucher
+  const vDana=vPakai-vBersih;
+  return {os,barang,ongkir,omset,cara,qrisLunas,potKurir,masukLain,keluar,biayaQris,bersih:bersih-vBersih,cat,vMasuk,vPakai,vBersih,vDana};
+}
+/* Dana voucher pembeli (urut waktu, sejak awal):
+   - refund pesanan batal  -> masuk ke DANA VOUCHER (uang pembeli, bukan pendapatan)
+   - voucher dipakai CO     -> diambil dari dana voucher dulu;
+                               bila dana habis, kekurangannya MENGURANGI pendapatan bersih (mis. voucher bonus/promo) */
+function vHitungDana(){
+  let dana=0;
+  (S.vmut||[]).forEach(x=>{
+    const j=Math.abs(Number(x.jumlah)||0);x.dariDana=0;x.dariBersih=0;
+    if(x.jenis==='refund'){dana+=j}
+    else if(x.jenis==='pakai'){const a=Math.min(dana,j);dana-=a;x.dariDana=a;x.dariBersih=j-a}
+  });
+  S.vdana=dana;
 }
 /* Kartu dashboard: pendapatan bersih admin (rumus sama dengan menu Keuangan) */
 function kartuBersih(){
@@ -3126,7 +3153,9 @@ function kartuBersih(){
         <div class="kb-val" style="color:${neg(b.bersih)?'var(--red)':'var(--g2)'}">${uang(b.bersih)}</div>
         <small>Hari ini <b style="color:${neg(h.bersih)?'var(--red)':'var(--tx)'}">${uang(h.bersih)}</b> • yang benar-benar jadi milik Kalensari Store</small></div>
       <span class="kb-go">Lihat Keuangan ${ico('right')}</span></div>
-    <div class="kb-rinci">${chip('Potongan kurir',b.potKurir,1)}${chip('Pemasukan lain',b.masukLain,1)}${chip('Biaya QRIS',b.biayaQris,0)}${chip('Pengeluaran',b.keluar,0)}</div></div>`;
+    <div class="kb-rinci">${chip('Potongan kurir',b.potKurir,1)}${chip('Pemasukan lain',b.masukLain,1)}${chip('Biaya QRIS',b.biayaQris,0)}${chip('Pengeluaran',b.keluar,0)}${S.vmut?chip('Voucher (melebihi dana)',b.vBersih,0):''}</div>
+    ${S.vmut?`<div class="kb-vlbl">🎟️ Dana voucher pembeli <span>• uang pembeli, dipakai dulu sebelum mengurangi pendapatan bersih</span></div>
+    <div class="kb-rinci">${chip('Uang pembeli jadi voucher',b.vMasuk,1)}${chip('Voucher dipakai (dari dana)',b.vDana,0)}<div class="kb-c"><small>Sisa dana voucher</small><b style="color:var(--blue)">${rp(S.vdana||0)}</b></div></div>`:''}</div>`;
 }
 function keuanganPage(){
   const r=kuRange(),h=kuHitung(r),row=(l,v,c)=>`<div class="detail-row"><span>${l}</span><b style="${c?'color:'+c:''}">${v}</b></div>`;
@@ -3143,11 +3172,19 @@ function keuanganPage(){
     <div class="card"><div class="chead"><h3>📊 Rincian omset</h3></div>
       ${row('Penjualan barang (milik toko)',rp(h.barang))}${row('Ongkir (milik kurir)',rp(h.ongkir))}${row('<b>Total omset</b>',rp(h.omset))}
       <p class="sm" style="color:var(--mut);margin:12px 0 4px;font-weight:600">Per cara bayar</p>${[...h.cara.entries()].sort((a,b)=>b[1]-a[1]).map(([k,v])=>row(esc(k),rp(v))).join('')||'<div class="sm">-</div>'}</div>
-    <div class="card"><div class="chead"><h3>💰 Pendapatan bersih</h3></div>
+    <div class="card vcard"><div class="chead"><h3>💰 Pendapatan bersih</h3></div>
       ${row('Potongan saldo kurir per pesanan',rp(h.potKurir),'var(--g2)')}${row('Pemasukan lain (catatan)',rp(h.masukLain),'var(--g2)')}
       ${row(`Biaya QRIS ${String(qrisPersen()).replace('.',',')}% × ${rp(h.qrisLunas)} <button class="more" title="Ubah persen" onclick="ubahPersenQris()">✎</button>`,'− '+rp(h.biayaQris),'#c0392b')}
-      ${row('Pengeluaran (catatan)','− '+rp(h.keluar),'#c0392b')}${row('<b>Pendapatan bersih</b>',(h.bersih<0?'− ':'')+rp(Math.abs(h.bersih)),h.bersih>=0?'var(--g2)':'#c0392b')}
-      <p class="sm" style="color:var(--mut);margin-top:10px">Uang barang & ongkir bukan pendapatan Kalensari Store karena diteruskan ke toko dan kurir (lihat menu Setoran QRIS).</p></div></div>
+      ${row('Pengeluaran (catatan)','− '+rp(h.keluar),'#c0392b')}${S.vmut?row('Voucher dipakai yang melebihi dana voucher <small style="color:var(--mut)">(mis. voucher bonus)</small>','− '+rp(h.vBersih),'#c0392b'):''}${row('<b>Pendapatan bersih</b>',(h.bersih<0?'− ':'')+rp(Math.abs(h.bersih)),h.bersih>=0?'var(--g2)':'#c0392b')}
+      <p class="sm" style="color:var(--mut);margin-top:10px">Uang barang & ongkir bukan pendapatan Kalensari Store karena diteruskan ke toko dan kurir (lihat menu Setoran QRIS).</p></div>
+    ${S.vmut?`<div class="card vcard"><div class="chead"><h3>🎟️ Dana voucher pembeli</h3></div>
+      ${row('Pemasukan: uang pembeli jadi saldo voucher <small style="color:var(--mut)">(refund pesanan batal)</small>','+ '+rp(h.vMasuk),'var(--g2)')}
+      ${row('Voucher dipakai checkout (total)','− '+rp(h.vPakai),'#c0392b')}
+      ${row('&nbsp;&nbsp;• diambil dari dana voucher','− '+rp(h.vDana))}
+      ${row('&nbsp;&nbsp;• dana habis → dari pendapatan bersih','− '+rp(h.vBersih),'#c0392b')}
+      ${row('<b>Sisa dana voucher</b> <small style="color:var(--mut)">(saat ini)</small>',rp(S.vdana||0),'var(--blue)')}
+      ${row('Saldo voucher semua pembeli <small style="color:var(--mut)">(saat ini, termasuk bonus)</small>',S.vberedar==null?'-':rp(S.vberedar))}
+      <p class="sm" style="color:var(--mut);margin-top:10px">Uang pembeli yang jadi voucher <b>bukan pendapatan</b>. Saat pembeli belanja pakai voucher, uangnya diambil dari <b>dana voucher</b> dulu. Bila dana voucher sudah habis (mis. voucher bonus Ajak Tetangga/sambutan), kekurangannya baru <b>mengurangi pendapatan bersih</b>.</p></div>`:''}</div>
   <div class="card" style="margin-bottom:16px"><div class="chead"><h3>Omset per hari</h3><span class="sm" style="color:var(--mut);font-size:12px">${nDays} hari</span></div>
     <div class="bars" style="margin-top:20px;gap:${nDays>10?3:12}px">${vals.map((v,i)=>`<div style="height:${v/max*100}%" title="${days[i]}: ${rp(v)}">${nDays<=10?`<span>${short(v)}</span>`:''}</div>`).join('')}</div>
     <div class="blabels" style="gap:${nDays>10?3:12}px">${days.map((d,i)=>`<span>${i%every===0?d.slice(8)+'/'+d.slice(5,7):''}</span>`).join('')}</div></div>
