@@ -282,10 +282,10 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
 .kb small{color:var(--mut);font-size:12px}
 .kb-go{display:flex;align-items:center;gap:4px;color:var(--blue);font-weight:700;font-size:13px;white-space:nowrap}.kb-go svg.i{width:16px;height:16px}
 .kb-rinci{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
-.vcard .detail-row>b{white-space:nowrap;padding-left:8px}.kb-vlbl{margin-top:14px;font-size:12.5px;font-weight:700}.kb-vlbl span{font-weight:500;color:var(--mut)}.kb-vlbl+.kb-rinci{margin-top:8px;padding-top:0;border-top:0;grid-template-columns:repeat(3,1fr)}.kb-rinci:has(.kb-c:nth-child(5)){grid-template-columns:repeat(5,1fr)}
+.vcard .detail-row>b{white-space:nowrap;padding-left:8px}.kb-vlbl{margin-top:14px;font-size:12.5px;font-weight:700}.kb-vlbl span{font-weight:500;color:var(--mut)}.kb-vlbl+.kb-rinci{margin-top:8px;padding-top:0;border-top:0;grid-template-columns:repeat(5,1fr)}.kb-rinci:has(.kb-c:nth-child(5)){grid-template-columns:repeat(5,1fr)}
 .kb-c{background:var(--bg);border-radius:12px;padding:10px 12px}.kb-c small{display:block;font-size:11.5px}.kb-c b{font-size:15px}
 .kb-c b.p{color:var(--g2)}.kb-c b.m{color:var(--red)}
-@media(max-width:600px){.kb-vlbl+.kb-rinci{grid-template-columns:1fr 1fr}}
+@media(max-width:1200px){.kb-vlbl+.kb-rinci{grid-template-columns:repeat(3,1fr)}}@media(max-width:600px){.kb-vlbl+.kb-rinci{grid-template-columns:1fr 1fr}}
 @media(max-width:1200px){.kb-rinci:has(.kb-c:nth-child(5)){grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.kb-rinci:has(.kb-c:nth-child(5)){grid-template-columns:1fr 1fr}}
 @media(max-width:900px){.kb-rinci{grid-template-columns:1fr 1fr}.kb-go{display:none}.kb-top{align-items:flex-start}}
@@ -452,9 +452,9 @@ async function loadAll(silent){
       api('kurir_cair?select=*&order=t.desc&limit=100').catch(()=>null),
       api('kurir_mutasi?select=order_code&jenis=eq.upah&t=gt.'+encodeURIComponent(sejak)+'&limit=10000').catch(()=>null),
       // voucher belanja pembeli: uang pembeli yang jadi saldo voucher (refund) & voucher dipakai checkout
-      api('pembeli_mutasi?select=jumlah,jenis,t&jenis=in.(refund,pakai)&order=t.asc,id.asc&limit=50000').catch(()=>null),
+      api('pembeli_mutasi?select=jumlah,jenis,t&order=t.asc,id.asc&limit=50000').catch(()=>null),
       api('pembeli_saldo?select=saldo&saldo=gt.0&limit=20000').catch(()=>null)]);
-    S.vmut=Array.isArray(vm)?vm:null;vHitungDana();S.vberedar=Array.isArray(vs)?vs.reduce((t,x)=>t+(Number(x.saldo)||0),0):null;
+    S.vmut=Array.isArray(vm)?vm:null;S.vberedar=Array.isArray(vs)?vs.reduce((t,x)=>t+(Number(x.saldo)||0),0):null;vHitungDana();
     S.kcair=Array.isArray(kc)?kc:null;S.upah=new Set((Array.isArray(ku)?ku:[]).map(x=>x.order_code));
     S.saldo=Array.isArray(ks)?Object.fromEntries(ks.map(x=>[x.kurir_id,Number(x.saldo)||0])):null;S.kredit=Array.isArray(ks)?Object.fromEntries(ks.map(x=>[x.kurir_id,Number(x.kredit)||0])):{};
     S.topup=Array.isArray(kt)?kt:[];S.potong=Array.isArray(km)?km:[];
@@ -3126,7 +3126,10 @@ function kuHitung(r){
   const vPakai=vm.filter(x=>x.jenis==='pakai').reduce((t,x)=>t+Math.abs(Number(x.jumlah)||0),0);
   const vBersih=vm.filter(x=>x.jenis==='pakai').reduce((t,x)=>t+(Number(x.dariBersih)||0),0);   // voucher yang melebihi dana voucher
   const vDana=vPakai-vBersih;
-  return {os,barang,ongkir,omset,cara,qrisLunas,potKurir,masukLain,keluar,biayaQris,bersih:bersih-vBersih,cat,vMasuk,vPakai,vBersih,vDana};
+  // voucher bonus yang DIBERIKAN di periode ini (bukan uang pembeli): ajak tetangga, sambutan, kompensasi, koreksi
+  const vBonusPer=new Map();vm.filter(x=>x.jenis!=='refund'&&x.jenis!=='pakai'&&(Number(x.jumlah)||0)>0).forEach(x=>vBonusPer.set(x.jenis,(vBonusPer.get(x.jenis)||0)+Number(x.jumlah)));
+  const vBonus=[...vBonusPer.values()].reduce((t,v)=>t+v,0);
+  return {vBonus,vBonusPer,os,barang,ongkir,omset,cara,qrisLunas,potKurir,masukLain,keluar,biayaQris,bersih:bersih-vBersih,cat,vMasuk,vPakai,vBersih,vDana};
 }
 /* Dana voucher pembeli (urut waktu, sejak awal):
    - refund pesanan batal  -> masuk ke DANA VOUCHER (uang pembeli, bukan pendapatan)
@@ -3140,7 +3143,10 @@ function vHitungDana(){
     else if(x.jenis==='pakai'){const a=Math.min(dana,j);dana-=a;x.dariDana=a;x.dariBersih=j-a}
   });
   S.vdana=dana;
+  // voucher yang masih beredar dibagi 2: dari refund (= sisa dana voucher) & dari bonus (sisanya)
+  if(S.vberedar!=null){S.vbRefund=Math.min(dana,S.vberedar);S.vbBonus=Math.max(0,S.vberedar-S.vbRefund)}else{S.vbRefund=dana;S.vbBonus=null}
 }
+const V_JENIS={ajak:'Bonus Ajak Tetangga (pengundang)',ajak_baru:'Bonus Ajak Tetangga (pembeli baru)',sambut:'Voucher sambutan pembeli baru',kompensasi:'Kompensasi toko tutup',koreksi:'Koreksi saldo oleh admin'};
 /* Kartu dashboard: pendapatan bersih admin (rumus sama dengan menu Keuangan) */
 function kartuBersih(){
   const now=wibDate(new Date()),b=kuHitung([now.slice(0,8)+'01',now]),h=kuHitung([now,now]);
@@ -3155,7 +3161,7 @@ function kartuBersih(){
       <span class="kb-go">Lihat Keuangan ${ico('right')}</span></div>
     <div class="kb-rinci">${chip('Potongan kurir',b.potKurir,1)}${chip('Pemasukan lain',b.masukLain,1)}${chip('Biaya QRIS',b.biayaQris,0)}${chip('Pengeluaran',b.keluar,0)}${S.vmut?chip('Voucher (melebihi dana)',b.vBersih,0):''}</div>
     ${S.vmut?`<div class="kb-vlbl">🎟️ Dana voucher pembeli <span>• uang pembeli, dipakai dulu sebelum mengurangi pendapatan bersih</span></div>
-    <div class="kb-rinci">${chip('Uang pembeli jadi voucher',b.vMasuk,1)}${chip('Voucher dipakai (dari dana)',b.vDana,0)}<div class="kb-c"><small>Sisa dana voucher</small><b style="color:var(--blue)">${rp(S.vdana||0)}</b></div></div>`:''}</div>`;
+    <div class="kb-rinci">${chip('Uang pembeli jadi voucher',b.vMasuk,1)}<div class="kb-c"><small>Voucher bonus (catatan)</small><b style="color:#d97706">${rp(b.vBonus)}</b></div>${chip('Voucher dipakai belanja',b.vPakai,0)}<div class="kb-c"><small>Beredar • dari refund</small><b style="color:var(--blue)">${rp(S.vbRefund||0)}</b></div><div class="kb-c"><small>Beredar • dari bonus</small><b style="color:var(--blue)">${S.vbBonus==null?'-':rp(S.vbBonus)}</b></div></div>`:''}</div>`;
 }
 function keuanganPage(){
   const r=kuRange(),h=kuHitung(r),row=(l,v,c)=>`<div class="detail-row"><span>${l}</span><b style="${c?'color:'+c:''}">${v}</b></div>`;
@@ -3182,8 +3188,12 @@ function keuanganPage(){
       ${row('Voucher dipakai checkout (total)','− '+rp(h.vPakai),'#c0392b')}
       ${row('&nbsp;&nbsp;• diambil dari dana voucher','− '+rp(h.vDana))}
       ${row('&nbsp;&nbsp;• dana habis → dari pendapatan bersih','− '+rp(h.vBersih),'#c0392b')}
-      ${row('<b>Sisa dana voucher</b> <small style="color:var(--mut)">(saat ini)</small>',rp(S.vdana||0),'var(--blue)')}
-      ${row('Saldo voucher semua pembeli <small style="color:var(--mut)">(saat ini, termasuk bonus)</small>',S.vberedar==null?'-':rp(S.vberedar))}
+      ${row('Voucher bonus diberikan <small style="color:var(--mut)">(catatan saja, belum pengeluaran)</small>',rp(h.vBonus),'#d97706')}
+      ${[...h.vBonusPer.entries()].map(([k,v])=>row('&nbsp;&nbsp;• '+esc(V_JENIS[k]||k),rp(v))).join('')}
+      <p class="sm" style="color:var(--mut);margin:12px 0 4px;font-weight:600">Voucher yang masih beredar (saat ini, semua pembeli)</p>
+      ${row('&nbsp;&nbsp;• dari refund <small style="color:var(--mut)">(= sisa dana voucher)</small>',rp(S.vbRefund||0),'var(--blue)')}
+      ${row('&nbsp;&nbsp;• dari bonus <small style="color:var(--mut)">(nanti mengurangi pendapatan bersih saat dipakai)</small>',S.vbBonus==null?'-':rp(S.vbBonus),'#d97706')}
+      ${row('<b>Total voucher beredar</b>',S.vberedar==null?'-':rp(S.vberedar),'var(--blue)')}
       <p class="sm" style="color:var(--mut);margin-top:10px">Uang pembeli yang jadi voucher <b>bukan pendapatan</b>. Saat pembeli belanja pakai voucher, uangnya diambil dari <b>dana voucher</b> dulu. Bila dana voucher sudah habis (mis. voucher bonus Ajak Tetangga/sambutan), kekurangannya baru <b>mengurangi pendapatan bersih</b>.</p></div>`:''}</div>
   <div class="card" style="margin-bottom:16px"><div class="chead"><h3>Omset per hari</h3><span class="sm" style="color:var(--mut);font-size:12px">${nDays} hari</span></div>
     <div class="bars" style="margin-top:20px;gap:${nDays>10?3:12}px">${vals.map((v,i)=>`<div style="height:${v/max*100}%" title="${days[i]}: ${rp(v)}">${nDays<=10?`<span>${short(v)}</span>`:''}</div>`).join('')}</div>
