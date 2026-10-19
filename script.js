@@ -575,7 +575,7 @@ function singleCardHTML(p) {
       <div class="product-body">
         <h3 onclick="showProduct(${p.id})">${p.name}</h3>
         <div class="price">${builder?`Racik sendiri${Number(currentPrice(p))>0?` • mulai ${rupiah(currentPrice(p))}`:""}${tLimit?` • maks ${rupiah(tLimit)}`:""}`:priceHTML(p)}</div>
-        <small>${nVar?`${nVar} pilihan varian`:p.unit}${!soldOut&&stokOf(p)!==null&&stokOf(p)<=5?` • <b class="sisa">Sisa ${stokOf(p)}</b>`:""}</small><small class="seller">👤 ${p.seller}</small>${p.luar_kota?`<small class="seller" style="color:#b45309;font-weight:700">🌍 Dikirim dari ${esc(p.asal_kota||"luar kota")}${p.berat_gram?` • ${p.berat_gram} g`:""}</small>`:""}${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
+        <small>${nVar?`${nVar} pilihan varian`:p.unit}${!soldOut&&stokOf(p)!==null&&stokOf(p)<=5?` • <b class="sisa">Sisa ${stokOf(p)}</b>`:""}</small><small class="seller">👤 ${p.seller}</small>${isPraorder(p)?'<small class="po-tag">📅 Praorder</small>':""}${p.luar_kota?`<small class="seller" style="color:#b45309;font-weight:700">🌍 Dikirim dari ${esc(p.asal_kota||"luar kota")}${p.berat_gram?` • ${p.berat_gram} g`:""}</small>`:""}${hasHours(p)?`<small class="hours${isInHours(p)?"":" closed"}">🕒 ${hoursText(p)}${isInHours(p)?"":" • Belum tersedia"}</small>`:""}
         ${sClosed?`<small class="hours closed">🔒 ${esc(sellerWhy(p))}</small>`:""}
         <div class="product-actions">
           <button class="btn outline" onclick="showProduct(${p.id})">Detail</button>
@@ -877,6 +877,7 @@ function showProduct(id) {
         <p class="eyebrow">${p.category} • ${p.seller}</p>
         <h2>${isGroup?esc(gname):p.name}</h2>
         ${(isGroup?variants.some(isUnggulan):isUnggulan(p))?'<p class="ung-tag">⭐ Produk unggulan toko</p>':''}
+        ${isPraorder(p)?`<div class="po-info"><b>📅 Produk praorder</b><span>${PO_INFO}</span></div>`:""}
         ${isGroup?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker">${variants.map(v=>`<button type="button" class="variant-chip${v.id===p.id?" active":""}" onclick="showProduct(${v.id})"><b>${esc(variantLabel(v))}</b><small>${isSoldOut(v)?"Habis":rupiah(currentPrice(v))}</small></button>`).join("")}</div></div>`:""}
         <div class="price" id="detailPrice">${isBuilder?`Racik sendiri${Number(currentPrice(p))>0?` • mulai ${rupiah(currentPrice(p))}`:""}${tLimit?` • maks ${rupiah(tLimit)}`:""}`:pv[detailVarian]?rupiah(pv[detailVarian].price):priceHTML(p)}</div>${pv.length?`<div class="variant-pick"><span class="seller-pick-title">Pilih Varian</span><div class="variant-picker" id="varianPicker">${pv.map((v,i)=>`<button type="button" class="variant-chip${i===detailVarian?" active":""}${v.habis?" habis":""}" ${v.habis?"disabled":""} onclick="pilihVarian(${i})"><b>${esc(v.name)}</b><small>${v.habis?"Habis":rupiah(v.price)}</small></button>`).join("")}</div></div>`:""}${isBuilder&&Number(p.min_order)>0?`<p class="tp-min-info">🧾 Minimal order <b>${rupiah(p.min_order)}</b> per porsi</p>`:""}
         <p>Satuan: ${p.unit}</p>
@@ -926,6 +927,10 @@ function removeFromCart(idx) {
   saveCart();updateCartCount();renderCart();
   showToast(`🗑️ ${p?p.name:"Produk"} dihapus dari keranjang`);
 }
+// ===== PRAORDER (supabase-praorder.sql): produk dibuat setelah dipesan =====
+const isPraorder=p=>!!(p&&p.praorder===true);
+const grupPraorder=g=>(g.items||g.all||[]).some(isPraorder);
+const PO_INFO="Toko punya waktu 12 jam untuk menerima pesanan, lalu maksimal 3 hari untuk membuatnya. Uang Anda ditahan aman oleh Kalensari Store sampai pesanan dikirim. Kalau lewat 3 hari belum siap dikirim, Anda boleh membatalkan dan uang kembali sebagai saldo voucher.";
 function cartData() {
   return cart.map((i,idx)=>{
     const p=products.find(x=>x.id===i.id);if(!p)return null;
@@ -1014,6 +1019,7 @@ function renderCart() {
       +(()=>{const j=jarakInfo(selL);return j?`<div class="ship-row ship-jarak"><span>📏 Tambahan jarak<small class="ship-sub">${j.s}</small></span><b>${j.v}</b></div>`:""})()
       +(selL.length&&rainFee()>0?`<div class="ship-row ship-jarak"><span>🌧️ Tambahan cuaca hujan<small class="ship-sub">Berlaku selama cuaca hujan, sekali per pengiriman</small></span><b>+${rupiah(rainFee())}</b></div>`:"")
       +(selL.length>1?`<p class="ship-note">🛵 Satu kurir menjemput ${selL[0].route.stops.map(x=>esc(x.name)).join(" → ")} lalu mengantar ke rumah Anda. ${"QRIS"===String(document.querySelector('#checkoutForm select[name="payment"]')?.value||"")?"Bayar QRIS cukup <b>sekali</b> untuk semua nota.":""}</p>`:"")
+      +(sel.some(grupPraorder)?`<p class="ship-note po-note">📅 <b>Pesanan praorder</b> dari ${sel.filter(grupPraorder).map(g=>esc(g.name)).join(", ")}. Semua produk di nota toko ini dikirim bersamaan setelah toko selesai membuatnya. ${PO_INFO}${sel.length>1?" <b>Praorder harus di-checkout sendiri, terpisah dari toko lain.</b> Hilangkan centang toko lain dulu.":""}</p>`:"")
       +(selX.length?`<p class="ship-note">📦 Paket luar kota dikirim lewat J&amp;T. Ongkir J&amp;T belum termasuk di total ini; admin mengonfirmasinya lewat WhatsApp.</p>`:"");}}
   document.getElementById("cartTotal").textContent=rupiah(subtotal+shipping);
   document.getElementById("checkoutTotal").textContent=rupiah(subtotal+shipping);
@@ -1195,6 +1201,7 @@ document.getElementById("checkoutForm").addEventListener("submit",async e=>{
   await Promise.all([loadCloudSettings(),refreshProductStatus()]);
   if(!cartGroups().some(g=>g.on)){alert("Centang minimal satu produk yang ingin di-checkout.");return;}
   {const closed=closedCartItems();if(closed.length){alertClosedItems(closed);return;}}
+  {const on=cartGroups().filter(g=>g.on),po=on.filter(grupPraorder);if(po.length&&on.length>1){alert("Pesanan belum bisa dibuat:\n\n📅 Produk praorder dari "+po.map(g=>g.name).join(", ")+" harus di-checkout sendiri, terpisah dari toko lain.\n\nHilangkan centang produk toko lain di keranjang, pesan praorder ini dulu, lalu pesan toko lainnya.");return;}}
   {const tt=tokoTanpaTitik();if(tt.length){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n📍 Toko "+tt.join(", ")+" belum memiliki titik lokasi, jadi ongkir & rute kurir belum bisa dihitung. Hapus produk toko itu dari keranjang, atau coba lagi setelah penjual mengatur lokasi tokonya.");return;}}
   {KS_KURIR=await jumlahKurirAktif();if(KS_KURIR===0&&cartGroups().some(g=>g.on&&!g.luar)){renderCekPesan();alert("Pesanan belum bisa dibuat:\n\n🛵 Belum ada kurir yang aktif saat ini, jadi pesanan belum bisa diantar. Silakan coba lagi beberapa saat lagi.");return;}}
   const f=new FormData(e.target);

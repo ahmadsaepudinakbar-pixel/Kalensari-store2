@@ -1405,7 +1405,7 @@ function grupMenunggu(pend, now){
   (Array.isArray(pend) ? pend : []).forEach(o => {
     if(belumBayar(o)) return;
     const mulai = Date.parse(o.paid_at || o.created_at || "") || now;
-    if(now - mulai < BATAS_TOKO_MS){ g.add(o.grup); return; }
+    if(now - mulai < (o.praorder === true ? 12 * 3600000 : BATAS_TOKO_MS)){ g.add(o.grup); return; }
     if(sudahBatal.has(o.order_code)) return; sudahBatal.add(o.order_code);
     batalkanNota(o.order_code, ["menunggu","baru"], {batal_alasan:"Toko tidak menjawab dalam 15 menit"}).catch(() => {});
   });
@@ -1483,6 +1483,8 @@ async function loadOrders(){
   const box = $("orders"); if(!box.innerHTML.trim()) box.innerHTML = '<div class="skl"><i></i><i></i><i class="s"></i></div><div class="skl"><i></i><i></i><i class="s"></i></div>';
   try{
     const [rows, states, elig, pend] = await Promise.all([pesananKurir("aktif", () => fetchOrders("status=in.(diproses,dikirim)")), readStates(), eligibleCouriers(), pesananKurir("tunggu", () => fetchOrders("status=in.(menunggu,baru)&grup=not.is.null")).catch(() => []), muatTokoLoc(), muatRetur()]);
+    // PRAORDER: belum ditawarkan ke kurir sebelum toko menekan "Pesanan siap dikirim" (cadangan bila SQL lama)
+    for(let i = rows.length - 1; i >= 0; i--){ const o = rows[i]; if(o && o.praorder === true && !o.siap_at && o.status === "diproses") rows.splice(i, 1); }
     const now = Date.now(); ORD = {}; STATES = states; rows.forEach(o => { ORD[o.order_code] = o; });
     const tungguToko = grupMenunggu(pend, now);
     const busy = busyIds(rows, states);

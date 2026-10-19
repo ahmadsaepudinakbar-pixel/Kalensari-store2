@@ -14,7 +14,14 @@ window.KSPW = (function () {
   const st = o => !o.status || o.status === "baru" ? "menunggu" : o.status;
   const lokal = o => String(o.id || "").startsWith("local-");
   const lunas = o => o.pay_status === "lunas";
-  const bisaBatal = o => st(o) === "menunggu" && !lokal(o) && o.pay_status !== "verifikasi";
+  // PRAORDER (supabase-praorder.sql): setelah toko menerima, pembeli baru boleh batal bila 3 hari lewat & belum "siap dikirim"
+  const PO_MS = 3 * 864e5;
+  const po = o => o && o.praorder === true;
+  const poBatas = o => (Date.parse(o.terima_at || o.updated_at || o.created_at || "") || Date.now()) + PO_MS;
+  const poDibuat = o => po(o) && st(o) === "diproses" && !o.siap_at;
+  const poTelat = o => poDibuat(o) && poBatas(o) <= Date.now();
+  const tgl = t => new Date(t).toLocaleString("id-ID", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const bisaBatal = o => !lokal(o) && ((st(o) === "menunggu" && o.pay_status !== "verifikasi") || poTelat(o));
   const rp = n => "Rp" + (Number(n) || 0).toLocaleString("id-ID");
   const uangKembali = o => lunas(o) ? (Number(o.total) || 0) + (Number(o.potong_saldo) || 0) : (Number(o.potong_saldo) || 0);
   const items = o => { let it = o.items; if (typeof it === "string") { try { it = JSON.parse(it); } catch (e) { it = []; } } return Array.isArray(it) ? it : []; };
@@ -76,7 +83,7 @@ window.KSPW = (function () {
 .kspw-ov{position:fixed;inset:0;background:rgba(30,15,5,.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center}.kspw-card{background:#fff;width:min(460px,100%);border-radius:22px 22px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom,0px));color:#3a1f10}
 @media(min-width:560px){.kspw-ov{align-items:center}.kspw-card{border-radius:22px}}.kspw-card h3{margin:0 0 4px}.kspw-card p{margin:0 0 12px;color:#7a6454;font-size:14px}
 .kspw-al{display:flex;flex-direction:column;gap:6px}.kspw-al button{text-align:left;padding:11px 12px;border:1.5px solid #e6d8c8;border-radius:12px;background:#fff;font:inherit;cursor:pointer}.kspw-al button.on{border-color:#c0392b;background:#fdecea;font-weight:700}
-.kspw-go{display:block;width:100%;margin-top:12px;padding:13px;border:0;border-radius:14px;background:#c0392b;color:#fff;font:inherit;font-weight:800;cursor:pointer}.kspw-grup{background:#fff8ec;border:1.5px solid #f0d9b0;border-radius:14px;padding:10px 12px;margin:0 0 12px;color:#4a2b17;font-size:13.5px}.kspw-grup p{margin:6px 0 0}.kspw-go:disabled{opacity:.5}.kspw-x{display:block;width:100%;margin-top:8px;padding:10px;border:0;background:none;color:#7a6454;font:inherit;cursor:pointer}`;
+.kspw-go{display:block;width:100%;margin-top:12px;padding:13px;border:0;border-radius:14px;background:#c0392b;color:#fff;font:inherit;font-weight:800;cursor:pointer}.kspw-grup{background:#fff8ec;border:1.5px solid #f0d9b0;border-radius:14px;padding:10px 12px;margin:0 0 12px;color:#4a2b17;font-size:13.5px}.kspw-grup p{margin:6px 0 0}.kspw-go:disabled{opacity:.5}.kspw-po{background:#eef4ff;color:#173d7a}.kspw-po-telat{background:#fff6e0;color:#6a4300}.kspw-x{display:block;width:100%;margin-top:8px;padding:10px;border:0;background:none;color:#7a6454;font:inherit;cursor:pointer}`;
     document.head.appendChild(s);
   }
 
@@ -88,7 +95,11 @@ window.KSPW = (function () {
     if (items(o).length && st(o) !== "menunggu") b.push(`<button type="button" class="ulang" data-kspw-ulang="${esc(o.order_code)}">🔁 Pesan lagi</button>`);
     let note = "";
     if (st(o) === "dibatalkan" && /^Dibatalkan pembeli/.test(o.gagal_alasan || "")) note = `<div class="kspw-note">${esc(o.gagal_alasan)}</div>`;
+    else if (po(o) && st(o) === "menunggu") note = `<div class="kspw-note kspw-po">📅 <b>Praorder</b> • menunggu toko menerima (maks. 12 jam). Selama belum diterima, Anda boleh membatalkan${lunas(o) ? `; ${rp(uangKembali(o))} kembali sebagai saldo voucher` : ""}.</div>`;
     else if (st(o) === "menunggu" && lunas(o)) note = `<div class="kspw-note" style="background:#f7f1ea;color:#5b4636">Sudah dibayar. Bisa dibatalkan selama toko belum menerima; ${rp(uangKembali(o))} (produk + ongkir) kembali sebagai saldo voucher.</div>`;
+    else if (poTelat(o)) note = `<div class="kspw-note kspw-po kspw-po-telat">📅 <b>Praorder lewat 3 hari</b> dan toko belum menandai pesanan siap dikirim. Anda boleh menunggu, atau membatalkan; ${rp(uangKembali(o))} kembali sebagai <b>saldo voucher</b>.</div>`;
+    else if (poDibuat(o)) note = `<div class="kspw-note kspw-po">📅 <b>Praorder sedang dibuat toko.</b> Uang Anda ditahan aman oleh Kalensari Store. Pesanan belum bisa dibatalkan sampai <b>${esc(tgl(poBatas(o)))}</b>; lewat itu dan belum siap dikirim, Anda boleh membatalkan.</div>`;
+    else if (po(o) && o.siap_at && st(o) === "diproses") note = `<div class="kspw-note kspw-po">📦 <b>Praorder siap dikirim.</b> Kurir sedang menuju toko untuk menjemput pesanan Anda.</div>`;
     else if (st(o) === "menunggu" && o.pay_status === "verifikasi") note = `<div class="kspw-note" style="background:#f7f1ea;color:#5b4636">Pembayaran sedang diperiksa admin, belum bisa dibatalkan.</div>`;
     return note + (b.length ? `<div class="kspw">${b.join("")}</div>` : "");
   }
@@ -98,7 +109,7 @@ window.KSPW = (function () {
     css();
     let al = "", sibuk = false;
     const ov = document.createElement("div"); ov.className = "kspw-ov";
-    ov.innerHTML = `<div class="kspw-card"><h3>Batalkan ${esc(o.order_code)}?</h3><p>Pesanan bisa dibatalkan selama toko belum menerimanya.${uangKembali(o) > 0 ? ` <b>${rp(uangKembali(o))}</b> (produk + ongkir nota ini) otomatis kembali sebagai <b>saldo voucher</b>.` : ""}${o.grup ? " Toko lain di pesanan yang sama tetap diproses." : ""} Pilih alasannya:</p>
+    ov.innerHTML = `<div class="kspw-card"><h3>Batalkan ${esc(o.order_code)}?</h3><p>${poTelat(o) ? "Praorder ini belum siap dikirim setelah 3 hari." : "Pesanan bisa dibatalkan selama toko belum menerimanya."}${uangKembali(o) > 0 ? ` <b>${rp(uangKembali(o))}</b> (produk + ongkir nota ini) otomatis kembali sebagai <b>saldo voucher</b>.` : ""}${o.grup ? " Toko lain di pesanan yang sama tetap diproses." : ""} Pilih alasannya:</p>
       <div class="kspw-al">${ALASAN.map(a => `<button type="button">${esc(a)}</button>`).join("")}</div>
       <button type="button" class="kspw-go" disabled>Ya, batalkan pesanan</button><button type="button" class="kspw-x">Tidak jadi</button></div>`;
     document.body.appendChild(ov);
@@ -117,7 +128,7 @@ window.KSPW = (function () {
         try { const h = window.KSPesanan ? await KSPesanan.aksi("tamu", o.order_code, "batal_pembeli", { alasan: al }, lama) : (await lama(), { jumlah: 1 }); if (!h.jumlah) r = []; }
         catch (e) { if (e.message !== "tidak-bisa") throw e; r = []; }
         ov.remove();
-        if (!Array.isArray(r) || !r.length) { toast("Pesanan tidak bisa dibatalkan: toko sudah menerimanya atau pembayaran sedang diperiksa."); }
+        if (!Array.isArray(r) || !r.length) { toast(poDibuat(o) ? "Praorder belum bisa dibatalkan: toko masih punya waktu sampai " + tgl(poBatas(o)) + "." : "Pesanan tidak bisa dibatalkan: toko sudah menerimanya atau pembayaran sedang diperiksa."); }
         else { Object.assign(o, { status: "dibatalkan", gagal_alasan: "Dibatalkan pembeli: " + al, updated_at: now }); toast("Pesanan " + o.order_code + " dibatalkan"); }
         try { const L = JSON.parse(localStorage.getItem("kalensari_orders") || "[]"); localStorage.setItem("kalensari_orders", JSON.stringify(L.map(x => x.order_code === o.order_code ? { ...x, status: o.status, gagal_alasan: o.gagal_alasan } : x))); } catch (e) { }
         if (typeof selesai === "function") selesai();
