@@ -25,29 +25,26 @@
   st.textContent = [
     ".lp-ov{position:fixed;inset:0;z-index:9990;background:transparent;display:none}",
     ".lp-ov.open{display:block}",
-    ".lp-card{position:fixed;z-index:9991;left:14px;width:min(300px,calc(100vw - 28px));background:#fff;border-radius:20px;",
-    "padding:16px;box-shadow:0 18px 40px -12px rgba(60,30,10,.45),0 2px 8px rgba(60,30,10,.12);border:1px solid #f0e2d6;",
-    "font-family:Nunito,Arial,sans-serif;color:#3b2417;opacity:0;transform:translateY(-8px) scale(.97);transform-origin:top left;",
-    "pointer-events:none;transition:opacity .18s,transform .18s}",
+    ".lp-card{position:fixed;z-index:9991;left:14px;width:max-content;min-width:176px;max-width:min(230px,calc(100vw - 28px));",
+    "padding:10px 12px 11px;border-radius:16px;color:#fff3dd;font-family:Nunito,Arial,sans-serif;",
+    "background:linear-gradient(150deg,#5a2d12,#34190b);border:1px solid rgba(246,196,83,.38);",
+    "box-shadow:0 14px 28px -10px rgba(40,18,6,.6),inset 0 1px 0 rgba(255,255,255,.08);",
+    "opacity:0;transform:translateY(-6px) scale(.96);transform-origin:top left;pointer-events:none;transition:opacity .16s,transform .16s}",
     ".lp-card.open{opacity:1;transform:none;pointer-events:auto}",
-    ".lp-card::before{content:'';position:absolute;top:-7px;left:var(--lp-arrow,34px);width:14px;height:14px;background:#fff;",
-    "border-left:1px solid #f0e2d6;border-top:1px solid #f0e2d6;transform:rotate(45deg)}",
-    ".lp-who{display:flex;align-items:center;gap:12px}",
-    ".lp-av{width:46px;height:46px;border-radius:50%;flex:none;display:grid;place-items:center;font:800 20px/1 'Baloo 2',Nunito,sans-serif;",
-    "color:#fff;background:linear-gradient(135deg,#7a3e20,#b5561f);border:3px solid #f6c453}",
-    ".lp-who b{display:block;font:800 16px/1.25 'Baloo 2',Nunito,sans-serif;color:#4a2510;word-break:break-word}",
-    ".lp-who small{display:block;color:#8b6d5c;font-size:12px;margin-top:1px}",
-    ".lp-saldo{margin-top:14px;display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:14px;",
-    "background:linear-gradient(135deg,#fff3d6,#ffe4a8);border:1px solid #f3d38a}",
-    ".lp-saldo i{font-style:normal;font-size:24px}",
-    ".lp-saldo span{flex:1;min-width:0}",
-    ".lp-saldo small{display:block;font-size:11.5px;font-weight:700;color:#8a5a12}",
-    ".lp-saldo b{display:block;font:800 21px/1.2 'Baloo 2',Nunito,sans-serif;color:#5a2d0d}",
-    ".lp-btn{display:block;margin-top:12px;text-align:center;text-decoration:none;font-weight:800;font-size:13.5px;",
-    "padding:11px 14px;border-radius:12px;background:#5a2d12;color:#fff}",
-    ".lp-btn.alt{background:#fff;color:#5a2d12;border:1.5px solid #5a2d12}",
-    ".lp-note{margin:0 0 4px;font-size:13px;color:#6c5548;line-height:1.45}",
-    ".lp-load{padding:6px 2px;color:#8b6d5c;font-size:13px}"
+    ".lp-card::before{content:'';position:absolute;top:-5px;left:var(--lp-arrow,30px);width:10px;height:10px;background:#5a2d12;",
+    "border-left:1px solid rgba(246,196,83,.38);border-top:1px solid rgba(246,196,83,.38);transform:rotate(45deg)}",
+    ".lp-who{display:flex;align-items:center;gap:9px}",
+    ".lp-av{width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;font:800 15px/1 'Baloo 2',Nunito,sans-serif;",
+    "color:#4a2510;background:linear-gradient(135deg,#ffd978,#f0a93a)}",
+    ".lp-who b{display:block;font:800 14px/1.2 'Baloo 2',Nunito,sans-serif;color:#fff;word-break:break-word}",
+    ".lp-who small{display:block;color:#e6c79a;font-size:10.5px;margin-top:1px;opacity:.9}",
+    ".lp-saldo{margin-top:9px;padding:7px 10px;border-radius:11px;background:rgba(255,255,255,.08);border:1px solid rgba(246,196,83,.22)}",
+    ".lp-saldo small{display:block;font-size:10px;font-weight:700;letter-spacing:.3px;color:#e6c79a}",
+    ".lp-saldo b{display:block;font:800 18px/1.2 'Baloo 2',Nunito,sans-serif;color:#ffd466;white-space:nowrap}",
+    ".lp-link{display:block;margin-top:7px;text-align:right;text-decoration:none;font-weight:800;font-size:11px;color:#f6c453}",
+    ".lp-note{margin:0 0 7px;font-size:12px;color:#f1dcc0;line-height:1.4;max-width:190px}",
+    ".lp-btn{display:block;text-align:center;text-decoration:none;font-weight:800;font-size:12px;padding:8px 12px;border-radius:10px;background:#f6c453;color:#4a2510}",
+    ".lp-load{padding:2px;color:#e6c79a;font-size:12px}"
   ].join("");
   document.head.appendChild(st);
 
@@ -75,10 +72,10 @@
     var r = brand.getBoundingClientRect();
     var logo = brand.querySelector(".brand-logo") || brand;
     var lr = logo.getBoundingClientRect();
-    card.style.top = Math.round(r.bottom + 12) + "px";
+    card.style.top = Math.round(r.bottom + 9) + "px";
     var left = Math.max(10, Math.min(Math.round(r.left), window.innerWidth - card.offsetWidth - 10));
     card.style.left = left + "px";
-    card.style.setProperty("--lp-arrow", Math.max(18, Math.round(lr.left + lr.width / 2 - left - 7)) + "px");
+    card.style.setProperty("--lp-arrow", Math.max(14, Math.round(lr.left + lr.width / 2 - left - 5)) + "px");
   }
 
   function isi(html) {
@@ -91,16 +88,16 @@
   }
 
   function tampilTamu() {
-    isi('<p class="lp-note">Masuk dulu untuk melihat nama akun dan saldo voucher belanja Anda.</p>' +
-      '<a class="lp-btn" href="akun-pembeli.html" data-go="akun-pembeli.html">Masuk / daftar sebagai warga</a>');
+    isi('<p class="lp-note">Masuk dulu untuk melihat nama akun &amp; saldo voucher.</p>' +
+      '<a class="lp-btn" href="akun-pembeli.html" data-go="akun-pembeli.html">Masuk / daftar</a>');
   }
 
   function tampilData(d) {
     var nama = d.nama || "Pembeli";
     isi('<div class="lp-who"><div class="lp-av">' + esc(nama.trim().charAt(0).toUpperCase() || "W") + '</div>' +
-      '<div><b>' + esc(nama) + '</b><small>✦ Warga Desa Kalensari</small></div></div>' +
-      '<div class="lp-saldo"><i>🎟️</i><span><small>Saldo voucher belanja</small><b>' + rp(d.saldo) + '</b></span></div>' +
-      '<a class="lp-btn alt" href="dashboard-pembeli.html" data-go="dashboard-pembeli.html">Buka akun saya</a>');
+      '<div><b>' + esc(nama) + '</b><small>✦ Warga Kalensari</small></div></div>' +
+      '<div class="lp-saldo"><small>🎟️ SALDO VOUCHER</small><b>' + rp(d.saldo) + '</b></div>' +
+      '<a class="lp-link" href="dashboard-pembeli.html" data-go="dashboard-pembeli.html">Buka akun ›</a>');
   }
 
   async function muat() {
