@@ -1080,6 +1080,24 @@ async function simpanToko(name,btn){
 }
 /* ========== LIHAT & UNDUH QR / QRIS TOKO (admin) ==========
    Gambar QRIS yang diunggah penjual tersimpan di store_settings "qris_tpl_<ID penjual>" = {nama,qris(data URL),sk,gx,gy}. */
+/* QR SHARE penjual (sama dengan penjual-app.html > QR Toko): index.html?toko=<kode>&pasang=1 */
+let QS=null;
+function muatQrLib(){return window.qrcode?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+function qrShareUrl(kode){const u=new URL('index.html',location.href);u.search='';u.hash='';u.searchParams.set('toko',kode);u.searchParams.set('pasang','1');return u.toString()}
+function qrSharePoster(q,nama,kode){
+  const gbr=(cv,W)=>{const n=q.getModuleCount(),m=2,c=W/(n+2*m),x=cv.getContext('2d');cv.width=cv.height=W;x.fillStyle='#fff';x.fillRect(0,0,W,W);x.fillStyle='#000';for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))x.fillRect(Math.floor((k+m)*c),Math.floor((r+m)*c),Math.ceil(c),Math.ceil(c))};
+  const W=420,H=540,c=document.createElement('canvas'),x=(c.width=W,c.height=H,c.getContext('2d')),t=document.createElement('canvas');gbr(t,360);
+  const o={nama:String(nama||'Toko Anda').slice(0,26),ajak:'Scan untuk pasang aplikasi',warna:'#7b3f1d'};
+  x.fillStyle='#fff';x.fillRect(0,0,W,H);x.fillStyle=o.warna;x.textAlign='center';let fs=26;do{x.font='bold '+fs+'px sans-serif';fs-=1}while(x.measureText(o.nama).width>W-40&&fs>14);
+  x.fillText(o.nama,W/2,50);x.font='16px sans-serif';x.fillText(o.ajak,W/2,80);x.drawImage(t,30,100,360,360);x.font='bold 18px sans-serif';x.fillText('Kalensari Store',W/2,490);x.font='14px sans-serif';x.fillText('Kode toko: '+kode,W/2,515);return c}
+async function qrShareGambar(m){
+  QS=null;const cv=$('#qsCv');if(!cv)return;
+  try{await muatQrLib();const url=qrShareUrl(m.kode),q=qrcode(0,'M');q.addData(url);q.make();
+    const nama=m.toko||m.usaha||m.nama||'Toko Anda',p=qrSharePoster(q,nama,m.kode);QS={p,url,kode:m.kode};cv.getContext('2d').drawImage(p,0,0)}
+  catch(e){const x=cv.getContext('2d');x.fillStyle='#c0392b';x.font='16px sans-serif';x.fillText('QR gagal dibuat. Cek internet.',60,270)}
+}
+function qrShareUnduh(){if(!QS)return toast('QR belum siap');const a=document.createElement('a');a.href=QS.p.toDataURL('image/png');a.download='QR-'+QS.kode+'.png';document.body.appendChild(a);a.click();a.remove()}
+async function qrShareSalin(){if(!QS)return;try{await navigator.clipboard.writeText(QS.url);toast('Link disalin')}catch(e){prompt('Salin link ini:',QS.url)}}
 async function qrToko(name){
   const s=tokoOf(name);if(!s||!s.member)return;const m=s.member,kode=m.kode||'toko',jn=jsq(s.name);
   modal(`<div class="chead"><h3 style="margin:0">📱 QR Toko</h3><button class="more" onclick="closeModal()">${ico('x')}</button></div><p class="sm" style="color:var(--mut)">Memuat…</p>`);
@@ -1092,11 +1110,15 @@ async function qrToko(name){
   ${gagal?'<div class="empty">Gagal memuat data QR. Coba lagi.</div>':img?`<div style="display:grid;place-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px"><img src="${img}" alt="QRIS ${esc(s.name)}" style="max-width:100%;max-height:300px;object-fit:contain"></div>`:'<div class="empty">Toko ini belum punya gambar QRIS sendiri.<br><span class="sm">Poster tetap bisa diunduh: otomatis memakai QRIS pembayaran Kalensari Store. Gambar QRIS toko bisa diunggah di bawah bila perlu.</span></div>'}
   <input type="file" id="qtIn" accept="image/*" hidden onchange="qrTokoUnggah(this,'${jn}')">
   <a class="btn btn-g full" style="text-decoration:none;margin-top:12px;text-align:center" href="${esc(poster)}&unduh=1" target="_blank" rel="noopener">⬇️ Unduh poster kartu toko (PNG)</a>
+  ${m.kode?`<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><b>🔗 QR Share (ajak pelanggan)</b><p class="sm" style="color:var(--mut);margin:4px 0 10px">Sama persis dengan QR di menu Share aplikasi penjual. Pelanggan yang scan langsung masuk halaman toko ini, dan kode <b>${esc(m.kode)}</b> terisi otomatis saat mendaftar.</p>
+    <div style="display:grid;place-items:center"><canvas id="qsCv" width="420" height="540" style="width:100%;max-width:260px;height:auto;border:1px solid var(--line);border-radius:12px;background:#fff"></canvas></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="btn btn-g" type="button" style="flex:1" onclick="qrShareUnduh()">⬇️ Unduh QR Share (PNG)</button><button class="btn btn-light" type="button" onclick="qrShareSalin()">🔗 Salin link</button></div></div>`:''}
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
     <a class="btn btn-light" style="text-decoration:none" href="${esc(poster)}" target="_blank" rel="noopener">🖨️ Buka / cetak poster</a>
     <button class="btn btn-light" type="button" onclick="$('#qtIn').click()">📤 ${img?'Ganti':'Unggah'} gambar QRIS</button>
     ${img?`<a class="btn btn-light" style="text-decoration:none" href="${img}" download="QRIS-${esc(kode)}.${ext}">⬇️ Gambar QRIS saja</a><button class="btn btn-red" type="button" onclick="qrTokoHapus('${jn}',this)">Hapus</button>`:''}
   </div>`);
+  if(m.kode)qrShareGambar(m);
 }
 async function qrTokoUnggah(inp,name){
   const f=inp.files&&inp.files[0];inp.value='';if(!f)return;const s=tokoOf(name);if(!s||!s.member)return;const m=s.member;
