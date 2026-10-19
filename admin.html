@@ -881,7 +881,7 @@ toko(){
   const all=shops(),ql=q.toLowerCase(),list=all.filter(s=>[s.name,s.member&&s.member.nama,s.member&&s.member.wa,s.member&&s.member.kode].join(' ').toLowerCase().includes(ql));
   const openN=all.filter(s=>sellerState(s.name).open).length,pj=pendingOf('penjual').length;
   return `${pj?`<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:12px;background:var(--ol)"><b style="flex:1">${pj} penjual menunggu persetujuan</b><button class="btn btn-g" onclick="apTab='penjual';go('persetujuan')">Lihat</button></div>`:''}
-  <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari toko / pemilik / nomor WA / ID..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
+  <div class="toolbar"><div class="search">${ico('search')}<input placeholder="Cari toko / pemilik / nomor WA / ID..." value="${esc(q)}" oninput="q=this.value;refreshList()"></div><button class="btn btn-g" onclick="tambahToko()">➕ Tambah Toko</button><button class="btn btn-light" onclick="loadAll()">Muat ulang</button></div>
   <div class="mini-stats"><div class="ms" style="background:var(--gl)"><div class="ic" style="background:var(--g2)">${ico('store')}</div><div class="lbl">Total Toko</div><div class="val">${all.length}</div></div>
   <div class="ms" style="background:var(--bl)"><div class="ic" style="background:var(--blue)">${ico('check')}</div><div class="lbl" style="color:var(--blue)">Buka Sekarang</div><div class="val">${openN}</div></div></div>
   <div class="cards" id="list">${list.map((s,i)=>{const st=sellerState(s.name),m=s.member,forced=!!closedMap()[sKey(s.name)];return `<div class="lc" style="align-items:flex-start"><div class="cat-ic" style="background:${colors[i%colors.length]}">🏪</div><div class="meta"><b>${esc(s.name)}</b> ${m&&punyaAkun(m)?kodeChip(m.kode):''}
@@ -1045,6 +1045,50 @@ async function simpanToko(name,btn){
     if(i>=0)list[i]=rec;else list.push(rec);
     await setSetting('penjual_members',list);S.settings.penjual_members=list;
     tkMap=null;closeModal();render();toast('Toko disimpan'+(n?` • ${n} produk ikut diganti namanya`:''));
+  });
+}
+/* ========== TAMBAH TOKO BARU (admin) ========== */
+async function tambahToko(){
+  modal(`<div class="chead"><h3 style="margin:0">➕ Tambah Toko Baru</h3><button class="more" onclick="tkMap=null;closeModal()">${ico('x')}</button></div>
+  <div class="field"><label>Nama toko <span style="color:#e5484d">*</span></label><input class="inp" id="tkN" maxlength="60" placeholder="mis. Warung Bu Siti"></div>
+  <div class="field"><label>Alamat / Dusun</label><input class="inp" id="tkA" maxlength="150" placeholder="mis. Dusun Kaler RT 02"></div>
+  <div class="field"><label>Titik lokasi toko (untuk ongkir & rute kurir) — geser peta sampai pin tepat di toko</label>${petaHTML('tk',220)}
+    <label class="sm" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="tkLokOn"> Simpan titik lokasi ini</label></div>
+  <div style="border-top:1px dashed var(--line);margin:14px 0 10px;padding-top:12px">
+    <label class="sm" style="display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" id="tkAkunOn" onchange="$('#tkAkunBox').hidden=!this.checked"> Sekalian buatkan akun penjual untuk pemilik</label>
+    <small style="color:var(--mut);font-size:12px;display:block;margin:4px 0 0">Bisa dikosongkan dulu, nanti pakai tombol "Serahkan" di kartu toko.</small></div>
+  <div id="tkAkunBox" hidden>
+    <div class="field"><label>Nama pemilik</label><input class="inp" id="tkOwn" maxlength="60"></div>
+    <div class="field"><label>Nomor WhatsApp pemilik</label><input class="inp" id="tkWa" inputmode="tel" placeholder="08..."></div>
+    <div class="field"><label>PIN awal (4–8 angka) — berikan ke pemilik, bisa ia ganti sendiri</label><input class="inp" id="tkPin" inputmode="numeric" maxlength="8" value="${String(Math.floor(1000+Math.random()*9000))}"></div></div>
+  <div class="mact"><button class="btn btn-o" onclick="tkMap=null;closeModal()">Batal</button><button class="btn btn-g" onclick="simpanTokoBaru(this)">Simpan toko</button></div>`);
+  tkMap=await pasangPeta('tk',null,null);
+  if(tkMap)tkMap.on('movestart',()=>{const c=$('#tkLokOn');if(c)c.checked=true});
+}
+async function simpanTokoBaru(btn){
+  const nama=$('#tkN').value.replace(/\s+/g,' ').trim();if(!nama)return toast('Nama toko wajib diisi');
+  if(tokoOf(nama))return toast('Nama toko "'+nama+'" sudah ada');
+  const mauAkun=$('#tkAkunOn').checked;let own='',wa='',pin='';
+  if(mauAkun){own=$('#tkOwn').value.trim();wa=phoneKey($('#tkWa').value);pin=$('#tkPin').value.trim();
+    if(!own)return toast('Nama pemilik wajib diisi');if(wa.length<9||wa.length>15)return toast('Nomor WhatsApp tidak valid');if(!/^\d{4,8}$/.test(pin))return toast('PIN harus 4–8 angka')}
+  const pasteLL=ambilLL($('#tkPaste')?$('#tkPaste').value:'');if(!tkMap&&pasteLL)$('#tkLokOn').checked=true;
+  const lokOn=$('#tkLokOn').checked,c=lokOn?(tkMap?tkMap.getCenter():pasteLL?{lat:pasteLL[0],lng:pasteLL[1]}:null):null;
+  await busy(btn,async()=>{
+    const arr=await readKey('penjual_members',[]),list=Array.isArray(arr)?arr:[];
+    const id=(mauAkun?'u':'t')+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    const rec={id,nama:mauAkun?own:'',wa:mauAkun?wa:'',toko:nama,usaha:nama,dusun:$('#tkA').value.trim(),buka:'08:00',tutup:'17:00',aktif:true,pending:false,status:'Show',updated:Date.now()};
+    if(!mauAkun)rec.dibuatAdmin=true;
+    if(c){rec.latitude=Number(c.lat.toFixed(6));rec.longitude=Number(c.lng.toFixed(6))}
+    if(mauAkun){
+      const acc=await readKey('penjual_accounts',{}),A=acc&&typeof acc==='object'&&!Array.isArray(acc)?acc:{};
+      if(A[wa]){toast('Nomor ini sudah punya akun penjual. Kosongkan akun & pakai "Serahkan" nanti.');return}
+      A[wa]={h:await hashPinPenjual(wa,pin),id};
+      await setSetting('penjual_accounts',A);S.settings.penjual_accounts=A;
+    }
+    list.push(rec);
+    await setSetting('penjual_members',list);S.settings.penjual_members=list;
+    tkMap=null;
+    if(mauAkun){infoSerah(nama,own,wa,pin)}else{closeModal();render();toast('Toko "'+nama+'" ditambahkan')}
   });
 }
 async function hashPinPenjual(wa,pin){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('kalensari-penjual:'+wa+':'+pin));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
