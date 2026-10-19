@@ -43,7 +43,7 @@ const cloudHeaders = () => ({
 // Sesi admin disimpan di sessionStorage: otomatis keluar saat tab/aplikasi ditutup.
 const ADMIN_AUTH_KEY="kalensari_admin_auth";
 let adminAuth=(()=>{try{return JSON.parse(sessionStorage.getItem(ADMIN_AUTH_KEY)||"null");}catch{return null;}})();
-const saveAdminAuth=a=>{adminAuth=a;try{a?sessionStorage.setItem(ADMIN_AUTH_KEY,JSON.stringify(a)):sessionStorage.removeItem(ADMIN_AUTH_KEY);}catch{}};
+const saveAdminAuth=a=>{adminAuth=a;try{a?sessionStorage.setItem(ADMIN_AUTH_KEY,JSON.stringify(a)):sessionStorage.removeItem(ADMIN_AUTH_KEY);}catch{}if(a&&window.KSSesi)KSSesi.perbarui(a);};
 function adminAuthToken(){return adminAuth&&adminAuth.access_token&&adminAuth.expires_at*1000>Date.now()?adminAuth.access_token:"";}
 async function adminAuthRequest(grant,body){
   const base=String(CLOUD_CONFIG?.supabaseUrl||"").replace(/\/$/,"");
@@ -54,21 +54,24 @@ async function adminAuthRequest(grant,body){
 }
 async function adminEnsureFresh(){
   if(!adminAuth||!adminAuth.refresh_token)return;
+  if(window.KSSesi){const b=KSSesi.terbaru(adminAuth);if(b!==adminAuth)saveAdminAuth(b);}
   if(adminAuth.expires_at*1000-Date.now()>60000)return;
   try{saveAdminAuth({...await adminAuthRequest("refresh_token",{refresh_token:adminAuth.refresh_token}),email:adminAuth.email});}
   catch(e){console.warn("Sesi admin habis:",e);saveAdminAuth(null);if(typeof adminLoggedIn!=="undefined")adminLoggedIn=false;}
 }
 async function adminSignIn(email,password){
-  let sess=await adminAuthRequest("password",{email,password});if(window.KS2FA)sess=await KS2FA.naikkan(sess);   // verifikasi 2 langkah (admin-2fa.js)
+  let sess=await adminAuthRequest("password",{email,password});   // kode 2FA hanya di Panel Admin; di sini ikut login Panel Admin (admin-sesi.js)
   const base=String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
   const r=await fetch(`${base}/rest/v1/rpc/is_admin`,{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:`Bearer ${sess.access_token}`,"Content-Type":"application/json"},body:"{}"});
   if(!r.ok)throw new Error("cek-admin-gagal");
-  if((await r.json())!==true)throw new Error("bukan-admin");
+  if((await r.json())!==true){const e=new Error("bukan-admin");e.alasan=window.KSSesi?await KSSesi.alasanTolak(sess.access_token):"";throw e;}
   saveAdminAuth(sess);return sess;
 }
 function adminSignOut(){
   const t=adminAuthToken();
-  if(t){const base=String(CLOUD_CONFIG?.supabaseUrl||"").replace(/\/$/,"");fetch(`${base}/auth/v1/logout`,{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:`Bearer ${t}`}}).catch(()=>{});}
+  // sesi milik Panel Admin (dipakai bersama) jangan dicabut, cukup keluar dari halaman ini
+  const bersama=window.KSSesi&&adminAuth&&((KSSesi.ambil()||{}).email===adminAuth.email||KSSesi.dipakaiTetap(adminAuth.email));
+  if(t&&!bersama){const base=String(CLOUD_CONFIG?.supabaseUrl||"").replace(/\/$/,"");fetch(`${base}/auth/v1/logout`,{method:"POST",headers:{apikey:CLOUD_CONFIG.supabaseAnonKey,Authorization:`Bearer ${t}`}}).catch(()=>{});}
   saveAdminAuth(null);
 }
 
@@ -1336,6 +1339,8 @@ if(location.hash==="#checkout"){ history.replaceState(null,"",location.pathname)
 // ===== ADMIN DASHBOARD V6 =====
 let adminLoggedIn = !!(adminAuth&&adminAuth.refresh_token);
 function openAdmin(){
+  // sudah masuk Panel Admin di browser ini -> langsung ikut masuk, tanpa kode 2FA
+  if(!adminLoggedIn&&window.KSSesi){const sp=KSSesi.ambil();if(sp){saveAdminAuth(sp);adminLoggedIn=true;loadCloudSettings().catch(()=>{});}}
   {const pw=document.getElementById("adminPass");if(pw)pw.value="";}
   document.getElementById("adminLogin").hidden=adminLoggedIn;
   document.getElementById("adminPanel").hidden=!adminLoggedIn;
@@ -1406,7 +1411,7 @@ document.getElementById("adminLoginBtn").onclick=async()=>{
     document.getElementById("adminLogin").hidden=true;document.getElementById("adminPanel").hidden=false;renderAdminProducts();showToast("Login admin berhasil");
   }catch(e){
     const m=String(e.message||e);
-    showToast(m==="bukan-admin"?"Akun ini bukan admin":m==="cek-admin-gagal"?"Jalankan supabase-admin-auth.sql di Supabase dulu":/invalid|credentials/i.test(m)?"Email atau kata sandi salah":/confirm/i.test(m)?"Email admin belum dikonfirmasi di Supabase":"Gagal masuk: "+m.slice(0,80));
+    showToast(m==="bukan-admin"?(e.alasan||"Akun ini bukan admin"):m==="cek-admin-gagal"?"Jalankan supabase-admin-auth.sql di Supabase dulu":/invalid|credentials/i.test(m)?"Email atau kata sandi salah":/confirm/i.test(m)?"Email admin belum dikonfirmasi di Supabase":"Gagal masuk: "+m.slice(0,80));
     if(m==="bukan-admin")adminSignOut();
   }finally{btn.disabled=false;btn.textContent=t;}
 };

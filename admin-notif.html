@@ -39,7 +39,9 @@ header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius
 <div id="login" class="wrap hide">
   <div class="card" style="margin-top:40px">
     <h2 style="margin:0 0 4px">🔔 Admin Notif</h2>
-    <p class="mut" style="margin:0 0 10px">Masuk dengan akun admin Kalensari Store (email &amp; kata sandi Supabase yang sama dengan menu Admin).</p>
+    <p class="mut" style="margin:0 0 10px">Sudah masuk di <b>Panel Admin</b> pada HP/browser ini? Admin Notif otomatis ikut masuk, tanpa kode 2FA lagi, dan tetap masuk walau panel ditutup.</p>
+    <a class="btn" href="admin.html" style="display:block;text-align:center;text-decoration:none;margin:0 0 12px;box-sizing:border-box">🔐 Masuk lewat Panel Admin</a>
+    <p class="mut" style="margin:0 0 8px">Atau masuk dengan akun admin tanpa 2FA:</p>
     <input class="inp" id="em" type="email" placeholder="Email admin" autocomplete="username">
     <input class="inp" id="pw" type="password" placeholder="Kata sandi" autocomplete="current-password">
     <button class="btn" id="goLogin" style="width:100%;margin-top:6px">Masuk</button>
@@ -81,7 +83,7 @@ header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius
   </div>
 </div>
 
-<script src="config.js"></script><script src="admin-2fa.js?v=1"></script>
+<script src="config.js"></script><script src="admin-2fa.js?v=1"></script><script src="admin-sesi.js?v=1"></script>
 <script src="notif.js"></script>
 <script src="dering.js"></script>
 <script src="pwa.js"></script>
@@ -96,7 +98,10 @@ const sKey=v=>String(v||'').trim().toLowerCase();
 let PJ=[]; // daftar penjual (penjual_members) untuk tombol WA penjual
 const fmt=t=>{try{return new Date(t).toLocaleString('id-ID',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}};
 let auth=(()=>{try{return JSON.parse(localStorage.getItem(AUTH_KEY)||'null')}catch(e){return null}})();
-const saveAuth=a=>{auth=a;try{a?localStorage.setItem(AUTH_KEY,JSON.stringify(a)):localStorage.removeItem(AUTH_KEY)}catch(e){}};
+const saveAuth=a=>{auth=a;try{a?localStorage.setItem(AUTH_KEY,JSON.stringify(a)):localStorage.removeItem(AUTH_KEY)}catch(e){}if(a&&window.KSSesi)KSSesi.perbarui(a)};
+// belum masuk: ambil login dari Panel Admin yang terbuka di browser ini (admin-sesi.js)
+function pakaiSesiPanel(s){if(!s)return false;saveAuth(s);if(window.KSSesi)KSSesi.tandaiTetap(s.email);return true}
+if(!auth&&window.KSSesi)pakaiSesiPanel(KSSesi.ambil());
 let tab='pesanan',D={pesanan:[],qris:[],lunas:[],topup:[],cair:[],mitra:[]},first=true,busyLoad=false;
 
 function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),3200)}
@@ -109,7 +114,8 @@ async function authReq(grant,body){
 /* Sesi admin notif TIDAK boleh keluar sendiri. Hanya dihapus bila server benar-benar menolak
    token (dicabut/tidak sah). Jaringan putus / server sibuk / sinyal lemah = tetap masuk, coba lagi. */
 let freshP=null;
-function syncAuth(){try{const a=JSON.parse(localStorage.getItem(AUTH_KEY)||'null');if(a&&a.refresh_token&&(!auth||(a.expires_at||0)>=(auth.expires_at||0)))auth=a}catch(e){}}
+function syncAuth(){try{const a=JSON.parse(localStorage.getItem(AUTH_KEY)||'null');if(a&&a.refresh_token&&(!auth||(a.expires_at||0)>=(auth.expires_at||0)))auth=a}catch(e){}
+  if(window.KSSesi&&auth){const b=KSSesi.terbaru(auth);if(b&&b!==auth){auth=b;try{localStorage.setItem(AUTH_KEY,JSON.stringify(b))}catch(e){}}}}
 async function fresh(force){
   syncAuth();
   if(!auth||!auth.refresh_token)throw new Error('login');
@@ -146,15 +152,15 @@ function showLogin(){$('#app').classList.add('hide');$('#login').classList.remov
 async function masuk(){
   $('#lerr').textContent='';const b=$('#goLogin');b.disabled=true;b.textContent='Memeriksa...';
   try{
-    let s=await authReq('password',{email:$('#em').value.trim(),password:$('#pw').value});s=await KS2FA.naikkan(s);saveAuth(s);
+    let s=await authReq('password',{email:$('#em').value.trim(),password:$('#pw').value});saveAuth(s);
     const r=await fetch(`${BASE}/rest/v1/rpc/is_admin`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+s.access_token,'Content-Type':'application/json'},body:'{}'});
-    if((await r.json())!==true){saveAuth(null);throw new Error('Akun ini bukan admin.')}
+    if((await r.json())!==true){const m=window.KSSesi?await KSSesi.alasanTolak(s.access_token):'Akun ini bukan admin.';saveAuth(null);throw new Error(m)}
     $('#pw').value='';start();
   }catch(e){$('#lerr').textContent=String(e.message||e)}
   b.disabled=false;b.textContent='Masuk';
 }
 $('#goLogin').onclick=masuk;$('#pw').onkeydown=e=>{if(e.key==='Enter')masuk()};
-$('#out').onclick=()=>{if(!confirm('Keluar dari Admin Notif di HP ini?'))return;saveAuth(null);location.reload()};
+$('#out').onclick=()=>{if(!confirm('Keluar dari Admin Notif di HP ini?'))return;saveAuth(null);if(window.KSSesi)KSSesi.tandaiTetap(null);location.reload()};
 $('#rf').onclick=()=>muat(true);
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{tab=b.dataset.t;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));render()});
 
@@ -429,6 +435,8 @@ try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}ca
 window.addEventListener('online',()=>{if(auth)muat()});
 window.addEventListener('pageshow',()=>{syncAuth();if(auth&&!$('#app').classList.contains('hide'))muat()});
 if(auth&&auth.refresh_token)start();else showLogin();
+// admin baru masuk Panel Admin di tab lain -> Admin Notif ikut masuk
+if(window.KSSesi)KSSesi.saatMasuk(s=>{if(auth&&auth.refresh_token)return;if(pakaiSesiPanel(s)){$('#login').classList.add('hide');start()}});
 </script>
 </body>
 </html>

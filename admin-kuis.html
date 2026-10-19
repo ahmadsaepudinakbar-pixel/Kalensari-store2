@@ -63,7 +63,9 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 
 <section id="loginView" class="login card" hidden>
   <h3>🔐 Masuk admin</h3>
-  <p class="note">Gunakan akun admin yang sama dengan halaman Admin Kalensari Store.</p>
+  <p class="note">Sudah masuk di <b>Panel Admin</b> pada browser ini? Halaman ini otomatis ikut masuk, tanpa kode 2FA lagi.</p>
+  <a class="btn br" style="display:block;text-align:center;text-decoration:none;margin:0 0 12px" href="admin.html">🔐 Masuk lewat Panel Admin</a>
+  <p class="note" style="margin-top:0">Atau masuk dengan akun admin tanpa 2FA:</p>
   <label class="l">Email<input class="f" id="lgEmail" type="email" autocomplete="username"></label>
   <label class="l">Kata sandi<input class="f" id="lgPass" type="password" autocomplete="current-password"></label>
   <button class="btn br" style="width:100%;margin-top:12px" id="lgBtn" onclick="login()">Masuk</button>
@@ -197,7 +199,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 </div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js"></script><script src="admin-2fa.js?v=1"></script>
+<script src="config.js"></script><script src="admin-2fa.js?v=1"></script><script src="admin-sesi.js?v=1"></script>
 <script>
 const CFG = window.CLOUD_CONFIG || {}, BASE = String(CFG.supabaseUrl || "").replace(/\/$/, ""), AUTH_KEY = "kalensari_admin_auth";
 const $ = s => document.querySelector(s);
@@ -207,8 +209,8 @@ const waShow = w => String(w || "").replace(/^62/, "0");
 let toastT; function toast(m, ms = 3000) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), ms); }
 
 /* ---------- auth (sama dengan admin.html; sesi dibagi di tab yang sama) ---------- */
-let auth = (() => { try { return JSON.parse(sessionStorage.getItem(AUTH_KEY) || "null"); } catch (e) { return null; } })();
-const saveAuth = a => { auth = a; try { a ? sessionStorage.setItem(AUTH_KEY, JSON.stringify(a)) : sessionStorage.removeItem(AUTH_KEY); } catch (e) {} };
+let auth = (() => { try { return JSON.parse(sessionStorage.getItem(AUTH_KEY) || "null"); } catch (e) { return null; } })() || (window.KSSesi ? KSSesi.ambil() : null);
+const saveAuth = a => { auth = a; try { a ? sessionStorage.setItem(AUTH_KEY, JSON.stringify(a)) : sessionStorage.removeItem(AUTH_KEY); } catch (e) {} if (a && window.KSSesi) KSSesi.perbarui(a); };
 async function authReq(grant, body) {
   const r = await fetch(`${BASE}/auth/v1/token?grant_type=${grant}`, { method: "POST", headers: { apikey: CFG.supabaseAnonKey, "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const d = await r.json().catch(() => ({}));
@@ -217,6 +219,7 @@ async function authReq(grant, body) {
 }
 async function fresh() {
   if (!auth || !auth.refresh_token) throw new Error("login");
+  if (window.KSSesi) { const b = KSSesi.terbaru(auth); if (b !== auth) saveAuth(b); }   // token terbaru dari Panel Admin
   if (auth.expires_at * 1000 - Date.now() > 60000) return;
   try { saveAuth({ ...await authReq("refresh_token", { refresh_token: auth.refresh_token }), email: auth.email }); } catch (e) { saveAuth(null); throw new Error("login"); }
 }
@@ -231,9 +234,9 @@ const rpc = async (fn, body = {}) => (await api("rpc/" + fn, { method: "POST", b
 async function login() {
   const b = $("#lgBtn"); b.disabled = true; $("#lgErr").hidden = true;
   try {
-    let a = await authReq("password", { email: $("#lgEmail").value.trim(), password: $("#lgPass").value }); a = await KS2FA.naikkan(a);
+    let a = await authReq("password", { email: $("#lgEmail").value.trim(), password: $("#lgPass").value });
     saveAuth(a);
-    if (await rpc("is_admin") !== true) { saveAuth(null); throw new Error("Akun ini bukan admin."); }
+    if (await rpc("is_admin") !== true) { const m = window.KSSesi ? await KSSesi.alasanTolak(a.access_token) : "Akun ini bukan admin."; saveAuth(null); throw new Error(m); }
     mulaiApp();
   } catch (e) { $("#lgErr").textContent = e.message; $("#lgErr").hidden = false; }
   b.disabled = false;
@@ -564,6 +567,8 @@ function mulaiApp() {
   if (!auth) return tampilLogin();
   try { await fresh(); if (await rpc("is_admin") !== true) throw 0; mulaiApp(); } catch (e) { saveAuth(null); tampilLogin(); }
 })();
+// admin baru masuk Panel Admin di tab lain -> halaman ini ikut masuk
+if (window.KSSesi) KSSesi.saatMasuk(async s => { if ($("#loginView").hidden) return; saveAuth(s); try { if (await rpc("is_admin") === true) mulaiApp(); } catch (e) {} });
 </script>
 </body>
 </html>

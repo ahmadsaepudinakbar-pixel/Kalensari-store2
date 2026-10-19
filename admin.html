@@ -374,7 +374,7 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
 </svg>
 
-<script src="config.js"></script><script src="admin-2fa.js?v=1"></script><script src="filter-kata.js"></script><script src="crop.js"></script><script src="qris-statis.js"></script>
+<script src="config.js"></script><script src="admin-2fa.js?v=1"></script><script src="admin-sesi.js?v=1"></script><script src="filter-kata.js"></script><script src="crop.js"></script><script src="qris-statis.js"></script>
 <script src="notif.js"></script>
 <script>
 /* =====================================================================
@@ -384,8 +384,11 @@ td{white-space:nowrap;padding:11px 10px;border-bottom:1px solid var(--line);font
 const CFG=window.CLOUD_CONFIG||{};
 const BASE=String(CFG.supabaseUrl||'').replace(/\/$/,'');
 const AUTH_KEY='kalensari_admin_auth';
-let auth=(()=>{try{return JSON.parse(sessionStorage.getItem(AUTH_KEY)||'null')}catch(e){return null}})();
-const saveAuth=a=>{auth=a;try{a?sessionStorage.setItem(AUTH_KEY,JSON.stringify(a)):sessionStorage.removeItem(AUTH_KEY)}catch(e){}};
+let auth=(()=>{try{return JSON.parse(sessionStorage.getItem(AUTH_KEY)||'null')}catch(e){return null}})()||(window.KSSesi?KSSesi.ambil():null);
+const saveAuth=a=>{auth=a;try{a?sessionStorage.setItem(AUTH_KEY,JSON.stringify(a)):sessionStorage.removeItem(AUTH_KEY)}catch(e){}if(a&&window.KSSesi)KSSesi.perbarui(a)};
+try{if(auth&&!sessionStorage.getItem(AUTH_KEY))sessionStorage.setItem(AUTH_KEY,JSON.stringify(auth))}catch(e){}
+// login Panel Admin (sudah lolos 2FA) dipakai bersama halaman admin lain di browser ini (admin-sesi.js)
+if(window.KSSesi)KSSesi.pantau(()=>auth);
 async function authReq(grant,body){
   const r=await fetch(`${BASE}/auth/v1/token?grant_type=${grant}`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,'Content-Type':'application/json'},body:JSON.stringify(body)});
   const d=await r.json().catch(()=>({}));
@@ -394,8 +397,9 @@ async function authReq(grant,body){
 }
 async function fresh(){
   if(!auth||!auth.refresh_token)throw new Error('login');
+  if(window.KSSesi){const b=KSSesi.terbaru(auth);if(b!==auth)saveAuth(b)}   // halaman lain mungkin sudah memperbarui token
   if(auth.expires_at*1000-Date.now()>60000)return;
-  try{saveAuth({...await authReq('refresh_token',{refresh_token:auth.refresh_token}),email:auth.email})}
+  try{saveAuth({...await authReq('refresh_token',{refresh_token:auth.refresh_token}),email:auth.email,peran:auth.peran})}
   catch(e){saveAuth(null);throw new Error('login')}
 }
 // ADMIN LIHAT SAJA (supabase-admin-lihat.sql): semua perintah ubah data ditahan di sini, dan database juga menolaknya.
@@ -598,7 +602,7 @@ async function doLogin(){
     const r=await fetch(`${BASE}/rest/v1/rpc/is_admin`,{method:'GET',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+sess.access_token}});
     if(!r.ok)throw new Error('cek-admin-gagal');
     if((await r.json())!==true){fetch(`${BASE}/auth/v1/logout`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+sess.access_token}}).catch(()=>{});throw new Error('bukan-admin')}
-    saveAuth(sess);$('#lPass').value='';await cekPeran();enterApp();
+    saveAuth(sess);if(window.KSSesi)KSSesi.simpan(sess);$('#lPass').value='';await cekPeran();enterApp();
     if(!ADMIN_LIHAT)api('rpc/admin_catat',{method:'POST',body:JSON.stringify({p_aksi:'masuk',p_info:(navigator.userAgent.match(/\(([^)]+)\)/)||['',''])[1].slice(0,100)})}).catch(()=>{});
   }catch(e){
     const m=String(e.message||e);
@@ -624,8 +628,9 @@ function enterApp(){
 // notifikasi diketuk saat admin sudah terbuka -> pindah ke halaman yang dituju
 addEventListener('hashchange',()=>{if(!auth||$('#app').classList.contains('hide'))return;const [hr,ht]=decodeURIComponent(location.hash.slice(1)).split('-');if(hr&&PAGES[hr]){if(hr==='persetujuan'&&ht)apTab=ht;go(hr);loadAll(true).then(()=>{if(hr==='persetujuan'&&ht&&route==='persetujuan'){apTab=ht;render()}}).catch(()=>{});history.replaceState(null,'',location.pathname)}});
 function logout(){ADMIN_LIHAT=false;document.body.classList.remove('admin-lihat');document.getElementById('lihatBar')?.remove();
-  if(auth&&auth.access_token)fetch(`${BASE}/auth/v1/logout`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+auth.access_token}}).catch(()=>{});
-  saveAuth(null);S.loaded=false;$('#app').classList.add('hide');$('#login').classList.remove('hide');toggleSide(false);closeModal();
+  // sesi ini juga dipakai Admin Notif di perangkat ini -> jangan dicabut di server (Admin Notif tetap masuk)
+  if(auth&&auth.access_token&&!(window.KSSesi&&KSSesi.dipakaiTetap(auth.email)))fetch(`${BASE}/auth/v1/logout`,{method:'POST',headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+auth.access_token}}).catch(()=>{});
+  saveAuth(null);if(window.KSSesi)KSSesi.simpan(null);S.loaded=false;$('#app').classList.add('hide');$('#login').classList.remove('hide');toggleSide(false);closeModal();
 }
 function sessionExpired(){if(!$('#app').classList.contains('hide')){logout();toast('Sesi admin habis, silakan masuk lagi')}}
 
@@ -2891,7 +2896,7 @@ async function gantiSandi(btn){
 }
 async function keluarSemua(btn){
   if(!confirm('Keluar dari SEMUA perangkat?\n\nSemua HP / laptop yang sedang masuk dengan akun admin ini akan keluar, termasuk perangkat ini.'))return;
-  await busy(btn,async()=>{await fresh();await KS2FA.keluarSemua(auth.access_token);saveAuth(null);location.reload()});
+  await busy(btn,async()=>{await fresh();await KS2FA.keluarSemua(auth.access_token);saveAuth(null);if(window.KSSesi){KSSesi.simpan(null);KSSesi.tandaiTetap(null)}location.reload()});
 }
 // keluar otomatis saat panel tidak disentuh
 (function(){let t=Date.now();['pointerdown','keydown','scroll','touchstart'].forEach(e=>addEventListener(e,()=>{t=Date.now()},{passive:true}));

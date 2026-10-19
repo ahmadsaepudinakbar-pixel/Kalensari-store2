@@ -135,7 +135,7 @@ textarea.fld{min-height:90px;resize:vertical}
 <div class="toast" id="toast"></div>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 
-<script src="config.js" onerror="void 0"></script><script src="admin-2fa.js?v=1"></script><script src="crop.js"></script>
+<script src="config.js" onerror="void 0"></script><script src="admin-2fa.js?v=1"></script><script src="admin-sesi.js?v=1"></script><script src="crop.js"></script>
 <script>
 // ====== PENGATURAN ======
 const ADMIN_WA = "6281234567890"; // nomor WhatsApp admin (untuk tombol Daftar) — ganti dengan nomor asli
@@ -308,7 +308,7 @@ document.addEventListener("keydown", e => { if(e.key === "Escape") closeD(); });
 let admin = false;
 const AUTH_KEY = "kalensari_admin_auth";
 let auth = (() => { try{ return JSON.parse(sessionStorage.getItem(AUTH_KEY) || "null"); }catch(e){ return null; } })();
-const saveAuth = a => { auth = a; try{ a ? sessionStorage.setItem(AUTH_KEY, JSON.stringify(a)) : sessionStorage.removeItem(AUTH_KEY); }catch(e){} };
+const saveAuth = a => { auth = a; try{ a ? sessionStorage.setItem(AUTH_KEY, JSON.stringify(a)) : sessionStorage.removeItem(AUTH_KEY); }catch(e){} if(a && window.KSSesi) KSSesi.perbarui(a); };
 const sbBase = () => String(CLOUD_CONFIG.supabaseUrl).replace(/\/$/,"");
 async function authReq(grant, body){
   const r = await fetch(sbBase() + "/auth/v1/token?grant_type=" + grant, {method:"POST", headers:{apikey:CLOUD_CONFIG.supabaseAnonKey, "Content-Type":"application/json"}, body:JSON.stringify(body)});
@@ -317,6 +317,7 @@ async function authReq(grant, body){
 }
 async function adminToken(){
   if(!admin || !auth || !auth.refresh_token) return "";
+  if(window.KSSesi){ const b = KSSesi.terbaru(auth); if(b !== auth) saveAuth(b); }
   if(auth.expires_at*1000 - Date.now() < 60000){ try{ saveAuth({...await authReq("refresh_token", {refresh_token:auth.refresh_token}), email:auth.email}); }catch(e){ saveAuth(null); admin = false; renderCats(); render(); toast("Sesi admin habis, silakan masuk lagi"); return ""; } }
   return auth.access_token;
 }
@@ -363,8 +364,9 @@ async function simpanDanKabari(pesan){
 function masukAdmin(){ admin = true; closeD(); setOpen(true); renderCats(); render(); toast("Mode admin aktif"); }
 async function formLogin(){
   if(!cloudOn()) return toast("Database online belum aktif");
+  if(!(auth && auth.refresh_token) && window.KSSesi){ const sp = KSSesi.ambil(); if(sp) saveAuth(sp); }   // ikut login Panel Admin, tanpa kode 2FA
   if(auth && auth.refresh_token){ admin = true; try{ const t = await adminToken(); if(t && await isAdminToken(t)){ await loadKat(); masukAdmin(); return; } }catch(e){} admin = false; saveAuth(null); }
-  $("sheet").innerHTML = `<button class="x" onclick="closeD()" aria-label="Tutup">✕</button><h2>Masuk admin</h2><p class="desc">Pakai email &amp; kata sandi akun admin toko (sama dengan menu ⚙️ Admin di toko).</p>
+  $("sheet").innerHTML = `<button class="x" onclick="closeD()" aria-label="Tutup">✕</button><h2>Masuk admin</h2><p class="desc">Sudah masuk di <b>Panel Admin</b> pada browser ini? Tutup lalu tekan Masuk admin lagi, otomatis ikut masuk tanpa kode 2FA. <a href="admin.html">Masuk lewat Panel Admin</a>. Atau pakai akun admin tanpa 2FA:</p>
     <input id="admEmail" class="fld" type="email" autocomplete="username" placeholder="Email admin">
     <input id="pinIn" class="fld" type="password" autocomplete="current-password" placeholder="Kata sandi"><button class="btn wa" id="pinOk" style="width:100%">Masuk</button>`;
   $("modal").classList.add("show"); $("admEmail").focus();
@@ -372,10 +374,10 @@ async function formLogin(){
     const em = $("admEmail").value.trim(), pw = $("pinIn").value; if(!em || !pw) return toast("Isi email dan kata sandi admin");
     $("pinOk").disabled = true; $("pinOk").textContent = "Memeriksa...";
     try{
-      let sess = await authReq("password", {email:em, password:pw}); sess = await KS2FA.naikkan(sess);
-      if(!(await isAdminToken(sess.access_token))) throw new Error("bukan-admin");
+      let sess = await authReq("password", {email:em, password:pw});
+      if(!(await isAdminToken(sess.access_token))){ const eb = new Error("bukan-admin"); eb.alasan = window.KSSesi ? await KSSesi.alasanTolak(sess.access_token) : ""; throw eb; }
       saveAuth(sess); await loadKat(); masukAdmin();
-    }catch(e){ const m = String(e.message || e); toast(m === "bukan-admin" ? "Akun ini bukan admin" : m === "cek-admin-gagal" ? "Jalankan supabase-admin-auth.sql di Supabase dulu" : /invalid|credentials/i.test(m) ? "Email atau kata sandi salah" : "Gagal masuk: " + m.slice(0,60)); }
+    }catch(e){ const m = String(e.message || e); toast(m === "bukan-admin" ? (e.alasan || "Akun ini bukan admin") : m === "cek-admin-gagal" ? "Jalankan supabase-admin-auth.sql di Supabase dulu" : /invalid|credentials/i.test(m) ? "Email atau kata sandi salah" : "Gagal masuk: " + m.slice(0,60)); }
     finally{ const b = $("pinOk"); if(b){ b.disabled = false; b.textContent = "Masuk"; } }
   };
   $("pinOk").onclick = go; $("pinIn").onkeydown = e => { if(e.key === "Enter") go(); };

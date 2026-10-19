@@ -333,7 +333,7 @@ footer a,footer button{color:var(--mut)}
     <!-- masuk admin -->
     <div id="boxMasuk">
       <h2>Masuk sebagai admin</h2>
-      <p style="margin:0 0 4px;color:var(--mut);font-size:.9rem">Pakai email dan kata sandi admin yang sama dengan halaman admin toko.</p>
+      <p style="margin:0 0 4px;color:var(--mut);font-size:.9rem">Sudah masuk di <b>Panel Admin</b> pada browser ini? Muat ulang halaman ini, otomatis ikut masuk tanpa kode 2FA. <a href="admin.html">Masuk lewat Panel Admin</a>. Atau masuk dengan akun admin tanpa 2FA:</p>
       <label for="lEmail">Email</label>
       <input id="lEmail" type="email" autocomplete="username">
       <label for="lPass">Kata sandi</label>
@@ -400,7 +400,7 @@ footer a,footer button{color:var(--mut)}
   </svg>
 </div>
 
-<script src="config.js"></script><script src="admin-2fa.js?v=1"></script>
+<script src="config.js"></script><script src="admin-2fa.js?v=1"></script><script src="admin-sesi.js?v=1"></script>
 <script>
 (function(){
 'use strict';
@@ -417,7 +417,9 @@ var $=function(s){return document.querySelector(s)};
 
 var auth=null;
 try{auth=JSON.parse(sessionStorage.getItem(AUTH_KEY)||'null')}catch(e){}
-var saveAuth=function(a){auth=a;try{a?sessionStorage.setItem(AUTH_KEY,JSON.stringify(a)):sessionStorage.removeItem(AUTH_KEY)}catch(e){}};
+if(!auth&&window.KSSesi)auth=KSSesi.ambil();   // ikut login Panel Admin (tanpa kode 2FA lagi)
+var saveAuth=function(a){auth=a;try{a?sessionStorage.setItem(AUTH_KEY,JSON.stringify(a)):sessionStorage.removeItem(AUTH_KEY)}catch(e){}if(a&&window.KSSesi)KSSesi.perbarui(a)};
+if(auth)saveAuth(auth);
 
 var S={kat:[],vid:[],filter:'Semua',cur:null,q:'',err:'',tabelBelum:false,semua:false};
 
@@ -471,6 +473,7 @@ async function authReq(grant,body){
 }
 async function fresh(){
   if(!auth||!auth.refresh_token)return false;
+  if(window.KSSesi){var b=KSSesi.terbaru(auth);if(b!==auth)saveAuth(b)}
   if(auth.expires_at*1000-Date.now()>60000)return true;
   try{var a=await authReq('refresh_token',{refresh_token:auth.refresh_token});a.email=auth.email;saveAuth(a);return true}
   catch(e){saveAuth(null);return false}
@@ -823,6 +826,7 @@ function pesan(id,t,jenis){var p=$(id);p.textContent=t||'';p.className='pesan'+(
 
 function bukaPanel(){
   $('#panel').hidden=false;
+  if(!(auth&&auth.refresh_token)&&window.KSSesi){var sp=KSSesi.ambil();if(sp)saveAuth(sp)}   // ikut login Panel Admin
   var masuk=!!(auth&&auth.refresh_token);
   $('#boxMasuk').hidden=masuk;$('#boxKelola').hidden=!masuk;
   if(masuk){renderPanel()}
@@ -838,25 +842,28 @@ $('#btnMasuk').addEventListener('click',async function(){
   if(!em||!pw){pesan('#pesanMasuk','Isi email dan kata sandi.','err');return}
   btn.disabled=true;btn.textContent='Memeriksa...';pesan('#pesanMasuk','');
   try{
-    var sess=await authReq('password',{email:em,password:pw});sess=await KS2FA.naikkan(sess);
+    var sess=await authReq('password',{email:em,password:pw});
     var r=await fetch(BASE+'/rest/v1/rpc/is_admin',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+sess.access_token,'Content-Type':'application/json'},body:'{}'});
     if(!r.ok)throw new Error('cek-admin-gagal');
     if((await r.json())!==true){
+      var alasan=window.KSSesi?await KSSesi.alasanTolak(sess.access_token):'Akun ini bukan admin.';
       fetch(BASE+'/auth/v1/logout',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+sess.access_token}}).catch(function(){});
-      throw new Error('bukan-admin');
+      var eb=new Error('bukan-admin');eb.alasan=alasan;throw eb;
     }
     saveAuth(sess);$('#lPass').value='';
     $('#boxMasuk').hidden=true;$('#boxKelola').hidden=false;
     await muat();
   }catch(e){
     var m=String(e.message||e);
-    pesan('#pesanMasuk',m==='bukan-admin'?'Akun ini bukan admin.':m==='cek-admin-gagal'?'Jalankan supabase-admin-auth.sql di Supabase dulu.':/invalid|credentials/i.test(m)?'Email atau kata sandi salah.':'Gagal masuk: '+m.slice(0,80),'err');
+    pesan('#pesanMasuk',m==='bukan-admin'?(e.alasan||'Akun ini bukan admin.'):m==='cek-admin-gagal'?'Jalankan supabase-admin-auth.sql di Supabase dulu.':/invalid|credentials/i.test(m)?'Email atau kata sandi salah.':'Gagal masuk: '+m.slice(0,80),'err');
   }finally{btn.disabled=false;btn.textContent='Masuk'}
 });
 $('#lPass').addEventListener('keydown',function(e){if(e.key==='Enter')$('#btnMasuk').click()});
 
 $('#btnKeluar').addEventListener('click',async function(){
-  if(auth)fetch(BASE+'/auth/v1/logout',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+auth.access_token}}).catch(function(){});
+  // sesi milik Panel Admin (dipakai bersama) jangan dicabut, cukup keluar dari halaman ini
+  var bersama=window.KSSesi&&auth&&((KSSesi.ambil()||{}).email===auth.email||KSSesi.dipakaiTetap(auth.email));
+  if(auth&&!bersama)fetch(BASE+'/auth/v1/logout',{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+auth.access_token}}).catch(function(){});
   saveAuth(null);$('#panel').hidden=true;await muat();
 });
 
