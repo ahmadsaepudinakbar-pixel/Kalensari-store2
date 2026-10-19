@@ -227,8 +227,12 @@ html[data-tema="gelap"] .ic-moon{display:none}
 }
 
 /* ---------- tombol & mode layar miring ---------- */
-.aksi-tonton{display:flex;flex-wrap:wrap;gap:8px;margin:12px 4px 0}
-.aksi-tonton .btn-miring{margin:0}
+.aksi-tonton{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 4px 0;position:relative;z-index:31}
+.aksi-tonton .btn-miring{margin:0;justify-content:center;padding:9px 10px;font-size:.85rem;position:relative}
+.btn-miring[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.btn-miring.terakhir::after{content:"";position:absolute;top:6px;right:10px;width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.hint-cara{grid-column:1/-1;margin:0;text-align:center;font-size:.74rem;color:var(--mut)}
+.hint-cara i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:5px}
 .btn-miring{display:inline-flex;align-items:center;gap:8px;margin:12px 4px 0;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--chip);color:var(--ink);font-size:.9rem;font-weight:600;box-shadow:var(--shadow)}
 .btn-miring svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .keluar-miring{display:none;position:absolute;z-index:3;top:10px;right:10px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:1.6rem;line-height:1}
@@ -243,6 +247,16 @@ html[data-tema="gelap"] .ic-moon{display:none}
   .player.miring-css{width:100vh;height:100vw;width:100dvh;height:100dvw;transform-origin:top left;transform:rotate(90deg) translateY(-100%)}
 }
 body.kunci-miring{overflow:hidden}
+
+/* ---------- mode bioskop: sekeliling digelapkan ---------- */
+.player.bioskop{position:relative;z-index:30;box-shadow:0 0 0 100vmax rgba(0,0,0,.9)}
+
+/* ---------- mini player melayang ---------- */
+.mini-kontrol{display:none;position:absolute;z-index:3;top:4px;right:4px;gap:4px}
+.mini-kontrol button{width:28px;height:28px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:1.05rem;line-height:1;display:grid;place-items:center;padding:0}
+.player.mini-css{position:fixed;z-index:900;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));left:auto;top:auto;width:min(60vw,320px);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.45);border:1px solid var(--line)}
+.player.mini-css .mini-kontrol{display:flex}
+.ph-mini{aspect-ratio:16/9;display:grid;place-items:center;text-align:center;padding:12px;border:1px dashed var(--line);border-radius:var(--r);color:var(--mut);font-size:.88rem;background:var(--card);cursor:pointer}
 
 /* ---------- kaki halaman ---------- */
 footer{padding:34px 0 120px;text-align:center;font-size:.92rem;color:var(--mut)}
@@ -442,6 +456,8 @@ function umur(v){
   return d<=0?'ditambahkan hari ini':d===1?'ditambahkan kemarin':'ditambahkan '+d+' hari lalu';
 }
 function baru(v){return Date.now()-tgl(v.created_at)<2*864e5}
+var IC_BIOS='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>';
+var IC_MINI='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><rect x="12" y="12" width="7" height="5" rx="1"/></svg>';
 var IC_DATAR='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/></svg>';
 var IC_MIRING='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M6 12h.01M18 12h.01"/></svg>';
 var IC_PLAY='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg>';
@@ -568,13 +584,20 @@ function renderStage(autoplay){
   if(autoplay){
     jedaMusik();
     box.innerHTML='<div class="player"><iframe src="'+esc(embedUrl(v.yt_id))+'" title="'+esc(v.judul)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'
-      +'<button class="keluar-miring" type="button" data-miring-tutup aria-label="Tutup mode miring">&times;</button></div>'
-      +'<div class="aksi-tonton"><button class="btn-miring" type="button" data-miring>'+IC_MIRING+'<span>Layar miring</span></button>'
-      +'<button class="btn-miring" type="button" data-datar>'+IC_DATAR+'<span>Layar datar</span></button></div>'
+      +'<button class="keluar-miring" type="button" data-miring-tutup aria-label="Tutup mode miring">&times;</button>'
+      +'<div class="mini-kontrol"><button type="button" data-mini-balik aria-label="Kembalikan ke ukuran biasa">&#x2922;</button><button type="button" data-mini-stop aria-label="Hentikan video">&times;</button></div></div>'
+      +'<div class="aksi-tonton"><button class="btn-miring" type="button" data-miring data-cara="miring">'+IC_MIRING+'<span>Layar miring</span></button>'
+      +'<button class="btn-miring" type="button" data-datar data-cara="datar">'+IC_DATAR+'<span>Layar datar</span></button>'
+      +'<button class="btn-miring" type="button" data-bioskop data-cara="bioskop" aria-pressed="false">'+IC_BIOS+'<span>Mode bioskop</span></button>'
+      +'<button class="btn-miring" type="button" data-mini data-cara="mini" aria-pressed="false">'+IC_MINI+'<span>Mini player</span></button>'
+      +'<p class="hint-cara" hidden><i></i>cara tonton terakhir kamu</p></div>'
+      +'<div id="slotMini"></div>'
       +'<h1 class="judul">'+esc(v.judul)+'</h1>'
       +'<p class="meta">'+esc(v.kategori||'Tanpa kategori')+' &bull; '+umur(v)+'</p>';
+    terapkanCara();
     return;
   }
+  resetCara();
   var dots='';
   if(list.length>1){
     dots='<div class="dots" role="group" aria-label="Pilih video unggulan">'+list.slice(0,5).map(function(x,i){
@@ -637,6 +660,52 @@ $('#stage').addEventListener('click',function(e){
   if(d){S.cur=Number(d.dataset.dot);renderStage();renderRow();return}
   if(e.target.closest('#hero'))renderStage(true);
 });
+/* ---------- cara tonton: bioskop, mini player, ingat pilihan ---------- */
+var KUNCI_CARA='kalensari_tv_cara';
+var miniAktif=false,bioskopAktif=false;
+function bacaCara(){try{return localStorage.getItem(KUNCI_CARA)||''}catch(e){return ''}}
+function simpanCara(c){try{if(c)localStorage.setItem(KUNCI_CARA,c);else localStorage.removeItem(KUNCI_CARA)}catch(e){}}
+function resetCara(){miniAktif=false;bioskopAktif=false}
+function segarCara(){
+  var p=document.querySelector('.player');if(!p)return;
+  p.classList.toggle('bioskop',bioskopAktif);
+  p.classList.toggle('mini-css',miniAktif);
+  var sl=document.getElementById('slotMini');
+  if(sl)sl.innerHTML=miniAktif?'<div class="ph-mini" data-mini-balik>Video sedang diputar di mini player.<br>Ketuk di sini untuk mengembalikan.</div>':'';
+  var terakhir=bacaCara();
+  document.querySelectorAll('.aksi-tonton [data-cara]').forEach(function(b){
+    var c=b.getAttribute('data-cara');
+    b.classList.toggle('terakhir',c===terakhir);
+    if(c==='bioskop')b.setAttribute('aria-pressed',bioskopAktif?'true':'false');
+    if(c==='mini')b.setAttribute('aria-pressed',miniAktif?'true':'false');
+  });
+  var h=document.querySelector('.hint-cara');if(h)h.hidden=!terakhir;
+}
+function terapkanCara(){
+  /* bioskop diingat dan menyala otomatis; layar miring/datar/mini hanya ditandai karena butuh ketukan langsung */
+  bioskopAktif=bacaCara()==='bioskop';
+  if(miniAktif&&bioskopAktif)bioskopAktif=false;
+  segarCara();
+}
+function ubahBioskop(){
+  bioskopAktif=!bioskopAktif;
+  if(bioskopAktif)miniAktif=false;
+  simpanCara(bioskopAktif?'bioskop':'');
+  segarCara();
+}
+function ubahMini(){
+  miniAktif=!miniAktif;
+  if(miniAktif)bioskopAktif=false;
+  if(miniAktif)simpanCara('mini');
+  segarCara();
+}
+function keluarMini(){if(miniAktif){miniAktif=false;segarCara()}}
+document.addEventListener('click',function(e){
+  /* ketuk area gelap di luar pemutar = matikan bioskop (pilihan tersimpan tidak diubah) */
+  if(!bioskopAktif)return;
+  if(e.target.closest('.player,.aksi-tonton,.item,.kk-bg'))return;
+  bioskopAktif=false;segarCara();
+});
 /* ---------- layar miring ---------- */
 function tutupMiringCss(){
   var p=document.querySelector('.player.miring-css,.player.penuh-css');
@@ -657,6 +726,8 @@ function selesaiMiring(){
 }
 function bukaMiring(datar){
   var p=document.querySelector('.player');if(!p)return;
+  keluarMini();
+  simpanCara(datar?'datar':'miring');segarCara();
   catatMiring();
   var kelas=datar?'penuh-css':'miring-css';
   var rf=p.requestFullscreen||p.webkitRequestFullscreen;
@@ -693,6 +764,10 @@ window.addEventListener('popstate',function(){
   lepasMiring();
 });
 $('#stage').addEventListener('click',function(e){
+  if(e.target.closest('[data-mini-stop]')){resetCara();renderStage();return}
+  if(e.target.closest('[data-mini-balik]')){keluarMini();$('#stage').scrollIntoView({behavior:'smooth',block:'start'});return}
+  if(e.target.closest('[data-bioskop]')){ubahBioskop();return}
+  if(e.target.closest('[data-mini]')){ubahMini();return}
   if(e.target.closest('[data-miring]'))bukaMiring(false);
   else if(e.target.closest('[data-datar]'))bukaMiring(true);
   else if(e.target.closest('[data-miring-tutup]')){tutupMiringCss();selesaiMiring()}
@@ -722,14 +797,16 @@ if(window.matchMedia){
 $('#row').addEventListener('click',function(e){
   var b=e.target.closest('.item');if(!b)return;
   S.cur=Number(b.dataset.id);
+  var tetapMini=miniAktif;
   renderStage(true);renderRow();
-  $('#stage').scrollIntoView({behavior:'smooth',block:'start'});
+  if(tetapMini){miniAktif=true;segarCara()}else $('#stage').scrollIntoView({behavior:'smooth',block:'start'});
 });
 $('#slider').addEventListener('click',function(e){
   var b=e.target.closest('.item');if(!b)return;
   S.cur=Number(b.dataset.id);
+  var tetapMini=miniAktif;
   renderStage(true);renderRow();
-  $('#stage').scrollIntoView({behavior:'smooth',block:'start'});
+  if(tetapMini){miniAktif=true;segarCara()}else $('#stage').scrollIntoView({behavior:'smooth',block:'start'});
 });
 $('#soonPrev').addEventListener('click',function(){var s=$('#slider');s.scrollBy({left:-s.clientWidth*.8,behavior:'smooth'})});
 $('#soonNext').addEventListener('click',function(){var s=$('#slider');s.scrollBy({left:s.clientWidth*.8,behavior:'smooth'})});
