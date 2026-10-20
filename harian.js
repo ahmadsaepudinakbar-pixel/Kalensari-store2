@@ -105,15 +105,18 @@
       ".hr-mb>i{font-style:normal;font-size:28px;flex:none}.hr-mb div{flex:1;min-width:0}.hr-mb b{display:block;font-size:15px}.hr-mb span{display:block;font-size:13px;color:#2c6b44;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
       ".hr-mb button{flex:none;border:0;border-radius:999px;padding:9px 13px;font:inherit;font-weight:800;font-size:13px;cursor:pointer;background:#228b4e;color:#fff}",
       ".hr-mb .x{background:none;color:#2c6b44;padding:6px 8px;font-size:18px}",
-      /* absen */
-      ".hr-ab{background:linear-gradient(135deg,#5b2c12,#8a4a22);color:#fff;border:0}.hr-ab .hr-h{color:#fff}.hr-ab .hr-h small{color:#f6dcc0}",
-      ".hr-ab p{margin:0 0 10px;font-size:13.5px;opacity:.95}",
-      ".hr-dots{display:flex;gap:6px;margin:4px 0 12px}.hr-dots i{flex:1;height:34px;border-radius:10px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;color:rgba(255,255,255,.7)}",
-      ".hr-dots i.on{background:#ffd36b;color:#5b2c12}.hr-dots i.hd{font-size:17px}.hr-dots i.hd.on{background:#7ee2a0}",
-      ".hr-ab button{width:100%;border:0;border-radius:999px;padding:12px;font:inherit;font-weight:800;font-size:15px;cursor:pointer;background:#ffd36b;color:#4a2400}",
-      ".hr-ab button:disabled{background:rgba(255,255,255,.18);color:#fff;cursor:default}",
-      ".hr-ab.ringkas{display:flex;align-items:center;gap:12px;padding:12px 14px}.hr-ab.ringkas>i{font-style:normal;font-size:28px}.hr-ab.ringkas div{flex:1;min-width:0}",
-      ".hr-ab.ringkas b{display:block;font-size:15px}.hr-ab.ringkas span{display:block;font-size:12.5px;opacity:.9}.hr-ab.ringkas button{width:auto;padding:10px 14px;font-size:14px;flex:none}",
+      /* absen (minimalis) */
+      ".hr-ab{background:#fff;color:#3a1f10;border:1px solid #ecdcc8;border-radius:18px;padding:12px 14px;box-shadow:0 4px 14px rgba(91,44,18,.07)}",
+      ".hr-ab-r{display:flex;align-items:center;gap:10px}.hr-ab-t{flex:1;min-width:0}",
+      ".hr-ab-t b{display:block;font-size:14.5px;line-height:1.25;color:#5b2c12}.hr-ab-t b small{margin-left:6px;font-size:11.5px;font-weight:600;color:#a88b74}",
+      ".hr-ab-t span{display:block;margin-top:2px;font-size:12px;line-height:1.35;color:#8a6b55}",
+      ".hr-seg{display:flex;align-items:center;gap:5px;margin-top:10px}.hr-seg i{flex:1;height:6px;border-radius:99px;background:#efe3d4}",
+      ".hr-seg i.on{background:linear-gradient(90deg,#f7c64a,#f2a51f)}",
+      ".hr-seg i.hd{flex:none;height:auto;width:auto;background:none;font-style:normal;font-size:15px;line-height:1;filter:grayscale(1) opacity(.45)}.hr-seg i.hd.on{filter:none}",
+      ".hr-ab button{flex:none;border:0;border-radius:999px;padding:8px 16px;font:inherit;font-weight:800;font-size:13px;cursor:pointer;background:#7b3f1d;color:#fff}",
+      ".hr-ab button:disabled{background:#f3eadf;color:#8a6b55;cursor:default}",
+      ".hr-ab.ringkas{display:flex;align-items:center;gap:10px;padding:10px 12px}.hr-ab.ringkas>i{font-style:normal;font-size:22px}.hr-ab.ringkas div{flex:1;min-width:0}",
+      ".hr-ab.ringkas b{display:block;font-size:14px;color:#5b2c12}.hr-ab.ringkas span{display:block;font-size:12px;color:#8a6b55}",
       ".hr-ikuti{border:1px solid #228b4e!important;color:#228b4e!important;background:#fff!important;margin-left:auto}.hr-ikuti.on{background:#228b4e!important;color:#fff!important}",
       ".hr-ov{position:fixed;inset:0;z-index:9500;background:rgba(40,20,8,.55);display:grid;place-items:center;padding:20px}",
       ".hr-ov>div{background:#fff;border-radius:24px;max-width:340px;width:100%;padding:24px 20px 18px;text-align:center;color:#3a1f10;box-shadow:0 20px 40px rgba(0,0,0,.25)}",
@@ -426,14 +429,14 @@
   function gambarAbsen(el, s, o) {
     var n = Number(s.hari) || 7, sik = Number(s.siklus) || 0, sisa = n - sik;
     var info = s.sudah
-      ? (sik === n ? "Hadiah sudah cair hari ini. Hitungan mulai lagi besok." : "Sudah absen hari ini. Kembali besok" + (s.hadiah > 0 ? ", " + sisa + " hari lagi dapat " + rp(s.hadiah) : "") + ".")
-      : (s.hadiah > 0 ? "Absen " + n + " hari berturut-turut, dapat saldo voucher " + rp(s.hadiah) + "." : "Absen setiap hari, jangan sampai bolong!") + (sik > 0 ? " Sudah " + sik + " hari, jangan putus!" : "");
+      ? (sik === n ? "Hadiah cair hari ini. Hitungan mulai lagi besok." : "Besok lagi" + (s.hadiah > 0 ? ", " + sisa + " hari lagi dapat " + rp(s.hadiah) : "") + ".")
+      : (s.hadiah > 0 ? n + " hari berturut-turut dapat " + rp(s.hadiah) + "." : "Absen setiap hari, jangan sampai bolong.") + (sik > 0 ? " Sudah " + sik + " hari." : "");
     el.hidden = false;
     if (o.ringkas) {
-      el.innerHTML = '<section class="hr-card hr-ab ringkas"><i>✅</i><div><b>Absen harian</b><span>' + esc(sik > 0 ? "Hari ke-" + (sik + 1) + " dari " + n + (s.hadiah > 0 ? " • hadiah " + rp(s.hadiah) : "") : (s.hadiah > 0 ? n + " hari berturut-turut dapat " + rp(s.hadiah) : "Absen tiap hari")) + '</span></div><button type="button">Absen</button></section>';
+      el.innerHTML = '<section class="hr-card hr-ab ringkas"><i>✅</i><div><b>Absen harian</b><span>' + esc(sik > 0 ? "Hari ke-" + (sik + 1) + " dari " + n + (s.hadiah > 0 ? ", hadiah " + rp(s.hadiah) : "") : (s.hadiah > 0 ? n + " hari berturut-turut dapat " + rp(s.hadiah) : "Absen tiap hari")) + '</span></div><button type="button">Absen</button></section>';
     } else {
-      var dots = ""; for (var i = 1; i <= n; i++) dots += '<i class="' + (i <= sik ? "on" : "") + (i === n ? " hd" : "") + '">' + (i === n ? "🎁" : i) + "</i>";
-      el.innerHTML = '<section class="hr-card hr-ab"><h3 class="hr-h">✅ Absen harian<small>' + (Number(s.total) || 0) + " hari total</small></h3><p>" + esc(info) + '</p><div class="hr-dots">' + dots + '</div><button type="button"' + (s.sudah ? " disabled" : "") + ">" + (s.sudah ? "✓ Sudah absen hari ini" : "Absen sekarang") + "</button></section>";
+      var dots = ""; for (var i = 1; i <= n; i++) dots += i === n ? '<i class="hd' + (i <= sik ? " on" : "") + '">🎁</i>' : '<i class="' + (i <= sik ? "on" : "") + '"></i>';
+      el.innerHTML = '<section class="hr-card hr-ab"><div class="hr-ab-r"><div class="hr-ab-t"><b>Absen harian<small>' + (Number(s.total) || 0) + ' hari total</small></b><span>' + esc(info) + '</span></div><button type="button"' + (s.sudah ? " disabled" : "") + ">" + (s.sudah ? "✓ Sudah" : "Absen") + '</button></div><div class="hr-seg" aria-label="Absen ' + sik + " dari " + n + ' hari">' + dots + "</div></section>";
     }
     var b = el.querySelector("button");
     if (b && !s.sudah) b.onclick = async function () {
@@ -443,7 +446,7 @@
         if (r && r.dapat > 0) { rayakan(r.dapat, r.hari); if (typeof o.onHadiah === "function") o.onHadiah(r); }
         else say("✅ Absen hari ke-" + (r && r.siklus) + " tercatat. Sampai besok!");
         if (o.ringkas) sembunyi(el); else gambarAbsen(el, r, o);
-      } catch (e) { b.disabled = false; b.textContent = o.ringkas ? "Absen" : "Absen sekarang"; say(e.sesiHabis ? "Sesi berakhir. Silakan masuk lagi." : (e.tidakAda ? "Fitur absen belum aktif" : (e.message || "Gagal absen"))); }
+      } catch (e) { b.disabled = false; b.textContent = "Absen"; say(e.sesiHabis ? "Sesi berakhir. Silakan masuk lagi." : (e.tidakAda ? "Fitur absen belum aktif" : (e.message || "Gagal absen"))); }
     };
   }
 
