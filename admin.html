@@ -1607,6 +1607,7 @@ async function saveCat(old,btn){
     if(old&&old!==v){await api('products?category=eq.'+encodeURIComponent(old),{method:'PATCH',headers:{Prefer:'return=minimal'},body:JSON.stringify({category:v})});S.products.forEach(p=>{if(p.category===old)p.category=v})}
     await setSetting('categories',cats);await setSetting('removed_categories',removed);
     S.settings.categories=cats;S.settings.removed_categories=removed;
+    if(old&&old!==v){try{const im=await ikonKatMuat();if(im[old]){const m=Object.assign({},im);m[v]=m[old];delete m[old];await ikonKatSimpan(m)}}catch(e){}}
     const tkOn=!!($('#cTk')&&$('#cTk').checked);let tk=gagalTanggung().filter(x=>katN(x)!==katN(v)&&!(old&&katN(x)===katN(old)));if(tkOn)tk.push(v);
     if(JSON.stringify(tk)!==JSON.stringify(gagalTanggung()))await simpanTanggung(tk);
     closeModal();render();toast('Kategori disimpan');
@@ -1614,12 +1615,31 @@ async function saveCat(old,btn){
 }
 function catMenu(c){const n=S.products.filter(p=>p.category===c).length;
   modal(`<h3>${esc(c)}</h3><div class="mact" style="flex-direction:column"><button class="btn btn-light" onclick="catForm('${jsq(c)}')">${ico('edit')}Ubah nama</button>
+  <button class="btn btn-light" onclick="ikonKatForm('${jsq(c)}')">🖼️ Ganti ikon (foto)</button>
   <button class="btn btn-red" onclick="delCat('${jsq(c)}',this)" ${n?'disabled style="opacity:.5"':''}>${ico('trash')}Hapus</button>
   ${n?`<p class="sm" style="color:var(--mut);font-size:12px">Kategori masih dipakai ${n} produk. Pindahkan produknya dulu untuk menghapus.</p>`:''}
   <button class="btn" onclick="closeModal()">Batal</button></div>`)}
 async function delCat(c,btn){if(!confirm('Hapus kategori '+c+'?'))return;
   await busy(btn,async()=>{const cats=customCats().filter(x=>x!==c),removed=[...new Set([...removedCats(),c])];
     await setSetting('categories',cats);await setSetting('removed_categories',removed);S.settings.categories=cats;S.settings.removed_categories=removed;closeModal();render();toast('Kategori dihapus')})}
+
+/* ========== IKON KATEGORI (foto pengganti ikon di beranda toko) ========== */
+/* Disimpan di store_settings "foto_ikon_kategori" = {map:{"Nama kategori":"data:image/..."}} */
+let IKON_KAT=null,IKON_BARU='';
+async function ikonKatMuat(){if(IKON_KAT)return IKON_KAT;try{const r=await api('store_settings?select=value&key=eq.foto_ikon_kategori');const m=r[0]&&r[0].value&&r[0].value.map;IKON_KAT=m&&typeof m==='object'?m:{}}catch(e){IKON_KAT={}}return IKON_KAT}
+async function ikonKatSimpan(m){await setSetting('foto_ikon_kategori',{map:m});IKON_KAT=m}
+function ikonKatKecil(file){return new Promise((ok,no)=>{if(!file||!/^image\//.test(file.type||''))return no(new Error('Pilih file foto'));const u=URL.createObjectURL(file),im=new Image();im.onerror=()=>{URL.revokeObjectURL(u);no(new Error('Foto tidak bisa dibaca'))};im.onload=()=>{URL.revokeObjectURL(u);const S2=160,c=document.createElement('canvas');c.width=c.height=S2;const x=c.getContext('2d'),k=Math.max(S2/im.width,S2/im.height),w=im.width*k,h=im.height*k;x.imageSmoothingQuality='high';x.drawImage(im,(S2-w)/2,(S2-h)/2,w,h);let d=c.toDataURL('image/webp',.85);if(d.indexOf('data:image/webp')!==0)d=c.toDataURL('image/png');ok(d)};im.src=u})}
+async function ikonKatForm(c){IKON_BARU='';const m=await ikonKatMuat(),ada=m[c]||'';
+  modal(`<h3>Ikon: ${esc(c)}</h3>
+  <div style="display:flex;align-items:center;gap:14px;margin:6px 0 12px"><div id="ikPrev" style="width:72px;height:72px;border-radius:50%;flex:none;background:#fbecd6 center/cover no-repeat;${ada?`background-image:url('${ada}')`:''};display:grid;place-items:center;font-size:30px;box-shadow:0 0 0 3px #fff,0 0 0 5px #e9b44c">${ada?'':catEmoji(c)}</div>
+  <p class="sm" style="color:var(--mut);font-size:12px;margin:0">Foto tampil di lingkaran kategori pada beranda toko. Pakai foto persegi (mis. 300×300 px) dengan benda di tengah. Kosongkan untuk memakai ikon bawaan.</p></div>
+  <input type="file" id="ikFile" accept="image/*" style="display:none" onchange="ikonKatPilih(this)">
+  <div class="mact" style="flex-direction:column"><button class="btn btn-light" onclick="$('#ikFile').click()">📷 Pilih foto</button>
+  ${ada?`<button class="btn btn-red" onclick="ikonKatHapus('${jsq(c)}',this)">${ico('trash')}Pakai ikon bawaan</button>`:''}
+  <div style="display:flex;gap:8px;width:100%"><button class="btn btn-o" style="flex:1" onclick="closeModal()">Batal</button><button class="btn btn-g" style="flex:1" onclick="ikonKatOk('${jsq(c)}',this)">Simpan</button></div></div>`)}
+async function ikonKatPilih(inp){try{IKON_BARU=await ikonKatKecil(inp.files&&inp.files[0]);const p=$('#ikPrev');if(p){p.style.backgroundImage=`url('${IKON_BARU}')`;p.textContent=''}}catch(e){toast(e.message)}}
+async function ikonKatOk(c,btn){if(!IKON_BARU)return toast('Pilih foto dulu');await busy(btn,async()=>{const m=Object.assign({},await ikonKatMuat());m[c]=IKON_BARU;await ikonKatSimpan(m);IKON_BARU='';closeModal();toast('Ikon kategori disimpan')})}
+async function ikonKatHapus(c,btn){await busy(btn,async()=>{const m=Object.assign({},await ikonKatMuat());delete m[c];await ikonKatSimpan(m);closeModal();toast('Kembali ke ikon bawaan')})}
 
 /* ========== AKSI PROMO (harga coret) ========== */
 function promoForm(id){

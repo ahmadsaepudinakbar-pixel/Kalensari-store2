@@ -458,32 +458,46 @@ function shuffleKey(id){let h=2166136261^shuffleBlock;const s=String(id);for(let
 const activeSellerName=()=>{if(!activeSeller)return"";for(const p of products){const n=sellerList(p).find(x=>sellerKey(x)===activeSeller);if(n)return n;}return activeSeller;};
 const productHasSeller=(p,k)=>sellerList(p).some(n=>sellerKey(n)===k);
 
-// Ikon + warna pastel untuk tile kategori (dicocokkan dari nama kategori)
+// Ikon kategori (gaya garis, cokelat-emas). Admin bisa mengganti ikon tiap kategori dengan foto (kategori-ikon.js).
+const KS_SVG=d=>`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const KS_IKON={
+  mie:KS_SVG('<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M14 3l-3 8M19 4l-6 7"/>'),
+  minum:KS_SVG('<path d="M6 8h12l-1.4 12.2a1 1 0 0 1-1 .8H8.4a1 1 0 0 1-1-.8z"/><path d="M5 8h14M12 8l1.6-5H17"/>'),
+  camil:KS_SVG('<path d="M7 10l1.4 11h7.2L17 10z"/><path d="M8.5 10V4.5M11 10V3.5M13.5 10V4M16 10l.6-4.5"/>'),
+  kue:KS_SVG('<path d="M4 21h16M5 21v-7h14v7"/><path d="M5 14.5c2.3 0 2.3-2 4.7-2s2.3 2 4.6 2 2.3-2 4.7-2M12 9.5V7"/><path d="M12 4.2v.01"/>'),
+  sembako:KS_SVG('<path d="M3 10h18l-2 10H5z"/><path d="M8 10l3-6M16 10l-3-6M9 14v3M15 14v3M12 14v3"/>'),
+  makan:KS_SVG('<path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M8 4.5c0 1.5 1 1.5 1 3M12 3.5c0 1.5 1 1.5 1 3M16 4.5c0 1.5 1 1.5 1 3"/>'),
+  umum:KS_SVG('<path d="M7 3v18M4 3v5a3 3 0 0 0 6 0V3"/><path d="M17 21V3c-2 0-3.5 3-3.5 7H17"/>'),
+  toko:KS_SVG('<path d="M3 9l1.6-5h14.8L21 9z"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12v9h14v-9M10 21v-5h4v5"/>'),
+  malam:KS_SVG('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'),
+  semua:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2" fill="currentColor"/><rect x="13" y="4" width="7" height="7" rx="2" fill="currentColor"/><rect x="4" y="13" width="7" height="7" rx="2" fill="currentColor"/><rect x="13" y="13" width="7" height="7" rx="2" fill="currentColor"/></svg>'
+};
 const KS_CAT_IKON=[
-  [/seblak|mie|mi\b|bakso|soto|kuah|ramen/i,"🍜","#ffe3a3"],
-  [/minum|es\b|kopi|teh|jus|boba|susu|cendol|dawet/i,"🥤","#fbd3d3"],
-  [/camil|snack|gorengan|jajan|keripik|cireng|cilok/i,"🍟","#ffe0b8"],
-  [/kue|dessert|roti|donat|manis|eskrim|es krim|martabak/i,"🍰","#e6dcfb"],
-  [/sembako|sayur|buah|bumbu|beras|telur|minyak/i,"🥬","#d3efd0"],
-  [/makan|nasi|berat|lauk|ayam|ikan|lele|geprek|prasmanan/i,"🍛","#ffe3a3"]
+  [/seblak|mie|mi\b|bakso|soto|kuah|ramen/i,"mie"],
+  [/minum|es\b|kopi|teh|jus|boba|susu|cendol|dawet/i,"minum"],
+  [/camil|snack|gorengan|jajan|keripik|cireng|cilok/i,"camil"],
+  [/kue|dessert|roti|donat|manis|eskrim|es krim|martabak/i,"kue"],
+  [/sembako|sayur|buah|bumbu|beras|telur|minyak/i,"sembako"],
+  [/makan|nasi|berat|lauk|ayam|ikan|lele|geprek|prasmanan/i,"makan"]
 ];
-const KS_CAT_WARNA=["#ffe3a3","#fbd3d3","#ffe0b8","#e6dcfb","#d3efd0","#dbe8fb"];
-function ksCatIkon(nama,i){
-  for(const [re,ik,w] of KS_CAT_IKON){if(re.test(nama))return{ik,w};}
-  return{ik:"🍽️",w:KS_CAT_WARNA[i%KS_CAT_WARNA.length]};
+function ksCatIkon(nama){
+  for(const [re,k] of KS_CAT_IKON){if(re.test(nama))return KS_IKON[k];}
+  return KS_IKON.umum;
 }
-const KS_SEMUA_SVG='<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="8" cy="8" r="3.2" fill="currentColor"/><circle cx="16" cy="8" r="3.2" fill="currentColor"/><circle cx="8" cy="16" r="3.2" fill="currentColor"/><circle cx="16" cy="16" r="3.2" fill="currentColor"/></svg>';
+const KS_SEMUA_SVG=KS_IKON.semua;
+// ikon foto dari admin (bila ada) menggantikan ikon bawaan
+function ksIkonFoto(kunci){try{return window.KSKatIkon?KSKatIkon.foto(kunci):"";}catch(e){return "";}}
 function renderCategories() {
   const cats=["Semua",...new Set(products.map(p=>p.category))];
   const tokoAktif=activeSeller&&!pmKeySet().has(activeSeller);
   const tokoLbl=tokoAktif?esc(activeSellerName()):"Toko";
-  const tile=(ik,w,teks)=>`<span class="cat-ic" style="--c:${w}">${ik}</span><span class="cat-tx">${teks}</span>`;
+  const tile=(kunci,ik,teks)=>{const f=ksIkonFoto(kunci);return `<span class="cat-ic${f?" cat-ic-foto":""}">${f?`<img src="${esc(f)}" alt="" loading="lazy">`:ik}</span><span class="cat-tx">${teks}</span>`;};
   document.getElementById("categories").innerHTML=cats.map((c,i)=>{
-    const d=c==="Semua"?{ik:KS_SEMUA_SVG,w:"#f1e7de"}:ksCatIkon(c,i);
-    return `<button class="cat ${c===activeCategory&&!(c==="Semua"&&activeSeller)?"active":""}${c==="Semua"?" cat-semua":""}" onclick="setCategory(${JSON.stringify(c).replace(/"/g,'&quot;')})">${tile(d.ik,d.w,esc(c))}</button>`;
+    const ik=c==="Semua"?KS_SEMUA_SVG:ksCatIkon(c);
+    return `<button class="cat ${c===activeCategory&&!(c==="Semua"&&activeSeller)?"active":""}${c==="Semua"?" cat-semua":""}" onclick="setCategory(${JSON.stringify(c).replace(/"/g,'&quot;')})">${tile(c,ik,esc(c))}</button>`;
   }).join("")
-    +`<button type="button" class="cat cat-toko${tokoAktif?" active":""}" onclick="openShopPanel()">${tile("🏪","#dbe8fb",tokoLbl)}</button>`
-    +(pmTombolMuncul()||(activeSeller&&pmKeySet().has(activeSeller))?`<button type="button" class="cat cat-pm${activeSeller&&pmKeySet().has(activeSeller)?" active":""}" onclick="bukaInfoPasarMalam()">${tile("🌙","#2b150a","Pasar Malam")}</button>`:"");
+    +`<button type="button" class="cat cat-toko${tokoAktif?" active":""}" onclick="openShopPanel()">${tile("__toko",KS_IKON.toko,tokoLbl)}</button>`
+    +(pmTombolMuncul()||(activeSeller&&pmKeySet().has(activeSeller))?`<button type="button" class="cat cat-pm${activeSeller&&pmKeySet().has(activeSeller)?" active":""}" onclick="bukaInfoPasarMalam()">${tile("__pm",KS_IKON.malam,"Pasar Malam")}</button>`:"");
   renderSellerBar();
 }
 function setCategory(c) {
