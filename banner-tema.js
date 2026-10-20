@@ -241,7 +241,7 @@
     var c=cfg[s.k]||{m:"def"};
     if(s.tipe==="promo")hentiPutar(el);
     el.classList.remove("bn-foto","bn-set");
-    el.style.background="";el.style.removeProperty("--bn-lingkar");el.removeAttribute("data-tone");
+    el.style.background="";el.style.removeProperty("--bn-lingkar");el.style.removeProperty("--bn-ar");el.removeAttribute("data-tone");
     // tulisan sendiri: warna (tc) & ukuran (ts, persen)
     if(warnaOk(c.tc)){el.classList.add("bn-tc");el.style.setProperty("--bn-tc",c.tc);}else{el.classList.remove("bn-tc");el.style.removeProperty("--bn-tc");}
     var ts=Number(c.ts);if(ts>=60&&ts<=180&&ts!==100)el.style.setProperty("--bn-ts",String(ts/100));else el.style.removeProperty("--bn-ts");
@@ -262,7 +262,9 @@
       var im=new Image();   // muat dulu supaya pergantian tidak berkedip
       im.onload=function(){
         el.style.background="linear-gradient("+lap+","+lap+"),url(\""+url+"\") center/cover no-repeat";
-        el.classList.add("bn-foto");nadaFoto(el,im,ov,s.tipe);
+        el.classList.add("bn-foto");
+        // perbandingan asli foto (dipakai di layar komputer supaya foto tidak terpotong)
+        if(im.naturalWidth&&im.naturalHeight)el.style.setProperty("--bn-ar",im.naturalWidth+" / "+im.naturalHeight);nadaFoto(el,im,ov,s.tipe);
       };
       im.src=url;
     }
