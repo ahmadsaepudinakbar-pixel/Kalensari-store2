@@ -679,7 +679,7 @@ async function formIklan(id){
       <label>Mau barter dengan <small>(opsional)</small></label><input id="fBarter" data-filter maxlength="120" placeholder="Contoh: HP bekas / kambing / beras 10 kg" value="${esc(lama && lama.barter ? lama.barter : "")}">
       <p class="hint">Isi harga, barter, atau keduanya. Jika keduanya kosong, iklan tampil sebagai <b>Nego</b>.</p>
       <div class="err" id="fErr"></div>
-      <button class="btn p full" id="fKirim">${id ? "💾 Simpan perubahan" : "📢 Tayangkan iklan"}</button></div>`;
+      <button class="btn p full" id="fKirim">${id ? "💾 Simpan perubahan" : "📢 Posting"}</button></div>`;
   const gambarFoto = () => {
     $("fotos").classList.remove("wajib");
     $("fotos").innerHTML = [0, 1, 2].map(n => foto[n] ? `<div class="fs has" style="background-image:url('${foto[n]}')">${n === 0 ? '<span class="utama">Utama</span>' : ""}<button class="x" data-x="${n}" type="button" aria-label="Hapus foto">✕</button></div>`
@@ -706,7 +706,7 @@ async function formIklan(id){
         const r = await api("lapak_iklan", {method:"POST", body:JSON.stringify([{...data, wa:me.wa, status:"aktif"}])}); return {id:r && r[0] && r[0].id}; });
       baru = h && h.id;
       CACHE = null; toast(id ? "💾 Iklan diperbarui" : "📢 Iklan tayang!"); go(baru ? "#/i/" + baru : "#/");
-    }catch(e){ err.textContent = "Gagal menyimpan: " + String(e.message).slice(0, 120); b.disabled = false; b.textContent = id ? "💾 Simpan perubahan" : "📢 Tayangkan iklan"; }
+    }catch(e){ err.textContent = "Gagal menyimpan: " + String(e.message).slice(0, 120); b.disabled = false; b.textContent = id ? "💾 Simpan perubahan" : "📢 Posting"; }
   };
 }
 
