@@ -234,8 +234,8 @@
         w.scrollTo({ top: 0, behavior: gerakKurang ? "auto" : "smooth" });
       } else if (k === "orders") {
         var o = $("myOrdersBtn"); if (o) o.click();
-      } else if (k === "fav") {
-        try { if (ada(w.bukaFavorit)) bukaFavorit(!hanyaFavorit); } catch (x) {}
+      } else if (k === "tv") {
+        w.location.href = "tv.html";
       } else if (k === "akun") {
         e.stopPropagation();   // supaya klik ini tidak langsung menutup menu (pendengar dokumen script.js)
         var m = $("menuBtn"); if (m) m.click();

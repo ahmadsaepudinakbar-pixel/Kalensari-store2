@@ -468,6 +468,7 @@ const KS_IKON={
   sembako:KS_SVG('<path d="M3 10h18l-2 10H5z"/><path d="M8 10l3-6M16 10l-3-6M9 14v3M15 14v3M12 14v3"/>'),
   makan:KS_SVG('<path d="M3 12h18a9 9 0 0 1-18 0z"/><path d="M8 4.5c0 1.5 1 1.5 1 3M12 3.5c0 1.5 1 1.5 1 3M16 4.5c0 1.5 1 1.5 1 3"/>'),
   umum:KS_SVG('<path d="M7 3v18M4 3v5a3 3 0 0 0 6 0V3"/><path d="M17 21V3c-2 0-3.5 3-3.5 7H17"/>'),
+  favorit:KS_SVG('<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'),
   toko:KS_SVG('<path d="M3 9l1.6-5h14.8L21 9z"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 12v9h14v-9M10 21v-5h4v5"/>'),
   malam:KS_SVG('<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>'),
   semua:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="2" fill="currentColor"/><rect x="13" y="4" width="7" height="7" rx="2" fill="currentColor"/><rect x="4" y="13" width="7" height="7" rx="2" fill="currentColor"/><rect x="13" y="13" width="7" height="7" rx="2" fill="currentColor"/></svg>'
@@ -487,6 +488,8 @@ function ksCatIkon(nama){
 const KS_SEMUA_SVG=KS_IKON.semua;
 // ikon foto dari admin (bila ada) menggantikan ikon bawaan
 function ksIkonFoto(kunci){try{return window.KSKatIkon?KSKatIkon.foto(kunci):"";}catch(e){return "";}}
+// aman dipanggil sebelum hanyaFavorit dideklarasikan (mode "Favorit saya" aktif/tidak)
+function ksModeFav(){try{return !!hanyaFavorit;}catch(e){return false;}}
 function renderCategories() {
   const cats=["Semua",...new Set(products.map(p=>p.category))];
   const tokoAktif=activeSeller&&!pmKeySet().has(activeSeller);
@@ -494,13 +497,15 @@ function renderCategories() {
   const tile=(kunci,ik,teks)=>{const f=ksIkonFoto(kunci);return `<span class="cat-ic${f?" cat-ic-foto":""}">${f?`<img src="${esc(f)}" alt="" loading="lazy">`:ik}</span><span class="cat-tx">${teks}</span>`;};
   document.getElementById("categories").innerHTML=cats.map((c,i)=>{
     const ik=c==="Semua"?KS_SEMUA_SVG:ksCatIkon(c);
-    return `<button class="cat ${c===activeCategory&&!(c==="Semua"&&activeSeller)?"active":""}${c==="Semua"?" cat-semua":""}" onclick="setCategory(${JSON.stringify(c).replace(/"/g,'&quot;')})">${tile(c,ik,esc(c))}</button>`;
+    return `<button class="cat ${c===activeCategory&&!(c==="Semua"&&activeSeller)&&!ksModeFav()?"active":""}${c==="Semua"?" cat-semua":""}" onclick="setCategory(${JSON.stringify(c).replace(/"/g,'&quot;')})">${tile(c,ik,esc(c))}</button>`;
   }).join("")
     +`<button type="button" class="cat cat-toko${tokoAktif?" active":""}" onclick="openShopPanel()">${tile("__toko",KS_IKON.toko,tokoLbl)}</button>`
+    +`<button type="button" class="cat cat-fav${ksModeFav()?" active":""}" onclick="bukaFavorit(typeof hanyaFavorit!=='undefined'?!hanyaFavorit:true)">${tile("__fav",KS_IKON.favorit,"Favorit")}</button>`
     +(pmTombolMuncul()||(activeSeller&&pmKeySet().has(activeSeller))?`<button type="button" class="cat cat-pm${activeSeller&&pmKeySet().has(activeSeller)?" active":""}" onclick="bukaInfoPasarMalam()">${tile("__pm",KS_IKON.malam,"Pasar Malam")}</button>`:"");
   renderSellerBar();
 }
 function setCategory(c) {
+  try{hanyaFavorit=false;}catch(e){}
   if(c==="Semua"){activeSeller="";shuffleBlock=shuffleBlockNow();}
   activeCategory=c; renderCategories(); renderProducts();
   document.getElementById("products").scrollIntoView({behavior:"smooth"});
@@ -2602,7 +2607,7 @@ function popupFavoritKosong(){
   ov.querySelector("button").onclick=tutup;
   document.body.appendChild(ov);
 }
-function bukaFavorit(on=true){if(on&&!favorit.length){popupFavoritKosong();return;}hanyaFavorit=on;if(on){activeCategory="Semua";activeSeller="";}renderProducts();if(on)document.getElementById("productGrid")?.scrollIntoView({behavior:"smooth",block:"start"});}
+function bukaFavorit(on=true){if(on&&!favorit.length){popupFavoritKosong();return;}hanyaFavorit=on;if(on){activeCategory="Semua";activeSeller="";}renderProducts();renderCategories();if(on)document.getElementById("productGrid")?.scrollIntoView({behavior:"smooth",block:"start"});}
 const favLabel=on=>on?"❤️ Favorit saya":"🤍 Simpan ke favorit";
 const favBtn=p=>`<button type="button" class="fav-pill${isFav(p.id)?" on":""}" data-fav="${p.id}" aria-pressed="${isFav(p.id)}" onclick="toggleFav(${p.id},event)">${favLabel(isFav(p.id))}</button>`;
 // Tombol favorit hanya di halaman Detail produk (kartu produk tetap rapi)
