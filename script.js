@@ -269,6 +269,19 @@ const checkAdminPin=async()=>false; // PIN lama tidak dipakai lagi; admin masuk 
 const BASE_CATEGORIES=["Makanan","Minuman","Es Krim","Buah-buahan"];
 const allCategories=()=>[...new Set([...BASE_CATEGORIES,...customCategories,...products.map(p=>p.category).filter(Boolean)])].filter(c=>!removedCategories.includes(c)||products.some(p=>p.category===c));
 const sellerKey=n=>String(n||"").trim().toLowerCase();
+// ===== Dua tampilan toko, satu sistem: Kalensari Store & Star Zhenx Online Shop =====
+// Domisili toko dipilih penjual saat mendaftar (penjual_members.desa). Kalensari -> Kalensari Store;
+// Compreng + Mekarjaya (digabung) -> Star Zhenx Online Shop. Penjual lama tanpa domisili dianggap Kalensari.
+const KS_SITE=window.KS_SITE||"kalensari";
+let sellerDesa={};try{sellerDesa=JSON.parse(localStorage.getItem("kalensari_seller_desa")||"{}")||{};}catch(e){}
+const ksDesaSite=d=>/^(compreng|mekarjaya)$/i.test(String(d||"").trim())?"starzhenx":"kalensari";
+const KS_DESA_NAMA={kalensari:"Kalensari",compreng:"Compreng",mekarjaya:"Mekarjaya"};
+function ksSiteOk(p){
+  if(!p)return false;
+  const l=String(p.seller||"").split(",").map(x=>sellerKey(x)).filter(Boolean);
+  if(!l.length)return KS_SITE==="kalensari";
+  return l.some(k=>ksDesaSite(sellerDesa[k])===KS_SITE);
+}
 // Kode toko (PJ0015 / PJ-0015 / pj 15) -> nama toko. Diisi dari penjual_members, disimpan di HP supaya link toko langsung terbuka.
 const normKodeToko=v=>{const m=String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").match(/^([A-Z]{2})0*(\d{1,6})$/);return m?m[1]+m[2].padStart(4,"0"):"";};
 var kodeTokoMap={},kodeTokoSiap=false,tokoLinkTunda="";
@@ -391,6 +404,7 @@ async function loadCloudSettings(){
       if(r.key==="admin_pin_hash"&&typeof r.value==="string"&&/^[0-9a-f]{64}$/.test(r.value)){adminPinHash=r.value;localStorage.setItem("kalensari_admin_pin_hash",JSON.stringify(adminPinHash));}
       if(r.key==="shipping_fees"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){shippingFees=r.value;localStorage.setItem("kalensari_shipping_fees",JSON.stringify(shippingFees));}
       if(r.key==="penjual_members"&&Array.isArray(r.value)){const m={};r.value.forEach(x=>{const nm=sellerKey(x&&(x.toko||x.usaha));if(nm&&validLL(x.latitude,x.longitude))m[nm]={lat:Number(x.latitude),lng:Number(x.longitude)};});sellerLocs=m;sellerLocsOk=true;localStorage.setItem("kalensari_seller_locs",JSON.stringify(sellerLocs));}
+      if(r.key==="penjual_members"&&Array.isArray(r.value)){const d={};r.value.forEach(x=>{const nm=sellerKey(x&&(x.toko||x.usaha));if(nm&&x.desa)d[nm]=String(x.desa).toLowerCase();});sellerDesa=d;try{localStorage.setItem("kalensari_seller_desa",JSON.stringify(d));}catch(e){}}
       if(r.key==="seller_schedule"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){sellerSchedule=r.value;localStorage.setItem("kalensari_seller_schedule",JSON.stringify(sellerSchedule));}
       if(r.key==="unggulan_toko"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){unggulanToko=r.value;localStorage.setItem("kalensari_unggulan_toko",JSON.stringify(unggulanToko));}
       if(r.key==="tutup_toko"&&r.value&&typeof r.value==="object"&&!Array.isArray(r.value)){tutupToko=r.value;localStorage.setItem("kalensari_tutup_toko",JSON.stringify(tutupToko));}
@@ -427,7 +441,7 @@ async function saveStoreSettings(){
 }
 // Status produk: "Show" = tampil, "Sold Out" = stok habis (tampil tapi tidak bisa dibeli), selain itu (mis. "Hidden" / "Out of Stock" lama) = disembunyikan.
 const isSoldOut=p=>p&&(p.status==="Sold Out"||(hasVariants(p)&&parseVariants(p).every(v=>v.habis)));
-const isVisible=p=>p&&(p.status==="Show"||p.status==="Sold Out");
+const isVisible=p=>p&&(p.status==="Show"||p.status==="Sold Out")&&ksSiteOk(p);
 const statusKind=p=>p.status==="Show"?"show":p.status==="Sold Out"?"sold":"hidden";
 async function refreshProductStatus(){
   if(!CLOUD_CONFIG?.enabled)return false;
@@ -491,7 +505,7 @@ function ksIkonFoto(kunci){try{return window.KSKatIkon?KSKatIkon.foto(kunci):"";
 // aman dipanggil sebelum hanyaFavorit dideklarasikan (mode "Favorit saya" aktif/tidak)
 function ksModeFav(){try{return !!hanyaFavorit;}catch(e){return false;}}
 function renderCategories() {
-  const cats=["Semua",...new Set(products.map(p=>p.category))];
+  const cats=["Semua",...new Set(products.filter(ksSiteOk).map(p=>p.category))];
   const tokoAktif=activeSeller&&!pmKeySet().has(activeSeller);
   const tokoLbl=tokoAktif?esc(activeSellerName()):"Toko";
   const tile=(kunci,ik,teks)=>{const f=ksIkonFoto(kunci);return `<span class="cat-ic${f?" cat-ic-foto":""}">${f?`<img src="${esc(f)}" alt="" loading="lazy">`:ik}</span><span class="cat-tx">${teks}</span>`;};
@@ -1689,7 +1703,7 @@ function getProductImage(imagePath) {
       const q=normalize(keyword);
       const source=(typeof products!=='undefined' && Array.isArray(products)) ? products : [];
       if(!q) return [];
-      return source.filter(p=>p && p.status==='Show').filter(p=>{
+      return source.filter(p=>p && p.status==='Show' && ksSiteOk(p)).filter(p=>{
         const text=[p.name,p.category,p.seller].map(normalize).join(' ');
         return text.includes(q);
       }).slice(0,8);
@@ -1990,7 +2004,7 @@ setInterval(()=>{ if(products.some(hasHours)||Object.keys(sellerSchedule).length
   const GROUPS=[
     {k:"kurir",label:"🛵 Kurir",members:"kurir_members",acc:"kurir_accounts",info:m=>[m.kendaraan,m.wilayah].filter(Boolean).join(" • ")||"-"},
     {k:"jasa",label:"🤝 Jasa",members:"jasa_members",acc:"jasa_accounts",info:m=>[m.kategori,m.dusun].filter(Boolean).join(" • ")||"-"},
-    {k:"penjual",label:"🏪 Penjual",members:"penjual_members",acc:"penjual_accounts",info:m=>[m.toko||m.usaha,m.dusun].filter(Boolean).join(" • ")||"-"}
+    {k:"penjual",label:"🏪 Penjual",members:"penjual_members",acc:"penjual_accounts",info:m=>[m.toko||m.usaha,"Domisili: "+(KS_DESA_NAMA[String(m.desa||"kalensari").toLowerCase()]||m.desa),m.dusun].filter(Boolean).join(" • ")||"-"}
   ];
   const rd=async(key,def)=>{
     if(CLOUD_CONFIG?.enabled){const r=await cloudFetch(`store_settings?select=value&key=eq.${key}`);return r[0]&&r[0].value!=null?r[0].value:def;}
