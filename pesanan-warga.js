@@ -30,7 +30,7 @@ window.KSPW = (function () {
 
   // ===== Ringkasan multi toko: 1 checkout ke banyak toko = beberapa nota yang berdiri sendiri =====
   const tokoNama = o => String((items(o)[0] || {}).seller || "Toko").split(",")[0].trim() || "Toko";
-  const sisaMenit = o => { const t = Date.parse(o.paid_at || o.created_at || ""); return isNaN(t) ? null : Math.max(0, Math.ceil((t + 15 * 60000 - Date.now()) / 60000)); };
+  const sisaMenit = o => { const t = Date.parse(o.paid_at || o.created_at || ""); return isNaN(t) ? null : Math.max(0, Math.ceil((t + (po(o) ? 720 : 10) * 60000 - Date.now()) / 60000)); };
   const mulaiHitung = o => !(/^qris/i.test(String(o.payment || "")) && !lunas(o)) && o.pay_status !== "tunggu_wa";
   function grupRingkas(rows) {
     const m = new Map();
@@ -56,7 +56,7 @@ window.KSPW = (function () {
       if (g.ok.length) baris.push(`✅ <b>${esc(nm(g.ok))}</b> sudah menerima dan ${g.tunggu.length ? "pesanannya langsung diproses" : "sedang disiapkan / dikirim ke Anda"}.`);
       if (g.tunggu.length) {
         const w = g.tunggu.filter(mulaiHitung).map(sisaMenit).filter(x => x !== null), sisa = w.length ? Math.min(...w) : null;
-        baris.push(`⏳ <b>${esc(nm(g.tunggu))}</b> masih menunggu${sisa !== null ? ` (maks. ${sisa} menit lagi, lalu otomatis batal)` : ""}. Nota ini bisa Anda batalkan sendiri; toko lain tidak ikut batal.`);
+        baris.push(`⏳ <b>${esc(nm(g.tunggu))}</b> masih menunggu${sisa !== null ? ` (maks. ${sisa} menit lagi, lalu otomatis diterima)` : ""}. Nota ini bisa Anda batalkan sendiri; toko lain tidak ikut batal.`);
       }
       if (g.batal.length) baris.push(`✖️ <b>${esc(nm(g.batal))}</b> dibatalkan.${g.kembali > 0 ? ` Harga produk + ongkir toko tersebut, <b>${rp(g.kembali)}</b>, dikembalikan sebagai <b>saldo voucher belanja</b> (cek Akun → Saldo voucher).` : ""}`);
       return `<div class="kspw-grup" data-kspw-grup="${esc(g.grup)}"><b>🧾 Pesanan dari ${g.ok.length + g.tunggu.length + g.batal.length} toko</b>${baris.map(x => `<p>${x}</p>`).join("")}</div>`;

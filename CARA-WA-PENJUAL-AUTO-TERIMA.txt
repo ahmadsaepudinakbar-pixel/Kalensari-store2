@@ -1,0 +1,52 @@
+NOTIF WHATSAPP KE PENJUAL + TERIMA OTOMATIS 10 MENIT • KALENSARI STORE
+=====================================================================
+
+CARA KERJA
+- Pesanan masuk ke toko -> penjual langsung dapat pesan WhatsApp (lewat Fonnte) berisi
+  kode pesanan, daftar produk, subtotal, cara bayar, catatan, dan link aplikasi Mitra Toko.
+    * COD  : dikirim saat pesanan dibuat (COD pertama: setelah admin konfirmasi)
+    * QRIS : dikirim setelah LUNAS (penjual tidak dapat WA sebelum pembeli membayar)
+- Penjual tidak menanggapi 10 menit -> pesanan OTOMATIS DITERIMA (status Diproses) dan
+  langsung ditawarkan ke kurir seperti biasa. Di aplikasi penjual muncul tulisan
+  "⚡ Diterima otomatis oleh sistem...".
+- Bila toko ternyata tutup saat kurir datang, kurir memakai tombol "Toko tutup" seperti biasa
+  (uang pembeli kembali sebagai saldo voucher).
+- TIDAK berubah:
+    * Praorder: toko tetap punya 12 jam, tidak diterima otomatis, lewat 12 jam batal.
+    * QRIS belum dibayar: batal setelah 15 menit.
+    * Paket luar kota (J&T) dan ojek/kirim paket: tidak diterima otomatis.
+
+LANGKAH PASANG
+1) Supabase > Database > Extensions: pastikan "pg_net" dan "pg_cron" AKTIF.
+2) Supabase > SQL Editor > New query: tempel isi supabase-wa-penjual-auto-terima.sql > Run.
+3) Isi token Fonnte (token yang sama dengan untuk OTP WA). Jalankan di SQL Editor:
+
+     insert into ks_privat.rahasia (key, value) values ('fonnte_token', 'TOKEN_FONNTE_ANDA')
+     on conflict (key) do update set value = excluded.value;
+
+   Token ada di dashboard Fonnte > Device > Token. Token disimpan di skema privat,
+   tidak bisa dibaca dari halaman web.
+4) Unggah ke GitHub (timpa yang lama):
+     penjual-app.html, dashboard-kurir.html, penjual.html, pesanan-warga.js,
+     admin.html, faq.html, syarat-ketentuan.html
+
+UJI COBA
+- Buat pesanan COD ke toko Anda sendiri -> WA masuk ke nomor penjual.
+- Diamkan 10 menit -> status jadi Diproses, kurir mendapat tawaran.
+- Riwayat pengiriman WA (bila WA tidak masuk):
+     select id, status_code, content::text from net._http_response order by id desc limit 10;
+
+PENGATURAN (tanpa ubah kode), jalankan di SQL Editor:
+- Ganti batas menit (misal 7 menit):
+     update store_settings set value = jsonb_set(value, '{menit}', '7') where key = 'auto_terima';
+- Matikan terima otomatis (pesanan tetap menunggu, tidak batal / tidak diterima):
+     update store_settings set value = jsonb_set(value, '{aktif}', 'false') where key = 'auto_terima';
+- Matikan WA penjual saja:
+     update store_settings set value = jsonb_set(value, '{wa}', 'false') where key = 'auto_terima';
+  Catatan: hitung mundur di aplikasi penjual & kurir tetap tertulis 10 menit; kabari bila
+  menit diubah supaya aplikasinya ikut disesuaikan.
+
+CATATAN
+- Nomor WA penjual diambil dari data akun penjual (penjual_members). Penjual yang
+  nomornya salah tidak akan menerima WA, tapi pesanan tetap diterima otomatis.
+- Tiap nota hanya dikirimi WA 1 kali. Kuota pesan Fonnte terpakai 1 pesan per nota.

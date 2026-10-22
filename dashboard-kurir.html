@@ -1394,8 +1394,10 @@ document.addEventListener("click", e => {
   });
 });
 // ===== TOKO BELUM MENJAWAB / TOKO TUTUP =====
-// Batas toko menjawab = 15 menit sejak dibayar (QRIS) / dibuat (COD). Nota yang lewat batas dibatalkan otomatis.
-const BATAS_TOKO_MS = 15 * 60000;
+// Batas toko menjawab = 10 menit sejak dibayar (QRIS) / dibuat (COD).
+// Lewat batas: nota OTOMATIS DITERIMA lalu ditawarkan ke kurir (supabase-wa-penjual-auto-terima.sql).
+// Praorder: 12 jam, lewat batas dibatalkan.
+const BATAS_TOKO_MS = 10 * 60000;
 let STATES = {}, SHIPFEE = null, sudahBatal = new Set();
 const belumBayar = o => (/^qris/i.test(String(o.payment || "")) && o.pay_status !== "lunas") || o.pay_status === "tunggu_wa";
 const sKey = n => String(n || "").trim().toLowerCase();
@@ -1407,7 +1409,9 @@ function grupMenunggu(pend, now){
     const mulai = Date.parse(o.paid_at || o.created_at || "") || now;
     if(now - mulai < (o.praorder === true ? 12 * 3600000 : BATAS_TOKO_MS)){ g.add(o.grup); return; }
     if(sudahBatal.has(o.order_code)) return; sudahBatal.add(o.order_code);
-    batalkanNota(o.order_code, ["menunggu","baru"], {batal_alasan:"Toko tidak menjawab dalam 15 menit"}).catch(() => {});
+    if(o.praorder === true){ batalkanNota(o.order_code, ["menunggu","baru"], {batal_alasan:"Toko tidak menjawab praorder dalam 12 jam"}).catch(() => {}); return; }
+    // pesanan biasa: diterima otomatis oleh server, lalu muncul sebagai pesanan "diproses" untuk kurir
+    cf("rpc/pesanan_auto_terima", {method:"POST", body:JSON.stringify({p_kode:[o.order_code]})}).catch(() => {});
   });
   return g;
 }

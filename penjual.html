@@ -132,7 +132,7 @@ async function utTerima(id,sub,btn){const o=ordRows.find(x=>String(x.id)===Strin
 function ordCard(o){
   const k=myKey(),mine=o.items.filter(p=>sKey(p.seller)===k),only=mine.length===o.items.length;
   const sub=mine.reduce((t,p)=>t+(p.sale||p.price||0)*p.qty,0),ship=only?Number(o.shipping||0):0,total=only?Number(o.total||sub):sub;
-  let st=o.status==="baru"||!o.status?"menunggu":o.status;const t0=o.paid_at||o.created_at;if(st==="menunggu"&&new Date(t0).getTime()+15*60000<=Date.now())st="dibatalkan";
+  let st=o.status==="baru"||!o.status?"menunggu":o.status;const t0=o.paid_at||o.created_at;if(st==="menunggu"&&new Date(t0).getTime()+(o.praorder?720:10)*60000<=Date.now())st=o.praorder?"dibatalkan":"diproses";
   const id=escH(String(o.id));
   return `<div class="ord${ordNew.has(o.order_code)?" new":""}"><h3>${escH(o.order_code||"Pesanan")}<span class="st ${escH(st)}">${escH(STL[st]||st)}</span></h3>
   <p>${new Date(o.created_at||Date.now()).toLocaleString("id-ID")}</p>
