@@ -243,10 +243,17 @@ html[data-tema="gelap"] .ic-moon{display:none}
 /* layar datar: layar penuh tanpa memutar (tetap tegak) */
 .player.penuh-css{position:fixed;z-index:1000;border-radius:0;aspect-ratio:auto;background:#000;top:0;left:0;width:100vw;height:100vh;width:100dvw;height:100dvh}
 .player.miring-css .keluar-miring,.player.penuh-css .keluar-miring{display:block}
+/* logo Kalensari TV (transparan 50%) di pojok kiri atas saat layar miring & layar datar */
+.tv-logo{display:none;position:absolute;z-index:2;top:max(14px,env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));align-items:center;gap:8px;opacity:.5;pointer-events:none;user-select:none;color:#fff;font-weight:800;font-size:clamp(15px,2.4vmax,24px);line-height:1;letter-spacing:.02em;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+.tv-logo svg{width:clamp(30px,4vmax,46px);height:auto;flex:0 0 auto;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
+.tv-logo i{font-style:normal;color:#ff7a1a}
+.player:fullscreen .tv-logo,.player:-webkit-full-screen .tv-logo,.player.miring-css .tv-logo,.player.penuh-css .tv-logo{display:flex}
 @media (orientation:portrait){
   .player.miring-css{width:100vh;height:100vw;width:100dvh;height:100dvw;transform-origin:top left;transform:rotate(90deg) translateY(-100%)}
 }
 body.kunci-miring{overflow:hidden}
+/* mode miring/datar cadangan: video harus di atas header & kaki halaman */
+body.kunci-miring main{z-index:1001}
 
 /* ---------- mode bioskop: sekeliling digelapkan ---------- */
 .player.bioskop{position:relative;z-index:30;box-shadow:0 0 0 100vmax rgba(0,0,0,.9)}
@@ -587,6 +594,7 @@ function renderStage(autoplay){
   if(autoplay){
     jedaMusik();
     box.innerHTML='<div class="player"><iframe src="'+esc(embedUrl(v.yt_id))+'" title="'+esc(v.judul)+'" allow="accelerometer; autoplay; clipboard-write; encrypted-media; fullscreen; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>'
+      +'<div class="tv-logo" aria-hidden="true"><svg viewBox="0 0 56 56"><path d="M20 12 28 4 36 12" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="28" cy="4" r="2.4" fill="#ff7a1a"/><path d="M17 48 14 54M39 48 42 54" stroke="#ff7a1a" stroke-width="3" stroke-linecap="round" fill="none"/><rect x="4" y="12" width="48" height="36" rx="10" fill="#13203f" stroke="#ff7a1a" stroke-width="1.5"/><path transform="translate(0,-2)" d="M23 24.5v15a1.6 1.6 0 0 0 2.4 1.4l12.6-7.5a1.6 1.6 0 0 0 0-2.8l-12.6-7.5a1.6 1.6 0 0 0-2.4 1.4z" fill="#ff7a1a"/></svg><span>Kalensari <i>TV</i></span></div>'
       +'<button class="keluar-miring" type="button" data-miring-tutup aria-label="Tutup mode miring">&times;</button>'
       +'<div class="mini-kontrol"><button type="button" data-mini-balik aria-label="Kembalikan ke ukuran biasa">&#x2922;</button><button type="button" data-mini-stop aria-label="Hentikan video">&times;</button></div></div>'
       +'<div class="aksi-tonton"><button class="btn-miring" type="button" data-miring data-cara="miring">'+IC_MIRING+'<span>Layar miring</span></button>'
