@@ -114,6 +114,7 @@
     '<a class="ksm-i" role="menuitem" href="kuis.html"><span class="ksm-e">🎓</span>Kuis Pintar<span class="ksm-t">GRATIS</span></a>' +
     '<a class="ksm-i" role="menuitem" href="pasar.html"><span class="ksm-e">🔁</span>Lapak Barter<span class="ksm-t baru">BARU</span></a>' +
     '<a class="ksm-i" role="menuitem" href="tv.html"><span class="ksm-e">📺</span>Kalensari TV</a>' +
+    '<a class="ksm-i" role="menuitem" href="game.html"><span class="ksm-e">🎮</span>Kalensari Game<span class="ksm-t baru">BARU</span></a>' +
     '<button class="ksm-i" type="button" role="menuitem" data-fav-menu="1" data-ksp="fav"><span class="ksm-e">❤️</span>Favorit saya<span class="ksm-n"></span></button>' +
     '<button class="ksm-i" type="button" role="menuitem" data-ksp="kabar"><span class="ksm-e">📰</span>Kabar Desa<span class="ksm-t baru" hidden></span></button>' +
     '<hr class="ksm-hr">' +
