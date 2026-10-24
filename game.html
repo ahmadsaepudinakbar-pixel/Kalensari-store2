@@ -296,12 +296,12 @@ function ghost(f){
    else{const o=st[0][1];pw(o,-o.l*.9*Math.sin((ph-6)/12*Math.PI),st[1])}}
   else stand(Math.sin(fr/14)*1.5)}
  else{
-  const fy=f.fl>0;g.translate(k*16,fy?-7+Math.sin(fr/12)*4:0);   // kaki menapak lantai (hanya melayang saat Terbang)
+  const fy=f.fl>0;g.translate(k*16,-7+Math.sin(fr/12)*4);   // Kunti melayang sedikit di atas lantai
   // arah hadap 8 arah (sama seperti Pocong); saat terbang mengikuti arah terbang
   const kvx=fy?f.dvx:f.fvx,kvy=fy?f.dvy:f.fvy,koc=((Math.round(Math.atan2(kvy,kvx)/(Math.PI/4))%8)+8)%8,di=[2,1,0,7,6,5,4,3][koc];
   const kd=(o,dy,rot)=>{const im=o.i;if(!(im.complete&&im.naturalWidth))return;const h=o.h*KSZ,w=h*im.naturalWidth/im.naturalHeight;
    g.save();g.scale(f.f,1);if(rot)g.rotate(rot);drawLit(im,-w*o.ax,-h+dy*KSZ,w,h,f);g.restore()};
-  const kw=(sp,rot)=>{const o=KN.w[di][(fr/sp|0)%4];kd(o,fy?-(o.b-12):0,rot)};          // frame melayang
+  const kw=(sp,rot)=>{const o=KN.w[di][(fr/sp|0)%4];kd(o,-(o.b-12),rot)};          // frame melayang
   if(f.hp<=0)kd(KN.d[di],0);
   else if(fy)kw(4,.12*Math.sign(kvx||1));                                        // Terbang
   else if(f.stun>0)kd(KN.d[0],0,Math.sin(fr/6)*.1);                             // pusing
