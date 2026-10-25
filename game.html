@@ -275,7 +275,7 @@ function step(f,o,k){
    if(f.id!='kuntilanak'&&near&&Math.abs(o.x-f.x)<f.c.rng+70&&Math.abs(o.y-f.y)<80){f.y+=Math.max(-16,Math.min(16,o.y-f.y));const gap=Math.abs(o.x-f.x)-f.c.rng*.8;if(gap>0)f.x+=Math.sign(o.x-f.x)*Math.min(gap,22)}}
   if(f.id=='kuntilanak'&&((f.atk>0&&!f.sc)||f.k1>0||f.k3>0))f.vx=f.vy=0;   // Kunti berhenti berjalan selama basic attack
   if(k.s&&f.cds[k.s-1]<=0&&f.atk<=0&&!(f.k1>0||f.k3>0||f.bk>0)){const sk=f.c.sk[k.s-1];f.cds[k.s-1]=sk.cd;cast(f,o,sk.k,k.aim)}
-  if(k.fl&&f.cdF<=0){f.cdF=900;flick(f)}
+  if(k.fl&&f.cdF<=0){f.cdF=900;if(k.fa){const n=Math.hypot(k.fa[0],k.fa[1])||1;f.fvx=k.fa[0]/n;f.fvy=k.fa[1]/n}flick(f)}
   if(k.rg&&f.cdR<=0&&f.hp<1000){f.cdR=1800;f.rg=180}}
  f.f=near?(o.x>f.x?1:-1):(Math.abs(f.vx)>.3?Math.sign(f.vx):f.f);if(f.lp>0)f.f=f.ltx>=f.lsx?1:-1;if(f.rl>0&&Math.abs(f.dvx)>.05)f.f=Math.sign(f.dvx);
  if(f.id=='kuntilanak'&&f.atk===12&&!f.sc)kOrb(f,o);
@@ -332,7 +332,7 @@ function ai(f,o){const k={l:0,r:0,u:0,d:0,a:0,b:0,s:0};
 function cdUI(b,c,max){const cd=b.querySelector('.cd'),em=b.querySelector('em'),v=c>0?Math.ceil(c/60):0;if(b._v===v)return;b._v=v;
  cd.style.background=c>0?'conic-gradient(#000c '+(c/max)+'turn,#0006 0)':'';em.textContent=c>0?v:''}
 function upd(){
- step(P,E,inp);inp.a=inp.s=inp.fl=inp.rg=0;inp.aim=null;step(E,P,NET.role=='host'?netIn():ai(E,P));
+ step(P,E,inp);inp.a=inp.s=inp.fl=inp.rg=0;inp.aim=inp.fa=null;step(E,P,NET.role=='host'?netIn():ai(E,P));
  pj.forEach(p=>{p.l--;const t=p.o===P?E:P;
   if(p.bo){const T=p.tg&&!p.tg.dead?p.tg:null;
    if(T){const dx=T.x-p.x,dy=T.y-55*dS(T.y)-p.y,dd=Math.hypot(dx,dy)||1;p.vx=dx/dd*11;p.vy=dy/dd*11;if(dd<14){hurt(T,p.d,p.o);KB.push({x:p.x,y:p.y,t:16,m:16,s:dS(T.y)});p.l=0;return}}
@@ -567,7 +567,12 @@ function worldFX(){
  // perlindungan saat bangkit
  [P,E].forEach(f=>{if(f.spw>0&&!f.dead){g.strokeStyle='rgba(120,200,255,'+(.4+.3*Math.sin(fr/4))+')';g.lineWidth=3;g.beginPath();g.ellipse(f.x,f.y-70,55,95,0,0,7);g.stroke()}});
  // indikator arah saat tombol skill digeser
- if(AIM.i&&!P.dead){const t=P.c.sk[AIM.i-1].k,red=AIM.can,col=red?'255,70,60':'120,190,255';
+ if(AIM.i==='F'&&!P.dead){const col=AIM.can?'255,70,60':'255,230,140';
+  let ax=AIM.on?AIM.dx:(P.fvx||P.f),ay=AIM.on?AIM.dy:(P.fvy||0);const n=Math.hypot(ax,ay)||1;ax/=n;ay/=n;const tx=P.x+ax*160,ty=P.y+ay*85;
+  g.save();g.strokeStyle='rgba('+col+',.5)';g.lineWidth=2;g.beginPath();g.ellipse(P.x,P.y,160,85,0,0,7);g.stroke();
+  g.setLineDash([9,8]);g.strokeStyle='rgba('+col+',.85)';g.lineWidth=3;g.beginPath();g.moveTo(P.x,P.y);g.lineTo(tx,ty);g.stroke();g.setLineDash([]);
+  g.translate(tx,ty);g.scale(1,.52);g.fillStyle='rgba('+col+',.25)';g.beginPath();g.arc(0,0,34+3*Math.sin(fr/5),0,7);g.fill();g.strokeStyle='rgba('+col+',.95)';g.lineWidth=3;g.stroke();g.restore()}
+ else if(AIM.i&&!P.dead){const t=P.c.sk[AIM.i-1].k,red=AIM.can,col=red?'255,70,60':'120,190,255';
   const sv=seen(P,E);let ax=AIM.on?AIM.dx:sv?E.x-P.x:(P.fvx||P.f),ay=AIM.on?AIM.dy:sv?E.y-P.y:(P.fvy||0)*.52;const n=Math.hypot(ax,ay)||1;ax/=n;ay/=n;
   if(t=='leap'){let tx,ty;
    if(AIM.on){const m=Math.max(.2,AIM.m);tx=P.x+ax*290*m;ty=P.y+ay*150*m}
@@ -624,7 +629,7 @@ function netVal(v){if(v===P)return'@P';if(v===E)return'@E';if(typeof v=='number'
 function netFighter(f,i,full){const o={},L=NET.last[i];for(const k in f){if(k=='c'||k=='_q'||k=='bot')continue;let v=f[k];if(v&&typeof v=='object'&&!Array.isArray(v))continue;v=netVal(v);const sv=typeof v=='object'?JSON.stringify(v):v;if(full||L[k]!==sv){o[k]=v;L[k]=sv}}return o}
 function netSnap(full){const s={t:'st',f:[netFighter(P,0,full),netFighter(E,1,full)],pj:netVal(pj),sx:netVal(SFX),kb:netVal(KB),dn:netVal(DN),fx:netVal(FXS),T,fb:first,pl:playing,h:fr};if(NET.ev.length){s.ev=NET.ev;NET.ev=[]}return s}
 function netSend(o){const w=NET.ws;if(w&&w.readyState===1)w.send(JSON.stringify(o))}
-function netIn(){const k=Object.assign({},NET.rin);NET.rin.a=NET.rin.s=NET.rin.fl=NET.rin.rg=0;NET.rin.aim=null;return k}
+function netIn(){const k=Object.assign({},NET.rin);NET.rin.a=NET.rin.s=NET.rin.fl=NET.rin.rg=0;NET.rin.aim=NET.rin.fa=null;return k}
 // tamu: terapkan keadaan dari host (pemain host = lawan kita, jadi P dan E ditukar)
 function netApply(s){const map=v=>v==='@P'?E:v==='@E'?P:Array.isArray(v)?v.map(map):(v&&typeof v=='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,map(x)])):v);
  const sp=NET.sp;[[s.f[0],E,0],[s.f[1],P,1]].forEach(([d,f,i])=>{for(const k in d){const v=map(d[k]);if(k=='x')sp[i][0]=v;else if(k=='y')sp[i][1]=v;else f[k]=v}});
@@ -656,7 +661,7 @@ function netGuestTick(){const B=NET.buf;if(B.length){const now=performance.now()
  const st=(inp.l?1:0)|(inp.r?2:0)|(inp.u?4:0)|(inp.d?8:0),ev=inp.a||inp.s||inp.fl||inp.rg;
  if(inp.a&&P.ac<=0&&P.atk<=0&&!P.dead&&!(P.stun>0)){P.atk=P.id=='pocong'?18:P.id=='kuntilanak'?24:14;P.sc=0;P.ac=P.id=='kuntilanak'?34:26;NET.pa=fr}
  if(P.atk>0&&fr-NET.pa<40)P.atk--;if(P.ac>0)P.ac--;
- if(st!==NET.lastSt||ev||fr-NET.lastSend>30){netSend({t:'in',m:st,a:inp.a?1:0,s:inp.s||0,aim:inp.aim,fl:inp.fl?1:0,rg:inp.rg?1:0});NET.lastSt=st;NET.lastSend=fr}
+ if(st!==NET.lastSt||ev||fr-NET.lastSend>30){netSend({t:'in',m:st,a:inp.a?1:0,s:inp.s||0,aim:inp.aim,fl:inp.fl?1:0,fa:inp.fl?inp.fa:null,rg:inp.rg?1:0});NET.lastSt=st;NET.lastSend=fr}
  inp.a=inp.s=inp.fl=inp.rg=0;inp.aim=null}
 function netMsg(m){
  if(m.t=='hi'){if(NET.want){netSend(NET.want);NET.want=null}}
@@ -670,7 +675,7 @@ function netMsg(m){
  else if(m.t=='st'&&m.lb)return;
  else if(m.t=='pong'){const r=Math.round(performance.now()-m.c);NET.ping=NET.ping?Math.round(NET.ping*.6+r*.4):r;NET.pmax=Math.max(r,(NET.pmax||0)*.9)}
  else if(m.t=='st'&&NET.role=='guest'){if(NET.live)netApply(m)}
- else if(m.t=='in'&&NET.role=='host'){if(m.lb)return;const r=NET.rin;r.l=m.m&1;r.r=m.m>>1&1;r.u=m.m>>2&1;r.d=m.m>>3&1;if(m.a)r.a=1;if(m.s){r.s=m.s;r.aim=m.aim}if(m.fl)r.fl=1;if(m.rg)r.rg=1}
+ else if(m.t=='in'&&NET.role=='host'){if(m.lb)return;const r=NET.rin;r.l=m.m&1;r.r=m.m>>1&1;r.u=m.m>>2&1;r.d=m.m>>3&1;if(m.a)r.a=1;if(m.s){r.s=m.s;r.aim=m.aim}if(m.fl){r.fl=1;r.fa=m.fa};if(m.rg)r.rg=1}
  else if(m.t=='peerLeft'){if(NET.on&&playing){playing=0;netStop();$('#dead').classList.remove('on');$('#wt').textContent='MENANG';$('#wn').textContent='Lawan keluar dari pertandingan';sc('win')}else{const inLob=!NET.live;netStop();LB=null;vsT&&clearTimeout(vsT);if(inLob){sc('onl');oStat('⚠️ Lawan keluar dari room')}}}}
 // ---------- PERSIAPAN DUEL (pilih hero & arena) + LAYAR VS ----------
 let LB=null,vsT=0;const LB_TIME=30;
@@ -750,16 +755,16 @@ J.onpointerup=J.onpointercancel=()=>{jp=null;K.style.transform='';inp.l=inp.r=in
 $('#bA').onpointerdown=()=>inp.a=1;
 // tombol skill: ketuk = otomatis ke musuh, tahan & geser = arahkan, lepas di "Batal" = batal (seperti MLBB)
 const AIM={i:0,dx:0,dy:0,on:0,can:0,m:1};
-function bindSkill(i){const b=$('#bS'+i),C=$('#cancel'),Wh=$('#wheel'),Kn=Wh.firstChild;let id=null,cx=0,cy=0,R=1;
+function bindSkill(i,btn,fire){const b=btn||$('#bS'+i),C=$('#cancel'),Wh=$('#wheel'),Kn=Wh.firstChild;let id=null,cx=0,cy=0,R=1;
  const off=()=>{id=null;b.classList.remove('on');Wh.classList.remove('on');C.classList.remove('on','hot');AIM.i=0;AIM.on=0;AIM.can=0};
  b.onpointerdown=e=>{if(!playing||!P||P.dead)return;id=e.pointerId;try{b.setPointerCapture(id)}catch(x){}const r=b.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;R=r.width;AIM.i=i;AIM.on=0;AIM.can=0;AIM.m=1;b.classList.add('on');   // roda skill (skill wheel) muncul di sekitar tombol
   const WR=R*1.15;Object.assign(Wh.style,{left:cx-WR+'px',top:cy-WR+'px',width:WR*2+'px',height:WR*2+'px'});Kn.style.left=Kn.style.top='50%';Wh.classList.add('on')};
  b.onpointermove=e=>{if(e.pointerId!==id)return;const dx=e.clientX-cx,dy=e.clientY-cy,WR=R*1.15,dd=Math.hypot(dx,dy),cl=Math.min(1,WR/(dd||1));
   Kn.style.left=(50+dx*cl/WR*50)+'%';Kn.style.top=(50+dy*cl/WR*50)+'%';AIM.m=Math.min(1,dd/WR);if(Math.hypot(dx,dy)>R*.3){AIM.on=1;AIM.dx=dx;AIM.dy=dy;C.classList.add('on')}
   const c=C.getBoundingClientRect();AIM.can=AIM.on&&e.clientX>c.left-12&&e.clientX<c.right+12&&e.clientY>c.top-12&&e.clientY<c.bottom+12;C.classList.toggle('hot',AIM.can)};
- b.onpointerup=e=>{if(e.pointerId!==id)return;if(!AIM.can){inp.s=i;inp.aim=AIM.on?[AIM.dx,AIM.dy,AIM.m]:null}off()};
+ b.onpointerup=e=>{if(e.pointerId!==id)return;if(!AIM.can){const a=AIM.on?[AIM.dx,AIM.dy,AIM.m]:null;if(fire)fire(a);else{inp.s=i;inp.aim=a}}off()};
  b.onpointercancel=e=>{if(e.pointerId===id)off()}}
-[1,2,3].forEach(bindSkill);$('#bF').onpointerdown=()=>inp.fl=1;$('#bR').onpointerdown=()=>inp.rg=1;
+[1,2,3].forEach(i=>bindSkill(i));bindSkill('F',$('#bF'),a=>{inp.fl=1;inp.fa=a});   // Kilat: ketuk = ke arah hadap, tahan & geser = arahkan$('#bR').onpointerdown=()=>inp.rg=1;
 
 const km={ArrowLeft:'l',a:'l',ArrowRight:'r',d:'r',ArrowUp:'u',w:'u',' ':'u',j:'a',s:'d',ArrowDown:'d'};
 onkeydown=e=>{if(e.key.length==1&&'uio'.includes(e.key)){inp.s='uio'.indexOf(e.key)+1;return}if(e.key=='k'){inp.fl=1;return}if(e.key=='l'){inp.rg=1;return}const k=km[e.key];if(k){inp[k]=1;e.preventDefault()}};
