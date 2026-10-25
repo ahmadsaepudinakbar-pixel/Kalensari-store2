@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#5b2e14">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<title>Admin Kartu Game • Kalensari Store</title>
+<style>
+:root{--br:#7a3e20;--br2:#5b2e14;--bg:#f7f3ef;--card:#fff;--ln:#eadfd6;--tx:#2a1d16;--mu:#7d6a5e;--gr:#1f8a4c;--rd:#c8452f;--gd:#f2b231;--bl:#2f74c8}
+*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--tx)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+header{background:var(--br2);color:#fff;position:sticky;top:0;z-index:10}
+header .in{max-width:1100px;margin:auto;padding:0 16px;height:56px;display:flex;align-items:center;gap:12px}
+header b{font-size:17px}header a{color:#fff;opacity:.85;text-decoration:none;font-size:13px}
+header .sp{margin-left:auto;display:flex;gap:14px;align-items:center}
+.tabs{max-width:1100px;margin:14px auto 0;padding:0 16px;display:flex;gap:6px;overflow:auto}
+.tabs button{border:1px solid var(--ln);background:#fff;border-radius:999px;padding:9px 14px;font-weight:700;white-space:nowrap;color:var(--mu)}
+.tabs button.on{background:var(--br);border-color:var(--br);color:#fff}
+main{max-width:1100px;margin:auto;padding:14px 16px 60px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:16px;margin-bottom:14px}
+.card h3{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.stat{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:12px}.stat small{color:var(--mu);font-size:12px}.stat b{display:block;font-size:24px;color:var(--br)}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;display:inline-flex;gap:6px;align-items:center;justify-content:center}
+.btn.br{background:var(--br);color:#fff}.btn.gr{background:var(--gr);color:#fff}.btn.ol{background:#fff;border:1px solid var(--ln);color:var(--tx)}.btn.rd{background:#fdecea;color:var(--rd)}.btn.gd{background:var(--gd);color:#4a2510}
+.btn:disabled{opacity:.5;cursor:not-allowed}.btn.sm{padding:6px 10px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input.f,select.f,textarea.f{padding:9px 11px;border:1px solid var(--ln);border-radius:10px;background:#fff;min-width:0}
+textarea.f{width:100%;min-height:70px}
+label.l{display:block;font-size:13px;font-weight:700;margin:10px 0 4px;color:var(--mu)}
+label.l input,label.l select,label.l textarea{width:100%}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--ln);vertical-align:top}
+th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
+.tw{overflow:auto}
+.pill{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:800;background:#f4ebe3;color:var(--br)}
+.pill.ok{background:#e6f6ec;color:var(--gr)}.pill.off{background:#eee;color:#888}.pill.no{background:#fdecea;color:var(--rd)}
+.note{font-size:13px;color:var(--mu);line-height:1.5}
+.drop{border:2px dashed var(--ln);border-radius:16px;padding:26px;text-align:center;background:#fffaf5}
+.drop.over{border-color:var(--br);background:#fff1e3}
+.prog{height:10px;background:#f1e6dc;border-radius:99px;overflow:hidden}.prog i{display:block;height:100%;background:var(--gr);width:0;transition:.2s}
+.vk{border:1px solid var(--ln);border-radius:14px;padding:12px;margin-bottom:10px;background:#fff}.vk.ok{border-color:#bfe3c9;background:#f6fcf8}.vk.bahaya{border-color:#f3c3bd;background:#fffafa}
+.vk-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.vk-h b{font-size:15px}.vk-h .pill{margin-left:auto}
+.vk-s{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;margin:10px 0}.vk-s div{background:#faf6f2;border-radius:10px;padding:6px 8px;font-size:12px;color:var(--mu)}.vk-s div b{display:block;font-size:15px;color:var(--tx)}
+.vk-f{margin:0 0 8px;padding:0;list-style:none;font-size:13px}.vk-f li{padding:3px 0}.vk-f .w{color:#b42318;font-weight:700}.vk-f .i{color:var(--mu)}
+.vk-a{display:flex;gap:8px;flex-wrap:wrap}
+.err{background:#fdecea;color:#8e2a1c;border-radius:10px;padding:10px;font-size:13px;margin-top:8px;max-height:220px;overflow:auto}
+.okb{background:#e6f6ec;color:#1b6a3a;border-radius:10px;padding:10px;font-size:14px;margin-top:8px}
+.soal{max-width:420px;white-space:pre-wrap;word-break:break-word}
+.login{max-width:380px;margin:60px auto}
+.modal{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.show{display:flex}.modal .box{background:#fff;border-radius:16px;padding:18px;width:min(640px,100%);max-height:90vh;overflow:auto}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#2a1d16;color:#fff;padding:11px 16px;border-radius:999px;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:92vw;text-align:center}
+.toast.show{opacity:1}
+[hidden]{display:none!important}
+.spin{display:inline-block;width:16px;height:16px;border:3px solid #0002;border-top-color:var(--br);border-radius:50%;animation:sp 1s linear infinite;vertical-align:middle}@keyframes sp{to{transform:rotate(360deg)}}
+.qrp{display:flex;gap:14px;flex-wrap:wrap;align-items:center}.qrp svg{width:120px;height:120px;border:1px solid var(--ln);border-radius:8px}
+.mono{font-family:"Courier New",monospace;font-weight:700;letter-spacing:.5px}
+.chk{display:flex;gap:6px;align-items:center;font-size:14px}
+</style>
+</head>
+<body>
+<header><div class="in"><b>🃏 Admin Kartu Game</b><div class="sp"><a href="game.html" target="_blank">Buka game ↗</a><a href="admin.html">← Admin toko</a></div></div></header>
+
+<section id="loginView" class="login card" hidden>
+  <h3>🔐 Masuk admin</h3>
+  <p class="note">Sudah masuk di <b>Panel Admin</b> pada browser ini? Halaman ini otomatis ikut masuk, tanpa kode 2FA lagi.</p>
+  <a class="btn br" style="display:block;text-align:center;text-decoration:none;margin:0 0 12px" href="admin.html">🔐 Masuk lewat Panel Admin</a>
+  <p class="note" style="margin-top:0">Atau masuk dengan akun admin tanpa 2FA:</p>
+  <label class="l">Email<input class="f" id="lgEmail" type="email" autocomplete="username"></label>
+  <label class="l">Kata sandi<input class="f" id="lgPass" type="password" autocomplete="current-password"></label>
+  <button class="btn br" style="width:100%;margin-top:12px" id="lgBtn" onclick="login()">Masuk</button>
+  <div id="lgErr" class="err" hidden></div>
+</section>
+
+<div id="appView" hidden>
+  <nav class="tabs" id="tabs">
+    <button data-t="ringkas" class="on">📊 Ringkasan</button>
+    <button data-t="buat">➕ Buat Kartu</button>
+    <button data-t="daftar">📋 Daftar Kartu</button>
+  </nav>
+  <main>
+    <section data-p="ringkas">
+      <div class="grid" id="rkStat"></div>
+      <div class="card" style="margin-top:14px"><h3>📦 Kelompok cetak (batch)</h3>
+        <p class="note" style="margin-top:0">Unduh <b>lembar stiker A4</b> (QR + kode, siap cetak lalu tempel) atau <b>ZIP gambar QR + daftar CSV</b> untuk percetakan yang mencetak QR langsung di desain kartu Anda.</p>
+        <div class="tw"><table><thead><tr><th>Batch</th><th>Isi</th><th>Kelas</th><th>Jumlah</th><th>Diklaim</th><th>Unduh</th></tr></thead><tbody id="rkBatch"><tr><td colspan="6"><span class="spin"></span></td></tr></tbody></table></div>
+      </div>
+    </section>
+
+    <section data-p="buat" hidden>
+      <div class="card"><h3>➕ Buat kode kartu baru</h3>
+        <div class="grid">
+          <label class="l">Hero / skin<select class="f" id="bItem"></select></label>
+          <label class="l" id="bLainW" hidden>Item lain<input class="f" id="bLain" placeholder="hero: genderuwo · skin: genderuwo:hitam"></label>
+          <label class="l">Kelas kartu<select class="f" id="bKelas"><option value="biasa">Biasa</option><option value="langka" selected>Langka</option><option value="legenda">Legenda</option></select></label>
+          <label class="l">Jumlah kartu<input class="f" id="bJml" type="number" min="1" max="2000" value="100"></label>
+          <label class="l">Nama batch<input class="f" id="bBatch" placeholder="mis. Kunti Cetakan Okt 2026"></label>
+          <label class="l">Awalan kode<input class="f mono" id="bAwal" maxlength="4" placeholder="KUN"></label>
+        </div>
+        <div class="qrp" style="margin-top:12px"><div id="bPrev"></div><div class="note">Contoh isi QR:<br><span class="mono" id="bPrevT"></span><br>Scan QR dengan kamera HP biasa akan langsung membuka game & mengklaim kartu.<br>Kode acak 6 karakter, tanpa huruf/angka yang mirip (0 O 1 I L).</div></div>
+        <button class="btn br" style="margin-top:14px" id="bGo">Buat kode</button>
+        <div id="bHasil"></div>
+      </div>
+      <div class="card"><h3>ℹ️ Catatan</h3><ul class="note" style="margin:0;padding-left:18px">
+        <li>Ocong adalah hero <b>gratis</b> — tidak perlu kartu hero, tapi bisa punya kartu <b>skin</b>.</li>
+        <li>Hero/skin baru (mis. Genderuwo) harus sudah ada di game sebelum kartunya bisa dipakai. Pilih “Item lain…” dan isi id-nya.</li>
+        <li>1 kode = 1 akun pembeli. Kode yang sudah diklaim tidak bisa diklaim akun lain.</li>
+        <li>Pemain hanya boleh salah memasukkan kode 10x per jam (mencegah tebak-tebakan).</li></ul></div>
+    </section>
+
+    <section data-p="daftar" hidden>
+      <div class="card">
+        <div class="row">
+          <select class="f" id="dBatch"><option value="">Semua batch</option></select>
+          <select class="f" id="dStatus"><option value="semua">Semua status</option><option value="diklaim">Sudah diklaim</option><option value="belum">Belum diklaim</option><option value="nonaktif">Nonaktif</option></select>
+          <input class="f" id="dCari" placeholder="Cari kode / no. WA" style="flex:1;min-width:160px">
+          <button class="btn br" id="dGo">Tampilkan</button>
+        </div>
+        <div class="note" id="dInfo" style="margin-top:8px"></div>
+        <div class="tw"><table><thead><tr><th>Kode</th><th>Isi</th><th>Batch</th><th>Status</th><th>Pemilik</th><th></th></tr></thead><tbody id="dBody"></tbody></table></div>
+        <div class="row" style="margin-top:10px"><button class="btn ol sm" id="dMore" hidden>Muat lagi</button></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal" id="mUnduh"><div class="box">
+  <h3 style="margin-top:0">⬇️ Unduh kartu: <span id="muNama"></span></h3>
+  <p class="note" id="muInfo"></p>
+  <label class="l">Isi yang diunduh<select class="f" id="muStatus"><option value="belum">Hanya yang belum diklaim</option><option value="semua">Semua kode di batch ini</option></select></label>
+  <div class="card" style="margin-top:12px"><h3>🖨️ Lembar stiker A4</h3>
+    <div class="row"><label class="chk">Ukuran QR <select class="f" id="muCm"><option>2</option><option selected>2.5</option><option>3</option><option>3.5</option></select> cm</label>
+    <label class="chk"><input type="checkbox" id="muNamaItem" checked> tulis nama hero/skin</label></div>
+    <p class="note">Terbuka di tab baru → tekan <b>Cetak</b> → pilih printer atau “Simpan sebagai PDF”. Ukuran kertas A4, skala 100%.</p>
+    <button class="btn br" id="muStiker">Buka lembar stiker</button></div>
+  <div class="card"><h3>🗜️ ZIP gambar QR + CSV</h3>
+    <div class="row"><label class="chk">Ukuran gambar <select class="f" id="muPx"><option value="600">600 px</option><option value="1000" selected>1000 px</option><option value="1500">1500 px</option></select></label>
+    <label class="chk"><input type="checkbox" id="muTeks" checked> teks kode di bawah QR</label></div>
+    <p class="note">Berisi 1 file PNG per kode (nama file = kode) dan <b>daftar-kode.csv</b> (kode, link, jenis, isi, kelas, batch) untuk dicetak berbeda-beda oleh percetakan.</p>
+    <button class="btn br" id="muZip">Unduh ZIP</button> <span id="muProg" class="note"></span></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn ol" onclick="$('#mUnduh').classList.remove('show')">Tutup</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script><script src="admin-2fa.js?v=1"></script><script src="admin-sesi.js?v=1"></script><script src="qr-mini.js?v=1"></script>
+<script>
+const CFG = window.CLOUD_CONFIG || {}, BASE = String(CFG.supabaseUrl || "").replace(/\/$/, ""), AUTH_KEY = "kalensari_admin_auth";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const waShow = w => String(w || "").replace(/^62/, "0");
+let toastT; function toast(m, ms = 3000) { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove("show"), ms); }
+const LINK = "https://kalensari.web.id/game?kartu=";   // isi QR: link game + kode kartu
+
+/* ---------- auth (sama dengan admin.html; sesi dibagi di tab yang sama) ---------- */
+let auth = (() => { try { return JSON.parse(sessionStorage.getItem(AUTH_KEY) || "null"); } catch (e) { return null; } })() || (window.KSSesi ? KSSesi.ambil() : null);
+const saveAuth = a => { auth = a; try { a ? sessionStorage.setItem(AUTH_KEY, JSON.stringify(a)) : sessionStorage.removeItem(AUTH_KEY); } catch (e) {} if (a && window.KSSesi) KSSesi.perbarui(a); };
+async function authReq(grant, body) {
+  const r = await fetch(`${BASE}/auth/v1/token?grant_type=${grant}`, { method: "POST", headers: { apikey: CFG.supabaseAnonKey, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error_description || d.msg || d.message || ("HTTP " + r.status));
+  return { access_token: d.access_token, refresh_token: d.refresh_token, expires_at: d.expires_at || Math.floor(Date.now() / 1000) + (d.expires_in || 3600), email: (d.user && d.user.email) || "" };
+}
+async function fresh() {
+  if (!auth || !auth.refresh_token) throw new Error("login");
+  if (window.KSSesi) { const b = KSSesi.terbaru(auth); if (b !== auth) saveAuth(b); }   // token terbaru dari Panel Admin
+  if (auth.expires_at * 1000 - Date.now() > 60000) return;
+  try { saveAuth({ ...await authReq("refresh_token", { refresh_token: auth.refresh_token }), email: auth.email }); } catch (e) { saveAuth(null); throw new Error("login"); }
+}
+async function api(path, opt = {}) {
+  try { await fresh(); } catch (e) { tampilLogin(); throw new Error("Sesi admin berakhir, silakan masuk lagi."); }
+  const r = await fetch(`${BASE}/rest/v1/${path}`, { ...opt, headers: { apikey: CFG.supabaseAnonKey, Authorization: "Bearer " + auth.access_token, "Content-Type": "application/json", Prefer: "return=representation", ...(opt.headers || {}) } });
+  const t = await r.text(); let j = null; try { j = t ? JSON.parse(t) : null; } catch (e) {}
+  if (!r.ok) throw new Error((j && (j.message || j.hint)) || t || ("HTTP " + r.status));
+  return { data: j, range: r.headers.get("content-range") };
+}
+const rpc = async (fn, body = {}) => (await api("rpc/" + fn, { method: "POST", body: JSON.stringify(body) })).data;
+async function login() {
+  const b = $("#lgBtn"); b.disabled = true; $("#lgErr").hidden = true;
+  try {
+    let a = await authReq("password", { email: $("#lgEmail").value.trim(), password: $("#lgPass").value });
+    saveAuth(a);
+    if (await rpc("is_admin") !== true) { const m = window.KSSesi ? await KSSesi.alasanTolak(a.access_token) : "Akun ini bukan admin."; saveAuth(null); throw new Error(m); }
+    mulaiApp();
+  } catch (e) { $("#lgErr").textContent = e.message; $("#lgErr").hidden = false; }
+  b.disabled = false;
+}
+function tampilLogin() { $("#loginView").hidden = false; $("#appView").hidden = true; }
+
+/* ---------- katalog (samakan dengan game.html: GRATIS & SKINS) ---------- */
+const ITEMS = [
+  ["hero", "kuntilanak", "Hero · Kunti", "KUN"],
+  ["hero", "pocong", "Hero · Ocong (gratis di game)", "OCG"],
+  ["skin", "kuntilanak:merah", "Skin · Kunti Merah", "KUM"],
+  ["skin", "pocong:emas", "Skin · Ocong Emas", "OCE"],
+];
+const namaItem = (j, it) => { const f = ITEMS.find(x => x[0] === j && x[1] === it); return f ? f[2].replace(/^(Hero|Skin) · /, "").replace(/ \(.*\)$/, "") : it; };
+const KELAS = { biasa: "Biasa", langka: "Langka", legenda: "Legenda" };
+const tgl = d => d ? new Date(d).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-";
+
+/* ---------- navigasi ---------- */
+let tab = "ringkas";
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => bukaTab(b.dataset.t));
+function bukaTab(t) {
+  tab = t;
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
+  document.querySelectorAll("[data-p]").forEach(s => s.hidden = s.dataset.p !== t);
+  if (t === "ringkas") muatRingkas(); if (t === "daftar") muatDaftar(true);
+}
+const pesanErr = e => /game_admin|PGRST202|function/.test(e.message) ? "Fitur kartu belum dipasang. Jalankan supabase-kartu-game.sql di Supabase dulu." : e.message;
+
+/* ---------- ringkasan ---------- */
+let RK = null;
+async function muatRingkas() {
+  try { RK = await rpc("game_admin_ringkas"); } catch (e) { $("#rkBatch").innerHTML = `<tr><td colspan="6"><div class="err">${esc(pesanErr(e))}</div></td></tr>`; return; }
+  $("#rkStat").innerHTML = `<div class="stat"><small>Total kode</small><b>${RK.total}</b></div><div class="stat"><small>Sudah diklaim</small><b>${RK.diklaim}</b></div><div class="stat"><small>Belum diklaim</small><b>${RK.total - RK.diklaim}</b></div><div class="stat"><small>Pemain pemilik kartu</small><b>${RK.pemain}</b></div>`;
+  $("#rkBatch").innerHTML = RK.batch.length ? RK.batch.map((b, i) => `<tr><td><b>${esc(b.batch || "(tanpa nama)")}</b><br><small class="note">${tgl(b.dibuat)}</small></td><td>${b.jenis === "skin" ? "Skin" : "Hero"} · ${esc(namaItem(b.jenis, b.item))}</td><td>${KELAS[b.kelas] || b.kelas}</td><td>${b.jumlah}${b.nonaktif ? ` <span class="pill off">${b.nonaktif} nonaktif</span>` : ""}</td><td>${b.diklaim} <small class="note">(${Math.round(b.diklaim / b.jumlah * 100)}%)</small></td><td><button class="btn br sm" onclick="bukaUnduh(${i})">⬇️ Unduh</button> <button class="btn ol sm" onclick="lihatBatch(${i})">Lihat</button></td></tr>`).join("") : `<tr><td colspan="6" class="note">Belum ada kartu. Buat di tab “Buat Kartu”.</td></tr>`;
+  const sel = $("#dBatch"), v = sel.value; sel.innerHTML = `<option value="">Semua batch</option>` + RK.batch.map(b => `<option>${esc(b.batch)}</option>`).join(""); sel.value = v;
+}
+function lihatBatch(i) { $("#dBatch").value = RK.batch[i].batch; $("#dStatus").value = "semua"; $("#dCari").value = ""; bukaTab("daftar"); }
+
+/* ---------- buat kartu ---------- */
+$("#bItem").innerHTML = ITEMS.map((x, i) => `<option value="${i}">${esc(x[2])}</option>`).join("") + `<option value="lain">✏️ Item lain…</option>`;
+function itemDipilih() { const v = $("#bItem").value; if (v === "lain") { const t = $("#bLain").value.trim().toLowerCase(); return [t.includes(":") ? "skin" : "hero", t, ""]; } const x = ITEMS[+v]; return [x[0], x[1], x[3]]; }
+function pratinjau() { const [j, it, aw] = itemDipilih(); $("#bLainW").hidden = $("#bItem").value !== "lain"; if (!$("#bAwal").dataset.edit) $("#bAwal").value = aw || (it.split(":")[0] || "").slice(0, 3).toUpperCase();
+  const contoh = LINK + "KLS-" + ($("#bAwal").value || "XXX").toUpperCase() + "-7F3K9Q"; $("#bPrevT").textContent = contoh; $("#bPrev").innerHTML = QRMini.svg(contoh, 120); }
+$("#bItem").onchange = () => { delete $("#bAwal").dataset.edit; pratinjau(); }; $("#bLain").oninput = pratinjau; $("#bAwal").oninput = () => { $("#bAwal").dataset.edit = 1; pratinjau(); };
+$("#bGo").onclick = async () => {
+  const [j, it] = itemDipilih(), n = +$("#bJml").value, batch = $("#bBatch").value.trim() || (namaItem(j, it) + " " + new Date().toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }));
+  if (!it) return toast("Isi id hero / skin");
+  if (!(n >= 1 && n <= 2000)) return toast("Jumlah 1–2000 kartu");
+  if (!confirm(`Buat ${n} kode ${j === "skin" ? "skin" : "hero"} ${namaItem(j, it)} (${KELAS[$("#bKelas").value]}) dalam batch “${batch}”?`)) return;
+  const b = $("#bGo"); b.disabled = true; b.innerHTML = `<span class="spin"></span> Membuat…`;
+  try {
+    const r = await rpc("game_admin_buat", { p_jenis: j, p_item: it, p_kelas: $("#bKelas").value, p_jumlah: n, p_batch: batch, p_awalan: $("#bAwal").value.trim() || null });
+    $("#bHasil").innerHTML = `<div class="okb">✅ ${r.jumlah} kode dibuat di batch <b>${esc(r.batch)}</b>. <button class="btn br sm" id="bUnduh">⬇️ Unduh untuk dicetak</button></div>`;
+    await muatRingkas(); const i = RK.batch.findIndex(x => x.batch === r.batch); $("#bUnduh").onclick = () => bukaUnduh(i);
+  } catch (e) { $("#bHasil").innerHTML = `<div class="err">${esc(pesanErr(e))}</div>`; }
+  b.disabled = false; b.textContent = "Buat kode";
+};
+
+/* ---------- daftar kartu ---------- */
+let DF = [], dLewati = 0;
+async function muatDaftar(baru) {
+  if (baru) { DF = []; dLewati = 0; $("#dBody").innerHTML = `<tr><td colspan="6"><span class="spin"></span></td></tr>`; }
+  try {
+    const r = await rpc("game_admin_daftar", { p_batch: $("#dBatch").value || null, p_status: $("#dStatus").value, p_cari: $("#dCari").value.trim() || null, p_batas: 200, p_lewati: dLewati });
+    DF = DF.concat(r.data); dLewati = DF.length;
+    $("#dInfo").textContent = `${r.total} kartu cocok · tampil ${DF.length}`; $("#dMore").hidden = DF.length >= r.total;
+    $("#dBody").innerHTML = DF.length ? DF.map(k => `<tr><td class="mono">${esc(k.kode)}</td><td>${k.jenis === "skin" ? "Skin" : "Hero"} · ${esc(namaItem(k.jenis, k.item))}<br><small class="note">${KELAS[k.kelas] || k.kelas}</small></td><td>${esc(k.batch)}</td>
+      <td>${!k.aktif ? `<span class="pill no">Nonaktif</span>` : k.pemilik_wa ? `<span class="pill ok">Diklaim</span><br><small class="note">${tgl(k.diklaim)}</small>` : `<span class="pill off">Belum</span>`}</td>
+      <td>${k.pemilik_wa ? `${esc(k.pemilik_nama)}<br><small class="note">${waShow(k.pemilik_wa)}</small>` : "-"}</td>
+      <td style="white-space:nowrap">${k.aktif ? `<button class="btn rd sm" onclick="aksi('nonaktif','${k.kode}')">Nonaktifkan</button>` : `<button class="btn gr sm" onclick="aksi('aktif','${k.kode}')">Aktifkan</button>`}
+        ${k.pemilik_wa ? `<button class="btn ol sm" onclick="aksi('lepas','${k.kode}')">Lepas pemilik</button>` : `<button class="btn ol sm" onclick="aksi('hapus','${k.kode}')">Hapus</button>`}</td></tr>`).join("") : `<tr><td colspan="6" class="note">Tidak ada kartu.</td></tr>`;
+  } catch (e) { $("#dBody").innerHTML = `<tr><td colspan="6"><div class="err">${esc(pesanErr(e))}</div></td></tr>`; }
+}
+$("#dGo").onclick = () => muatDaftar(true); $("#dMore").onclick = () => muatDaftar(false); $("#dCari").onkeydown = e => { if (e.key === "Enter") muatDaftar(true); };
+async function aksi(a, kode) {
+  const tanya = { nonaktif: `Nonaktifkan ${kode}? Hero/skin dari kartu ini tidak bisa dipakai lagi oleh pemiliknya.`, aktif: `Aktifkan lagi ${kode}?`, lepas: `Lepas pemilik ${kode}? Kartu bisa diklaim lagi oleh siapa saja yang memegang kodenya.`, hapus: `Hapus kode ${kode}? (hanya untuk kode yang belum diklaim)` }[a];
+  if (!confirm(tanya)) return;
+  try {
+    if (a === "nonaktif" || a === "aktif") await rpc("game_admin_aktif", { p_kode: [kode], p_aktif: a === "aktif" });
+    if (a === "lepas") await rpc("game_admin_lepas", { p_kode: kode });
+    if (a === "hapus") await rpc("game_admin_hapus", { p_kode: [kode] });
+    toast("Tersimpan"); muatDaftar(true);
+  } catch (e) { toast(pesanErr(e), 5000); }
+}
+
+/* ---------- unduh: lembar stiker A4 & ZIP ---------- */
+let UB = null;
+function bukaUnduh(i) { UB = RK.batch[i]; $("#muNama").textContent = UB.batch || "(tanpa nama)"; $("#muInfo").textContent = `${UB.jumlah} kode · ${UB.diklaim} sudah diklaim · ${UB.jenis === "skin" ? "Skin" : "Hero"} ${namaItem(UB.jenis, UB.item)} (${KELAS[UB.kelas]})`; $("#muProg").textContent = ""; $("#mUnduh").classList.add("show"); }
+async function ambilKode() { let all = [], lewati = 0, tot = 1;
+  while (all.length < tot) { const r = await rpc("game_admin_daftar", { p_batch: UB.batch, p_status: $("#muStatus").value, p_cari: null, p_batas: 1000, p_lewati: lewati }); tot = r.total; all = all.concat(r.data); lewati = all.length; if (!r.data.length) break; }
+  return all.sort((a, b) => a.kode < b.kode ? -1 : 1); }
+$("#muStiker").onclick = async () => {
+  const w = window.open("", "_blank"); if (!w) return toast("Izinkan pop-up untuk membuka lembar stiker");
+  w.document.write("<p style='font-family:Arial'>Menyiapkan lembar stiker…</p>");
+  try {
+    const ks = await ambilKode(); if (!ks.length) { w.close(); return toast("Tidak ada kode untuk diunduh"); }
+    const cm = +$("#muCm").value, nm = $("#muNamaItem").checked, lebar = cm + 0.6;
+    const sel = ks.map(k => `<div class="s">${QRMini.svg(LINK + k.kode)}<b>${k.kode}</b>${nm ? `<i>${esc(namaItem(k.jenis, k.item))}</i>` : ""}</div>`).join("");
+    w.document.open(); w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Stiker kartu – ${esc(UB.batch)}</title><style>
+@page{size:A4;margin:8mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif}
+.bar{padding:10px;background:#5b2e14;color:#fff;display:flex;gap:10px;align-items:center}.bar button{font-size:16px;padding:8px 18px;border:0;border-radius:8px;background:#f2b231;font-weight:700}
+.wrap{display:flex;flex-wrap:wrap;padding:0}
+.s{width:${lebar}cm;padding:.25cm .3cm;border:1px dashed #bbb;text-align:center;page-break-inside:avoid;break-inside:avoid}
+.s svg{width:${cm}cm;height:${cm}cm;display:block;margin:0 auto}.s b{display:block;font:700 ${Math.max(7, cm * 3.4).toFixed(1)}pt "Courier New",monospace;letter-spacing:.3px;margin-top:.08cm;white-space:nowrap}.s i{display:block;font:${Math.max(6, cm * 2.8).toFixed(1)}pt Arial;color:#444;font-style:normal}
+@media print{.bar{display:none}}</style></head><body><div class="bar"><b>${ks.length} stiker · ${esc(UB.batch)}</b><button onclick="print()">🖨️ Cetak / Simpan PDF</button><span>A4 · skala 100% · potong mengikuti garis putus-putus</span></div><div class="wrap">${sel}</div></body></html>`);
+    w.document.close();
+  } catch (e) { w.close(); toast(pesanErr(e), 5000); }
+};
+// ZIP sederhana (tanpa kompresi) – tanpa library luar
+const CRC = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = u => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = CRC[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function zipBuat(files) { const enc = new TextEncoder(), parts = [], dir = []; let off = 0;
+  const le = (n, b) => { const a = new Uint8Array(b); for (let i = 0; i < b; i++) a[i] = (n >>> (8 * i)) & 255; return a; };
+  for (const f of files) { const nm = enc.encode(f.name), d = f.data, c = crc32(d);
+    const h = [le(0x04034b50, 4), le(20, 2), le(0x0800, 2), le(0, 2), le(0, 2), le(0, 2), le(c, 4), le(d.length, 4), le(d.length, 4), le(nm.length, 2), le(0, 2), nm];
+    const cd = [le(0x02014b50, 4), le(20, 2), le(20, 2), le(0x0800, 2), le(0, 2), le(0, 2), le(0, 2), le(c, 4), le(d.length, 4), le(d.length, 4), le(nm.length, 2), le(0, 2), le(0, 2), le(0, 2), le(0, 2), le(0, 4), le(off, 4), nm];
+    h.forEach(x => { parts.push(x); off += x.length; }); parts.push(d); off += d.length; dir.push(...cd); }
+  const dlen = dir.reduce((s, x) => s + x.length, 0);
+  return new Blob([...parts, ...dir, le(0x06054b50, 4), le(0, 2), le(0, 2), le(files.length, 2), le(files.length, 2), le(dlen, 4), le(off, 4), le(0, 2)], { type: "application/zip" }); }
+const kePng = c => new Promise(r => c.toBlob(b => b.arrayBuffer().then(a => r(new Uint8Array(a))), "image/png"));
+$("#muZip").onclick = async () => {
+  const b = $("#muZip"); b.disabled = true;
+  try {
+    $("#muProg").textContent = "Mengambil daftar kode…"; const ks = await ambilKode(); if (!ks.length) { toast("Tidak ada kode untuk diunduh"); return; }
+    const px = +$("#muPx").value, teks = $("#muTeks").checked, files = [];
+    for (let i = 0; i < ks.length; i++) {
+      const k = ks[i], q = QRMini.canvas(LINK + k.kode, px); let c = q;
+      if (teks) { c = document.createElement("canvas"); const th = Math.round(q.width * .16); c.width = q.width; c.height = q.height + th; const x = c.getContext("2d");
+        x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(q, 0, 0); x.fillStyle = "#000"; x.textAlign = "center"; x.textBaseline = "middle";
+        x.font = `bold ${Math.round(th * .62)}px "Courier New", monospace`; x.fillText(k.kode, c.width / 2, q.height + th * .38); }
+      files.push({ name: k.kode + ".png", data: await kePng(c) });
+      if (i % 20 === 0) { $("#muProg").textContent = `Membuat gambar ${i + 1}/${ks.length}…`; await new Promise(r => setTimeout(r)); }
+    }
+    const csv = "\ufeffkode,link,jenis,isi,kelas,batch\n" + ks.map(k => [k.kode, LINK + k.kode, k.jenis, namaItem(k.jenis, k.item), KELAS[k.kelas] || k.kelas, k.batch].map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    files.push({ name: "daftar-kode.csv", data: new TextEncoder().encode(csv) });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(zipBuat(files)); a.download = `kartu-${(UB.batch || "batch").replace(/[^A-Za-z0-9-]+/g, "-")}.zip`; a.click();
+    $("#muProg").textContent = `✅ ${ks.length} gambar QR + daftar-kode.csv diunduh`;
+  } catch (e) { toast(pesanErr(e), 5000); $("#muProg").textContent = ""; }
+  finally { b.disabled = false; }
+};
+
+/* ---------- mulai ---------- */
+function mulaiApp() { $("#loginView").hidden = true; $("#appView").hidden = false; pratinjau(); bukaTab(tab); }
+(async () => {
+  if (!auth) return tampilLogin();
+  try { await fresh(); if (await rpc("is_admin") !== true) throw 0; mulaiApp(); } catch (e) { saveAuth(null); tampilLogin(); }
+})();
+if (window.KSSesi) KSSesi.saatMasuk(async s => { if ($("#loginView").hidden) return; saveAuth(s); try { if (await rpc("is_admin") === true) mulaiApp(); } catch (e) {} });
+</script>
+</body>
+</html>
