@@ -48,7 +48,7 @@
   function svg(text, px, ecl) { const M = matrix(text, ecl), n = M.length, q = 4, t = n + q * 2; let d = '';
     M.forEach((r, y) => r.forEach((c, x) => { if (c) d += `M${x + q},${y + q}h1v1h-1z`; }));
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${t} ${t}" width="${px || t * 4}" height="${px || t * 4}" shape-rendering="crispEdges"><rect width="${t}" height="${t}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`; }
-  function canvas(text, px, ecl) { const M = matrix(text, ecl), n = M.length, q = 4, t = n + q * 2, s = Math.max(1, Math.floor((px || t * 8) / t)), c = document.createElement('canvas'); c.width = c.height = t * s; const x = c.getContext('2d');
+  function canvas(text, px, ecl, tepi) { const M = matrix(text, ecl), n = M.length, q = tepi == null ? 4 : tepi, t = n + q * 2, s = Math.max(1, Math.floor((px || t * 8) / t)), c = document.createElement('canvas'); c.width = c.height = t * s; const x = c.getContext('2d');
     x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.fillStyle = '#000'; M.forEach((r, yy) => r.forEach((d, xx) => { if (d) x.fillRect((xx + q) * s, (yy + q) * s, s, s); })); return c; }
   g.QRMini = { matrix, svg, canvas };
 })(window);

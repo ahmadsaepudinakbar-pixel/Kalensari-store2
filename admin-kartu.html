@@ -59,6 +59,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 .qrp{display:flex;gap:14px;flex-wrap:wrap;align-items:center}.qrp svg{width:120px;height:120px;border:1px solid var(--ln);border-radius:8px}
 .mono{font-family:"Courier New",monospace;font-weight:700;letter-spacing:.5px}
 .chk{display:flex;gap:6px;align-items:center;font-size:14px}
+@media(max-width:640px){.tgrid{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -80,6 +81,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
     <button data-t="ringkas" class="on">📊 Ringkasan</button>
     <button data-t="buat">➕ Buat Kartu</button>
     <button data-t="daftar">📋 Daftar Kartu</button>
+    <button data-t="template">🎴 Template Kartu</button>
   </nav>
   <main>
     <section data-p="ringkas">
@@ -124,6 +126,50 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
         <div class="row" style="margin-top:10px"><button class="btn ol sm" id="dMore" hidden>Muat lagi</button></div>
       </div>
     </section>
+    <section data-p="template" hidden>
+      <div class="card"><h3>🎴 Template kartu: gambar Anda + QR asli + kode manual</h3>
+        <p class="note" style="margin-top:0">1) Unggah gambar desain kartu (depan) · 2) pilih batch kode · 3) geser kotak QR ke tempatnya (klik/ketuk pratinjau, atau isi angka) · 4) unduh kartu jadi atau lembar cetak.
+        Ukuran gambar paling pas: perbandingan kartu remi <b>63 : 88</b>, mis. <b>1488 × 2079 px</b> (600 dpi) atau 744 × 1039 px (300 dpi). Gambar dengan perbandingan lain dipotong sedikit atas–bawah saat dicetak.</p>
+        <div style="display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;align-items:start" class="tgrid">
+          <div><canvas id="tPrev" style="width:100%;border-radius:12px;border:1px solid var(--ln);cursor:crosshair;background:#eee"></canvas>
+            <div class="note" id="tInfo">Belum ada gambar.</div></div>
+          <div>
+            <label class="l">Gambar kartu (PNG/JPG)<input class="f" type="file" id="tFile" accept="image/*"></label>
+            <div class="grid">
+              <label class="l">Batch kode<select class="f" id="tBatch"></select></label>
+              <label class="l">Kode yang dipakai<select class="f" id="tStatus"><option value="belum">Belum diklaim</option><option value="semua">Semua</option></select></label>
+              <label class="l">Isi QR<select class="f" id="tIsi"><option value="kode">Kode saja (QR lebih sederhana, mudah discan walau kecil)</option><option value="link">Link game (bisa dibuka kamera HP biasa)</option></select></label>
+            </div>
+            <div class="grid">
+              <label class="l">Kotak QR · kiri (%)<input class="f tN" id="tX" type="number" step="0.1"></label>
+              <label class="l">atas (%)<input class="f tN" id="tY" type="number" step="0.1"></label>
+              <label class="l">lebar (%)<input class="f tN" id="tW" type="number" step="0.1"></label>
+              <label class="l">tinggi (%)<input class="f tN" id="tH" type="number" step="0.1"></label>
+              <label class="l">Huruf kode (% kotak)<input class="f tN" id="tT" type="number" step="0.5"></label>
+              <label class="l">Sudut membulat (%)<input class="f tN" id="tR" type="number" step="0.5"></label>
+            </div>
+            <label class="chk" style="margin-top:8px"><input type="checkbox" id="tPutih" checked> latar putih di kotak QR (menutup QR contoh di desain)</label>
+            <label class="chk" style="margin-top:12px"><input type="checkbox" id="tPisah" checked> <b>kode manual di kotak sendiri</b> (menutup tulisan di bawah QR, mis. “KALENSARI GAME”)</label>
+            <div class="grid" id="tKotak">
+              <label class="l">Kotak kode · kiri (%)<input class="f tN" id="kX" type="number" step="0.1"></label>
+              <label class="l">atas (%)<input class="f tN" id="kY" type="number" step="0.1"></label>
+              <label class="l">lebar (%)<input class="f tN" id="kW" type="number" step="0.1"></label>
+              <label class="l">tinggi (%)<input class="f tN" id="kH" type="number" step="0.1"></label>
+              <label class="l">Warna latar<input class="f tN" id="kBg" type="color"></label>
+              <label class="l">Warna tulisan<input class="f tN" id="kFg" type="color"></label>
+            </div>
+            <p class="note" style="margin:4px 0 0">Klik pratinjau = pindah kotak QR. Tahan <b>Shift</b> sambil klik = pindah kotak kode.</p>
+            <div class="row" style="margin-top:14px">
+              <button class="btn br" id="tZip">🗜️ ZIP gambar kartu (PNG)</button>
+              <button class="btn gd" data-lembar="a4">🖨️ Lembar A4 (9)</button>
+              <button class="btn gd" data-lembar="a3">🖨️ A3+ (20, berjarak)</button>
+              <button class="btn gd" data-lembar="a3r">🖨️ A3+ (25, rapat)</button>
+            </div>
+            <div class="note" id="tProg" style="margin-top:8px"></div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -145,7 +191,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 </div></div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js"></script><script src="admin-2fa.js?v=1"></script><script src="admin-sesi.js?v=1"></script><script src="qr-mini.js?v=1"></script>
+<script src="config.js"></script><script src="admin-2fa.js?v=1"></script><script src="admin-sesi.js?v=1"></script><script src="qr-mini.js?v=2"></script>
 <script>
 const CFG = window.CLOUD_CONFIG || {}, BASE = String(CFG.supabaseUrl || "").replace(/\/$/, ""), AUTH_KEY = "kalensari_admin_auth";
 const $ = s => document.querySelector(s);
@@ -207,7 +253,7 @@ function bukaTab(t) {
   tab = t;
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("[data-p]").forEach(s => s.hidden = s.dataset.p !== t);
-  if (t === "ringkas") muatRingkas(); if (t === "daftar") muatDaftar(true);
+  if (t === "ringkas") muatRingkas(); if (t === "daftar") muatDaftar(true); if (t === "template") tMulai();
 }
 const pesanErr = e => /game_admin|PGRST202|function/.test(e.message) ? "Fitur kartu belum dipasang. Jalankan supabase-kartu-game.sql di Supabase dulu." : e.message;
 
@@ -323,6 +369,86 @@ $("#muZip").onclick = async () => {
   } catch (e) { toast(pesanErr(e), 5000); $("#muProg").textContent = ""; }
   finally { b.disabled = false; }
 };
+
+/* ---------- TEMPLATE KARTU: gambar desain + QR asli + kode manual ---------- */
+const TDEF = { x: 72.75, y: 69.55, w: 21.8, h: 14.0, t: 10, r: 4, putih: true, isi: "kode", pisah: true, kx: 75.6, ky: 83.85, kw: 15.2, kh: 2.15, kbg: "#053ea9", kfg: "#ffffff" };   // pas untuk contoh kartu Ocong 1024×1536
+let TS = (() => { try { const o = JSON.parse(localStorage.getItem("ks_kartu_tpl") || "{}"); if (o.pisah === undefined) return { ...TDEF }; return Object.assign({}, TDEF, o); } catch (e) { return { ...TDEF }; } })();
+let TIMG = null;
+const tSimpan = () => { try { localStorage.setItem("ks_kartu_tpl", JSON.stringify(TS)); } catch (e) {} };
+const isiQR = k => TS.isi === "link" ? LINK + k : k;
+function tIsiForm() { $("#tX").value = TS.x; $("#tY").value = TS.y; $("#tW").value = TS.w; $("#tH").value = TS.h; $("#tT").value = TS.t; $("#tR").value = TS.r; $("#tPutih").checked = TS.putih; $("#tIsi").value = TS.isi; $("#tPisah").checked = TS.pisah; $("#kX").value = TS.kx; $("#kY").value = TS.ky; $("#kW").value = TS.kw; $("#kH").value = TS.kh; $("#kBg").value = TS.kbg; $("#kFg").value = TS.kfg; $("#tKotak").hidden = !TS.pisah; $("#tT").closest("label").hidden = TS.pisah; }
+async function tMulai() {
+  tIsiForm();
+  if (!RK) try { RK = await rpc("game_admin_ringkas"); } catch (e) {}
+  const sel = $("#tBatch"), v = sel.value; sel.innerHTML = (RK && RK.batch.length ? RK.batch : []).map(b => `<option>${esc(b.batch)}</option>`).join("") || `<option value="">(belum ada batch)</option>`; if (v) sel.value = v;
+  if (!TIMG) { try { const d = localStorage.getItem("ks_kartu_tpl_img"); if (d) await tMuatGambar(d); } catch (e) {} }
+  tGambarPrev();
+}
+function tMuatGambar(src) { return new Promise((ok, no) => { const im = new Image(); im.onload = () => { TIMG = im; ok(); }; im.onerror = no; im.src = src; }); }
+// gambar satu kartu ke canvas ukuran asli gambar
+function tKartu(kode, skala = 1) {
+  const W = Math.round(TIMG.naturalWidth * skala), H = Math.round(TIMG.naturalHeight * skala), c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d"); x.drawImage(TIMG, 0, 0, W, H);
+  const bx = W * TS.x / 100, by = H * TS.y / 100, bw = W * TS.w / 100, bh = H * TS.h / 100, r = Math.min(bw, bh) * TS.r / 100;
+  if (TS.putih) { x.fillStyle = "#fff"; x.beginPath(); x.roundRect(bx, by, bw, bh, r); x.fill(); }
+  const th = TS.pisah ? 0 : bh * TS.t / 100, pad = TS.pisah ? Math.min(bw, bh) * 0.015 : Math.min(bw, bh) * 0.03, qs = Math.max(10, Math.min(bw - pad * 2, bh - th - pad * 2));
+  const q = QRMini.canvas(isiQR(kode), Math.round(qs * 3), null, TS.pisah ? 1 : 4);   // penuh: tepi putih QR cukup 1 modul (kotak putih desain jadi tepinya)   // dibuat besar lalu diperkecil tajam
+  x.imageSmoothingEnabled = false; x.drawImage(q, bx + (bw - qs) / 2, TS.pisah ? by + (bh - qs) / 2 : by + pad, qs, qs); x.imageSmoothingEnabled = true;
+  x.textAlign = "center"; x.textBaseline = "middle";
+  const tulis = (cx, cy, maxW, tinggi, warna) => { x.fillStyle = warna; let fs = tinggi * 0.8; x.font = `bold ${fs}px "Courier New", monospace`;
+    while (x.measureText(kode).width > maxW && fs > 4) { fs -= 0.5; x.font = `bold ${fs}px "Courier New", monospace`; } x.fillText(kode, cx, cy + fs * 0.04); };
+  if (TS.pisah) {   // kode di kotak sendiri (mis. menggantikan tulisan "KALENSARI GAME")
+    const kx = W * TS.kx / 100, ky = H * TS.ky / 100, kw = W * TS.kw / 100, kh = H * TS.kh / 100;
+    x.fillStyle = TS.kbg; x.beginPath(); x.roundRect(kx, ky, kw, kh, kh * .2); x.fill();
+    tulis(kx + kw / 2, ky + kh / 2, kw * 0.94, kh, TS.kfg);
+  } else tulis(bx + bw / 2, by + pad + qs + th / 2 - pad * 0.2, bw * 0.94, th, "#111");
+  return c;
+}
+function tGambarPrev() {
+  const cv = $("#tPrev");
+  if (!TIMG) { cv.width = 630; cv.height = 880; const x = cv.getContext("2d"); x.fillStyle = "#eee"; x.fillRect(0, 0, 630, 880); x.fillStyle = "#999"; x.font = "28px Arial"; x.textAlign = "center"; x.fillText("Unggah gambar kartu", 315, 440); $("#tInfo").textContent = "Belum ada gambar."; return; }
+  const k = tContoh(), c = tKartu(k, Math.min(1, 700 / TIMG.naturalWidth)); cv.width = c.width; cv.height = c.height; cv.getContext("2d").drawImage(c, 0, 0);
+  const W = TIMG.naturalWidth, H = TIMG.naturalHeight, rasio = W / H, dpi = Math.round(W / (6.3 / 2.54));
+  const bw = W * TS.w / 100, bh = H * TS.h / 100, pad = Math.min(bw, bh) * (TS.pisah ? 0.015 : 0.03), qs = Math.min(bw - pad * 2, bh - (TS.pisah ? 0 : bh * TS.t / 100) - pad * 2), qcm = qs / W * 6.3;
+  $("#tInfo").innerHTML = `${W} × ${H} px · ±${dpi} dpi bila dicetak lebar 6,3 cm${Math.abs(rasio - 63 / 88) > 0.02 ? " · <b>perbandingan bukan 63:88</b>, saat dicetak dipotong sedikit atas–bawah" : ""}<br>Contoh kode: <span class="mono">${esc(k)}</span> · QR tercetak ±${qcm.toFixed(1)} cm${qcm < 1.6 && TS.isi === "link" ? " · <b>terlalu kecil untuk isi link, pilih “Kode saja”</b>" : ""}`;
+}
+let TKODE = [];
+const tContoh = () => TKODE[0] ? TKODE[0].kode : "KLS-OCG-7F3K9Q";
+$("#tFile").onchange = async e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader();
+  rd.onload = async () => { await tMuatGambar(rd.result); try { localStorage.setItem("ks_kartu_tpl_img", rd.result); } catch (x) {} tGambarPrev(); }; rd.readAsDataURL(f); };
+document.querySelectorAll(".tN").forEach(i => i.oninput = () => { TS.x = +$("#tX").value; TS.y = +$("#tY").value; TS.w = +$("#tW").value; TS.h = +$("#tH").value; TS.t = +$("#tT").value; TS.r = +$("#tR").value; TS.kx = +$("#kX").value; TS.ky = +$("#kY").value; TS.kw = +$("#kW").value; TS.kh = +$("#kH").value; TS.kbg = $("#kBg").value; TS.kfg = $("#kFg").value; tSimpan(); tGambarPrev(); });
+$("#tPisah").onchange = () => { TS.pisah = $("#tPisah").checked; tSimpan(); tIsiForm(); tGambarPrev(); };
+$("#tPutih").onchange = () => { TS.putih = $("#tPutih").checked; tSimpan(); tGambarPrev(); };
+$("#tIsi").onchange = () => { TS.isi = $("#tIsi").value; tSimpan(); tGambarPrev(); };
+$("#tPrev").onclick = e => { if (!TIMG) return; const r = e.target.getBoundingClientRect();
+  if (e.shiftKey && TS.pisah) { TS.kx = +(((e.clientX - r.left) / r.width * 100) - TS.kw / 2).toFixed(2); TS.ky = +(((e.clientY - r.top) / r.height * 100) - TS.kh / 2).toFixed(2); tSimpan(); tIsiForm(); tGambarPrev(); return; }
+  TS.x = +(((e.clientX - r.left) / r.width * 100) - TS.w / 2).toFixed(2); TS.y = +(((e.clientY - r.top) / r.height * 100) - TS.h / 2).toFixed(2); tSimpan(); tIsiForm(); tGambarPrev(); };
+async function tAmbilKode() { if (!$("#tBatch").value) throw new Error("Belum ada batch kode. Buat dulu di tab Buat Kartu.");
+  UB = { batch: $("#tBatch").value }; const st = $("#muStatus").value; $("#muStatus").value = $("#tStatus").value; try { TKODE = await ambilKode(); } finally { $("#muStatus").value = st; } tGambarPrev(); return TKODE; }
+$("#tBatch").onchange = () => tAmbilKode().catch(() => {});
+$("#tZip").onclick = async () => { if (!TIMG) return toast("Unggah gambar kartu dulu"); const b = $("#tZip"); b.disabled = true;
+  try { const ks = await tAmbilKode(); if (!ks.length) return toast("Tidak ada kode di batch ini"); const files = [];
+    for (let i = 0; i < ks.length; i++) { files.push({ name: ks[i].kode + ".png", data: await kePng(tKartu(ks[i].kode)) }); if (i % 5 === 0) { $("#tProg").textContent = `Membuat kartu ${i + 1}/${ks.length}…`; await new Promise(r => setTimeout(r)); } }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(zipBuat(files)); a.download = `kartu-jadi-${$("#tBatch").value.replace(/[^A-Za-z0-9-]+/g, "-")}.zip`; a.click(); $("#tProg").textContent = `✅ ${ks.length} gambar kartu diunduh`;
+  } catch (e) { toast(pesanErr(e), 5000); } finally { b.disabled = false; } };
+const LEMBAR = { a4: { n: "A4", w: 210, h: 297, gap: 4 }, a3: { n: "A3+", w: 329, h: 483, gap: 6 }, a3r: { n: "A3+", w: 329, h: 483, gap: 0 } };
+document.querySelectorAll("[data-lembar]").forEach(btn => btn.onclick = async () => {
+  if (!TIMG) return toast("Unggah gambar kartu dulu"); const L = LEMBAR[btn.dataset.lembar], w = window.open("", "_blank"); if (!w) return toast("Izinkan pop-up untuk membuka lembar cetak");
+  w.document.write("<p style='font-family:Arial'>Menyiapkan kartu…</p>");
+  try { const ks = await tAmbilKode(); if (!ks.length) { w.close(); return toast("Tidak ada kode di batch ini"); }
+    const m = 5, cw = 63, ch = 88, g = L.gap, kol = Math.floor((L.w - 2 * m + g) / (cw + g)), bar = Math.floor((L.h - 2 * m + g) / (ch + g)), per = kol * bar, url = [];
+    for (let i = 0; i < ks.length; i++) { url.push(tKartu(ks[i].kode).toDataURL("image/jpeg", 0.93)); if (i % 5 === 0) { $("#tProg").textContent = `Menyiapkan kartu ${i + 1}/${ks.length}…`; await new Promise(r => setTimeout(r)); } }
+    let hal = ""; for (let p = 0; p < url.length; p += per) hal += `<div class="pg">${url.slice(p, p + per).map(u => `<img src="${u}">`).join("")}</div>`;
+    w.document.open(); w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Kartu ${esc($("#tBatch").value)} – ${L.n}</title><style>
+@page{size:${L.w}mm ${L.h}mm;margin:0}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#888}
+.bar{padding:10px;background:#5b2e14;color:#fff;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.bar button{font-size:16px;padding:8px 18px;border:0;border-radius:8px;background:#f2b231;font-weight:700}
+.pg{width:${L.w}mm;height:${L.h}mm;background:#fff;margin:10px auto;display:grid;grid-template-columns:repeat(${kol},${cw}mm);grid-auto-rows:${ch}mm;gap:${g}mm;justify-content:center;align-content:center;page-break-after:always;break-after:page}
+.pg img{width:${cw}mm;height:${ch}mm;object-fit:cover;display:block;outline:${g ? "0.1mm dashed #ccc" : "none"}}
+@media print{.bar{display:none}body{background:#fff}.pg{margin:0}}</style></head><body>
+<div class="bar"><b>${url.length} kartu · ${Math.ceil(url.length / per)} lembar ${L.n} (${kol}×${bar} = ${per}/lembar${g ? ", jarak " + g + " mm" : ", rapat"})</b><button onclick="print()">🖨️ Cetak / Simpan PDF</button><span>Skala 100% · ukuran kertas ${L.n} (${L.w}×${L.h} mm)</span></div>${hal}</body></html>`);
+    w.document.close(); $("#tProg").textContent = `✅ Lembar cetak dibuka: ${url.length} kartu`;
+  } catch (e) { w.close(); toast(pesanErr(e), 5000); }
+});
 
 /* ---------- mulai ---------- */
 function mulaiApp() { $("#loginView").hidden = true; $("#appView").hidden = false; pratinjau(); bukaTab(tab); }
