@@ -22,6 +22,7 @@ small{font-size:1.5cqw;color:#9aa3b8}
 #onl{gap:1.1cqw}.onrow{display:flex;gap:1.2cqw;align-items:center;justify-content:center}.onrow label{font-size:2cqw;color:#cfd6e6}.onsm{font-size:1.6cqw;color:#9aa3b8}
 #onl input{font:inherit;font-size:2.2cqw;padding:.6cqw 1.2cqw;border-radius:.8cqw;border:.3cqw solid #2c3f73;background:#0b1224;color:#fff;width:22cqw;text-align:center;pointer-events:auto;user-select:text;touch-action:auto}
 .onstat{min-height:3cqw;font-size:2cqw;color:#ffd166;max-width:70cqw}.onstat b{font-size:3.4cqw;letter-spacing:.4cqw;color:#fff}
+#net{position:absolute;top:.6cqw;right:1cqw;font:700 1.4cqw Arial;color:#9fe39a;background:#000a;padding:.3cqw .8cqw;border-radius:.6cqw;display:none;pointer-events:none}#net.on{display:block}
 #agrid{display:flex;gap:2cqw}.acard{background:#0e1526;border:.35cqw solid #2a3350;padding:.6cqw;font-size:1.9cqw;cursor:pointer;width:30cqw;border-radius:.8cqw}.acard i{display:block;width:100%;aspect-ratio:16/9.5;background:#000 center/cover;border-radius:.5cqw;margin-bottom:.6cqw}.acard.sel{border-color:var(--gold);box-shadow:0 0 1.6cqw #ffb70388}
 #grid{display:grid;grid-template-columns:repeat(4,13cqw);gap:1cqw}
 .card{background:#0e1526;border:.3cqw solid #2a3350;padding:.7cqw;font-size:1.7cqw;cursor:pointer}
@@ -83,7 +84,7 @@ small{font-size:1.5cqw;color:#9aa3b8}
 <div class="hp a"><i id="pA"></i><span class="ks" id="kA">0</span></div>
 <div class="mid2"><span id="tm">3:00</span><small>3 kill menang</small></div>
 <div class="hp b"><span class="ks" id="kB">0</span><i id="pB"></i></div></div>
-<div id="kbn"></div><div id="dead"><b>Anda dikalahkan</b><span id="dct">4</span><small>Bangkit kembali di markas</small></div><div id="cancel">✖ Batal</div><div id="wheel"><i></i></div>
+<div id="kbn"></div><div id="net"></div><div id="dead"><b>Anda dikalahkan</b><span id="dct">4</span><small>Bangkit kembali di markas</small></div><div id="cancel">✖ Batal</div><div id="wheel"><i></i></div>
 <div id="joy"><div id="knob"></div></div>
 <div id="btns"><button id="bA" class="sb"><b>👊</b></button>
 <button id="bS1" class="sb"><b></b><span></span><i class="cd"></i><em></em></button><button id="bS2" class="sb"><b></b><span></span><i class="cd"></i><em></em></button><button id="bS3" class="sb"><b></b><span></span><i class="cd"></i><em></em></button>
@@ -619,6 +620,7 @@ function netMsg(m){
  else if(m.t=='start'){NET.on=1;NET.role=m.role;NET.oppName=m.oppName||'Lawan';NET.ev=[];NET.last=[{},{}];NET.lastSt=-1;
   NET.rin={l:0,r:0,u:0,d:0,a:0,b:0,s:0,fl:0,rg:0,aim:null};NET.buf=[];NET.sp=[[0,0],[0,0]];NET.first=1;NET.off=undefined;NET.jit=0;setArena(m.arena|0);pick=m.me;$('#oCancel').style.display='none';oStat('');
   start(m.opp);banner('⚔️ Lawan: '+NET.oppName)}
+ else if(m.t=='pong'){const r=Math.round(performance.now()-m.c);NET.ping=NET.ping?Math.round(NET.ping*.6+r*.4):r;NET.pmax=Math.max(r,(NET.pmax||0)*.9)}
  else if(m.t=='st'&&NET.role=='guest'){netApply(m)}
  else if(m.t=='in'&&NET.role=='host'){const r=NET.rin;r.l=m.m&1;r.r=m.m>>1&1;r.u=m.m>>2&1;r.d=m.m>>3&1;if(m.a)r.a=1;if(m.s){r.s=m.s;r.aim=m.aim}if(m.fl)r.fl=1;if(m.rg)r.rg=1}
  else if(m.t=='peerLeft'){if(NET.on&&playing){playing=0;netStop();$('#dead').classList.remove('on');$('#wt').textContent='MENANG';$('#wn').textContent='Lawan keluar dari pertandingan';sc('win')}else{netStop();oStat('Lawan keluar')}}}
@@ -640,7 +642,12 @@ $('#oCreate').onclick=()=>netConnect({t:'create'});
 $('#oJoin').onclick=()=>{const c=$('#oCode').value.replace(/\D/g,'');if(c.length!==4){oStat('Masukkan 4 angka kode room');return}netConnect({t:'join',code:c})};
 $('#oCancel').onclick=()=>{netSend({t:'leave'});$('#oCancel').style.display='none';oStat('Dibatalkan')};
 $('#oBack').onclick=()=>{netSend({t:'leave'});netStop();sc('menu')};
-function loop(t){acc+=Math.min(t-last,100);last=t;while(acc>=16.67){acc-=16.67;fr++;if(playing){if(NET.role=='guest')netGuestTick();else{upd();if(NET.role=='host'&&playing)netSend(netSnap(fr%60==0))}}}draw();requestAnimationFrame(loop)}
+let fpsN=0,fpsT=0,fpsV=60;
+function netHud(t){fpsN++;if(t-fpsT>=1000){fpsV=fpsN;fpsN=0;fpsT=t;
+  if(NET.on&&playing){netSend({t:'ping',c:performance.now()});const p=NET.ping||0,sp=Math.round(NET.pmax||0),el=$('#net');el.classList.add('on');
+   el.style.color=p<80&&sp<200?'#9fe39a':p<160&&sp<400?'#ffd166':'#ff6b5f';el.textContent='📶 '+p+' ms'+(sp>p*2&&sp>120?' (lonjakan '+sp+')':'')+' · '+fpsV+' fps · '+(NET.role=='host'?'pembuat room':'tamu')}
+  else $('#net').classList.remove('on')}}
+function loop(t){netHud(t);acc+=Math.min(t-last,100);last=t;while(acc>=16.67){acc-=16.67;fr++;if(playing){if(NET.role=='guest')netGuestTick();else{upd();if(NET.role=='host'&&playing)netSend(netSnap(fr%60==0))}}}draw();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 const J=$('#joy'),K=$('#knob');let jp=null;
 function jm(e){const r=J.getBoundingClientRect(),R=r.width/2,dx=e.clientX-r.left-R,dy=e.clientY-r.top-R,m=Math.min(Math.hypot(dx,dy),R*.6),a=Math.atan2(dy,dx);
