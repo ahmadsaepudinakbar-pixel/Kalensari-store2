@@ -568,24 +568,43 @@ let last=0,acc=0;
 // Server: wss://game.kalensari.web.id/ws (bisa diganti dengan ?server=ws://... untuk uji coba)
 // Pembuat room / pemain pertama = HOST: menjalankan seluruh perhitungan game dan mengirim keadaan 30x/detik.
 // Lawan = TAMU: hanya mengirim tombol yang ditekan dan menggambar keadaan dari host.
-const NET={ws:null,role:'',on:0,ev:[],last:[{},{}],lastSt:-1,lastSend:0,oppName:'',want:null,
+const NET={buf:[],sp:[[0,0],[0,0]],first:1,ws:null,role:'',on:0,ev:[],last:[{},{}],lastSt:-1,lastSend:0,oppName:'',want:null,
  url:(()=>{try{const q=new URLSearchParams(location.search).get('server');if(q)return q}catch(e){}return 'wss://game.kalensari.web.id/ws'})(),
  rin:{l:0,r:0,u:0,d:0,a:0,b:0,s:0,fl:0,rg:0,aim:null}};
 const netRef=x=>x===P?'@P':x===E?'@E':x;
 const rnd=v=>typeof v=='number'?Math.round(v*100)/100:v;
 function netVal(v){if(v===P)return'@P';if(v===E)return'@E';if(typeof v=='number')return rnd(v);if(Array.isArray(v))return v.map(netVal);if(v&&typeof v=='object'){const o={};for(const k in v){if(k[0]=='_')continue;o[k]=netVal(v[k])}return o}return v}
 function netFighter(f,i,full){const o={},L=NET.last[i];for(const k in f){if(k=='c'||k=='_q'||k=='bot')continue;let v=f[k];if(v&&typeof v=='object'&&!Array.isArray(v))continue;v=netVal(v);const sv=typeof v=='object'?JSON.stringify(v):v;if(full||L[k]!==sv){o[k]=v;L[k]=sv}}return o}
-function netSnap(full){const s={t:'st',f:[netFighter(P,0,full),netFighter(E,1,full)],pj:netVal(pj),sx:netVal(SFX),kb:netVal(KB),dn:netVal(DN),fx:netVal(FXS),T,fb:first,pl:playing};if(NET.ev.length){s.ev=NET.ev;NET.ev=[]}return s}
+function netSnap(full){const s={t:'st',f:[netFighter(P,0,full),netFighter(E,1,full)],pj:netVal(pj),sx:netVal(SFX),kb:netVal(KB),dn:netVal(DN),fx:netVal(FXS),T,fb:first,pl:playing,h:fr};if(NET.ev.length){s.ev=NET.ev;NET.ev=[]}return s}
 function netSend(o){const w=NET.ws;if(w&&w.readyState===1)w.send(JSON.stringify(o))}
 function netIn(){const k=Object.assign({},NET.rin);NET.rin.a=NET.rin.s=NET.rin.fl=NET.rin.rg=0;NET.rin.aim=null;return k}
 // tamu: terapkan keadaan dari host (pemain host = lawan kita, jadi P dan E ditukar)
 function netApply(s){const map=v=>v==='@P'?E:v==='@E'?P:Array.isArray(v)?v.map(map):(v&&typeof v=='object'?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,map(x)])):v);
- [[s.f[0],E],[s.f[1],P]].forEach(([d,f])=>{for(const k in d){const v=map(d[k]);if(k=='x'||k=='y'){f['_t'+k]=v;if(f[k]===undefined||Math.abs(f[k]-v)>120)f[k]=v}else f[k]=v}});
+ const sp=NET.sp;[[s.f[0],E,0],[s.f[1],P,1]].forEach(([d,f,i])=>{for(const k in d){const v=map(d[k]);if(k=='x')sp[i][0]=v;else if(k=='y')sp[i][1]=v;else f[k]=v}});
+ // simpan posisi dari host beserta waktu terima → digambar sedikit di belakang supaya mulus walau data datang tidak rata
+ // waktu data dihitung dari nomor frame host (bukan waktu tiba) → jeda internet yang tidak rata tidak membuat gerakan tersendat
+ const now=performance.now(),ht=(s.h||0)*16.667;let off=now-ht;if(NET.off===undefined||off<NET.off)NET.off=off;else NET.off+=.02*(off-NET.off)*.05;
+ const late=off-NET.off;NET.jit=Math.max(late,(NET.jit||0)*.995);
+ NET.buf.push({t:ht+NET.off,e:[sp[0][0],sp[0][1]],p:[sp[1][0],sp[1][1]]});NET.buf.sort((a,b)=>a.t-b.t);if(NET.buf.length>40)NET.buf.shift();
+ if(E.x===undefined||NET.first){E.x=sp[0][0];E.y=sp[0][1];P.x=sp[1][0];P.y=sp[1][1];NET.first=0}
  pj=map(s.pj);SFX=map(s.sx);KB=s.kb;FXS=s.fx;T=s.T;first=s.fb;
  DN=map(s.dn).map(n=>(n.c=n.w===P?'#ff5a4f':n.v>=100?'#ffd166':'#ffffff',n));
  (s.ev||[]).forEach(e=>{if(e[0]=='k')banner(killText(map(e[1]),map(e[2]),e[3]))});
  if(playing)hud()}
-function netGuestTick(){[P,E].forEach(f=>{if(f._tx!==undefined){f.x+=(f._tx-f.x)*.4;f.y+=(f._ty-f.y)*.4}});
+const NET_DELAY=40;   // ms dasar; ditambah perkiraan jitter jaringan
+function netGuestTick(){const B=NET.buf;if(B.length){const now=performance.now(),rt=now-NET_DELAY-Math.min(250,NET.jit||0);
+  // LAWAN: interpolasi antara dua data host di sekitar waktu tampil
+  let a=B[0],b=B[B.length-1];for(let i=B.length-1;i>0;i--){if(B[i-1].t<=rt){a=B[i-1];b=B[i];break}}
+  while(B.length>2&&B[1].t<rt)B.shift();
+  let ex,ey;if(rt>=b.t||a===b){ex=b.e[0];ey=b.e[1]}else{const q=Math.max(0,Math.min(1,(rt-a.t)/((b.t-a.t)||1)));
+   if(Math.hypot(b.e[0]-a.e[0],b.e[1]-a.e[1])>150){ex=b.e[0];ey=b.e[1]}else{ex=a.e[0]+(b.e[0]-a.e[0])*q;ey=a.e[1]+(b.e[1]-a.e[1])*q}}
+  E.x=ex;E.y=ey;
+  // DIRI SENDIRI: langsung bergerak saat tombol ditekan (prediksi), lalu dikoreksi pelan ke posisi dari host
+  const L=B[B.length-1].p,busy=P.dead||P.dash>0||P.fl>0||P.bk>0||P.lp>0||P.rl>0||P.ts>0||P.kb>0||P.stun>0||P.lr>0||P.rn>0||P.k1>0||P.k3>0||P.pt>0||(P.id=='kuntilanak'&&P.atk>0&&!P.sc)||!playing;
+  const mx=(inp.r?1:0)-(inp.l?1:0),my=(inp.d?1:0)-(inp.u?1:0);
+  if(busy){P.x+=(L[0]-P.x)*.35;P.y+=(L[1]-P.y)*.35}
+  else{if(mx||my){const n=Math.hypot(mx,my),sp=P.c.spd*(P.slow>0?.5:1);P.x+=mx/n*sp;P.y+=my/n*sp*.6;P.vx=mx/n*sp;P.vy=my/n*sp*.6;P.fvx=mx/n;P.fvy=my/n;clampArena(P)}
+   const er=Math.hypot(L[0]-P.x,L[1]-P.y);if(er>90){P.x=L[0];P.y=L[1]}else{const k=mx||my?.03:.12;P.x+=(L[0]-P.x)*k;P.y+=(L[1]-P.y)*k}}}
  if(kbT>0&&--kbT===0)$('#kbn').classList.remove('on');
  const st=(inp.l?1:0)|(inp.r?2:0)|(inp.u?4:0)|(inp.d?8:0),ev=inp.a||inp.s||inp.fl||inp.rg;
  if(st!==NET.lastSt||ev||fr-NET.lastSend>30){netSend({t:'in',m:st,a:inp.a?1:0,s:inp.s||0,aim:inp.aim,fl:inp.fl?1:0,rg:inp.rg?1:0});NET.lastSt=st;NET.lastSend=fr}
@@ -596,7 +615,7 @@ function netMsg(m){
  else if(m.t=='wait'){oStat('Mencari lawan… tunggu sebentar');$('#oCancel').style.display=''}
  else if(m.t=='err'){oStat('⚠️ '+m.msg)}
  else if(m.t=='start'){NET.on=1;NET.role=m.role;NET.oppName=m.oppName||'Lawan';NET.ev=[];NET.last=[{},{}];NET.lastSt=-1;
-  NET.rin={l:0,r:0,u:0,d:0,a:0,b:0,s:0,fl:0,rg:0,aim:null};setArena(m.arena|0);pick=m.me;$('#oCancel').style.display='none';oStat('');
+  NET.rin={l:0,r:0,u:0,d:0,a:0,b:0,s:0,fl:0,rg:0,aim:null};NET.buf=[];NET.sp=[[0,0],[0,0]];NET.first=1;NET.off=undefined;NET.jit=0;setArena(m.arena|0);pick=m.me;$('#oCancel').style.display='none';oStat('');
   start(m.opp);banner('⚔️ Lawan: '+NET.oppName)}
  else if(m.t=='st'&&NET.role=='guest'){netApply(m)}
  else if(m.t=='in'&&NET.role=='host'){const r=NET.rin;r.l=m.m&1;r.r=m.m>>1&1;r.u=m.m>>2&1;r.d=m.m>>3&1;if(m.a)r.a=1;if(m.s){r.s=m.s;r.aim=m.aim}if(m.fl)r.fl=1;if(m.rg)r.rg=1}
