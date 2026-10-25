@@ -568,7 +568,7 @@ let last=0,acc=0;
 // Server: wss://game.kalensari.web.id/ws (bisa diganti dengan ?server=ws://... untuk uji coba)
 // Pembuat room / pemain pertama = HOST: menjalankan seluruh perhitungan game dan mengirim keadaan 30x/detik.
 // Lawan = TAMU: hanya mengirim tombol yang ditekan dan menggambar keadaan dari host.
-const NET={buf:[],sp:[[0,0],[0,0]],first:1,ws:null,role:'',on:0,ev:[],last:[{},{}],lastSt:-1,lastSend:0,oppName:'',want:null,
+const NET={pa:-99,buf:[],sp:[[0,0],[0,0]],first:1,ws:null,role:'',on:0,ev:[],last:[{},{}],lastSt:-1,lastSend:0,oppName:'',want:null,
  url:(()=>{try{const q=new URLSearchParams(location.search).get('server');if(q)return q}catch(e){}return 'wss://game.kalensari.web.id/ws'})(),
  rin:{l:0,r:0,u:0,d:0,a:0,b:0,s:0,fl:0,rg:0,aim:null}};
 const netRef=x=>x===P?'@P':x===E?'@E':x;
@@ -584,15 +584,15 @@ function netApply(s){const map=v=>v==='@P'?E:v==='@E'?P:Array.isArray(v)?v.map(m
  // simpan posisi dari host beserta waktu terima → digambar sedikit di belakang supaya mulus walau data datang tidak rata
  // waktu data dihitung dari nomor frame host (bukan waktu tiba) → jeda internet yang tidak rata tidak membuat gerakan tersendat
  const now=performance.now(),ht=(s.h||0)*16.667;let off=now-ht;if(NET.off===undefined||off<NET.off)NET.off=off;else NET.off+=.02*(off-NET.off)*.05;
- const late=off-NET.off;NET.jit=Math.max(late,(NET.jit||0)*.995);
+ const late=off-NET.off;NET.jit=Math.max(late,(NET.jit||0)*.985);
  NET.buf.push({t:ht+NET.off,e:[sp[0][0],sp[0][1]],p:[sp[1][0],sp[1][1]]});NET.buf.sort((a,b)=>a.t-b.t);if(NET.buf.length>40)NET.buf.shift();
  if(E.x===undefined||NET.first){E.x=sp[0][0];E.y=sp[0][1];P.x=sp[1][0];P.y=sp[1][1];NET.first=0}
  pj=map(s.pj);SFX=map(s.sx);KB=s.kb;FXS=s.fx;T=s.T;first=s.fb;
  DN=map(s.dn).map(n=>(n.c=n.w===P?'#ff5a4f':n.v>=100?'#ffd166':'#ffffff',n));
  (s.ev||[]).forEach(e=>{if(e[0]=='k')banner(killText(map(e[1]),map(e[2]),e[3]))});
  if(playing)hud()}
-const NET_DELAY=40;   // ms dasar; ditambah perkiraan jitter jaringan
-function netGuestTick(){const B=NET.buf;if(B.length){const now=performance.now(),rt=now-NET_DELAY-Math.min(250,NET.jit||0);
+const NET_DELAY=22;   // ms dasar; ditambah perkiraan jitter jaringan
+function netGuestTick(){const B=NET.buf;if(B.length){const now=performance.now(),rt=now-NET_DELAY-Math.min(140,NET.jit||0);
   // LAWAN: interpolasi antara dua data host di sekitar waktu tampil
   let a=B[0],b=B[B.length-1];for(let i=B.length-1;i>0;i--){if(B[i-1].t<=rt){a=B[i-1];b=B[i];break}}
   while(B.length>2&&B[1].t<rt)B.shift();
@@ -607,6 +607,8 @@ function netGuestTick(){const B=NET.buf;if(B.length){const now=performance.now()
    const er=Math.hypot(L[0]-P.x,L[1]-P.y);if(er>90){P.x=L[0];P.y=L[1]}else{const k=mx||my?.03:.12;P.x+=(L[0]-P.x)*k;P.y+=(L[1]-P.y)*k}}}
  if(kbT>0&&--kbT===0)$('#kbn').classList.remove('on');
  const st=(inp.l?1:0)|(inp.r?2:0)|(inp.u?4:0)|(inp.d?8:0),ev=inp.a||inp.s||inp.fl||inp.rg;
+ if(inp.a&&P.ac<=0&&P.atk<=0&&!P.dead&&!(P.stun>0)){P.atk=P.id=='pocong'?18:P.id=='kuntilanak'?24:14;P.sc=0;P.ac=P.id=='kuntilanak'?34:26;NET.pa=fr}
+ if(P.atk>0&&fr-NET.pa<40)P.atk--;if(P.ac>0)P.ac--;
  if(st!==NET.lastSt||ev||fr-NET.lastSend>30){netSend({t:'in',m:st,a:inp.a?1:0,s:inp.s||0,aim:inp.aim,fl:inp.fl?1:0,rg:inp.rg?1:0});NET.lastSt=st;NET.lastSend=fr}
  inp.a=inp.s=inp.fl=inp.rg=0;inp.aim=null}
 function netMsg(m){
@@ -638,7 +640,7 @@ $('#oCreate').onclick=()=>netConnect({t:'create'});
 $('#oJoin').onclick=()=>{const c=$('#oCode').value.replace(/\D/g,'');if(c.length!==4){oStat('Masukkan 4 angka kode room');return}netConnect({t:'join',code:c})};
 $('#oCancel').onclick=()=>{netSend({t:'leave'});$('#oCancel').style.display='none';oStat('Dibatalkan')};
 $('#oBack').onclick=()=>{netSend({t:'leave'});netStop();sc('menu')};
-function loop(t){acc+=Math.min(t-last,100);last=t;while(acc>=16.67){acc-=16.67;fr++;if(playing){if(NET.role=='guest')netGuestTick();else{upd();if(NET.role=='host'&&playing&&fr%2==0)netSend(netSnap(fr%60==0))}}}draw();requestAnimationFrame(loop)}
+function loop(t){acc+=Math.min(t-last,100);last=t;while(acc>=16.67){acc-=16.67;fr++;if(playing){if(NET.role=='guest')netGuestTick();else{upd();if(NET.role=='host'&&playing)netSend(netSnap(fr%60==0))}}}draw();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 const J=$('#joy'),K=$('#knob');let jp=null;
 function jm(e){const r=J.getBoundingClientRect(),R=r.width/2,dx=e.clientX-r.left-R,dy=e.clientY-r.top-R,m=Math.min(Math.hypot(dx,dy),R*.6),a=Math.atan2(dy,dx);
