@@ -129,7 +129,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
     <section data-p="template" hidden>
       <div class="card"><h3>🎴 Template kartu: gambar Anda + QR asli + kode manual</h3>
         <p class="note" style="margin-top:0">1) Unggah gambar desain kartu (depan) · 2) pilih batch kode · 3) geser kotak QR ke tempatnya (klik/ketuk pratinjau, atau isi angka) · 4) unduh kartu jadi atau lembar cetak.
-        Ukuran gambar paling pas: perbandingan kartu remi <b>63 : 88</b>, mis. <b>1488 × 2079 px</b> (600 dpi) atau 744 × 1039 px (300 dpi). Gambar dengan perbandingan lain dipotong sedikit atas–bawah saat dicetak.</p>
+        Ukuran gambar paling pas: <b>Remi 63 : 88</b> (mis. 1488 × 2079 px) atau <b>KTP 54 : 85,6</b> (mis. 1276 × 2022 px), 600 dpi. Gambar dengan perbandingan lain dipotong sedikit saat dicetak.</p>
         <div style="display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;align-items:start" class="tgrid">
           <div><canvas id="tPrev" style="width:100%;border-radius:12px;border:1px solid var(--ln);cursor:crosshair;background:#eee"></canvas>
             <div class="note" id="tInfo">Belum ada gambar.</div></div>
@@ -138,6 +138,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
             <div class="grid">
               <label class="l">Batch kode<select class="f" id="tBatch"></select></label>
               <label class="l">Kode yang dipakai<select class="f" id="tStatus"><option value="belum">Belum diklaim</option><option value="semua">Semua</option></select></label>
+              <label class="l">Ukuran kartu<select class="f" id="tUk"><option value="remi">Remi 6,3 × 8,8 cm</option><option value="ktp">KTP 5,4 × 8,56 cm</option></select></label>
               <label class="l">Isi QR<select class="f" id="tIsi"><option value="kode">Kode saja (QR lebih sederhana, mudah discan walau kecil)</option><option value="link">Link game (bisa dibuka kamera HP biasa)</option></select></label>
             </div>
             <div class="grid">
@@ -161,9 +162,9 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
             <p class="note" style="margin:4px 0 0">Klik pratinjau = pindah kotak QR. Tahan <b>Shift</b> sambil klik = pindah kotak kode.</p>
             <div class="row" style="margin-top:14px">
               <button class="btn br" id="tZip">🗜️ ZIP gambar kartu (PNG)</button>
-              <button class="btn gd" data-lembar="a4">🖨️ Lembar A4 (9)</button>
-              <button class="btn gd" data-lembar="a3">🖨️ A3+ (20, berjarak)</button>
-              <button class="btn gd" data-lembar="a3r">🖨️ A3+ (25, rapat)</button>
+              <button class="btn gd" data-lembar="a4">🖨️ Lembar A4</button>
+              <button class="btn gd" data-lembar="a3">🖨️ A3+ berjarak</button>
+              <button class="btn gd" data-lembar="a3r">🖨️ A3+ rapat</button>
             </div>
             <div class="note" id="tProg" style="margin-top:8px"></div>
           </div>
@@ -371,12 +372,12 @@ $("#muZip").onclick = async () => {
 };
 
 /* ---------- TEMPLATE KARTU: gambar desain + QR asli + kode manual ---------- */
-const TDEF = { x: 72.75, y: 69.55, w: 21.8, h: 14.0, t: 10, r: 4, putih: true, isi: "kode", pisah: true, kx: 75.6, ky: 83.85, kw: 15.2, kh: 2.15, kbg: "#053ea9", kfg: "#ffffff" };   // pas untuk contoh kartu Ocong 1024×1536
+const TDEF = { x: 72.75, y: 69.55, w: 21.8, h: 14.0, t: 10, r: 4, putih: true, isi: "kode", uk: "remi", pisah: true, kx: 75.6, ky: 83.85, kw: 15.2, kh: 2.15, kbg: "#053ea9", kfg: "#ffffff" };   // pas untuk contoh kartu Ocong 1024×1536
 let TS = (() => { try { const o = JSON.parse(localStorage.getItem("ks_kartu_tpl") || "{}"); if (o.pisah === undefined) return { ...TDEF }; return Object.assign({}, TDEF, o); } catch (e) { return { ...TDEF }; } })();
 let TIMG = null;
 const tSimpan = () => { try { localStorage.setItem("ks_kartu_tpl", JSON.stringify(TS)); } catch (e) {} };
 const isiQR = k => TS.isi === "link" ? LINK + k : k;
-function tIsiForm() { $("#tX").value = TS.x; $("#tY").value = TS.y; $("#tW").value = TS.w; $("#tH").value = TS.h; $("#tT").value = TS.t; $("#tR").value = TS.r; $("#tPutih").checked = TS.putih; $("#tIsi").value = TS.isi; $("#tPisah").checked = TS.pisah; $("#kX").value = TS.kx; $("#kY").value = TS.ky; $("#kW").value = TS.kw; $("#kH").value = TS.kh; $("#kBg").value = TS.kbg; $("#kFg").value = TS.kfg; $("#tKotak").hidden = !TS.pisah; $("#tT").closest("label").hidden = TS.pisah; }
+function tIsiForm() { $("#tX").value = TS.x; $("#tY").value = TS.y; $("#tW").value = TS.w; $("#tH").value = TS.h; $("#tT").value = TS.t; $("#tR").value = TS.r; $("#tPutih").checked = TS.putih; $("#tIsi").value = TS.isi; $("#tUk").value = TS.uk || "remi"; tLabelLembar(); $("#tPisah").checked = TS.pisah; $("#kX").value = TS.kx; $("#kY").value = TS.ky; $("#kW").value = TS.kw; $("#kH").value = TS.kh; $("#kBg").value = TS.kbg; $("#kFg").value = TS.kfg; $("#tKotak").hidden = !TS.pisah; $("#tT").closest("label").hidden = TS.pisah; }
 async function tMulai() {
   tIsiForm();
   if (!RK) try { RK = await rpc("game_admin_ringkas"); } catch (e) {}
@@ -408,9 +409,9 @@ function tGambarPrev() {
   const cv = $("#tPrev");
   if (!TIMG) { cv.width = 630; cv.height = 880; const x = cv.getContext("2d"); x.fillStyle = "#eee"; x.fillRect(0, 0, 630, 880); x.fillStyle = "#999"; x.font = "28px Arial"; x.textAlign = "center"; x.fillText("Unggah gambar kartu", 315, 440); $("#tInfo").textContent = "Belum ada gambar."; return; }
   const k = tContoh(), c = tKartu(k, Math.min(1, 700 / TIMG.naturalWidth)); cv.width = c.width; cv.height = c.height; cv.getContext("2d").drawImage(c, 0, 0);
-  const W = TIMG.naturalWidth, H = TIMG.naturalHeight, rasio = W / H, dpi = Math.round(W / (6.3 / 2.54));
-  const bw = W * TS.w / 100, bh = H * TS.h / 100, pad = Math.min(bw, bh) * (TS.pisah ? 0.015 : 0.03), qs = Math.min(bw - pad * 2, bh - (TS.pisah ? 0 : bh * TS.t / 100) - pad * 2), qcm = qs / W * 6.3;
-  $("#tInfo").innerHTML = `${W} × ${H} px · ±${dpi} dpi bila dicetak lebar 6,3 cm${Math.abs(rasio - 63 / 88) > 0.02 ? " · <b>perbandingan bukan 63:88</b>, saat dicetak dipotong sedikit atas–bawah" : ""}<br>Contoh kode: <span class="mono">${esc(k)}</span> · QR tercetak ±${qcm.toFixed(1)} cm${qcm < 1.6 && TS.isi === "link" ? " · <b>terlalu kecil untuk isi link, pilih “Kode saja”</b>" : ""}`;
+  const U = UKURAN[TS.uk] || UKURAN.remi, W = TIMG.naturalWidth, H = TIMG.naturalHeight, rasio = W / H, dpi = Math.round(W / (U.w / 25.4));
+  const bw = W * TS.w / 100, bh = H * TS.h / 100, pad = Math.min(bw, bh) * (TS.pisah ? 0.015 : 0.03), qs = Math.min(bw - pad * 2, bh - (TS.pisah ? 0 : bh * TS.t / 100) - pad * 2), qcm = qs / W * U.w / 10;
+  $("#tInfo").innerHTML = `${W} × ${H} px · ±${dpi} dpi bila dicetak lebar ${String(U.w / 10).replace('.', ',')} cm (${U.n})${Math.abs(rasio - U.w / U.h) > 0.02 ? ` · <b>perbandingan bukan ${String(U.w).replace('.', ',')} : ${String(U.h).replace('.', ',')}</b>, saat dicetak dipotong sedikit ${rasio < U.w / U.h ? 'atas–bawah' : 'kiri–kanan'}` : " · perbandingan pas"}<br>Contoh kode: <span class="mono">${esc(k)}</span> · QR tercetak ±${qcm.toFixed(1)} cm${qcm < 1.6 && TS.isi === "link" ? " · <b>terlalu kecil untuk isi link, pilih “Kode saja”</b>" : ""}`;
 }
 let TKODE = [];
 const tContoh = () => TKODE[0] ? TKODE[0].kode : "KLS-OCG-7F3K9Q";
@@ -432,20 +433,29 @@ $("#tZip").onclick = async () => { if (!TIMG) return toast("Unggah gambar kartu 
     const a = document.createElement("a"); a.href = URL.createObjectURL(zipBuat(files)); a.download = `kartu-jadi-${$("#tBatch").value.replace(/[^A-Za-z0-9-]+/g, "-")}.zip`; a.click(); $("#tProg").textContent = `✅ ${ks.length} gambar kartu diunduh`;
   } catch (e) { toast(pesanErr(e), 5000); } finally { b.disabled = false; } };
 const LEMBAR = { a4: { n: "A4", w: 210, h: 297, gap: 4 }, a3: { n: "A3+", w: 329, h: 483, gap: 6 }, a3r: { n: "A3+", w: 329, h: 483, gap: 0 } };
+const UKURAN = { remi: { n: "kartu remi", w: 63, h: 88 }, ktp: { n: "kartu KTP", w: 54, h: 85.6 } };
+// susunan terbaik: kartu tegak, atau diputar 90° di lembar bila muat lebih banyak
+function tSusun(L, U) { const m = 5, g = L.gap, hit = (cw, ch) => { const k = Math.floor((L.w - 2 * m + g) / (cw + g)), b = Math.floor((L.h - 2 * m + g) / (ch + g)); return { cw, ch, kol: k, bar: b, per: k * b }; };
+  const a = hit(U.w, U.h), b = hit(U.h, U.w); return b.per > a.per ? { ...b, putar: true } : { ...a, putar: false }; }
+function tLabelLembar() { const U = UKURAN[TS.uk] || UKURAN.remi; document.querySelectorAll("[data-lembar]").forEach(btn => { const L = LEMBAR[btn.dataset.lembar], S = tSusun(L, U);
+  btn.textContent = `🖨️ ${L.n} ${L.gap ? (btn.dataset.lembar === "a4" ? "" : "berjarak ") : "rapat "}(${S.per} kartu${S.putar ? ", diputar" : ""})`; }); }
+$("#tUk").onchange = () => { TS.uk = $("#tUk").value; tSimpan(); tLabelLembar(); tGambarPrev(); };
 document.querySelectorAll("[data-lembar]").forEach(btn => btn.onclick = async () => {
   if (!TIMG) return toast("Unggah gambar kartu dulu"); const L = LEMBAR[btn.dataset.lembar], w = window.open("", "_blank"); if (!w) return toast("Izinkan pop-up untuk membuka lembar cetak");
   w.document.write("<p style='font-family:Arial'>Menyiapkan kartu…</p>");
   try { const ks = await tAmbilKode(); if (!ks.length) { w.close(); return toast("Tidak ada kode di batch ini"); }
-    const m = 5, cw = 63, ch = 88, g = L.gap, kol = Math.floor((L.w - 2 * m + g) / (cw + g)), bar = Math.floor((L.h - 2 * m + g) / (ch + g)), per = kol * bar, url = [];
-    for (let i = 0; i < ks.length; i++) { url.push(tKartu(ks[i].kode).toDataURL("image/jpeg", 0.93)); if (i % 5 === 0) { $("#tProg").textContent = `Menyiapkan kartu ${i + 1}/${ks.length}…`; await new Promise(r => setTimeout(r)); } }
+    const U = UKURAN[TS.uk] || UKURAN.remi, S = tSusun(L, U), cw = S.cw, ch = S.ch, g = L.gap, kol = S.kol, bar = S.bar, per = S.per, url = [];
+    for (let i = 0; i < ks.length; i++) { let c = tKartu(ks[i].kode);
+      if (S.putar) { const r = document.createElement("canvas"); r.width = c.height; r.height = c.width; const x = r.getContext("2d"); x.translate(r.width, 0); x.rotate(Math.PI / 2); x.drawImage(c, 0, 0); c = r; }
+      url.push(c.toDataURL("image/jpeg", 0.93)); if (i % 5 === 0) { $("#tProg").textContent = `Menyiapkan kartu ${i + 1}/${ks.length}…`; await new Promise(r => setTimeout(r)); } }
     let hal = ""; for (let p = 0; p < url.length; p += per) hal += `<div class="pg">${url.slice(p, p + per).map(u => `<img src="${u}">`).join("")}</div>`;
-    w.document.open(); w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Kartu ${esc($("#tBatch").value)} – ${L.n}</title><style>
+    w.document.open(); w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Kartu ${esc($("#tBatch").value)} – ${L.n} – ${U.n}</title><style>
 @page{size:${L.w}mm ${L.h}mm;margin:0}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#888}
 .bar{padding:10px;background:#5b2e14;color:#fff;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.bar button{font-size:16px;padding:8px 18px;border:0;border-radius:8px;background:#f2b231;font-weight:700}
 .pg{width:${L.w}mm;height:${L.h}mm;background:#fff;margin:10px auto;display:grid;grid-template-columns:repeat(${kol},${cw}mm);grid-auto-rows:${ch}mm;gap:${g}mm;justify-content:center;align-content:center;page-break-after:always;break-after:page}
 .pg img{width:${cw}mm;height:${ch}mm;object-fit:cover;display:block;outline:${g ? "0.1mm dashed #ccc" : "none"}}
 @media print{.bar{display:none}body{background:#fff}.pg{margin:0}}</style></head><body>
-<div class="bar"><b>${url.length} kartu · ${Math.ceil(url.length / per)} lembar ${L.n} (${kol}×${bar} = ${per}/lembar${g ? ", jarak " + g + " mm" : ", rapat"})</b><button onclick="print()">🖨️ Cetak / Simpan PDF</button><span>Skala 100% · ukuran kertas ${L.n} (${L.w}×${L.h} mm)</span></div>${hal}</body></html>`);
+<div class="bar"><b>${url.length} kartu · ${Math.ceil(url.length / per)} lembar ${L.n} · ${U.n} ${String(+(U.w / 10).toFixed(2)).replace('.', ',')}×${String(+(U.h / 10).toFixed(2)).replace('.', ',')} cm (${kol}×${bar} = ${per}/lembar${S.putar ? ", kartu diputar" : ""}${g ? ", jarak " + g + " mm" : ", rapat"})</b><button onclick="print()">🖨️ Cetak / Simpan PDF</button><span>Skala 100% · ukuran kertas ${L.n} (${L.w}×${L.h} mm)</span></div>${hal}</body></html>`);
     w.document.close(); $("#tProg").textContent = `✅ Lembar cetak dibuka: ${url.length} kartu`;
   } catch (e) { w.close(); toast(pesanErr(e), 5000); }
 });
