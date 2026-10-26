@@ -2,9 +2,9 @@
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
    (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v85";
+const VERSION = "ks-v86";
 const CACHE = "kalensari-" + VERSION;
-// Gambar Kalensari Game (folder assets/): nama file = kode isi, jadi isinya tidak pernah berubah.
+// Gambar Kalensari Game (folder gambar-game/): nama file = kode isi, jadi isinya tidak pernah berubah.
 // Disimpan permanen di HP (cache-first) supaya game terbuka cepat walau sinyal lemah.
 const ASET = "kalensari-game-aset";
 const PRECACHE = [
@@ -43,7 +43,7 @@ self.addEventListener("fetch", (e) => {
   if (req.headers.has("range")) return;                 // musik/video (potongan data) biarkan langsung
   if (/\.(mp3|mp4|m4a|ogg|wav|webm|apk)$/i.test(url.pathname)) return;   // file besar (musik/video/APK) jangan disimpan di cache
 
-  if (/\/assets\/[0-9a-f]{10}\.webp$/.test(url.pathname)) {
+  if (/\/gambar-game\/[0-9a-f]{10}\.webp$/.test(url.pathname)) {
     e.respondWith(
       caches.open(ASET).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => {
         if (res && res.status === 200 && res.type === "basic") c.put(req, res.clone()).catch(() => {});
