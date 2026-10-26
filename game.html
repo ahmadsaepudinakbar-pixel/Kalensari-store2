@@ -149,13 +149,13 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 #menu{gap:1.2cqw}#menu h1{font-size:7cqw}
 .mgrid{display:grid;grid-template-columns:repeat(2,27cqw);gap:1.1cqw 1.6cqw}.mgrid .btn{padding:.7cqw 1cqw;width:100%;white-space:nowrap}.mgrid #bMain{grid-column:1/-1;width:60%;justify-self:center;font-size:2.8cqw}
 #ldg{position:fixed;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(#141b33,#03050b);color:#f2efe9;font:600 16px Arial,sans-serif;text-align:center}
-#ldg.on{display:flex}#ldg i{width:46px;height:46px;border-radius:50%;border:5px solid #2c3f73;border-top-color:#ffb703;animation:ldsp .8s linear infinite}#ldg small{color:#9aa3b8;font-size:13px}
+#ldg.on{display:flex}#ldg .lbar{width:min(70vw,360px);height:12px;border-radius:8px;background:#101a33;border:2px solid #2c3f73;overflow:hidden}#ldg .lbar u{display:block;height:100%;width:0;background:linear-gradient(90deg,#c1121f,#ffb703);transition:width .2s}#ldg em{font:700 18px Arial;font-style:normal;color:#ffd166}#ldg i{width:46px;height:46px;border-radius:50%;border:5px solid #2c3f73;border-top-color:#ffb703;animation:ldsp .8s linear infinite}#ldg small{color:#9aa3b8;font-size:13px}
 @keyframes ldsp{to{transform:rotate(360deg)}}
 </style></head><body>
 <div id="dev"><h1>KALENSARI<i style="display:block;color:#c1121f;font-style:normal">GAME</i></h1><p>Main pakai apa?</p>
 <div class="dvr"><button class="g" id="dvHP"><b>📱</b>HP<small>Layar penuh &amp; miring otomatis</small></button><button id="dvPC"><b>💻</b>PC / Laptop<small>Main pakai keyboard</small></button></div></div>
 <div id="rot"><div class="ph"></div><b>Putar HP ke posisi miring</b><span id="rotT">HP Anda tidak bisa memiringkan layar otomatis — putar HP secara manual</span><button id="rotX">Tutup</button></div>
-<div id="ldg"><i></i><b>Memuat game…</b><small>Pertama kali butuh beberapa detik, tunggu sebentar</small></div>
+<div id="ldg"><i></i><b>Memuat game…</b><div class="lbar"><u></u></div><em id="ldMb">0 / 0 MB</em><small>Pertama kali butuh beberapa detik, berikutnya langsung masuk</small></div>
 <script>
 // Pilihan HP/PC langsung bisa ditekan walau isi game (gambar) masih diunduh
 (function(){var D=document,$i=function(x){return D.getElementById(x)};window.KG_DEV='';
@@ -172,7 +172,16 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
   try{p=d.requestFullscreen?d.requestFullscreen({navigationUI:'hide'}):(d.webkitRequestFullscreen&&d.webkitRequestFullscreen())}catch(e){}
   function lk(){try{screen.orientation.lock('landscape').catch(rot)}catch(e){rot()}}
   if(p&&p.then)p.then(lk,lk);else lk()}
- function pick(m){window.KG_DEV=m;D.body.classList.add('dev-'+m);$i('dev').classList.add('off');
+ // ukuran tiap gambar di folder gambar-game (byte) — untuk hitungan MB di layar memuat
+ var FILES={"00a6195433":4244,"01dfc9ffa0":3002,"04fb5b1ea6":3686,"04ff5688d3":8298,"071a82a563":41470,"079f93d9c2":1580,"0897e4a09e":19986,"0bc6afc4f2":13110,"0c5fb76a4d":12214,"1024e5bd4d":8380,"107069478d":3408,"152a308bd8":9500,"161435a805":3528,"1639deb62b":9172,"16dbdb5602":13280,"17744ed3f4":8596,"1e5d492e2e":293332,"1e96353027":3752,"1fa8a1dfb9":8916,"1faececf06":11544,"20f04303d6":4838,"235373b638":4182,"2812816dca":9102,"2dca6eb1f4":3564,"2e80842eab":45826,"3078d24eab":17630,"35574ce9ee":26782,"355f233039":9188,"389fa9d2bb":42650,"38a8038850":11598,"38e70b5bbf":9084,"3d23741faa":19224,"3d36f49ce7":2282,"3ddf923d4a":8698,"3f48c2c081":8330,"41b891733d":3328,"4470f10093":19738,"455f6b31f9":13646,"4d99a92050":85142,"4e6b59bbb6":7890,"4f3e8b32c7":10488,"50100b44ed":19070,"5119081121":40758,"570270e889":8820,"5b3e8dc54a":43500,"5b9d51e6b7":20622,"5c60dddb69":84898,"5ce85f6bff":22310,"5d30b20b07":4312,"5d31cb54dd":7718,"5e82ba1ae2":3734,"5ee29c4123":8204,"618dbea250":42652,"61b3955d9f":17628,"61fd3f65fd":5056,"63e60a3043":9120,"6926117240":49654,"6bcc98a2e3":64638,"6c122a7f55":8828,"7253bdb4e8":5200,"75b1912b84":9190,"78be494e19":7540,"79b29a979e":4084,"7a7b40698f":8222,"7c244511a3":21972,"7d2063952e":8430,"7f0c92db55":13228,"7fe18eeba5":42532,"83dce1ff8f":8230,"84f363fc17":329758,"86910414eb":3768,"8a48ed946c":8514,"8bc28d1a19":7912,"8c21454cb4":20088,"9467bd84f3":44016,"9aa29e9f74":18846,"9d41881c06":14718,"a7b3b6e5df":4146,"ab0d5f8c1e":50392,"ab34ae6f67":8184,"ade75c2b78":4602,"af9e5c8a26":4406,"afc4644a67":8034,"b3fe11f51d":1614,"b5bc05f8ee":8306,"b6a9b97e5e":4212,"b87d95aa6d":50016,"b984a589cc":2556,"be1f9d5263":3956,"c0c079ea24":4838,"c0d31af1d3":7694,"c157ee8e95":5218,"c66b3d970e":4726,"c674e7dcd1":3466,"c99312b058":16056,"cb75565199":22852,"ce3317f742":8074,"d22ddd3e5c":7926,"d3e8008609":3842,"d58d69722b":4552,"dbc653bd53":9240,"e017be6322":8052,"e3191e0aef":7806,"e6b50732bf":5236,"ebfe3d1fcb":18948,"edecb8ccb5":13164,"ee0241740d":7726,"ef583574ae":3322,"f0f3ff34fd":4456,"f21b395217":8074,"f37c4c56af":22142,"f61d25d424":8458,"f93e6d58f7":11162},TOT=0,DONE=0,SISA=0,mulai=0;for(var k in FILES)TOT+=FILES[k];
+ function mb(x){return (x/1048576).toFixed(1).replace('.',',')}
+ function tampil(){$i('ldMb').textContent=mb(DONE)+' / '+mb(TOT)+' MB  ('+Math.round(DONE/TOT*100)+'%)';$i('ldg').querySelector('.lbar u').style.width=(DONE/TOT*100)+'%'}
+ // menu baru dibuka setelah semua gambar selesai DAN kode game siap
+ window.kgCek=function(){if(mulai&&!SISA&&window.KG_READY){tampil();setTimeout(function(){$i('ldg').classList.remove('on')},250)}};
+ function unduh(){if(mulai)return;mulai=1;$i('ldg').classList.add('on');
+  for(var n in FILES)(function(n){SISA++;var im=new _I(),t=0;im.onload=im.onerror=function(){if(t)return;t=1;DONE+=FILES[n];SISA--;tampil();kgCek()};im.src='gambar-game/'+n+'.webp'})(n);
+  tampil();kgCek()}
+ function pick(m){window.KG_DEV=m;D.body.classList.add('dev-'+m);$i('dev').classList.add('off');unduh();
   if(!window.KG_READY)$i('ldg').classList.add('on');if(m=='hp'&&!fsEl())hp()}
  $i('dvHP').onclick=function(){pick('hp')};$i('dvPC').onclick=function(){pick('pc')};
  $i('rotX').onclick=function(){$i('rot').classList.remove('on')};
@@ -1049,5 +1058,5 @@ onkeydown=e=>{if(e.key.length==1&&'uio'.includes(e.key)){inp.s='uio'.indexOf(e.k
 onkeyup=e=>{const k=km[e.key];if(k&&!'as'.includes(k))inp[k]=0};
 
 ['aGo','bOnl','bPk'].forEach(id=>{const b=$('#'+id),f=b.onclick;if(f)b.onclick=e=>kgWait(()=>f.call(b,e))});
-window.KG_READY=1;$('#ldg').classList.remove('on');
+window.KG_READY=1;kgCek();
 </script></body></html>
