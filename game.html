@@ -164,6 +164,7 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 .tms{height:6.6cqw;border:.2cqw solid #2a3350;border-radius:.9cqw;display:flex;align-items:center;gap:.9cqw;padding:0 .9cqw;font:700 1.45cqw Arial;text-align:left;position:relative;background:#0e1526}
 .tms i{width:4.6cqw;height:4.6cqw;border-radius:50%;background:#1a1030 center/cover;flex:none;border:.2cqw solid #4aa8ff}.tmt.r .tms i{border-color:#ff5a4f}
 .tms small{display:block;font:1.05cqw Arial;color:#9aa3b8}.tms.me{border-color:#ffb703}.tms.kos{justify-content:center;color:#5d6680;font-weight:400}
+.tms.kos.add{color:#ffd166;border-style:dashed;border-color:#8a6d2a;cursor:pointer;font-weight:700}.tms.bot{cursor:pointer}.tms .bx{position:absolute;right:.6cqw;top:50%;transform:translateY(-50%);font:700 1.2cqw Arial;color:#fff;background:#5a0f12;border:.15cqw solid #ff3b30;border-radius:1cqw;padding:.15cqw .7cqw;cursor:pointer}
 .tms b{position:absolute;right:.7cqw;top:50%;transform:translateY(-50%);font-size:1.3cqw}.tmt .btn{margin-top:auto;font-size:1.5cqw;padding:.5cqw 1cqw}
 .tmm{border:.25cqw solid #c9b27a;border-radius:1.2cqw;background:#0b1020e6;padding:1cqw;display:flex;flex-direction:column;gap:.7cqw;align-items:center;text-align:center}
 .tmm h4{margin:0;font:700 1.2cqw Arial;color:#ffd166;letter-spacing:.1cqw}.tmr{display:flex;gap:.6cqw;flex-wrap:wrap;justify-content:center}
@@ -860,7 +861,9 @@ function tmNet(m){
 function tmlRender(){const r=TM.room;if(!r)return;const meP=r.pl.find(p=>p.i===r.me)||{};
  $('#tmlCode').innerHTML='Kode room: <b>'+r.code+'</b> · '+r.pl.length+'/6 pemain';
  const slot=t=>{const L=r.pl.filter(p=>p.tm===t);let h='';for(let k=0;k<r.max;k++){const p=L[k];
-   h+=p?`<div class="tms ${p.i===r.me?'me':''}"><i style="background-image:url(${heroHead(CH[p.h]?p.h:'pocong')});filter:${skinF(p.s)}"></i><div>${esc(p.n)}<small>${CH[p.h]?CH[p.h].n:''}${p.i===r.me?' · Anda':''}</small></div><b>${p.i===r.hostId?'👑':p.r?'✔':'⏳'}</b></div>`:'<div class="tms kos">kosong</div>'}
+   h+=p&&p.bot?`<div class="tms bot" ${r.host?`data-bh="${p.i}" title="Ketuk untuk ganti hero bot"`:''}><i style="background-image:url(${heroHead(CH[p.h]?p.h:'pocong')})"></i><div>🤖 ${esc(p.n)}<small>${CH[p.h]?CH[p.h].n:''} · komputer${r.host?' · ketuk ganti hero':''}</small></div>${r.host?`<span class="bx" data-bdel="${p.i}">✖</span>`:'<b>🤖</b>'}</div>`
+    :p?`<div class="tms ${p.i===r.me?'me':''}"><i style="background-image:url(${heroHead(CH[p.h]?p.h:'pocong')});filter:${skinF(p.s)}"></i><div>${esc(p.n)}<small>${CH[p.h]?CH[p.h].n:''}${p.i===r.me?' · Anda':''}</small></div><b>${p.i===r.hostId?'👑':p.r?'✔':'⏳'}</b></div>`
+    :r.host?`<div class="tms kos add" data-badd="${t}">+ Tambah Bot</div>`:'<div class="tms kos">kosong</div>'}
   $(t?'#tmR':'#tmB').innerHTML=h;$(t?'#tmnR':'#tmnB').textContent=L.length+'/'+r.max};slot(0);slot(1);
  document.querySelectorAll('#tml [data-tm]').forEach(b=>{const t=+b.dataset.tm;b.style.display=meP.tm===t?'none':'';b.disabled=r.pl.filter(p=>p.tm===t).length>=r.max});
  const heroes=ALL.filter(a=>a[0]!='x').map(a=>{const ok=punyaHero(a[0]);return `<span class="ch ${meP.h==a[0]?'on':''} ${ok?'':'dis'}" ${ok?`data-h="${a[0]}"`:''}><i style="background-image:url(${heroHead(a[0])})"></i>${ok?'':'🔒 '}${a[1]}</span>`}).join('');
@@ -869,10 +872,13 @@ function tmlRender(){const r=TM.room;if(!r)return;const meP=r.pl.find(p=>p.i===r
   ${host?'<div class="onsm">Anda pembuat room (wasit)</div>':`<button id="tmlRdy" class="${meP.r?'ok':''}">${meP.r?'✔ SIAP (ketuk untuk batal)':'Tekan untuk SIAP'}</button>`}
   <h4>ARENA${host?'':' · dipilih pembuat room'}</h4><div class="tmr">${ARENAS.map((a,i)=>`<span class="ch ${i==r.a?'on':''} ${host?'':'dis'}" ${host?`data-a="${i}"`:''}>${a.n}</span>`).join('')}</div>
   <h4>TARGET KILL TIM</h4><div class="tmr">${[3,5,10,15,20].map(k=>`<span class="ch ${k==r.kw?'on':''} ${host?'':'dis'}" ${host?`data-kw="${k}"`:''}>${k}</span>`).join('')}</div>`;
- const nB=r.pl.filter(p=>p.tm===0).length,nR=r.pl.filter(p=>p.tm===1).length,blm=r.pl.filter(p=>p.i!==r.hostId&&!p.r).length;
+ const nB=r.pl.filter(p=>p.tm===0).length,nR=r.pl.filter(p=>p.tm===1).length,blm=r.pl.filter(p=>p.i!==r.hostId&&!p.r).length,nBot=r.pl.filter(p=>p.bot).length;
  const g=$('#tmlGo');g.style.display=host?'':'none';g.disabled=!(nB&&nR&&!blm);
- $('#tmlInfo').textContent=!nB||!nR?'Tiap tim minimal 1 pemain · bagikan kode room ke teman':blm?'Menunggu '+blm+' pemain menekan SIAP…':host?nB+' vs '+nR+' siap! Tekan MULAI DUEL':'Semua siap · menunggu pembuat room memulai…'}
-$('#tml').addEventListener('click',e=>{const r=TM.room;if(!r)return;const t=e.target.closest('[data-tm],[data-h],[data-a],[data-kw],#tmlRdy');if(!t)return;
+ $('#tmlInfo').textContent=!nB||!nR?(host?'Tiap tim minimal 1 pemain · bagikan kode room atau tambah bot':'Tiap tim minimal 1 pemain · menunggu pemain lain'):blm?'Menunggu '+blm+' pemain menekan SIAP…':host?nB+' vs '+nR+(nBot?' (termasuk '+nBot+' bot)':'')+' siap! Tekan MULAI DUEL':'Semua siap · menunggu pembuat room memulai…'}
+$('#tml').addEventListener('click',e=>{const r=TM.room;if(!r)return;const t=e.target.closest('[data-bdel],[data-badd],[data-bh],[data-tm],[data-h],[data-a],[data-kw],#tmlRdy');if(!t)return;
+ if(t.dataset.bdel){netSend({t:'tmBotDel',i:+t.dataset.bdel});return}
+ if(t.dataset.badd!=null){netSend({t:'tmBot',tm:+t.dataset.badd});return}
+ if(t.dataset.bh){const b=r.pl.find(p=>p.i==t.dataset.bh),hs=ALL.filter(a=>a[0]!='x').map(a=>a[0]);netSend({t:'tmBotDel',i:+t.dataset.bh,h:hs[(hs.indexOf(b&&b.h)+1)%hs.length]});return}
  if(t.dataset.tm!=null)netSend({t:'tmSet',tm:+t.dataset.tm});
  else if(t.dataset.h){pick=t.dataset.h;netSend({t:'tmSet',h:pick,s:skinOf(pick)})}
  else if(t.dataset.a!=null){setArena(+t.dataset.a);netSend({t:'tmCfg',a:+t.dataset.a})}
@@ -882,7 +888,7 @@ $('#tmlGo').onclick=()=>netSend({t:'tmGo'});
 $('#tmlOut').onclick=()=>{netSend({t:'leave'});TM.room=null;netStop();sc('onl');oStat('Anda keluar dari room')};
 // layar VS tim ±3 detik lalu bertanding
 function tmBegin(m){clearTimeout(TM.vsT);NET.on=1;NET.team=1;NET.inGame=1;NET.role=m.host===m.me?'host':'guest';KW=m.kw||10;setArena(m.a|0);
- const R=m.pl.map(p=>({h:CH[p.h]?p.h:'pocong',side:p.tm,s:SKINS[p.s]&&SKINS[p.s].h==p.h?p.s:'',nm:p.n,id:p.i,me:p.i===m.me}));
+ const R=m.pl.map(p=>({h:CH[p.h]?p.h:'pocong',side:p.tm,s:SKINS[p.s]&&SKINS[p.s].h==p.h?p.s:'',nm:(p.bot?'🤖 ':'')+p.n,id:p.i,me:p.i===m.me,bot:p.bot&&m.host===m.me?1:0}));
  const meT=(m.pl.find(p=>p.i===m.me)||{}).tm|0,kol=t=>R.filter(r=>r.side===t).map(r=>`<div class="tp"><i style="background-image:url(${heroHead(r.h)});filter:${skinF(r.s)}"></i><div>${esc(r.nm)}<small>${CH[r.h].n}${r.me?' · Anda':''}</small></div></div>`).join('');
  const nB=R.filter(r=>r.side===0).length,nR=R.length-nB;
  $('#vsx').innerHTML=`<div class="vbg" style="background-image:url(${ARENAS[m.a|0].img.src})"></div><div class="vig"></div>

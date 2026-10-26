@@ -92,9 +92,11 @@ function newCode() {
 const TM_MAX = 3;                       // maks pemain per tim
 const TM_KW = [3, 5, 10, 15, 20];       // pilihan target kill
 const trooms = new Map();               // kode → {code, host, pl:[ws], state:'lobby'|'game', a, kw}
-const tmCount = (r, t) => r.pl.filter(w => w.tmT === t).length;
+const tmCount = (r, t) => r.pl.filter(w => w.tmT === t).length + r.bots.filter(b => b.tm === t).length;   // bot ikut dihitung
+let botSeq = 0;
 function tmRoomMsg(r) {
-  const pl = r.pl.map(w => ({ i: w.id, n: w.name, h: w.hero, s: w.skin || '', tm: w.tmT, r: w.tmR ? 1 : 0 }));
+  const pl = r.pl.map(w => ({ i: w.id, n: w.name, h: w.hero, s: w.skin || '', tm: w.tmT, r: w.tmR ? 1 : 0 }))
+    .concat(r.bots.map(b => ({ i: b.i, n: b.n, h: b.h, s: '', tm: b.tm, r: 1, bot: 1 })));
   r.pl.forEach(w => send(w, { t: 'tmRoom', code: r.code, host: r.host === w, me: w.id, hostId: r.host && r.host.id, a: r.a, kw: r.kw, state: r.state, pl, max: TM_MAX }));
 }
 function tmJoin(ws, r) {
@@ -121,7 +123,7 @@ function tmMsg(ws, m, raw) {
   switch (m.t) {
     case 'tmCreate': {
       leave(ws); const code = newCode();
-      const room = { code, host: null, pl: [], state: 'lobby', a: ws.arena || 0, kw: 10 };
+      const room = { code, host: null, pl: [], bots: [], state: 'lobby', a: ws.arena || 0, kw: 10 };
       trooms.set(code, room); tmJoin(ws, room); return;
     }
     case 'tmSet': {   // pemain mengubah tim / hero / siap (hanya di lobby)
@@ -137,13 +139,28 @@ function tmMsg(ws, m, raw) {
       if (TM_KW.includes(m.kw | 0)) r.kw = m.kw | 0;
       tmRoomMsg(r); return;
     }
+    case 'tmBot': {   // pembuat room menambah bot ke tim (slot kosong)
+      if (!r || r.host !== ws || r.state !== 'lobby') return;
+      const tm = m.tm === 1 ? 1 : 0;
+      if (tmCount(r, tm) >= TM_MAX) { send(ws, { t: 'err', msg: 'Tim itu sudah penuh' }); return; }
+      const h = HEROES.includes(m.h) ? m.h : HEROES[Math.floor(Math.random() * HEROES.length)];
+      let k = 1; while (r.bots.some(b => b.n === 'Bot ' + k)) k++;
+      r.bots.push({ i: -(++botSeq), n: 'Bot ' + k, h, tm });
+      tmRoomMsg(r); return;
+    }
+    case 'tmBotDel': {   // hapus bot / ganti hero bot
+      if (!r || r.host !== ws || r.state !== 'lobby') return;
+      const b = r.bots.find(x => x.i === (m.i | 0)); if (!b) return;
+      if (HEROES.includes(m.h)) b.h = m.h; else r.bots = r.bots.filter(x => x !== b);
+      tmRoomMsg(r); return;
+    }
     case 'tmGo': {
       if (!r || r.host !== ws || r.state !== 'lobby') return;
       if (!tmCount(r, 0) || !tmCount(r, 1)) { send(ws, { t: 'err', msg: 'Tiap tim minimal 1 pemain' }); return; }
       if (r.pl.some(w => w !== r.host && !w.tmR)) { send(ws, { t: 'err', msg: 'Tunggu semua pemain menekan SIAP' }); return; }
       r.state = 'game';
-      const order = r.pl.filter(w => w.tmT === 0).concat(r.pl.filter(w => w.tmT === 1));
-      const pl = order.map(w => ({ i: w.id, n: w.name, h: w.hero, s: w.skin || '', tm: w.tmT }));
+      const ppl = w => ({ i: w.id, n: w.name, h: w.hero, s: w.skin || '', tm: w.tmT }), pbot = b => ({ i: b.i, n: b.n, h: b.h, s: '', tm: b.tm, bot: 1 });
+      const pl = [0, 1].flatMap(t => r.pl.filter(w => w.tmT === t).map(ppl).concat(r.bots.filter(b => b.tm === t).map(pbot)));
       r.pl.forEach(w => send(w, { t: 'tmStart', pl, me: w.id, host: r.host.id, a: r.a, kw: r.kw, code: r.code }));
       console.log(new Date().toISOString(), 'duel tim mulai', r.code, pl.map(x => (x.tm ? 'M:' : 'B:') + x.n).join(', '));
       return;
@@ -313,7 +330,7 @@ wss.on('connection', (ws, req) => {
         const tr = trooms.get(code);
         if (tr) {   // kode milik room Duel Tim
           if (tr.state !== 'lobby') { send(ws, { t: 'err', msg: 'Room ini sedang bertanding, tunggu selesai' }); break; }
-          if (tr.pl.length >= TM_MAX * 2) { send(ws, { t: 'err', msg: 'Room sudah penuh (3 vs 3)' }); break; }
+          if (tmCount(tr, 0) + tmCount(tr, 1) >= TM_MAX * 2) { send(ws, { t: 'err', msg: tr.bots.length ? 'Room penuh — minta pembuat room menghapus 1 bot' : 'Room sudah penuh (3 vs 3)' }); break; }
           if (tr.pl.includes(ws)) break;
           tmJoin(ws, tr); break;
         }
