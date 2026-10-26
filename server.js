@@ -1,5 +1,5 @@
 // Kalensari Game – server online (lobi, kode room, cari lawan acak, penerus data pertandingan)
-// Mode: Duel 1 vs 1 (2 pemain) dan Parkur Hantu (balapan, maks 6 pemain per room)
+// Mode: Duel 1 vs 1 (2 pemain), Duel Tim custom (1-3 vs 1-3) dan Parkur Hantu (balapan, maks 6 pemain per room)
 // Jalankan: node server.js   (port bawaan 8090, hanya mendengar di 127.0.0.1; diakses lewat Nginx wss://game.kalensari.web.id/ws)
 const http = require('http');
 const crypto = require('crypto');
@@ -65,7 +65,7 @@ let nextId = 1;
 const server = http.createServer((req, res) => {
   if (req.url === '/' || req.url === '/health') {
     res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
-    res.end(`Kalensari Game Server OK – online: ${wss.clients.size}, room: ${rooms.size}, antre: ${queue.length}, room parkur: ${prooms.size}\n`);
+    res.end(`Kalensari Game Server OK – online: ${wss.clients.size}, room: ${rooms.size}, antre: ${queue.length}, room parkur: ${prooms.size}, room tim: ${trooms.size}\n`);
   } else { res.writeHead(404); res.end(); }
 });
 server.on('upgrade', (req, socket) => {
@@ -82,8 +82,82 @@ const clean = (s, n) => String(s || '').replace(/[<>]/g, '').trim().slice(0, n);
 
 function newCode() {
   let c;
-  do { c = String(Math.floor(1000 + Math.random() * 9000)); } while (rooms.has(c) || prooms.has(c));
+  do { c = String(Math.floor(1000 + Math.random() * 9000)); } while (rooms.has(c) || prooms.has(c) || trooms.has(c));
   return c;
+}
+
+// =================== DUEL TIM CUSTOM (1-3 vs 1-3) ===================
+// Pembuat room = wasit (menjalankan pertandingan & mengirim keadaan 'st' ke semua);
+// tamu mengirim tombol 'in' → server menambahkan w = id pengirim lalu meneruskan ke pembuat room.
+const TM_MAX = 3;                       // maks pemain per tim
+const TM_KW = [3, 5, 10, 15, 20];       // pilihan target kill
+const trooms = new Map();               // kode → {code, host, pl:[ws], state:'lobby'|'game', a, kw}
+const tmCount = (r, t) => r.pl.filter(w => w.tmT === t).length;
+function tmRoomMsg(r) {
+  const pl = r.pl.map(w => ({ i: w.id, n: w.name, h: w.hero, s: w.skin || '', tm: w.tmT, r: w.tmR ? 1 : 0 }));
+  r.pl.forEach(w => send(w, { t: 'tmRoom', code: r.code, host: r.host === w, me: w.id, hostId: r.host && r.host.id, a: r.a, kw: r.kw, state: r.state, pl, max: TM_MAX }));
+}
+function tmJoin(ws, r) {
+  leave(ws);
+  const t0 = tmCount(r, 0), t1 = tmCount(r, 1);
+  ws.tmT = t0 <= t1 ? (t0 < TM_MAX ? 0 : 1) : (t1 < TM_MAX ? 1 : 0); ws.tmR = 0;
+  r.pl.push(ws); ws.troom = r.code; if (!r.host) r.host = ws;
+  tmRoomMsg(r);
+}
+function tmLeave(ws) {
+  const r = ws.troom && trooms.get(ws.troom); ws.troom = null;
+  if (!r) return;
+  r.pl = r.pl.filter(w => w !== ws);
+  if (!r.pl.length) { trooms.delete(r.code); return; }
+  const wasHost = r.host === ws;
+  if (wasHost) r.host = r.pl[0];
+  if (r.state === 'game') {
+    r.pl.forEach(w => send(w, { t: 'tmLeft', i: ws.id, host: wasHost ? 1 : 0 }));
+    if (wasHost) { r.state = 'lobby'; r.pl.forEach(w => { w.tmR = 0; }); tmRoomMsg(r); }   // wasit keluar → pertandingan berhenti
+  } else tmRoomMsg(r);
+}
+function tmMsg(ws, m, raw) {
+  const r = ws.troom && trooms.get(ws.troom);
+  switch (m.t) {
+    case 'tmCreate': {
+      leave(ws); const code = newCode();
+      const room = { code, host: null, pl: [], state: 'lobby', a: ws.arena || 0, kw: 10 };
+      trooms.set(code, room); tmJoin(ws, room); return;
+    }
+    case 'tmSet': {   // pemain mengubah tim / hero / siap (hanya di lobby)
+      if (!r || r.state !== 'lobby') return;
+      if ((m.tm === 0 || m.tm === 1) && m.tm !== ws.tmT) { if (tmCount(r, m.tm) >= TM_MAX) { send(ws, { t: 'err', msg: 'Tim itu sudah penuh (' + TM_MAX + ' pemain)' }); return; } ws.tmT = m.tm; ws.tmR = 0; }
+      if (HEROES.includes(m.h)) { if (m.h !== ws.hero) ws.tmR = 0; ws.hero = m.h; ws.skin = clean(m.s, 20); }
+      if (m.r != null) ws.tmR = m.r ? 1 : 0;
+      tmRoomMsg(r); return;
+    }
+    case 'tmCfg': {   // pembuat room: arena & target kill
+      if (!r || r.host !== ws || r.state !== 'lobby') return;
+      if (m.a != null) r.a = Math.max(0, Math.min(9, m.a | 0));
+      if (TM_KW.includes(m.kw | 0)) r.kw = m.kw | 0;
+      tmRoomMsg(r); return;
+    }
+    case 'tmGo': {
+      if (!r || r.host !== ws || r.state !== 'lobby') return;
+      if (!tmCount(r, 0) || !tmCount(r, 1)) { send(ws, { t: 'err', msg: 'Tiap tim minimal 1 pemain' }); return; }
+      if (r.pl.some(w => w !== r.host && !w.tmR)) { send(ws, { t: 'err', msg: 'Tunggu semua pemain menekan SIAP' }); return; }
+      r.state = 'game';
+      const order = r.pl.filter(w => w.tmT === 0).concat(r.pl.filter(w => w.tmT === 1));
+      const pl = order.map(w => ({ i: w.id, n: w.name, h: w.hero, s: w.skin || '', tm: w.tmT }));
+      r.pl.forEach(w => send(w, { t: 'tmStart', pl, me: w.id, host: r.host.id, a: r.a, kw: r.kw, code: r.code }));
+      console.log(new Date().toISOString(), 'duel tim mulai', r.code, pl.map(x => (x.tm ? 'M:' : 'B:') + x.n).join(', '));
+      return;
+    }
+    case 'tmOver': if (r && r.host === ws && r.state === 'game') { r.state = 'lobby'; r.pl.forEach(w => { w.tmR = 0; }); tmRoomMsg(r); } return;
+    case 'tmBack': if (r) tmRoomMsg(r); return;
+  }
+}
+function tmRelay(ws, m, raw) {   // data pertandingan tim
+  const r = ws.troom && trooms.get(ws.troom);
+  if (!r || r.state !== 'game') return false;
+  if (m.t === 'st' && r.host === ws) { const str = raw.toString(); r.pl.forEach(w => { if (w !== ws) send(w, str); }); return true; }
+  if (m.t === 'in' && r.host !== ws) { m.w = ws.id; send(r.host, m); return true; }
+  return false;
 }
 
 // =================== PARKUR HANTU ONLINE ===================
@@ -180,6 +254,7 @@ function pkMsg(ws, m, raw) {
 function leave(ws, notify = true) {
   queue = queue.filter(q => q !== ws);
   pkLeave(ws);
+  tmLeave(ws);
   const r = ws.room && rooms.get(ws.room);
   ws.room = null;
   if (!r) return;
@@ -198,7 +273,7 @@ function begin(r) {
 
 wss.on('connection', (ws, req) => {
   ws.id = nextId++; ws.alive = true; ws.name = 'Pemain'; ws.hero = 'pocong'; ws.arena = 0;
-  ws.room = null; ws.proom = null; ws.skin = ''; ws.win = Date.now(); ws.cnt = 0;
+  ws.room = null; ws.proom = null; ws.troom = null; ws.tmT = 0; ws.tmR = 0; ws.skin = ''; ws.win = Date.now(); ws.cnt = 0;
   ws.on('pong', () => { ws.alive = true; });
   ws.on('message', raw => {
     // batasi banjir pesan: maks 150 pesan / detik per pemain
@@ -208,6 +283,8 @@ wss.on('connection', (ws, req) => {
     let m; try { m = JSON.parse(raw); } catch { return; }
     if (!m || typeof m.t !== 'string') return;
     if (m.t.startsWith('pk')) return pkMsg(ws, m, raw);
+    if (m.t.startsWith('tm')) return tmMsg(ws, m, raw);
+    if (ws.troom && tmRelay(ws, m, raw)) return;
     const r = ws.room && rooms.get(ws.room);
 
     // data pertandingan diteruskan apa adanya ke lawan
@@ -233,6 +310,13 @@ wss.on('connection', (ws, req) => {
       }
       case 'join': {
         const code = clean(m.code, 6);
+        const tr = trooms.get(code);
+        if (tr) {   // kode milik room Duel Tim
+          if (tr.state !== 'lobby') { send(ws, { t: 'err', msg: 'Room ini sedang bertanding, tunggu selesai' }); break; }
+          if (tr.pl.length >= TM_MAX * 2) { send(ws, { t: 'err', msg: 'Room sudah penuh (3 vs 3)' }); break; }
+          if (tr.pl.includes(ws)) break;
+          tmJoin(ws, tr); break;
+        }
         const pr = prooms.get(code);
         if (pr) {   // kode milik room Parkur Hantu
           if (pr.state !== 'lobby') { send(ws, { t: 'err', msg: 'Balapan di room ini sedang berjalan, tunggu selesai' }); break; }
