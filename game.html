@@ -2,7 +2,7 @@
 <html lang="id"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kalensari Game – Duel 1 vs 1</title>
-<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
 :root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--red:#c1121f;--gold:#ffb703;--ink:#f2efe9}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;touch-action:none}
@@ -140,8 +140,36 @@ small{font-size:1.5cqw;color:#9aa3b8}
 #rot .ph:after{content:'';position:absolute;left:50%;bottom:6px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#f2efe9}
 @keyframes rt{0%,20%{transform:rotate(0)}50%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
 #rot button{font:700 15px Arial;color:#f2efe9;background:#101a33;border:2px solid #2c3f73;border-radius:8px;padding:9px 26px}
+#dev{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:radial-gradient(#141b33,#03050b);color:#f2efe9;font:600 16px Arial,sans-serif;text-align:center;padding:24px}
+#dev.off{display:none}#dev h1{font-size:clamp(34px,8vw,64px);transform:rotate(-3deg)}#dev p{margin:0;color:#9aa3b8}
+#dev .dvr{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+#dev button{width:150px;padding:18px 10px;border-radius:14px;border:3px solid #2c3f73;background:#101a33;color:#f2efe9;font:700 18px Arial;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px}
+#dev button b{font-size:46px;line-height:1}#dev button small{font-size:12px;color:#9aa3b8;font-weight:400}#dev button.g{background:#ffb703;color:#201400;border-color:#ffd166}#dev button.g small{color:#5a3d00}
+body.pc #joy,body.pc #pkJoy{display:none}
+#ldg{position:fixed;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(#141b33,#03050b);color:#f2efe9;font:600 16px Arial,sans-serif;text-align:center}
+#ldg.on{display:flex}#ldg i{width:46px;height:46px;border-radius:50%;border:5px solid #2c3f73;border-top-color:#ffb703;animation:ldsp .8s linear infinite}#ldg small{color:#9aa3b8;font-size:13px}
+@keyframes ldsp{to{transform:rotate(360deg)}}
 </style></head><body>
+<div id="dev"><h1>KALENSARI<i style="display:block;color:#c1121f;font-style:normal">GAME</i></h1><p>Main pakai apa?</p>
+<div class="dvr"><button class="g" id="dvHP"><b>📱</b>HP<small>Layar penuh &amp; miring otomatis</small></button><button id="dvPC"><b>💻</b>PC / Laptop<small>Main pakai keyboard</small></button></div></div>
 <div id="rot"><div class="ph"></div><b>Putar HP ke posisi miring</b><span id="rotT">HP Anda tidak bisa memiringkan layar otomatis — putar HP secara manual</span><button id="rotX">Tutup</button></div>
+<div id="ldg"><i></i><b>Memuat game…</b><small>Pertama kali butuh beberapa detik, tunggu sebentar</small></div>
+<script>
+// Pilihan HP/PC langsung bisa ditekan walau isi game (gambar) masih diunduh
+(function(){var D=document,$i=function(x){return D.getElementById(x)};window.KG_DEV='';
+ function fsEl(){return D.fullscreenElement||D.webkitFullscreenElement}
+ function rot(){if(innerHeight>innerWidth)$i('rot').classList.add('on')}
+ function hp(){var d=D.documentElement,p;
+  try{p=d.requestFullscreen?d.requestFullscreen({navigationUI:'hide'}):(d.webkitRequestFullscreen&&d.webkitRequestFullscreen())}catch(e){}
+  function lk(){try{screen.orientation.lock('landscape').catch(rot)}catch(e){rot()}}
+  if(p&&p.then)p.then(lk,lk);else lk()}
+ function pick(m){window.KG_DEV=m;D.body.classList.add(m);$i('dev').classList.add('off');
+  if(!window.KG_READY)$i('ldg').classList.add('on');if(m=='hp'&&!fsEl())hp()}
+ $i('dvHP').onclick=function(){pick('hp')};$i('dvPC').onclick=function(){pick('pc')};
+ $i('rotX').onclick=function(){$i('rot').classList.remove('on')};
+ addEventListener('resize',function(){if(innerWidth>innerHeight)$i('rot').classList.remove('on')});
+})();
+</script>
 <div id="wrap">
 <canvas id="cv" width="800" height="400"></canvas>
 <div id="menu" class="scr on"><h1>KALENSARI<i>GAME</i></h1><div class="d" style="font-size:2.8cqw">Duel 1 vs 1</div>
@@ -295,6 +323,11 @@ function landLbl(){$('#bLand').textContent=fsEl()?'↩ Keluar Layar Penuh':'📱
 document.addEventListener('fullscreenchange',landLbl);document.addEventListener('webkitfullscreenchange',landLbl);
 addEventListener('resize',()=>{if(innerWidth>innerHeight)$('#rot').classList.remove('on')});
 $('#bLand').onclick=landscape;$('#rotX').onclick=()=>$('#rot').classList.remove('on');
+// ===== PILIH PERANGKAT (HP / PC) sebelum masuk game =====
+let fsKeluar=0;
+$('#bLand').onclick=()=>{fsKeluar=!!fsEl();landscape()};
+// mode HP: kalau layar penuh tertutup (mis. tombol kembali), ketukan berikutnya otomatis masuk layar penuh miring lagi
+document.addEventListener('pointerdown',e=>{if(window.KG_DEV=='hp'&&!fsEl()&&!fsKeluar&&!e.target.closest('#bLand,#rot,#dev'))landscape()},true);
 function agrid(){$('#agrid').innerHTML=ARENAS.map((a,i)=>`<div class="acard ${i==arenaIdx?'sel':''}" data-i="${i}"><i style="background-image:url(${a.th})"></i>${a.n}</div>`).join('');
  document.querySelectorAll('.acard').forEach(c=>c.onclick=()=>{setArena(+c.dataset.i);agrid()})}
 $('#bMain').onclick=$('#bGo').onclick=()=>{agrid();sc('ars')};$('#aBack').onclick=()=>sc('menu');$('#aGo').onclick=()=>start();$('#bNext').onclick=()=>{playing=0;if(NET.on)netEnd();sc('menu')};
@@ -1005,4 +1038,6 @@ function bindSkill(i,btn,fire){const b=btn||$('#bS'+i),C=$('#cancel'),Wh=$('#whe
 const km={ArrowLeft:'l',a:'l',ArrowRight:'r',d:'r',ArrowUp:'u',w:'u',' ':'u',j:'a',s:'d',ArrowDown:'d'};
 onkeydown=e=>{if(e.key.length==1&&'uio'.includes(e.key)){inp.s='uio'.indexOf(e.key)+1;return}if(e.key=='k'){inp.fl=1;return}if(e.key=='l'){inp.rg=1;return}const k=km[e.key];if(k){inp[k]=1;e.preventDefault()}};
 onkeyup=e=>{const k=km[e.key];if(k&&!'as'.includes(k))inp[k]=0};
+
+window.KG_READY=1;$('#ldg').classList.remove('on');
 </script></body></html>
