@@ -317,7 +317,14 @@ const ALL=[['pocong','Ocong','#e9e6df'],['kuntilanak','Kunti','#7b2cbf'],['x','G
 const GRATIS=['pocong'];   // hero yang bisa dipakai tanpa kartu
 const SKINS={              // id skin = 'hero:nama' (sama dengan isian "item" saat admin membuat kartu skin)
  'kuntilanak:merah':{h:'kuntilanak',n:'Kunti Merah',f:'hue-rotate(-40deg) saturate(2.2)'},
- 'pocong:emas':{h:'pocong',n:'Ocong Emas',f:'sepia(.9) saturate(2.4) hue-rotate(-8deg) brightness(1.05)'}};
+ 'pocong:emas':{h:'pocong',n:'Ocong Emas',f:'sepia(.9) saturate(2.4) hue-rotate(-8deg) brightness(1.05)'},
+ 'pocong:boneka':{h:'pocong',n:'Ocong Boneka Horor',f:'none',spr:'gambar-game/skin-boneka/'}};   // skin model 3D (render Blender)
+// ===== SKIN MODEL 3D: badan diganti gambar render Blender (8 arah + kepala). Skill & efek tetap milik hero aslinya =====
+// file di folder skin: arah-0..7 (0 depan,1 depan-kanan,2 kanan,3 blk-kanan,4 belakang,5 blk-kiri,6 kiri,7 depan-kiri), lompat-<arah>-0..3, guling-0..7, kalah-0..5, kepala (.webp)
+const SKSP={};
+Object.entries(SKINS).forEach(([id,v])=>{if(!v.spr)return;const ld=n=>{const i=new Image();i.onerror=()=>{if(!i._png){i._png=1;i.src=v.spr+n+'.png'}};i.src=v.spr+n+'.webp';return i};
+ const N8=[0,1,2,3,4,5,6,7];SKSP[id]={d:N8.map(k=>ld('arah-'+k)),j:N8.map(i=>[0,1,2,3].map(k=>ld('lompat-'+i+'-'+k))),r:N8.map(k=>ld('guling-'+k)),k:[0,1,2,3,4,5].map(k=>ld('kalah-'+k)),head:ld('kepala'),h:165,b:6}});
+const spOk=im=>!!(im&&im.complete&&im.naturalWidth),spOf=s=>{const S=s&&SKSP[s];return S&&spOk(S.d[0])?S:null};
 let KOL={login:false,hero:[],skin:[],kartu:[]};
 const punyaHero=h=>GRATIS.includes(h)||KOL.hero.includes(h),punyaSkin=s=>KOL.skin.includes(s);
 let skinPick=(()=>{try{return JSON.parse(localStorage.getItem('kgSkin')||'{}')||{}}catch(e){return{}}})();
@@ -355,10 +362,10 @@ function setArena(i){arenaIdx=i;AR=ARENAS[i];CSZ=AR.cs||1;ARENA=AR.img;WW=AR.w*A
 const inBush=f=>BUSH.findIndex(b=>((f.x-b.x)/b.rx)**2+((f.y-b.y)/b.ry)**2<=1);
 // apakah 'v' bisa melihat 't'? (t di semak = tersembunyi, kecuali menyerang/kena serang, satu semak, atau sangat dekat)
 function seen(v,t){if(t.dead||t.gone)return false;if(v.side===t.side)return true;const b=inBush(t);return b<0||t.rev>0||inBush(v)===b||Math.hypot(t.x-v.x,t.y-v.y)<85}let SFX=[],LPF=34,DN=[],FXS=[],first=1,kbT=0;
-const headOf=f=>(f.id=='pocong'?CHR.P_head:CHR.K_head).i.src;
+const headOf=f=>heroHead(f.id,f.skin);
 const stars=Array.from({length:50},()=>[Math.random()*W,Math.random()*160]);
 function grid(){if(!punyaHero(pick))pick='pocong';
- $('#grid').innerHTML=ALL.map(a=>{const x=a[0]=='x',own=!x&&punyaHero(a[0]);return `<div class="card ${a[0]==pick?'sel':''} ${x?'off':own?'':'lock'}" data-id="${a[0]}" data-n="${a[1]}"><i style="background:${x?a[2]:'url('+heroHead(a[0])+') center/cover #1a1030'}"></i>${!x&&!own?'🔒 ':''}${a[1]}</div>`}).join('');
+ $('#grid').innerHTML=ALL.map(a=>{const x=a[0]=='x',own=!x&&punyaHero(a[0]);return `<div class="card ${a[0]==pick?'sel':''} ${x?'off':own?'':'lock'}" data-id="${a[0]}" data-n="${a[1]}"><i style="background:${x?a[2]:'url('+heroHead(a[0],skinOf(a[0]))+') center/cover #1a1030'}"></i>${!x&&!own?'🔒 ':''}${a[1]}</div>`}).join('');
  const sk=Object.entries(SKINS).filter(([id,v])=>v.h==pick),cur=skinOf(pick);
  $('#skins').innerHTML=sk.length?`<span>Skin:</span><b class="sk ${cur?'':'on'}" data-s="">Bawaan</b>`+sk.map(([id,v])=>`<b class="sk ${cur==id?'on':''} ${punyaSkin(id)?'':'lk'}" data-s="${id}">${punyaSkin(id)?'':'🔒 '}${v.n}</b>`).join(''):'';
  document.querySelectorAll('#grid .card').forEach(c=>c.onclick=()=>{const id=c.dataset.id;
@@ -401,7 +408,7 @@ function start(oo,R){   // R = daftar petarung [{h,side,me,bot,nm,s,id}]; tanpa 
  if(!R){const o=oo||(pick=='pocong'?'kuntilanak':'pocong');R=[{h:pick,side:0,me:1,s:skinOf(pick)},{h:o,side:1,bot:NET.on?0:1,s:''}];KW=3}
  const cnt=[0,0];FS=R.map((r,i)=>{const f=mk(r.h,0,r.side?-1:1,r.bot?1:0);Object.assign(f,{side:r.side,so:cnt[r.side]++,ix:i,nm:r.nm||'',skin:r.s||'',pid:r.id});const s=spawnOf(f);f.x=s[0];f.y=s[1];return f});
  P=FS[Math.max(0,R.findIndex(r=>r.me))];E=foes(P)[0]||DUMMY;
- cam.x=P.x;cam.y=P.y-40;cam.z=.88;pj=[];KB=[];SFX=[];DN=[];FXS=[];first=1;T=(NET.team?300:180)*60;playing=1;
+ cam.x=P.x;cam.y=P.y-40;cam.z=.88;pj=[];KB=[];SFX=[];DN=[];FXS=[];first=1;T=(NET.team?(TM.dur||5)*60:180)*60;playing=1;
  $('#hud .mid2 small').textContent=KW+' kill menang';
  if(NET.team){$('#hud .mid2 small').textContent=(P.side?'Anda Tim Merah':'Anda Tim Biru')+' · '+KW+' kill menang'}
  {const fa=NET.team?FS.find(f=>f.side===0)||P:P,fb=NET.team?FS.find(f=>f.side===1)||E:E;$('#pA').style.backgroundImage='url('+headOf(fa)+')';$('#pB').style.backgroundImage='url('+headOf(fb)+')'}$('#kA').textContent=$('#kB').textContent='0';
@@ -421,7 +428,7 @@ function step(f,k){if(f.gone)return;const o=tgt(f),FO=foes(f);
  const near=seen(f,o)&&Math.hypot(o.x-f.x,o.y-f.y)<560;f.blk=false;
  if(f.lp>0){f.lp--;f.vx=f.vy=0;   // Skill 1: Loncat Jauh — jongkok lalu melayang ke titik tujuan
   if(f.lp<LPF){const p=1-f.lp/LPF,s=Math.sin(Math.PI*p),q=p*p*(3-2*p)*.35+p*.65;f.x=f.lsx+(f.ltx-f.lsx)*q;f.y=f.lsy+(f.lty-f.lsy)*q;f.lox=f.lux*f.lH*s;f.loy=f.luy*f.lH*s}
-  if(f.lp===0){f.lox=f.loy=0;f.x=f.ltx;f.y=f.lty;f.lr=18;SFX.push({k:'land',x:f.x,y:f.y,t:0,L:21,d:f.ltx>=f.lsx?1:-1});
+  if(f.lp===0){f.lox=f.loy=0;f.x=f.ltx;f.y=f.lty;f.lr=18;SFX.push({k:'land',x:f.x,y:f.y,t:0,L:21,d:f.ltx>=f.lsx?1:-1,s:f.skin||''});
    FO.forEach(o=>{if(!o.dead&&Math.hypot(o.x-f.x,(o.y-f.y)/.52)<120){hurt(o,170,f);o.stun=Math.max(o.stun,35)}})}}
  else if(f.rl>0){f.rl--;f.vx=f.dvx*4.4;f.vy=f.dvy*2.8;   // Skill 2: berguling pelan, kena musuh berkali-kali
   if(f.rh>0)f.rh--;else{let h=0;FO.forEach(o=>{if(!o.dead&&Math.abs(o.x-f.x)<72&&Math.abs(o.y-f.y)<44){hurt(o,70,f);h=1}});if(h)f.rh=16}}
@@ -559,14 +566,15 @@ function drawLit(im,x,y,w,h,f,ns){
 function ghost(f){
  g.save();if(f.skin&&SKINS[f.skin])g.filter=SKINS[f.skin].f;if(f===P&&!f.dead&&inBush(f)>=0)g.globalAlpha=.6;g.translate(f.x+(f.lox||0),f.y+(f.loy||0)-(f.ts>0?Math.sin(f.ts/26*Math.PI)*70:0));{const d=dS(f.y);g.scale(d,d)}
  G0=g.getTransform();
- g.translate(0,-(f.fl>0?Math.sin(f.fl/45*Math.PI)*60:0));g.scale(f.f,1);if(f.hp<=0)g.rotate(-1.4);
+ g.translate(0,-(f.fl>0?Math.sin(f.fl/45*Math.PI)*60:0));g.scale(f.f,1);if(f.hp<=0&&!(f.id=='pocong'&&spOf(f.skin)))g.rotate(-1.4);
  if(f.flash>0){g.translate((Math.random()-.5)*6,0);g.globalAlpha*=.8}if(f.inv>0)g.globalAlpha=.35;if(f.dead)g.globalAlpha=Math.min(1,Math.max(0,(f.dead-120)/80));if(f.dead&&f.dead<121){g.restore();return}
  const k=f.atk>0?Math.sin((14-f.atk)/14*Math.PI):0;
  // gambar karakter 3D (menghadap kanan; dicerminkan otomatis saat menghadap kiri)
  const spr=(k,dy,rot)=>{const S=CHR[k],im=S.i;if(!(im.complete&&im.naturalWidth))return;const h=S.h,w=h*im.naturalWidth/im.naturalHeight;
   if(rot){g.save();g.translate(0,dy);g.rotate(rot);drawLit(im,-w*S.ax,-h,w,h,f);g.restore()}else drawLit(im,-w*S.ax,-h+dy,w,h,f)};
  const mv=Math.abs(f.vx)+Math.abs(f.vy)>.5;
- if(f.id=='pocong'){
+ if(f.id=='pocong'&&spOf(f.skin))skinBody(f,spOf(f.skin),mv);
+ else if(f.id=='pocong'){
   if(f.inv>0){g.globalAlpha=.25+.2*Math.sin(fr/2);g.fillStyle='#cfd6e6';for(let i=0;i<6;i++){g.globalAlpha*=.9;g.beginPath();g.arc(Math.sin(fr/9+i*1.7)*30,-20-i*24+Math.cos(fr/7+i)*6,22-i*2,0,7);g.fill()}g.globalAlpha=.35+.15*Math.sin(fr/3)}
   // arah hadap 8 arah dari gerakan terakhir (layar: kanan, depan-kanan, depan, depan-kiri, kiri, belakang-kiri, belakang, belakang-kanan)
   const oc=((Math.round(Math.atan2(f.fvy,f.fvx)/(Math.PI/4))%8)+8)%8;
@@ -619,6 +627,38 @@ function ghost(f){
 }
  g.restore();
  if(f.stun>0){g.font='22px sans-serif';g.fillText('💫',f.x-10,f.y-135)}if(f.blk){const a=f.f>0?0:Math.PI;g.strokeStyle='#4aa8ff';g.lineWidth=4;g.beginPath();g.arc(f.x,f.y-60,48,a-1.1,a+1.1);g.stroke()}}
+// ===== BADAN SKIN MODEL 3D (Ocong Boneka Horor) =====
+// gerakan dari animasi model 3D: berdiri 8 arah, lompat 8 arah x 4 frame, berguling 8 frame, kalah 6 frame.
+// efek skill (jejak lompatan, lingkaran, dll.) tetap efek Ocong
+function skinBody(f,S,mv){
+ const oc=((Math.round(Math.atan2(f.fvy,f.fvx)/(Math.PI/4))%8)+8)%8,di=[2,1,0,7,6,5,4,3][oc],K=S.h/(S.d[0].naturalHeight||1);
+ const D=i=>S.d[i],J=(i,k)=>spOk(S.j[i][k])?S.j[i][k]:S.d[i];
+ // o.loc = gambar dalam ruang "menghadap lawan" (otomatis dicerminkan saat menghadap kiri)
+ const dr=(im,o={})=>{if(!spOk(im))return;const z=K*(o.k||1),h=im.naturalHeight*z,w=im.naturalWidth*z,b=S.b*z;
+  g.save();if(!o.loc)g.scale(f.f,1);g.translate(o.x||0,o.dy||0);if(o.rot)g.rotate(o.rot);g.scale(o.sx||1,o.sy||1);if(o.a!=null)g.globalAlpha*=o.a;drawLit(im,-w/2,-h+b,w,h,f,o.ns);g.restore()};
+ const glow=(x,y,r,a)=>{g.save();g.globalCompositeOperation='lighter';g.globalAlpha*=a;const gr=g.createRadialGradient(x,y,1,x,y,r);gr.addColorStop(0,'rgba(255,240,210,.95)');gr.addColorStop(.35,'rgba(255,70,40,.55)');gr.addColorStop(1,'rgba(255,70,40,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,7);g.fill();g.restore()};
+ if(f.inv>0){g.globalAlpha=.25+.2*Math.sin(fr/2);g.fillStyle='#3a0d10';for(let i=0;i<6;i++){g.globalAlpha*=.9;g.beginPath();g.arc(Math.sin(fr/9+i*1.7)*30,-20-i*24+Math.cos(fr/7+i)*6,22-i*2,0,7);g.fill()}g.globalAlpha=.35+.15*Math.sin(fr/3)}
+ if(f.hp<=0){const p=Math.max(0,240-(f.dead||240))/90;dr(S.k[Math.min(5,p*6|0)]||D(di),{loc:1})}                    // kalah: jatuh
+ else if(f.lp>LPF){const c=(LPF+8-f.lp)/8;dr(J(di,0),{ns:1});glow(0,-8,40*c,.5)}                                   // jongkok ancang-ancang
+ else if(f.lp>0){const p=1-f.lp/LPF;dr(J(di,2),{rot:-.14+.28*p})}                                                   // melayang (Loncat Jauh)
+ else if(f.rl>0){const a=Math.max(-1.1,Math.min(1.1,Math.atan2(f.dvy,Math.abs(f.dvx)||.001)));                    // berguling
+  g.save();g.rotate(a*.5);g.save();g.globalAlpha*=.35;g.fillStyle='#b9ab98';for(let i=1;i<5;i++){g.beginPath();g.ellipse(-i*24,-5,16-i*3,6-i,0,0,7);g.fill()}g.restore();
+  dr(S.r[Math.min(7,(50-f.rl)/50*8|0)]||J(2,0),{loc:1,ns:1,a:f.rl<8?f.rl/8+.3:null});g.restore()}
+ else if(f.rn>0)dr(D(0),{dy:-4*Math.sin(f.rn/40*Math.PI)});                                                       // Lingkaran & Lempar
+ else if(f.lr>0&&f.atk<=0)dr(f.lr>8?J(di,0):D(di));                                                                // mendarat
+ else if(f.stun>0)dr(D(di),{rot:Math.sin(fr/6)*.12});
+ else if(f.inv>0)dr(D(di));
+ else if(f.dash>0)dr(J(2,2),{loc:1,rot:.45,dy:-20});
+ else if(f.pt>0&&f.pz)dr(D(2),{loc:1,sx:1.05});
+ else if(f.atk>0&&!f.sc){const a=f.atk;                                                                            // Sundul Kepala
+  if(a>13)dr(J(2,0),{loc:1});
+  else if(a>8){const q=(13-a)/5;g.save();g.strokeStyle='rgba(255,230,200,.55)';g.lineWidth=2;for(let i=0;i<5;i++){const y=-30-i*22,L=40+q*50;g.beginPath();g.moveTo(-L+20*q,y);g.lineTo(20*q-10,y);g.stroke()}g.restore();
+   dr(J(2,2),{loc:1,rot:.5,x:45*q})}
+  else{dr(D(2),{loc:1,rot:.35,x:45});glow(95,-95,60*(1-a/8)+25,.9*(a/8)+.2)}}
+ else if(f.atk>0)dr(D(2),{loc:1});
+ else if(f.kb>0)dr(D(di),{rot:-.15});
+ else if(mv){const ph=fr%20;dr(J(di,ph<4?0:ph<8?1:ph<13?2:ph<17?3:0))}                                               // jalan dengan melompat (animasi lompat model)
+ else dr(D(di),{dy:Math.sin(fr/14)*1.5})}
 function cameraUpd(){   // kamera ala MLBB: tampak atas miring, mengikuti hero Anda
  let tz,tx,ty;
  if(!P){tz=.62;tx=CX+Math.sin(fr/400)*220;ty=CY-60}
@@ -718,6 +758,11 @@ function skGround(){
 function skAir(){
  SFX.forEach(e=>{
   if(0){}
+  else if(e.k=='land'&&spOf(e.s)){const q=e.t/e.L;g.save();g.globalCompositeOperation='lighter';g.translate(e.x,e.y);g.scale(1,.45);
+   const gr=g.createRadialGradient(0,0,4,0,0,130);gr.addColorStop(0,'rgba(255,90,60,'+(.55*(1-q))+')');gr.addColorStop(1,'rgba(255,30,20,0)');g.fillStyle=gr;g.beginPath();g.arc(0,0,130,0,7);g.fill();
+   for(let k=0;k<2;k++){g.strokeStyle='rgba(255,'+(k?210:110)+',90,'+(.85*(1-q))+')';g.lineWidth=10*(1-q)+2;g.beginPath();g.arc(0,0,(40+q*150)*(k?.6:1),0,7);g.stroke()}
+   g.globalCompositeOperation='source-over';g.strokeStyle='rgba(20,5,5,'+(.7*(1-q))+')';g.lineWidth=3;for(let k=0;k<7;k++){const a=k*.9+1,r=60+q*40;g.beginPath();g.moveTo(Math.cos(a)*14,Math.sin(a)*14);g.lineTo(Math.cos(a+.2)*r*.6,Math.sin(a+.2)*r*.6);g.lineTo(Math.cos(a)*r,Math.sin(a)*r);g.stroke()}
+   g.restore()}
   else if(e.k=='land'){const im=PS.land.i;
    g.save();if(e.t<8){g.globalCompositeOperation='lighter';const r=30+e.t*9,gr=g.createRadialGradient(e.x,e.y-30,4,e.x,e.y-30,r);gr.addColorStop(0,'rgba(200,245,255,'+(.4*(1-e.t/8))+')');gr.addColorStop(.5,'rgba(60,170,255,'+(.2*(1-e.t/8))+')');gr.addColorStop(1,'rgba(40,120,255,0)');g.fillStyle=gr;g.beginPath();g.arc(e.x,e.y-30,r,0,7);g.fill();g.globalCompositeOperation='source-over'}
    if(im.complete&&im.naturalWidth){const ds=dS(e.y)*Math.min(1,.88+e.t*.04),w=300*ds,h=w*im.naturalHeight/im.naturalWidth;g.globalAlpha=e.t<12?1:Math.max(0,1-(e.t-12)/8);g.translate(e.x,e.y);g.scale(e.d||1,1);g.drawImage(im,-w*.489,-h*.895,w,h)}
@@ -862,7 +907,7 @@ function tmlRender(){const r=TM.room;if(!r)return;const meP=r.pl.find(p=>p.i===r
  $('#tmlCode').innerHTML='Kode room: <b>'+r.code+'</b> · '+r.pl.length+'/6 pemain';
  const slot=t=>{const L=r.pl.filter(p=>p.tm===t);let h='';for(let k=0;k<r.max;k++){const p=L[k];
    h+=p&&p.bot?`<div class="tms bot" ${r.host?`data-bh="${p.i}" title="Ketuk untuk ganti hero bot"`:''}><i style="background-image:url(${heroHead(CH[p.h]?p.h:'pocong')})"></i><div>🤖 ${esc(p.n)}<small>${CH[p.h]?CH[p.h].n:''} · komputer${r.host?' · ketuk ganti hero':''}</small></div>${r.host?`<span class="bx" data-bdel="${p.i}">✖</span>`:'<b>🤖</b>'}</div>`
-    :p?`<div class="tms ${p.i===r.me?'me':''}"><i style="background-image:url(${heroHead(CH[p.h]?p.h:'pocong')});filter:${skinF(p.s)}"></i><div>${esc(p.n)}<small>${CH[p.h]?CH[p.h].n:''}${p.i===r.me?' · Anda':''}</small></div><b>${p.i===r.hostId?'👑':p.r?'✔':'⏳'}</b></div>`
+    :p?`<div class="tms ${p.i===r.me?'me':''}"><i style="background-image:url(${heroHead(CH[p.h]?p.h:'pocong',p.s)});filter:${skinF(p.s)}"></i><div>${esc(p.n)}<small>${CH[p.h]?CH[p.h].n:''}${p.i===r.me?' · Anda':''}</small></div><b>${p.i===r.hostId?'👑':p.r?'✔':'⏳'}</b></div>`
     :r.host?`<div class="tms kos add" data-badd="${t}">+ Tambah Bot</div>`:'<div class="tms kos">kosong</div>'}
   $(t?'#tmR':'#tmB').innerHTML=h;$(t?'#tmnR':'#tmnB').textContent=L.length+'/'+r.max};slot(0);slot(1);
  document.querySelectorAll('#tml [data-tm]').forEach(b=>{const t=+b.dataset.tm;b.style.display=meP.tm===t?'none':'';b.disabled=r.pl.filter(p=>p.tm===t).length>=r.max});
@@ -871,11 +916,13 @@ function tmlRender(){const r=TM.room;if(!r)return;const meP=r.pl.find(p=>p.i===r
  $('#tmM').innerHTML=`<h4>HERO ANDA</h4><div class="tmr">${heroes}</div>
   ${host?'<div class="onsm">Anda pembuat room (wasit)</div>':`<button id="tmlRdy" class="${meP.r?'ok':''}">${meP.r?'✔ SIAP (ketuk untuk batal)':'Tekan untuk SIAP'}</button>`}
   <h4>ARENA${host?'':' · dipilih pembuat room'}</h4><div class="tmr">${ARENAS.map((a,i)=>`<span class="ch ${i==r.a?'on':''} ${host?'':'dis'}" ${host?`data-a="${i}"`:''}>${a.n}</span>`).join('')}</div>
-  <h4>TARGET KILL TIM</h4><div class="tmr">${[3,5,10,15,20].map(k=>`<span class="ch ${k==r.kw?'on':''} ${host?'':'dis'}" ${host?`data-kw="${k}"`:''}>${k}</span>`).join('')}</div>`;
+  <h4>TARGET KILL TIM</h4><div class="tmr">${[3,5,10,15,20].map(k=>`<span class="ch ${k==r.kw?'on':''} ${host?'':'dis'}" ${host?`data-kw="${k}"`:''}>${k}</span>`).join('')}</div>
+  <h4>LAMA PERTANDINGAN</h4><div class="tmr">${[5,10,15].map(k=>`<span class="ch ${k==(r.dur||5)?'on':''} ${host?'':'dis'}" ${host?`data-dur="${k}"`:''}>${k} menit</span>`).join('')}</div>`;
  const nB=r.pl.filter(p=>p.tm===0).length,nR=r.pl.filter(p=>p.tm===1).length,blm=r.pl.filter(p=>p.i!==r.hostId&&!p.r).length,nBot=r.pl.filter(p=>p.bot).length;
  const g=$('#tmlGo');g.style.display=host?'':'none';g.disabled=!(nB&&nR&&!blm);
  $('#tmlInfo').textContent=!nB||!nR?(host?'Tiap tim minimal 1 pemain · bagikan kode room atau tambah bot':'Tiap tim minimal 1 pemain · menunggu pemain lain'):blm?'Menunggu '+blm+' pemain menekan SIAP…':host?nB+' vs '+nR+(nBot?' (termasuk '+nBot+' bot)':'')+' siap! Tekan MULAI DUEL':'Semua siap · menunggu pembuat room memulai…'}
-$('#tml').addEventListener('click',e=>{const r=TM.room;if(!r)return;const t=e.target.closest('[data-bdel],[data-badd],[data-bh],[data-tm],[data-h],[data-a],[data-kw],#tmlRdy');if(!t)return;
+$('#tml').addEventListener('click',e=>{const r=TM.room;if(!r)return;const t=e.target.closest('[data-bdel],[data-badd],[data-bh],[data-tm],[data-h],[data-a],[data-kw],[data-dur],#tmlRdy');if(!t)return;
+ if(t.dataset.dur){netSend({t:'tmCfg',dur:+t.dataset.dur});return}
  if(t.dataset.bdel){netSend({t:'tmBotDel',i:+t.dataset.bdel});return}
  if(t.dataset.badd!=null){netSend({t:'tmBot',tm:+t.dataset.badd});return}
  if(t.dataset.bh){const b=r.pl.find(p=>p.i==t.dataset.bh),hs=ALL.filter(a=>a[0]!='x').map(a=>a[0]);netSend({t:'tmBotDel',i:+t.dataset.bh,h:hs[(hs.indexOf(b&&b.h)+1)%hs.length]});return}
@@ -887,24 +934,24 @@ $('#tml').addEventListener('click',e=>{const r=TM.room;if(!r)return;const t=e.ta
 $('#tmlGo').onclick=()=>netSend({t:'tmGo'});
 $('#tmlOut').onclick=()=>{netSend({t:'leave'});TM.room=null;netStop();sc('onl');oStat('Anda keluar dari room')};
 // layar VS tim ±3 detik lalu bertanding
-function tmBegin(m){clearTimeout(TM.vsT);NET.on=1;NET.team=1;NET.inGame=1;NET.role=m.host===m.me?'host':'guest';KW=m.kw||10;setArena(m.a|0);
+function tmBegin(m){clearTimeout(TM.vsT);NET.on=1;NET.team=1;NET.inGame=1;NET.role=m.host===m.me?'host':'guest';KW=m.kw||10;TM.dur=m.dur||5;setArena(m.a|0);
  const R=m.pl.map(p=>({h:CH[p.h]?p.h:'pocong',side:p.tm,s:SKINS[p.s]&&SKINS[p.s].h==p.h?p.s:'',nm:(p.bot?'🤖 ':'')+p.n,id:p.i,me:p.i===m.me,bot:p.bot&&m.host===m.me?1:0}));
- const meT=(m.pl.find(p=>p.i===m.me)||{}).tm|0,kol=t=>R.filter(r=>r.side===t).map(r=>`<div class="tp"><i style="background-image:url(${heroHead(r.h)});filter:${skinF(r.s)}"></i><div>${esc(r.nm)}<small>${CH[r.h].n}${r.me?' · Anda':''}</small></div></div>`).join('');
+ const meT=(m.pl.find(p=>p.i===m.me)||{}).tm|0,kol=t=>R.filter(r=>r.side===t).map(r=>`<div class="tp"><i style="background-image:url(${heroHead(r.h,r.s)});filter:${skinF(r.s)}"></i><div>${esc(r.nm)}<small>${CH[r.h].n}${r.me?' · Anda':''}</small></div></div>`).join('');
  const nB=R.filter(r=>r.side===0).length,nR=R.length-nB;
  $('#vsx').innerHTML=`<div class="vbg" style="background-image:url(${ARENAS[m.a|0].img.src})"></div><div class="vig"></div>
-  <div class="vplq">${ARENAS[m.a|0].n.toUpperCase()} · ${nB} VS ${nR}</div><div class="vcd">TARGET ${KW} KILL · BERTANDING DALAM <span id="vcn">3</span></div>
+  <div class="vplq">${ARENAS[m.a|0].n.toUpperCase()} · ${nB} VS ${nR}</div><div class="vcd">TARGET ${KW} KILL · ${TM.dur||5} MENIT · BERTANDING DALAM <span id="vcn">3</span></div>
   <div class="tvs"><div class="tc">${kol(0)}</div><div class="vvs"><span>V</span><span>S</span></div><div class="tc r">${kol(1)}</div></div>`;
  sc('vsx');let c=3;const tick=()=>{c--;const e=$('#vcn');if(e)e.textContent=Math.max(c,1);if(c>0)TM.vsT=setTimeout(tick,1000);else{
   netReset();start(null,R);netReady();banner('⚔️ Anda di '+(meT?'TIM MERAH':'TIM BIRU')+' · '+nB+' vs '+nR)}};TM.vsT=setTimeout(tick,1100)}
 // ---------- PERSIAPAN DUEL (pilih hero & arena) + LAYAR VS ----------
 let LB=null,vsT=0;const LB_TIME=30;
-const heroImg=id=>id=='pocong'?PW.d[1].s:KN.d[1].s,heroHead=id=>(id=='pocong'?CHR.P_head:CHR.K_head).i.src;
+const heroImg=(id,s)=>{const S=spOf(s);return S?S.d[1].src:id=='pocong'?PW.d[1].s:KN.d[1].s},heroHead=(id,s)=>{const S=spOf(s);return S&&spOk(S.head)?S.head.src:(id=='pocong'?CHR.P_head:CHR.K_head).i.src};
 function lobSend(){if(!LB)return;LB.me.s=skinOf(LB.me.h);const o={lb:{h:LB.me.h,r:LB.me.r,s:LB.me.s}};if(NET.role=='host'){o.t='st';o.lb.a=LB.a}else o.t='in';netSend(o)}
 function lobRender(){if(!LB)return;const host=NET.role=='host',p1=host?LB.me:LB.op,p2=host?LB.op:LB.me,n1=host?myName():NET.oppName,n2=host?NET.oppName:myName();
  const left=Math.max(0,LB_TIME-Math.floor((performance.now()-LB.t0)/1000));
  const heroes=(pl,mine)=>ALL.map(a=>a[0]=='x'?`<div class="lh off"><i style="background:${a[2]}"></i>${a[1]}</div>`:(mine&&!punyaHero(a[0])?`<div class="lh off" title="Terkunci"><i style="background-image:url(${heroHead(a[0])});filter:grayscale(1)"></i>🔒 ${a[1]}</div>`:`<div class="lh ${pl.h==a[0]?'sel':''}" ${mine&&!pl.r?`data-h="${a[0]}"`:''}><i style="background-image:url(${heroHead(a[0])})"></i>${a[1]}</div>`)).slice(0,3).join('');
  const st=(pl,mine)=>mine?`<button class="lst me ${pl.r?'ok':'wait'}" data-rdy>${pl.r?'✔ Siap (ketuk untuk batal)':'Tekan untuk SIAP'}</button>`:`<span class="lst ${pl.r?'ok':'wait'}">${pl.r?'✔ Siap':'⏳ Memilih hero…'}</span>`;
- const card=(cls,tag,nm,pl,mine,flip)=>`<div class="lpl ${cls}"><span class="ltag">${tag}</span><div class="lnm">${nm}</div><div class="lbig"><img src="${heroImg(pl.h)}" style="filter:${skinF(mine?skinOf(pl.h):pl.s)} drop-shadow(0 .6cqw 1cqw #000);${flip?'transform:scaleX(-1)':''}"></div><div class="lhs">${heroes(pl,mine)}</div>${st(pl,mine)}</div>`;
+ const card=(cls,tag,nm,pl,mine,flip)=>`<div class="lpl ${cls}"><span class="ltag">${tag}</span><div class="lnm">${nm}</div><div class="lbig"><img src="${heroImg(pl.h,mine?skinOf(pl.h):pl.s)}" style="filter:${skinF(mine?skinOf(pl.h):pl.s)} drop-shadow(0 .6cqw 1cqw #000);${flip?'transform:scaleX(-1)':''}"></div><div class="lhs">${heroes(pl,mine)}</div>${st(pl,mine)}</div>`;
  const both=LB.me.r&&LB.op.r;
  $('#lob').innerHTML=`<div class="lbg" style="background-image:url(${ARENAS[LB.a].th})"></div>
  <div class="ltop"><h2>Persiapan Duel</h2><div class="lcode">Room <b>${LB.code||''}</b> · 2/2 pemain · <span class="ltime">⏱ ${left}s</span></div></div>
@@ -931,11 +978,11 @@ setInterval(()=>{if(!LB||NET.inGame||!$('#lob').classList.contains('on'))return;
 function netBegin(meH,opH,meS,opS){if(NET.inGame)return;NET.inGame=1;pick=meH;
  const host=NET.role=='host',h1=host?meH:opH,h2=host?opH:meH,s1=host?meS:opS,s2=host?opS:meS,n1=host?myName():NET.oppName,n2=host?NET.oppName:myName();
  const ics=h=>`<span>👊</span>`+CH[h].sk.map(k=>`<span style="background-image:url(${PS[k.ic].s})"></span>`).join('');
- const pan=(sd,tag,h,n,sk)=>`<div class="vpan ${sd}"><div class="vpf" style="background-image:url(${heroHead(h)});filter:${skinF(sk)}"></div><div class="vtx"><small>${tag}</small><b>${(sk?SKINS[sk].n:CH[h].n).toUpperCase()}</b><em>${n}</em></div><div class="vics">${ics(h)}</div></div>`;
+ const pan=(sd,tag,h,n,sk)=>`<div class="vpan ${sd}"><div class="vpf" style="background-image:url(${heroHead(h,sk)});filter:${skinF(sk)}"></div><div class="vtx"><small>${tag}</small><b>${(sk?SKINS[sk].n:CH[h].n).toUpperCase()}</b><em>${n}</em></div><div class="vics">${ics(h)}</div></div>`;
  $('#vsx').innerHTML=`<div class="vbg" style="background-image:url(${ARENAS[LB.a].img.src})"></div><div class="vig"></div>
  <div class="vplq">${ARENAS[LB.a].n.toUpperCase()}</div><div class="vcd">BERTANDING DALAM <span id="vcn">3</span></div>
  <div class="vaura va1"></div><div class="vaura va2"></div><div class="vring vr1" style="--c:#3aa0ff"><i></i><i></i><i></i></div><div class="vring vr2" style="--c:#ff3b30"><i></i><i></i><i></i></div>
- <div class="vsw vs1"></div><div class="vsw vs2"></div><img class="vhero vh1" src="${heroImg(h1)}" style="filter:${skinF(s1)} drop-shadow(0 .8cqw 1.1cqw #000)"><img class="vhero vh2" src="${heroImg(h2)}" style="filter:${skinF(s2)} drop-shadow(0 .8cqw 1.1cqw #000)">
+ <div class="vsw vs1"></div><div class="vsw vs2"></div><img class="vhero vh1" src="${heroImg(h1,s1)}" style="filter:${skinF(s1)} drop-shadow(0 .8cqw 1.1cqw #000)"><img class="vhero vh2" src="${heroImg(h2,s2)}" style="filter:${skinF(s2)} drop-shadow(0 .8cqw 1.1cqw #000)">
  <div class="vslash"></div><div class="vvs"><span>V</span><span>S</span></div>${pan('l','PLAYER 1',h1,n1,s1)}${pan('r','PLAYER 2',h2,n2,s2)}`;
  sc('vsx');let c=3;const tick=()=>{c--;const e=$('#vcn');if(e)e.textContent=Math.max(c,1);if(c>0)vsT=setTimeout(tick,1000);else{
   netReset();KW=3;
@@ -955,7 +1002,7 @@ async function muatKoleksi(){try{const k=await krpc('game_koleksi',{p_sesi:ksSes
 function kMasuk(kode){try{sessionStorage.setItem('kalensari_next','url:game.html'+(kode?'?kartu='+encodeURIComponent(kode):'')+'#kartu')}catch(e){}kSt('Membuka halaman masuk akun pembeli…');setTimeout(()=>location.href='akun-pembeli.html',600)}
 function kSt(t,c){const e=$('#kSt');e.textContent=t||'';e.className='kst '+(c||'')}
 const itemNama=(j,it)=>j=='skin'?(SKINS[it]?SKINS[it].n:it):(CH[it]?CH[it].n:it);
-const itemImg=(j,it)=>{const h=j=='skin'?(SKINS[it]&&SKINS[it].h):it;return CH[h]?`<img src="${heroImg(h)}" style="filter:${j=='skin'?skinF(it):'none'} drop-shadow(0 .4cqw .6cqw #000)">`:''};
+const itemImg=(j,it)=>{const h=j=='skin'?(SKINS[it]&&SKINS[it].h):it;return CH[h]?`<img src="${heroImg(h,j=='skin'?it:'')}" style="filter:${j=='skin'?skinF(it):'none'} drop-shadow(0 .4cqw .6cqw #000)">`:''};
 function karRender(){const ak=$('#kAkun');
  ak.innerHTML=KOL.login?`Masuk sebagai <b>${(KOL.nama||'Pemain').replace(/[<>]/g,'')}</b> · akun pembeli Kalensari Store`:`${KOL.err?'⚠️ '+KOL.err+' · ':''}Belum masuk akun pembeli.<button class="btn" id="kLogin">Masuk</button>`;
  const lg=$('#kLogin');if(lg)lg.onclick=()=>kMasuk(kRapi($('#kKode').value));
@@ -1144,7 +1191,9 @@ function pkHero(ot,lain){const P2=ot||PK.p;if(P2.mati>40)return;
  if(base!=null){const h=Math.max(0,P2.z-base),r=16*Math.max(.4,1-h/160);g.fillStyle=`rgba(0,0,0,${.45*Math.max(.3,1-h/160)})`;g.beginPath();g.ellipse(P2.x,P2.y*PKY-base,r,r*.35,0,0,7);g.fill()}
  const oc=((Math.round(Math.atan2(P2.fvy,P2.fvx)/(Math.PI/4))%8)+8)%8,di=[2,1,0,7,6,5,4,3][oc],sy=P2.y*PKY-P2.z,sc2=.7;
  let o,h,dy=0;
- if(P2.id=='pocong'){o=PW.d[di];h=o.h*sc2;if(P2.walk&&P2.gr)dy=-Math.abs(Math.sin(P2.walk/7))*10}
+ const SS=P2.id=='pocong'?spOf(P2.skin):null;
+ if(SS&&spOk(SS.d[di])){const jw=P2.walk&&P2.gr?SS.j[di][(P2.walk/5|0)%4]:null,i2=spOk(jw)?jw:SS.d[di];o={i:i2,h:SS.h*i2.naturalHeight/(SS.d[0].naturalHeight||1),ax:.5};h=o.h*sc2}
+ else if(P2.id=='pocong'){o=PW.d[di];h=o.h*sc2;if(P2.walk&&P2.gr)dy=-Math.abs(Math.sin(P2.walk/7))*10}
  else{o=P2.walk||!P2.gr?KN.w[di][(fr/7|0)%4]:KN.d[di];h=o.h*KSZ*sc2;dy=-6+Math.sin(fr/12)*3}
  const im=o.i;if(!(im.complete&&im.naturalWidth))return;const w=h*im.naturalWidth/im.naturalHeight;
  g.save();if(P2.skin&&SKINS[P2.skin])g.filter=SKINS[P2.skin].f;if(P2.glide>0){g.shadowColor='#bfe3ff';g.shadowBlur=14}
@@ -1190,7 +1239,7 @@ function pkResRender(){if(!PK.net)return;const me=PKN.fin.find(f=>f.i===PKN.me);
 function pklRender(){const r=PKN.room;if(!r)return;
  $('#pklCode').innerHTML=r.quick?'Room acak':'Kode room: <b>'+r.code+'</b> · bagikan ke teman';
  let h='';for(let k=0;k<r.max;k++){const p=r.pl[k];
-  h+=p?`<div class="pkc ${p.i===r.me?'me':''}"><i style="background-image:url(${heroHead(CH[p.h]?p.h:'pocong')});filter:${skinF(p.s)}"></i><div>${p.n.replace(/[<>&]/g,'')}<small>${CH[p.h]?CH[p.h].n:''}${p.i===r.me?' · Anda':''}</small></div>${p.i===r.hostId?'<b>👑</b>':''}</div>`
+  h+=p?`<div class="pkc ${p.i===r.me?'me':''}"><i style="background-image:url(${heroHead(CH[p.h]?p.h:'pocong',p.s)});filter:${skinF(p.s)}"></i><div>${p.n.replace(/[<>&]/g,'')}<small>${CH[p.h]?CH[p.h].n:''}${p.i===r.me?' · Anda':''}</small></div>${p.i===r.hostId?'<b>👑</b>':''}</div>`
    :'<div class="pkc kos">kosong</div>'}
  $('#pklGrid').innerHTML=h;const g=$('#pklGo');g.style.display=r.host?'':'none';g.disabled=r.pl.length<2;pklInfo()}
 function pklInfo(){const r=PKN.room;if(!r)return;let t;
