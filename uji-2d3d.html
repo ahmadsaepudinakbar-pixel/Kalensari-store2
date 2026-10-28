@@ -41,7 +41,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 <canvas id="c"></canvas>
 <div id="top" class="ui">
  <div id="ttl"><b>UJI · Arena 2D + Hero 3D</b><br><small>Lapangan SD Kalensari · <a href="uji-3d.html">versi 3D penuh</a> · <a href="game.html">game</a></small><div id="fps"></div></div>
- <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button></div>
+ <div id="kual"><button id="zKel" title="Perkecil (jauhkan kamera)">－</button><button id="zDek" title="Perbesar (dekatkan kamera)">＋</button><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button></div>
 </div>
 <div id="joy" class="ui"><div id="knob"></div></div>
 <button id="bA" class="sb"><i class="cd"></i><em></em></button>
@@ -75,8 +75,8 @@ const ARENA = { img: 'gambar-game/84f363fc17.webp', w: 1600, h: 900,
 // SUDUT KAMERA harus sama dengan sudut lukisan. Lingkaran tengah lapangan di gambar: lebar 290, tinggi 136 → sin(sudut) ≈ 0.47
 const SUDUT = Math.asin(136 / 290);
 const K = 80;                 // piksel gambar per meter
-const TINGGI = 1.9;           // tinggi hero (meter)
-const LEBAR_PANDANG = 700;    // lebar arena yang terlihat (piksel gambar) di layar mendatar
+const TINGGI = 1.6;           // tinggi hero (meter)
+const LEBAR_PANDANG = 1150;   // lebar arena yang terlihat (piksel gambar) di layar mendatar (gambar arena lebarnya 1600)
 const $ = s => document.querySelector(s);
 const rnd = (a, b) => a + Math.random() * (b - a);
 const SN = Math.sin(SUDUT), CS = Math.cos(SUDUT);
@@ -172,7 +172,7 @@ const KUAL = { lv: 1, bloom: false };
 let composer = null;
 function setKual(lv) {
   KUAL.lv = lv; try { localStorage.setItem('uji2d3dKual', lv); } catch (e) { }
-  document.querySelectorAll('#kual button').forEach(b => b.classList.toggle('on', +b.dataset.q === lv));
+  document.querySelectorAll('#kual button[data-q]').forEach(b => b.classList.toggle('on', +b.dataset.q === lv));
   renderer.setPixelRatio(Math.min(devicePixelRatio, [1, 1.5, 2][lv]));
   renderer.shadowMap.enabled = lv > 0; sun.castShadow = lv > 0; sun.shadow.mapSize.setScalar(lv === 2 ? 2048 : 1024);
   if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
@@ -180,11 +180,16 @@ function setKual(lv) {
   scene.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); });
   resize();
 }
-document.querySelectorAll('#kual button').forEach(b => b.onclick = () => setKual(+b.dataset.q));
-let viewW = 1, viewH = 1;
+document.querySelectorAll('#kual button[data-q]').forEach(b => b.onclick = () => setKual(+b.dataset.q));
+let viewW = 1, viewH = 1, ZOOM = 1;
+try { ZOOM = +localStorage.getItem('uji2d3dZoom') || 1; } catch (e) { }
+function setZoom(z) { ZOOM = THREE.MathUtils.clamp(z, .7, 2.2); try { localStorage.setItem('uji2d3dZoom', ZOOM); } catch (e) { } resize(); }
+document.getElementById('zKel').onclick = () => setZoom(ZOOM / 1.2);
+document.getElementById('zDek').onclick = () => setZoom(ZOOM * 1.2);
+addEventListener('wheel', e => setZoom(ZOOM * (e.deltaY > 0 ? 1 / 1.1 : 1.1)), { passive: true });
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false);
-  const lebarPx = w < h ? LEBAR_PANDANG * .62 : LEBAR_PANDANG;      // HP tegak: lebih dekat
+  const lebarPx = Math.min(ARENA.w, (w < h ? LEBAR_PANDANG * .6 : LEBAR_PANDANG) / ZOOM);      // HP tegak: lebih dekat
   viewW = lebarPx / K; viewH = viewW * h / w;
   camera.left = -viewW / 2; camera.right = viewW / 2; camera.top = viewH / 2; camera.bottom = -viewH / 2; camera.updateProjectionMatrix();
   if (KUAL.bloom) { if (!composer) { composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera)); composer.addPass(new UnrealBloomPass(new THREE.Vector2(w, h), .5, .45, .85)); composer.addPass(new OutputPass()); } composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }
