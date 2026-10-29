@@ -517,7 +517,8 @@ function pakai(i) {
 // ================== KUNTI MERAH ==================
 // animasi di skinkunti.glb: melayang, terbang, angkat_tangan, menjerit, jerit_zombie
 const K = { mats: [], peluru: [], penjara: [], gel: [], bidik: false, diarahkan: false, terbangT: 0, lesat: 0, arahLesat: 0, condong: 0, miring: 0 };
-const TERBANG = { lama: 4, cepat: 1.7, lesat: 3.5, lesatLama: .3 };   // Mode Terbang: 4 dtk, kecepatan x1.7, melesat 3,5 m di awal
+const KUNTI_CEPAT = 3.6;   // kecepatan gerak biasa Kunti (meter/detik); Ocong 4,4
+const TERBANG = { lama: 4, cepat: 1.35, lesat: 3.5, lesatLama: .3 };   // Mode Terbang: 4 dtk, kecepatan x1,35 (≈ 4,9 m/dtk), melesat 3,5 m di awal
 const KW = { ungu: 0xb040ff, merah: 0xff3050, pucat: 0xffc0e0 };
 function siapkanKunti(gl, m) {
   const cari = n => gl.animations.find(a => a.name === n);
@@ -547,7 +548,7 @@ function bolaRoh(dari, target, arahDepan) {
 }
 // ---- Skill 3: ROH PEMBURU — 3 roh berekor panjang mengejar target, lalu berputar mengelilingi & mengunci ----
 // (semua digambar dengan kode, tanpa file gambar)
-const ROH = { lama: 2.4, tik: .5, dmg: 35, cepat: 9, lebar: 1.5, radius: 1.35, putar: 2.4, ekor: 34, ekorLebar: .55 };   // kunci 2,4 dtk, -35 tiap 0,5 dtk
+const ROH = { lama: 2.4, tik: .5, dmg: 35, cepat: 9, lebar: .85, radius: 1, putar: 2.6, ekor: 30, ekorLebar: .3 };   // kunci 2,4 dtk, -35 tiap 0,5 dtk
 // wajah & badan roh (menghadap kanan) — mengikuti demo HTML
 const T_ROH = tex(320, 240, (x) => {
   x.translate(190, 120); x.scale(1.75, 1.75);
@@ -775,7 +776,7 @@ function updKunti(dt, pos, f) {
   }
   else if (P.state === 'bebas' && K.bidik) { P.arah = K.arahBidik; main('diam', .2); }   // sedang membidik: diam, hanya memutar badan
   else if (P.state === 'bebas') {
-    const [x, z] = arahGerak(), cepat = (4.6) * (terbang ? TERBANG.cepat : 1);
+    const [x, z] = arahGerak(), cepat = KUNTI_CEPAT * (terbang ? TERBANG.cepat : 1);
     if (x || z) { pos.x += x * cepat * dt; pos.z += z * cepat * dt; P.arah = Math.atan2(x, z); bergerak = true;
       if (terbang) { main('terbang', .2, 1.3); P.tilt.position.y = layang + .4; }
       else main('jalan', .25, 1.5);
