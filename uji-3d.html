@@ -516,7 +516,7 @@ function pakai(i) {
 }
 // ================== KUNTI MERAH ==================
 // animasi di skinkunti.glb: melayang, terbang, angkat_tangan, menjerit, jerit_zombie
-const K = { mats: [], peluru: [], penjara: [], jejak: [], gel: [], bidik: false, diarahkan: false, terbangT: 0, lesat: 0, arahLesat: 0, condong: 0, miring: 0 };
+const K = { mats: [], peluru: [], penjara: [], gel: [], bidik: false, diarahkan: false, terbangT: 0, lesat: 0, arahLesat: 0, condong: 0, miring: 0 };
 const TERBANG = { lama: 4, cepat: 1.7, lesat: 3.5, lesatLama: .3 };   // Mode Terbang: 4 dtk, kecepatan x1.7, melesat 3,5 m di awal
 const KW = { ungu: 0xb040ff, merah: 0xff3050, pucat: 0xffc0e0 };
 function siapkanKunti(gl, m) {
@@ -533,7 +533,6 @@ function siapkanKunti(gl, m) {
   else if (cari('menjerit')) P.act.jerit = sekali(P.mixer.clipAction(klip(sub(cari('menjerit'), 'jerit', 0, 90))));
   if (!P.act.jalan) P.act.jalan = P.act.diam;
   m.traverse(o => { if (o.isMesh) (Array.isArray(o.material) ? o.material : [o.material]).forEach(x => { if (!K.mats.includes(x)) K.mats.push(x); }); });
-  muatEfekKunti();
 }
 function mainUlang(nama, fade = .1, kecepatan = 1) { if (P.cur === nama) P.cur = ''; main(nama, fade, kecepatan); }
 function kuntiTembus(a) {    // 1 = terlihat, 0 = menghilang
@@ -546,84 +545,138 @@ function bolaRoh(dari, target, arahDepan) {
   s.scale.setScalar(.9); inti.scale.setScalar(.35); s.add(inti); s.position.copy(dari); scene.add(s);
   K.peluru.push({ s, target, v: arahDepan.clone().multiplyScalar(13), umur: 0, jejak: 0 });
 }
-// ---- Skill 3: ROH PEMBURU — 3 roh (dari gambar) mengejar target, lalu mengelilingi & mengunci ----
-const EFEK_KUNTI = 'gambar-game/skin-kunti/efek/';
-const ROH = { lama: 2.4, tik: .5, dmg: 35, cepat: 9, lebar: 3, lebarKeliling: 2.2, radius: 1.45 };   // kunci 2,4 dtk, -35 tiap 0,5 dtk (sama seperti Penjara Roh lama)
-const RT = {};
-function muatEfekKunti() { ['roh-1', 'roh-2', 'roh-3', 'roh-kecil'].forEach(n => texLoader.load(EFEK_KUNTI + n + '.webp', t => { t.colorSpace = THREE.SRGBColorSpace; RT[n] = t; })); }
+// ---- Skill 3: ROH PEMBURU — 3 roh berekor panjang mengejar target, lalu berputar mengelilingi & mengunci ----
+// (semua digambar dengan kode, tanpa file gambar)
+const ROH = { lama: 2.4, tik: .5, dmg: 35, cepat: 9, lebar: 1.5, radius: 1.35, putar: 2.4, ekor: 34, ekorLebar: .55 };   // kunci 2,4 dtk, -35 tiap 0,5 dtk
+// wajah & badan roh (menghadap kanan) — mengikuti demo HTML
+const T_ROH = tex(320, 240, (x) => {
+  x.translate(190, 120); x.scale(1.75, 1.75);
+  const g = x.createLinearGradient(-75, 0, 34, 0); g.addColorStop(0, 'rgba(35,0,10,0)'); g.addColorStop(.35, 'rgba(91,0,23,.55)'); g.addColorStop(1, 'rgba(245,13,49,.97)');
+  x.fillStyle = g; x.shadowBlur = 22; x.shadowColor = '#f00032'; x.beginPath();
+  x.moveTo(-75, 10); x.quadraticCurveTo(-43, -39, -10, -35); x.quadraticCurveTo(26, -43, 33, -14); x.quadraticCurveTo(54, 9, 24, 30); x.quadraticCurveTo(4, 42, -14, 27); x.quadraticCurveTo(-49, 35, -75, 10); x.fill();
+  for (let i = 0; i < 8; i++) { x.strokeStyle = i % 2 ? '#ff2046' : '#7c001b'; x.lineWidth = 1 + (i % 3) * .8; x.beginPath(); x.moveTo(-18, 12 + i * 2); x.bezierCurveTo(-35, -18 + i * 5, -53, (i * 37 % 40) - 20, -80 - (i * 13 % 28), Math.sin(i * 1.7) * 22 + i * 2); x.stroke(); }
+  x.shadowBlur = 10; x.fillStyle = '#090106'; x.beginPath(); x.ellipse(12, -4, 18, 23, -.1, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = '#ff526a'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-1, -15); x.lineTo(8, -11); x.moveTo(17, -11); x.lineTo(27, -16); x.stroke();   // alis marah
+  const mata = (cx) => { x.save(); x.shadowBlur = 16; x.shadowColor = '#fff8f7'; x.fillStyle = '#fff8f7'; x.beginPath(); x.arc(cx, -8, 5.2, 0, Math.PI * 2); x.fill(); x.shadowColor = '#ff002b'; x.fillStyle = '#ff002b'; x.beginPath(); x.arc(cx, -8, 2.2, 0, Math.PI * 2); x.fill(); x.restore(); };
+  mata(5); mata(21);
+  x.lineCap = 'round'; x.fillStyle = '#170006'; x.beginPath(); x.moveTo(3, 5); x.quadraticCurveTo(14, 25, 27, 5); x.quadraticCurveTo(15, 12, 3, 5); x.fill();   // seringai
+  x.strokeStyle = '#ff243f'; x.lineWidth = 2.2; x.shadowColor = '#ff0037'; x.beginPath(); x.moveTo(2, 4); x.quadraticCurveTo(14, 24, 28, 4); x.stroke();
+  x.fillStyle = '#fff2f3'; x.beginPath(); x.moveTo(5, 7); x.lineTo(9, 8); x.lineTo(8, 13); x.closePath(); x.fill(); x.beginPath(); x.moveTo(23, 7); x.lineTo(19, 8); x.lineTo(20, 13); x.closePath(); x.fill();   // taring
+  x.strokeStyle = '#ff2347'; x.lineWidth = 1.6; for (let j = 0; j < 4; j++) { x.beginPath(); x.moveTo(1 + j * 8, 14); x.quadraticCurveTo(-1 + j * 8, 22, j * 7, 29 + (j % 2) * 3); x.stroke(); }   // tetesan
+});
+T_ROH.wrapS = T_ROH.wrapT = THREE.ClampToEdgeWrapping; T_ROH.repeat.set(1, 1);
+const ROH_RASIO = 240 / 320;
 const matCahaya = (map, warna = 0xffffff, op = 1) => new THREE.SpriteMaterial({ map, color: warna, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
-const matRoh = (map, op = 1) => map ? new THREE.SpriteMaterial({ map, transparent: true, opacity: op, depthWrite: false, toneMapped: false }) : matCahaya(T_BULAT, KW.merah, op);   // gambar roh punya transparansi sendiri → warna tetap pekat
-// lingkaran bidik merah di bawah target (seperti demo HTML)
+// lingkaran bidik merah di bawah target
 const T_BIDIK = tex(256, 256, (x) => {
   x.translate(128, 128); x.strokeStyle = 'rgba(255,40,70,.95)'; x.shadowColor = '#ff143c'; x.shadowBlur = 14; x.lineWidth = 4;
-  [46, 78, 110].forEach(r => { x.beginPath(); x.arc(0, 0, r, 0, Math.PI * 2); x.stroke(); });
-  x.lineWidth = 3; x.beginPath(); x.moveTo(-124, 0); x.lineTo(124, 0); x.moveTo(0, -124); x.lineTo(0, 124); x.stroke();
-  x.fillStyle = '#ff6080'; x.beginPath(); x.arc(0, 0, 9, 0, Math.PI * 2); x.fill();
+  [40, 66, 96].forEach(r => { x.beginPath(); x.arc(0, 0, r, 0, Math.PI * 2); x.stroke(); });
+  x.lineWidth = 3; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; x.beginPath(); x.moveTo(Math.cos(a) * 74, Math.sin(a) * 74); x.lineTo(Math.cos(a) * 116, Math.sin(a) * 116); x.stroke(); }
+  x.fillStyle = '#fff0f3'; x.beginPath(); x.arc(0, 0, 8, 0, Math.PI * 2); x.fill();
 });
 T_BIDIK.wrapS = T_BIDIK.wrapT = THREE.ClampToEdgeWrapping; T_BIDIK.repeat.set(1, 1);
-function jejakRoh(pos, map, ukuran, umur, op = .8, balik = 1) {   // sprite yang memudar (jejak & bayangan roh)
-  const sp = new THREE.Sprite(map ? matRoh(map, op) : matCahaya(T_BULAT, KW.merah, op)); sp.position.copy(pos); sp.renderOrder = 5; scene.add(sp);
-  K.jejak.push({ sp, t: 0, umur, uk: ukuran, op, balik, r: map && map.image ? map.image.height / map.image.width : 1 });
+// ekor panjang: 3 pita cahaya bergelombang yang mengikuti jejak kepala roh
+function buatEkor() {
+  const N = ROH.ekor, pita = [];
+  for (let k = 0; k < 3; k++) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 2 * 3), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(N * 2 * 3), 3));
+    const idx = []; for (let i = 0; i < N - 1; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); } geo.setIndex(idx);
+    const me = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+    me.frustumCulled = false; me.renderOrder = 4; scene.add(me); pita.push(me);
+  }
+  return { pts: [], pita };
+}
+const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _n = new THREE.Vector3();
+function updEkor(e, kepala, t, seed, redup) {
+  const N = ROH.ekor;
+  if (!e.pts.length || e.pts[0].distanceTo(kepala) > .06) { e.pts.unshift(kepala.clone()); if (e.pts.length > N) e.pts.pop(); }
+  const P0 = e.pts, L = P0.length;
+  e.pita.forEach((me, k) => {
+    const pos = me.geometry.attributes.position.array, col = me.geometry.attributes.color.array;
+    const warna = k === 1 ? [.55, 0, .06] : [.95, .02, .1], lebar = ROH.ekorLebar * (k === 1 ? 1.3 : .75);
+    for (let i = 0; i < N; i++) {
+      const j = Math.min(i, L - 1), u = i / (N - 1);
+      _a.copy(P0[j]); _b.copy(P0[Math.min(j + 1, L - 1)]); if (_b.distanceToSquared(_a) < 1e-6) _b.copy(P0[Math.max(j - 1, 0)]).sub(_a).negate().add(_a);
+      _n.set(-(_b.z - _a.z), 0, _b.x - _a.x); if (_n.lengthSq() < 1e-8) _n.set(1, 0, 0); _n.normalize();
+      const geol = Math.sin(t * 5 + seed + u * 11 + k * 2.1) * u * (.35 + k * .12) + (k - 1) * u * .18;   // ekor meliuk seperti di demo
+      const w = lebar * Math.pow(1 - u, .8) * (i < L ? 1 : 0);
+      const c = _a.clone().addScaledVector(_n, geol), y = Math.sin(t * 4 + seed + u * 8 + k) * u * .25;
+      pos.set([c.x + _n.x * w / 2, c.y + y, c.z + _n.z * w / 2, c.x - _n.x * w / 2, c.y + y, c.z - _n.z * w / 2], i * 6);
+      const f = (1 - u) * (1 - u) * redup * (k === 1 ? .55 : .45);
+      col.set([warna[0] * f, warna[1] * f, warna[2] * f, warna[0] * f, warna[1] * f, warna[2] * f], i * 6);
+    }
+    me.geometry.attributes.position.needsUpdate = true; me.geometry.attributes.color.needsUpdate = true;
+  });
 }
 function lepasRohPemburu(mt) {
   const asal = P.root.position.clone().setY(1.4).addScaledVector(depan(), .4);
-  const bidik = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshBasicMaterial({ map: T_BIDIK, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  const bidik = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2.8), new THREE.MeshBasicMaterial({ map: T_BIDIK, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
   bidik.rotation.x = -Math.PI / 2; bidik.position.copy(mt.g.position).setY(.05); scene.add(bidik);
   const kanan = new THREE.Vector3(Math.cos(P.arah), 0, -Math.sin(P.arah)), g = { mt, bidik, t: 0, fase: 'kejar', roh: [], tik: 0, kt: 0 };
-  ['roh-1', 'roh-2', 'roh-3'].forEach((n, i) => {
-    const sp = new THREE.Sprite(matRoh(RT[n], 0)); sp.position.copy(asal); sp.renderOrder = 6; scene.add(sp);
-    const v = depan().multiplyScalar(3).addScaledVector(kanan, (i - 1) * 5).setY(1.5 + i * .6);   // tiga roh menyebar dulu, lalu berbelok mengejar
-    g.roh.push({ sp, map: RT[n], r: RT[n] ? RT[n].image.height / RT[n].image.width : 1, v, tunda: i * .08, sudut: i / 3 * Math.PI * 2, tiba: false, jt: 0, seed: Math.random() * 9, balik: 1 });
-  });
+  for (let i = 0; i < 3; i++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_ROH, transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); sp.position.copy(asal); sp.renderOrder = 6; scene.add(sp);
+    const nyala = new THREE.Sprite(matCahaya(T_BULAT, KW.merah, 0)); nyala.renderOrder = 5; scene.add(nyala);   // pendar merah di belakang kepala
+    const v = depan().multiplyScalar(3).addScaledVector(kanan, (i - 1) * 5).setY(1.5 + i * .6);
+    const uk = ROH.lebar * (.85 + Math.random() * .3);
+    g.roh.push({ sp, nyala, v, uk, tunda: i * .14, sudut: i / 3 * Math.PI * 2, tiba: false, seed: Math.random() * 9, balik: 1, ekor: buatEkor(), et: 0 });
+  }
   K.penjara.push(g); kilat(asal, 30); percik(asal, 24, KW.merah, 3);
 }
+function hapusRoh(g) {
+  g.roh.forEach(r => { scene.remove(r.sp); r.sp.material.dispose(); scene.remove(r.nyala); r.nyala.material.dispose(); r.ekor.pita.forEach(me => { scene.remove(me); me.geometry.dispose(); me.material.dispose(); }); });
+  scene.remove(g.bidik); g.bidik.geometry.dispose(); g.bidik.material.dispose();
+}
 function updRohPemburu(dt) {
-  for (let i = K.jejak.length - 1; i >= 0; i--) { const e = K.jejak[i]; e.t += dt; const q = e.t / e.umur;
-    const k = e.uk * (1 - q * .4); e.sp.scale.set(k * e.balik, k * e.r, 1); e.sp.material.opacity = e.op * (1 - q);
-    if (q >= 1) { scene.remove(e.sp); e.sp.material.dispose(); K.jejak.splice(i, 1); } }
+  const T = performance.now() / 1000;
   for (let gi = K.penjara.length - 1; gi >= 0; gi--) { const g = K.penjara[gi], mt = g.mt; g.t += dt;
     const pusat = mt.g.position.clone().setY(1.05);
-    g.bidik.position.set(mt.g.position.x, .05, mt.g.position.z); g.bidik.rotation.z += dt * 1.6;
+    g.bidik.position.set(mt.g.position.x, .05, mt.g.position.z); g.bidik.rotation.z -= dt * 1.4;
+    let redup = 1;
     if (g.fase === 'kejar') {
       g.bidik.material.opacity = Math.min(.9, g.t * 4);
       let semua = true;
-      g.roh.forEach((r, i) => {
+      g.roh.forEach(r => {
         if (g.t < r.tunda) { semua = false; return; }
         if (!r.tiba) {
           const ke = pusat.clone().sub(r.sp.position), L = ke.length();
-          const geol = new THREE.Vector3(-ke.z, 0, ke.x).normalize().multiplyScalar(Math.sin(g.t * 9 + r.seed) * 3);   // jalur meliuk
+          const geol = new THREE.Vector3(-ke.z, 0, ke.x).normalize().multiplyScalar(Math.sin(g.t * 8 + r.seed) * 3);   // jalur berburu meliuk
           r.v.lerp(ke.normalize().multiplyScalar(ROH.cepat).add(geol), Math.min(1, dt * 5));
           r.sp.position.addScaledVector(r.v, dt);
-          if (Math.abs(r.v.x) > .5) r.balik = r.v.x < 0 ? -1 : 1;   // gambar roh menghadap kanan → dicerminkan saat ke kiri
+          if (Math.abs(r.v.x) > .5) r.balik = r.v.x < 0 ? -1 : 1;   // wajah menghadap arah terbang
           r.sp.material.opacity = Math.min(1, (g.t - r.tunda) * 6);
-          r.sp.scale.set(ROH.lebar * r.balik, ROH.lebar * r.r, 1);
-          if ((r.jt -= dt) <= 0) { r.jt = .03; jejakRoh(r.sp.position.clone().addScaledVector(r.v, -.03), null, .55, .35, .7);
-            if (Math.random() < .25 && RT['roh-kecil']) jejakRoh(r.sp.position.clone().add(new THREE.Vector3(rnd(-.3, .3), rnd(-.3, .2), 0)), RT['roh-kecil'], .55, .45, .6, r.balik); }
-          if (L < .8 || g.t > 1.8) { r.tiba = true; percik(pusat, 12, KW.merah, 3); }
+          if (L < .9 || g.t > 1.8) { r.tiba = true; percik(pusat, 12, KW.merah, 3); }
         }
         if (!r.tiba) semua = false;
       });
-      if (mt.mati) g.fase = 'pergi';
+      if (mt.mati) { g.fase = 'pergi'; g.pt = 0; }
       else if (semua) { g.fase = 'keliling'; g.kt = 0; mt.kunci = ROH.lama; kilat(pusat, 50); gelombang(mt.g.position, 1.8, .45, KW.merah); percik(pusat, 36, KW.merah, 4); goyang = Math.max(goyang, .15); }
     }
-    if (g.fase === 'keliling') {      // roh berputar mengelilingi target = kurungan
+    if (g.fase === 'keliling') {      // roh berputar mengelilingi target = kurungan; ekornya ikut melingkar
       g.kt += dt; g.bidik.material.opacity = .55 + .35 * Math.sin(g.kt * 10);
       g.roh.forEach((r, i) => {
-        const a = r.sudut + g.kt * 2.8, tuju = pusat.clone().add(new THREE.Vector3(Math.cos(a) * ROH.radius, Math.sin(g.kt * 4 + i * 2) * .22, Math.sin(a) * ROH.radius));
-        r.sp.position.lerp(tuju, Math.min(1, dt * 12));
-        r.balik = -Math.sin(a) < 0 ? -1 : 1;   // arah gerak memutar (sumbu x layar)
-        r.sp.scale.set(ROH.lebarKeliling * r.balik, ROH.lebarKeliling * r.r, 1); r.sp.material.opacity = 1;
-        if ((r.jt -= dt) <= 0) { r.jt = .06; jejakRoh(r.sp.position.clone(), null, .45, .3, .5); }
+        const a = r.sudut + g.kt * ROH.putar;
+        const tuju = pusat.clone().add(new THREE.Vector3(Math.cos(a) * ROH.radius + Math.cos(a * 2 + r.seed) * .12, Math.sin(g.kt * 4 + i * 2) * .2, Math.sin(a) * ROH.radius + Math.sin(a * 2 + r.seed) * .1));
+        r.sp.position.lerp(tuju, Math.min(1, dt * 10)); r.sp.material.opacity = 1;
+        r.balik = -Math.sin(a) < 0 ? -1 : 1;
       });
       if ((g.tik -= dt) <= 0 && !mt.mati) { g.tik = ROH.tik; kena(mt, ROH.dmg, mt.g.position.clone().add(new THREE.Vector3(0, 0, .01)), 0); }
       if (g.kt >= ROH.lama || mt.mati) { mt.kunci = 0; g.fase = 'pergi'; g.pt = 0; percik(pusat, 30, KW.merah, 3.5); }
     }
-    if (g.fase === 'pergi') {         // roh terbang ke atas & menghilang
-      g.pt = (g.pt || 0) + dt; const q = Math.min(1, g.pt / .45);
+    if (g.fase === 'pergi') {         // roh melesat ke atas & memudar
+      g.pt += dt; const q = Math.min(1, g.pt / .5); redup = 1 - q;
       g.bidik.material.opacity = .9 * (1 - q);
       g.roh.forEach(r => { r.sp.position.y += dt * 4; r.sp.material.opacity = 1 - q; });
-      if (q >= 1) { g.roh.forEach(r => { scene.remove(r.sp); r.sp.material.dispose(); }); scene.remove(g.bidik); g.bidik.geometry.dispose(); g.bidik.material.dispose(); K.penjara.splice(gi, 1); }
     }
+    g.roh.forEach(r => {
+      const on = g.t >= r.tunda;
+      r.sp.scale.set(r.uk * r.balik, r.uk * ROH_RASIO, 1);
+      r.nyala.position.copy(r.sp.position); r.nyala.scale.setScalar(r.uk * 1.3); r.nyala.material.opacity = on ? .45 * r.sp.material.opacity : 0;
+      if (on) updEkor(r.ekor, r.sp.position.clone().addScaledVector(new THREE.Vector3(r.balik, 0, 0), -r.uk * .2), T, r.seed, redup * Math.min(1, r.sp.material.opacity + .2));
+      if (on && (r.et -= dt) <= 0) { r.et = .12; percik(r.sp.position.clone().setY(r.sp.position.y - .2), 2, KW.merah, .8, .2); }   // bara
+    });
+    if (g.fase === 'pergi' && g.pt >= .5) { hapusRoh(g); K.penjara.splice(gi, 1); }
   }
 }
 function pakaiKunti(i) {
