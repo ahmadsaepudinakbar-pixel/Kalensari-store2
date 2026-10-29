@@ -369,7 +369,7 @@ function updEfek(dt) {
 // ================== BONEKA (PEMAIN) ==================
 const P = { root: new THREE.Group(), tilt: new THREE.Group(), model: null, mixer: null, act: {}, cur: '', arah: 0, cd: [0, 0, 0, 0], state: 'bebas', t: 0, hp: 1000 };
 P.root.add(P.tilt); scene.add(P.root); P.root.position.set(0, 0, 4);
-const CD_MAX = [.5, 4, 4, 6];   // jeda: serangan, skill 1, 2, 3 (detik)
+const CD_MAX = HERO === 'kunti' ? [.5, 4, 9, 6] : [.5, 4, 4, 6];   // Kunti: skill 2 (Mode Terbang) jeda 9 dtk   // jeda: serangan, skill 1, 2, 3 (detik)
 
 // rapikan animasi Mixamo: badan tidak berputar menyamping & tidak bergeser sendiri
 function rapikanKlip(clip, model, tRef, putar) {
@@ -470,7 +470,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; if (HERO === 'k
   J.onpointerdown = e => { id = e.pointerId; J.setPointerCapture(id); mv(e); }; J.onpointermove = e => { if (e.pointerId === id) mv(e); };
   J.onpointerup = J.onpointercancel = () => { id = null; inp.x = inp.z = 0; K.style.transform = ''; }; }
 ['bA', 'b1', 'b2', 'b3'].forEach((id, i) => { const b = $('#' + id);
-  if (HERO === 'kunti') { b.style.background = 'radial-gradient(#5a1030,#1a0410)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['🔮', '📢', '💨', '⛓️'][i]}</span>`); }
+  if (HERO === 'kunti') { b.style.background = 'radial-gradient(#5a1030,#1a0410)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['🔮', '📢', '🕊️', '⛓️'][i]}</span>`); }
   else b.style.backgroundImage = `url(${EFEK}${['ikon-dasar', 'ikon-skill1', 'ikon-skill2', 'ikon-skill3'][i]}.webp)`;
   if (HERO === 'kunti' && i === 1) {   // Frekuensi Suara: tahan untuk lihat jangkauan, lepas untuk pakai
     b.onpointerdown = e => { e.preventDefault(); b.setPointerCapture(e.pointerId); mulaiBidik(); };
@@ -479,7 +479,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; if (HERO === 'k
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
 document.querySelectorAll('#pilhero a').forEach(a => { a.classList.toggle('on', a.dataset.h === HERO); a.href = `?hero=${a.dataset.h}&lawan=${LAWAN}`; });
 document.querySelectorAll('#pillawan a').forEach(a => { a.classList.toggle('on', a.dataset.l === LAWAN); a.href = `?hero=${HERO}&lawan=${a.dataset.l}`; });
-if (HERO === 'kunti') { $('#nmhero').textContent = 'Kunti Merah'; $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Roh · U (tahan, arahkan, lepas): Frekuensi Suara · I: Nge Blink · O: Penjara Roh'; }
+if (HERO === 'kunti') { $('#nmhero').textContent = 'Kunti Merah'; $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Roh · U (tahan, arahkan, lepas): Frekuensi Suara · I: Mode Terbang · O: Penjara Roh'; }
 function arahGerak() {
   let x = inp.x, z = inp.z; const k = inp.k;
   if (k.a || k.arrowleft) x -= 1; if (k.d || k.arrowright) x += 1; if (k.w || k.arrowup) z -= 1; if (k.s || k.arrowdown) z += 1;
@@ -511,7 +511,8 @@ function pakai(i) {
 }
 // ================== KUNTI MERAH ==================
 // animasi di skinkunti.glb: melayang, terbang, angkat_tangan, menjerit, jerit_zombie
-const K = { mats: [], peluru: [], penjara: [], gel: [], bidik: false };
+const K = { mats: [], peluru: [], penjara: [], gel: [], bidik: false, terbangT: 0, condong: 0, miring: 0 };
+const TERBANG = { lama: 4, cepat: 1.7 };   // Mode Terbang: 4 detik, kecepatan x1.7
 const KW = { ungu: 0xb040ff, merah: 0xff3050, pucat: 0xffc0e0 };
 function siapkanKunti(gl, m) {
   const cari = n => gl.animations.find(a => a.name === n);
@@ -519,7 +520,8 @@ function siapkanKunti(gl, m) {
   const sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
   const klip = (c) => rapikanKlip(c, m, 0, false);     // buang geseran mendatar
   if (cari('melayang')) P.act.diam = P.mixer.clipAction(klip(cari('melayang').clone()));
-  if (cari('terbang')) { P.act.jalan = P.mixer.clipAction(klip(cari('terbang').clone())); P.act.blink = P.mixer.clipAction(klip(cari('terbang').clone())); }
+  if (cari('terbang')) P.act.terbang = P.mixer.clipAction(klip(cari('terbang').clone()));   // pose terbang: hanya saat Mode Terbang
+  if (cari('melayang')) P.act.jalan = P.mixer.clipAction(klip(cari('melayang').clone()));   // gerak biasa: melayang + badan condong
   const tg = cari('angkat_tangan');
   if (tg) { P.act.tembak = sekali(P.mixer.clipAction(klip(sub(tg, 'tembak', 18, 50)))); P.act.tangan = sekali(P.mixer.clipAction(klip(sub(tg, 'tangan', 18, 96)))); }
   if (cari('jerit_zombie')) P.act.jerit = sekali(P.mixer.clipAction(klip(cari('jerit_zombie').clone())));
@@ -553,13 +555,10 @@ function pakaiKunti(i) {
   else if (i === 1) {   // arah jeritan = arah bidikan (atau lawan terdekat di depan / arah hadap)
     if (K.bidik) P.arah = K.arahBidik; else { const m = terdekat(SUARA.jarak); if (m) hadapKe(m.g.position); }
     K.arahJerit = P.arah; P.state = 'jerit'; P.gel = 0; mainUlang('jerit', .1, 1.4); }
-  else if (i === 2) {
-    const m = terdekat(9); let tj;
-    if (m) { hadapKe(m.g.position); const d = m.g.position.clone().sub(pos).setY(0).normalize(); tj = m.g.position.clone().addScaledVector(d, 1.6); }   // muncul di belakang lawan
-    else tj = pos.clone().addScaledVector(depan(), 7);
-    tj.x = THREE.MathUtils.clamp(tj.x, BATAS.x0, BATAS.x1); tj.z = THREE.MathUtils.clamp(tj.z, BATAS.z0, BATAS.z1);
-    P.awal = pos.clone(); P.tujuan = tj; P.state = 'blink'; mainUlang('blink', .08, 1.5);
-    percik(pos, 30, KW.ungu, 4); gelombang(pos, 1.6, .4, KW.ungu);
+  else if (i === 2) {   // Mode Terbang: pose terbang & lebih cepat selama 4 detik, tanpa damage
+    K.terbangT = TERBANG.lama; P.cd[2] = CD_MAX[2];
+    percik(pos, 30, KW.ungu, 3); gelombang(pos, 1.6, .45, KW.ungu); kilat(pos, 25);
+    return;   // state tetap 'bebas': tetap bisa bergerak & memakai skill lain selama terbang
   }
   else if (i === 3) { const m = terdekat(8); if (!m) { P.cd[3] = 0; return; } hadapKe(m.g.position); P.target = m; P.state = 'penjara'; mainUlang('tangan', .1, 2); }
   P.cd[i] = CD_MAX[i]; P.t = 0; P.hit = 0;
@@ -623,10 +622,15 @@ function updKunti(dt, pos, f) {
   const t = P.t, layang = .3 + Math.sin(performance.now() / 380) * .09;   // Kunti selalu melayang
   P.tilt.position.y = layang;
   updBidik(); updGelKipas(dt);
+  K.terbangT = Math.max(0, K.terbangT - dt);
+  const terbang = K.terbangT > 0 && P.state !== 'kalah'; let bergerak = false;
   if (P.state === 'bebas' && K.bidik) { P.arah = K.arahBidik; main('diam', .2); }   // sedang membidik: diam, hanya memutar badan
   else if (P.state === 'bebas') {
-    const [x, z] = arahGerak();
-    if (x || z) { pos.x += x * 4.6 * dt; pos.z += z * 4.6 * dt; P.arah = Math.atan2(x, z); main('jalan', .2, 1.2); P.tilt.position.y = layang + .25; }
+    const [x, z] = arahGerak(), cepat = (4.6) * (terbang ? TERBANG.cepat : 1);
+    if (x || z) { pos.x += x * cepat * dt; pos.z += z * cepat * dt; P.arah = Math.atan2(x, z); bergerak = true;
+      if (terbang) { main('terbang', .2, 1.3); P.tilt.position.y = layang + .4; }
+      else main('jalan', .25, 1.5);
+    }
     else main('diam', .3);
   } else if (P.state === 'tembak') {          // angkat tangan → lempar bola roh
     if (t > .22 && !P.hit) { P.hit = 1; const tg = P.target && !P.target.mati ? P.target : null; if (tg) hadapKe(tg.g.position);
@@ -639,16 +643,21 @@ function updKunti(dt, pos, f) {
       gelombangKipas(pos, a, R[k], .55, KW.ungu); gelombangKipas(pos, a, R[k] * .75, .45, KW.pucat); kilat(pos.clone().addScaledVector(depan(), 1), 30 + k * 15); goyang = .12 + k * .08;
       MUSUH.forEach(m => { if (!m.mati && dalamKipas(pos, a, m.g.position, R[k] + .4)) kena(m, D[k], pos, 3 + k * 2); }); }
     if (t > 2) { P.state = 'bebas'; main('diam', .25); }
-  } else if (P.state === 'blink') {           // Nge Blink: terbang, menghilang, muncul di tempat baru
-    if (t < .22) { kuntiTembus(1 - t / .22); P.tilt.position.y = layang + t * 3; }
-    else if (!P.hit) { P.hit = 1; pos.copy(P.tujuan); kuntiTembus(0); percik(pos, 40, KW.ungu, 5); gelombang(pos, 2, .45, KW.merah); kilat(pos, 40);
-      MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < 2) kena(m, 60, pos, 4); });
-      const m = terdekat(9); if (m) hadapKe(m.g.position); }
-    else { const c = Math.min(1, (t - .22) / .25); kuntiTembus(c); P.tilt.position.y = layang + (1 - c) * .6; }
-    if (t > .5) { kuntiTembus(1); P.state = 'bebas'; main('diam', .2); }
   } else if (P.state === 'penjara') {         // Penjara Roh: kunci satu target
     if (t > .35 && !P.hit) { P.hit = 1; if (P.target && !P.target.mati) penjaraRoh(P.target); }
     if (t > .9) { P.state = 'bebas'; main('diam', .25); }
+  }
+  // badan condong ke depan saat bergerak + miring saat berbelok (tanda terbang maju)
+  const condongMau = bergerak && !terbang ? .32 : 0;
+  let belok = P.arah - P.root.rotation.y; belok = Math.atan2(Math.sin(belok), Math.cos(belok));
+  const miringMau = bergerak ? THREE.MathUtils.clamp(-belok * .6, -.4, .4) : 0;
+  K.condong += (condongMau - K.condong) * Math.min(1, dt * 7); K.miring += (miringMau - K.miring) * Math.min(1, dt * 7);
+  P.tilt.rotation.x += K.condong; P.tilt.rotation.z += K.miring;
+  if (bergerak && !terbang && Math.random() < .3) percik(pos.clone().setY(.15), 1, KW.pucat, .4, .22);            // kabut tipis di bawah kaki
+  if (terbang) {                                                                                                   // jejak roh ungu selama Mode Terbang
+    if (Math.random() < (bergerak ? .9 : .35)) percik(pos.clone().setY(P.tilt.position.y + .5).addScaledVector(depan(), bergerak ? -.5 : 0), 2, Math.random() < .5 ? KW.ungu : KW.merah, .7, .26);
+    K.denyut = (K.denyut || 0) - dt; if (K.denyut <= 0) { K.denyut = .5; gelombang(pos, 1.1, .45, KW.ungu); }
+    if (K.terbangT <= dt) { percik(pos, 20, KW.ungu, 2.5); }
   }
   // bola roh mengejar target
   for (let i = K.peluru.length - 1; i >= 0; i--) { const b = K.peluru[i]; b.umur += dt;
@@ -733,7 +742,6 @@ let BOT = null, SELESAI = false;
 const barPemain = document.createElement('div'); barPemain.className = 'hp me'; barPemain.innerHTML = '<i></i>'; barPemain.style.display = 'none'; $('#bars').appendChild(barPemain);
 function kenaPemain(dmg, dari, dorong = 3) {
   if (P.state === 'kalah' || SELESAI) return;
-  if (HERO === 'kunti' && P.state === 'blink') return;          // kebal saat Nge Blink (menghilang)
   P.hp = Math.max(0, P.hp - dmg);
   const d = P.root.position.clone().sub(dari).setY(0); if (d.lengthSq() > 1e-4) P.root.position.addScaledVector(d.normalize(), dorong * .12);
   angka(P.root.position, dmg, '#ff5a5a'); goyang = Math.max(goyang, .2); hentiSejenak = Math.max(hentiSejenak, .06);
@@ -745,7 +753,7 @@ function selesai(hasil) {
   setTimeout(() => { const t = $('#hasilT'); t.textContent = hasil === 'menang' ? 'MENANG!' : 'KALAH'; t.className = hasil; $('#hasil').classList.add('on'); }, 1200);
 }
 function mainLagi() {
-  SELESAI = false; $('#hasil').classList.remove('on');
+  SELESAI = false; $('#hasil').classList.remove('on'); K.terbangT = 0;
   P.hp = 1000; P.state = 'bebas'; P.cd = [0, 0, 0, 0]; P.cur = ''; main('diam', .1); P.root.position.set(0, 0, 4); P.arah = Math.PI; P.root.rotation.y = Math.PI;
   if (HERO === 'kunti') kuntiTembus(1);
   if (BOT) BOT.reset();
@@ -759,7 +767,7 @@ async function siapkanBot() {
   const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i>'; $('#bars').appendChild(bar);
   BOT = await buatBotOcong({
     scene, model: 'model-3d/skinocong.glb', tinggi: TINGGI, pemain: P, kenaPemain,
-    pemainAktif: () => P.state !== 'kalah' && !(HERO === 'kunti' && P.state === 'blink'),
+    pemainAktif: () => P.state !== 'kalah',
     batasi: v => { v.x = THREE.MathUtils.clamp(v.x, BATAS.x0, BATAS.x1); v.z = THREE.MathUtils.clamp(v.z, BATAS.z0, BATAS.z1); return v; },
     skala: () => 1, jarak: 1, cepat: 1,
     efek: { gelombang, percik, kilat, goyang: v => { goyang = Math.max(goyang, v); } },
