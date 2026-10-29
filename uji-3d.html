@@ -677,7 +677,6 @@ function updKunti(dt, pos, f) {
   const miringMau = bergerak ? THREE.MathUtils.clamp(-belok * .6, -.4, .4) : 0;
   K.condong += (condongMau - K.condong) * Math.min(1, dt * 7); K.miring += (miringMau - K.miring) * Math.min(1, dt * 7);
   P.tilt.rotation.x += K.condong; P.tilt.rotation.z = K.miring;   // z tidak di-nol-kan di updPemain, jadi harus "=" (bukan "+=")
-  if (bergerak && !terbang && Math.random() < .3) percik(pos.clone().setY(.15), 1, KW.pucat, .4, .22);            // kabut tipis di bawah kaki
   if (terbang) {                                                                                                   // jejak roh ungu selama Mode Terbang
     if (Math.random() < (bergerak ? .9 : .35)) percik(pos.clone().setY(P.tilt.position.y + .5).addScaledVector(depan(), bergerak ? -.5 : 0), 2, Math.random() < .5 ? KW.ungu : KW.merah, .7, .26);
     K.denyut = (K.denyut || 0) - dt; if (K.denyut <= 0) { K.denyut = .5; gelombang(pos, 1.1, .45, KW.ungu); }
