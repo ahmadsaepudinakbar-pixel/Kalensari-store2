@@ -30,6 +30,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #load{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(#141b33,#03050b);font:600 15px Arial;text-align:center;padding:20px}
 #load .bar{width:min(70vw,340px);height:10px;border-radius:6px;background:#101a33;border:2px solid #2c3f73;overflow:hidden}#load .bar u{display:block;height:100%;width:0;background:linear-gradient(90deg,#c1121f,#ffb703)}
 #load small{color:#9aa3b8;max-width:420px}#load.off{display:none}
+#pillawan{display:flex;gap:4px;margin-top:4px;align-items:center;font:700 11px Arial;color:#9aa3b8}#pillawan a{font:700 11px Arial;color:#cfd6e6;background:#141b33;border:1px solid #2c3f73;border-radius:7px;padding:4px 9px;text-decoration:none}#pillawan a.on{background:#ffb703;color:#201400;border-color:#ffd166}
+#hasil{position:fixed;inset:0;z-index:15;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#000a}#hasil.on{display:flex}#hasil b{font:900 54px Arial;letter-spacing:4px;text-shadow:0 0 18px #000,0 4px 0 #000}#hasil b.menang{color:#ffd166}#hasil b.kalah{color:#ff4a4a}#hasil button{font:700 17px Arial;color:#201400;background:#ffb703;border:0;border-radius:10px;padding:12px 26px;cursor:pointer}
+.hp.lawan{width:78px;margin-left:-39px;height:9px;border:1px solid #ff9a9a88}.hp.me{width:70px;margin-left:-35px;height:8px}
 #help{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:5;font-size:11px;color:#9aa3b8;background:#0b1020aa;padding:4px 10px;border-radius:8px;white-space:nowrap}
 #back{color:#ffd166;text-decoration:none}
 #pilhero{display:flex;gap:4px;margin-top:5px}#pilhero a{font:700 11px Arial;color:#cfd6e6;background:#141b33;border:1px solid #2c3f73;border-radius:7px;padding:4px 10px;text-decoration:none}#pilhero a.on{background:#c1121f;color:#fff;border-color:#ff5a6a}
@@ -43,7 +46,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 <body>
 <canvas id="c"></canvas>
 <div id="top" class="ui">
- <div id="ttl"><b>UJI 3D · Lapangan SD Kalensari</b><br><small><span id="nmhero">Ocong Boneka</span> · Three.js · <a id="back" href="game.html">← kembali ke game</a></small><div id="pilhero"><a href="?hero=ocong" data-h="ocong">Ocong</a><a href="?hero=kunti" data-h="kunti">Kunti</a></div><div id="fps"></div></div>
+ <div id="ttl"><b>UJI 3D · Lapangan SD Kalensari</b><br><small><span id="nmhero">Ocong Boneka</span> · Three.js · <a id="back" href="game.html">← kembali ke game</a></small><div id="pilhero"><a href="?hero=ocong" data-h="ocong">Ocong</a><a href="?hero=kunti" data-h="kunti">Kunti</a></div><div id="pillawan">Lawan: <a href="?lawan=boneka" data-l="boneka">Boneka</a><a href="?lawan=ocong" data-l="ocong">Ocong Bot</a></div><div id="fps"></div></div>
  <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button></div>
 </div>
 <div id="joy" class="ui"><div id="knob"></div></div>
@@ -53,6 +56,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 <button id="b3" class="sb"><i class="cd"></i><em></em></button>
 <div id="bars"></div>
 <div id="help">WASD / panah: gerak · J / Spasi: Sundul Kepala · U: Loncat Jauh · I: Guling Cepat · O: Lingkaran Kutukan</div>
+<div id="hasil"><b id="hasilT"></b><button id="lagi">Main Lagi</button></div>
 <div id="load"><b>Memuat arena 3D…</b><div class="bar"><u></u></div><small id="lmsg">Pertama kali butuh beberapa detik</small></div>
 
 <script type="module">
@@ -63,9 +67,11 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { buatBotOcong } from './duel-bot.js';
 
 // ================== PENGATURAN ==================
 const HERO = new URLSearchParams(location.search).get('hero') === 'kunti' ? 'kunti' : 'ocong';   // pilih hero: uji-3d.html?hero=kunti
+const LAWAN = new URLSearchParams(location.search).get('lawan') === 'ocong' ? 'ocong' : 'boneka';   // lawan: uji-3d.html?lawan=ocong
 const MODEL = HERO === 'kunti' ? 'model-3d/skinkunti.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
 const EFEK = 'gambar-game/skin-boneka/efek/';           // gambar efek skill (.webp)
 const TINGGI = 1.7;                                      // tinggi boneka (meter)
@@ -433,6 +439,7 @@ function kena(mt, dmg, dari, dorong = 4, angkat = 0) {
 }
 function updMusuh(dt) {
   MUSUH.forEach(mt => {
+    if (mt.bot) return;   // bot Ocong punya aturan gerak sendiri (duel-bot.js)
     const p = mt.g.position;
     if (mt.kunci > 0) { mt.kunci -= dt; mt.v.set(0, 0, 0); }   // terkunci Penjara Roh: tidak bisa bergerak
     p.addScaledVector(mt.v, dt); mt.v.multiplyScalar(Math.pow(.02, dt));
@@ -446,7 +453,7 @@ function updMusuh(dt) {
 }
 const KILAU = new THREE.MeshBasicMaterial({ color: 0xff4040 });
 const ANGKA = [];
-function angka(pos, v) { const d = document.createElement('div'); d.className = 'dn'; d.textContent = '-' + v; if (v >= 150) d.style.fontSize = '26px'; $('#bars').appendChild(d); ANGKA.push({ d, p: pos.clone().add(new THREE.Vector3(rnd(-.3, .3), 2.2, 0)), t: 0 }); }
+function angka(pos, v, warna) { const d = document.createElement('div'); d.className = 'dn'; d.textContent = '-' + v; if (warna) d.style.color = warna; if (v >= 150) d.style.fontSize = '26px'; $('#bars').appendChild(d); ANGKA.push({ d, p: pos.clone().add(new THREE.Vector3(rnd(-.3, .3), 2.2, 0)), t: 0 }); }
 const V = new THREE.Vector3();
 function layar(p) { V.copy(p).project(camera); return [(V.x * .5 + .5) * innerWidth, (-V.y * .5 + .5) * innerHeight, V.z < 1]; }
 function updLabel(dt) {
@@ -470,7 +477,8 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; if (HERO === 'k
     b.onpointerup = e => { e.preventDefault(); lepasBidik(); };
     b.onpointercancel = () => { K.bidik = false; };
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
-document.querySelectorAll('#pilhero a').forEach(a => a.classList.toggle('on', a.dataset.h === HERO));
+document.querySelectorAll('#pilhero a').forEach(a => { a.classList.toggle('on', a.dataset.h === HERO); a.href = `?hero=${a.dataset.h}&lawan=${LAWAN}`; });
+document.querySelectorAll('#pillawan a').forEach(a => { a.classList.toggle('on', a.dataset.l === LAWAN); a.href = `?hero=${HERO}&lawan=${a.dataset.l}`; });
 if (HERO === 'kunti') { $('#nmhero').textContent = 'Kunti Merah'; $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Roh · U (tahan, arahkan, lepas): Frekuensi Suara · I: Nge Blink · O: Penjara Roh'; }
 function arahGerak() {
   let x = inp.x, z = inp.z; const k = inp.k;
@@ -720,15 +728,56 @@ function updKamera(dt) {
   camera.position.copy(camPos); camera.lookAt(camLihat);
 }
 
+// ================== DUEL LAWAN OCONG BOT ==================
+let BOT = null, SELESAI = false;
+const barPemain = document.createElement('div'); barPemain.className = 'hp me'; barPemain.innerHTML = '<i></i>'; barPemain.style.display = 'none'; $('#bars').appendChild(barPemain);
+function kenaPemain(dmg, dari, dorong = 3) {
+  if (P.state === 'kalah' || SELESAI) return;
+  if (HERO === 'kunti' && P.state === 'blink') return;          // kebal saat Nge Blink (menghilang)
+  P.hp = Math.max(0, P.hp - dmg);
+  const d = P.root.position.clone().sub(dari).setY(0); if (d.lengthSq() > 1e-4) P.root.position.addScaledVector(d.normalize(), dorong * .12);
+  angka(P.root.position, dmg, '#ff5a5a'); goyang = Math.max(goyang, .2); hentiSejenak = Math.max(hentiSejenak, .06);
+  if (P.hp <= 0) selesai('kalah');
+}
+function selesai(hasil) {
+  if (SELESAI) return; SELESAI = true;
+  if (hasil === 'kalah') { P.state = 'kalah'; K.bidik = false; if (P.act.kalah) { P.cur = ''; main('kalah', .1); } else main('diam', .2); if (HERO === 'kunti') kuntiTembus(.4); }
+  setTimeout(() => { const t = $('#hasilT'); t.textContent = hasil === 'menang' ? 'MENANG!' : 'KALAH'; t.className = hasil; $('#hasil').classList.add('on'); }, 1200);
+}
+function mainLagi() {
+  SELESAI = false; $('#hasil').classList.remove('on');
+  P.hp = 1000; P.state = 'bebas'; P.cd = [0, 0, 0, 0]; P.cur = ''; main('diam', .1); P.root.position.set(0, 0, 4); P.arah = Math.PI; P.root.rotation.y = Math.PI;
+  if (HERO === 'kunti') kuntiTembus(1);
+  if (BOT) BOT.reset();
+}
+$('#lagi').onclick = mainLagi;
+function updBarPemain() {
+  if (!BOT) return; const [x, y, ok] = layar(V.copy(P.root.position).setY(P.root.position.y + 2.35));
+  barPemain.style.display = ok ? '' : 'none'; barPemain.style.left = x + 'px'; barPemain.style.top = y + 'px'; barPemain.firstChild.style.width = P.hp / 10 + '%';
+}
+async function siapkanBot() {
+  const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i>'; $('#bars').appendChild(bar);
+  BOT = await buatBotOcong({
+    scene, model: 'model-3d/skinocong.glb', tinggi: TINGGI, pemain: P, kenaPemain,
+    pemainAktif: () => P.state !== 'kalah' && !(HERO === 'kunti' && P.state === 'blink'),
+    batasi: v => { v.x = THREE.MathUtils.clamp(v.x, BATAS.x0, BATAS.x1); v.z = THREE.MathUtils.clamp(v.z, BATAS.z0, BATAS.z1); return v; },
+    skala: () => 1, jarak: 1, cepat: 1,
+    efek: { gelombang, percik, kilat, goyang: v => { goyang = Math.max(goyang, v); } },
+    rapikanKlip, bar, posAwal: new THREE.Vector3(0, 0, -4), selesai,
+  });
+  MUSUH.push(BOT.mt);
+  P.arah = Math.PI; P.root.rotation.y = Math.PI;   // pemain menghadap lawan
+}
+
 // ================== MULAI ==================
 const bar = $('#load .bar u');
 function prog(x) { bar.style.width = Math.round(x * 100) + '%'; }
 async function mulai() {
   buatArena(); siapkanApi();
-  [[-4, -2], [4, -1], [0, 6]].forEach(p => buatMusuh(p[0], p[1]));
+  if (LAWAN === 'boneka') [[-4, -2], [4, -1], [0, 6]].forEach(p => buatMusuh(p[0], p[1]));
   let lv = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 1 : 2; try { const s = localStorage.getItem('uji3dKual'); if (s !== null) lv = +s; } catch (e) { }
   setKual(lv);
-  try { await Promise.all([muatBoneka(prog), muatEfek()]); }
+  try { await Promise.all([muatBoneka(prog), muatEfek()]); if (LAWAN === 'ocong') await siapkanBot(); }
   catch (e) { $('#load b').textContent = 'Model tidak bisa dimuat'; $('#lmsg').textContent = 'Pastikan file ' + MODEL + ' sudah diunggah satu folder dengan halaman ini.'; return; }
   camLihat.copy(P.root.position).setY(.8);
   $('#load').classList.add('off');
@@ -737,7 +786,7 @@ async function mulai() {
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
     fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv]; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
-    updPemain(dt); updMusuh(dt); updEfek(dt); updApi(t0, dt); updKamera(dt); updLabel(dt);
+    updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt); updEfek(dt); updApi(t0, dt); updKamera(dt); updLabel(dt); updBarPemain();
     if (KUAL.bloom && composer) composer.render(); else renderer.render(scene, camera);
   });
 }
