@@ -185,12 +185,14 @@ const PK_CD = 3500;          // hitung mundur sebelum mulai (ms)
 const PK_LIMIT = 10 * 60000; // batas waktu balapan: 10 menit (ms)
 const PK_DORONG = 9500;      // jeda minimal antar serangan Dorong (ms); di game 10 detik
 const PK_AUTO = 12000;       // room acak: mulai otomatis 12 detik setelah ada 2 pemain
+const PK_ARENA = 2;         // jumlah lintasan parkur (0 = Jembatan Kali Angker, 1 = Dusun Malam Jumat)
+const pkAr = m => Math.max(0, Math.min(PK_ARENA - 1, m.ar | 0));
 const prooms = new Map();    // kode → {code, quick, host, pl:[ws], state:'lobby'|'race', t0, fin:[], tm, auto}
 const pkInfo = ws => ({ i: ws.id, n: ws.name, h: ws.hero, s: ws.skin || '' });
 const pkAll = (r, o, except) => { const str = JSON.stringify(o); r.pl.forEach(w => { if (w !== except) send(w, str); }); };
 function pkRoomMsg(r) {
   r.pl.forEach(w => send(w, { t: 'pkRoom', code: r.code, quick: !!r.quick, host: r.host === w, me: w.id, hostId: r.host && r.host.id,
-    pl: r.pl.map(pkInfo), max: PK_MAX, auto: r.autoAt ? Math.max(0, r.autoAt - Date.now()) : 0 }));
+    pl: r.pl.map(pkInfo), a: r.a || 0, max: PK_MAX, auto: r.autoAt ? Math.max(0, r.autoAt - Date.now()) : 0 }));
 }
 function pkAutoCheck(r) {
   if (!r.quick || r.state !== 'lobby') return;
@@ -202,7 +204,7 @@ function pkStart(r) {
   if (r.state !== 'lobby' || r.pl.length < 2) return;
   if (r.auto) { clearTimeout(r.auto); r.auto = null; r.autoAt = 0; }
   r.state = 'race'; r.t0 = Date.now() + PK_CD; r.fin = []; r.racers = r.pl.length;
-  pkAll(r, { t: 'pkStart', cd: PK_CD, pl: r.pl.map(pkInfo) });
+  pkAll(r, { t: 'pkStart', cd: PK_CD, a: r.a || 0, pl: r.pl.map(pkInfo) });
   r.tm = setTimeout(() => pkEnd(r), PK_CD + PK_LIMIT);
   console.log(new Date().toISOString(), 'parkur mulai', r.code, r.pl.map(w => w.name).join(', '));
 }
@@ -230,11 +232,12 @@ function pkLeave(ws) {
 function pkMsg(ws, m, raw) {
   const r = ws.proom && prooms.get(ws.proom);
   switch (m.t) {
-    case 'pkCreate': { leave(ws); const code = newCode(); const room = { code, quick: false, host: null, pl: [], state: 'lobby', fin: [] }; prooms.set(code, room); pkJoin(ws, room); return; }
+    case 'pkCreate': { leave(ws); const code = newCode(); const room = { code, quick: false, host: null, pl: [], state: 'lobby', fin: [], a: pkAr(m) }; prooms.set(code, room); pkJoin(ws, room); return; }
     case 'pkQuick': {
       leave(ws);
-      let room = [...prooms.values()].find(x => x.quick && x.state === 'lobby' && x.pl.length < PK_MAX);
-      if (!room) { const code = newCode(); room = { code, quick: true, host: null, pl: [], state: 'lobby', fin: [] }; prooms.set(code, room); }
+      const ar = pkAr(m);   // room acak dicocokkan dengan lintasan yang sama
+      let room = [...prooms.values()].find(x => x.quick && x.state === 'lobby' && x.pl.length < PK_MAX && (x.a || 0) === ar);
+      if (!room) { const code = newCode(); room = { code, quick: true, host: null, pl: [], state: 'lobby', fin: [], a: ar }; prooms.set(code, room); }
       pkJoin(ws, room); return;
     }
     case 'pkGo': if (r && r.host === ws) { if (r.pl.length < 2) send(ws, { t: 'err', msg: 'Butuh minimal 2 pemain' }); else pkStart(r); } return;
