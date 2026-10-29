@@ -2,7 +2,7 @@
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
    (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v86";
+const VERSION = "ks-v87";
 const CACHE = "kalensari-" + VERSION;
 // Gambar Kalensari Game (folder gambar-game/): nama file = kode isi, jadi isinya tidak pernah berubah.
 // Disimpan permanen di HP (cache-first) supaya game terbuka cepat walau sinyal lemah.

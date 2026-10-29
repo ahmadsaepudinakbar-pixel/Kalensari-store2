@@ -181,7 +181,9 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 #ldg{position:fixed;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(#141b33,#03050b);color:#f2efe9;font:600 16px Arial,sans-serif;text-align:center}
 #ldg.on{display:flex}#ldg .lbar{width:min(70vw,360px);height:12px;border-radius:8px;background:#101a33;border:2px solid #2c3f73;overflow:hidden}#ldg .lbar u{display:block;height:100%;width:0;background:linear-gradient(90deg,#c1121f,#ffb703);transition:width .2s}#ldg em{font:700 18px Arial;font-style:normal;color:#ffd166}#ldg i{width:46px;height:46px;border-radius:50%;border:5px solid #2c3f73;border-top-color:#ffb703;animation:ldsp .8s linear infinite}#ldg small{color:#9aa3b8;font-size:13px}
 @keyframes ldsp{to{transform:rotate(360deg)}}
-</style></head><body>
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+</head><body>
 <div id="dev"><h1>KALENSARI<i style="display:block;color:#c1121f;font-style:normal">GAME</i></h1><p>Main pakai apa?</p>
 <div class="dvr"><button class="g" id="dvHP"><b>📱</b>HP<small>Layar penuh &amp; miring otomatis</small></button><button id="dvPC"><b>💻</b>PC / Laptop<small>Main pakai keyboard</small></button></div></div>
 <div id="rot"><div class="ph"></div><b>Putar HP ke posisi miring</b><span id="rotT">HP Anda tidak bisa memiringkan layar otomatis — putar HP secara manual</span><button id="rotX">Tutup</button></div>
@@ -1164,6 +1166,7 @@ function pkUpd(){const P2=PK.p;if(!P2)return;
 const pkApi=()=>fr%130>75;
 function pkMati(t){const P2=PK.p;if(P2.mati)return;P2.mati=55;PK.deaths++;banner(t);if(navigator.vibrate)navigator.vibrate(80)}
 function pkDraw(){const P2=PK.p,Wd=W,Hd=H;g.setTransform(1,0,0,1,0,0);
+ if(window.PK3&&PK3.ok&&PK3.draw()){g.clearRect(0,0,Wd,Hd);pkLabel3()}else{   // 3D (parkur-3d.js); cadangan: tampilan 2D lama
  const tx=P2.x+P2.fvx*60,ty=P2.y*PKY-(P2.gr?P2.z:Math.max(P2.z,P2.z*.6))-20;PK.cam.x+=(tx-PK.cam.x)*.12;PK.cam.y+=(ty-PK.cam.y)*.08;
  const cx=PK.cam.x-Wd/2,cy=PK.cam.y-Hd/2;
  let gr=g.createLinearGradient(0,0,0,Hd);gr.addColorStop(0,'#0b1430');gr.addColorStop(1,'#04060c');g.fillStyle=gr;g.fillRect(0,0,Wd,Hd);
@@ -1195,13 +1198,21 @@ function pkDraw(){const P2=PK.p,Wd=W,Hd=H;g.setTransform(1,0,0,1,0,0);
   else if(it.c){const c=it.c,y=c.y*PKY-c.z+Math.sin(fr/12+c.x)*3;g.fillStyle='#ffd166';g.shadowColor='#ffb703';g.shadowBlur=10;g.beginPath();g.ellipse(c.x,y,6.5,8,0,0,7);g.fill();g.shadowBlur=0;g.fillStyle='#c1121f';g.fillRect(c.x-3,y-11,6,3)}
   else if(it.o)pkHero(it.o,1)
   else pkHero()}
- g.restore();
+ g.restore()}
  // HUD
  g.fillStyle='rgba(8,12,28,.85)';g.beginPath();g.roundRect(Wd/2-130,6,260,44,10);g.fill();g.fillStyle='#ffd166';g.font='bold 10px Arial';g.textAlign='center';g.fillText('PARKUR HANTU · Jembatan Kali Angker',Wd/2,20);
  g.fillStyle='#fff';g.font='bold 18px Arial';g.fillText('⏱ '+pkJam(PK.t/60),Wd/2-40,42);g.fillStyle='#9fffa8';g.font='bold 12px Arial';g.fillText('CP '+PK.cp+'/'+(PK.cps.length-1),Wd/2+75,41);
  g.textAlign='left';g.fillStyle='rgba(8,12,28,.8)';g.beginPath();g.roundRect(8,8,120,28,8);g.fill();g.fillStyle='#fff';g.font='bold 13px Arial';g.fillText('🏮 '+PK.coins.filter(c=>c.ok).length+'/'+PK.coins.length+'   💀 '+PK.deaths,16,27);
  if(P2.mati){g.fillStyle=`rgba(0,0,0,${Math.min(.7,(55-P2.mati)/30)})`;g.fillRect(0,0,Wd,Hd)}
  if(PK.net)pkHudNet(Wd,Hd)}
+function pkLabel3(){   // nama pemain & efek dorong, digambar di kanvas 2D di atas dunia 3D
+ const L=[[PK.p,0]];if(PK.net)for(const k in PKN.ot){const o=PKN.ot[k];if(o.ok&&!o.mati)L.push([o,1])}
+ for(const [P2,lain] of L){if(P2.mati>40)continue;const [x,y,ok]=PK3.proj(P2.x,P2.y,P2.z+(P2.id=='kuntilanak'?128:120));if(!ok)continue;
+  g.font='bold 11px Arial';g.textAlign='center';g.lineWidth=3;g.strokeStyle='rgba(0,0,0,.7)';const nm=lain?P2.n:myName();g.strokeText(nm,x,y);g.fillStyle=lain?'#ffc8a0':'#bfe0ff';g.fillText(nm,x,y);
+  if(P2.atkT>0){g.save();g.globalAlpha=P2.atkT/12;g.fillStyle='#fff3b0';g.font='bold 20px Arial';g.fillText('💥',x,y+40);g.restore()}
+  if(P2.atk>0){const [cx,cy]=PK3.proj(P2.x,P2.y,P2.z+55),[ax,ay]=PK3.proj(P2.x+(P2.fvx||1)*40,P2.y+(P2.fvy||0)*40,P2.z+55),an=Math.atan2(ay-cy,ax-cx),a=P2.atk/14,r=Math.max(18,Math.hypot(ax-cx,ay-cy));
+   g.save();g.globalAlpha=a;g.strokeStyle='#ffe08a';g.lineWidth=5;g.shadowColor='#ffb703';g.shadowBlur=12;g.beginPath();g.arc(cx,cy,r+(14-P2.atk)*1.6,an-1,an+1);g.stroke();g.restore()}}
+ g.textAlign='left'}
 function pkHudNet(Wd,Hd){   // papan posisi (kanan atas) + hitung mundur
  const L=[{n:myName(),x:PK.p.x,me:1,f:PKN.fin.find(f=>f.i===PKN.me)}].concat(Object.keys(PKN.ot).map(k=>({n:PKN.ot[k].n,x:PKN.ot[k].x,f:PKN.fin.find(f=>f.i==k)})));
  L.sort((a,b)=>(a.f?-1e6+a.f.rank:-a.x)-(b.f?-1e6+b.f.rank:-b.x));
@@ -1299,7 +1310,7 @@ function netHud(t){fpsN++;if(t-fpsT>=1000){fpsV=fpsN;fpsN=0;fpsT=t;
   if(NET.on&&playing){netSend({t:'ping',c:performance.now()});const p=NET.ping||0,sp=Math.round(NET.pmax||0),el=$('#net');el.classList.add('on');
    el.style.color=p<80&&sp<200?'#9fe39a':p<160&&sp<400?'#ffd166':'#ff6b5f';el.textContent='📶 '+p+' ms'+(sp>p*2&&sp>120?' (lonjakan '+sp+')':'')+' · '+fpsV+' fps · '+(NET.role=='host'?'pembuat room':'tamu')}
   else $('#net').classList.remove('on')}}
-function loop(t){if(PK.on){acc+=Math.min(t-last,100);last=t;while(acc>=16.67){acc-=16.67;fr++;pkUpd()}pkDraw();requestAnimationFrame(loop);return}
+function loop(t){if(!PK.on&&window.PK3)PK3.hide();if(PK.on){acc+=Math.min(t-last,100);last=t;while(acc>=16.67){acc-=16.67;fr++;pkUpd()}pkDraw();requestAnimationFrame(loop);return}
  netHud(t);acc+=Math.min(t-last,100);last=t;while(acc>=16.67){acc-=16.67;fr++;if(playing){if(NET.role=='guest')netGuestTick();else{upd();if(NET.role=='host'&&playing)netSend(netSnap(fr%60==0))}}}draw();requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
 const J=$('#joy'),K=$('#knob');let jp=null;
@@ -1328,4 +1339,5 @@ onkeyup=e=>{const k=km[e.key];if(k&&!'as'.includes(k))inp[k]=0};
 
 ['aGo','bOnl','bPk'].forEach(id=>{const b=$('#'+id),f=b.onclick;if(f)b.onclick=e=>kgWait(()=>f.call(b,e))});
 window.KG_READY=1;kgCek();
-</script></body></html>
+</script>
+<script type="module" src="parkur-3d.js"></script></body></html>
