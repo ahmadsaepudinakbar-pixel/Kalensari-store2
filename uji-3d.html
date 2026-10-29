@@ -308,7 +308,7 @@ addEventListener('resize', resize);
 // ================== EFEK SKILL ==================
 const texLoader = new THREE.TextureLoader();
 const FXT = {};
-const FX_NAMA = ['dasar-sabetan', 'dasar-ledakan', 's1-awalan', 's1-jejak-a', 's1-jejak-b', 's1-ledakan', 's2-guling-1', 's2-guling-2', 's2-guling-3', 's2-guling-4', 's3-lingkaran-1', 's3-lingkaran-2', 's3-lingkaran-3', 's3-lingkaran-4'];
+const FX_NAMA = [];   // efek Ocong sekarang dibuat dengan kode (tidak ada gambar efek yang dimuat)
 function muatEfek() {
   return Promise.all(FX_NAMA.map(n => new Promise(res => texLoader.load(EFEK + n + '.webp', t => { t.colorSpace = THREE.SRGBColorSpace; FXT[n] = t; res(); }, undefined, () => res()))));
 }
@@ -342,6 +342,28 @@ function percik(pos, n = 40, warna = 0xff6030, kuat = 6, ukuran = .18) {
 const KILAT = [0, 1].map(() => { const l = new THREE.PointLight(0xff3a1a, 0, 12, 1.4); scene.add(l); return { l, t: 9 }; });
 let kilatI = 0;
 function kilat(pos, kuat = 40) { const k = KILAT[kilatI++ % 2]; k.l.position.set(pos.x, 1.2, pos.z); k.kuat = kuat; k.t = 0; }
+// ---- efek Ocong dari kode (pengganti gambar) ----
+// lingkaran sihir rata di lantai
+const T_SIHIR = tex(512, 512, (x) => {
+  x.translate(256, 256); x.strokeStyle = '#ff3a20'; x.shadowColor = '#ff2a10'; x.shadowBlur = 18; x.lineCap = 'round';
+  [[240, 8], [222, 3], [170, 5], [150, 2]].forEach(([r, w]) => { x.lineWidth = w; x.beginPath(); x.arc(0, 0, r, 0, 7); x.stroke(); });
+  x.lineWidth = 3; for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2; x.beginPath(); x.moveTo(Math.cos(a) * 226, Math.sin(a) * 226); x.lineTo(Math.cos(a) * (i % 4 ? 236 : 246), Math.sin(a) * (i % 4 ? 236 : 246)); x.stroke(); }
+  x.font = 'bold 22px serif'; x.fillStyle = '#ff6a40'; for (let i = 0; i < 16; i++) { x.save(); x.rotate(i / 16 * Math.PI * 2); x.fillText('ᛟᚨᛞᛉᛗᛚᛜᛝ'[i % 8], -8, -186); x.restore(); }
+  x.lineWidth = 5; x.beginPath(); for (let i = 0; i <= 5; i++) { const a = -Math.PI / 2 + i * 4 * Math.PI / 5; i ? x.lineTo(Math.cos(a) * 150, Math.sin(a) * 150) : x.moveTo(Math.cos(a) * 150, Math.sin(a) * 150); } x.stroke();
+  x.lineWidth = 3; x.beginPath(); x.arc(0, 0, 58, 0, 7); x.stroke();
+  const g = x.createRadialGradient(0, 0, 0, 0, 0, 250); g.addColorStop(0, 'rgba(255,80,40,.35)'); g.addColorStop(.6, 'rgba(255,40,20,.12)'); g.addColorStop(1, 'rgba(255,30,10,0)'); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 250, 0, 7); x.fill();
+});
+T_SIHIR.wrapS = T_SIHIR.wrapT = THREE.ClampToEdgeWrapping; T_SIHIR.repeat.set(1, 1);
+const bahanCahaya = (map, warna = 0xffffff) => new THREE.MeshBasicMaterial({ map, color: warna, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+function lingkaranLantai(pos, R, umur, putar = 1.5) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), bahanCahaya(T_SIHIR)); m.rotation.x = -Math.PI / 2; m.position.set(pos.x, .04, pos.z); scene.add(m);
+  FXS.push({ sihir: m, t: 0, umur, R, putar });
+}
+// bola cahaya kecil yang memudar (jejak api)
+function nyala(pos, ukuran = .8, warna = 0xff4a20, umur = .35) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_BULAT, color: warna, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); sp.position.copy(pos); sp.renderOrder = 3; scene.add(sp);
+  FXS.push({ glow: sp, t: 0, umur, uk: ukuran });
+}
 let goyang = 0, hentiSejenak = 0;
 function updEfek(dt) {
   for (let i = FXS.length - 1; i >= 0; i--) {
@@ -361,6 +383,12 @@ function updEfek(dt) {
       e.v.forEach((v, j) => { v.y -= 14 * dt; p[j * 3] += v.x * dt; p[j * 3 + 1] = Math.max(.05, p[j * 3 + 1] + v.y * dt); p[j * 3 + 2] += v.z * dt; });
       e.pts.geometry.attributes.position.needsUpdate = true; e.pts.material.opacity = 1 - q;
       if (e.t >= e.umur) { scene.remove(e.pts); e.pts.geometry.dispose(); e.pts.material.dispose(); FXS.splice(i, 1); }
+    } else if (e.sihir) {
+      const sc = e.R * Math.min(1, e.t / .18); e.sihir.scale.set(sc, sc, 1); e.sihir.rotation.z += e.putar * dt; e.sihir.material.opacity = Math.min(1, (e.umur - e.t) / .3);
+      if (e.t >= e.umur) { scene.remove(e.sihir); e.sihir.geometry.dispose(); e.sihir.material.dispose(); FXS.splice(i, 1); }
+    } else if (e.glow) {
+      const k = e.uk * (1 - q * .6); e.glow.scale.set(k, k, 1); e.glow.material.opacity = (1 - q) * .9;
+      if (e.t >= e.umur) { scene.remove(e.glow); e.glow.material.dispose(); FXS.splice(i, 1); }
     }
   }
   KILAT.forEach(k => { k.t += dt; k.l.intensity = k.t < .35 ? (k.kuat || 0) * (1 - k.t / .35) : 0; });
@@ -505,13 +533,12 @@ function pakai(i) {
     if (m) { hadapKe(m.g.position); tj = m.g.position.clone(); } else tj = a.clone().addScaledVector(depan(), 6);
     tj.x = THREE.MathUtils.clamp(tj.x, BATAS.x0, BATAS.x1); tj.z = THREE.MathUtils.clamp(tj.z, BATAS.z0, BATAS.z1);
     P.awal = a; P.tujuan = tj; P.state = 'loncat';
-    efekGambar('s1-awalan', a, { lebar: 2.2, umur: .55, s0: .5, s1: 1.1 }); gelombang(a, 1.6, .4, 0xff4020);
+    lingkaranLantai(a, 1.3, .6, 3); gelombang(a, 1.6, .4, 0xff4020);
   }
   else if (i === 2) { const m = terdekat(8); if (m) hadapKe(m.g.position); P.state = 'guling'; P.kenaT = 0; main('guling', .08, 1.6);
-    P.gfx = efekGambar('s2-guling-1', P.root.position, { lebar: 2.2, umur: .85, s0: .9, s1: 1.15, ikut: P.root, off: new THREE.Vector3(0, -.05, 0), cx: .72, cy: .05, balik: Math.sin(P.arah) < 0, tahap: ['s2-guling-1', 's2-guling-2', 's2-guling-3', 's2-guling-4'], masuk: .05, keluar: .2 });
-    if (P.gfx) P.gfx.tahapL = 0; }
+    }
   else if (i === 3) { P.state = 'lingkaran';
-    efekGambar('s3-lingkaran-1', P.root.position.clone(), { lebar: 6.2, umur: 1.25, s0: .25, s1: 1.05, cy: .06, tahap: ['s3-lingkaran-1', 's3-lingkaran-2', 's3-lingkaran-3', 's3-lingkaran-4', 's3-lingkaran-4', 's3-lingkaran-4'], masuk: .05, keluar: .35 });
+    lingkaranLantai(P.root.position.clone(), 3.6, 1.25, 2);
     gelombang(P.root.position, 3, .5, 0xff2010); }
 }
 // ================== KUNTI MERAH ==================
@@ -832,10 +859,10 @@ function updPemain(dt) {
   } else if (P.state === 'sundul') {           // ancang-ancang → menerjang → hantam
     const t = P.t; main('diam', .1);
     if (t < .14) { const c = t / .14; P.tilt.scale.set(1 + .08 * c, 1 - .14 * c, 1 + .08 * c); P.tilt.rotation.x = -.15 * c; }
-    else if (t < .3) { const c = (t - .14) / .16; pos.addScaledVector(f, 9 * dt); P.tilt.rotation.x = .55 * Math.sin(c * Math.PI * .5); if (!P.jejak) { P.jejak = 1; efekGambar('dasar-sabetan', pos.clone().addScaledVector(f, .6).setY(.25), { lebar: 2.4, umur: .3, s0: .8, s1: 1.1, balik: Math.sin(P.arah) < 0, masuk: .03, keluar: .12 }); } }
+    else if (t < .3) { const c = (t - .14) / .16; pos.addScaledVector(f, 9 * dt); P.tilt.rotation.x = .55 * Math.sin(c * Math.PI * .5); }
     else if (!P.hit) { P.hit = 1; const hp = pos.clone().addScaledVector(f, 1.1); let ada = 0;
       MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(hp) < 1.5) { kena(m, 55 + Math.round(rnd(0, 12)), pos, 6); ada = 1; } });
-      efekGambar('dasar-ledakan', hp.setY(0), { lebar: 3, umur: .45, s0: .4, s1: 1.2, masuk: .03 }); percik(hp, 26, 0xff7040, 5); kilat(hp, 30); if (ada) goyang = .18; }
+      hp.setY(0); gelombang(hp, 1.9, .4, 0xff6030); nyala(hp.clone().setY(.6), 2, 0xff5020, .3); percik(hp, 26, 0xff7040, 5); kilat(hp, 30); if (ada) goyang = .18; }
     else { P.tilt.rotation.x = .35 * Math.max(0, 1 - (t - .3) / .2); }
     if (t > .55) P.state = 'bebas';
   } else if (P.state === 'loncat') {          // jongkok → melayang → mendarat
@@ -843,19 +870,16 @@ function updPemain(dt) {
     if (t < NA) { const c = t / NA; P.tilt.scale.set(1 + .12 * c, 1 - .2 * c, 1 + .12 * c); main('diam', .1); }
     else if (t < NA + TB) { const u = (t - NA) / TB, e = u * u * (3 - 2 * u) * .3 + u * .7; main('loncat', .05, 1.4);
       pos.lerpVectors(P.awal, P.tujuan, e); P.tilt.position.y = 3.2 * 4 * u * (1 - u); P.tilt.rotation.x = -.25 + .5 * u;
-      if (P.jejak === 0 && u > .05) { P.jejak = 1; const mid = P.awal.clone().lerp(P.tujuan, .4), len = P.awal.distanceTo(P.tujuan);
-        efekGambar('s1-jejak-a', mid.setY(1.1), { lebar: Math.max(3, len * .9), umur: .55, s0: .9, s1: 1, cy: .2, balik: P.tujuan.x < P.awal.x, keluar: .3 }); }
-      if (P.jejak === 1 && u > .55) { P.jejak = 2; const mid = P.awal.clone().lerp(P.tujuan, .8);
-        efekGambar('s1-jejak-b', mid.setY(.5), { lebar: Math.max(2.4, P.awal.distanceTo(P.tujuan) * .55), umur: .4, s0: .9, s1: 1, cy: .1, balik: P.tujuan.x < P.awal.x }); } }
+      nyala(pos.clone().setY(P.tilt.position.y + .9), 1.1, 0xff3a14, .45); if (Math.random() < .5) nyala(pos.clone().setY(P.tilt.position.y + rnd(.3, 1.4)), .6, 0xffa040, .3); }   // jejak api saat melayang
     else if (!P.hit) { P.hit = 1; pos.copy(P.tujuan);
-      efekGambar('s1-ledakan', pos.clone(), { lebar: 4.6, umur: .7, s0: .4, s1: 1.2, masuk: .03 }); gelombang(pos, 4.5, .6); gelombang(pos, 2.6, .45, 0xffa040);
+      lingkaranLantai(pos.clone(), 2.2, .6, 4); nyala(pos.clone().setY(.8), 3.2, 0xff4a20, .35); gelombang(pos, 4.5, .6); gelombang(pos, 2.6, .45, 0xffa040);
       percik(pos, 60, 0xff5020, 8, .22); percik(pos, 25, 0x332222, 6, .3); kilat(pos, 60); goyang = .35;
       MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < 2.6) { kena(m, 170, pos, 7, 4); m.pusing = 1.2; } }); }
     else { const c = Math.max(0, 1 - (t - NA - TB) / .2); P.tilt.scale.set(1 + .15 * c, 1 - .22 * c, 1 + .15 * c); main('diam', .2); }
     if (t > NA + TB + .3) P.state = 'bebas';
   } else if (P.state === 'guling') {          // berguling cepat ke depan, kena berkali-kali
     const t = P.t; pos.addScaledVector(f, 8.2 * dt * (t < .75 ? 1 : 0)); P.kenaT -= dt;
-    if (P.gfx) P.gfx.tahapL = 2.2 + Math.min(1, t / .75) * 1.6;
+    if (t < .8 && Math.random() < .85) nyala(pos.clone().setY(.75 + rnd(-.35, .35)).addScaledVector(f, rnd(-.4, .2)), rnd(.5, 1), 0xff4018, .3);   // pusaran api saat berguling
     if (P.kenaT <= 0) { let h = 0; MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < 1.3) { kena(m, 70, pos.clone().addScaledVector(f, -1), 5); h = 1; } }); if (h) { P.kenaT = .25; goyang = .12; } }
     if (Math.random() < .5) percik(pos, 3, 0x9a8a78, 2, .25);
     if (t > .95) { P.state = 'bebas'; main('diam', .2); }
