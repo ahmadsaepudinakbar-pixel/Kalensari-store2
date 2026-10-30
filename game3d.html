@@ -112,6 +112,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buatBotOcong } from './duel-bot.js';
 
 // ================== PENGATURAN ==================
@@ -141,7 +142,8 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 
 // ================== RENDERER, SCENE, KAMERA ==================
 const canvas = $('#c');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+const DI_HP = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: !DI_HP, powerPreference: 'high-performance' });   // HP: tanpa antialias (lebih ringan)
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
@@ -337,7 +339,7 @@ function buatArenaKuil() {
   for (let i = 0; i < 46; i++) { const a = i / 46 * Math.PI * 2, r = rnd(24, 40); const t = new THREE.Mesh(new THREE.ConeGeometry(rnd(2, 4), rnd(8, 14), 6), new THREE.MeshLambertMaterial({ color: 0x0e1410 })); t.position.set(Math.cos(a) * r, 5, Math.sin(a) * r - 4); scene.add(t); }
 }
 function updKain(t) {
-  KAIN.forEach(k => { const p = k.m.geometry.attributes.position, b = k.base; for (let i = 0; i < p.count; i++) { const turun = -b[i * 3 + 1]; p.setZ(i, Math.sin(turun * 2.2 - t * 3.4 + k.ph) * .12 * turun + Math.sin(t * 1.3 + k.ph) * .05 * turun); } p.needsUpdate = true; k.m.geometry.computeVertexNormals(); });
+  KAIN.forEach(k => { const p = k.m.geometry.attributes.position, b = k.base; for (let i = 0; i < p.count; i++) { const turun = -b[i * 3 + 1]; p.setZ(i, Math.sin(turun * 2.2 - t * 3.4 + k.ph) * .12 * turun + Math.sin(t * 1.3 + k.ph) * .05 * turun); } p.needsUpdate = true; if (KUAL.lv === 2) k.m.geometry.computeVertexNormals(); });
 }
 // semak: pahlawan di dalam semak tidak terlihat lawan, kecuali lawan sangat dekat / di semak yang sama
 function diSemak(p) { return SEMAK.find(s => Math.hypot(p.x - s.x, p.z - s.z) < s.r) || null; }
@@ -345,7 +347,26 @@ function terlihatDari(sasaran, pengamat) { const s = diSemak(sasaran); if (!s) r
 
 // ================== ARENA: LAPANGAN SD KALENSARI ==================
 let ARENA_DIBUAT = false;
-function buatArena() { if (ARENA_DIBUAT) return; ARENA_DIBUAT = true; if (ARENA === 'kuil') buatArenaKuil(); else buatArenaLapangan(); }
+function buatArena() { if (ARENA_DIBUAT) return; ARENA_DIBUAT = true; const awal = new Set(scene.children); if (ARENA === 'kuil') buatArenaKuil(); else buatArenaLapangan(); gabungStatis(awal); }
+function gabungStatis(kecuali) {
+  scene.updateMatrixWorld(true);
+  const grup = new Map(), buang = [];
+  scene.traverse(o => {
+    if (!o.isMesh || o.isSkinnedMesh || kecuali.has(o) || o === BENDERA || KAIN.some(k => k.m === o) || Array.isArray(o.material)) return;
+    let p = o; while (p && p !== scene) { if (kecuali.has(p)) return; p = p.parent; }
+    const g = o.geometry; if (g.attributes.position.count > 20000) return;           // lantai/tanah besar: biarkan
+    const key = o.material.uuid + (o.castShadow ? 'c' : '') + (o.receiveShadow ? 'r' : '');
+    let geo = g.index ? g.toNonIndexed() : g.clone(); geo.applyMatrix4(o.matrixWorld);
+    for (const n of Object.keys(geo.attributes)) if (!['position', 'normal', 'uv'].includes(n)) geo.deleteAttribute(n);
+    if (!geo.attributes.uv) geo.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(geo.attributes.position.count * 2), 2));
+    if (!geo.attributes.normal) geo.computeVertexNormals();
+    geo.clearGroups();
+    if (!grup.has(key)) grup.set(key, { m: o.material, cs: o.castShadow, rs: o.receiveShadow, geos: [] });
+    grup.get(key).geos.push(geo); buang.push(o);
+  });
+  buang.forEach(o => o.parent.remove(o));
+  grup.forEach(g => { const geo = mergeGeometries(g.geos, false); if (!geo) return; const me = new THREE.Mesh(geo, g.m); me.castShadow = g.cs; me.receiveShadow = g.rs; me.matrixAutoUpdate = false; scene.add(me); });
+}
 function buatArenaLapangan() {
   const lantai = new THREE.Mesh(new THREE.PlaneGeometry(44, 34), M.paving); lantai.rotation.x = -Math.PI / 2; lantai.position.z = 1; lantai.receiveShadow = true; scene.add(lantai);
   const lap = new THREE.Mesh(new THREE.PlaneGeometry(17, 11.7), M.lapang); lap.rotation.x = -Math.PI / 2; lap.position.set(0, .015, 1); lap.receiveShadow = true; scene.add(lap);
@@ -437,8 +458,7 @@ function siapkanApi() {
       const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_API, color: k ? 0xff7a30 : 0xffffff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
       s.center.set(.5, .1); s.position.set(a.x, a.y, a.z); scene.add(s); a.sp.push(s);
     }
-    a.light = new THREE.PointLight(a.lampu ? 0xffc070 : 0xff8a3a, 0, a.lampu ? 9 : 13, 1.6);
-    a.light.position.set(a.x, a.y + .6, a.z); scene.add(a.light); a.ph = i * 1.7;
+    a.ph = i * 1.7;
   });
   const geo = new THREE.BufferGeometry(); const pos = new Float32Array(BARA.n * 3);
   for (let i = 0; i < BARA.n; i++) { BARA.v.push(new THREE.Vector3()); BARA.a.push(0); }
@@ -446,10 +466,20 @@ function siapkanApi() {
   BARA.p = new THREE.Points(geo, new THREE.PointsMaterial({ map: T_BULAT, color: 0xffa040, size: .14, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
   BARA.p.frustumCulled = false; scene.add(BARA.p);
 }
+// lampu api bersama: Rendah 0, Sedang 3, Tinggi 6 — dipasang ke obor yang paling dekat dengan kamera
+const LAMPU = [0, 1, 2, 3, 4, 5].map(() => { const l = new THREE.PointLight(0xff8a3a, 0, 13, 1.6); l.visible = false; scene.add(l); return l; });
+let lampuT = 0, lampuUrut = [];
+function updLampu(dt) {
+  const N = [0, 3, 6][KUAL.lv] || 0; if (!N || !API.length) return;
+  if ((lampuT -= dt) <= 0) { lampuT = .4; lampuUrut = API.slice().sort((a, b) => Math.hypot(a.x - camLihat.x, a.z - camLihat.z) - Math.hypot(b.x - camLihat.x, b.z - camLihat.z)); }
+  for (let i = 0; i < N; i++) { const l = LAMPU[i], a = lampuUrut[i]; if (!a) { l.intensity = 0; continue; }
+    l.position.set(a.x, a.y + .6, a.z); l.color.setHex(a.lampu ? 0xffc070 : 0xff8a3a); l.distance = a.lampu ? 9 : 13; l.intensity = (a.lampu ? 6 : 14) * (a.k || 1) * KUAL.apiTerang; }
+}
 function updApi(t, dt) {
+  updLampu(dt);
   API.forEach(a => {
     const k = .75 + .25 * Math.sin(t * 9 + a.ph) * Math.sin(t * 5.3 + a.ph) + Math.random() * .1;
-    a.light.intensity = (a.lampu ? 6 : 14) * k * KUAL.apiTerang;
+    a.k = k;
     a.sp.forEach((s, j) => { const sc = a.s * (j ? 1.25 : .8) * (.9 + .2 * k); s.scale.set(sc * .9, sc * 1.6 * (j ? 1 : .9), 1); });
   });
   const pos = BARA.p.geometry.attributes.position.array, tungku = API.filter(a => !a.lampu);
@@ -460,7 +490,7 @@ function updApi(t, dt) {
   }
   BARA.p.geometry.attributes.position.needsUpdate = true;
   updKain(t);
-  if (BENDERA) { const p = BENDERA.geometry.attributes.position, b = BENDERA.userData.base; for (let i = 0; i < p.count; i++) { const x0 = b[i * 3] + .75; p.setZ(i, Math.sin(x0 * 3.2 - t * 5) * .12 * x0); } p.needsUpdate = true; BENDERA.geometry.computeVertexNormals(); }
+  if (BENDERA) { const p = BENDERA.geometry.attributes.position, b = BENDERA.userData.base; for (let i = 0; i < p.count; i++) { const x0 = b[i * 3] + .75; p.setZ(i, Math.sin(x0 * 3.2 - t * 5) * .12 * x0); } p.needsUpdate = true; if (KUAL.lv === 2) BENDERA.geometry.computeVertexNormals(); }
 }
 
 // ================== KUALITAS GRAFIS ==================
@@ -469,10 +499,10 @@ let composer = null, bloomPass = null;
 function setKual(lv) {
   KUAL.lv = lv; try { localStorage.setItem('uji3dKual', lv); } catch (e) { }
   document.querySelectorAll('#kual button').forEach(b => b.classList.toggle('on', +b.dataset.q === lv));
-  renderer.setPixelRatio(lv === 0 ? Math.min(devicePixelRatio, 1) : lv === 1 ? Math.min(devicePixelRatio, 1.5) : Math.min(devicePixelRatio, 2));
+  renderer.setPixelRatio(lv === 0 ? Math.min(devicePixelRatio, DI_HP ? .85 : 1) : lv === 1 ? Math.min(devicePixelRatio, DI_HP ? 1.1 : 1.5) : Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = lv > 0; sun.castShadow = lv > 0;
-  sun.shadow.mapSize.setScalar(lv === 2 ? 2048 : 1024); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
-  API.forEach(a => a.light && (a.light.visible = lv > 0 || !a.lampu));
+  sun.shadow.mapSize.setScalar(lv === 2 ? 2048 : 512); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+  LAMPU.forEach((l, i) => l.visible = i < [0, 3, 6][lv]); KILAT.forEach(k => k.l.visible = lv > 0);
   KUAL.bloom = lv === 2;
   scene.traverse(o => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); } });
   resize();
@@ -515,6 +545,7 @@ function gelombang(pos, radius, umur = .5, warna = 0xff5030) {
 }
 // partikel percikan / serpihan
 function percik(pos, n = 40, warna = 0xff6030, kuat = 6, ukuran = .18) {
+  if (KUAL.lv === 0) { n = Math.ceil(n * .4); if (n <= 2 && Math.random() < .5) return; }
   const geo = new THREE.BufferGeometry(), p = new Float32Array(n * 3), v = [];
   for (let i = 0; i < n; i++) { p[i * 3] = pos.x; p[i * 3 + 1] = pos.y + .3; p[i * 3 + 2] = pos.z; const a = Math.random() * Math.PI * 2, s = rnd(.3, 1) * kuat; v.push(new THREE.Vector3(Math.cos(a) * s, rnd(.4, 1.2) * kuat, Math.sin(a) * s)); }
   geo.setAttribute('position', new THREE.BufferAttribute(p, 3));
@@ -1347,6 +1378,13 @@ async function mulai() {
   mulaiLoop();
 }
 let LOOP = false;
+const OTO = { t: 0, n: 0, jeda: 3 };
+function kualitasOtomatis(dt) {   // fps < 26 selama ±4 detik → turunkan kualitas satu tingkat
+  if (OTO.jeda > 0) { OTO.jeda -= dt; return; }
+  OTO.t += dt; OTO.n++; if (OTO.t < 4) return;
+  const fps = OTO.n / OTO.t; OTO.t = 0; OTO.n = 0;
+  if (fps < 26 && KUAL.lv > 0) { setKual(KUAL.lv - 1); OTO.jeda = 3; const t = $('#fps'); if (t) t.textContent = 'Kualitas diturunkan otomatis (' + Math.round(fps) + ' fps)'; }
+}
 function mulaiLoop() {
   if (LOOP) return; LOOP = true;
   let last = performance.now(), fN = 0, fT = 0, t0 = 0;
@@ -1359,7 +1397,7 @@ function mulaiLoop() {
     if (NET.on) { updLawan(dt); NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaan(); } cekLawan2D(); }
     updPeluru(dt); updRohPemburu(dt); updGelKipas(dt);
     setTembus(P, diSemak(P.root.position) ? .5 : (HERO === 'kunti' && P.state === 'kalah' ? .4 : 1));   // di dalam semak: badan sendiri tembus pandang
-    updEfek(dt); updApi(t0, dt); updKamera(dt); updLabel(dt); updBarPemain();
+    updEfek(dt); updApi(t0, dt); updKamera(dt); updLabel(dt); updBarPemain(); kualitasOtomatis(nyata);
     if (KUAL.bloom && composer) composer.render(); else renderer.render(scene, camera);
   });
 }
