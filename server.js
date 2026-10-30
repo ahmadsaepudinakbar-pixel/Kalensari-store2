@@ -1,5 +1,6 @@
 // Kalensari Game – server online (lobi, kode room, cari lawan acak, penerus data pertandingan)
 // Mode: Duel 1 vs 1 (2 pemain), Duel Tim custom (1-3 vs 1-3) dan Parkur Hantu (balapan, maks 6 pemain per room)
+// Versi game: game.html (2D) & game3d.html (3D, kirim v:'3d' di 'hello') — duel 1 vs 1 hanya mempertemukan pemain versi yang sama
 // Jalankan: node server.js   (port bawaan 8090, hanya mendengar di 127.0.0.1; diakses lewat Nginx wss://game.kalensari.web.id/ws)
 const http = require('http');
 const crypto = require('crypto');
@@ -85,9 +86,10 @@ function roomOf(ws) {
   if (k) return { c: k.code, m: 'pk', n: k.host && k.host.name, a: k.a || 0, pl: k.pl.length, max: PK_MAX, st: k.state === 'race' ? 'main' : 'lobby', pub: !!k.pub, q: !!k.quick };
   return null;
 }
-function daftarRoom() {
+function daftarRoom(ver = '') {
   const L = [];
-  rooms.forEach(r => { if (r.pub && r.host && !r.guest && !r.active) L.push(Object.assign(roomOf(r.host), { t: r.t0 || 0 })); });
+  rooms.forEach(r => { if (r.pub && r.host && !r.guest && !r.active && (r.host.ver || '') === ver) L.push(Object.assign(roomOf(r.host), { t: r.t0 || 0 })); });
+  if (ver) return L.sort((a, b) => b.t - a.t).slice(0, 30).map(({ t, ...x }) => x);   // versi 3D: hanya room duel 3D
   trooms.forEach(r => { if (r.pub && r.host && r.state === 'lobby' && r.pl.length + r.bots.length < 6) L.push(Object.assign(roomOf(r.host), { t: r.t0 || 0 })); });
   prooms.forEach(r => { if (r.pub && r.host && r.state === 'lobby' && r.pl.length < PK_MAX) L.push(Object.assign(roomOf(r.host), { t: r.t0 || 0 })); });
   return L.sort((a, b) => b.t - a.t).slice(0, 30).map(({ t, ...x }) => x);
@@ -328,7 +330,7 @@ function begin(r) {
 
 wss.on('connection', (ws, req) => {
   ws.id = nextId++; ws.alive = true; ws.name = 'Pemain'; ws.hero = 'pocong'; ws.arena = 0;
-  ws.room = null; ws.proom = null; ws.troom = null; ws.tmT = 0; ws.tmR = 0; ws.skin = ''; ws.win = Date.now(); ws.cnt = 0;
+  ws.room = null; ws.proom = null; ws.troom = null; ws.ver = ''; ws.tmT = 0; ws.tmR = 0; ws.skin = ''; ws.win = Date.now(); ws.cnt = 0;
   ws.on('pong', () => { ws.alive = true; });
   ws.on('message', raw => {
     // batasi banjir pesan: maks 150 pesan / detik per pemain
@@ -353,6 +355,7 @@ wss.on('connection', (ws, req) => {
         ws.hero = HEROES.includes(m.hero) ? m.hero : 'pocong';
         ws.arena = Math.max(0, Math.min(9, m.arena | 0));
         ws.skin = clean(m.skin, 20);
+        ws.ver = clean(m.v, 8);   // '' = game.html (2D), '3d' = game3d.html
         send(ws, { t: 'hi', id: ws.id });
         if (m.sesi && m.sesi !== ws.sesi) {
           ws.sesi = m.sesi;
@@ -363,7 +366,7 @@ wss.on('connection', (ws, req) => {
           });
         }
         break;
-      case 'list': send(ws, { t: 'list', r: daftarRoom() }); break;
+      case 'list': send(ws, { t: 'list', r: daftarRoom(ws.ver || '') }); break;
       case 'online': {   // status teman: online? di room mana?
         const st = {};
         (Array.isArray(m.ids) ? m.ids.slice(0, 100) : []).forEach(id => {
@@ -391,6 +394,7 @@ wss.on('connection', (ws, req) => {
       }
       case 'join': {
         const code = clean(m.code, 6);
+        if (ws.ver === '3d' && (trooms.has(code) || prooms.has(code))) { send(ws, { t: 'err', msg: 'Kode ' + code + ' adalah room Duel Tim / Parkur di game versi 2D' }); break; }
         const tr = trooms.get(code);
         if (tr) {   // kode milik room Duel Tim
           if (tr.state !== 'lobby') { send(ws, { t: 'err', msg: 'Room ini sedang bertanding — otomatis masuk setelah selesai…', tunggu: 1 }); break; }
@@ -408,6 +412,7 @@ wss.on('connection', (ws, req) => {
         const room = rooms.get(code);
         if (!room) { send(ws, { t: 'err', msg: 'Room ' + code + ' tidak ditemukan (mungkin sudah ditutup)', hilang: 1 }); break; }
         if (room.active || room.guest) { send(ws, { t: 'err', msg: 'Room ' + code + ' sudah penuh (2/2)' }); break; }
+        if ((room.host.ver || '') !== (ws.ver || '')) { send(ws, { t: 'err', msg: 'Room ' + code + ' dibuat di Kalensari Game versi ' + (room.host.ver === '3d' ? '3D' : '2D') + ' — buka game versi itu untuk bergabung' }); break; }
         if (room.host === ws) { send(ws, { t: 'room', code, pub: room.pub ? 1 : 0 }); break; }
         leave(ws);
         room.guest = ws; ws.room = code;
@@ -417,8 +422,9 @@ wss.on('connection', (ws, req) => {
       case 'quick': {
         leave(ws);
         queue = queue.filter(q => q.readyState === 1);
-        const other = queue.shift();
-        if (other && other !== ws) {
+        const iv = queue.findIndex(q => q !== ws && (q.ver || '') === (ws.ver || ''));   // lawan acak dari versi yang sama
+        const other = iv >= 0 ? queue.splice(iv, 1)[0] : null;
+        if (other) {
           const code = newCode();
           const room = { code, host: other, guest: ws, active: false, quick: true, pub: true, t0: Date.now() };
           rooms.set(code, room); other.room = ws.room = code;
