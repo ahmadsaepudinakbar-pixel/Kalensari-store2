@@ -58,7 +58,40 @@ const HEROES = ['pocong', 'kuntilanak'];
 const RELAY_FROM_HOST = new Set(['st', 'end']);   // data pertandingan dari host → tamu
 const RELAY_FROM_GUEST = new Set(['in']);         // tombol tamu → host
 
-const rooms = new Map();   // kode → {code, host, guest, active, quick}
+const rooms = new Map();   // kode → {code, host, guest, active, quick, pub}
+// ---------- AKUN PEMAIN (untuk fitur teman) ----------
+// Server menanyakan ke Supabase: sesi akun pembeli → ID akun (PB0001). Alamat & kunci publik sama dengan config.js situs.
+const SB_URL = process.env.KS_SUPABASE_URL || 'https://mochsxsxxwaibtfpudoz.supabase.co';
+const SB_KEY = process.env.KS_SUPABASE_KEY || 'sb_publishable_9M1gzo3mE9YYpFrIExrCrA_stGdgkK9';
+const akunWs = new Map();  // ID akun → ws yang sedang online
+function cekAkun(sesi) {
+  return new Promise(res => {
+    try {
+      const body = JSON.stringify({ p_sesi: String(sesi).slice(0, 200) }), u = new URL(SB_URL + '/rest/v1/rpc/game_akun_id');
+      const rq = require('https').request(u, { method: 'POST', timeout: 8000, headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } }, r => {
+        let d = ''; r.on('data', c => { d += c; if (d.length > 4000) rq.destroy(); }); r.on('end', () => { try { res(JSON.parse(d)); } catch { res(null); } });
+      });
+      rq.on('error', () => res(null)); rq.on('timeout', () => { rq.destroy(); res(null); }); rq.end(body);
+    } catch { res(null); }
+  });
+}
+// ringkasan room tempat pemain berada (untuk daftar room & status teman)
+function roomOf(ws) {
+  const d = ws.room && rooms.get(ws.room);
+  if (d) return { c: d.code, m: 'duel', n: d.host && d.host.name, a: d.host ? d.host.arena : 0, pl: d.guest ? 2 : 1, max: 2, st: d.active && d.guest ? 'main' : 'lobby', pub: !!d.pub };
+  const t = ws.troom && trooms.get(ws.troom);
+  if (t) return { c: t.code, m: 'tim', n: t.host && t.host.name, a: t.a, pl: t.pl.length + t.bots.length, max: 6, st: t.state === 'game' ? 'main' : 'lobby', pub: !!t.pub };
+  const k = ws.proom && prooms.get(ws.proom);
+  if (k) return { c: k.code, m: 'pk', n: k.host && k.host.name, a: k.a || 0, pl: k.pl.length, max: PK_MAX, st: k.state === 'race' ? 'main' : 'lobby', pub: !!k.pub, q: !!k.quick };
+  return null;
+}
+function daftarRoom() {
+  const L = [];
+  rooms.forEach(r => { if (r.pub && r.host && !r.guest && !r.active) L.push(Object.assign(roomOf(r.host), { t: r.t0 || 0 })); });
+  trooms.forEach(r => { if (r.pub && r.host && r.state === 'lobby' && r.pl.length + r.bots.length < 6) L.push(Object.assign(roomOf(r.host), { t: r.t0 || 0 })); });
+  prooms.forEach(r => { if (r.pub && r.host && r.state === 'lobby' && r.pl.length < PK_MAX) L.push(Object.assign(roomOf(r.host), { t: r.t0 || 0 })); });
+  return L.sort((a, b) => b.t - a.t).slice(0, 30).map(({ t, ...x }) => x);
+}
 let queue = [];            // pemain yang menunggu lawan acak
 let nextId = 1;
 
@@ -123,7 +156,7 @@ function tmMsg(ws, m, raw) {
   switch (m.t) {
     case 'tmCreate': {
       leave(ws); const code = newCode();
-      const room = { code, host: null, pl: [], bots: [], state: 'lobby', a: ws.arena || 0, kw: 10 };
+      const room = { code, host: null, pl: [], bots: [], state: 'lobby', a: ws.arena || 0, kw: 10, pub: m.pub !== 0, t0: Date.now() };
       trooms.set(code, room); tmJoin(ws, room); return;
     }
     case 'tmSet': {   // pemain mengubah tim / hero / siap (hanya di lobby)
@@ -232,12 +265,12 @@ function pkLeave(ws) {
 function pkMsg(ws, m, raw) {
   const r = ws.proom && prooms.get(ws.proom);
   switch (m.t) {
-    case 'pkCreate': { leave(ws); const code = newCode(); const room = { code, quick: false, host: null, pl: [], state: 'lobby', fin: [], a: pkAr(m) }; prooms.set(code, room); pkJoin(ws, room); return; }
+    case 'pkCreate': { leave(ws); const code = newCode(); const room = { code, quick: false, host: null, pl: [], state: 'lobby', fin: [], a: pkAr(m), pub: m.pub !== 0, t0: Date.now() }; prooms.set(code, room); pkJoin(ws, room); return; }
     case 'pkQuick': {
       leave(ws);
       const ar = pkAr(m);   // room acak dicocokkan dengan lintasan yang sama
       let room = [...prooms.values()].find(x => x.quick && x.state === 'lobby' && x.pl.length < PK_MAX && (x.a || 0) === ar);
-      if (!room) { const code = newCode(); room = { code, quick: true, host: null, pl: [], state: 'lobby', fin: [], a: ar }; prooms.set(code, room); }
+      if (!room) { const code = newCode(); room = { code, quick: true, host: null, pl: [], state: 'lobby', fin: [], a: ar, pub: true, t0: Date.now() }; prooms.set(code, room); }
       pkJoin(ws, room); return;
     }
     case 'pkGo': if (r && r.host === ws) { if (r.pl.length < 2) send(ws, { t: 'err', msg: 'Butuh minimal 2 pemain' }); else pkStart(r); } return;
@@ -279,8 +312,10 @@ function leave(ws, notify = true) {
   ws.room = null;
   if (!r) return;
   const peer = r.host === ws ? r.guest : r.host;
-  rooms.delete(r.code);
-  if (peer) { peer.room = null; if (notify) send(peer, { t: 'peerLeft' }); }
+  if (!peer) { rooms.delete(r.code); return; }
+  // room tetap ada: pemain yang tersisa menjadi pembuat room dan menunggu lawan (kode sama, bisa diajak lagi)
+  r.host = peer; r.guest = null; r.active = false; r.quick = false; if (r.pub == null) r.pub = true;
+  if (notify) send(peer, { t: 'peerLeft', code: r.code });
 }
 
 function begin(r) {
@@ -319,34 +354,61 @@ wss.on('connection', (ws, req) => {
         ws.arena = Math.max(0, Math.min(9, m.arena | 0));
         ws.skin = clean(m.skin, 20);
         send(ws, { t: 'hi', id: ws.id });
+        if (m.sesi && m.sesi !== ws.sesi) {
+          ws.sesi = m.sesi;
+          cekAkun(m.sesi).then(a => {
+            if (!a || !a.ok || !a.id || ws.readyState !== 1) return;
+            if (ws.akun && akunWs.get(ws.akun) === ws) akunWs.delete(ws.akun);
+            ws.akun = a.id; akunWs.set(a.id, ws); send(ws, { t: 'akun', id: a.id });
+          });
+        }
         break;
+      case 'list': send(ws, { t: 'list', r: daftarRoom() }); break;
+      case 'online': {   // status teman: online? di room mana?
+        const st = {};
+        (Array.isArray(m.ids) ? m.ids.slice(0, 100) : []).forEach(id => {
+          const w = akunWs.get(String(id)); if (!w || w.readyState !== 1) return;
+          const r = roomOf(w), sama = r && roomOf(ws) && roomOf(ws).c === r.c;
+          st[id] = { n: w.name, r: r ? { m: r.m, st: r.st, pl: r.pl, max: r.max, a: r.a, c: r.pub || sama ? r.c : '' } : null };
+        });
+        send(ws, { t: 'online', st }); break;
+      }
+      case 'ajak': {     // ajak teman ke room saya
+        const r = roomOf(ws); if (!r) { send(ws, { t: 'err', msg: 'Buat atau masuk room dulu, baru ajak teman' }); break; }
+        if (Date.now() - (ws.ajakT || 0) < 2000) break; ws.ajakT = Date.now();
+        const w = akunWs.get(String(m.ke));
+        if (!w || w.readyState !== 1) { send(ws, { t: 'info', msg: 'Teman sedang tidak membuka game' }); break; }
+        send(w, { t: 'diajak', dari: ws.akun || '', n: ws.name, c: r.c, m: r.m, a: r.a });
+        send(ws, { t: 'info', msg: 'Ajakan terkirim ke ' + w.name }); break;
+      }
       case 'create': {
         leave(ws);
         const code = newCode();
-        rooms.set(code, { code, host: ws, guest: null, active: false });
+        rooms.set(code, { code, host: ws, guest: null, active: false, pub: m.pub !== 0, t0: Date.now() });
         ws.room = code;
-        send(ws, { t: 'room', code });
+        send(ws, { t: 'room', code, pub: m.pub !== 0 ? 1 : 0 });
         break;
       }
       case 'join': {
         const code = clean(m.code, 6);
         const tr = trooms.get(code);
         if (tr) {   // kode milik room Duel Tim
-          if (tr.state !== 'lobby') { send(ws, { t: 'err', msg: 'Room ini sedang bertanding, tunggu selesai' }); break; }
+          if (tr.state !== 'lobby') { send(ws, { t: 'err', msg: 'Room ini sedang bertanding — otomatis masuk setelah selesai…', tunggu: 1 }); break; }
           if (tmCount(tr, 0) + tmCount(tr, 1) >= TM_MAX * 2) { send(ws, { t: 'err', msg: tr.bots.length ? 'Room penuh — minta pembuat room menghapus 1 bot' : 'Room sudah penuh (3 vs 3)' }); break; }
           if (tr.pl.includes(ws)) break;
           tmJoin(ws, tr); break;
         }
         const pr = prooms.get(code);
         if (pr) {   // kode milik room Parkur Hantu
-          if (pr.state !== 'lobby') { send(ws, { t: 'err', msg: 'Balapan di room ini sedang berjalan, tunggu selesai' }); break; }
+          if (pr.state !== 'lobby') { send(ws, { t: 'err', msg: 'Balapan di room ini sedang berjalan — otomatis masuk setelah selesai…', tunggu: 1 }); break; }
           if (pr.pl.length >= PK_MAX) { send(ws, { t: 'err', msg: 'Room parkur sudah penuh (' + PK_MAX + ' pemain)' }); break; }
           if (pr.pl.includes(ws)) break;
           pkJoin(ws, pr); break;
         }
         const room = rooms.get(code);
-        if (!room || room.active || room.guest) { send(ws, { t: 'err', msg: 'Kode room tidak ditemukan atau sudah penuh' }); break; }
-        if (room.host === ws) { send(ws, { t: 'err', msg: 'Ini room Anda sendiri' }); break; }
+        if (!room) { send(ws, { t: 'err', msg: 'Room ' + code + ' tidak ditemukan (mungkin sudah ditutup)', hilang: 1 }); break; }
+        if (room.active || room.guest) { send(ws, { t: 'err', msg: 'Room ' + code + ' sudah penuh (2/2)' }); break; }
+        if (room.host === ws) { send(ws, { t: 'room', code, pub: room.pub ? 1 : 0 }); break; }
         leave(ws);
         room.guest = ws; ws.room = code;
         begin(room);
@@ -358,7 +420,7 @@ wss.on('connection', (ws, req) => {
         const other = queue.shift();
         if (other && other !== ws) {
           const code = newCode();
-          const room = { code, host: other, guest: ws, active: false, quick: true };
+          const room = { code, host: other, guest: ws, active: false, quick: true, pub: true, t0: Date.now() };
           rooms.set(code, room); other.room = ws.room = code;
           begin(room);
         } else { queue.push(ws); send(ws, { t: 'wait' }); }
@@ -368,7 +430,7 @@ wss.on('connection', (ws, req) => {
       case 'ping': send(ws, { t: 'pong', c: m.c }); break;
     }
   });
-  ws.on('close', () => leave(ws));
+  ws.on('close', () => { leave(ws); if (ws.akun && akunWs.get(ws.akun) === ws) akunWs.delete(ws.akun); });
   ws.on('error', () => {});
 });
 
