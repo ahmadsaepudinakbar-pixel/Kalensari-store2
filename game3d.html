@@ -148,6 +148,7 @@ const NAMA = (Q.get('nama') || 'Pemain').slice(0, 16), KODE = (Q.get('kode') || 
 let ARENA = Q.get('arena') === 'lapangan' ? 'lapangan' : 'kuil';             // online: diganti arena pilihan pembuat room
 let PUSAT_Z = 0;                                                              // titik tengah arena (pemain lawan dicerminkan di sini)
 function aturArena() { PUSAT_Z = ARENA === 'kuil' ? 0 : 1; }
+const JARAK_AWAL = () => ARENA === 'kuil' ? 6 : 4.5;   // jarak pemain dari tengah arena saat mulai
 aturArena();
 const SKIN = HERO === 'ocong' && Q.get('skin') === 'lompat' ? 'lompat' : '';     // skin Ocong: '' = Boneka, 'lompat' = Pocong Lompat
 const MODEL = HERO === 'kunti' ? 'model-3d/skinkunti.glb' : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
@@ -249,7 +250,7 @@ const cyl = (r1, r2, h, m, x, y, z, p = scene, s = 12) => { const o = new THREE.
 
 // ================== ARENA: KUIL MALAM ==================
 // arena batu melingkar di depan kuil, malam bulan purnama, obor, panji merah, semak untuk sembunyi
-const KUIL_R = 10;             // jari-jari area yang bisa dilewati (meter)
+const KUIL_R = 14;             // jari-jari area yang bisa dilewati (meter)
 const SEMAK = [];              // tempat sembunyi {x, z, r}
 const KAIN = [];               // panji yang berkibar
 function buatArenaKuil() {
@@ -299,38 +300,38 @@ function buatArenaKuil() {
     x.lineWidth = 3; x.beginPath(); x.arc(0, 0, 66, 0, 7); x.stroke();
   });
   tBatu.wrapS = tBatu.wrapT = THREE.ClampToEdgeWrapping; tBatu.repeat.set(1, 1);
-  const lantai = new THREE.Mesh(new THREE.CircleGeometry(11.2, 64), new THREE.MeshStandardMaterial({ map: tBatu, roughness: .85, metalness: .05 }));
+  const lantai = new THREE.Mesh(new THREE.CircleGeometry(15.2, 72), new THREE.MeshStandardMaterial({ map: tBatu, roughness: .85, metalness: .05 }));
   lantai.rotation.x = -Math.PI / 2; lantai.position.y = .02; lantai.receiveShadow = true; scene.add(lantai);
   // bibir arena: deretan balok batu (celah di belakang untuk tangga kuil)
   const mBatu = new THREE.MeshLambertMaterial({ color: 0x4a4652 }), mBatuG = new THREE.MeshLambertMaterial({ color: 0x35323c });
-  for (let i = 0; i < 44; i++) {
-    const a = i / 44 * Math.PI * 2; if (Math.abs(Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2))) < .26) continue;   // celah ke arah kuil (-z)
-    const b = box(1.45, .42, .7, i % 2 ? mBatu : mBatuG, Math.cos(a) * 11.5, .21, Math.sin(a) * 11.5); b.rotation.y = -a + Math.PI / 2;
+  for (let i = 0; i < 60; i++) {
+    const a = i / 60 * Math.PI * 2; if (Math.abs(Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2))) < .2) continue;   // celah ke arah kuil (-z)
+    const b = box(1.45, .42, .7, i % 2 ? mBatu : mBatuG, Math.cos(a) * 15.5, .21, Math.sin(a) * 15.5); b.rotation.y = -a + Math.PI / 2;
   }
 
   // --- kuil di belakang ---
   const mKayu = new THREE.MeshLambertMaterial({ color: 0x3a2222 }), mMerah = new THREE.MeshLambertMaterial({ color: 0x9a1c1c }), mAtap = new THREE.MeshLambertMaterial({ color: 0x1f1b26 });
   const mEmas = new THREE.MeshLambertMaterial({ color: 0xb08a3a }), mPintu = new THREE.MeshBasicMaterial({ color: 0xff9a40 });
-  for (let i = 0; i < 6; i++) box(7 - i * .2, .3, .55, mBatu, 0, .15 + i * .3, -11.9 - i * .55);              // tangga
-  box(18, 1.8, 9, mBatuG, 0, .9, -18.5);                                                                       // pelataran
-  box(18.6, .2, 9.6, mBatu, 0, 1.85, -18.5);
-  [-6.4, -3.2, 0, 3.2, 6.4].forEach(x => { if (x) cyl(.26, .3, 3.6, mMerah, x, 3.75, -15); cyl(.26, .3, 3.6, mMerah, x, 3.75, -21.6); });   // tiang merah
-  [-6.4, 6.4].forEach(x => cyl(.26, .3, 3.6, mMerah, x, 3.75, -18.3));
-  box(12.6, 3.6, .4, mKayu, 0, 3.75, -21.4);                                                                   // dinding belakang
-  const pintu = box(2.4, 2.8, .1, mPintu, 0, 3.35, -21.15); pintu.castShadow = false;                         // pintu menyala
-  [-4.2, 4.2].forEach(x => { const j = box(1.4, 1.2, .1, mPintu, x, 4, -21.15); j.castShadow = false; });
-  box(14.4, .35, 7.6, mKayu, 0, 5.7, -18.3); box(14.6, .12, 7.8, mEmas, 0, 5.92, -18.3);                     // balok atas
-  const atap = (w, d, h, y) => { const g = new THREE.ConeGeometry(1, 1, 4, 1, true); g.rotateY(Math.PI / 4); const m = new THREE.Mesh(g, mAtap); m.scale.set(w, h, d); m.position.set(0, y, -18.3); m.castShadow = true; scene.add(m); return m; };
-  atap(11.5, 6.5, 2.6, 7.2); box(6.4, 1.4, 3.6, mKayu, 0, 8.3, -18.3); atap(6.8, 4.2, 2.2, 9.9); cyl(.08, .12, 1.4, mEmas, 0, 11.4, -18.3, scene, 6);
+  for (let i = 0; i < 6; i++) box(7 - i * .2, .3, .55, mBatu, 0, .15 + i * .3, -15.9 - i * .55);              // tangga
+  box(18, 1.8, 9, mBatuG, 0, .9, -22.5);                                                                       // pelataran
+  box(18.6, .2, 9.6, mBatu, 0, 1.85, -22.5);
+  [-6.4, -3.2, 0, 3.2, 6.4].forEach(x => { if (x) cyl(.26, .3, 3.6, mMerah, x, 3.75, -19); cyl(.26, .3, 3.6, mMerah, x, 3.75, -25.6); });   // tiang merah
+  [-6.4, 6.4].forEach(x => cyl(.26, .3, 3.6, mMerah, x, 3.75, -22.3));
+  box(12.6, 3.6, .4, mKayu, 0, 3.75, -25.4);                                                                   // dinding belakang
+  const pintu = box(2.4, 2.8, .1, mPintu, 0, 3.35, -25.15); pintu.castShadow = false;                         // pintu menyala
+  [-4.2, 4.2].forEach(x => { const j = box(1.4, 1.2, .1, mPintu, x, 4, -25.15); j.castShadow = false; });
+  box(14.4, .35, 7.6, mKayu, 0, 5.7, -22.3); box(14.6, .12, 7.8, mEmas, 0, 5.92, -22.3);                     // balok atas
+  const atap = (w, d, h, y) => { const g = new THREE.ConeGeometry(1, 1, 4, 1, true); g.rotateY(Math.PI / 4); const m = new THREE.Mesh(g, mAtap); m.scale.set(w, h, d); m.position.set(0, y, -22.3); m.castShadow = true; scene.add(m); return m; };
+  atap(11.5, 6.5, 2.6, 7.2); box(6.4, 1.4, 3.6, mKayu, 0, 8.3, -22.3); atap(6.8, 4.2, 2.2, 9.9); cyl(.08, .12, 1.4, mEmas, 0, 11.4, -22.3, scene, 6);
   // lampion merah di depan kuil
-  [-6.4, -3.2, 3.2, 6.4].forEach(x => { const l = box(.45, .6, .45, new THREE.MeshBasicMaterial({ color: 0xff4a30 }), x, 4.9, -14.7); l.castShadow = false; API.push({ x, y: 4.9, z: -14.7, s: .4, lampu: 1 }); });
+  [-6.4, -3.2, 3.2, 6.4].forEach(x => { const l = box(.45, .6, .45, new THREE.MeshBasicMaterial({ color: 0xff4a30 }), x, 4.9, -18.7); l.castShadow = false; API.push({ x, y: 4.9, z: -18.7, s: .4, lampu: 1 }); });
   // patung penjaga di kiri-kanan tangga
-  [-4.6, 4.6].forEach(x => { box(1.2, 1, 1.2, mBatu, x, .5, -12.2); const k = new THREE.Mesh(new THREE.DodecahedronGeometry(.62, 0), mBatuG); k.position.set(x, 1.55, -12.2); k.castShadow = true; scene.add(k); });
+  [-4.6, 4.6].forEach(x => { box(1.2, 1, 1.2, mBatu, x, .5, -16.2); const k = new THREE.Mesh(new THREE.DodecahedronGeometry(.62, 0), mBatuG); k.position.set(x, 1.55, -16.2); k.castShadow = true; scene.add(k); });
 
   // --- tungku obor di sekeliling arena ---
   for (let i = 0; i < 8; i++) {
     const a = (i + .5) / 8 * Math.PI * 2; if (Math.sin(a) < -.9) continue;
-    const x = Math.cos(a) * 12.6, z = Math.sin(a) * 12.6;
+    const x = Math.cos(a) * 16.6, z = Math.sin(a) * 16.6;
     box(1.1, 1.1, 1.1, mBatuG, x, .55, z); cyl(.55, .32, .5, M.hitam, x, 1.35, z);
     API.push({ x, y: 1.6, z, s: 1 });
   }
@@ -345,7 +346,7 @@ function buatArenaKuil() {
   const mPanji = new THREE.MeshLambertMaterial({ map: tPanji, side: THREE.DoubleSide });
   for (let i = 0; i < 8; i++) {
     const a = i / 8 * Math.PI * 2; if (Math.sin(a) < -.85) continue;
-    const x = Math.cos(a) * 13.4, z = Math.sin(a) * 13.4;
+    const x = Math.cos(a) * 17.4, z = Math.sin(a) * 17.4;
     cyl(.07, .09, 6, M.kayu, x, 3, z, scene, 6); box(1.3, .08, .08, M.kayu, x, 5.85, z).rotation.y = -a + Math.PI / 2;
     const geo = new THREE.PlaneGeometry(1.1, 3.2, 4, 12); geo.translate(0, -1.6, 0);
     const kain = new THREE.Mesh(geo, mPanji); kain.position.set(x, 5.8, z); kain.rotation.y = -a + Math.PI / 2; kain.castShadow = true; scene.add(kain);
@@ -353,12 +354,12 @@ function buatArenaKuil() {
   }
   // --- semak tempat sembunyi ---
   const mSemak = [0x1c3a22, 0x24482a, 0x2e5530].map(c => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
-  [[Math.PI * .25, 7.6], [Math.PI * .75, 7.6], [Math.PI * 1.18, 7.4], [Math.PI * 1.82, 7.4]].forEach(([a, r]) => {
+  [[Math.PI * .25, 10.4], [Math.PI * .75, 10.4], [Math.PI * 1.18, 10], [Math.PI * 1.82, 10], [0, 9.6], [Math.PI, 9.6]].forEach(([a, r]) => {
     const x = Math.cos(a) * r, z = Math.sin(a) * r; SEMAK.push({ x, z, r: 1.55 });
     for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.55, .85), 0), mSemak[i % 3]); const b = rnd(0, Math.PI * 2), q = rnd(0, 1.1); m.position.set(x + Math.cos(b) * q, rnd(.35, .9), z + Math.sin(b) * q); m.castShadow = m.receiveShadow = true; scene.add(m); }
   });
   // --- pepohonan gelap di luar ---
-  for (let i = 0; i < 46; i++) { const a = i / 46 * Math.PI * 2, r = rnd(24, 40); const t = new THREE.Mesh(new THREE.ConeGeometry(rnd(2, 4), rnd(8, 14), 6), new THREE.MeshLambertMaterial({ color: 0x0e1410 })); t.position.set(Math.cos(a) * r, 5, Math.sin(a) * r - 4); scene.add(t); }
+  for (let i = 0; i < 46; i++) { const a = i / 46 * Math.PI * 2, r = rnd(29, 45); const t = new THREE.Mesh(new THREE.ConeGeometry(rnd(2, 4), rnd(8, 14), 6), new THREE.MeshLambertMaterial({ color: 0x0e1410 })); t.position.set(Math.cos(a) * r, 5, Math.sin(a) * r - 4); scene.add(t); }
 }
 function updKain(t) {
   KAIN.forEach(k => { const p = k.m.geometry.attributes.position, b = k.base; for (let i = 0; i < p.count; i++) { const turun = -b[i * 3 + 1]; p.setZ(i, Math.sin(turun * 2.2 - t * 3.4 + k.ph) * .12 * turun + Math.sin(t * 1.3 + k.ph) * .05 * turun); } p.needsUpdate = true; if (KUAL.lv === 2) k.m.geometry.computeVertexNormals(); });
@@ -803,6 +804,7 @@ function pakai(i) {
 // ================== KUNTI MERAH ==================
 // animasi di skinkunti.glb: melayang, terbang, angkat_tangan, menjerit, jerit_zombie
 const K = { mats: [], peluru: [], penjara: [], gel: [], bidik: false, diarahkan: false, terbangT: 0, lesat: 0, arahLesat: 0, condong: 0, miring: 0 };
+const OCONG_CEPAT = 4;     // kecepatan gerak Ocong, semua skin (meter/detik)
 const KUNTI_CEPAT = 3.6;   // kecepatan gerak biasa Kunti (meter/detik); Ocong 4,4
 const TERBANG = { lama: 4, cepat: 1.35, lesat: 3.5, lesatLama: .3 };   // Mode Terbang: 4 dtk, kecepatan x1,35 (≈ 4,9 m/dtk), melesat 3,5 m di awal
 const KW = { ungu: 0xb040ff, merah: 0xff3050, pucat: 0xffc0e0 };
@@ -1150,7 +1152,7 @@ function updPemain(dt) {
   else if (P.state === 'bebas') {
     updBidik();
     const [x, z] = arahGerak();
-    if (x || z) { pos.x += x * 4.4 * dt; pos.z += z * 4.4 * dt; P.arah = K.bidik ? K.arahBidik : Math.atan2(x, z); main('jalan', .15, 1.5); }
+    if (x || z) { pos.x += x * OCONG_CEPAT * dt; pos.z += z * OCONG_CEPAT * dt; P.arah = K.bidik ? K.arahBidik : Math.atan2(x, z); main('jalan', .15, 1.5); }
     else { main('diam', .25); if (K.bidik) P.arah = K.arahBidik; }
   } else if (P.state === 'sundul') {           // ancang-ancang → menerjang → hantam
     const t = P.t; main('diam', .1);
@@ -1227,7 +1229,7 @@ function mainLagi() {
 }
 $('#lagi').onclick = () => { if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
 $('#keMenu').onclick = () => { kirim({ t: 'leave' }); location.href = location.pathname; };
-function posisiAwal() { P.root.position.set(0, 0, PUSAT_Z + 4.5); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); }
+function posisiAwal() { P.root.position.set(0, 0, PUSAT_Z + JARAK_AWAL()); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); }
 function updBarPemain() {
   if (!BOT && !NET.on) return; const [x, y, ok] = layar(V.copy(P.root.position).setY(P.root.position.y + 2.35)); barPemain.classList.toggle('stun', pingsan());
   barPemain.style.display = ok ? '' : 'none'; barPemain.style.left = x + 'px'; barPemain.style.top = y + 'px'; barPemain.firstChild.style.width = P.hp / 10 + '%';
@@ -1240,7 +1242,7 @@ async function siapkanBot() {
     batasi: v => { batasi(v); return v; },
     skala: () => 1, jarak: 1, cepat: 1,
     efek: { gelombang, percik, kilat, goyang: v => { goyang = Math.max(goyang, v); } },
-    rapikanKlip, bar, posAwal: new THREE.Vector3(0, 0, PUSAT_Z - 4.5), selesai,
+    rapikanKlip, bar, posAwal: new THREE.Vector3(0, 0, PUSAT_Z - JARAK_AWAL()), selesai,
   });
   MUSUH.push(BOT.mt);
   P.arah = Math.PI; P.root.rotation.y = Math.PI;   // pemain menghadap lawan
@@ -1370,7 +1372,7 @@ async function mulaiDuelOnline() {
   scene.add(R.root);
   const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i><span class="nm"></span>'; bar.querySelector('.nm').textContent = R.nama; $('#bars').appendChild(bar);
   R.mt.bar = bar; MUSUH.push(R.mt);
-  R.tujuan.set(0, 0, PUSAT_Z - 4.5); R.root.position.copy(R.tujuan); R.arah = 0; R.root.rotation.y = 0;   // lawan selalu tampil di seberang (atas layar)
+  R.tujuan.set(0, 0, PUSAT_Z - JARAK_AWAL()); R.root.position.copy(R.tujuan); R.arah = 0; R.root.rotation.y = 0;   // lawan selalu tampil di seberang (atas layar)
   posisiAwal(); NET.on = true; NET.mulaiT = performance.now(); NET.antre.push({ k: 'halo', s: SKIN });
   $('#nmlawan').textContent = 'vs ' + R.nama; $('#nmhero').textContent = (HERO === 'kunti' ? 'Kunti' : 'Ocong') + ' · ' + (ARENA === 'kuil' ? 'Kuil Malam' : 'Lapangan SD');
   $('#load').classList.add('off'); mulaiLoop();
