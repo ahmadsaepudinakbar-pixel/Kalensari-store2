@@ -88,6 +88,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
  <h1>KALENSARI <span>3D</span></h1><p class="sub">Duel hantu 1 lawan 1</p>
  <label>Nama</label><input id="mNama" maxlength="16" placeholder="Nama kamu">
  <label>Hero</label><div class="pil" id="mHero"><button data-v="ocong">👻<b>Ocong</b><small>jarak dekat</small></button><button data-v="kunti">🩸<b>Kunti</b><small>jarak jauh</small></button></div>
+ <div id="mSkinRow"><label>Skin Ocong</label><div class="pil" id="mSkin"><button data-v="boneka">🪆<b>Boneka</b><small>klasik</small></button><button data-v="lompat">🐛<b>Pocong Lompat</b><small>baru</small></button></div></div>
  <label>Arena</label><div class="pil" id="mArena"><button data-v="lapangan">🏫<b>Lapangan SD</b><small>senja</small></button><button data-v="kuil">⛩️<b>Kuil Malam</b><small>bulan purnama</small></button></div>
  <label>Main Online · 1 lawan 1</label>
  <div class="mode"><button data-m="acak" class="utama">⚔️ Cari Lawan Acak</button><button data-m="buat">🏠 Buat Room</button></div>
@@ -125,7 +126,8 @@ let ARENA = Q.get('arena') === 'lapangan' ? 'lapangan' : 'kuil';             // 
 let PUSAT_Z = 0;                                                              // titik tengah arena (pemain lawan dicerminkan di sini)
 function aturArena() { PUSAT_Z = ARENA === 'kuil' ? 0 : 1; }
 aturArena();
-const MODEL = HERO === 'kunti' ? 'model-3d/skinkunti.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
+const SKIN = HERO === 'ocong' && Q.get('skin') === 'lompat' ? 'lompat' : '';     // skin Ocong: '' = Boneka, 'lompat' = Pocong Lompat
+const MODEL = HERO === 'kunti' ? 'model-3d/skinkunti.glb' : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
 const EFEK = 'gambar-game/skin-boneka/efek/';           // gambar efek skill (.webp)
 const TINGGI = 1.7;                                      // tinggi boneka (meter)
 const BATAS = { x0: -13.5, x1: 13.5, z0: -8.5, z1: 10.5 };  // area bisa dilewati (Lapangan SD)
@@ -603,14 +605,17 @@ function rapikanKlip(clip, model, tRef, putar) {
   }
   return clip;
 }
-function muatModelHero(hero, T, onProg) {   // T = P (pemain) atau R (lawan online)
-  const url = hero === 'kunti' ? 'model-3d/skinkunti.glb' : 'model-3d/skinocong.glb';
+function muatModelHero(hero, T, onProg, skin = '') {   // T = P (pemain) atau R (lawan online); skin 'lompat' = Pocong Lompat
+  const url = hero === 'kunti' ? 'model-3d/skinkunti.glb' : skin === 'lompat' ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';
   return new Promise((res, rej) => new GLTFLoader().load(url, gl => {
     const m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) o.material.envMapIntensity = .6; } });
     const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y; m.scale.setScalar(TINGGI / h); m.position.y = -bb.min.y * TINGGI / h;
-    T.tilt.add(m); T.model = m; T.mixer = new THREE.AnimationMixer(m); T.act = {}; T.cur = ''; T.bahan = [];
+    if (!T.pivot) { T.pivot = new THREE.Group(); T.pivot.position.y = TINGGI / 2; T.tilt.add(T.pivot); }   // poros di tengah badan (untuk berguling)
+    if (T.model) { T.pivot.remove(T.model); T.mixer && T.mixer.stopAllAction(); }                           // ganti skin
+    m.position.y -= TINGGI / 2; T.pivot.add(m);
+    T.model = m; T.mixer = new THREE.AnimationMixer(m); T.act = {}; T.cur = ''; T.bahan = []; T.skin = skin; T.prosedural = skin === 'lompat';
     m.traverse(o => { if (o.isMesh) [].concat(o.material).forEach(x => { if (!T.bahan.includes(x)) T.bahan.push(x); }); });
-    if (hero === 'kunti') siapkanKunti(gl, m, T); else siapkanOcong(gl, m, T);
+    if (hero === 'kunti') siapkanKunti(gl, m, T); else if (skin === 'lompat') siapkanOcongLompat(gl, m, T); else siapkanOcong(gl, m, T);
     mainObj(T, 'diam'); res();
   }, x => onProg && x.total && onProg(x.loaded / x.total), rej));
 }
@@ -624,6 +629,12 @@ function siapkanOcong(gl, m, T) {
   if (guling) T.act.guling = sekali(T.mixer.clipAction(rapikanKlip(sub(guling, 'guling', 14, 58), m, 0, true)));
   if (kalah) T.act.kalah = sekali(T.mixer.clipAction(rapikanKlip(kalah, m, .4, false)));
   if (diam) T.act.diam = T.mixer.clipAction(rapikanKlip(diam.clone(), m, 0, false));
+}
+function siapkanOcongLompat(gl, m, T) {   // model tanpa tulang: animasi Hop & Idle; guling & jatuh dibuat dengan kode
+  const cari = n => THREE.AnimationClip.findByName(gl.animations, n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
+  const hop = cari('Hop'), idle = cari('Idle') || hop;
+  if (idle) { T.act.diam = T.mixer.clipAction(idle); T.act.guling = T.mixer.clipAction(idle.clone()); T.act.kalah = sekali(T.mixer.clipAction(idle.clone())); }
+  if (hop) { T.act.jalan = T.mixer.clipAction(hop); T.act.loncat = sekali(T.mixer.clipAction(hop.clone())); }
 }
 function setTembus(T, a) { (T.bahan || []).forEach(x => { x.transparent = a < 1; x.opacity = a; x.depthWrite = a >= 1; }); }
 function main(nama, fade = .15, kecepatan = 1) {
@@ -1049,7 +1060,7 @@ function updPemain(dt) {
   P.cd = P.cd.map(c => Math.max(0, c - dt)); P.t += dt;
   P.kunci = Math.max(0, (P.kunci || 0) - dt); P.pusing = Math.max(0, (P.pusing || 0) - dt);
   const pos = P.root.position, f = depan();
-  P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0;
+  P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; if (P.pivot) P.pivot.rotation.set(0, 0, 0);
   if (HERO === 'kunti') updKunti(dt, pos, f);
   else if (P.state === 'bebas') {
     const [x, z] = arahGerak();
@@ -1078,6 +1089,7 @@ function updPemain(dt) {
     if (t > NA + TB + .3) P.state = 'bebas';
   } else if (P.state === 'guling') {          // berguling cepat ke depan, kena berkali-kali
     const t = P.t; pos.addScaledVector(f, 8.2 * dt * (t < .75 ? 1 : 0)); P.kenaT -= dt;
+    if (P.prosedural) P.pivot.rotation.x = t < .8 ? t * 15 : 0;   // berguling ke depan pada poros tengah badan
     if (t < .8 && Math.random() < .85) nyala(pos.clone().setY(.75 + rnd(-.35, .35)).addScaledVector(f, rnd(-.4, .2)), rnd(.5, 1), 0xff4018, .3);   // pusaran api saat berguling
     if (P.kenaT <= 0) { let h = 0; MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < 1.3) { kena(m, 70, pos.clone().addScaledVector(f, -1), 5); h = 1; } }); if (h) { P.kenaT = .25; goyang = .12; } }
     if (Math.random() < .5) percik(pos, 3, 0x9a8a78, 2, .25);
@@ -1088,7 +1100,7 @@ function updPemain(dt) {
     if (t > .45 && !P.hit) { P.hit = 1; fx('gelombang', pos, 7, .6, 0xff3a10); fx('gelombang', pos, 5, .5, 0xffb060); fx('percik', pos, 80, 0xff4020, 9, .22); fx('kilat', pos, 70); goyang = .4;
       MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < 3.6) kena(m, 190, pos, 9, 7); }); }
     if (t > 1.1) P.state = 'bebas';
-  }
+  } else if (P.state === 'kalah' && P.prosedural) { P.jatuh = (P.jatuh || 0) + dt; P.tilt.rotation.x = -Math.min(1.45, P.jatuh * 5); }   // jatuh terlentang
   batasi(pos);
   // putar badan ke arah hadap dengan halus
   let d = P.arah - P.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); P.root.rotation.y += d * Math.min(1, dt * 14);
@@ -1123,7 +1135,7 @@ function selesai(hasil) {
 }
 function mainLagi() {
   SELESAI = false; $('#hasil').classList.remove('on'); K.terbangT = 0; K.lesat = 0;
-  P.hp = 1000; P.state = 'bebas'; P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
+  P.hp = 1000; P.state = 'bebas'; P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
   if (HERO === 'kunti') kuntiTembus(1);
   if (BOT) BOT.reset();
 }
@@ -1234,6 +1246,7 @@ function terimaData(m) {
     else if (e.k === 'roh') lepasRohPemburu(DIRI, true, R);
     else if (e.k === 'mati') selesai('menang');
     else if (e.k === 'lagi') { NET.lawanLagi = true; cekLagi(); }
+    else if (e.k === 'halo') { R.skinMau = e.s || ''; if (R.model && R.hero === 'ocong' && (R.skin || '') !== R.skinMau) muatModelHero(R.hero, R, null, R.skinMau); }   // skin lawan
   });
 }
 function kirimKeadaan() {
@@ -1251,6 +1264,7 @@ function updLawan(dt) {
   let d = R.arah - R.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); R.root.rotation.y += d * Math.min(1, dt * 14);
   const k = Math.min(1, dt * 16); R.tilt.position.y += (R.ty - R.tilt.position.y) * k; R.tilt.rotation.x += (R.rx - R.tilt.rotation.x) * k; R.tilt.rotation.z += (R.rz - R.tilt.rotation.z) * k; R.tilt.rotation.y = R.ry;
   mainObj(R, R.an, .15, R.ts); R.mixer.update(dt);
+  if (R.pivot) { R.gulingT = R.an === 'guling' && R.prosedural ? (R.gulingT || 0) + dt : 0; R.pivot.rotation.x = R.gulingT > 0 && R.gulingT < .8 ? R.gulingT * 15 : 0; }   // guling buatan (skin Pocong Lompat)
   const p = R.root.position;
   if (R.hero === 'kunti' && (R.fl & 1) && Math.random() < .7) percik(p.clone().setY(R.tilt.position.y + .5), 2, Math.random() < .5 ? KW.ungu : KW.merah, .7, .26);   // jejak Mode Terbang
   if (R.hero === 'ocong' && R.an === 'guling' && Math.random() < .8) nyala(p.clone().setY(.75 + rnd(-.35, .35)), rnd(.5, 1), 0xff4018, .3);
@@ -1265,13 +1279,13 @@ function updLawan(dt) {
 async function mulaiDuelOnline() {
   $('#lobi').classList.remove('on'); $('#load').classList.remove('off'); $('#load b').textContent = 'Lawan ditemukan! Memuat arena…';
   buatArena(); siapkanApi(); setKual(KUAL.lv);
-  try { await MODEL_SIAP; await muatModelHero(R.hero, R); }
+  try { await MODEL_SIAP; await muatModelHero(R.hero, R, null, R.hero === 'ocong' ? (R.skinMau || '') : ''); }
   catch (e) { $('#load b').textContent = 'Model tidak bisa dimuat'; return; }
   scene.add(R.root);
   const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i><span class="nm"></span>'; bar.querySelector('.nm').textContent = R.nama; $('#bars').appendChild(bar);
   R.mt.bar = bar; MUSUH.push(R.mt);
   R.tujuan.set(0, 0, PUSAT_Z - 4.5); R.root.position.copy(R.tujuan); R.arah = 0; R.root.rotation.y = 0;   // lawan selalu tampil di seberang (atas layar)
-  posisiAwal(); NET.on = true; NET.mulaiT = performance.now(); NET.antre.push({ k: 'halo' });
+  posisiAwal(); NET.on = true; NET.mulaiT = performance.now(); NET.antre.push({ k: 'halo', s: SKIN });
   $('#nmlawan').textContent = 'vs ' + R.nama; $('#nmhero').textContent = (HERO === 'kunti' ? 'Kunti' : 'Ocong') + ' · ' + (ARENA === 'kuil' ? 'Kuil Malam' : 'Lapangan SD');
   $('#load').classList.add('off'); mulaiLoop();
 }
@@ -1290,19 +1304,20 @@ function cekLagi() {
 function tampilkanMenu() {
   $('#load').classList.add('off'); $('#menu').classList.add('on');
   const simpan = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } }, baca = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
-  const pil = { hero: baca('ks3dHero') || 'ocong', arena: baca('ks3dArena') || 'kuil' };
+  const pil = { hero: baca('ks3dHero') || 'ocong', arena: baca('ks3dArena') || 'kuil', skin: baca('ks3dSkin') || 'lompat' };
   $('#mNama').value = baca('ks3dNama') || '';
   if (Q.get('room')) $('#mKode').value = Q.get('room').replace(/\D/g, '').slice(0, 4);   // datang dari link ajakan
-  const tandai = () => { document.querySelectorAll('#mHero button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.hero)); document.querySelectorAll('#mArena button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.arena)); };
+  const tandai = () => { document.querySelectorAll('#mHero button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.hero)); document.querySelectorAll('#mArena button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.arena)); document.querySelectorAll('#mSkin button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.skin)); $('#mSkinRow').style.display = pil.hero === 'ocong' ? '' : 'none'; };
   document.querySelectorAll('#mHero button').forEach(b => b.onclick = () => { pil.hero = b.dataset.v; tandai(); });
   document.querySelectorAll('#mArena button').forEach(b => b.onclick = () => { pil.arena = b.dataset.v; tandai(); });
+  document.querySelectorAll('#mSkin button').forEach(b => b.onclick = () => { pil.skin = b.dataset.v; tandai(); });
   tandai();
   if ($('#mKode').value) $('#mKode').focus();
   document.querySelectorAll('#menu [data-m]').forEach(b => b.onclick = () => {
     const mode = b.dataset.m, nama = ($('#mNama').value || '').trim().slice(0, 16) || 'Pemain', kode = ($('#mKode').value || '').replace(/\D/g, '');
     if (mode === 'gabung' && kode.length !== 4) { $('#mKode').focus(); $('#mKode').placeholder = 'Isi 4 angka kode room'; return; }
-    simpan('ks3dNama', nama); simpan('ks3dHero', pil.hero); simpan('ks3dArena', pil.arena);
-    const q = new URLSearchParams({ main: 1, hero: pil.hero, arena: pil.arena, mode, nama }); if (mode === 'gabung') q.set('kode', kode);
+    simpan('ks3dNama', nama); simpan('ks3dHero', pil.hero); simpan('ks3dArena', pil.arena); simpan('ks3dSkin', pil.skin);
+    const q = new URLSearchParams({ main: 1, hero: pil.hero, arena: pil.arena, mode, nama }); if (pil.hero === 'ocong' && pil.skin === 'lompat') q.set('skin', 'lompat'); if (mode === 'gabung') q.set('kode', kode);
     if (Q.get('server')) q.set('server', Q.get('server'));
     location.href = location.pathname + '?' + q;
   });
@@ -1317,7 +1332,7 @@ async function mulai() {
   $('#nmhero').textContent = (HERO === 'kunti' ? 'Kunti' : 'Ocong') + ' · ' + (ARENA === 'kuil' ? 'Kuil Malam' : 'Lapangan SD');
   let lv = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 1 : 2; try { const s = localStorage.getItem('uji3dKual'); if (s !== null) lv = +s; } catch (e) { }
   KUAL.lv = lv;
-  MODEL_SIAP = muatModelHero(HERO, P, prog);
+  MODEL_SIAP = muatModelHero(HERO, P, prog, SKIN);
   muatEfek();
   if (ONLINE) {   // tunggu lawan dulu; arena dibuat setelah tahu pilihan pembuat room
     MODEL_SIAP.catch(() => { $('#lbStat').textContent = 'Model tidak bisa dimuat'; });
