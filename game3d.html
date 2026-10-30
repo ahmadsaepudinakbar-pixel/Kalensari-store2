@@ -65,6 +65,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 .hp.me{overflow:visible}
 #hasil b.info{font-size:24px;letter-spacing:0;color:#ffd166;max-width:86vw;text-align:center}
 #hasil .tb{display:flex;gap:10px}#hasil button.abu{background:#2c3f73;color:#fff}
+#putar{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#07050cf2;color:#f2efe9;font:700 17px Arial;text-align:center;padding:24px}
+#putar.on{display:flex}#putar .hp{font-size:64px;animation:putarHP 1.6s ease-in-out infinite}#putar small{color:#9aa3b8;font-weight:500}
+#putar button{font:700 14px Arial;color:#cfd6e6;background:#1a1426;border:1px solid #3a2d52;border-radius:10px;padding:9px 16px}
+@keyframes putarHP{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
 </style>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
@@ -102,6 +106,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
  <div id="lbBagi"><button id="lbWa">📲 Kirim lewat WhatsApp</button><button id="lbSalin">🔗 Salin link</button></div>
  <button id="lbMenu" class="kecil">← Kembali ke menu</button></div></div>
 
+<div id="putar"><div class="hp">📱</div>Miringkan HP untuk bermain<small>Game ini dimainkan dengan layar miring</small><button id="putarX">Tetap tegak</button></div>
 <div id="load"><b>Memuat arena 3D…</b><div class="bar"><u></u></div><small id="lmsg">Pertama kali butuh beberapa detik</small></div>
 
 <script type="module">
@@ -1357,9 +1362,23 @@ function tampilkanMenu() {
 // ================== MULAI ==================
 const bar = $('#load .bar u');
 function prog(x) { bar.style.width = Math.round(x * 100) + '%'; }
+// HP: ketukan pertama → layar penuh + kunci miring (Android). iPhone tidak bisa dikunci → tampilkan ajakan memutar HP.
+const LAYAR = { tolak: false };
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+async function layarMiring() {
+  if (!DI_HP) return;
+  try { const d = document.documentElement; if (!fsEl()) { if (d.requestFullscreen) await d.requestFullscreen({ navigationUI: 'hide' }); else if (d.webkitRequestFullscreen) d.webkitRequestFullscreen(); } } catch (e) { }
+  try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); } catch (e) { }
+  cekTegak();
+}
+function cekTegak() { const tegak = DI_HP && innerHeight > innerWidth && !LAYAR.tolak && !$('#menu').classList.contains('on'); $('#putar').classList.toggle('on', tegak); }
+document.addEventListener('pointerdown', e => { if (DI_HP && !fsEl() && !e.target.closest('#putarX,#mNama,#mKode')) layarMiring(); }, true);
+addEventListener('resize', cekTegak); addEventListener('orientationchange', () => setTimeout(cekTegak, 300));
+$('#putarX').onclick = () => { LAYAR.tolak = true; cekTegak(); };
 let MODEL_SIAP = null;
 async function mulai() {
   if (!MAIN) { tampilkanMenu(); return; }
+  cekTegak();
   $('#nmhero').textContent = (HERO === 'kunti' ? 'Kunti' : 'Ocong') + ' · ' + (ARENA === 'kuil' ? 'Kuil Malam' : 'Lapangan SD');
   let lv = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 1 : 2; try { const s = localStorage.getItem('uji3dKual'); if (s !== null) lv = +s; } catch (e) { }
   KUAL.lv = lv;
