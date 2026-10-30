@@ -108,6 +108,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
  <label>Nama</label><input id="mNama" maxlength="16" placeholder="Nama kamu">
  <label>Hero</label><div class="pil" id="mHero"><button data-v="ocong">👻<b>Ocong</b><small>jarak dekat</small></button><button data-v="kunti">🩸<b>Kunti</b><small>jarak jauh</small></button></div>
  <div id="mSkinRow"><label>Skin Ocong</label><div class="pil" id="mSkin"><button data-v="boneka">🪆<b>Boneka</b><small>klasik</small></button><button data-v="lompat">🐛<b>Pocong Lompat</b><small>baru</small></button></div></div>
+ <div id="mSkinRowK"><label>Skin Kunti</label><div class="pil" id="mSkinK"><button data-v="">🤍<b>Kunti</b><small>utama</small></button><button data-v="merah">❤️<b>Kunti Merah</b><small>skin</small></button></div></div>
  <label>Arena</label><div class="pil" id="mArena"><button data-v="lapangan">🏫<b>Lapangan SD</b><small>senja</small></button><button data-v="kuil">⛩️<b>Kuil Malam</b><small>bulan purnama</small></button></div>
  </div><div class="mka">
  <label>Main Online · 1 lawan 1</label>
@@ -150,8 +151,8 @@ let PUSAT_Z = 0;                                                              //
 function aturArena() { PUSAT_Z = ARENA === 'kuil' ? 0 : 1; }
 const JARAK_AWAL = () => ARENA === 'kuil' ? 6 : 4.5;   // jarak pemain dari tengah arena saat mulai
 aturArena();
-const SKIN = HERO === 'ocong' && Q.get('skin') === 'lompat' ? 'lompat' : '';     // skin Ocong: '' = Boneka, 'lompat' = Pocong Lompat
-const MODEL = HERO === 'kunti' ? 'model-3d/skinkunti.glb' : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
+const SKIN = HERO === 'ocong' ? (Q.get('skin') === 'lompat' ? 'lompat' : '') : (Q.get('skin') === 'merah' ? 'merah' : '');   // Ocong: '' Boneka / 'lompat' Pocong Lompat · Kunti: '' Kunti (utama) / 'merah' Kunti Merah
+const MODEL = HERO === 'kunti' ? (SKIN === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
 const EFEK = 'gambar-game/skin-boneka/efek/';           // gambar efek skill (.webp)
 const TINGGI = 1.7;                                      // tinggi boneka (meter)
 const BATAS = { x0: -13.5, x1: 13.5, z0: -8.5, z1: 10.5 };  // area bisa dilewati (Lapangan SD)
@@ -667,7 +668,7 @@ function rapikanKlip(clip, model, tRef, putar) {
   return clip;
 }
 function muatModelHero(hero, T, onProg, skin = '') {   // T = P (pemain) atau R (lawan online); skin 'lompat' = Pocong Lompat
-  const url = hero === 'kunti' ? 'model-3d/skinkunti.glb' : skin === 'lompat' ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';
+  const url = hero === 'kunti' ? (skin === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : skin === 'lompat' ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';
   return new Promise((res, rej) => new GLTFLoader().load(url, gl => {
     const m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) o.material.envMapIntensity = .6; } });
     const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y; m.scale.setScalar(TINGGI / h); m.position.y = -bb.min.y * TINGGI / h;
@@ -1341,7 +1342,7 @@ function terimaData(m) {
     else if (e.k === 'roh') lepasRohPemburu(DIRI, true, R);
     else if (e.k === 'mati') selesai('menang');
     else if (e.k === 'lagi') { NET.lawanLagi = true; cekLagi(); }
-    else if (e.k === 'halo') { R.skinMau = e.s || ''; if (R.model && R.hero === 'ocong' && (R.skin || '') !== R.skinMau) muatModelHero(R.hero, R, null, R.skinMau); }   // skin lawan
+    else if (e.k === 'halo') { R.skinMau = e.s || ''; if (R.model && (R.skin || '') !== R.skinMau) muatModelHero(R.hero, R, null, R.skinMau); }   // skin lawan
   });
 }
 function kirimKeadaan() {
@@ -1374,7 +1375,7 @@ function updLawan(dt) {
 async function mulaiDuelOnline() {
   $('#lobi').classList.remove('on'); $('#load').classList.remove('off'); $('#load b').textContent = 'Lawan ditemukan! Memuat arena…';
   buatArena(); siapkanApi(); setKual(KUAL.lv);
-  try { await MODEL_SIAP; await muatModelHero(R.hero, R, null, R.hero === 'ocong' ? (R.skinMau || '') : ''); }
+  try { await MODEL_SIAP; await muatModelHero(R.hero, R, null, R.skinMau || ''); }
   catch (e) { $('#load b').textContent = 'Model tidak bisa dimuat'; return; }
   scene.add(R.root);
   const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i><span class="nm"></span>'; bar.querySelector('.nm').textContent = R.nama; $('#bars').appendChild(bar);
@@ -1399,20 +1400,21 @@ function cekLagi() {
 function tampilkanMenu() {
   $('#load').classList.add('off'); $('#menu').classList.add('on');
   const simpan = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } }, baca = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
-  const pil = { hero: baca('ks3dHero') || 'ocong', arena: baca('ks3dArena') || 'kuil', skin: baca('ks3dSkin') || 'lompat' };
+  const pil = { hero: baca('ks3dHero') || 'ocong', arena: baca('ks3dArena') || 'kuil', skin: baca('ks3dSkin') || 'lompat', skinK: baca('ks3dSkinK') || '' };
   $('#mNama').value = baca('ks3dNama') || '';
   if (Q.get('room')) $('#mKode').value = Q.get('room').replace(/\D/g, '').slice(0, 4);   // datang dari link ajakan
-  const tandai = () => { document.querySelectorAll('#mHero button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.hero)); document.querySelectorAll('#mArena button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.arena)); document.querySelectorAll('#mSkin button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.skin)); $('#mSkinRow').style.display = pil.hero === 'ocong' ? '' : 'none'; };
+  const tandai = () => { document.querySelectorAll('#mHero button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.hero)); document.querySelectorAll('#mArena button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.arena)); document.querySelectorAll('#mSkin button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.skin)); $('#mSkinRow').style.display = pil.hero === 'ocong' ? '' : 'none'; document.querySelectorAll('#mSkinK button').forEach(b => b.classList.toggle('on', b.dataset.v === pil.skinK)); $('#mSkinRowK').style.display = pil.hero === 'kunti' ? '' : 'none'; };
   document.querySelectorAll('#mHero button').forEach(b => b.onclick = () => { pil.hero = b.dataset.v; tandai(); });
   document.querySelectorAll('#mArena button').forEach(b => b.onclick = () => { pil.arena = b.dataset.v; tandai(); });
   document.querySelectorAll('#mSkin button').forEach(b => b.onclick = () => { pil.skin = b.dataset.v; tandai(); });
+  document.querySelectorAll('#mSkinK button').forEach(b => b.onclick = () => { pil.skinK = b.dataset.v; tandai(); });
   tandai();
   if ($('#mKode').value) $('#mKode').focus();
   document.querySelectorAll('#menu [data-m]').forEach(b => b.onclick = () => {
     const mode = b.dataset.m, nama = ($('#mNama').value || '').trim().slice(0, 16) || 'Pemain', kode = ($('#mKode').value || '').replace(/\D/g, '');
     if (mode === 'gabung' && kode.length !== 4) { $('#mKode').focus(); $('#mKode').placeholder = 'Isi 4 angka kode room'; return; }
-    simpan('ks3dNama', nama); simpan('ks3dHero', pil.hero); simpan('ks3dArena', pil.arena); simpan('ks3dSkin', pil.skin);
-    const q = new URLSearchParams({ main: 1, hero: pil.hero, arena: pil.arena, mode, nama }); if (pil.hero === 'ocong' && pil.skin === 'lompat') q.set('skin', 'lompat'); if (mode === 'gabung') q.set('kode', kode);
+    simpan('ks3dNama', nama); simpan('ks3dHero', pil.hero); simpan('ks3dArena', pil.arena); simpan('ks3dSkin', pil.skin); simpan('ks3dSkinK', pil.skinK);
+    const q = new URLSearchParams({ main: 1, hero: pil.hero, arena: pil.arena, mode, nama }); if (pil.hero === 'ocong' && pil.skin === 'lompat') q.set('skin', 'lompat'); if (pil.hero === 'kunti' && pil.skinK === 'merah') q.set('skin', 'merah'); if (mode === 'gabung') q.set('kode', kode);
     if (Q.get('server')) q.set('server', Q.get('server'));
     location.href = location.pathname + '?' + q;
   });
