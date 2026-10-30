@@ -813,7 +813,8 @@ function pakai(i) {
 // animasi di skinkunti.glb: melayang, terbang, angkat_tangan, menjerit, jerit_zombie
 const K = { mats: [], peluru: [], penjara: [], gel: [], bidik: false, diarahkan: false, terbangT: 0, lesat: 0, arahLesat: 0, condong: 0, miring: 0 };
 const OCONG_CEPAT = 4;     // kecepatan gerak Ocong, semua skin (meter/detik)
-const KUNTI_CEPAT = 3.6;   // kecepatan gerak biasa Kunti (meter/detik); Ocong 4,4
+const KUNTI_CEPAT = 3.6;
+const KUNTI_DASAR = 26;   // damage serangan dasar Kunti (Bola Roh)   // kecepatan gerak biasa Kunti (meter/detik); Ocong 4,4
 const TERBANG = { lama: 4, cepat: 1.35, lesat: 3.5, lesatLama: .3 };   // Mode Terbang: 4 dtk, kecepatan x1,35 (≈ 4,9 m/dtk), melesat 3,5 m di awal
 const KW = { ungu: 0xb040ff, merah: 0xff3050, pucat: 0xffc0e0 };
 function siapkanKunti(gl, m, T = P) {
@@ -1147,7 +1148,7 @@ function updPeluru(dt) {
     let kenaM = null;
     if (b.visual) { if (b.target && b.target.g.position.clone().setY(1.3).distanceTo(b.s.position) < .7) kenaM = b.target; }
     else MUSUH.forEach(m => { if (!m.mati && m.g.position.clone().setY(1.3).distanceTo(b.s.position) < .7) kenaM = m; });
-    if (kenaM || b.umur > .9) { if (kenaM) { if (!b.visual) kena(kenaM, 45 + Math.round(rnd(0, 10)), b.dari || kenaM.g.position.clone().add(b.v.clone().normalize().negate()), 3); percik(b.s.position, 18, KW.merah, 4); kilat(b.s.position, 20); }
+    if (kenaM || b.umur > .9) { if (kenaM) { if (!b.visual) kena(kenaM, KUNTI_DASAR, b.dari || kenaM.g.position.clone().add(b.v.clone().normalize().negate()), 3); percik(b.s.position, 18, KW.merah, 4); kilat(b.s.position, 20); }
       scene.remove(b.s); b.s.material.dispose(); b.s.children[0].material.dispose(); K.peluru.splice(i, 1); } }
 }
 
