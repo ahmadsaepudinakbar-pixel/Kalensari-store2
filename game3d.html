@@ -84,7 +84,32 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #putar button{font:700 14px Arial;color:#cfd6e6;background:#1a1426;border:1px solid #3a2d52;border-radius:10px;padding:9px 16px}
 @keyframes putarHP{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
 #mHero{grid-template-columns:repeat(3,1fr)}#koin{left:50%;top:10px;transform:translateX(-50%);background:#0b1020cc;border:1px solid #ffd04066;border-radius:10px;padding:5px 12px;font:700 14px Arial;color:#ffd166}#koin.penuh{background:#5a3a08dd;box-shadow:0 0 12px #ffb703}#koin b{color:#fff;margin-left:4px}
+#lbQr{display:flex;justify-content:center;margin-top:10px}#lbQr canvas{width:132px;height:132px;background:#fff;border-radius:8px;padding:6px}
+#lbTeman{margin-top:10px;display:flex;flex-direction:column;gap:6px;max-height:30vh;overflow:auto}#lbTeman .jd2{font:700 11px Arial;color:#9aa3b8;letter-spacing:1px}
+#lbTeman .tm{display:flex;align-items:center;gap:8px;background:#ffffff0d;border-radius:8px;padding:6px 8px;font:13px Arial;color:#e8ecf8}#lbTeman .tm b{flex:1}#lbTeman .tm i{width:8px;height:8px;border-radius:50%;background:#3fd16b}
+#lbTeman .tm button{background:#1f7a3a;border:1px solid #3fd16b;color:#fff;border-radius:7px;padding:4px 10px;font-size:12px}#lbTeman .tm button:disabled{opacity:.5}
+@media (orientation:landscape) and (max-height:560px){#lbQr canvas{width:96px;height:96px}#lbTeman{max-height:22vh}}
+#timHud{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;background:#0b1020d8;border:1px solid #ffffff22;border-radius:12px;padding:5px 14px;font:900 20px Arial;color:#fff;pointer-events:none;flex-wrap:wrap;justify-content:center}
+#timHud .b{color:#5ab4ff}#timHud .m{color:#ff6060}#timHud small{font:700 12px Arial;color:#b8c0d8}#timHud .hdp{flex-basis:100%;text-align:center;font:700 13px Arial;color:#ffd166}
+body:has(#timHud:not([style*="none"])) #koin{top:52px}
+#tbans{position:fixed;left:50%;top:60px;transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+.tban{font:700 14px Arial;color:#fff;background:#000a;border-radius:8px;padding:4px 12px;text-shadow:0 1px 0 #000;transition:opacity .5s}.tban.hilang{opacity:0}
+.hp.kawan{width:70px;margin-left:-35px;height:8px;border:1px solid #9ad0ff88;overflow:visible}.hp.kawan i{background:#3a9cff;border-radius:3px}.hp.kawan .nm{color:#cfe6ff}
+#lobi.tim .mbox{width:min(680px,96vw);max-height:94vh;overflow:auto}
+.tlj{font:13px Arial;color:#c8cfe6;margin-bottom:8px}.tlcol{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tlt{border-radius:10px;padding:6px;background:#ffffff08;border:1px solid #ffffff1a;text-align:left}.tlt.b{border-color:#3a9cff88}.tlt.m{border-color:#ff505088}
+.tlt h4{margin:0 0 5px;font:700 13px Arial;color:#fff}.tlt h4 small{color:#9aa3b8;font-weight:400}
+.tlp{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:7px;background:#0006;margin-top:4px;font:13px Arial;color:#e8ecf8}.tlp.aku{outline:1px solid #ffb703aa}
+.tlp b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}.tlp em{font-style:normal;font-size:11px;color:#9aa3b8}.tlp em.ok{color:#3fd16b}
+.tlp button{background:#5a1a1a;border:1px solid #ff6060;color:#fff;border-radius:6px;padding:1px 7px;font-size:11px}.tlk{font:12px Arial;color:#6a7390;padding:6px}
+.tlcfg{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-top:7px;font:12px Arial;color:#9aa3b8}.tlcfg span{min-width:64px;text-align:left}.tlcfg b{color:#fff}
+.tlcfg button{background:#1b2440;border:1px solid #3a4870;color:#dfe5f5;border-radius:7px;padding:4px 9px;font:12px Arial}.tlcfg button.on{border-color:#ffb703;color:#ffd166;background:#3a2a10}.tlcfg button:disabled{opacity:.45}
+.tlbtn{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.tlbtn button{padding:10px;border-radius:9px;border:1px solid #3a4870;background:#1b2440;color:#fff;font:700 14px Arial}.tlbtn button.utama{background:#1f7a3a;border-color:#3fd16b}.tlbtn button:disabled{opacity:.45}
+.tli{font:12px Arial;color:#ffd166;margin-top:7px;min-height:15px}
+#lobi.tim #lbQr canvas{width:96px;height:96px}
+@media (orientation:landscape) and (max-height:560px){.tlp{padding:3px 6px;margin-top:3px}.tlbtn button{padding:7px}#lobi.tim .mbox{padding:8px 12px}}
 </style>
+<script src="config.js"></script><script src="qr-mini.js"></script>
 <script type="importmap">
 {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
 </script>
@@ -92,7 +117,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 <body>
 <canvas id="c"></canvas>
 <div id="top" class="ui">
- <div id="ttl"><b>KALENSARI 3D</b><br><small><span id="nmhero">Ocong</span> <span id="nmlawan"></span> · <a id="back" href="?">☰ Menu</a></small><div id="fps"></div></div>
+ <div id="ttl"><b>KALENSARI 3D</b><br><small><span id="nmhero">Ocong</span> <span id="nmlawan"></span> · <a id="back" href="game.html">☰ Menu</a></small><div id="fps"></div></div>
  <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button></div>
 </div>
 <div id="joy" class="ui"><div id="knob"></div></div>
@@ -101,6 +126,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 <button id="b2" class="sb"><i class="cd"></i><em></em></button>
 <button id="b3" class="sb"><i class="cd"></i><em></em></button>
 <div id="bars"></div>
+<div id="timHud" class="ui" style="display:none"></div><div id="tbans"></div>
 <div id="koin" class="ui" style="display:none"></div>
 <div id="help">WASD / panah: gerak · J / Spasi: Sundul Kepala · U (tahan, arahkan dgn mouse): Loncat Jauh · I (tahan): Guling Cepat · O: Lingkaran Kutukan</div>
 <div id="hasil"><b id="hasilT"></b><div class="tb"><button id="lagi">Main Lagi</button><button id="keMenu" class="abu">Menu</button></div></div>
@@ -124,7 +150,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 </div></div>
 <div id="lobi"><div class="mbox"><b class="jd">Main Online</b><div id="lbStat"></div><div id="lbKode"></div>
  <div id="lbBagi"><button id="lbWa">📲 Kirim lewat WhatsApp</button><button id="lbSalin">🔗 Salin link</button></div>
- <button id="lbMenu" class="kecil">← Kembali ke menu</button></div></div>
+ <div id="lbQr"></div><div id="lbTeman"></div><button id="lbMenu" class="kecil">← Kembali ke menu</button></div></div>
 
 <div id="putar"><div class="hp">📱</div>Miringkan HP untuk bermain<small>Game ini dimainkan dengan layar miring</small><button id="putarX">Tetap tegak</button></div>
 <div id="load"><b>Memuat arena 3D…</b><div class="bar"><u></u></div><small id="lmsg">Pertama kali butuh beberapa detik</small></div>
@@ -146,8 +172,8 @@ const Q = new URLSearchParams(location.search);
 const MAIN = Q.get('main') === '1';                                           // tanpa ini → tampilkan menu
 const HERO = ['kunti', 'tuyul'].includes(Q.get('hero')) ? Q.get('hero') : 'ocong';
 const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul' }, HP_MAX = { ocong: 1000, kunti: 1000, tuyul: 850 };
-const MODE = ['latihan', 'bot', 'acak', 'buat', 'gabung'].includes(Q.get('mode')) ? Q.get('mode') : 'latihan';
-const ONLINE = ['acak', 'buat', 'gabung'].includes(MODE);
+const MODE = ['latihan', 'bot', 'acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(Q.get('mode')) ? Q.get('mode') : 'latihan';
+const ONLINE = ['acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(MODE);
 const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'ocong' : 'boneka';
 const NAMA = (Q.get('nama') || 'Pemain').slice(0, 16), KODE = (Q.get('kode') || '').replace(/\D/g, '').slice(0, 4);
 let ARENA = Q.get('arena') === 'lapangan' ? 'lapangan' : 'kuil';             // online: diganti arena pilihan pembuat room
@@ -155,7 +181,7 @@ let PUSAT_Z = 0;                                                              //
 function aturArena() { PUSAT_Z = ARENA === 'kuil' ? 0 : 1; }
 const JARAK_AWAL = () => ARENA === 'kuil' ? 6 : 4.5;   // jarak pemain dari tengah arena saat mulai
 aturArena();
-const SKIN = HERO === 'ocong' ? (Q.get('skin') === 'lompat' ? 'lompat' : '') : (Q.get('skin') === 'merah' ? 'merah' : '');   // Ocong: '' Boneka / 'lompat' Pocong Lompat · Kunti: '' Kunti (utama) / 'merah' Kunti Merah
+const SKIN = HERO === 'ocong' ? (['lompat', 'emas'].includes(Q.get('skin')) ? Q.get('skin') : '') : (Q.get('skin') === 'merah' ? 'merah' : '');   // Ocong: '' Boneka / 'lompat' Pocong Lompat · Kunti: '' Kunti (utama) / 'merah' Kunti Merah
 const MODEL = HERO === 'tuyul' ? 'model-3d/tuyul.glb' : HERO === 'kunti' ? (SKIN === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
 const EFEK = 'gambar-game/skin-boneka/efek/';           // gambar efek skill (.webp)
 const TINGGI = 1.7;                                      // tinggi boneka (meter)
@@ -671,7 +697,8 @@ function rapikanKlip(clip, model, tRef, putar) {
   }
   return clip;
 }
-function muatModelHero(hero, T, onProg, skin = '') {   // T = P (pemain) atau R (lawan online); skin 'lompat' = Pocong Lompat
+function muatModelHero(hero, T, onProg, skin = '') {
+  const emas = skin === 'emas'; if (emas) skin = 'lompat';   // T = P (pemain) atau R (lawan online); skin 'lompat' = Pocong Lompat
   const url = hero === 'tuyul' ? 'model-3d/tuyul.glb' : hero === 'kunti' ? (skin === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : skin === 'lompat' ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';
   return new Promise((res, rej) => new GLTFLoader().load(url, gl => {
     const m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) o.material.envMapIntensity = .6; } });
@@ -682,6 +709,7 @@ function muatModelHero(hero, T, onProg, skin = '') {   // T = P (pemain) atau R 
     if (T.model) { T.pivot.remove(T.model); T.mixer && T.mixer.stopAllAction(); }                           // ganti skin
     m.position.y -= TINGGI / 2; T.pivot.add(m);
     T.model = m; T.mixer = new THREE.AnimationMixer(m); T.act = {}; T.cur = ''; T.bahan = []; T.skin = skin; T.prosedural = skin === 'lompat';
+    if (emas) { T.skin = 'emas'; m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xffc44a); o.material.metalness = .55; o.material.roughness = .35; } }); }
     m.traverse(o => { if (o.isMesh) [].concat(o.material).forEach(x => { if (!T.bahan.includes(x)) T.bahan.push(x); }); });
     if (hero === 'tuyul') siapkanTuyul(gl, m, T); else if (hero === 'kunti') siapkanKunti(gl, m, T); else if (skin === 'lompat') siapkanOcongLompat(gl, m, T); else siapkanOcong(gl, m, T);
     mainObj(T, 'diam'); res();
@@ -727,7 +755,7 @@ function buatMusuh(x, z) {
 function kena(mt, dmg, dari, dorong = 4, angkat = 0) {
   if (mt.mati) return;
   if (mt.remote) {   // lawan online: kirim damage ke HP lawan (darahnya dihitung di sana)
-    const [x, z] = keNet(dari.x, dari.z); netEvent({ k: 'hit', d: dmg, x: r2(x), z: r2(z), dr: dorong });
+    const [x, z] = keNet(dari.x, dari.z); netEvent({ k: 'hit', ke: mt.id, d: dmg, x: r2(x), z: r2(z), dr: dorong });
     angka(mt.g.position, dmg); mt.kilau = .18; hentiSejenak = Math.max(hentiSejenak, .05); return;
   }
   mt.hp = Math.max(0, mt.hp - dmg); mt.kilau = .18;
@@ -919,7 +947,7 @@ function updEkor(e, kepala, t, seed, redup) {
 function lepasRohPemburu(mt, visual = false, dariObj = P) {   // visual = kiriman lawan online (tanpa damage)
   const arahD = dariObj === P ? P.arah : dariObj.arah, dep = new THREE.Vector3(Math.sin(arahD), 0, Math.cos(arahD));
   const asal = dariObj.root.position.clone().setY(1.4).addScaledVector(dep, .4);
-  if (!visual && mt.remote) netEvent({ k: 'roh' });
+  if (!visual && mt.remote) netEvent({ k: 'roh', ke: mt.id });
   const bidik = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2.8), new THREE.MeshBasicMaterial({ map: T_BIDIK, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
   bidik.rotation.x = -Math.PI / 2; bidik.position.copy(mt.g.position).setY(.05); scene.add(bidik);
   const kanan = new THREE.Vector3(Math.cos(arahD), 0, -Math.sin(arahD)), g = { mt, bidik, t: 0, fase: 'kejar', roh: [], tik: 0, kt: 0, visual };
@@ -1126,7 +1154,7 @@ function updKunti(dt, pos, f) {
   } else if (P.state === 'tembak') {          // angkat tangan → lempar bola roh
     if (t > .22 && !P.hit) { P.hit = 1; const tg = P.target && !P.target.mati ? P.target : null; if (tg) hadapKe(tg.g.position);
       const dari = pos.clone().setY(1.5).addScaledVector(depan(), .4); bolaRoh(dari, tg, depan());
-      if (NET.on) { const [nx, nz] = keNet(dari.x, dari.z); netEvent({ k: 'bola', x: r2(nx), y: r2(dari.y), z: r2(nz), a: r2(sudutNet(P.arah)) }); } }
+      if (NET.on) { const [nx, nz] = keNet(dari.x, dari.z); netEvent({ k: 'bola', ke: tg && tg.id, x: r2(nx), y: r2(dari.y), z: r2(nz), a: r2(sudutNet(P.arah)) }); } }
     if (t > .5) { P.state = 'bebas'; main('diam', .2); }
   } else if (P.state === 'jerit') {           // Frekuensi Suara: 3 gelombang, makin lama makin besar
     const JADWAL = [.65, .95, 1.25], R = [SUARA.jarak * .4, SUARA.jarak * .7, SUARA.jarak], D = [55, 65, 80];
@@ -1255,7 +1283,7 @@ function updKoin(dt) {
 function curiKoin(mt) {   // pasif Maling Duit
   koinTerbang(mt.g.position, P);
   TY.koin = Math.min(5, TY.koin + 1); updUIKoin();
-  if (mt.remote) netEvent({ k: 'koin' });
+  if (mt.remote) netEvent({ k: 'koin', ke: mt.id });
 }
 function pakaiKoin() { if (TY.koin < 5) return false; TY.koin = 0; updUIKoin(); fx('percik', P.root.position.clone(), 30, 0xffd040, 3); return true; }
 function updUIKoin() { const e = $('#koin'); if (!e) return; e.style.display = HERO === 'tuyul' ? '' : 'none'; e.innerHTML = '🪙 ' + TY.koin + '/5' + (TY.koin >= 5 ? ' <b>PENUH!</b>' : ''); e.classList.toggle('penuh', TY.koin >= 5); }
@@ -1359,6 +1387,7 @@ function kenaPemain(dmg, dari, dorong = 3) {
   if (P.hp <= 0) selesai('kalah');
 }
 function selesai(hasil) {
+  if (TIM.on) { if (hasil === 'kalah' && TIM.main) timSayaKalah(); return; }
   if (SELESAI) return; SELESAI = true;
   if (hasil === 'kalah' && NET.on) { netEvent({ k: 'mati' }); kirimKeadaan(); }
   if (hasil === 'kalah') { P.state = 'kalah'; K.bidik = false; if (P.act.kalah) { P.cur = ''; main('kalah', .1); } else main('diam', .2); if (HERO === 'kunti') kuntiTembus(.4); }
@@ -1370,9 +1399,10 @@ function mainLagi() {
   if (HERO === 'kunti') kuntiTembus(1);
   if (BOT) BOT.reset();
 }
-$('#lagi').onclick = () => { if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
-$('#keMenu').onclick = () => { kirim({ t: 'leave' }); location.href = location.pathname; };
-function posisiAwal() { P.root.position.set(0, 0, PUSAT_Z + JARAK_AWAL()); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); }
+$('#lagi').onclick = () => { if (TIM.on) { timKeLobi(); return; } if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
+$('#keMenu').onclick = () => { keluarRoom(); location.href = 'game.html'; };
+function posisiAwal() { if (TIM.on && TIM.saya) { const [x, z] = spawnTim(TIM.saya); P.root.position.set(x, 0, z); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); return; }
+  P.root.position.set(0, 0, PUSAT_Z + JARAK_AWAL()); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); }
 function updBarPemain() {
   if (!BOT && !NET.on) return; const [x, y, ok] = layar(V.copy(P.root.position).setY(P.root.position.y + 2.35)); barPemain.classList.toggle('stun', pingsan());
   barPemain.style.display = ok ? '' : 'none'; barPemain.style.left = x + 'px'; barPemain.style.top = y + 'px'; barPemain.firstChild.style.width = P.hp / HP_MAX[HERO] * 100 + '%';
@@ -1394,12 +1424,16 @@ async function siapkanBot() {
 // ================== ONLINE 1 VS 1 ==================
 // Tiap HP menjalankan hero-nya sendiri dan mengirim keadaannya ±15x per detik lewat server (pesan 'st' dari pembuat room, 'in' dari tamu).
 // Damage dihitung di HP penyerang lalu dikirim ke lawan. Tiap pemain melihat dirinya di bawah layar: dunia lawan dicerminkan.
+const SESI = (() => { try { return localStorage.getItem('kalensari_sesi_pembeli') || ''; } catch (e) { return ''; } })();
+const ULANG = +Q.get('ulang') || 0;   // percobaan sambung ulang ke room yang sama
+function ingatRoom(c) { try { localStorage.setItem('kgRoom', JSON.stringify({ c: String(c), m: MODE.startsWith('tim') ? 'tim' : 'duel', t: Date.now() })); } catch (e) { } }
+function keluarRoom() { NET.keluar = true; kirim({ t: 'leave' }); try { localStorage.removeItem('kgRoom'); } catch (e) { } }
 const NET = { url: Q.get('server') || 'wss://game.kalensari.web.id/ws', ws: null, role: '', on: false, kirimT: 0, antre: [], sayaLagi: false, lawanLagi: false, kode: '', v3: false, mulaiT: 0 };
 const HERO_SRV = { ocong: 'pocong', kunti: 'kuntilanak', tuyul: 'tuyul' }, HERO_3D = { pocong: 'ocong', kuntilanak: 'kunti', tuyul: 'tuyul' };
 const ARENA_IDX = { lapangan: 0, kuil: 1 }, ARENA_NAMA = ['lapangan', 'kuil'];
 const r2 = v => Math.round(v * 100) / 100;
 // cermin: koordinat dikirim dalam sistem pembuat room; tamu memutar dunia 180° di pusat arena
-const cermin = () => NET.role === 'guest';
+const cermin = () => typeof TIM !== 'undefined' && TIM.on ? !!(TIM.saya && TIM.saya.tm === 1) : NET.role === 'guest';
 function keNet(x, z) { return cermin() ? [-x, 2 * PUSAT_Z - z] : [x, z]; }          // dipakai untuk kirim & terima (dibalik dua kali = semula)
 function sudutNet(a) { return cermin() ? a + Math.PI : a; }
 function kirim(o) { if (NET.ws && NET.ws.readyState === 1) NET.ws.send(JSON.stringify(o)); }
@@ -1425,41 +1459,89 @@ function fxTerima(e) {
 // sasaran "diri sendiri" untuk efek yang dikirim lawan (Bola Roh, Roh Pemburu)
 const DIRI = { g: P.root, get mati() { return P.state === 'kalah'; } };
 
+// ---- lobi: QR + ajak teman yang sedang online ----
+function qrLobi(kode) { const e = $('#lbQr'); if (e.dataset.k === kode) return; e.dataset.k = kode; e.innerHTML = ''; try { e.appendChild(QRMini.canvas(location.origin + location.pathname + '?room=' + kode, 264, 'M', 2)); } catch (x) { } }
+const TEMAN = { daftar: [], muat: false, t: 0 };
+async function muatTemanLobi() {
+  if (!SESI || TEMAN.muat) return; TEMAN.muat = true;
+  const C = window.CLOUD_CONFIG || {}, B = String(C.supabaseUrl || '').replace(/\/$/, ''); if (!B) return;
+  try {
+    const r = await fetch(B + '/rest/v1/rpc/game_teman_saya', { method: 'POST', headers: { apikey: C.supabaseAnonKey, Authorization: 'Bearer ' + C.supabaseAnonKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_sesi: SESI }) });
+    const j = await r.json(); TEMAN.daftar = (j && j.teman || []).filter(t => t.status === 'teman');
+  } catch (e) { }
+  cekTemanOnline(); setInterval(cekTemanOnline, 3000);
+}
+function cekTemanOnline() { if ($('#lobi').classList.contains('on') && NET.kode && TEMAN.daftar.length) kirim({ t: 'online', ids: TEMAN.daftar.map(t => t.id) }); }
+function temanOnline(st) {
+  const e = $('#lbTeman'); if (!$('#lobi').classList.contains('on') || !NET.kode) return;
+  const L = TEMAN.daftar.filter(t => st[t.id]); const esc = x => String(x || '').replace(/[<>&"]/g, '');
+  e.innerHTML = L.length ? '<div class="jd2">TEMAN YANG SEDANG ONLINE</div>' + L.map(t => { const o = st[t.id], sama = o.r && o.r.c === NET.kode;
+    return `<div class="tm"><i></i><b>${esc(t.nama)}</b><small>${sama ? 'sudah di room ini' : o.r ? 'di room lain' : 'di menu game'}</small>${sama ? '' : `<button data-ke="${esc(t.id)}">Ajak</button>`}</div>`; }).join('') : '';
+  e.querySelectorAll('[data-ke]').forEach(b => b.onclick = () => { kirim({ t: 'ajak', ke: b.dataset.ke }); b.disabled = true; b.textContent = 'Terkirim'; });
+}
+function infoLobi(t) { const e = document.createElement('small'); e.style.cssText = 'display:block;color:#ffd166;margin-top:6px'; e.textContent = t; $('#lbStat').appendChild(e); setTimeout(() => e.remove(), 3000); }
+// lawan masuk lagi ke room yang sama → mulai ulang duel tanpa memuat ulang halaman
+async function ulangDuel(m) {
+  const h = HERO_3D[m.opp] || 'ocong'; R.nama = m.oppName || 'Lawan'; R.mt.hpMax = HP_MAX[h] || 1000;
+  if (h !== R.hero || R.skin) { R.hero = h; R.skinMau = ''; try { await muatModelHero(R.hero, R, null, ''); } catch (e) { } }
+  R.ada = false; R.hp = R.mt.hp = R.mt.hpMax; R.fl = 0; R.tujuan.set(0, 0, PUSAT_Z - JARAK_AWAL()); R.root.position.copy(R.tujuan); R.arah = 0; R.root.rotation.y = 0;
+  if (R.mt.bar) R.mt.bar.querySelector('.nm').textContent = R.nama; $('#nmlawan').textContent = 'vs ' + R.nama;
+  NET.v3 = false; NET.sayaLagi = NET.lawanLagi = false; NET.antre = [{ k: 'halo', s: SKIN, h: HERO }]; NET.mulaiT = performance.now();
+  mainLagi(); $('#lobi').classList.remove('on'); NET.on = true;
+}
 // ---- lobi ----
 function lobi(teks, kode) {
-  $('#lobi').classList.add('on'); $('#lbStat').innerHTML = teks;
+  $('#lobi').classList.add('on'); $('#lobi').classList.toggle('tim', TIM.on); $('#lbStat').innerHTML = teks; if (!kode) { $('#lbQr').innerHTML = ''; $('#lbTeman').innerHTML = ''; } else { qrLobi(kode); muatTemanLobi(); }
   const ada = !!kode; $('#lbKode').style.display = ada ? '' : 'none'; $('#lbBagi').style.display = ada ? '' : 'none';
   if (ada) { NET.kode = kode; $('#lbKode').innerHTML = 'Kode room<b>' + kode + '</b>'; }
 }
 function linkRoom() { return location.origin + location.pathname + '?room=' + NET.kode; }
-$('#lbWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent('Ayo duel di Kalensari 3D! Kode room ' + NET.kode + ' → ' + linkRoom()), '_blank');
+$('#lbWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent('Ayo mabar Kalensari Game! 👻 ' + (TIM.on ? 'Duel Tim 3D' : 'Duel 1 vs 1') + ' · room ' + NET.kode + '\nKetuk untuk langsung masuk: ' + linkRoom()), '_blank');
 $('#lbSalin').onclick = () => { try { navigator.clipboard.writeText(linkRoom()); $('#lbSalin').textContent = '✅ Link disalin'; } catch (e) { prompt('Salin link ini:', linkRoom()); } };
-$('#lbMenu').onclick = () => { kirim({ t: 'leave' }); location.href = location.pathname; };
+$('#lbMenu').onclick = () => { keluarRoom(); location.href = 'game.html'; };
 
 function sambung() {
   lobi('Menghubungkan ke server…');
   let ws; try { ws = new WebSocket(NET.url); } catch (e) { lobi('⚠️ Tidak bisa terhubung ke server game'); return; }
   NET.ws = ws;
   ws.onopen = () => {
-    kirim({ t: 'hello', name: NAMA, hero: HERO_SRV[HERO], arena: ARENA_IDX[ARENA], v: '3d' });
-    if (MODE === 'acak') { kirim({ t: 'quick' }); lobi('⚔️ Mencari lawan…<br><small>Menunggu pemain lain yang juga mencari lawan</small>'); }
-    else if (MODE === 'buat') kirim({ t: 'create', pub: 0 });
+    kirim({ t: 'hello', name: NAMA, hero: HERO_SRV[HERO], arena: ARENA_IDX[ARENA], v: '3d', skin: SKIN, sesi: SESI });
+    if (TIM.on) { if (MODE === 'timbuat') kirim({ t: 'tmCreate', pub: Q.get('pub') === '0' ? 0 : 1 }); else { kirim({ t: 'join', code: KODE }); lobi('Masuk ke room Duel Tim ' + KODE + '…'); } }
+    else if (MODE === 'acak') { kirim({ t: 'quick' }); lobi('⚔️ Mencari lawan…<br><small>Menunggu pemain lain yang juga mencari lawan</small>'); }
+    else if (MODE === 'buat') kirim({ t: 'create', pub: Q.get('pub') === '0' ? 0 : 1 });
     else { kirim({ t: 'join', code: KODE }); lobi('Masuk ke room ' + KODE + '…'); }
   };
   ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } terima(m); };
-  ws.onclose = () => { NET.ws = null; if (NET.on && !SELESAI) { NET.on = false; pesanAkhir('Koneksi ke server terputus'); } else if (!NET.on) lobi('⚠️ Koneksi ke server terputus'); };
+  ws.onclose = () => {
+    NET.ws = null; if (NET.keluar) return;
+    if (NET.kode && ULANG < 6) {   // sambung ulang otomatis: masuk lagi ke room yang sama
+      NET.on = false; lobi('🔄 Koneksi terputus — menyambung lagi ke room <b>' + NET.kode + '</b>… (' + (ULANG + 1) + ')');
+      const q = new URLSearchParams(location.search); q.set('mode', TIM.on ? 'timgabung' : 'gabung'); q.set('kode', NET.kode); q.set('ulang', ULANG + 1);
+      setTimeout(() => location.replace(location.pathname + '?' + q), 1500); return;
+    }
+    if (NET.on && !SELESAI) { NET.on = false; pesanAkhir('Koneksi ke server terputus'); } else if (!NET.on) lobi('⚠️ Koneksi ke server terputus. Periksa sinyal lalu coba lagi dari menu.');
+  };
 }
 function terima(m) {
-  if (m.t === 'room') lobi('Bagikan kode atau link ini ke temanmu, lalu tunggu dia bergabung…', m.code);
+  if (TIM.on && timTerima(m)) return;
+  if (m.t === 'room') { ingatRoom(m.code); lobi((ULANG ? '✅ Tersambung lagi. ' : '') + 'Bagikan kode, link, atau QR ini ke temanmu, lalu tunggu dia bergabung…' + (m.pub ? '<br><small>🌐 Room terbuka: tampil di daftar Room Terbuka</small>' : ''), m.code); }
+  else if (m.t === 'info') infoLobi(m.msg);
+  else if (m.t === 'online') temanOnline(m.st || {});
   else if (m.t === 'wait') lobi('⚔️ Mencari lawan…<br><small>Menunggu pemain lain yang juga mencari lawan</small>');
-  else if (m.t === 'err') lobi('⚠️ ' + m.msg);
+  else if (m.t === 'err') { if (m.hilang) { try { localStorage.removeItem('kgRoom'); } catch (e) { } } lobi('⚠️ ' + m.msg + (m.hilang && ULANG ? '<br><small>Lawan sudah keluar, room ditutup.</small>' : '')); }
   else if (m.t === 'start') {
+    if (m.code) ingatRoom(m.code);
+    if (NET.mulai) { NET.role = m.role; NET.kode = m.code || NET.kode; ulangDuel(m); return; }   // lawan masuk lagi ke room (setelah terputus)
+    NET.mulai = true;
     NET.role = m.role; NET.kode = m.code || NET.kode; R.hero = HERO_3D[m.opp] || 'ocong'; R.nama = m.oppName || 'Lawan'; R.mt.hpMax = HP_MAX[R.hero] || 1000;
     ARENA = ARENA_NAMA[m.arena] || 'lapangan'; aturArena();
     mulaiDuelOnline();
   }
   else if ((m.t === 'st' || m.t === 'in') && m.v3) terimaData(m);
-  else if (m.t === 'peerLeft') { if (NET.on) { NET.on = false; pesanAkhir('Lawan keluar dari room'); } }
+  else if (m.t === 'peerLeft') {   // room tetap ada: tunggu lawan kembali (atau pemain lain) dengan kode yang sama
+    NET.on = false; NET.kode = m.code || NET.kode; $('#hasil').classList.remove('on');
+    lobi('⚠️ Lawan keluar / terputus.<br>Menunggu lawan kembali ke room ini… (atau ajak teman lain)', NET.kode);
+  }
 }
 function terimaData(m) {
   NET.v3 = true;
@@ -1557,6 +1639,272 @@ function tampilkanMenu() {
   });
 }
 
+// ================== DUEL TIM 3D (1–3 vs 1–3) ==================
+// Lobi: pilih tim, siap, pembuat room mengatur arena / target kill / bot. Pertandingan: tiap HP menjalankan hero-nya sendiri,
+// server meneruskan keadaan semua pemain ke semua (pesan 'st'/'in' + w = id pengirim). Bot dijalankan HP pembuat room.
+// Koordinat dikirim dalam sudut pandang Tim Biru; pemain Tim Merah mencerminkan dunia, jadi semua orang melihat timnya di bawah layar.
+const TIM = { on: MODE === 'timbuat' || MODE === 'timgabung', me: 0, hostId: 0, host: false, pl: [], a: 1, kw: 10, state: 'lobby', saya: null,
+  skor: [0, 0], obj: new Map(), bot: new Map(), main: false, sisa: 300, DUR: 300, terakhir: null, hidupT: 0, sudahMain: false, kode: '', lobiTunda: null, akhir: false };
+const TIM_KW = [3, 5, 10, 15, 20], NAMA_TIM = ['TIM BIRU', 'TIM MERAH'], IKON_H = { pocong: '👻', kuntilanak: '🩸', tuyul: '👶' };
+const escH = x => String(x == null ? '' : x).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
+const timOf = id => { const p = TIM.pl.find(x => x.i === id); return p ? p.tm : -1; };
+const namaOf = id => { const p = TIM.pl.find(x => x.i === id); return p ? p.n : 'Pemain'; };
+function objek(id) { return TIM.bot.get(id) || TIM.obj.get(id) || null; }
+
+// ---------- LOBI ----------
+function timLobi(m) {
+  TIM.me = m.me; TIM.hostId = m.hostId; TIM.host = !!m.host; TIM.pl = m.pl; TIM.a = m.a; TIM.kw = m.kw; TIM.state = m.state; TIM.kode = m.code; NET.kode = m.code;
+  ingatRoomTim(m.code);
+  if (TIM.main || (SELESAI && $('#hasil').classList.contains('on'))) { TIM.lobiTunda = m; if (m.state === 'lobby' && TIM.main) timHentiMain(); return; }
+  const saya = m.pl.find(p => p.i === m.me) || {}, kol = t => m.pl.filter(p => p.tm === t).map(p =>
+    `<div class="tlp ${p.i === m.me ? 'aku' : ''}"><span class="ik">${IKON_H[p.h] || '👻'}</span><b>${escH(p.n)}${p.i === m.me ? ' (Anda)' : ''}</b>${p.i === m.hostId ? '<em>👑</em>' : ''}${p.bot ? '<em>🤖 bot</em>' + (TIM.host ? `<button data-bdel="${p.i}">✖</button>` : '') : `<em class="${p.r || p.i === m.hostId ? 'ok' : ''}">${p.i === m.hostId ? 'pembuat' : p.r ? '✔ siap' : '⌛'}</em>`}</div>`).join('') || '<div class="tlk">kosong</div>';
+  const n0 = m.pl.filter(p => p.tm === 0).length, n1 = m.pl.filter(p => p.tm === 1).length, siapSemua = m.pl.every(p => p.bot || p.i === m.hostId || p.r);
+  let h = `<div class="tlj">👥 Duel Tim 3D · target <b>${m.kw}</b> kill · ${m.state === 'game' ? '<b style="color:#ffb703">sedang bertanding</b>' : 'lobi'}</div>
+  <div class="tlcol"><div class="tlt b"><h4>🔵 Tim Biru <small>${n0}/${m.max || 3}</small></h4>${kol(0)}</div><div class="tlt m"><h4>🔴 Tim Merah <small>${n1}/${m.max || 3}</small></h4>${kol(1)}</div></div>`;
+  if (TIM.host) h += `<div class="tlcfg"><span>Arena</span>${['lapangan', 'kuil'].map((a, i) => `<button data-ar="${i}" class="${m.a === i ? 'on' : ''}" ${TIM.sudahMain ? 'disabled' : ''}>${i ? '⛩️ Kuil Malam' : '🏫 Lapangan SD'}</button>`).join('')}</div>
+    <div class="tlcfg"><span>Target</span>${TIM_KW.map(k => `<button data-kw="${k}" class="${m.kw === k ? 'on' : ''}">${k}</button>`).join('')}</div>
+    <div class="tlcfg"><span>Bot Ocong</span><button data-bot="0">＋ Tim Biru</button><button data-bot="1">＋ Tim Merah</button></div>`;
+  else h += `<div class="tlcfg"><span>Arena</span><b>${m.a ? '⛩️ Kuil Malam' : '🏫 Lapangan SD'}</b></div>`;
+  h += `<div class="tlbtn"><button data-pindah="1">⇄ Pindah ke ${saya.tm ? 'Tim Biru' : 'Tim Merah'}</button>` +
+    (TIM.host ? `<button data-go="1" class="utama" ${n0 && n1 && siapSemua && m.state === 'lobby' ? '' : 'disabled'}>▶ MULAI</button>` : `<button data-siap="1" class="utama">${saya.r ? '✖ Batal Siap' : '✔ SIAP'}</button>`) + `</div>
+  <div class="tli" id="tlInfo">${TIM.host ? (n0 && n1 ? (siapSemua ? 'Semua siap — tekan MULAI' : 'Menunggu semua pemain menekan SIAP') : 'Tiap tim minimal 1 pemain (boleh bot)') : 'Tekan SIAP, lalu tunggu pembuat room memulai'}${TIM.sudahMain && TIM.host ? '<br><small>Ganti arena: buat room baru</small>' : ''}</div>`;
+  lobi(h, m.code);
+}
+function ingatRoomTim(c) { try { localStorage.setItem('kgRoom', JSON.stringify({ c: String(c), m: 'tim', t: Date.now() })); } catch (e) { } }
+function infoTim(t) { const e = $('#tlInfo'); if (e) { e.innerHTML = '⚠️ ' + escH(t); } else lobi('⚠️ ' + escH(t)); }
+$('#lbStat').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || !TIM.on) return; const d = b.dataset, saya = TIM.pl.find(p => p.i === TIM.me) || {};
+  if (d.pindah) kirim({ t: 'tmSet', tm: saya.tm ? 0 : 1 });
+  else if (d.siap) kirim({ t: 'tmSet', r: saya.r ? 0 : 1 });
+  else if (d.go) kirim({ t: 'tmGo' });
+  else if (d.ar) kirim({ t: 'tmCfg', a: +d.ar });
+  else if (d.kw) kirim({ t: 'tmCfg', kw: +d.kw });
+  else if (d.bot) kirim({ t: 'tmBot', tm: +d.bot, h: 'pocong' });
+  else if (d.bdel) kirim({ t: 'tmBotDel', i: +d.bdel });
+});
+
+// ---------- objek pemain lain / bot (tampilan dari data jaringan) ----------
+function barTim(o, kawan) {
+  const bar = document.createElement('div'); bar.className = 'hp ' + (kawan ? 'kawan' : 'lawan'); bar.innerHTML = '<i></i><span class="nm"></span>';
+  bar.querySelector('.nm').textContent = o.nama; $('#bars').appendChild(bar); return bar;
+}
+async function buatObjTim(p) {
+  const o = { id: p.i, tm: p.tm, bot: !!p.bot, root: new THREE.Group(), tilt: new THREE.Group(), model: null, mixer: null, act: {}, cur: '', hero: HERO_3D[p.h] || 'ocong', nama: p.n,
+    tujuan: new THREE.Vector3(), arah: 0, ty: 0, rx: 0, ry: 0, rz: 0, hp: 1000, an: 'diam', ts: 1, fl: 0, ada: false };
+  o.root.add(o.tilt);
+  o.mt = { g: o.root, hp: HP_MAX[o.hero] || 1000, hpMax: HP_MAX[o.hero] || 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, remote: true, id: p.i, bar: null, obj: o };
+  o.hp = o.mt.hp;
+  try { await muatModelHero(o.hero, o, null, p.bot ? '' : (p.s || '')); } catch (e) { }
+  const kawan = p.tm === TIM.saya.tm; o.kawan = kawan; o.mt.bar = barTim(o, kawan);
+  const [x, z] = spawnTim(p); o.tujuan.set(x, 0, z); o.root.position.copy(o.tujuan); o.arah = kawan ? Math.PI : 0; o.root.rotation.y = o.arah;
+  scene.add(o.root); TIM.obj.set(p.i, o);
+  if (!kawan) MUSUH.push(o.mt);
+  return o;
+}
+// bot dijalankan HP pembuat room
+async function buatBotTim(p) {
+  const kawan = p.tm === TIM.saya.tm, o = { id: p.i, tm: p.tm, bot: true, lokal: true, nama: p.n, kawan, sas: null, terakhir: null, hidupT: 0, hero: 'ocong' };
+  o.nama = p.n; const bar = barTim(o, kawan);
+  const [x, z] = spawnTim(p);
+  const B = await buatBotOcong({
+    scene, model: 'model-3d/skinocong.glb', tinggi: TINGGI,
+    get pemain() { return o.sas || { root: B ? B.root : new THREE.Group() }; },
+    kenaPemain: (d, dari, dr) => timBotSerang(o, d, dari, dr),
+    pemainAktif: () => !!o.sas,
+    batasi: v => { batasi(v); return v; }, skala: () => 1, jarak: 1, cepat: 1,
+    efek: { gelombang: (...a) => fx('gelombang', ...a), percik: (...a) => fx('percik', ...a), kilat: (...a) => fx('kilat', ...a), goyang: v => { goyang = Math.max(goyang, v * .5); } },
+    rapikanKlip, bar, posAwal: new THREE.Vector3(x, 0, z), selesai: () => timBotMati(o),
+  });
+  o.B = B; o.root = B.root; o.mt = B.mt; B.mt.id = p.i; B.mt.obj = o; B.mt.nama = p.n;
+  B.root.rotation.y = kawan ? Math.PI : 0;
+  TIM.bot.set(p.i, o);
+  if (!kawan) MUSUH.push(B.mt);
+  return o;
+}
+function spawnTim(p) {   // posisi awal (koordinat lokal): tim saya di bawah, lawan di atas
+  const anggota = TIM.pl.filter(x => x.tm === p.tm), k = Math.max(0, anggota.findIndex(x => x.i === p.i)), cx = [0, -2.6, 2.6][k % 3];
+  const cz = p.tm === 0 ? PUSAT_Z + JARAK_AWAL() : PUSAT_Z - JARAK_AWAL();
+  return keNet(cx, cz);
+}
+function hapusObj(o) {
+  if (!o) return; scene.remove(o.root); if (o.mt && o.mt.bar) o.mt.bar.remove();
+  const i = MUSUH.indexOf(o.mt); if (i >= 0) MUSUH.splice(i, 1);
+  TIM.obj.delete(o.id); TIM.bot.delete(o.id);
+}
+function timBersihkan() { [...TIM.obj.values(), ...TIM.bot.values()].forEach(hapusObj); TIM.obj.clear(); TIM.bot.clear(); }
+
+// ---------- sasaran bot ----------
+function hidupDanTampak(t, dari) {
+  if (t === P) return P.state !== 'kalah' && !(TY.hilang > 0) && terlihatDari(P.root.position, dari);
+  if (t.lokal) return !t.mt.mati;
+  return t.hp > 0 && !(t.fl & 2) && !(t.fl & 8) && terlihatDari(t.root.position, dari);
+}
+function pilihSasaran(o) {
+  const pos = o.root.position; let best = null, bd = 1e9;
+  const coba = t => { if (!t || t === o || !hidupDanTampak(t, pos)) return; const d = t.root.position.distanceTo(pos); if (d < bd) { bd = d; best = t; } };
+  if (TIM.saya.tm !== o.tm) coba(P);
+  TIM.obj.forEach(t => { if (t.tm !== o.tm) coba(t); });
+  TIM.bot.forEach(t => { if (t.tm !== o.tm) coba(t); });
+  return best;
+}
+function timBotSerang(o, d, dari, dr) {   // bot (di HP pembuat room) mengenai sasarannya
+  const t = o.sas; if (!t) return;
+  if (t === P) { TIM.terakhir = o.id; kenaPemain(d, dari, dr); }
+  else if (t.lokal) { t.terakhir = o.id; kena(t.mt, d, dari, dr); }
+  else { const [x, z] = keNet(dari.x, dari.z); netEvent({ k: 'hit', ke: t.id, d, x: r2(x), z: r2(z), dr, oleh: o.id }); angka(t.root.position, d); t.mt.kilau = .18; }
+}
+function timBotMati(o) {
+  const oleh = o.terakhir; netEvent({ k: 'mati', id: o.id, oleh }); timTerimaMati(o.id, oleh);
+  o.hidupT = performance.now() + 4000;
+}
+function musuhTerdekatDari(o) {   // dipakai efek gerombolan Tuyul milik pemain lain
+  const tim = o.tm, pos = o.root.position; let best = null, bd = 14;
+  const coba = (t, mt) => { if (!mt || mt.mati) return; const d = t.root.position.distanceTo(pos); if (d < bd) { bd = d; best = mt; } };
+  if (TIM.saya.tm !== tim && P.state !== 'kalah') coba(P, DIRI);
+  TIM.obj.forEach(t => { if (t.tm !== tim) coba(t, t.mt); }); TIM.bot.forEach(t => { if (t.tm !== tim) coba(t, t.mt); });
+  return best;
+}
+
+// ---------- mulai / selesai ----------
+async function timMulai(m) {
+  TIM.pl = m.pl; TIM.me = m.me; TIM.hostId = m.host; TIM.host = m.host === m.me; TIM.kw = m.kw; TIM.kode = m.code; TIM.saya = m.pl.find(p => p.i === m.me);
+  if (!TIM.saya) return;
+  $('#lobi').classList.remove('on'); $('#hasil').classList.remove('on'); $('#load').classList.remove('off'); $('#load b').textContent = 'Memuat Duel Tim…';
+  if (!ARENA_DIBUAT) { ARENA = ARENA_NAMA[m.a] || 'kuil'; aturArena(); buatArena(); siapkanApi(); setKual(KUAL.lv); }
+  try { await MODEL_SIAP; } catch (e) { $('#load b').textContent = 'Model tidak bisa dimuat'; return; }
+  timBersihkan();
+  for (const p of m.pl) { if (p.i === m.me) continue; if (p.bot && TIM.host) await buatBotTim(p); else await buatObjTim(p); }
+  TIM.skor = [0, 0]; TIM.sisa = TIM.DUR; TIM.mulaiT = performance.now(); TIM.akhir = false; TIM.hidupT = 0; TIM.terakhir = null; TIM.sudahMain = true; TIM.lobiTunda = null;
+  NET.antre = []; mainLagi(); NET.on = true; TIM.main = true;
+  $('#nmlawan').textContent = '· ' + NAMA_TIM[TIM.saya.tm]; $('#nmhero').textContent = NAMA_HERO[HERO] + ' · ' + (ARENA === 'kuil' ? 'Kuil Malam' : 'Lapangan SD');
+  $('#timHud').style.display = ''; updHudTim();
+  barPemain.classList.add(TIM.saya.tm ? 'merah' : 'biru');
+  banner('⚔️ Anda di ' + NAMA_TIM[TIM.saya.tm]);
+  $('#load').classList.add('off'); mulaiLoop();
+}
+function timTerimaMati(id, oleh) {
+  const tm = timOf(id); if (tm < 0 || TIM.akhir) return;
+  TIM.skor[1 - tm]++;
+  const nm = id === TIM.me ? 'Anda' : namaOf(id), ol = oleh == null ? '' : oleh === TIM.me ? 'Anda' : namaOf(oleh);
+  banner((ol ? ol + ' mengalahkan ' : '') + nm + (ol ? '' : ' kalah'), tm === TIM.saya.tm ? '#ff7a7a' : '#7ad0ff');
+  updHudTim();
+  if (TIM.skor[1 - tm] >= TIM.kw) timAkhir(1 - tm);
+}
+function timAkhir(menang) {   // menang = 0/1, -1 = seri
+  if (TIM.akhir) return; TIM.akhir = true; SELESAI = true; K.bidik = false;
+  if (TIM.host) { netEvent({ k: 'akhir', m: menang }); kirimKeadaanTim(); setTimeout(() => kirim({ t: 'tmOver' }), 400); }
+  const saya = TIM.saya.tm, t = $('#hasilT');
+  setTimeout(() => {
+    t.textContent = menang < 0 ? 'SERI' : menang === saya ? NAMA_TIM[menang] + ' MENANG!' : NAMA_TIM[menang] + ' MENANG'; t.className = menang < 0 ? 'info' : menang === saya ? 'menang' : 'kalah';
+    $('#lagi').textContent = 'Kembali ke Lobi'; $('#lagi').style.display = ''; $('#hasil').classList.add('on');
+  }, 900);
+}
+function timHentiMain() { TIM.main = false; NET.on = false; }
+function timKeLobi() {   // tombol "Kembali ke Lobi"
+  $('#hasil').classList.remove('on'); timHentiMain(); timBersihkan(); $('#timHud').style.display = 'none'; SELESAI = false;
+  if (TIM.lobiTunda) { const m = TIM.lobiTunda; TIM.lobiTunda = null; timLobi(m); } else { lobi('Kembali ke lobi…', TIM.kode); kirim({ t: 'tmBack' }); }
+}
+function updHudTim() {
+  const e = $('#timHud'); if (!e) return; const mm = Math.max(0, Math.ceil(TIM.sisa)), s = TIM.saya ? TIM.saya.tm : 0;
+  e.innerHTML = `<span class="b">🔵 ${TIM.skor[0]}</span><small>${Math.floor(mm / 60)}:${String(mm % 60).padStart(2, '0')} · target ${TIM.kw}</small><span class="m">${TIM.skor[1]} 🔴</span>` + (TIM.hidupT ? `<div class="hdp">Bangkit dalam ${Math.max(1, Math.ceil((TIM.hidupT - performance.now()) / 1000))}…</div>` : '');
+  e.classList.toggle('kanan', s === 1);
+}
+function banner(t, warna) {
+  const e = document.createElement('div'); e.className = 'tban'; e.textContent = t; if (warna) e.style.color = warna; $('#tbans').appendChild(e);
+  setTimeout(() => e.classList.add('hilang'), 2600); setTimeout(() => e.remove(), 3200);
+}
+
+// ---------- jaringan ----------
+function timTerima(m) {
+  if (m.t === 'tmRoom') { timLobi(m); return true; }
+  if (m.t === 'tmStart') { timMulai(m); return true; }
+  if (m.t === 'tmLeft') {
+    const o = objek(m.i); if (o) { banner(o.nama + ' keluar', '#ffd166'); hapusObj(o); }
+    TIM.pl = TIM.pl.filter(p => p.i !== m.i);
+    if (m.host && TIM.main) { timHentiMain(); SELESAI = true; const t = $('#hasilT'); t.textContent = 'Pembuat room keluar — pertandingan dihentikan'; t.className = 'info'; $('#lagi').textContent = 'Kembali ke Lobi'; $('#hasil').classList.add('on'); }
+    return true;
+  }
+  if ((m.t === 'st' || m.t === 'in') && m.v3 && m.w) { if (TIM.main) terimaDataTim(m); return true; }
+  if (m.t === 'err') { infoTim(m.msg); if (m.hilang) { try { localStorage.removeItem('kgRoom'); } catch (e) { } } if (m.tunggu && KODE) setTimeout(() => kirim({ t: 'join', code: KODE }), 4000); return true; }
+  return false;
+}
+function terapState(o, s) {
+  const [x, z, a, ty, rx, ry, rz, hp, an, ts, fl] = s, [lx, lz] = keNet(x, z);
+  o.tujuan.set(lx, 0, lz); o.arah = sudutNet(a); o.ty = ty; o.rx = rx; o.ry = ry; o.rz = rz; o.hp = hp; o.mt.hp = hp; o.an = an; o.ts = ts || 1; o.fl = fl | 0;
+  if (!o.ada) { o.ada = true; o.root.position.copy(o.tujuan); o.root.rotation.y = o.arah; }
+}
+function terimaDataTim(m) {
+  const dari = TIM.obj.get(m.w);
+  if (m.s && dari) terapState(dari, m.s);
+  if (m.b && !TIM.host) m.b.forEach(b => { const o = TIM.obj.get(b[0]); if (o) terapState(o, b.slice(1)); });
+  (m.e || []).forEach(e => {
+    const ke = e.ke, utkSaya = ke === TIM.me, botSaya = TIM.host ? TIM.bot.get(ke) : null, pelaku = e.oleh != null ? e.oleh : m.w;
+    const srcObj = objek(e.oleh != null ? e.oleh : m.w) || dari;
+    if (e.k === 'fx') fxTerima(e);
+    else if (e.k === 'hit') { const [x, z] = keNet(e.x, e.z), pos = new THREE.Vector3(x, 0, z);
+      if (utkSaya) { TIM.terakhir = pelaku; kenaPemain(e.d, pos, e.dr || 3); } else if (botSaya) { botSaya.terakhir = pelaku; kena(botSaya.mt, e.d, pos, e.dr || 3); } }
+    else if (e.k === 'kunci') { if (utkSaya) P.kunci = Math.max(P.kunci || 0, Math.min(3, e.d)); else if (botSaya) botSaya.mt.kunci = Math.min(3, e.d); }
+    else if (e.k === 'pusing') { if (utkSaya) P.pusing = Math.max(P.pusing || 0, Math.min(2, e.d)); else if (botSaya) botSaya.mt.pusing = Math.min(2, e.d); }
+    else if (e.k === 'bola') { const [x, z] = keNet(e.x, e.z), sas = utkSaya ? DIRI : (objek(ke) || {}).mt; if (sas) bolaRoh(new THREE.Vector3(x, e.y, z), sas, new THREE.Vector3(Math.sin(sudutNet(e.a)), 0, Math.cos(sudutNet(e.a))), true); }
+    else if (e.k === 'roh') { const sas = utkSaya ? DIRI : (objek(ke) || {}).mt; if (sas && srcObj && srcObj.root) lepasRohPemburu(sas, true, srcObj); }
+    else if (e.k === 'koin') { const t = utkSaya ? P : objek(ke); if (t && srcObj) koinTerbang(t.root.position, srcObj); }
+    else if (e.k === 'gerombolan') { if (srcObj && srcObj.model && srcObj.act && srcObj.act.jalan) panggilGerombolan(srcObj.root.position.clone(), srcObj, () => musuhTerdekatDari(srcObj), true, e.l || 3); }
+    else if (e.k === 'mati') timTerimaMati(e.id, e.oleh);
+    else if (e.k === 'akhir') timAkhir(e.m);
+  });
+}
+function kirimKeadaanTim() {
+  const [x, z] = keNet(P.root.position.x, P.root.position.z), a = P.act[P.cur];
+  const fl = (HERO === 'kunti' && K.terbangT > 0 ? 1 : 0) | (TY.hilang > 0 ? 2 : 0) | ((P.kunci > 0 || P.pusing > 0) ? 4 : 0) | (P.state === 'kalah' ? 8 : 0);
+  const o = { t: 'st', v3: 1, s: [r2(x), r2(z), r2(sudutNet(P.root.rotation.y)), r2(P.tilt.position.y), r2(P.tilt.rotation.x), r2(P.tilt.rotation.y), r2(P.tilt.rotation.z), Math.round(P.hp), P.cur, a ? r2(a.timeScale) : 1, fl], e: NET.antre.splice(0) };
+  if (TIM.host && TIM.bot.size) o.b = [...TIM.bot.values()].map(b => { const [bx, bz] = keNet(b.root.position.x, b.root.position.z);
+    return [b.id, r2(bx), r2(bz), r2(sudutNet(b.root.rotation.y)), r2(b.B.tilt.position.y), r2(b.B.tilt.rotation.x), r2(b.B.tilt.rotation.y), r2(b.B.tilt.rotation.z), Math.round(b.mt.hp), b.mt.mati ? 'kalah' : b.B.anim || 'diam', 1, b.mt.mati ? 8 : 0]; });
+  kirim(o);
+}
+function updObjTim(o, dt) {
+  if (!o.model) return;
+  if (o.root.position.distanceTo(o.tujuan) > 5) o.root.position.copy(o.tujuan); else o.root.position.lerp(o.tujuan, Math.min(1, dt * 12));
+  let d = o.arah - o.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); o.root.rotation.y += d * Math.min(1, dt * 14);
+  const k = Math.min(1, dt * 16); o.tilt.position.y += (o.ty - o.tilt.position.y) * k; o.tilt.rotation.x += (o.rx - o.tilt.rotation.x) * k; o.tilt.rotation.z += (o.rz - o.tilt.rotation.z) * k; o.tilt.rotation.y = o.ry;
+  mainObj(o, o.act[o.an] ? o.an : 'diam', .15, o.ts); o.mixer.update(dt);
+  if (o.pivot) { o.gulingT = o.an === 'guling' && o.prosedural ? (o.gulingT || 0) + dt : 0; o.pivot.rotation.x = o.gulingT > 0 && o.gulingT < .8 ? o.gulingT * 15 : 0; }
+  const p = o.root.position;
+  if (o.hero === 'kunti' && (o.fl & 1) && Math.random() < .7) percik(p.clone().setY(o.tilt.position.y + .5), 2, Math.random() < .5 ? KW.ungu : KW.merah, .7, .26);
+  if (o.hero === 'ocong' && o.an === 'guling' && Math.random() < .8) nyala(p.clone().setY(.75 + rnd(-.35, .35)), rnd(.5, 1), 0xff4018, .3);
+  const lihat = o.kawan ? true : terlihatDari(p, P.root.position) && !(o.fl & 2);
+  o.root.visible = lihat; o.mt.sembunyi = !lihat; o.mt.mati = o.hp <= 0 || (o.fl & 8) ? 1 : 0;
+  if (o.kawan) setTembus(o, o.fl & 2 ? .35 : 1);
+  if (o.mt.kunci > 0) { netEvent({ k: 'kunci', ke: o.id, d: r2(o.mt.kunci) }); o.mt.kunci = 0; }
+  if (o.mt.pusing > 0) { netEvent({ k: 'pusing', ke: o.id, d: r2(o.mt.pusing) }); o.mt.pusing = 0; }
+  if (o.mt.kilau > 0) o.mt.kilau -= dt;
+}
+function barKawan(mt) {   // bar darah kawan (lawan diurus updLabel lewat MUSUH)
+  const [x, y, ok] = layar(V.copy(mt.g.position).setY(mt.g.position.y + 2.45)); mt.bar.style.display = ok && !mt.mati ? '' : 'none';
+  mt.bar.style.left = x + 'px'; mt.bar.style.top = y + 'px'; mt.bar.firstChild.style.width = mt.hp / (mt.hpMax || 1000) * 100 + '%';
+}
+function updTim(dt, nyata) {
+  if (!TIM.main) return;
+  TIM.obj.forEach(o => { updObjTim(o, dt); if (o.kawan) barKawan(o.mt); });
+  TIM.bot.forEach(o => {
+    if (o.mt.mati) { if (o.hidupT && performance.now() > o.hidupT && !TIM.akhir) { o.hidupT = 0; o.B.reset(); } }
+    else o.sas = pilihSasaran(o);
+    o.B.upd(dt); if (o.kawan) barKawan(o.mt);
+  });
+  if (!TIM.akhir) {
+    TIM.sisa = TIM.DUR - (performance.now() - TIM.mulaiT) / 1000;   // jam dinding: tetap tepat walau HP lambat
+    if (TIM.sisa <= 0 && TIM.host) timAkhir(TIM.skor[0] === TIM.skor[1] ? -1 : TIM.skor[0] > TIM.skor[1] ? 0 : 1);
+    if (TIM.hidupT && performance.now() > TIM.hidupT) { TIM.hidupT = 0; mainLagi(); TIM.terakhir = null; }
+  }
+  NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaanTim(); }
+  TIM.hudT = (TIM.hudT || 0) - nyata; if (TIM.hudT <= 0) { TIM.hudT = .25; updHudTim(); }
+}
+// pemain kalah di Duel Tim: bangkit lagi 4 detik kemudian
+function timSayaKalah() {
+  P.state = 'kalah'; K.bidik = false; if (P.act.kalah) { P.cur = ''; main('kalah', .1); } else main('diam', .2); if (HERO === 'kunti') kuntiTembus(.4);
+  const oleh = TIM.terakhir; netEvent({ k: 'mati', id: TIM.me, oleh }); kirimKeadaanTim(); timTerimaMati(TIM.me, oleh);
+  TIM.hidupT = performance.now() + 4000;
+}
+
 // ================== MULAI ==================
 const bar = $('#load .bar u');
 function prog(x) { bar.style.width = Math.round(x * 100) + '%'; }
@@ -1576,7 +1924,7 @@ $('#putarX').onclick = () => { LAYAR.tolak = true; cekTegak(); };
 let MODEL_SIAP = null;
 async function mulai() {
   cekTegak();
-  if (!MAIN) { tampilkanMenu(); return; }
+  if (!MAIN) { const q = new URLSearchParams(); ['room', 'server', 'kartu'].forEach(k => Q.get(k) && q.set(k, Q.get(k))); location.replace('game.html' + (q.toString() ? '?' + q : '')); return; }
   $('#nmhero').textContent = NAMA_HERO[HERO] + ' · ' + (ARENA === 'kuil' ? 'Kuil Malam' : 'Lapangan SD');
   let lv = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 1 : 2; try { const s = localStorage.getItem('uji3dKual'); if (s !== null) lv = +s; } catch (e) { }
   KUAL.lv = lv;
@@ -1611,7 +1959,8 @@ function mulaiLoop() {
     fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv]; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
-    if (NET.on) { updLawan(dt); NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaan(); } cekLawan2D(); }
+    if (TIM.on) updTim(dt, nyata);
+    if (NET.on && !TIM.on) { updLawan(dt); NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaan(); } }
     updPeluru(dt); updRohPemburu(dt); updGelKipas(dt);
     setTembus(P, HERO === 'kunti' && P.state === 'kalah' ? .4 : TY.hilang > 0 ? .3 : 1); updSemak(dt); updGerombolan(dt); updKoin(dt);   // di dalam semak: semaknya yang tembus pandang
     updEfek(dt); updApi(t0, dt); updKamera(dt); updLabel(dt); updBarPemain(); kualitasOtomatis(nyata);

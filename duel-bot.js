@@ -160,5 +160,5 @@ export async function buatBotOcong(env) {
     TANDA.forEach(e => e.t = e.umur); mainUlang('diam', .1); if (mt.bar) mt.bar.style.display = '';
   }
   root.rotation.y = B.arah;
-  return { mt, upd, reset, root };
+  return { mt, upd, reset, root, tilt, get anim() { return cur; }, get arah() { return B.arah; } };   // tilt & anim: dikirim ke pemain lain (Duel Tim)
 }
