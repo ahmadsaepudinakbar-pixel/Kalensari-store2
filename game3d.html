@@ -355,8 +355,8 @@ function buatArenaKuil() {
   // --- semak tempat sembunyi ---
   const mSemak = [0x1c3a22, 0x24482a, 0x2e5530].map(c => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
   [[Math.PI * .25, 10.4], [Math.PI * .75, 10.4], [Math.PI * 1.18, 10], [Math.PI * 1.82, 10], [0, 9.6], [Math.PI, 9.6]].forEach(([a, r]) => {
-    const x = Math.cos(a) * r, z = Math.sin(a) * r; SEMAK.push({ x, z, r: 1.55 });
-    for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.55, .85), 0), mSemak[i % 3]); const b = rnd(0, Math.PI * 2), q = rnd(0, 1.1); m.position.set(x + Math.cos(b) * q, rnd(.35, .9), z + Math.sin(b) * q); m.castShadow = m.receiveShadow = true; scene.add(m); }
+    const x = Math.cos(a) * r, z = Math.sin(a) * r, mats = mSemak.map(m => m.clone()); SEMAK.push({ x, z, r: 1.55, mats });   // tiap semak punya bahan sendiri (bisa dibuat tembus)
+    for (let i = 0; i < 9; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.55, .85), 0), mats[i % 3]); const b = rnd(0, Math.PI * 2), q = rnd(0, 1.1); m.position.set(x + Math.cos(b) * q, rnd(.35, .9), z + Math.sin(b) * q); m.castShadow = m.receiveShadow = true; scene.add(m); }
   });
   // --- pepohonan gelap di luar ---
   for (let i = 0; i < 46; i++) { const a = i / 46 * Math.PI * 2, r = rnd(29, 45); const t = new THREE.Mesh(new THREE.ConeGeometry(rnd(2, 4), rnd(8, 14), 6), new THREE.MeshLambertMaterial({ color: 0x0e1410 })); t.position.set(Math.cos(a) * r, 5, Math.sin(a) * r - 4); scene.add(t); }
@@ -367,6 +367,13 @@ function updKain(t) {
 // semak: pahlawan di dalam semak tidak terlihat lawan, kecuali lawan sangat dekat / di semak yang sama
 function diSemak(p) { return SEMAK.find(s => Math.hypot(p.x - s.x, p.z - s.z) < s.r) || null; }
 function terlihatDari(sasaran, pengamat) { const s = diSemak(sasaran); if (!s) return true; if (diSemak(pengamat) === s) return true; return Math.hypot(sasaran.x - pengamat.x, sasaran.z - pengamat.z) < 2.6; }
+
+// semak tempat pemain bersembunyi dibuat tembus pandang (badan pemain tetap terlihat jelas)
+function updSemak(dt) {
+  const s0 = diSemak(P.root.position);
+  SEMAK.forEach(s => { const mau = s === s0 ? .35 : 1; s.op = s.op == null ? 1 : s.op + (mau - s.op) * Math.min(1, dt * 10);
+    s.mats.forEach(m => { const t = s.op < .99; if (m.transparent !== t) { m.transparent = t; m.needsUpdate = true; } m.opacity = s.op; m.depthWrite = !t; }); });
+}
 
 // ================== ARENA: LAPANGAN SD KALENSARI ==================
 let ARENA_DIBUAT = false;
@@ -1467,7 +1474,7 @@ function mulaiLoop() {
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (NET.on) { updLawan(dt); NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaan(); } cekLawan2D(); }
     updPeluru(dt); updRohPemburu(dt); updGelKipas(dt);
-    setTembus(P, diSemak(P.root.position) ? .5 : (HERO === 'kunti' && P.state === 'kalah' ? .4 : 1));   // di dalam semak: badan sendiri tembus pandang
+    setTembus(P, HERO === 'kunti' && P.state === 'kalah' ? .4 : 1); updSemak(dt);   // di dalam semak: semaknya yang tembus pandang
     updEfek(dt); updApi(t0, dt); updKamera(dt); updLabel(dt); updBarPemain(); kualitasOtomatis(nyata);
     if (KUAL.bloom && composer) composer.render(); else renderer.render(scene, camera);
   });
