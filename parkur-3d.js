@@ -200,7 +200,8 @@ function mulai3D() {
   }
   function bangun() {
     bersihkan(); lvl = PK.pl;
-    const dasarY = AIR * S - 2.5, A2 = PK.ar === 1; env1.visible = !A2; DESA = null;
+    const dasarY = AIR * S - 2.5, A2 = PK.ar === 1, A3 = PK.ar === 2, DS = A2 || A3; env1.visible = PK.ar === 0; DESA = null; JALAN = null;
+    langit.rotation.y = A3 ? -Math.PI / 2 : 0;   // Lari Jalan Desa: kamera menghadap ke depan (+x), langit & bulan diputar ke arah itu
     PK.pl.forEach(q => {
       const g = new THREE.Group(), w = q.w * S, d = q.d * S, top = q.z * S; dunia.add(g);
       const e = { q, g, top };
@@ -214,10 +215,10 @@ function mulai3D() {
           const t = kotak(.05, .05, d + .1, M_TALI, x, top - .02, d / 2, g); t.castShadow = false;
         }
       } else {
-        const mt = A2 ? (q.t === 'licin' ? M2.lumpur : M2[q.o.tanah] || M2.gang) : q.t === 'runtuh' ? M.retak : q.t === 'finis' ? M.papan : q.t === 'cp' ? M.lumut : M.tanah;
+        const mt = DS ? (q.t === 'licin' ? M2.lumpur : M2[q.o.tanah] || M2.gang) : q.t === 'runtuh' ? M.retak : q.t === 'finis' ? M.papan : q.t === 'cp' ? M.lumut : M.tanah;
         const atas = kotak(w, .26, d, matUlang(mt, w / 2, d / 2), w / 2, top - .13, d / 2, g); atas.material._sekali = 1;
         const tg = top - .26 - dasarY;
-        const tiang = kotak(w * .94, tg, d * .94, matUlang(A2 ? (q.t === 'licin' ? M2.lumpurSisi : M2.tanahSisi) : M.batu, w / 1.8, tg / 1.8), w / 2, dasarY + tg / 2, d / 2, g); tiang.material._sekali = 1;
+        const tiang = kotak(w * .94, tg, d * .94, matUlang(DS ? (q.t === 'licin' ? M2.lumpurSisi : M2.tanahSisi) : M.batu, w / 1.8, tg / 1.8), w / 2, dasarY + tg / 2, d / 2, g); tiang.material._sekali = 1;
         if (q.t === 'runtuh') e.retak = 1;
       }
       if (q.t === 'cp' || q.i === 0) {      // tiang lampion checkpoint
@@ -228,7 +229,7 @@ function mulai3D() {
         e.lampuG = glow(0x3fd14b, 1.8, 0); e.lampuG.position.set(x, top + 1.32, d * .25); g.add(e.lampuG);
         e.cpIdx = PK.cps.indexOf(q);
       }
-      if (q.t === 'finis' && A2) gapuraDesa(g, w, d, top);
+      if (q.t === 'finis' && DS) gapuraDesa(g, w, d, top);
       else if (q.t === 'finis') {                // gapura merah + papan FINIS
         const fx = 125 * S;
         [.08, .92].forEach(f => tabung(.09, .1, 2.6, M.merah, fx, top + 1.3, d * f, g));
@@ -254,6 +255,7 @@ function mulai3D() {
       PL.push(e);
     });
     if (A2) bangunDesa(dasarY);
+    if (A3) bangunJalan(dasarY);
     PK.coins.forEach(c => {                // lampion (koin)
       const g = new THREE.Group(); g.position.set(c.x * S, c.z * S, c.y * S); dunia.add(g);
       const bd = new THREE.Mesh(new THREE.SphereGeometry(.15, 14, 10), new THREE.MeshStandardMaterial({ color: 0xc1121f, emissive: 0xff4a1a, emissiveIntensity: 1.1 }));
@@ -456,6 +458,87 @@ function mulai3D() {
     if (DESA.kent) DESA.kent.rotation.z = N.kent.bunyi ? Math.sin(t * 22) * .35 : DESA.kent.rotation.z * .9;
   }
 
+  // ================= LINTASAN 3: LARI JALAN DESA (3 jalur, kamera dari belakang) =================
+  let JALAN = null;
+  const M_KAIN = [0xd23b3b, 0x2f7be0, 0xf2c94c, 0x3fae5a, 0xe86fb4, 0xf0f0e8].map(c => new THREE.MeshLambertMaterial({ color: c, side: THREE.DoubleSide }));
+  const M_GEROBAK = new THREE.MeshLambertMaterial({ color: 0x8a5a2e }), M_RODA = new THREE.MeshLambertMaterial({ color: 0x2a1a10 }), M_HIJAU = new THREE.MeshLambertMaterial({ color: 0x1f5a2a }),
+    M_KAMBING = new THREE.MeshLambertMaterial({ color: 0xece4d4 }), M_TANDUK = new THREE.MeshLambertMaterial({ color: 0x6a5a40 });
+  function obGerobak(g) {   // gerobak kayu (tinggi: harus pindah jalur)
+    kotak(1.15, .55, .72, M_GEROBAK, 0, .78, 0, g); kotak(1.2, .08, .78, M_KAYU, 0, .5, 0, g);
+    [-.38, .38].forEach(z => { const r = tabung(.32, .32, .07, M_RODA, -.1, .34, z, g, 14); r.rotation.x = Math.PI / 2; });
+    [-.25, .25].forEach(z => { const t = tabung(.03, .03, .9, M_KAYU, -.9, .6, z, g, 5); t.rotation.z = Math.PI / 2.4; });
+    for (let i = 0; i < 4; i++) { const k = new THREE.Mesh(new THREE.SphereGeometry(.16, 8, 6), new THREE.MeshLambertMaterial({ color: [0x7a9a2a, 0xd0a030, 0x9a3a1a][i % 3] })); k.material._sekali = 1; k.position.set(rnd(-.35, .35), 1.15, rnd(-.2, .2)); k.castShadow = true; g.add(k); }
+  }
+  function obKeranda(g) {   // keranda bambu berkain hijau
+    [[-.6, -.25], [.6, -.25], [-.6, .25], [.6, .25]].forEach(([x, z]) => tabung(.035, .035, .7, M.bambu, x, .35, z, g, 5));
+    kotak(1.4, .1, .6, M.bambu, 0, .72, 0, g);
+    const tutup = new THREE.Mesh(new THREE.CylinderGeometry(.34, .34, 1.3, 14, 1, false, 0, Math.PI), M_HIJAU); tutup.rotation.z = Math.PI / 2; tutup.rotation.y = Math.PI / 2; tutup.position.y = .78; tutup.castShadow = true; g.add(tutup);
+    const pita = kotak(1.32, .05, .05, new THREE.MeshLambertMaterial({ color: 0xf2c94c }), 0, 1.1, 0, g); pita.material._sekali = 1;
+    [-1, 1].forEach(a => { const t = tabung(.03, .03, .7, M.bambu, a * .95, .76, -.22, g, 5); t.rotation.z = Math.PI / 2; const t2 = t.clone(); t2.position.z = .22; g.add(t2); });
+  }
+  function obPagar(g) {   // pagar bambu rendah (lompati)
+    [-.36, 0, .36].forEach(z => tabung(.035, .04, .64, M_BAMBU2, 0, .32, z, g, 6));
+    [.22, .52].forEach(y => { const r = tabung(.03, .03, .86, M_BAMBU2, 0, y, 0, g, 6); r.rotation.x = Math.PI / 2; });
+  }
+  function obJemuran(g) {   // jemuran: tiang kiri-kanan + tali + baju (merunduk)
+    [-.42, .42].forEach(z => tabung(.035, .04, 1.75, M_KAYU, 0, .875, z, g, 6));
+    const tali = tabung(.012, .012, .86, M_TALI, 0, 1.62, 0, g, 4); tali.rotation.x = Math.PI / 2; tali.castShadow = false;
+    const kain = []; [-.24, .02, .27].forEach((z, i) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(.26, rnd(.42, .55)), M_KAIN[Math.floor(rnd(0, 6))]); m.geometry.translate(0, -m.geometry.parameters.height / 2, 0);
+      m.position.set(0, 1.6, z); m.rotation.y = Math.PI / 2; m.castShadow = true; g.add(m); kain.push(m); });
+    return kain;
+  }
+  function obKambing(g) {   // kambing (lompati)
+    const b = new THREE.Group(); g.add(b);
+    kotak(.62, .32, .3, M_KAMBING, 0, .5, 0, b); kotak(.2, .2, .18, M_KAMBING, .38, .68, 0, b);
+    [-.06, .06].forEach(z => { const t = tabung(.015, .025, .14, M_TANDUK, .36, .83, z, b, 4); t.rotation.z = -.5; });
+    const kaki = [[-.22, -.1], [-.22, .1], [.22, -.1], [.22, .1]].map(([x, z]) => { const p = new THREE.Group(); p.position.set(x, .36, z); b.add(p); tabung(.03, .03, .36, M_KAMBING, 0, -.18, 0, p, 5); return p; });
+    const jng = kotak(.06, .1, .05, M_TANDUK, .46, .55, 0, b); jng.castShadow = false;
+    return { b, kaki };
+  }
+  function bangunJalan(dasarY) {
+    const R = PK.run; if (!R) return;
+    const LEN = PK.pl[PK.pl.length - 1].x + PK.pl[PK.pl.length - 1].w;
+    bidang(0, -1500, LEN + 3000, -1600, 2400, dasarY - .1, new THREE.MeshBasicMaterial({ color: 0x050805 }));
+    // tanah di luar jalan: rumput (gang), kebun, kuburan
+    PK.pl.forEach(q => { const m = q.o.tanah === 'kubur' ? M2.kubur : q.o.tanah === 'kebun' ? M2.kebun : new THREE.MeshLambertMaterial({ map: T_RUMPUT });
+      tanahKotak(q.x, q.x + q.w, -1600, q.y, dasarY, m); tanahKotak(q.x, q.x + q.w, q.y + q.d, 2400, dasarY, m); });
+    tanahKotak(-1500, 0, -1600, 2400, dasarY, new THREE.MeshLambertMaterial({ map: T_RUMPUT })); tanahKotak(LEN, LEN + 3000, -1600, 2400, dasarY, new THREE.MeshLambertMaterial({ map: T_RUMPUT }));
+    // garis jalur putus-putus & pagar bambu di kedua tepi jalan
+    { const n = Math.ceil(LEN / 70) * 2, im = new THREE.InstancedMesh(new THREE.BoxGeometry(34 * S, .012, .05), new THREE.MeshBasicMaterial({ color: 0xf2e6c0, transparent: true, opacity: .45 }), n), mt = new THREE.Matrix4();
+      let i = 0; [355, 405].forEach(y => { for (let x = 30; x < LEN && i < n; x += 70) { mt.makeTranslation(x * S, .006, y * S); im.setMatrixAt(i++, mt); } }); im.count = i; dunia.add(im); }
+    [294, 466].forEach(yy => { [.25, .5].forEach(h => { const r = tabung(.025, .025, LEN * S, M_BAMBU2, LEN / 2 * S, h, yy * S, dunia, 5); r.rotation.z = Math.PI / 2; r.castShadow = false; });
+      const n = Math.floor(LEN / 75), im = new THREE.InstancedMesh(new THREE.CylinderGeometry(.035, .04, .65, 5), M_BAMBU2, n), mt = new THREE.Matrix4();
+      for (let k = 0; k < n; k++) { mt.makeTranslation((k + .5) * 75 * S, .32, yy * S); im.setMatrixAt(k, mt); } dunia.add(im); });
+    // pemandangan kiri-kanan: gang (rumah & lampu), kebun pisang, kuburan
+    const warna = [0xffffff, 0xd8e8d0, 0xf0d8c8, 0xd0dcf0, 0xf0e6b8];
+    let w = 0; for (let x = 150; x < 6000; x += rnd(330, 430)) { const kiri = w % 2 === 0; const r = rumah(x * S, (kiri ? 180 : 585) * S, rnd(3.2, 4.2), warna[w % 5]); if (!kiri) r.rotation.y = Math.PI; w++; }
+    for (let x = 600, k = 0; x < 6000; x += 900, k++) lampu(x * S, (k % 2 ? 274 : 486) * S, k % 3 === 0);
+    for (let x = 6050; x < 12000; x += rnd(160, 260)) { pohonPisang(x * S, rnd(120, 250) * S, rnd(.9, 1.2)); pohonPisang((x + 80) * S, rnd(520, 650) * S, rnd(.9, 1.2)); }
+    for (let x = 12050; x < 18000; x += rnd(90, 150)) { nisan(x * S, rnd(150, 270) * S, rnd(-.3, .3)); if (Math.random() < .7) nisan(x * S, rnd(500, 620) * S, rnd(-.3, .3)); }
+    for (let x = 12400; x < 18000; x += 1400) lampu(x * S, 274 * S, 0);
+    DESA = { kenStart: posRonda(-160 * S, 190 * S) };
+    // rintangan
+    JALAN = R.obs.map(o => { const g = grup(dunia, o.x * S, 0, o.y * S), e = { o, g, rot: 0 };
+      if (o.jenis === 'gerobak') obGerobak(g); else if (o.jenis === 'keranda') obKeranda(g); else if (o.jenis === 'pagar') obPagar(g);
+      else if (o.jenis === 'jemuran') e.kain = obJemuran(g); else if (o.jenis === 'kambing') Object.assign(e, obKambing(g));
+      g.rotation.y = o.jenis === 'kambing' ? Math.PI / 2 : 0; return e; });
+  }
+  function updJalan(t, dt, P2) {
+    if (!JALAN) return;
+    const px = P2.x;
+    JALAN.forEach(e => {
+      const o = e.o, dekat = Math.abs(o.x - px) < 4200; e.g.visible = dekat; if (!dekat) return;
+      if (o.jenis === 'kambing') { const zz = o.y * S, arah = zz - e.g.position.z; e.g.position.z = zz; if (Math.abs(arah) > 1e-4) e.g.rotation.y = arah > 0 ? -Math.PI / 2 : Math.PI / 2;   // kepala menghadap arah jalan
+        e.kaki.forEach((k, i) => { k.rotation.z = Math.sin(t * 10 + (i % 2) * Math.PI) * .45; }); e.b.position.y = Math.abs(Math.sin(t * 10)) * .03; }
+      if (e.kain) e.kain.forEach((m, i) => { m.rotation.x = Math.sin(t * 3 + i * 1.3 + o.x) * .18; });
+      if (o.kena) {   // tertabrak: roboh ke samping
+        e.rot = Math.min(1, e.rot + dt * 4);
+        if (o.jenis === 'jemuran') { if (e.kain) e.kain.forEach(m => { m.position.y = 1.6 - e.rot * 1.4; m.rotation.x = e.rot * 1.2; }); }
+        else { e.g.rotation.x = e.rot * (o.y < 380 ? -1.2 : 1.2); e.g.position.y = -e.rot * .05; }
+      }
+    });
+  }
+
   // ---------- hero 3D ----------
   // Ocong & Kunti dibuat langsung dari bentuk 3D (tanpa file); skin "Ocong Boneka Horor" memakai model .glb
   function buatOcong(skin) {
@@ -655,6 +738,7 @@ function mulai3D() {
     } else if (h.jenis === 'boneka') {
       mainAnim(h, !diTanah ? 'loncat' : jalan ? 'jalan' : 'diam'); h.mixer.update(dt * (jalan ? 1.3 : 1));
     }
+    if (P2.duck && diTanah) { B.scale.set(B.scale.x * 1.18, B.scale.y * .52, B.scale.z * 1.18); B.position.y = 0; B.rotation.x = .25; }   // merunduk (Lari Jalan Desa)
     // bayangan bulat di pijakan bawah (membantu memperkirakan lompatan)
     const b = dasarDi(P2);
     if (b != null) {
@@ -691,6 +775,7 @@ function mulai3D() {
 
   // ---------- kamera ----------
   const camT = new THREE.Vector3(), camPos = new THREE.Vector3();
+  let camZ = 0, camBaru2 = 1;
   let camBaru = 1, tPrev = performance.now(), ukuran = '';
   function ukurUlang() {
     const w = wrap.clientWidth, h = wrap.clientHeight, u = w + 'x' + h;
@@ -734,7 +819,7 @@ function mulai3D() {
         e.cahaya.intensity = api ? 18 : 3;
       }
     });
-    updDesa(t, dt);
+    updDesa(t, dt); updJalan(t, dt, P2);
     // lampion
     KOIN.forEach(k => { k.g.visible = !k.c.ok; if (!k.c.ok) { k.g.position.y = k.y0 + Math.sin(t * 2.6 + k.c.x) * .06; k.g.rotation.y = t * 1.5 + k.c.x; } });
     // hero: saya + pemain online lain
@@ -755,8 +840,17 @@ function mulai3D() {
     const tx = (P2.x + (P2.fvx || 0) * 90) * S, ty = Math.max(AIR, dasar) * S + .9, tz = (P2.y + (P2.fvy || 0) * 25) * S;
     if (camBaru) { camT.set(tx, ty, tz); camBaru = 0; }
     else { const kx = 1 - Math.pow(.02, dt), ky = 1 - Math.pow(.12, dt); camT.x += (tx - camT.x) * kx; camT.y += (ty - camT.y) * ky; camT.z += (tz - camT.z) * kx; }
-    camPos.copy(camT).add(CAM_OFF); camera.position.copy(camPos); camera.lookAt(camT.x, camT.y, camT.z);
-    langit.position.set(camT.x * .85, 0, 0);
+    if (PK.run) {   // Lari Jalan Desa: kamera di belakang hero (seperti game lari 3 jalur), ikut pindah jalur dengan halus
+      if (camBaru2) { camZ = P2.y * S; camBaru2 = 0; } camZ += (P2.y * S - camZ) * (1 - Math.pow(.004, dt));
+      const hx = P2.x * S, hy = Math.max(0, P2.z * S);
+      camT.set(hx + 5.5, .9 + hy * .35, camZ * .7 + 380 * S * .3);
+      camera.position.set(hx - 5.4, 3.1 + hy * .45, camZ * .8 + 380 * S * .2); camera.lookAt(camT);
+      langit.position.set(camera.position.x, 0, camT.z);
+    } else {
+      camBaru2 = 1;
+      camPos.copy(camT).add(CAM_OFF); camera.position.copy(camPos); camera.lookAt(camT.x, camT.y, camT.z);
+      langit.position.set(camT.x * .85, 0, 0);
+    }
     bulanL.position.copy(camT).add(ARAH_BULAN); bulanL.target.position.copy(camT);
     obor.position.set(P2.x * S, P2.z * S + 2.2, P2.y * S + 1.2);
 

@@ -231,7 +231,7 @@ const PK_CD = 3500;          // hitung mundur sebelum mulai (ms)
 const PK_LIMIT = 10 * 60000; // batas waktu balapan: 10 menit (ms)
 const PK_DORONG = 9500;      // jeda minimal antar serangan Dorong (ms); di game 10 detik
 const PK_AUTO = 12000;       // room acak: mulai otomatis 12 detik setelah ada 2 pemain
-const PK_ARENA = 2;         // jumlah lintasan parkur (0 = Jembatan Kali Angker, 1 = Dusun Malam Jumat)
+const PK_ARENA = 3;         // jumlah lintasan parkur (0 = Jembatan Kali Angker, 1 = Dusun Malam Jumat, 2 = Lari Jalan Desa)
 const pkAr = m => Math.max(0, Math.min(PK_ARENA - 1, m.ar | 0));
 const prooms = new Map();    // kode → {code, quick, host, pl:[ws], state:'lobby'|'race', t0, fin:[], tm, auto}
 const pkInfo = ws => ({ i: ws.id, n: ws.name, h: ws.hero, s: ws.skin || '' });
@@ -292,7 +292,7 @@ function pkMsg(ws, m, raw) {
       if (!r || r.state !== 'race') return;
       const o = { t: 'pkPos', i: ws.id };
       for (const k of ['x', 'y', 'z', 'fx', 'fy']) o[k] = Math.round((+m[k] || 0) * 100) / 100;
-      o.w = m.w ? 1 : 0; o.g = m.g ? 1 : 0; o.gl = m.gl ? 1 : 0; o.m = m.m ? 1 : 0; o.cp = m.cp | 0; o.a = m.a ? 1 : 0;
+      o.w = m.w ? 1 : 0; o.g = m.g ? 1 : 0; o.gl = m.gl ? 1 : 0; o.m = m.m ? 1 : 0; o.cp = m.cp | 0; o.a = m.a ? 1 : 0; o.dk = m.dk ? 1 : 0;
       pkAll(r, o, ws); return;
     }
     case 'pkHit': {   // serangan dasar "Dorong": diteruskan hanya ke pemain yang kena

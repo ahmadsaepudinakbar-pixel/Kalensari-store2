@@ -98,6 +98,7 @@ small{font-size:1.5cqw;color:#9aa3b8}
 .pkb span{font-size:1.2cqw;letter-spacing:.1cqw}.pkb em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:700 3cqw Arial;font-style:normal;text-shadow:0 0 .5cqw #000;pointer-events:none}.pkb b{font-size:3cqw}.pkb .cd{position:absolute;inset:0;border-radius:50%;pointer-events:none}
 #pkJump{right:3cqw;bottom:3cqw;width:15cqw;height:15cqw;background:radial-gradient(circle at 35% 30%,#2f7be0,#0d2f6e)}
 #pkAtk{right:17.5cqw;bottom:14.5cqw;width:10.5cqw;height:10.5cqw;background:radial-gradient(circle at 35% 30%,#a8322a,#3a0b08);display:none}#pk.net #pkAtk{display:flex}
+#pkDuck{right:4.5cqw;bottom:19.5cqw;width:11cqw;height:11cqw;background:radial-gradient(circle at 35% 30%,#2fae6a,#0b4a28);display:none}#pk.lari #pkDuck{display:flex}#pk.lari.net #pkAtk{right:17.5cqw;bottom:15.5cqw}
 #pkSk{right:19.5cqw;bottom:2.5cqw;width:10cqw;height:10cqw;background:radial-gradient(circle at 35% 30%,#5a3f8e,#21123d)}
 .pkx{position:absolute;right:1.5cqw;top:1.2cqw;font:700 1.4cqw Arial;color:#fff;background:#5a0f12cc;border:.2cqw solid #ff3b30;border-radius:1cqw;padding:.5cqw 1.2cqw;cursor:pointer}
 #pkEnd{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:44cqw;padding:2cqw;border-radius:1.6cqw;background:#0b1020f2;border:.3cqw solid #ffd166;box-shadow:0 0 4cqw #ffb70388;text-align:center;display:none}
@@ -328,7 +329,7 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 <div id="onl" class="scr"><div class="onwrap"><div class="onL"><h2>Main Online</h2><div class="onrow" id="oBalik" style="display:none"></div>
 <div class="onrow" id="oMode"><label>Mode</label><button class="btn on" data-m="duel">⚔️ Duel 1 vs 1</button><button class="btn" data-m="tim">👥 Duel Tim</button><button class="btn" data-m="pk">🏃 Parkur Hantu</button></div>
 <div class="onrow"><label>Nama</label><input id="oName" maxlength="16" placeholder="Nama Anda"></div>
-<div class="onrow" id="oPkAr" style="display:none"><label>Lintasan</label><button class="btn" data-a="0">🌉 Kali Angker</button><button class="btn" data-a="1">🏘️ Dusun Malam Jumat</button></div>
+<div class="onrow" id="oPkAr" style="display:none"><label>Lintasan</label><button class="btn" data-a="0">🌉 Kali Angker</button><button class="btn" data-a="1">🏘️ Dusun Malam Jumat</button><button class="btn" data-a="2">🏃 Lari Jalan Desa</button></div>
 <div class="onrow" id="oPub"><label>Room</label><button class="btn" data-p="1">🌐 Terbuka</button><button class="btn" data-p="0">🔒 Privat</button></div>
 <div class="onrow onsm" id="oInfo"></div>
 <div class="onrow"><button class="btn g" id="oQuick">Cari Lawan Acak</button><button class="btn" id="oCreate">Buat Room</button></div>
@@ -345,7 +346,7 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 <div id="kPop" class="kpop"></div></div>
 <div id="pk" class="scr"><div id="pkJoy"><div id="pkKnob"></div></div>
 <button id="pkJump" class="pkb">⤒<span>LOMPAT</span></button><button id="pkSk" class="pkb"><b>🕊</b><span>Melayang</span><i class="cd"></i><em></em></button>
-<button id="pkAtk" class="pkb">👊<span>DORONG</span><i class="cd"></i><em></em></button><button id="pkOut" class="pkx">✖ Keluar</button>
+<button id="pkDuck" class="pkb">⤓<span>MERUNDUK</span></button><button id="pkAtk" class="pkb">👊<span>DORONG</span><i class="cd"></i><em></em></button><button id="pkOut" class="pkx">✖ Keluar</button>
 <div id="pkEnd"><h2>FINIS!</h2><div id="pkRes"></div><div style="display:flex;gap:1.5cqw;justify-content:center"><button class="btn" id="pkMenu">Menu</button><button class="btn g" id="pkAgain">Main lagi</button></div></div></div>
 <div id="lob" class="scr"></div>
 <div id="tml" class="scr"><div class="ltop"><h2>👥 Duel Tim · Custom</h2><div class="lcode" id="tmlCode"></div></div>
@@ -1228,10 +1229,11 @@ const PKY=.55,PKG=.42,PKJ=8.3,PKSP=3.3,PKWATER=-70;
 const PK={on:0,pl:[],coins:[],cp:0,cps:[],t:0,fin:0,dead:0,deaths:0,cam:{x:0,y:0},p:null,key:{j:0},jm:{x:0,y:0}};
 // daftar lintasan Parkur Hantu
 const PKAR=[{n:'Jembatan Kali Angker',e:'🌉',d:'Pijakan batu, api & jembatan bambu di atas kali',bg:'linear-gradient(#0b1430,#0b2534)'},
- {n:'Balapan Dusun Malam Jumat',e:'🏘️',d:'Sawah, kali, kebun pisang, kuburan & gang kampung',bg:'linear-gradient(#0a1230,#163a1f)'}];
+ {n:'Balapan Dusun Malam Jumat',e:'🏘️',d:'Sawah, kali, kebun pisang, kuburan & gang kampung',bg:'linear-gradient(#0a1230,#163a1f)'},
+ {n:'Lari Jalan Desa',e:'🏃',d:'Lari otomatis 3 jalur: pindah jalur, lompat & merunduk',bg:'linear-gradient(#1a0f30,#3a1a10)'}];
 PK.ar=0;try{PK.ar=Math.min(PKAR.length-1,Math.max(0,+localStorage.getItem('kgPkAr')||0))}catch(e){}
 function pkSetAr(a){PK.ar=a;try{localStorage.setItem('kgPkAr',a)}catch(e){}}
-function pkLevel(){PK.npc=null;if(PK.ar==1)return pkLevel2();   // [x, y, lebar, dalam, tinggi, jenis, opsi]
+function pkLevel(){PK.npc=null;PK.run=null;if(PK.ar==1)return pkLevel2();if(PK.ar==2)return pkLevel3();   // [x, y, lebar, dalam, tinggi, jenis, opsi]
  const L=[[0,300,260,160,0],[330,330,100,100,20],[470,368,170,26,20,'bambu'],[690,320,110,120,50],[860,340,80,80,70,'runtuh'],
   [1000,300,180,160,60,'cp'],[1240,340,90,80,80,'gerak',{ax:60}],[1430,250,90,80,110],[1580,250,180,80,110,'api',{fx:1660}],
   [1820,340,80,80,140],[1960,420,72,60,150,'runtuh'],[2090,330,160,140,160,'cp'],[2320,300,70,60,190],[2450,380,70,60,220],
@@ -1258,6 +1260,54 @@ function pkLevel2(){const T={tepi:1};
  PK.npc={hal,anjing:{x:2900,y:380,hx:2900,hy:380,x0:2350,x1:3380,fx:-1,fy:0,cd:0,lari:0},ronda:{x:4380,y:300,a:Math.PI,on:1},
   burung:[[4650,330,'ayam'],[4800,430,'bebek'],[5060,380,'ayam'],[5160,320,'bebek'],[5460,440,'ayam'],[5600,360,'bebek']].map(b=>({hx:b[0],hy:b[1],x:b[0],y:b[1],k:b[2],r:14,h:30,fx:1})),
   kent:{x0:4500,x1:5700,bunyi:0},hint:[[530,'🌾 Pematang licin! Jangan sampai terpeleset ke sawah'],[1700,'🌉 Jembatan bambu bergoyang — Kunti bisa melayang menyeberang'],[2360,'🐕 Kebun pisang: awas anjing kampung!'],[3420,'🔦 Awas senter ronda! Sembunyi di balik nisan'],[4560,'🔔 Gang kampung: kentongan, ayam & bebek nyasar']],hi:0}}
+// ===== LINTASAN 3: Lari Jalan Desa (lari otomatis 3 jalur, kamera dari belakang) =====
+// Hero lari sendiri ke depan (x). Jalur = kedalaman y. Rintangan: gerobak & keranda (pindah jalur), pagar bambu & kambing (lompat),
+// jemuran (merunduk). Menabrak tidak mati — hanya tersandung & melambat. Tata letak sama untuk semua pemain (acak dengan benih tetap).
+const PKLANE=[330,380,430],PKOB={gerobak:{k:'tinggi',w:70,h:999},keranda:{k:'tinggi',w:90,h:999},pagar:{k:'rendah',w:26,h:38},kambing:{k:'rendah',w:52,h:42},jemuran:{k:'atas',w:30,h:0}};
+function pkRng(a){return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function pkLevel3(){const LEN=18000;
+ const L=[[0,300,6000,160,0,'darat',{tanah:'gang'}],[6000,300,6000,160,0,'cp',{tanah:'kebun'}],[12000,300,6000,160,0,'cp',{tanah:'kubur'}],[18000,300,700,160,0,'finis',{tanah:'gang'}]];
+ PK.pl=L.map((a,i)=>({i,x:a[0],y:a[1],w:a[2],d:a[3],z:a[4],t:a[5]||'',o:a[6]||{},ox:0,oy:0,dx:0,dy:0,tm:0,turun:0}));
+ PK.cps=PK.pl.filter(q=>q.t=='cp'||q.i==0);
+ const R=pkRng(20261031),pil=a=>a[Math.floor(R()*a.length)],obs=[],coins=[],ob=(k,x,lane,o)=>obs.push(Object.assign({k,x,y:PKLANE[lane],lane,kena:0},PKOB[k],{jenis:k},o||{}));
+ const koin=(x,lane,n=5,z=40)=>{for(let i=0;i<n;i++)coins.push({x:x+i*46,y:PKLANE[lane],z,ok:0})};
+ let x=700;
+ while(x<LEN-500){const awal=x<3500,jauh=x/LEN,lane=Math.floor(R()*3),lain=[0,1,2].filter(l=>l!==lane);
+  if(Math.abs(x-6000)<220||Math.abs(x-12000)<220){x+=260;continue}   // ruang aman di checkpoint
+  const p=awal?pil(['satu','satu','pagar','jemuran']):pil(['satu','dua','dua','pagar','jemuran','kambing','campur','campur']);
+  if(p=='satu'){ob(pil(['gerobak','keranda']),x,lane);koin(x-90,pil(lain))}
+  else if(p=='dua'){const bebas=pil([0,1,2]);[0,1,2].filter(l=>l!==bebas).forEach(l=>ob(pil(['gerobak','keranda']),x+(R()<.5?0:40),l));koin(x-120,bebas,6)}
+  else if(p=='pagar'){[0,1,2].forEach(l=>ob('pagar',x,l));koin(x-30,lane,3,95)}
+  else if(p=='jemuran'){[0,1,2].forEach(l=>ob('jemuran',x,l));koin(x-60,lane,4,22)}
+  else if(p=='kambing'){ob('kambing',x,lane,{gerak:1,y0:PKLANE[lane],fase:R()*6});koin(x+120,pil(lain),4)}
+  else{const ur=[0,1,2].sort(()=>R()-.5);ob(pil(['gerobak','keranda']),x,ur[0]);ob('pagar',x,ur[1]);ob('jemuran',x,ur[2])}
+  x+=(awal?560:Math.max(330,470-jauh*160))+R()*120}
+ PK.coins=coins;
+ PK.run={obs,lane:1,pdx:0,pup:0,pdn:0,v:4.6,vMin:3.6,vMax:7.2,tabrak:0,kebal:0,duck:0,hi:0,
+  hint:[[0,'🏃 Lari Jalan Desa! Geser kiri/kanan untuk pindah jalur'],[350,'⬆️ Geser ke atas = lompat · ⬇️ geser ke bawah = merunduk'],[6000,'🏮 Checkpoint 1 · kebun pisang'],[12000,'🏮 Checkpoint 2 · kuburan, makin cepat!'],[17500,'🏁 Gapura desa sudah dekat!']]}}
+function pkLari(P2,mx,my){const R=PK.run;
+ // input: tepi tekan (sekali tekan = sekali pindah jalur)
+ const dx=(inp.r||PK.jm.x>.5?1:0)-(inp.l||PK.jm.x<-.5?1:0),up=inp.u||PK.jm.y<-.5?1:0,dn=inp.d||PK.jm.y>.5?1:0;
+ let pindah=PK.key.lane||0;PK.key.lane=0;if(dx&&dx!==R.pdx)pindah=dx;R.pdx=dx;
+ if(pindah&&!(P2.beku>0)){const nl=Math.max(0,Math.min(2,R.lane+pindah));if(nl!==R.lane){R.lane=nl;if(navigator.vibrate)navigator.vibrate(12)}}
+ if(up&&!R.pup)PK.key.j=1;R.pup=up;
+ if((dn&&!R.pdn)||PK.key.duck){R.duck=42;if(!P2.gr)P2.vz=Math.min(P2.vz,-7.5)}R.pdn=dn;PK.key.duck=0;
+ if(R.duck>0)R.duck--;P2.duck=R.duck>0?1:0;
+ // kecepatan: makin lama makin cepat, tersandung = melambat sebentar
+ if(R.kebal>0)R.kebal--;
+ if(R.tabrak>0)R.tabrak--;else R.v=Math.min(R.vMax,R.v+.0016);
+ const sp=(R.tabrak>0?1.3:R.v)*(P2.beku>0?0:1),ty=PKLANE[R.lane],vy=Math.max(-8,Math.min(8,(ty-P2.y)*.3));
+ P2.fvx=1;P2.fvy=vy*.04;P2.walk++;
+ // kambing berjalan pelan menyeberang jalur
+ for(const o of R.obs){if(o.gerak&&!o.kena){o.y=380+Math.sin(PK.t/70+o.fase)*50;o.lane=Math.round((o.y-330)/50)}}
+ // tabrakan
+ if(!(R.kebal>0))for(const o of R.obs){const ddx=o.x-P2.x;if(o.kena||ddx<-o.w/2-14||ddx>o.w/2+14||Math.abs(o.y-P2.y)>30)continue;
+  const kena=o.k=='tinggi'||(o.k=='rendah'&&P2.z<o.h)||(o.k=='atas'&&!(R.duck>0));if(!kena)continue;
+  o.kena=1;R.tabrak=45;R.kebal=70;R.v=R.vMin;P2.kx=-4;
+  banner({gerobak:'💥 Nabrak gerobak! Pindah jalur ya',keranda:'⚰️ Nabrak keranda! Pindah jalur ya',pagar:'🎋 Kesandung pagar! Lompat ya',kambing:'🐐 Mbeek! Kesandung kambing',jemuran:'👕 Kena jemuran! Merunduk ya'}[o.jenis]);
+  if(navigator.vibrate)navigator.vibrate(90);break}
+ while(R.hi<R.hint.length&&P2.x>=R.hint[R.hi][0]){banner(R.hint[R.hi][1]);R.hi++}
+ return[sp,vy]}
 function pkSeg(h,a,b){const vx=b.x-a.x,vy=b.y-a.y,L=vx*vx+vy*vy||1,t=Math.max(0,Math.min(1,((h.x-a.x)*vx+(h.y-a.y)*vy)/L));return Math.hypot(a.x+vx*t-h.x,a.y+vy*t-h.y)}
 function pkNpc(P2,ox,oy){const N=PK.npc,t=PK.t,sama=x=>pkDi(x[0],x[1],0).some(q=>Math.abs(q.z-P2.z)<3);
  // jalan darat berpagar: tidak bisa terjatuh dari tepi (kecuali sengaja melompat)
@@ -1286,11 +1336,12 @@ function pkNpc(P2,ox,oy){const N=PK.npc,t=PK.t,sama=x=>pkDi(x[0],x[1],0).some(q=
  // petunjuk tiap bagian lintasan
  while(N.hi<N.hint.length&&P2.x>N.hint[N.hi][0]){banner(N.hint[N.hi][1]);N.hi++}}
 function pkJatuh(){return PK.ar==1?(PK.p.x>520&&PK.p.x<1560?'🌾 Terpeleset ke sawah!':'💦 Jatuh ke kali!'):'💦 Jatuh ke kali!'}
-function pkSpawn(){const c=PK.cps[PK.cp];Object.assign(PK.p,{beku:0,lambat:0,kebal:0,x:pkPx(c)+(PK.cp?40:PK.net?30+(PKN.idx||0)*38:60),y:pkPy(c)+c.d/2,z:c.z,vz:0,gr:c,glide:0,mati:0})}
+function pkSpawn(){const c=PK.cps[PK.cp];Object.assign(PK.p,{beku:0,lambat:0,kebal:0,x:pkPx(c)+(PK.cp?40:PK.net?30+(PKN.idx||0)*38:60),y:pkPy(c)+c.d/2,z:c.z,vz:0,gr:c,glide:0,mati:0});
+ if(PK.run){const i=PK.net?(PKN.idx||0):1;PK.run.lane=PK.net?i%3:1;PK.p.y=PKLANE[PK.run.lane];PK.p.x=pkPx(c)+(PK.cp?40:60+Math.floor(i/3)*45)}}
 function pkMulai(){if(!punyaHero(pick))pick='pocong';pkLevel();PK.p={id:pick,x:0,y:0,z:0,vz:0,gr:null,fvx:1,fvy:0,glide:0,gl:0,cd:0,mati:0,walk:0,skin:skinOf(pick)};
  PK.cp=0;PK.t=0;PK.fin=0;PK.deaths=0;pkSpawn();PK.cam.x=PK.p.x;PK.cam.y=PK.p.y*PKY-PK.p.z;
  const ku=pick=='kuntilanak';$('#pkSk b').textContent=ku?'🕊':'🚀';$('#pkSk span').textContent=ku?'Melayang':'Lompat Tinggi';
- clearTimeout(PK.tEnd);$('#pkEnd').classList.remove('on');if(!PK.net){$('#pkEnd h2').textContent='FINIS!';$('#pkAgain').textContent='Main lagi';$('#pkAgain').disabled=false;$('#pkAgain').style.display='';$('#pkMenu').textContent='Menu'}playing=0;PK.on=1;sc('pk');$('#pk').classList.toggle('net',!!PK.net);PK.p.kx=PK.p.ky=0;PK.p.atk=0;PK.p.acd=0}
+ clearTimeout(PK.tEnd);$('#pkEnd').classList.remove('on');if(!PK.net){$('#pkEnd h2').textContent='FINIS!';$('#pkAgain').textContent='Main lagi';$('#pkAgain').disabled=false;$('#pkAgain').style.display='';$('#pkMenu').textContent='Menu'}playing=0;PK.on=1;sc('pk');$('#pk').classList.toggle('net',!!PK.net);$('#pk').classList.toggle('lari',!!PK.run);PK.p.kx=PK.p.ky=0;PK.p.atk=0;PK.p.acd=0}
 function pkSelesai(){if(PK.net){PK.fin=1;netSend({t:'pkFin',tm:PK.t/60});pkResRender();PK.tEnd=setTimeout(()=>{if(PK.on)$('#pkEnd').classList.add('on')},700);return}PK.fin=1;const tm=PK.t/60,cn=PK.coins.filter(c=>c.ok).length;const RK='pkBest'+(PK.ar+1);let best=0;try{best=+localStorage.getItem(RK)||0}catch(e){}
  const baru=!best||tm<best;if(baru)try{localStorage.setItem(RK,tm.toFixed(2))}catch(e){}
  $('#pkRes').innerHTML=`Waktu <b>${pkJam(tm)}</b>${baru?' 🏆 rekor baru!':''}<br>Koin 🏮 ${cn}/${PK.coins.length} · Jatuh ${PK.deaths}x<br>Rekor terbaik: ${pkJam(baru?tm:best)}`;
@@ -1312,7 +1363,8 @@ function pkUpd(){const P2=PK.p;if(!P2)return;
  if(PK.fin){P2.walk=0;return}
  // gerak
  let mx=(inp.r||PK.jm.x>.3?1:0)-(inp.l||PK.jm.x<-.3?1:0),my=(inp.d||PK.jm.y>.3?1:0)-((inp.u&&!PK.key.sp)||PK.jm.y<-.3?1:0);if(P2.beku>0){P2.beku--;mx=my=0}const n=Math.hypot(mx,my)||1,lb=P2.lambat>0?.55:1;
- const vx=mx/n*PKSP*lb,vy=my/n*PKSP*.75*lb;if(mx||my){P2.fvx=mx/n;P2.fvy=my/n;P2.walk++}else P2.walk=0;
+ let vx=mx/n*PKSP*lb,vy=my/n*PKSP*.75*lb;if(mx||my){P2.fvx=mx/n;P2.fvy=my/n;P2.walk++}else P2.walk=0;
+ if(PK.run)[vx,vy]=pkLari(P2,mx,my);
  if(P2.gr){P2.x+=P2.gr.dx;P2.y+=P2.gr.dy}
  const ox=P2.x,oy=P2.y;P2.x+=vx+(P2.kx||0);P2.y+=vy+(P2.ky||0);if(P2.kx||P2.ky){P2.kx*=.86;P2.ky*=.86;if(Math.abs(P2.kx)+Math.abs(P2.ky)<.15)P2.kx=P2.ky=0}
  if(pkDi(P2.x,P2.y,0).some(q=>q.z>P2.z+4))P2.x=ox,P2.y=oy;   // menabrak sisi platform yang lebih tinggi
@@ -1347,8 +1399,12 @@ function pkDraw(){const P2=PK.p,Wd=W,Hd=H;g.setTransform(1,0,0,1,0,0);
  g.save();g.translate(Wd/2,Hd/2);g.scale(.78,.78);g.translate(-PK.cam.x,-PK.cam.y);   // kamera sedikit menjauh
  const items=[];PK.pl.forEach(q=>items.push({k:pkPy(q)+q.d,q}));{const un=pkDi(P2.x,P2.y).filter(q=>q.z<=P2.z+2);items.push({k:un.length?Math.max(P2.y+2,...un.map(q=>pkPy(q)+q.d+.5)):P2.y+2,p:1})}   // hero digambar di atas platform pijakannya
  PK.coins.forEach(c=>{if(!c.ok)items.push({k:c.y+1,c})});if(PK.npc){const N=PK.npc;N.hal.concat(N.burung,[N.anjing]).forEach(h=>items.push({k:h.y+1,n:h}))}if(PK.net)for(const k in PKN.ot){const o=PKN.ot[k];if(o.ok&&!o.mati)items.push({k:o.y+1.5,o})}
+ if(PK.run)PK.run.obs.forEach(o=>{if(Math.abs(o.x-P2.x)<700)items.push({k:o.y+.5,rb:o})});
  items.sort((a,b)=>a.k-b.k);
  for(const it of items){
+  if(it.rb){const o=it.rb,x=o.x,y=o.y*PKY,E={gerobak:'🛒',keranda:'⚰️',pagar:'🎋',kambing:'🐐',jemuran:'👕'}[o.jenis];g.save();if(o.kena)g.globalAlpha=.35;   // cadangan 2D: rintangan Lari Jalan Desa
+   if(o.k=='atas'){g.strokeStyle='#8a6a40';g.lineWidth=3;g.beginPath();g.moveTo(x,y-10);g.lineTo(x,y-95);g.stroke()}
+   g.font=(o.k=='tinggi'?40:30)+'px Arial';g.textAlign='center';g.fillText(E,x,o.k=='atas'?y-62:y-6);g.restore();continue}
   if(it.q){const q=it.q,x=pkPx(q),y=pkPy(q)*PKY-q.z,dd=q.d*PKY;let a=1,sh=0;
    if(q.turun){a=Math.max(0,1-(200-q.turun)/25);sh=(200-q.turun)*3}else if(q.tm){sh=Math.sin(fr*1.3)*2}
    if(a<=0)continue;g.save();g.globalAlpha=a;g.translate(q.tm&&!q.turun?sh:0,q.turun?sh:0);
@@ -1416,7 +1472,12 @@ addEventListener('keyup',e=>{if(e.key==' ')PK.key.sp=0});
 {const J=$('#pkJoy'),K=$('#pkKnob');let id=null;const mv=e=>{const r=J.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),R=r.width/2,m=Math.min(1,Math.hypot(dx,dy)/R),a=Math.atan2(dy,dx);
   PK.jm.x=Math.cos(a)*m;PK.jm.y=Math.sin(a)*m;K.style.transform=`translate(${Math.cos(a)*m*R*.55}px,${Math.sin(a)*m*R*.55}px)`};
  J.onpointerdown=e=>{id=e.pointerId;J.setPointerCapture(id);mv(e)};J.onpointermove=e=>{if(e.pointerId===id)mv(e)};J.onpointerup=J.onpointercancel=()=>{id=null;PK.jm.x=PK.jm.y=0;K.style.transform=''}}
-$('#pkJump').onpointerdown=e=>{e.preventDefault();PK.key.j=1};$('#pkSk').onpointerdown=e=>{e.preventDefault();PK.key.s=1};$('#pkAtk').onpointerdown=e=>{e.preventDefault();PK.key.a=1};
+$('#pkJump').onpointerdown=e=>{e.preventDefault();PK.key.j=1};$('#pkDuck').onpointerdown=e=>{e.preventDefault();PK.key.duck=1};
+// geser layar (lintasan Lari Jalan Desa): kiri/kanan = pindah jalur, atas = lompat, bawah = merunduk
+{let sw=null;const P=$('#pk');P.addEventListener('pointerdown',e=>{if(!PK.run||e.target.closest('#pkJoy,button,#pkEnd'))return;sw={x:e.clientX,y:e.clientY,id:e.pointerId}});
+ const akhir=e=>{if(!sw||e.pointerId!==sw.id)return;const dx=e.clientX-sw.x,dy=e.clientY-sw.y,r=P.getBoundingClientRect().width*.025;sw=null;if(Math.max(Math.abs(dx),Math.abs(dy))<r)return;
+  if(Math.abs(dx)>Math.abs(dy))PK.key.lane=dx>0?1:-1;else if(dy<0)PK.key.j=1;else PK.key.duck=1};
+ P.addEventListener('pointerup',akhir);P.addEventListener('pointercancel',()=>sw=null)}$('#pkSk').onpointerdown=e=>{e.preventDefault();PK.key.s=1};$('#pkAtk').onpointerdown=e=>{e.preventDefault();PK.key.a=1};
 function pkaGrid(){$('#pkaGrid').innerHTML=PKAR.map((a,i)=>{let b=0;try{b=+localStorage.getItem('pkBest'+(i+1))||0}catch(e){}
   return `<div class="acard ${i==PK.ar?'sel':''}" data-i="${i}"><i class="pkth" style="background:${a.bg}">${a.e}</i><b>${a.n}</b><div style="font:1.25cqw Arial;color:#9aa3b8;margin-top:.4cqw">${a.d}${b?' · rekor '+pkJam(b):''}</div></div>`}).join('');
  document.querySelectorAll('#pkaGrid .acard').forEach(c=>c.onclick=()=>{pkSetAr(+c.dataset.i);pkaGrid()})}
@@ -1436,7 +1497,7 @@ function pkNet(m){
   m.pl.forEach(p=>{if(p.i!==PKN.me)PKN.ot[p.i]={n:p.n,id:CH[p.h]?p.h:'pocong',skin:SKINS[p.s]&&SKINS[p.s].h==p.h?p.s:'',x:0,y:0,z:0,tx:0,ty:0,tz:0,fvx:1,fvy:0,vz:0,walk:0,gr:null,glide:0,mati:0,cp:0,ok:0}});
   PKN.idx=Math.max(0,m.pl.findIndex(p=>p.i===PKN.me));PKN.cdEnd=performance.now()+m.cd;PK.net=1;pkMulai()}
  else if(m.t=='pkPos'){const o=PKN.ot[m.i];if(!o)return;
-  if(m.a&&!o.aP)o.atk=14;o.aP=m.a;Object.assign(o,{tx:m.x,ty:m.y,tz:m.z,fvx:m.fx,fvy:m.fy,gr:m.g?1:null,glide:m.gl,mati:m.m?50:0,cp:m.cp});o.walk=m.w?o.walk+1:0;
+  if(m.a&&!o.aP)o.atk=14;o.aP=m.a;Object.assign(o,{tx:m.x,ty:m.y,tz:m.z,fvx:m.fx,fvy:m.fy,gr:m.g?1:null,glide:m.gl,mati:m.m?50:0,cp:m.cp,duck:m.dk?1:0});o.walk=m.w?o.walk+1:0;
   if(!o.ok||Math.hypot(o.tx-o.x,o.ty-o.y)>90||Math.abs(o.tz-o.z)>90){o.x=o.tx;o.y=o.ty;o.z=o.tz;o.ok=1}}
  else if(m.t=='pkHit'){pkKena(m)}
  else if(m.t=='pkFin'){PKN.fin.push(m);if(m.i!==PKN.me)banner('🏁 '+m.n+' finis ke-'+m.rank);pkResRender()}
@@ -1482,7 +1543,7 @@ function pkKena(m){const P2=PK.p;if(!P2||P2.mati||PK.fin||PKN.cdEnd)return;
  P2.kx=(+m.dx||0)*9;P2.ky=(+m.dy||0)*6.5;P2.vz=Math.max(P2.vz||0,4.5);P2.gr=null;P2.glide=0;
  const o=PKN.ot[m.i];banner('💥 Didorong '+(o?o.n:'lawan')+'!');if(navigator.vibrate)navigator.vibrate(90)}
 function pkKirim(){const P2=PK.p;if(!PK.net||!P2||fr%5)return;
- netSend({t:'pkPos',x:P2.x,y:P2.y,z:P2.z,fx:P2.fvx,fy:P2.fvy,w:P2.walk>0?1:0,g:P2.gr?1:0,gl:P2.glide>0?1:0,m:P2.mati>0?1:0,cp:PK.cp,a:P2.atk>6?1:0})}
+ netSend({t:'pkPos',x:P2.x,y:P2.y,z:P2.z,fx:P2.fvx,fy:P2.fvy,w:P2.walk>0?1:0,g:P2.gr?1:0,gl:P2.glide>0?1:0,m:P2.mati>0?1:0,cp:PK.cp,a:P2.atk>6?1:0,dk:P2.duck?1:0})}
 
 let fpsN=0,fpsT=0,fpsV=60;
 function netHud(t){fpsN++;if(t-fpsT>=1000){fpsV=fpsN;fpsN=0;fpsT=t;
