@@ -1125,7 +1125,7 @@ function netConnect(then,diam){if(then)NET.want=then;if(then&&then.t=='join')NET
    else{sc('onl');oStat('⚠️ Koneksi ke server terputus. Coba lagi.')}return}
   const wasOn=NET.on&&playing;NET.ws=null;if(wasOn){playing=0;netStop();$('#dead').classList.remove('on');$('#wt').textContent='TERPUTUS';$('#wn').textContent='Koneksi ke server terputus';sc('win')}else if($('#onl').classList.contains('on')||$('#tml').classList.contains('on')){TM.room=null;sc('onl');oStat('⚠️ Koneksi ke server terputus. Coba lagi.')}};
  ws.onerror=()=>{}}
-function netHello(){let n=($('#oName').value||'').trim();if(n)try{localStorage.setItem('kgName',n)}catch(e){}if(!n){try{n=localStorage.getItem('kgName')||''}catch(e){}n=n||KOL.nama||'Pemain'}netSend({t:'hello',name:n,hero:pick=='tuyul'?'pocong':pick,arena:arenaIdx,skin:skinOf(pick)||'',sesi:KOL.login?ksSesi():''})}
+function netHello(){let n=($('#oName').value||'').trim();if(n)try{localStorage.setItem('kgName',n)}catch(e){}if(!n){try{n=localStorage.getItem('kgName')||''}catch(e){}n=n||KOL.nama||'Pemain'}netSend({t:'hello',name:n,hero:pick,arena:arenaIdx,skin:skinOf(pick)||'',sesi:KOL.login?ksSesi():''})}
 function netStop(){NET.on=0;NET.role='';NET.inGame=0;NET.live=0;NET.rins={};NET.team=0;FS.forEach(f=>{delete f._tx;delete f._ty})}
 function netEnd(){netSend({t:'leave'});netStop()}
 $('#bOnl').onclick=()=>bukaOnline();
@@ -1134,7 +1134,7 @@ let ONM='duel';try{const m=localStorage.getItem('kgMode');if(m=='pk'||m=='tim')O
 function onlInfo(){document.querySelectorAll('#oMode .btn').forEach(x=>x.classList.toggle('on',x.dataset.m==ONM));
  $('#oQuick').style.display=ONM=='tim'?'none':'';$('#oPkAr').style.display=ONM=='pk'?'':'none';document.querySelectorAll('#oPkAr .btn').forEach(x=>x.classList.toggle('on',+x.dataset.a==PK.ar));
  if(ONM=='tim'){$('#oInfo').textContent='Custom 1–3 vs 1–3 · Buat room, bagikan kode, teman pilih Tim Biru / Merah';return}
- $('#oInfo').textContent=ONM=='pk'?'Hero Anda: '+NM3D(pick=='tuyul'?'pocong':pick)+' · Balapan saling dorong · 2–6 pemain · lintasan dipilih pembuat room':'Duel 3D · Hero Anda: '+NM3D(pick)+' · Arena (bila Anda pembuat room): '+AR.n;
+ $('#oInfo').textContent=ONM=='pk'?'Hero Anda: '+NM3D(pick)+' · Balapan saling dorong · 2–6 pemain · lintasan dipilih pembuat room':'Duel 3D · Hero Anda: '+NM3D(pick)+' · Arena (bila Anda pembuat room): '+AR.n;
  $('#oQuick').textContent=ONM=='pk'?'Cari Room Acak':'Cari Lawan Acak'}
 document.querySelectorAll('#oPkAr .btn').forEach(b=>b.onclick=()=>{pkSetAr(+b.dataset.a);onlInfo()});
 document.querySelectorAll('#oMode .btn').forEach(b=>b.onclick=()=>{ONM=b.dataset.m;try{localStorage.setItem('kgMode',ONM)}catch(e){}onlInfo();oStat('')});
@@ -1208,7 +1208,7 @@ function pkNpc(P2,ox,oy){const N=PK.npc,t=PK.t,sama=x=>pkDi(x[0],x[1],0).some(q=
  while(N.hi<N.hint.length&&P2.x>N.hint[N.hi][0]){banner(N.hint[N.hi][1]);N.hi++}}
 function pkJatuh(){return PK.ar==1?(PK.p.x>520&&PK.p.x<1560?'🌾 Terpeleset ke sawah!':'💦 Jatuh ke kali!'):'💦 Jatuh ke kali!'}
 function pkSpawn(){const c=PK.cps[PK.cp];Object.assign(PK.p,{beku:0,lambat:0,kebal:0,x:pkPx(c)+(PK.cp?40:PK.net?30+(PKN.idx||0)*38:60),y:pkPy(c)+c.d/2,z:c.z,vz:0,gr:c,glide:0,mati:0})}
-function pkMulai(){if(!punyaHero(pick))pick='pocong';pkLevel();PK.p={id:pick=='tuyul'?'pocong':pick,x:0,y:0,z:0,vz:0,gr:null,fvx:1,fvy:0,glide:0,gl:0,cd:0,mati:0,walk:0,skin:skinOf(pick)};
+function pkMulai(){if(!punyaHero(pick))pick='pocong';pkLevel();PK.p={id:pick,x:0,y:0,z:0,vz:0,gr:null,fvx:1,fvy:0,glide:0,gl:0,cd:0,mati:0,walk:0,skin:skinOf(pick)};
  PK.cp=0;PK.t=0;PK.fin=0;PK.deaths=0;pkSpawn();PK.cam.x=PK.p.x;PK.cam.y=PK.p.y*PKY-PK.p.z;
  const ku=pick=='kuntilanak';$('#pkSk b').textContent=ku?'🕊':'🚀';$('#pkSk span').textContent=ku?'Melayang':'Lompat Tinggi';
  clearTimeout(PK.tEnd);$('#pkEnd').classList.remove('on');if(!PK.net){$('#pkEnd h2').textContent='FINIS!';$('#pkAgain').textContent='Main lagi';$('#pkAgain').disabled=false;$('#pkAgain').style.display='';$('#pkMenu').textContent='Menu'}playing=0;PK.on=1;sc('pk');$('#pk').classList.toggle('net',!!PK.net);PK.p.kx=PK.p.ky=0;PK.p.atk=0;PK.p.acd=0}
