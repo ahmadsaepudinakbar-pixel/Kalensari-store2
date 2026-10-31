@@ -64,7 +64,16 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 .hp.me.stun::after{content:'🔒';position:absolute;left:50%;top:-18px;transform:translateX(-50%);font-size:14px}
 .hp.me{overflow:visible}
 #hasil b.info{font-size:24px;letter-spacing:0;color:#ffd166;max-width:86vw;text-align:center}
-#hasil .tb{display:flex;gap:10px}#hasil button.abu{background:#2c3f73;color:#fff}
+#hasil .tb{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}#hasilS{font:700 16px Arial;color:#e8e2f0;margin-top:-8px}#hasilS:empty{display:none}
+#ph{display:flex;flex-direction:column;align-items:center;gap:10px;background:#120d1cf0;border:1px solid #3a2d52;border-radius:16px;padding:14px 16px;max-width:94vw}
+#ph .phj{font:900 22px Arial!important;letter-spacing:1px!important;color:#ffd166}
+#phHero,#phSkin{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+#ph #phHero button,#ph #phSkin button{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:96px;font:700 13px Arial;color:#e8e2f0;background:#1a1426;border:1px solid #3a2d52;border-radius:12px;padding:8px 10px}
+#ph #phHero button i{font-style:normal;font-size:28px}#ph #phSkin button{min-width:0;flex-direction:row;padding:7px 12px}
+#ph #phHero button small{font:500 11px Arial;color:#9aa3b8}
+#ph #phHero button.on,#ph #phSkin button.on{background:#3a0f1c;border-color:#e8392f;box-shadow:0 0 12px #e8392f55}
+#ph #phHero button.kunci,#ph #phSkin button.kunci{opacity:.45}#phInfo{font:12px Arial;color:#ffd166;min-height:14px;text-align:center}
+@media (max-height:430px){#ph #phHero button{min-width:84px;padding:5px 8px}#ph #phHero button i{font-size:22px}#hasil b{font-size:40px}#hasil{gap:10px}}#hasil button.abu{background:#2c3f73;color:#fff}
 
 /* layar miring (HP): menu dua kolom & ringkas supaya muat tanpa menggulir */
 @media (orientation:landscape) and (max-height:560px){
@@ -129,7 +138,11 @@ body:has(#timHud:not([style*="none"])) #koin{top:52px}
 <div id="timHud" class="ui" style="display:none"></div><div id="tbans"></div>
 <div id="koin" class="ui" style="display:none"></div>
 <div id="help">WASD / panah: gerak · J / Spasi: Sundul Kepala · U (tahan, arahkan dgn mouse): Loncat Jauh · I (tahan): Guling Cepat · O: Lingkaran Kutukan</div>
-<div id="hasil"><b id="hasilT"></b><div class="tb"><button id="lagi">Main Lagi</button><button id="keMenu" class="abu">Menu</button></div></div>
+<div id="hasil"><b id="hasilT"></b><small id="hasilS"></small>
+ <div class="tb" id="hasilTb"><button id="lagi">🔁 Main Lagi</button><button id="pilihH" class="abu" style="display:none">🦸 Pilih Hero</button><button id="keMenu" class="abu">Menu</button></div>
+ <div id="ph" style="display:none"><b class="phj">Pilih Hero</b>
+  <div id="phHero"></div><div id="phSkin"></div><div id="phInfo"></div>
+  <div class="tb"><button id="phMain">⚔️ Main</button><button id="phBatal" class="abu">← Kembali</button></div></div></div>
 <div id="menu"><div class="mbox">
  <div class="mjudul"><h1>KALENSARI <span>3D</span></h1><p class="sub">Duel hantu 1 lawan 1</p></div>
  <div class="mkol"><div class="mki">
@@ -1717,13 +1730,54 @@ function selesai(hasil) {
   if (SELESAI) return; SELESAI = true;
   if (hasil === 'kalah' && NET.on) { netEvent({ k: 'mati' }); kirimKeadaan(); }
   if (hasil === 'kalah') { P.state = 'kalah'; K.bidik = false; if (P.act.kalah) { P.cur = ''; main('kalah', .1); } else main('diam', .2); if (HERO === 'kunti') kuntiTembus(.4); }
-  setTimeout(() => { const t = $('#hasilT'); t.textContent = hasil === 'menang' ? 'MENANG!' : 'KALAH'; t.className = hasil; $('#hasil').classList.add('on'); }, 1200);
+  if (LAWAN === 'bot') {   // Lawan Bot: siapa duluan 3 kill yang menang
+    SKOR[hasil === 'menang' ? 0 : 1]++; updSkorBot();
+    if (Math.max(SKOR[0], SKOR[1]) < KILL_MENANG) {
+      banner((hasil === 'menang' ? '💀 Bot tumbang!  ' : '☠️ Anda tumbang!  ') + SKOR[0] + ' – ' + SKOR[1], hasil === 'menang' ? '#7ad0ff' : '#ff7a7a');
+      setTimeout(() => { if (!SELESAI) return; mainLagi(true); banner('⚔️ Ronde ' + (SKOR[0] + SKOR[1] + 1) + ' · mulai!', '#ffd166'); }, 2400);
+      return;
+    }
+  }
+  setTimeout(() => { const t = $('#hasilT'); t.textContent = hasil === 'menang' ? 'MENANG!' : 'KALAH'; t.className = hasil;
+    $('#hasilS').textContent = LAWAN === 'bot' ? 'Skor ' + SKOR[0] + ' – ' + SKOR[1] + ' · ' + KILL_MENANG + ' kill menang' : '';
+    $('#pilihH').style.display = LAWAN === 'bot' ? '' : 'none'; tutupPilihHero(); $('#hasil').classList.add('on'); }, 1200);
 }
-function mainLagi() {
+// ---- skor Lawan Bot (3 kill menang) ----
+const KILL_MENANG = 3; let SKOR = [0, 0];
+function updSkorBot() { const e = $('#timHud'); e.style.display = ''; e.innerHTML = `<span class="b">Anda ${SKOR[0]}</span><small>${KILL_MENANG} kill menang</small><span class="m">${SKOR[1]} Bot</span>`; }
+// ---- Pilih Hero langsung dari layar hasil (tanpa kembali ke menu) ----
+const IKON_HERO = { ocong: '👻', kunti: '🩸', tuyul: '👶' }, DESK_HERO = { ocong: 'jarak dekat', kunti: 'jarak jauh', tuyul: 'lincah' };
+const PIL_SKIN = { ocong: [['lompat', '🐛 Pocong Lompat'], ['boneka', '🪆 Boneka Horor'], ['emas', '💗 Ocong Pink']], kunti: [['utama', '🤍 Kunti'], ['merah', '❤️ Kunti Merah']], tuyul: [['utama', '👶 Tuyul']] };
+const kunciSkin = (h, s) => h === 'ocong' ? (s || 'boneka') : (s || 'utama'), skinUrl = (h, k) => h === 'ocong' ? (k === 'boneka' ? '' : k) : k === 'merah' ? 'merah' : '';
+// hero & skin yang dimiliki dikirim game.html (dari kartu yang sudah diklaim)
+const PUNYA = (() => { const a = (Q.get('punya') || '').split(',').filter(h => NAMA_HERO[h]); ['ocong', HERO].forEach(h => { if (!a.includes(h)) a.push(h); }); return a; })();
+const SKIN_PUNYA = new Set(['ocong:lompat', 'kunti:utama', 'tuyul:utama', HERO + ':' + kunciSkin(HERO, SKIN), ...(Q.get('skins') || '').split(',').filter(Boolean)]);
+const PH = { hero: HERO, skin: kunciSkin(HERO, SKIN) };
+function gambarPilihHero() {
+  $('#phHero').innerHTML = ['ocong', 'kunti', 'tuyul'].map(h => { const ok = PUNYA.includes(h); return `<button data-h="${h}" class="${PH.hero === h ? 'on' : ''} ${ok ? '' : 'kunci'}"><i>${IKON_HERO[h]}</i><b>${NAMA_HERO[h]}</b><small>${ok ? DESK_HERO[h] : '🔒 butuh kartu'}</small></button>`; }).join('');
+  $('#phSkin').innerHTML = PIL_SKIN[PH.hero].length > 1 ? PIL_SKIN[PH.hero].map(([k, n]) => { const ok = SKIN_PUNYA.has(PH.hero + ':' + k); return `<button data-k="${k}" class="${PH.skin === k ? 'on' : ''} ${ok ? '' : 'kunci'}">${ok ? '' : '🔒 '}${n}</button>`; }).join('') : '';
+  document.querySelectorAll('#phHero button').forEach(b => b.onclick = () => { const h = b.dataset.h;
+    if (!PUNYA.includes(h)) { $('#phInfo').textContent = '🔒 ' + NAMA_HERO[h] + ' terkunci — klaim kartunya di Koleksi Kartu'; return; }
+    $('#phInfo').textContent = ''; PH.hero = h; PH.skin = h === HERO ? kunciSkin(HERO, SKIN) : (PIL_SKIN[h].find(([k]) => SKIN_PUNYA.has(h + ':' + k)) || PIL_SKIN[h][0])[0]; gambarPilihHero(); });
+  document.querySelectorAll('#phSkin button').forEach(b => b.onclick = () => { const k = b.dataset.k;
+    if (!SKIN_PUNYA.has(PH.hero + ':' + k)) { $('#phInfo').textContent = '🔒 Skin ini terkunci — klaim kartunya di Koleksi Kartu'; return; }
+    $('#phInfo').textContent = ''; PH.skin = k; gambarPilihHero(); });
+}
+function bukaPilihHero() { $('#hasilT').style.display = $('#hasilS').style.display = $('#hasilTb').style.display = 'none'; $('#ph').style.display = ''; $('#phInfo').textContent = ''; gambarPilihHero(); }
+function tutupPilihHero() { $('#hasilT').style.display = $('#hasilS').style.display = $('#hasilTb').style.display = ''; $('#ph').style.display = 'none'; }
+$('#pilihH').onclick = bukaPilihHero; $('#phBatal').onclick = tutupPilihHero;
+$('#phMain').onclick = () => {
+  if (PH.hero === HERO && PH.skin === kunciSkin(HERO, SKIN)) { mainLagi(); return; }   // hero sama → langsung tanding ulang
+  const q = new URLSearchParams(location.search); q.set('main', 1); q.set('mode', 'bot'); q.set('hero', PH.hero);
+  const s = skinUrl(PH.hero, PH.skin); if (s) q.set('skin', s); else q.delete('skin');
+  $('#phMain').textContent = 'Memuat…'; location.replace(location.pathname + '?' + q);
+};
+function mainLagi(ronde) {   // ronde = lanjut ronde berikutnya (skor tetap); tanpa ronde = tanding ulang dari 0
   SELESAI = false; $('#hasil').classList.remove('on'); K.terbangT = 0; K.lesat = 0;
   P.hp = HP_MAX[HERO]; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
   if (HERO === 'kunti') kuntiTembus(1);
-  if (BOT) BOT.reset(true);   // tiap Main Lagi: hero bot diacak lagi
+  if (BOT) BOT.reset(!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
+  if (LAWAN === 'bot' && !ronde) { SKOR = [0, 0]; updSkorBot(); }
 }
 $('#lagi').onclick = () => { if (TIM.on) { timKeLobi(); return; } if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
 $('#keMenu').onclick = () => { keluarRoom(); location.href = 'game.html'; };
@@ -2257,7 +2311,7 @@ async function mulai() {
   }
   buatArena(); siapkanApi(); setKual(lv);
   if (LAWAN === 'boneka') [[-4, -1.5], [4, -.5], [0, -4]].forEach(p => buatMusuh(p[0], PUSAT_Z + p[1]));
-  try { await MODEL_SIAP; if (LAWAN === 'bot') await siapkanBot(); }
+  try { await MODEL_SIAP; if (LAWAN === 'bot') { await siapkanBot(); updSkorBot(); } }
   catch (e) { $('#load b').textContent = 'Model tidak bisa dimuat'; $('#lmsg').textContent = 'Pastikan file ' + MODEL + ' sudah diunggah satu folder dengan halaman ini.'; return; }
   posisiAwal();
   $('#load').classList.add('off');

@@ -1544,6 +1544,8 @@ function skin3D(h){const s=skinOf(h);if(h=='pocong')return s=='pocong:boneka'?''
 function namaSaya(){let n=($('#oName').value||'').trim();if(!n){try{n=localStorage.getItem('kgName')||''}catch(e){}}n=(n||KOL.nama||'Pemain').slice(0,16);try{localStorage.setItem('kgName',n)}catch(e){}return n}
 function ke3D(mode,x){if(!punyaHero(pick))pick='pocong';x=x||{};
  const q=new URLSearchParams({main:1,hero:H3D[pick]||'ocong',arena:arenaIdx==1?'lapangan':'kuil',mode,nama:namaSaya()});const sk=skin3D(pick);if(sk)q.set('skin',sk);
+ q.set('punya',['pocong','kuntilanak','tuyul'].filter(punyaHero).map(h=>H3D[h]).join(','));   // hero & skin milik pemain → bisa ganti hero di game 3D
+ const SK3={'pocong:boneka':'ocong:boneka','pocong:emas':'ocong:emas','kuntilanak:merah':'kunti:merah'};q.set('skins',KOL.skin.map(s=>SK3[s]).filter(Boolean).join(','));
  if(x.kode)q.set('kode',x.kode);if(x.pub!=null)q.set('pub',x.pub);try{const sv=new URLSearchParams(location.search).get('server');if(sv)q.set('server',sv)}catch(e){}
  if(NET.ws&&NET.ws.readyState===1)netSend({t:'leave'});location.href='game3d.html?'+q}
 $('#bMain').onclick=()=>{agrid();sc('ars')};
