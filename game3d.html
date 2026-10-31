@@ -752,6 +752,7 @@ function siapkanOcongLompat(gl, m, T) {   // model tanpa tulang: animasi Hop & I
 }
 // Skin Boneka (bertopi): saat berjalan badan meloncat-loncat dengan kedua kaki rapat, sedikit condong ke depan & mendarat mengempis
 function lompatPocong(T, dt) {
+  if (T && T.tegapG && (T.cur === 'diam' || T.cur === 'jalan' || T.cur === 'lari')) T.tegapG.forEach(([b, q, k]) => b.quaternion.slerp(q, k));   // Genderuwo lebih tegak
   if (!T || !T.hopLoncat || !T.model) return;
   const m = T.model;
   if ((T.cur === 'diam' || T.cur === 'jalan') && T.tegap) T.tegap.forEach(([b, q]) => b.quaternion.slerp(q, .9));   // luruskan badan (pose asli agak membungkuk)
@@ -1434,6 +1435,9 @@ function siapkanGenderuwo(gl, m, T) {
   if (cari('amuk')) T.act.amuk = sekali(T.mixer.clipAction(klip(cari('amuk'))));
   if (cari('defeat_03')) T.act.kalah = sekali(T.mixer.clipAction(klip(cari('defeat_03'))));
   if (!T.act.jalan) T.act.jalan = T.act.diam; if (!T.act.lari) T.act.lari = T.act.jalan;
+  // animasi Mutant sangat membungkuk (dari kamera atas terlihat seperti merangkak) → punggung ditegakkan sebagian saat diam / jalan / lari
+  const TG = { Hips: .5, Spine: .55, Spine1: .55, Spine2: .55, Neck: .5, Head: .3 };
+  T.tegapG = []; m.traverse(o => { if (!o.isBone) return; const k = o.name.replace(/^mixamorig:?/, ''); if (TG[k]) T.tegapG.push([o, o.quaternion.clone(), TG[k]]); });
 }
 function dalamCakar(asal, a, p) {   // sapuan setengah lingkaran di depan
   const v = p.clone().sub(asal).setY(0), L = v.length(); if (L > GEND.cakarR + .4) return false; if (L < .8) return true;

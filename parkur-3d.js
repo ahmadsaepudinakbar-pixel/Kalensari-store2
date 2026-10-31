@@ -675,6 +675,7 @@ function mulai3D() {
       const K = {}; for (const n in c.klip) { const a = gl.animations.find(x => x.name === c.klip[n]); if (a) K[n] = rapikanKlip(a.clone(), m, 0, false); }
       if (!K.jalan) K.jalan = K.diam;
       M3D[kunci] = { m, K };
+      if (kunci === 'genderuwo') { const TG = { Hips: .5, Spine: .55, Spine1: .55, Spine2: .55, Neck: .5, Head: .3 }; M3D[kunci].tegap = TG; }   // punggung Genderuwo ditegakkan sebagian
       for (const k in HERO) if (HERO[k].kunci3d === kunci && !HERO[k].mixer) buang(k);   // ganti bentuk sementara dengan model asli
     }, undefined, () => { });
   }
@@ -683,7 +684,8 @@ function mulai3D() {
     for (const n in D.K) act[n] = mixer.clipAction(D.K[n]);
     if (act.loncat) { act.loncat.setLoop(THREE.LoopOnce); act.loncat.clampWhenFinished = true; }
     const root = new THREE.Group(), badanG = new THREE.Group(); badanG.add(m); root.add(badanG);
-    return { root, badanG, jenis: kunci === 'tuyul' || kunci === 'genderuwo' ? 'tuyul3d' : 'kunti3d', mixer, act, cur: '' };   // Genderuwo memakai gerak yang sama dengan Tuyul (diam / lari / lompat)
+    const tegapG = []; if (D.tegap) m.traverse(o => { if (!o.isBone) return; const k = o.name.replace(/^mixamorig:?/, ''); if (D.tegap[k]) tegapG.push([o, o.quaternion.clone(), D.tegap[k]]); });
+    return { root, badanG, jenis: kunci === 'tuyul' || kunci === 'genderuwo' ? 'tuyul3d' : 'kunti3d', mixer, act, cur: '', tegapG };   // Genderuwo memakai gerak yang sama dengan Tuyul (diam / lari / lompat)
   }
   function buatBoneka() {
     const m = SkeletonUtils.clone(BONEKA.m), mixer = new THREE.AnimationMixer(m), act = {};
@@ -744,6 +746,7 @@ function mulai3D() {
       mainAnim(h, (P2.glide > 0 || !diTanah) && h.act.terbang ? 'terbang' : 'diam'); h.mixer.update(dt);
     } else if (h.jenis === 'tuyul3d') {
       mainAnim(h, !diTanah && h.act.loncat ? 'loncat' : jalan ? 'jalan' : 'diam'); h.mixer.update(dt * (jalan ? 1.2 : 1));
+      if (h.tegapG && h.cur !== 'loncat') h.tegapG.forEach(([b, q, k]) => b.quaternion.slerp(q, k));
     } else if (h.jenis === 'lompat') {
       mainAnim(h, jalan || !diTanah ? 'jalan' : 'diam'); h.mixer.update(dt * (jalan ? 1.4 : 1));
       if (!diTanah) B.rotation.x = THREE.MathUtils.clamp(-(P2.vz || 0) * .03, -.25, .25);
