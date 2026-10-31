@@ -213,7 +213,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: !DI_HP, powerPrefe
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = DI_HP ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;   // HP: bayangan biasa (lebih ringan dari bayangan halus)
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x2a1a22, 32, 70);
 // pantulan cahaya lembut untuk bahan model 3D (supaya kain & topi tidak terlalu gelap)
@@ -572,10 +572,10 @@ let composer = null, bloomPass = null;
 function setKual(lv) {
   KUAL.lv = lv; try { localStorage.setItem('uji3dKual', lv); } catch (e) { }
   document.querySelectorAll('#kual button').forEach(b => b.classList.toggle('on', +b.dataset.q === lv));
-  renderer.setPixelRatio(lv === 0 ? Math.min(devicePixelRatio, DI_HP ? .85 : 1) : lv === 1 ? Math.min(devicePixelRatio, DI_HP ? 1.1 : 1.5) : Math.min(devicePixelRatio, 2));
+  renderer.setPixelRatio(lv === 0 ? Math.min(devicePixelRatio, DI_HP ? .85 : 1) : lv === 1 ? Math.min(devicePixelRatio, DI_HP ? 1 : 1.5) : Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = lv > 0; sun.castShadow = lv > 0;
   sun.shadow.mapSize.setScalar(lv === 2 ? 2048 : 512); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
-  LAMPU.forEach((l, i) => l.visible = i < [0, 3, 6][lv]); KILAT.forEach(k => k.l.visible = lv > 0);
+  LAMPU.forEach((l, i) => l.visible = i < (DI_HP ? [0, 2, 4] : [0, 3, 6])[lv]);   // HP: lampu api lebih sedikit KILAT.forEach(k => k.l.visible = lv > 0);
   KUAL.bloom = lv === 2;
   scene.traverse(o => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); } });
   resize();
@@ -619,6 +619,7 @@ function gelombang(pos, radius, umur = .5, warna = 0xff5030) {
 // partikel percikan / serpihan
 function percik(pos, n = 40, warna = 0xff6030, kuat = 6, ukuran = .18) {
   if (KUAL.lv === 0) { n = Math.ceil(n * .4); if (n <= 2 && Math.random() < .5) return; }
+  if (DI_HP && n <= 3 && pos.y > -50 && Math.random() < .5) return;   // HP: jejak efek (percikan kecil tiap frame) dikurangi setengah
   const geo = new THREE.BufferGeometry(), p = new Float32Array(n * 3), v = [];
   for (let i = 0; i < n; i++) { p[i * 3] = pos.x; p[i * 3 + 1] = pos.y + .3; p[i * 3 + 2] = pos.z; const a = Math.random() * Math.PI * 2, s = rnd(.3, 1) * kuat; v.push(new THREE.Vector3(Math.cos(a) * s, rnd(.4, 1.2) * kuat, Math.sin(a) * s)); }
   geo.setAttribute('position', new THREE.BufferAttribute(p, 3));
@@ -1988,7 +1989,7 @@ function updLawan(dt) {
   mainObj(R, R.an, .15, R.ts); R.mixer.update(dt); lompatPocong(R, dt);
   if (R.pivot) { R.gulingT = R.an === 'guling' && R.prosedural ? (R.gulingT || 0) + dt : 0; R.pivot.rotation.x = R.gulingT > 0 && R.gulingT < .8 ? R.gulingT * 15 : 0; }   // guling buatan (skin Pocong Lompat)
   const p = R.root.position;
-  if (R.hero === 'kunti' && (R.fl & 1) && Math.random() < .7) percik(p.clone().setY(R.tilt.position.y + .5), 2, Math.random() < .5 ? KW.ungu : KW.merah, .7, .26);   // jejak Mode Terbang
+  if (R.hero === 'kunti' && (R.fl & 1) && Math.random() < (DI_HP ? .3 : .7)) percik(p.clone().setY(R.tilt.position.y + .5), 2, Math.random() < .5 ? KW.ungu : KW.merah, .7, .26);   // jejak Mode Terbang
   if (R.hero === 'ocong' && R.an === 'guling' && Math.random() < .8) nyala(p.clone().setY(.75 + rnd(-.35, .35)), rnd(.5, 1), 0xff4018, .3);
   if (R.hero === 'ocong' && R.an === 'loncat') nyala(p.clone().setY(R.tilt.position.y + .9), 1.1, 0xff3a14, .45);
   const lihat = terlihatDari(p, P.root.position) && !(R.fl & 2); R.root.visible = lihat; R.mt.sembunyi = !lihat;   // Tuyul menghilang (Gasing Ngilang)
@@ -2354,10 +2355,13 @@ function kualitasOtomatis(dt) {   // fps < 26 selama ±4 detik → turunkan kual
   if (OTO.jeda > 0) { OTO.jeda -= dt; return; }
   OTO.t += dt; OTO.n++; if (OTO.t < 4) return;
   const fps = OTO.n / OTO.t; OTO.t = 0; OTO.n = 0;
-  if (fps < 26 && KUAL.lv > 0) { setKual(KUAL.lv - 1); OTO.jeda = 3; const t = $('#fps'); if (t) t.textContent = 'Kualitas diturunkan otomatis (' + Math.round(fps) + ' fps)'; }
+  if (fps < (DI_HP ? 30 : 26) && KUAL.lv > 0) { setKual(KUAL.lv - 1); OTO.jeda = 3; const t = $('#fps'); if (t) t.textContent = 'Kualitas diturunkan otomatis (' + Math.round(fps) + ' fps)'; }
+}
+function panaskan() {   // siapkan semua shader sebelum main → tidak tersendat saat skill / efek pertama kali muncul
+  try { percik(new THREE.Vector3(0, -60, 0), 2); renderer.compile(scene, camera); } catch (e) { }
 }
 function mulaiLoop() {
-  if (LOOP) return; LOOP = true;
+  if (LOOP) return; LOOP = true; panaskan();
   let last = performance.now(), fN = 0, fT = 0, t0 = 0;
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
