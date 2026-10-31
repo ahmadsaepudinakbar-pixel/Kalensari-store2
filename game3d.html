@@ -143,7 +143,7 @@ body:has(#timHud:not([style*="none"])) #koin{top:52px}
  <div class="mode"><button data-m="acak" class="utama">⚔️ Cari Lawan Acak</button><button data-m="buat">🏠 Buat Room</button></div>
  <div class="gab"><input id="mKode" placeholder="Kode room" inputmode="numeric" maxlength="4"><button data-m="gabung">Gabung</button></div>
  <label>Main Sendiri</label>
- <div class="mode"><button data-m="bot">🤖 Lawan Bot Ocong</button><button data-m="latihan">🎯 Latihan</button></div>
+ <div class="mode"><button data-m="bot">🤖 Lawan Bot Acak (Pro)</button><button data-m="latihan">🎯 Latihan</button></div>
  <p class="cat">Arena online mengikuti pilihan pembuat room.</p>
  <a class="kecil" href="game.html" style="text-align:center;text-decoration:none">← Kembali ke Kalensari Game</a>
  </div></div>
@@ -165,7 +165,6 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { clone as cloneSkel } from 'three/addons/utils/SkeletonUtils.js';
-import { buatBotOcong } from './duel-bot.js';
 
 // ================== PENGATURAN ==================
 const Q = new URLSearchParams(location.search);
@@ -174,7 +173,7 @@ const HERO = ['kunti', 'tuyul'].includes(Q.get('hero')) ? Q.get('hero') : 'ocong
 const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul' }, HP_MAX = { ocong: 1000, kunti: 1000, tuyul: 850 };
 const MODE = ['latihan', 'bot', 'acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(Q.get('mode')) ? Q.get('mode') : 'latihan';
 const ONLINE = ['acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(MODE);
-const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'ocong' : 'boneka';
+const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'bot' : 'boneka';
 const NAMA = (Q.get('nama') || 'Pemain').slice(0, 16), KODE = (Q.get('kode') || '').replace(/\D/g, '').slice(0, 4);
 let ARENA = Q.get('arena') === 'lapangan' ? 'lapangan' : 'kuil';             // online: diganti arena pilihan pembuat room
 let PUSAT_Z = 0;                                                              // titik tengah arena (pemain lawan dicerminkan di sini)
@@ -873,11 +872,11 @@ function kuntiTembus(a) {    // 1 = terlihat, 0 = menghilang
   K.mats.forEach(x => { x.transparent = a < 1; x.opacity = a; x.depthWrite = a >= 1; });
   P.model.traverse(o => { if (o.isMesh) o.castShadow = a > .5; });
 }
-function bolaRoh(dari, target, arahDepan, visual = false) {
+function bolaRoh(dari, target, arahDepan, visual = false, saatKena = null) {   // saatKena: dipakai bot (damage dihitung bot)
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_BULAT, color: KW.merah, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
   const inti = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_BULAT, color: 0xffffff, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
   s.scale.setScalar(.9); inti.scale.setScalar(.35); s.add(inti); s.position.copy(dari); scene.add(s);
-  K.peluru.push({ s, target, v: arahDepan.clone().multiplyScalar(13), umur: 0, jejak: 0, visual });
+  K.peluru.push({ s, target, v: arahDepan.clone().multiplyScalar(13), umur: 0, jejak: 0, visual, saatKena });
 }
 // ---- Skill 3: ROH PEMBURU — 3 roh berekor panjang mengejar target, lalu berputar mengelilingi & mengunci ----
 // (semua digambar dengan kode, tanpa file gambar)
@@ -944,13 +943,13 @@ function updEkor(e, kepala, t, seed, redup) {
     me.geometry.attributes.position.needsUpdate = true; me.geometry.attributes.color.needsUpdate = true;
   });
 }
-function lepasRohPemburu(mt, visual = false, dariObj = P) {   // visual = kiriman lawan online (tanpa damage)
+function lepasRohPemburu(mt, visual = false, dariObj = P, cb = null) {   // cb {kunci, tik}: roh milik bot   // visual = kiriman lawan online (tanpa damage)
   const arahD = dariObj === P ? P.arah : dariObj.arah, dep = new THREE.Vector3(Math.sin(arahD), 0, Math.cos(arahD));
   const asal = dariObj.root.position.clone().setY(1.4).addScaledVector(dep, .4);
   if (!visual && mt.remote) netEvent({ k: 'roh', ke: mt.id });
   const bidik = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2.8), new THREE.MeshBasicMaterial({ map: T_BIDIK, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
   bidik.rotation.x = -Math.PI / 2; bidik.position.copy(mt.g.position).setY(.05); scene.add(bidik);
-  const kanan = new THREE.Vector3(Math.cos(arahD), 0, -Math.sin(arahD)), g = { mt, bidik, t: 0, fase: 'kejar', roh: [], tik: 0, kt: 0, visual };
+  const kanan = new THREE.Vector3(Math.cos(arahD), 0, -Math.sin(arahD)), g = { mt, bidik, t: 0, fase: 'kejar', roh: [], tik: 0, kt: 0, visual, cb };
   for (let i = 0; i < 3; i++) {
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_ROH, transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); sp.position.copy(asal); sp.renderOrder = 6; scene.add(sp);
     const nyala = new THREE.Sprite(matCahaya(T_BULAT, KW.merah, 0)); nyala.renderOrder = 5; scene.add(nyala);   // pendar merah di belakang kepala
@@ -987,7 +986,7 @@ function updRohPemburu(dt) {
         if (!r.tiba) semua = false;
       });
       if (mt.mati) { g.fase = 'pergi'; g.pt = 0; }
-      else if (semua) { g.fase = 'keliling'; g.kt = 0; if (!g.visual) mt.kunci = ROH.lama; kilat(pusat, 50); gelombang(mt.g.position, 1.8, .45, KW.merah); percik(pusat, 36, KW.merah, 4); goyang = Math.max(goyang, .15); }
+      else if (semua) { g.fase = 'keliling'; g.kt = 0; if (!g.visual) mt.kunci = ROH.lama; else if (g.cb) g.cb.kunci(ROH.lama); kilat(pusat, 50); gelombang(mt.g.position, 1.8, .45, KW.merah); percik(pusat, 36, KW.merah, 4); goyang = Math.max(goyang, .15); }
     }
     if (g.fase === 'keliling') {      // roh berputar mengelilingi target = kurungan; ekornya ikut melingkar
       g.kt += dt; g.bidik.material.opacity = .55 + .35 * Math.sin(g.kt * 10);
@@ -997,7 +996,7 @@ function updRohPemburu(dt) {
         r.sp.position.lerp(tuju, Math.min(1, dt * 10)); r.sp.material.opacity = 1;
         r.balik = -Math.sin(a) < 0 ? -1 : 1;
       });
-      if ((g.tik -= dt) <= 0 && !mt.mati && !g.visual) { g.tik = ROH.tik; kena(mt, ROH.dmg, mt.g.position.clone().add(new THREE.Vector3(0, 0, .01)), 0); }
+      if ((g.tik -= dt) <= 0 && !mt.mati && (!g.visual || g.cb)) { g.tik = ROH.tik; if (g.cb) g.cb.tik(); else kena(mt, ROH.dmg, mt.g.position.clone().add(new THREE.Vector3(0, 0, .01)), 0); }
       if (g.kt >= ROH.lama || mt.mati) { if (!g.visual && !mt.remote) mt.kunci = 0; g.fase = 'pergi'; g.pt = 0; percik(pusat, 30, KW.merah, 3.5); }
     }
     if (g.fase === 'pergi') {         // roh melesat ke atas & memudar
@@ -1189,7 +1188,7 @@ function updPeluru(dt) {
     let kenaM = null;
     if (b.visual) { if (b.target && b.target.g.position.clone().setY(1.3).distanceTo(b.s.position) < .7) kenaM = b.target; }
     else MUSUH.forEach(m => { if (!m.mati && m.g.position.clone().setY(1.3).distanceTo(b.s.position) < .7) kenaM = m; });
-    if (kenaM || b.umur > .9) { if (kenaM) { if (!b.visual) kena(kenaM, KUNTI_DASAR, b.dari || kenaM.g.position.clone().add(b.v.clone().normalize().negate()), 3); percik(b.s.position, 18, KW.merah, 4); kilat(b.s.position, 20); }
+    if (kenaM || b.umur > .9) { if (kenaM) { if (b.saatKena) b.saatKena(b.s.position.clone()); if (!b.visual) kena(kenaM, KUNTI_DASAR, b.dari || kenaM.g.position.clone().add(b.v.clone().normalize().negate()), 3); percik(b.s.position, 18, KW.merah, 4); kilat(b.s.position, 20); }
       scene.remove(b.s); b.s.material.dispose(); b.s.children[0].material.dispose(); K.peluru.splice(i, 1); } }
 }
 
@@ -1298,8 +1297,8 @@ function pakaiTuyul(i) {
   P.cd[i] = CD_MAX[i]; P.t = 0; P.hit = 0;
 }
 // ---- gerombolan tuyul kembaran ----
-function panggilGerombolan(asal, dariT, sasaranFn, visual, lama) {
-  const g = { klon: [], t: 0, lama, visual, sasaranFn };
+function panggilGerombolan(asal, dariT, sasaranFn, visual, lama, cb = null) {   // cb(pos): cubitan gerombolan milik bot
+  const g = { klon: [], t: 0, lama, visual, sasaranFn, cb };
   const src = dariT.model, clips = dariT.act;
   for (let i = 0; i < TYS.klon; i++) {
     const root = new THREE.Group(), m = cloneSkel(src); m.scale.multiplyScalar(.72); m.position.set(0, (src.position.y + TINGGI / 2) * .72, 0);
@@ -1324,8 +1323,8 @@ function updGerombolan(dt) {
       if (L > .05) { k.root.position.addScaledVector(d.normalize(), Math.min(L, 6.5 * dt)); k.arah = Math.atan2(d.x, d.z); }
       let da = k.arah - k.root.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); k.root.rotation.y += da * Math.min(1, dt * 12);
       batasi(k.root.position);
-      if (!g.visual && sas && !sas.mati && (k.tik -= dt) <= 0 && k.root.position.distanceTo(sp) < 1.4) {   // cubit & curi koin
-        k.tik = .5; kena(sas, TYS.dmgKlon, k.root.position.clone(), .6); if (Math.random() < .35) curiKoin(sas);
+      if ((!g.visual || g.cb) && sas && !sas.mati && (k.tik -= dt) <= 0 && k.root.position.distanceTo(sp) < 1.4) {   // cubit & curi koin
+        k.tik = .5; if (g.cb) g.cb(k.root.position.clone()); else { kena(sas, TYS.dmgKlon, k.root.position.clone(), .6); if (Math.random() < .35) curiKoin(sas); }
       }
       if (Math.random() < .08) percik(k.root.position.clone(), 2, 0xa08a70, 1, .2);
     });
@@ -1376,7 +1375,334 @@ function updKamera(dt) {
   camera.position.copy(camPos); camera.lookAt(camLihat);
 }
 
-// ================== DUEL LAWAN OCONG BOT ==================
+// ================== BOT PRO (hero acak: Ocong / Kunti / Tuyul) ==================
+// Dipakai di Lawan Bot (1 vs 1) dan Duel Tim. Bot "pro": membaca serangan lawan lalu menghindar,
+// membidik ke arah gerak lawan, memakai combo, kabur saat darah tipis, bersembunyi di semak,
+// dan mencari lawan yang menghilang di tempat terakhir terlihat.
+const BOT_HERO = ['ocong', 'kunti', 'tuyul'];
+const BOT_SKIN = { ocong: ['', 'lompat', 'emas'], kunti: ['', 'merah'], tuyul: [''] };
+const BOT_SRV = ['pocong', 'kuntilanak', 'tuyul'];
+const pilihAcak = a => a[Math.floor(Math.random() * a.length)];
+// keadaan sasaran dalam bentuk yang sama: pemain (P), bot lokal, atau pemain/bot lain di Duel Tim
+const AN_AKSI = { loncat: 'loncat', guling: 'guling', jerit: 'jerit', seluncur: 'seluncur', bacok: 'colek', tembak: 'tembak', tangan: 'penjara', lompat: 'panggil' };
+function infoEnt(t) {
+  if (t === P) return { pos: P.root.position, hero: HERO, aksi: P.state, arah: P.state === 'jerit' ? K.arahJerit : P.arah, tujuan: P.tujuan, stun: pingsan(), hp: P.hp / HP_MAX[HERO], vis: DIRI, id: TIM.on ? TIM.me : null, mati: P.state === 'kalah' };
+  if (t.pro) return t.pro.info();
+  return { pos: t.root.position, hero: t.hero, aksi: AN_AKSI[t.an] || 'bebas', arah: t.arah, tujuan: null, stun: !!(t.fl & 4), hp: t.hp / (t.mt.hpMax || 1000), vis: t.mt, id: t.id, mati: !!t.mt.mati };
+}
+function stunEnt(t, jenis, d) {   // jenis: 'kunci' (tidak bisa bergerak) / 'pusing'
+  if (!t) return;
+  if (t === P) { P[jenis] = Math.max(P[jenis] || 0, d); return; }
+  t.mt[jenis] = Math.max(t.mt[jenis] || 0, d);   // lawan online: diteruskan lewat jaringan oleh updObjTim
+}
+async function buatBotPro(o) {
+  const T = { root: new THREE.Group(), tilt: new THREE.Group(), model: null, mixer: null, act: {}, cur: '', arah: o.arahAwal || 0, hero: o.hero, nama: o.nama };
+  T.root.add(T.tilt); T.root.position.copy(o.posAwal); T.root.rotation.y = T.arah;
+  const pos = T.root.position, ctx = o.ctx;
+  const mt = { g: T.root, hp: 1000, hpMax: 1000, v: new THREE.Vector3(), y: 0, vy: 0, putar: 0, kilau: 0, mati: 0, kunci: 0, pusing: 0, bar: o.bar, bot: true, nama: o.nama };
+  const B = { state: 'bebas', t: 0, hit: 0, cd: [0, 1.5, 1.5, 3], pikir: .6, lihat: null, lihatT: 99, vel: new THREE.Vector3(), prev: null, ent: null,
+    strafe: Math.random() < .5 ? 1 : -1, strafeT: 1, bahayaT: 0, reaksi: .15, hindar: true, terbangT: 0, lesat: 0, arahLesat: 0, hilang: 0, sergap: false, koin: 0,
+    sudahMati: false, agresi: rnd(.85, 1.2), tujuan: null, awal: null, arahSkill: 0, gel: 0, kenaT: 0, combo: 0, patrol: null, patrolT: 0, jatuh: 0, bonus: false, kenaSel: false };
+  let hero = o.hero, CD = [.5, 4, 4, 6], CEPAT = OCONG_CEPAT;
+  async function pakaiHero(h, s) {
+    await muatModelHero(h, T, null, s || '');
+    hero = h; T.hero = h; mt.hpMax = HP_MAX[h];
+    CD = h === 'tuyul' ? [.4, 5, 8, 12] : h === 'kunti' ? [.55, 4, 9, 6] : [.55, 4, 4, 6];
+    CEPAT = h === 'tuyul' ? TUYUL_CEPAT : h === 'kunti' ? KUNTI_CEPAT : OCONG_CEPAT;
+    o.onHero && o.onHero(h);
+  }
+  await pakaiHero(hero, o.skin);
+  mt.hp = mt.hpMax; scene.add(T.root);
+
+  // ---------- alat bantu ----------
+  const dep = a => new THREE.Vector3(Math.sin(a), 0, Math.cos(a));
+  const sudutKe = p => Math.atan2(p.x - pos.x, p.z - pos.z);
+  const jarak = p => Math.hypot(p.x - pos.x, p.z - pos.z);
+  const lawan = () => B.ent ? infoEnt(B.ent) : null;
+  const animGerak = () => hero === 'kunti' && B.terbangT > 0 ? ['terbang', 1.3] : hero === 'tuyul' ? ['jalan', 1.4] : ['jalan', 1.5];
+  function mulai(s, anim, kec = 1) { B.state = s; B.t = 0; B.hit = 0; if (anim && T.act[anim]) { if (T.cur === anim) T.cur = ''; mainObj(T, anim, .08, kec); } }
+  function beres() { B.state = 'bebas'; mainObj(T, 'diam', .2); }
+  function serang(dmg, dari, dorong) { if (B.ent) ctx.serang(B.ent, dmg, dari, dorong); }
+  function stun(j, d) { if (B.ent) ctx.stun(B.ent, j, d); }
+  function kenaDi(p, r) { const I = lawan(); return I && !I.mati && Math.hypot(I.pos.x - p.x, I.pos.z - p.z) < r; }
+  function goy(v) { if (B.ent === P) goyang = Math.max(goyang, v); }
+  function ramal(I, s) { const p = I.pos.clone().addScaledVector(B.vel, s); p.y = 0; return batasi(p); }   // posisi lawan sekian detik lagi
+  function jalan(dir, kec, dt, hadap) {
+    if (!dir || dir.lengthSq() < 1e-4) { mainObj(T, 'diam', .25); if (hadap != null) T.arah = hadap; return; }
+    dir.setY(0).normalize();
+    const mau = pos.clone().addScaledVector(dir, kec * dt); pos.copy(mau); batasi(pos);
+    if (pos.distanceTo(mau) > kec * dt * .5) B.strafe *= -1;   // mentok tepi arena → ganti arah putar
+    T.arah = hadap != null ? hadap : Math.atan2(dir.x, dir.z);
+    const [a, k] = animGerak(); mainObj(T, a, .15, k);
+  }
+  function semakAman(I) {   // semak yang dekat dengan bot tapi jauh dari lawan
+    let best = null, bs = -1e9;
+    SEMAK.forEach(s => { const db = Math.hypot(s.x - pos.x, s.z - pos.z), ds = Math.hypot(s.x - I.pos.x, s.z - I.pos.z); if (db > 13 || ds < 3) return; const n = ds * 1.3 - db; if (n > bs) { bs = n; best = s; } });
+    return best;
+  }
+  function titikAcak() {
+    if (SEMAK.length && Math.random() < .45) { const s = pilihAcak(SEMAK); return new THREE.Vector3(s.x, 0, s.z); }
+    return ARENA === 'kuil' ? new THREE.Vector3(rnd(-8, 8), 0, PUSAT_Z + rnd(-8, 8)) : new THREE.Vector3(rnd(BATAS.x0 + 2, BATAS.x1 - 2), 0, rnd(BATAS.z0 + 2, BATAS.z1 - 2));
+  }
+  function kite(I, mau) {   // berputar mengitari lawan sambil menjaga jarak
+    const d = pos.clone().sub(I.pos).setY(0), L = d.length() || 1; d.divideScalar(L);
+    return new THREE.Vector3(-d.z, 0, d.x).multiplyScalar(B.strafe * .85).addScaledVector(d, THREE.MathUtils.clamp((mau - L) * .8, -1, 1));
+  }
+  function mundur(I) {   // kabur: ke semak yang aman, kalau tidak ada menjauh sambil menyamping
+    const s = semakAman(I);
+    if (s && Math.hypot(s.x - pos.x, s.z - pos.z) > .6) return new THREE.Vector3(s.x - pos.x, 0, s.z - pos.z);
+    return kite(I, 9);
+  }
+  // ---------- membaca serangan lawan ----------
+  function bahaya(I) {
+    const d = pos.clone().sub(I.pos).setY(0), L = d.length(), f = dep(I.arah), samping = new THREE.Vector3(f.z, 0, -f.x);
+    const sisi = () => samping.clone().multiplyScalar(d.dot(samping) >= 0 ? 1 : -1);
+    const jauhi = (c, r) => { const e = pos.clone().sub(c).setY(0), l = e.length(); return l >= r ? null : l < .2 ? sisi() : e.normalize(); };
+    switch (I.aksi) {
+      case 'loncat': return I.tujuan ? jauhi(I.tujuan, 2.7) : (L < 7.5 && d.dot(f) > 0 && Math.abs(d.dot(samping)) < 2.3 ? sisi() : null);
+      case 'lingkaran': return jauhi(I.pos, 3.3);
+      case 'guling': case 'seluncur': { const mj = d.dot(f), sp = Math.abs(d.dot(samping)); return mj > -.5 && mj < 7.5 && sp < 1.6 ? sisi() : null; }
+      case 'sundul': case 'colek': return L < 2.3 ? d.clone().normalize().add(sisi().multiplyScalar(.7)) : null;
+      case 'jerit': return L < 6.8 && L > .01 && d.clone().normalize().dot(f) > Math.cos(.62) ? sisi() : null;
+      case 'panggil': return jauhi(I.pos, 4.2);
+    }
+    return null;
+  }
+  function kaburSkill(I, esc) {   // menghindar dengan skill gerak
+    const besar = ['loncat', 'lingkaran', 'jerit', 'guling', 'seluncur'].includes(I.aksi);
+    if (hero === 'kunti' && B.cd[2] <= 0 && besar) { terbang(Math.atan2(esc.x, esc.z)); return true; }
+    if (hero === 'ocong' && B.cd[2] <= 0 && besar && Math.random() < .45) { T.arah = Math.atan2(esc.x, esc.z); mulai('guling', 'guling', 1.6); B.kenaT = 0; B.cd[2] = CD[2]; return true; }
+    if (hero === 'tuyul' && B.cd[2] <= 0 && besar && Math.random() < .5) { hilang(); return false; }   // menghilang lalu tetap lari
+    return false;
+  }
+  // ---------- skill ----------
+  function terbang(a) { B.terbangT = TERBANG.lama; B.lesat = TERBANG.lesatLama; B.arahLesat = a; T.arah = a; B.cd[2] = CD[2];
+    fx('percik', pos.clone(), 30, KW.ungu, 3); fx('gelombang', pos.clone(), 1.6, .45, KW.ungu); fx('kilat', pos.clone(), 25); }
+  function hilang() { B.hilang = TYS.hilang; B.sergap = true; B.cd[2] = CD[2]; fx('gelombang', pos.clone(), 1.3, .4, 0x9a9aa8); fx('percik', pos.clone().setY(.6), 24, 0xb0b0c0, 2.4); }
+  function skillOcong(I, L) {
+    const rentan = I.stun || (['jerit', 'panggil', 'penjara', 'tembak'].includes(I.aksi) && L < 3);
+    if (B.cd[3] <= 0 && L < 2.3 && (rentan || Math.random() < .75)) { mulai('lingkaran'); B.cd[3] = CD[3]; T.arah = sudutKe(I.pos);
+      fx('lingkaranLantai', pos.clone(), 2.7, .75, 2); fx('gelombang', pos.clone(), 2, .5, 0xff2010); return true; }
+    if (B.cd[1] <= 0 && L > 2.6 && L < 7.8) {   // loncat ke titik yang akan dilewati lawan
+      const tj = ramal(I, I.stun ? 0 : .85), d = tj.clone().sub(pos).setY(0); if (d.length() > OC.lompat) tj.copy(pos).addScaledVector(d.normalize(), OC.lompat);
+      batasi(tj); B.awal = pos.clone(); B.tujuan = tj; T.arah = sudutKe(tj); mulai('loncat'); B.cd[1] = CD[1];
+      fx('lingkaranLantai', tj.clone(), 2, .95, 3); fx('gelombang', pos.clone(), 1.1, .4, 0xff4020); return true; }
+    const kabur = B.vel.dot(I.pos.clone().sub(pos).setY(0).normalize()) > 1.5;   // lawan menjauh
+    if (B.cd[2] <= 0 && L > 1.8 && L < 5.5 && (kabur || I.stun || Math.random() < .35)) { T.arah = sudutKe(ramal(I, .35)); mulai('guling', 'guling', 1.6); B.kenaT = 0; B.cd[2] = CD[2]; return true; }
+    if (B.cd[0] <= 0 && L < 1.7) { T.arah = sudutKe(I.pos); mulai('sundul'); B.cd[0] = CD[0]; return true; }
+    return false;
+  }
+  function skillKunti(I, L) {
+    if (L < 2.6 && !I.stun && B.cd[2] <= 0 && I.hero !== 'kunti') { const a = sudutKe(I.pos) + Math.PI + B.strafe * .5; terbang(a); return true; }   // lawan jarak dekat menempel → terbang menjauh
+    if (B.cd[3] <= 0 && L < 7.5 && !I.stun) { T.arah = sudutKe(I.pos); mulai('penjara', 'tangan', 2); B.cd[3] = CD[3]; B.combo = 2.6; return true; }
+    if (B.cd[1] <= 0 && L < 5.6 && (I.stun || L < 4.2 || B.combo > 0)) { B.arahSkill = sudutKe(I.stun ? I.pos : ramal(I, .9)); T.arah = B.arahSkill; mulai('jerit', 'jerit', 1.4); B.gel = 0; B.cd[1] = CD[1]; return true; }
+    if (B.cd[0] <= 0 && L < 8) { T.arah = sudutKe(I.pos); mulai('tembak', 'tembak', 2.2); B.cd[0] = CD[0]; return true; }
+    return false;
+  }
+  function skillTuyul(I, L) {
+    if (B.hilang > 0) { if (L < 1.6 && B.cd[0] <= 0) { T.arah = sudutKe(I.pos); mulai('colek', T.act.bacok ? 'bacok' : 'jalan', 2.6); B.cd[0] = CD[0]; return true; } return false; }
+    if (B.cd[3] <= 0 && L < 4 && (I.stun || Math.random() < .6)) { mulai('panggil', 'lompat', 1.6); B.cd[3] = CD[3]; return true; }
+    if (B.cd[1] <= 0 && L > 1.4 && L < 5.5) { T.arah = sudutKe(ramal(I, .3)); mulai('seluncur', 'seluncur', 1.6); B.kenaSel = false; B.bonus = B.koin >= 5; if (B.bonus) B.koin = 0; B.cd[1] = CD[1];
+      fx('gelombang', pos.clone(), 1, .35, 0xd0b080); return true; }
+    if (B.cd[2] <= 0 && L > 3 && L < 9) { hilang(); return true; }
+    if (B.cd[0] <= 0 && L < 1.6) { T.arah = sudutKe(I.pos); mulai('colek', T.act.bacok ? 'bacok' : 'jalan', 2.6); B.cd[0] = CD[0]; return true; }
+    return false;
+  }
+  function posisi(I, L, hpR) {   // [arah gerak, arah hadap]
+    const terdesak = hpR < .3 && I.hp > hpR + .2 && !I.stun;
+    const ke = I.pos.clone().sub(pos).setY(0), hadap = sudutKe(I.pos);
+    if (hero === 'kunti') {
+      if (terdesak || (L < 3 && !I.stun)) return [mundur(I), L < 9 ? hadap : null];
+      return [kite(I, (I.hero === 'kunti' ? 6.2 : 5.3) / B.agresi), L < 9 ? hadap : null];
+    }
+    if (hero === 'tuyul') {
+      if (B.hilang > 0 || I.stun) return [ke, null];
+      if (terdesak) return [mundur(I), null];
+      if (B.cd[1] > 1.5 && B.cd[3] > 1.5 && B.cd[2] > 1.5 && hpR < .7) return [kite(I, 4.6), null];   // pukul lalu lari (tunggu skill siap)
+      return L < 1.1 ? [null, hadap] : [ke.normalize().add(new THREE.Vector3(-ke.z, 0, ke.x).multiplyScalar(.3 * B.strafe)), null];
+    }
+    if (terdesak) return [mundur(I), null];
+    if (L < 1.1) return [null, hadap];
+    return [ke.normalize().add(new THREE.Vector3(-ke.z, 0, ke.x).multiplyScalar(L > 3 ? .35 * B.strafe : 0)), null];   // mendekat zig-zag
+  }
+  function otak(I, dt) {
+    let kec = CEPAT * (hero === 'kunti' && B.terbangT > 0 ? TERBANG.cepat : 1) * (hero === 'tuyul' && B.hilang > 0 ? 1.2 : 1);
+    if (B.strafeT <= 0) { B.strafeT = rnd(.8, 2.2); if (Math.random() < .5) B.strafe *= -1; }
+    if (!I) {   // lawan tidak terlihat (semak / menghilang)
+      if (B.lihat && B.lihatT < 4) {
+        const L = jarak(B.lihat);
+        if (hero === 'ocong' && L < 2.3 && B.cd[3] <= 0 && B.lihatT < 1.5 && B.pikir <= 0) { mulai('lingkaran'); B.cd[3] = CD[3]; fx('lingkaranLantai', pos.clone(), 2.7, .75, 2); return; }   // tebak tempat sembunyi
+        if (hero === 'kunti' && L < 4 && B.lihatT < 2) { jalan(pos.clone().sub(B.lihat), kec, dt); return; }   // jaga jarak dari lawan yang menghilang
+        if (L > .6) { jalan(B.lihat.clone().sub(pos), kec, dt); return; }
+        B.lihatT = 4;
+      }
+      B.patrolT -= dt; if (!B.patrol || jarak(B.patrol) < 1 || B.patrolT <= 0) { B.patrol = titikAcak(); B.patrolT = 5; }
+      jalan(B.patrol.clone().sub(pos), kec * .75, dt); return;
+    }
+    const L = jarak(I.pos), hpR = mt.hp / mt.hpMax;
+    const esc = bahaya(I);   // 1) hindari serangan lawan (dengan waktu reaksi manusiawi)
+    if (esc) {
+      if (B.bahayaT === 0) { B.reaksi = rnd(.1, .2); B.hindar = Math.random() < .88; }
+      B.bahayaT += dt;
+      if (B.hindar && B.bahayaT > B.reaksi) { if (kaburSkill(I, esc)) return; jalan(esc, kec, dt); return; }
+      if (B.hindar) { const [d, h] = posisi(I, L, hpR); jalan(d, kec, dt, h); return; }   // sedang bereaksi: jangan mengunci diri dengan skill
+    } else B.bahayaT = 0;
+    if (B.pikir <= 0) {   // 2) pakai skill
+      const pakai = hero === 'kunti' ? skillKunti(I, L) : hero === 'tuyul' ? skillTuyul(I, L) : skillOcong(I, L);
+      if (pakai) { B.pikir = rnd(.12, .3) / B.agresi; return; }
+    }
+    const [d, h] = posisi(I, L, hpR); jalan(d, kec, dt, h);   // 3) bergerak
+  }
+  // ---------- tiap frame ----------
+  function upd(dt) {
+    if (!T.model) return;
+    if (mt.mati) {   // kalah
+      if (!B.sudahMati) { B.sudahMati = true; B.state = 'kalah'; B.hilang = 0; B.terbangT = 0; B.lesat = 0; T.root.visible = true; mt.sembunyi = false;
+        if (T.act.kalah) { T.cur = ''; mainObj(T, 'kalah', .1); } else mainObj(T, 'diam', .2); if (hero === 'kunti') setTembus(T, .4); ctx.mati && ctx.mati(); }
+      mt.vy -= 20 * dt; mt.y = Math.max(0, mt.y + mt.vy * dt); T.tilt.position.y = mt.y; mt.mati = Math.max(.01, mt.mati);
+      if (T.prosedural) { B.jatuh += dt; T.tilt.rotation.x = -Math.min(1.45, B.jatuh * 5); }
+      T.mixer.update(dt); if (mt.bar) mt.bar.style.display = 'none'; return;
+    }
+    pos.addScaledVector(mt.v, dt); mt.v.multiplyScalar(Math.pow(.02, dt));   // terdorong serangan
+    mt.vy -= 20 * dt; mt.y = Math.max(0, mt.y + mt.vy * dt); if (mt.y === 0 && mt.vy < 0) mt.vy = 0;
+    mt.kilau = Math.max(0, mt.kilau - dt);
+    const pingsanB = mt.kunci > 0 || mt.pusing > 0;
+    mt.kunci = Math.max(0, mt.kunci - dt); mt.pusing = Math.max(0, mt.pusing - dt); if (mt.kunci > 0) mt.v.set(0, 0, 0);
+    B.cd = B.cd.map(c => Math.max(0, c - dt)); B.t += dt; B.pikir -= dt; B.strafeT -= dt; B.combo = Math.max(0, B.combo - dt);
+    B.terbangT = Math.max(0, B.terbangT - dt); B.hilang = Math.max(0, B.hilang - dt);
+    T.tilt.rotation.set(0, 0, 0); T.tilt.scale.set(1, 1, 1); if (T.pivot) T.pivot.rotation.x = 0; B.naik = 0;
+    let naik = hero === 'kunti' ? .3 + Math.sin(performance.now() / 380) * .09 + (B.terbangT > 0 ? .4 : 0) : 0;
+    // melihat lawan
+    const s = ctx.sasaran(api);
+    if (s) {
+      if (s !== B.ent) { B.ent = s; B.prev = null; B.vel.set(0, 0, 0); }
+      const p0 = infoEnt(s).pos;
+      if (B.prev) { const v = p0.clone().sub(B.prev).divideScalar(Math.max(dt, 1e-3)).setY(0); if (v.length() < 14) B.vel.lerp(v, Math.min(1, dt * 8)); }
+      B.prev = p0.clone(); B.lihat = p0.clone(); B.lihatT = 0;
+    } else { B.lihatT += dt; B.prev = null; B.vel.multiplyScalar(Math.pow(.1, dt)); }
+    const I = s ? infoEnt(s) : null;
+    if (pingsanB && B.state !== 'loncat') { if (B.state !== 'bebas') beres(); mainObj(T, 'diam', .2); T.tilt.rotation.z = Math.sin(performance.now() / 90) * .12; }
+    else if (B.state === 'bebas') {
+      if (hero === 'kunti' && B.lesat > 0) { B.lesat -= dt; const v = TERBANG.lesat / TERBANG.lesatLama; pos.addScaledVector(dep(B.arahLesat), v * dt); T.arah = B.arahLesat; mainObj(T, 'terbang', .08, 1.6); naik += .1; percik(pos.clone().setY(.9), 3, KW.ungu, 1.2, .3); }
+      else otak(I, dt);
+    }
+    else jalankanSkill(dt, I);
+    // jangan menumpuk dengan lawan
+    const e = lawan();
+    if (e && !e.mati && B.state !== 'loncat') { const d = pos.clone().sub(e.pos).setY(0), Ld = d.length(); if (Ld < .8) { if (Ld < 1e-3) d.copy(dep(T.arah)).negate(); else d.normalize(); pos.addScaledVector(d, .8 - Ld); } }
+    batasi(pos);
+    T.tilt.position.y = mt.y + naik + B.naik;
+    if (hero === 'kunti' && B.state === 'bebas' && B.lesat <= 0) { const bergerak = T.cur === 'jalan'; T.tilt.rotation.x += bergerak ? .3 : 0; }
+    let da = T.arah - T.root.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); T.root.rotation.y += da * Math.min(1, dt * 12);
+    // jejak efek (lokal saja; layar lain menggambarnya sendiri dari keadaan bot)
+    if (hero === 'kunti' && B.terbangT > 0 && Math.random() < .7) percik(pos.clone().setY(T.tilt.position.y + .5), 2, Math.random() < .5 ? KW.ungu : KW.merah, .7, .26);
+    // terlihat oleh pemain di HP ini?
+    const tampak = ctx.kawan ? true : B.hilang <= 0 && terlihatDari(pos, P.root.position);
+    T.root.visible = tampak; mt.sembunyi = !tampak; if (ctx.kawan) setTembus(T, B.hilang > 0 ? .35 : 1);
+    T.mixer.update(dt);
+  }
+  function jalankanSkill(dt, I) {
+    const t = B.t, f = dep(T.arah);
+    if (I && B.hit && ['tembak', 'penjara', 'colek', 'sundul'].includes(B.state) && bahaya(I)) { beres(); return; }   // serangan sudah keluar → langsung siap menghindar
+    if (B.state === 'sundul') {           // ancang-ancang → menerjang → hantam
+      mainObj(T, 'diam', .1);
+      if (t < .2) { const c = t / .2; T.tilt.scale.set(1 + .08 * c, 1 - .14 * c, 1 + .08 * c); T.tilt.rotation.x = -.15 * c; }
+      else if (t < .36) { pos.addScaledVector(f, 9 * dt); T.tilt.rotation.x = .55; }
+      else if (!B.hit) { B.hit = 1; const hp = pos.clone().addScaledVector(f, 1.1);
+        if (kenaDi(hp, 1.5)) { serang(55 + Math.round(rnd(0, 12)), pos.clone(), 6); goy(.18); }
+        hp.setY(0); fx('gelombang', hp, 1.3, .4, 0xff6030); fx('percik', hp, 18, 0xff7040, 3.5); fx('kilat', hp, 30); }
+      else T.tilt.rotation.x = .35 * Math.max(0, 1 - (t - .36) / .2);
+      if (t > .62) beres();
+    }
+    else if (B.state === 'loncat') {      // jongkok → melayang → mendarat (lingkaran peringatan di lantai)
+      const NA = .32, TB = .62;
+      if (t < NA) { const c = t / NA; T.tilt.scale.set(1 + .12 * c, 1 - .2 * c, 1 + .12 * c); mainObj(T, 'diam', .1); }
+      else if (t < NA + TB) { const u = (t - NA) / TB, e = u * u * (3 - 2 * u) * .3 + u * .7; mainObj(T, 'loncat', .05, 1.4);
+        pos.lerpVectors(B.awal, B.tujuan, e); B.naik = 3.2 * 4 * u * (1 - u); T.tilt.rotation.x = -.25 + .5 * u;
+        nyala(pos.clone().setY(3.2 * 4 * u * (1 - u) + .9), 1.1, 0xff3a14, .45); }
+      else if (!B.hit) { B.hit = 1; pos.copy(B.tujuan);
+        fx('nyala', pos.clone().setY(.8), 2, 0xff4a20, .35); fx('gelombang', pos.clone(), 2.8, .6); fx('gelombang', pos.clone(), 1.8, .45, 0xffa040); fx('percik', pos.clone(), 40, 0xff5020, 5, .2); fx('kilat', pos.clone(), 45);
+        if (kenaDi(pos, 2)) { serang(170, pos.clone(), 6); stun('pusing', 1.2); goy(.25); } }
+      else { const c = Math.max(0, 1 - (t - NA - TB) / .2); T.tilt.scale.set(1 + .15 * c, 1 - .22 * c, 1 + .15 * c); mainObj(T, 'diam', .2); }
+      if (t > NA + TB + .3) { B.tujuan = null; beres(); }
+    }
+    else if (B.state === 'guling') {      // berguling cepat, kena berkali-kali
+      pos.addScaledVector(f, 8.2 * dt * (t < .75 ? 1 : 0)); B.kenaT -= dt;
+      if (T.prosedural) T.pivot.rotation.x = t < .8 ? t * 15 : 0;
+      if (t < .8 && Math.random() < .85) nyala(pos.clone().setY(.75 + rnd(-.35, .35)), rnd(.5, 1), 0xff4018, .3);
+      if (B.kenaT <= 0 && kenaDi(pos, 1.3)) { B.kenaT = .25; serang(70, pos.clone().addScaledVector(f, -1), 5); goy(.12); }
+      if (t > .95) beres();
+    }
+    else if (B.state === 'lingkaran') {   // berputar → ledakan di sekeliling
+      mainObj(T, 'diam', .1);
+      if (t < .5) { T.tilt.rotation.y = (t / .5) * Math.PI * 2; B.naik = Math.sin(t / .5 * Math.PI) * .5; }
+      if (t > .55 && !B.hit) { B.hit = 1; fx('gelombang', pos.clone(), 4.6, .6, 0xff3a10); fx('gelombang', pos.clone(), 3.2, .5, 0xffb060); fx('percik', pos.clone(), 50, 0xff4020, 6, .2); fx('kilat', pos.clone(), 55);
+        if (kenaDi(pos, 2.7)) { serang(190, pos.clone(), 8); goy(.3); } }
+      if (t > 1.2) beres();
+    }
+    else if (B.state === 'tembak') {      // Kunti: bola roh
+      if (t > .22 && !B.hit) { B.hit = 1; if (I) T.arah = sudutKe(I.pos);
+        const dari = pos.clone().setY(1.5).addScaledVector(dep(T.arah), .4), sas = I || lawan();
+        if (sas && !sas.mati) {
+          bolaRoh(dari, sas.vis, dep(T.arah), true, p => serang(KUNTI_DASAR, p.clone().setY(0), 3));
+          if (ctx.kirim) { const [nx, nz] = keNet(dari.x, dari.z); ctx.kirim({ k: 'bola', ke: sas.id, x: r2(nx), y: r2(dari.y), z: r2(nz), a: r2(sudutNet(T.arah)) }); } } }
+      if (t > .5) beres();
+    }
+    else if (B.state === 'jerit') {       // Kunti: Frekuensi Suara, 3 gelombang makin besar
+      const JADWAL = [.65, .95, 1.25], R = [SUARA.jarak * .4, SUARA.jarak * .7, SUARA.jarak], D = [55, 65, 80], a = B.arahSkill; T.arah = a;
+      if (B.gel < 3 && t > JADWAL[B.gel]) { const k = B.gel++;
+        fx('gelombangKipas', pos.clone(), a, R[k], .55, KW.ungu); fx('gelombangKipas', pos.clone(), a, R[k] * .75, .45, KW.pucat); fx('kilat', pos.clone().addScaledVector(f, 1), 30 + k * 15);
+        const e = lawan(); if (e && !e.mati && dalamKipas(pos, a, e.pos, R[k] + .4)) { serang(D[k], pos.clone(), 3 + k * 2); goy(.12 + k * .08); } }
+      if (I && B.gel >= 2 && B.cd[2] <= 0) { const esc = bahaya(I); if (esc && ['loncat', 'lingkaran', 'guling', 'seluncur'].includes(I.aksi)) { beres(); terbang(Math.atan2(esc.x, esc.z)); return; } }   // batal & kabur
+      if (t > 2) beres();
+    }
+    else if (B.state === 'penjara') {     // Kunti: Roh Pemburu mengunci lawan
+      if (t > .35 && !B.hit) { B.hit = 1; const sas = I || lawan();
+        if (sas && !sas.mati) {
+          lepasRohPemburu(sas.vis, true, T, { kunci: d => stun('kunci', d), tik: () => { const e = lawan(); if (e) serang(ROH.dmg, e.pos.clone().add(new THREE.Vector3(0, 0, .01)), 0); } });
+          if (ctx.kirim) ctx.kirim({ k: 'roh', ke: sas.id }); } }
+      if (t > .9) beres();
+    }
+    else if (B.state === 'colek') {       // Tuyul: melesat pendek lalu membacok
+      if (!T.act.bacok) T.tilt.rotation.x = .35;
+      if (t < .14) pos.addScaledVector(f, 8 * dt);
+      else if (!B.hit) { B.hit = 1; const hp = pos.clone().addScaledVector(f, .8);
+        if (kenaDi(hp, 1.3)) { serang(B.sergap ? TYS.colek * 2 : TYS.colek, pos.clone(), .8); B.koin = Math.min(5, B.koin + 1); goy(.08); }
+        fx('gelombang', hp.clone().setY(0), .9, .3, B.sergap ? 0xffd040 : 0xffa060); fx('percik', hp, 10, 0xffc070, 2.5); B.sergap = false; B.hilang = 0; }
+      if (t > .36) beres();
+    }
+    else if (B.state === 'seluncur') {    // Tuyul: meluncur menembus lawan, lawan terjatuh
+      const durasi = TYS.jarakSel / 9;
+      if (t < durasi) { pos.addScaledVector(f, 9 * dt); if (Math.random() < .7) percik(pos.clone(), 3, 0xb09878, 1.6, .22);
+        if (!B.kenaSel && kenaDi(pos, 1.2)) { B.kenaSel = true; serang(TYS.seluncur + (B.bonus ? TYS.bonusSel : 0), pos.clone().addScaledVector(f, -1), 4); stun('pusing', .8); goy(.15); } }
+      if (t > durasi + .2) beres();
+    }
+    else if (B.state === 'panggil') {     // Tuyul: melompat lalu memanggil gerombolan
+      B.naik = Math.sin(Math.min(1, t / .45) * Math.PI) * .6;
+      if (t > .4 && !B.hit) { B.hit = 1; const lama = TYS.lamaKlon + (B.koin >= 5 ? TYS.bonusKlon : 0); if (B.koin >= 5) B.koin = 0;
+        panggilGerombolan(pos.clone(), T, () => { const e = lawan(); return e && !e.mati ? e.vis : null; }, true, lama, p => { serang(TYS.dmgKlon, p, .6); if (Math.random() < .35) B.koin = Math.min(5, B.koin + 1); });
+        if (ctx.kirim) ctx.kirim({ k: 'gerombolan', l: lama });
+        fx('gelombang', pos.clone(), 2.2, .5, 0xd0a060); fx('kilat', pos.clone(), 30); }
+      const lamaLompat = T.act.lompat ? T.act.lompat.getClip().duration / 1.6 : .7;
+      if (t > lamaLompat) beres();
+    }
+    else beres();
+  }
+  async function reset(gantiHero) {
+    if (gantiHero) { const h = pilihAcak(BOT_HERO); await pakaiHero(h, pilihAcak(BOT_SKIN[h])); }
+    mt.hp = mt.hpMax; mt.mati = 0; mt.kunci = mt.pusing = 0; mt.v.set(0, 0, 0); mt.y = mt.vy = 0; mt.kilau = 0;
+    pos.copy(o.posAwal); Object.assign(B, { state: 'bebas', cd: [0, 1.5, 1.5, 3], pikir: .6, sudahMati: false, hilang: 0, terbangT: 0, lesat: 0, koin: 0, sergap: false, jatuh: 0, lihat: null, lihatT: 99, ent: null, prev: null, tujuan: null, combo: 0, agresi: rnd(.85, 1.2) });
+    T.arah = o.arahAwal || 0; T.root.rotation.y = T.arah; T.tilt.rotation.set(0, 0, 0); setTembus(T, 1); T.cur = ''; mainObj(T, 'diam', .1); if (mt.bar) mt.bar.style.display = '';
+  }
+  function info() {
+    return { pos, hero, aksi: B.state, arah: B.state === 'jerit' ? B.arahSkill : T.arah, tujuan: B.tujuan, stun: mt.kunci > 0 || mt.pusing > 0, hp: mt.hp / mt.hpMax, vis: mt, id: o.id, mati: !!mt.mati };
+  }
+  const api = { mt, upd, reset, info, root: T.root, tilt: T.tilt, get anim() { return T.cur || 'diam'; }, get hero() { return hero; },
+    get fl() { return (hero === 'kunti' && B.terbangT > 0 ? 1 : 0) | (B.hilang > 0 ? 2 : 0) | (mt.kunci > 0 || mt.pusing > 0 ? 4 : 0) | (mt.mati ? 8 : 0); } };
+  return api;
+}
+
+// ================== DUEL LAWAN BOT (1 VS 1) ==================
 let BOT = null, SELESAI = false;
 const barPemain = document.createElement('div'); barPemain.className = 'hp me'; barPemain.innerHTML = '<i></i>'; barPemain.style.display = 'none'; $('#bars').appendChild(barPemain);
 function kenaPemain(dmg, dari, dorong = 3) {
@@ -1397,7 +1723,7 @@ function mainLagi() {
   SELESAI = false; $('#hasil').classList.remove('on'); K.terbangT = 0; K.lesat = 0;
   P.hp = HP_MAX[HERO]; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
   if (HERO === 'kunti') kuntiTembus(1);
-  if (BOT) BOT.reset();
+  if (BOT) BOT.reset(true);   // tiap Main Lagi: hero bot diacak lagi
 }
 $('#lagi').onclick = () => { if (TIM.on) { timKeLobi(); return; } if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
 $('#keMenu').onclick = () => { keluarRoom(); location.href = 'game.html'; };
@@ -1408,15 +1734,13 @@ function updBarPemain() {
   barPemain.style.display = ok ? '' : 'none'; barPemain.style.left = x + 'px'; barPemain.style.top = y + 'px'; barPemain.firstChild.style.width = P.hp / HP_MAX[HERO] * 100 + '%';
 }
 async function siapkanBot() {
-  const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i>'; $('#bars').appendChild(bar);
-  BOT = await buatBotOcong({
-    scene, model: 'model-3d/skinocong.glb', tinggi: TINGGI, pemain: P, kenaPemain,
-    pemainAktif: () => P.state !== 'kalah' && !(TY.hilang > 0) && (!BOT || terlihatDari(P.root.position, BOT.root.position)),   // bot tidak melihat pemain di semak
-    batasi: v => { batasi(v); return v; },
-    skala: () => 1, jarak: 1, cepat: 1,
-    efek: { gelombang, percik, kilat, goyang: v => { goyang = Math.max(goyang, v); } },
-    rapikanKlip, bar, posAwal: new THREE.Vector3(0, 0, PUSAT_Z - JARAK_AWAL()), selesai,
-  });
+  const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i><span class="nm"></span>'; $('#bars').appendChild(bar);
+  const h = pilihAcak(BOT_HERO), namaBot = hero => { const n = NAMA_HERO[hero] + ' · Bot Pro'; bar.querySelector('.nm').textContent = n; $('#nmlawan').textContent = 'vs ' + n; if (BOT) BOT.mt.nama = n; };
+  BOT = await buatBotPro({ hero: h, skin: pilihAcak(BOT_SKIN[h]), nama: 'Bot', bar, posAwal: new THREE.Vector3(0, 0, PUSAT_Z - JARAK_AWAL()), arahAwal: 0, id: null, onHero: namaBot,
+    ctx: { kawan: false,
+      sasaran: b => P.state !== 'kalah' && !SELESAI && !(TY.hilang > 0) && terlihatDari(P.root.position, b.root.position) ? P : null,   // bot tidak melihat pemain di semak / saat menghilang
+      serang: (t, d, dari, dr) => kenaPemain(d, dari, dr), stun: stunEnt, mati: () => selesai('menang'), kirim: null } });
+  namaBot(BOT.hero);
   MUSUH.push(BOT.mt);
   P.arah = Math.PI; P.root.rotation.y = Math.PI;   // pemain menghadap lawan
 }
@@ -1663,7 +1987,7 @@ function timLobi(m) {
   <div class="tlcol"><div class="tlt b"><h4>🔵 Tim Biru <small>${n0}/${m.max || 3}</small></h4>${kol(0)}</div><div class="tlt m"><h4>🔴 Tim Merah <small>${n1}/${m.max || 3}</small></h4>${kol(1)}</div></div>`;
   if (TIM.host) h += `<div class="tlcfg"><span>Arena</span>${['lapangan', 'kuil'].map((a, i) => `<button data-ar="${i}" class="${m.a === i ? 'on' : ''}" ${TIM.sudahMain ? 'disabled' : ''}>${i ? '⛩️ Kuil Malam' : '🏫 Lapangan SD'}</button>`).join('')}</div>
     <div class="tlcfg"><span>Target</span>${TIM_KW.map(k => `<button data-kw="${k}" class="${m.kw === k ? 'on' : ''}">${k}</button>`).join('')}</div>
-    <div class="tlcfg"><span>Bot Ocong</span><button data-bot="0">＋ Tim Biru</button><button data-bot="1">＋ Tim Merah</button></div>`;
+    <div class="tlcfg"><span>Bot Acak (Pro)</span><button data-bot="0">＋ Tim Biru</button><button data-bot="1">＋ Tim Merah</button></div>`;
   else h += `<div class="tlcfg"><span>Arena</span><b>${m.a ? '⛩️ Kuil Malam' : '🏫 Lapangan SD'}</b></div>`;
   h += `<div class="tlbtn"><button data-pindah="1">⇄ Pindah ke ${saya.tm ? 'Tim Biru' : 'Tim Merah'}</button>` +
     (TIM.host ? `<button data-go="1" class="utama" ${n0 && n1 && siapSemua && m.state === 'lobby' ? '' : 'disabled'}>▶ MULAI</button>` : `<button data-siap="1" class="utama">${saya.r ? '✖ Batal Siap' : '✔ SIAP'}</button>`) + `</div>
@@ -1679,7 +2003,7 @@ $('#lbStat').addEventListener('click', e => {
   else if (d.go) kirim({ t: 'tmGo' });
   else if (d.ar) kirim({ t: 'tmCfg', a: +d.ar });
   else if (d.kw) kirim({ t: 'tmCfg', kw: +d.kw });
-  else if (d.bot) kirim({ t: 'tmBot', tm: +d.bot, h: 'pocong' });
+  else if (d.bot) kirim({ t: 'tmBot', tm: +d.bot, h: pilihAcak(BOT_SRV) });   // hero bot diacak
   else if (d.bdel) kirim({ t: 'tmBotDel', i: +d.bdel });
 });
 
@@ -1701,22 +2025,15 @@ async function buatObjTim(p) {
   if (!kawan) MUSUH.push(o.mt);
   return o;
 }
-// bot dijalankan HP pembuat room
+// bot dijalankan HP pembuat room (hero acak, otak Bot Pro)
 async function buatBotTim(p) {
-  const kawan = p.tm === TIM.saya.tm, o = { id: p.i, tm: p.tm, bot: true, lokal: true, nama: p.n, kawan, sas: null, terakhir: null, hidupT: 0, hero: 'ocong' };
-  o.nama = p.n; const bar = barTim(o, kawan);
+  const kawan = p.tm === TIM.saya.tm, o = { id: p.i, tm: p.tm, bot: true, lokal: true, nama: p.n, kawan, sas: null, terakhir: null, hidupT: 0, hero: HERO_3D[p.h] || 'ocong' };
+  const bar = barTim(o, kawan);
   const [x, z] = spawnTim(p);
-  const B = await buatBotOcong({
-    scene, model: 'model-3d/skinocong.glb', tinggi: TINGGI,
-    get pemain() { return o.sas || { root: B ? B.root : new THREE.Group() }; },
-    kenaPemain: (d, dari, dr) => timBotSerang(o, d, dari, dr),
-    pemainAktif: () => !!o.sas,
-    batasi: v => { batasi(v); return v; }, skala: () => 1, jarak: 1, cepat: 1,
-    efek: { gelombang: (...a) => fx('gelombang', ...a), percik: (...a) => fx('percik', ...a), kilat: (...a) => fx('kilat', ...a), goyang: v => { goyang = Math.max(goyang, v * .5); } },
-    rapikanKlip, bar, posAwal: new THREE.Vector3(x, 0, z), selesai: () => timBotMati(o),
-  });
-  o.B = B; o.root = B.root; o.mt = B.mt; B.mt.id = p.i; B.mt.obj = o; B.mt.nama = p.n;
-  B.root.rotation.y = kawan ? Math.PI : 0;
+  const B = await buatBotPro({ hero: o.hero, skin: '', nama: p.n, bar, posAwal: new THREE.Vector3(x, 0, z), arahAwal: kawan ? Math.PI : 0, id: p.i,
+    ctx: { kawan, sasaran: () => o.sas, serang: (t, d, dari, dr) => timBotSerangKe(o, t, d, dari, dr), stun: stunEnt, mati: () => timBotMati(o),
+      kirim: e => netEvent(Object.assign(e, { oleh: p.i })) } });
+  o.B = B; o.pro = B; o.root = B.root; o.mt = B.mt; B.mt.id = p.i; B.mt.obj = o; B.mt.nama = p.n;
   TIM.bot.set(p.i, o);
   if (!kawan) MUSUH.push(B.mt);
   return o;
@@ -1747,8 +2064,9 @@ function pilihSasaran(o) {
   TIM.bot.forEach(t => { if (t.tm !== o.tm) coba(t); });
   return best;
 }
-function timBotSerang(o, d, dari, dr) {   // bot (di HP pembuat room) mengenai sasarannya
-  const t = o.sas; if (!t) return;
+function timBotSerang(o, d, dari, dr) { timBotSerangKe(o, o.sas, d, dari, dr); }
+function timBotSerangKe(o, t, d, dari, dr) {   // bot (di HP pembuat room) mengenai sasarannya
+  if (!t) return;
   if (t === P) { TIM.terakhir = o.id; kenaPemain(d, dari, dr); }
   else if (t.lokal) { t.terakhir = o.id; kena(t.mt, d, dari, dr); }
   else { const [x, z] = keNet(dari.x, dari.z); netEvent({ k: 'hit', ke: t.id, d, x: r2(x), z: r2(z), dr, oleh: o.id }); angka(t.root.position, d); t.mt.kilau = .18; }
@@ -1858,7 +2176,7 @@ function kirimKeadaanTim() {
   const fl = (HERO === 'kunti' && K.terbangT > 0 ? 1 : 0) | (TY.hilang > 0 ? 2 : 0) | ((P.kunci > 0 || P.pusing > 0) ? 4 : 0) | (P.state === 'kalah' ? 8 : 0);
   const o = { t: 'st', v3: 1, s: [r2(x), r2(z), r2(sudutNet(P.root.rotation.y)), r2(P.tilt.position.y), r2(P.tilt.rotation.x), r2(P.tilt.rotation.y), r2(P.tilt.rotation.z), Math.round(P.hp), P.cur, a ? r2(a.timeScale) : 1, fl], e: NET.antre.splice(0) };
   if (TIM.host && TIM.bot.size) o.b = [...TIM.bot.values()].map(b => { const [bx, bz] = keNet(b.root.position.x, b.root.position.z);
-    return [b.id, r2(bx), r2(bz), r2(sudutNet(b.root.rotation.y)), r2(b.B.tilt.position.y), r2(b.B.tilt.rotation.x), r2(b.B.tilt.rotation.y), r2(b.B.tilt.rotation.z), Math.round(b.mt.hp), b.mt.mati ? 'kalah' : b.B.anim || 'diam', 1, b.mt.mati ? 8 : 0]; });
+    return [b.id, r2(bx), r2(bz), r2(sudutNet(b.root.rotation.y)), r2(b.B.tilt.position.y), r2(b.B.tilt.rotation.x), r2(b.B.tilt.rotation.y), r2(b.B.tilt.rotation.z), Math.round(b.mt.hp), b.mt.mati ? 'kalah' : b.B.anim || 'diam', 1, b.B.fl | 0]; });
   kirim(o);
 }
 function updObjTim(o, dt) {
@@ -1939,7 +2257,7 @@ async function mulai() {
   }
   buatArena(); siapkanApi(); setKual(lv);
   if (LAWAN === 'boneka') [[-4, -1.5], [4, -.5], [0, -4]].forEach(p => buatMusuh(p[0], PUSAT_Z + p[1]));
-  try { await MODEL_SIAP; if (LAWAN === 'ocong') await siapkanBot(); }
+  try { await MODEL_SIAP; if (LAWAN === 'bot') await siapkanBot(); }
   catch (e) { $('#load b').textContent = 'Model tidak bisa dimuat'; $('#lmsg').textContent = 'Pastikan file ' + MODEL + ' sudah diunggah satu folder dengan halaman ini.'; return; }
   posisiAwal();
   $('#load').classList.add('off');
