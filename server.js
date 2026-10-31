@@ -329,18 +329,18 @@ const LB_GRACE = 90000;                    // anggota yang terputus tetap disimp
 const LB_HOST_GANTI = 20000;               // host terputus 20 detik di lobi → host pindah ke pemain lain
 const LB_TUNGGU_3D = 30000;                // batas menunggu semua pemain masuk arena Duel 3D (ms)
 const LB_KW = 10;                          // target kill Duel Main Bareng
-const LB_MODE = ['duel', 'pk', 'acak'];
-const LB_AR = { duel: 2, pk: PK_ARENA };   // jumlah arena: duel 3D (0 Lapangan SD, 1 Kuil Malam), parkur (lihat PK_ARENA)
+const LB_MODE = ['duel', 'tim', 'pk', 'acak'];   // duel = 1 vs 1 (bergiliran bila >2 pemain), tim = Biru vs Merah (+ bot)
+const LB_AR = { duel: 2, tim: 2, pk: PK_ARENA };   // jumlah arena: duel 3D (0 Lapangan SD, 1 Kuil Malam), parkur (lihat PK_ARENA)
 const lbrooms = new Map();                 // kode → {code, hostPid, mem: Map pid→anggota, m, a, state:'lobby'|'hero'|'main', ...}
 let lbSeq = 0;
 const lbOn = L => [...L.mem.values()].filter(x => x.ws && x.ws.readyState === 1);
 const lbHost = L => L.mem.get(L.hostPid);
 function lbInfo(L) { const h = lbHost(L); return { c: L.code, m: 'lb', n: h ? h.n : 'Pemain', a: 0, pl: L.mem.size, max: LB_MAX, st: L.state === 'lobby' ? 'lobby' : 'main', pub: !!L.pub, lm: L.m || '' }; }
 function lbKirim(L) {
-  const pl = [...L.mem.values()].map(x => ({ k: x.k, n: x.n, on: x.ws && x.ws.readyState === 1 ? 1 : 0, h: x.pid === L.hostPid ? 1 : 0 }));
+  const pl = [...L.mem.values()].map(x => ({ k: x.k, n: x.n, on: x.ws && x.ws.readyState === 1 ? 1 : 0, h: x.pid === L.hostPid ? 1 : 0, tm: x.tm | 0 }));
   const sisa = L.state === 'hero' ? Math.max(0, L.heroEnd - Date.now()) : 0;
   lbOn(L).forEach(x => send(x.ws, { t: 'lbRoom', code: L.code, me: x.k, host: x.pid === L.hostPid, pl, m: L.m, a: L.a, state: L.state, max: LB_MAX,
-    ikut: x.inR ? 1 : 0, rm: L.state !== 'lobby' ? L.rm : '', ra: L.state !== 'lobby' ? L.ra : -1, sisa, pub: L.pub ? 1 : 0 }));
+    ikut: x.inR ? 1 : 0, rm: L.state !== 'lobby' ? L.rm : '', ra: L.state !== 'lobby' ? L.ra : -1, sisa, pub: L.pub ? 1 : 0, bot: L.bot ? 1 : 0, tmMax: TM_MAX }));
 }
 function lbJoin(ws, code) {
   const L = lbrooms.get(code);
@@ -349,13 +349,13 @@ function lbJoin(ws, code) {
   let x = L.mem.get(ws.pid);
   if (!x && L.mem.size >= LB_MAX) { send(ws, { t: 'err', msg: 'Lobi sudah penuh (' + LB_MAX + ' pemain)' }); return; }
   if (ws.lobi !== code) leave(ws);
-  if (!x) { x = { k: ++lbSeq, pid: ws.pid, ws: null, n: ws.name, h: ws.hero, s: ws.skin, gone: 0, inR: false, pick: 0 }; L.mem.set(ws.pid, x); }
+  if (!x) { x = { k: ++lbSeq, pid: ws.pid, ws: null, n: ws.name, h: ws.hero, s: ws.skin, gone: 0, inR: false, pick: 0, tm: lbTimKecil(L), main: 0 }; L.mem.set(ws.pid, x); }
   if (x.ws && x.ws !== ws) { x.ws.lobi = null; }          // HP yang sama membuka tab baru
   x.ws = ws; x.gone = 0; x.n = ws.name; ws.lobi = code;
   if (!x.pick) { x.h = ws.hero; x.s = ws.skin; }
   if (!lbHost(L) || !lbHost(L).ws) { const h = lbHost(L); if (!h) L.hostPid = ws.pid; }
   lbKirim(L);
-  if (L.state === 'hero' && x.inR && !x.pick) send(ws, { t: 'lbHero', m: L.rm, a: L.ra, sec: Math.ceil((L.heroEnd - Date.now()) / 1000) });
+  if (L.state === 'hero' && x.inR && !x.pick) send(ws, { t: 'lbHero', m: L.rm, a: L.ra, sec: Math.ceil((L.heroEnd - Date.now()) / 1000), tm: L.rm === 'tim' ? x.tm | 0 : -1 });
 }
 function lbLeave(ws) {   // keluar dari lobi dengan sengaja (tombol Keluar)
   const L = ws.lobi && lbrooms.get(ws.lobi); ws.lobi = null;
@@ -391,12 +391,23 @@ function lbBatal(L, msg) {
   L.state = 'lobby'; L.sub = null; L.mem.forEach(x => { x.inR = false; x.pick = 0; });
   lbOn(L).forEach(x => send(x.ws, { t: 'err', msg })); lbKirim(L);
 }
+const lbJmlTim = (L, t) => [...L.mem.values()].filter(x => x.tm === t).length;
+const lbTimKecil = L => lbJmlTim(L, 0) <= lbJmlTim(L, 1) ? 0 : 1;
+function lbAturTim(L) {   // pastikan tim seimbang & tidak lebih dari 3 per tim
+  [0, 1].forEach(t => { while (lbJmlTim(L, t) > TM_MAX) { const x = [...L.mem.values()].reverse().find(y => y.tm === t); x.tm = 1 - t; } });
+}
+function lbRencanaBot(n0, n1) {   // isi slot kosong: kedua tim dibuat sama besar (1 orang → 1 vs 1 lawan bot)
+  const target = Math.min(TM_MAX, Math.max(n0, n1, 1)), L = [];
+  [[0, n0], [1, n1]].forEach(([t, n]) => { for (let i = n; i < target; i++) L.push(t); });
+  return L;
+}
 function lbLuncur(L) {
   if (L.state !== 'hero') return;
   clearTimeout(L.heroT);
   const ikut = lbOn(L).filter(x => x.inR);
-  if (ikut.length < 2) { lbBatal(L, 'Teman keluar sebelum mulai — tunggu teman lain lalu tekan MULAI lagi'); return; }
-  ikut.forEach(x => { x.ws.hero = x.h; x.ws.skin = x.s || ''; });
+  const pakaiBot = L.rm === 'tim' && L.bot;
+  if (ikut.length < (pakaiBot ? 1 : 2)) { lbBatal(L, 'Teman keluar sebelum mulai — tunggu teman lain lalu tekan MULAI lagi'); return; }
+  ikut.forEach(x => { x.ws.hero = x.h; x.ws.skin = x.s || ''; x.main = (x.main || 0) + 1; });
   const code = newCode();
   L.state = 'main'; L.sub = code;
   if (L.rm === 'pk') {
@@ -405,22 +416,29 @@ function lbLuncur(L) {
     prooms.set(code, r); r.pl.forEach(w => { w.proom = code; });
     lbKirim(L); pkRoomMsg(r); pkStart(r);
   } else {
-    const acak = ikut.slice().sort(() => Math.random() - .5), exp = new Map();
-    acak.forEach((x, i) => exp.set(x.pid, i % 2));   // 2 → 1v1, 3 → 2v1, 4 → 2v2, 5 → 3v2, 6 → 3v3
-    const r = { code, host: null, pl: [], bots: [], state: 'lobby', a: L.ra, kw: LB_KW, pub: false, t0: Date.now(), ver: '3d', lb: L.code, exp, hostPid: L.hostPid };
+    const exp = new Map();
+    if (L.rm === 'tim') ikut.forEach(x => exp.set(x.pid, x.tm | 0));             // tim pilihan pemain sendiri
+    else ikut.slice().sort(() => Math.random() - .5).forEach((x, i) => exp.set(x.pid, i % 2));   // 1 vs 1
+    const n0 = [...exp.values()].filter(t => t === 0).length, n1 = exp.size - n0;
+    const bots = pakaiBot ? lbRencanaBot(n0, n1).map((tm, i) => ({ i: -(++botSeq), n: 'Bot ' + (i + 1), h: HEROES[Math.floor(Math.random() * HEROES.length)], tm })) : [];
+    const r = { code, host: null, pl: [], bots: [], botRencana: bots, state: 'lobby', a: L.ra, kw: LB_KW, pub: false, t0: Date.now(), ver: '3d', lb: L.code, exp, hostPid: L.hostPid };
     trooms.set(code, r);
     r.autoT = setTimeout(() => lbTmMulai(r, 1), LB_TUNGGU_3D);
     lbKirim(L);
     ikut.forEach(x => send(x.ws, { t: 'lbGo3d', code, a: L.ra, h: x.h, s: x.s || '', tm: exp.get(x.pid), kw: LB_KW, lb: L.code }));
-    console.log(new Date().toISOString(), 'main bareng duel', L.code, '→ room', code, ikut.map(x => x.n).join(', '));
+    console.log(new Date().toISOString(), 'main bareng ' + L.rm, L.code, bots.length ? '+' + bots.length + ' bot' : '', '→ room', code, ikut.map(x => x.n).join(', '));
   }
 }
 function lbTmMulai(r, waktuHabis) {   // semua pemain Main Bareng sudah masuk arena 3D (atau waktu tunggu habis)
   if (r.state !== 'lobby' || !r.exp || trooms.get(r.code) !== r) return;
   clearTimeout(r.autoT);
   if (!waktuHabis && ![...r.exp.keys()].every(p => r.pl.some(w => w.pid === p))) return;
-  if (r.pl.length < 2) { r.pl.forEach(w => send(w, { t: 'err', msg: 'Teman belum masuk arena — kembali ke lobi…', balik: 1 })); r.exp = null; lbKembali(r.lb, r.code); return; }
-  for (const t of [0, 1]) if (!r.pl.some(w => w.tmT === t)) { const pindah = r.pl.filter(w => w.tmT !== t)[0]; pindah.tmT = t; }   // tim kosong → pindahkan 1 pemain
+  r.bots = (r.botRencana || []).slice();
+  if (r.pl.length + r.bots.length < 2 || !r.pl.length) { r.pl.forEach(w => send(w, { t: 'err', msg: 'Teman belum masuk arena — kembali ke lobi…', balik: 1 })); r.exp = null; lbKembali(r.lb, r.code); return; }
+  for (const t of [0, 1]) if (!tmCount(r, t)) {   // tim kosong (ada yang tidak masuk) → pindahkan 1 pemain / bot
+    const w = r.pl.length > 1 && r.pl.filter(x => x.tmT !== t).length > 1 ? r.pl.filter(x => x.tmT !== t)[0] : null;
+    if (w) w.tmT = t; else { const b = r.bots.find(x => x.tm !== t); if (b && tmCount(r, 1 - t) > 1) b.tm = t; else r.bots.push({ i: -(++botSeq), n: 'Bot ' + (r.bots.length + 1), h: HEROES[Math.floor(Math.random() * HEROES.length)], tm: t }); }
+  }
   r.host = r.pl.find(w => w.pid === r.hostPid) || r.pl[0];
   tmMulaiRoom(r);
 }
@@ -434,7 +452,14 @@ function lbMsg(ws, m) {
       lbJoin(ws, code); return;
     }
     case 'lbJoin': lbJoin(ws, clean(m.code, 6)); return;
-    case 'lbMode': if (L && host && L.state === 'lobby' && LB_MODE.includes(m.m)) { L.m = m.m; L.a = -1; lbKirim(L); } return;
+    case 'lbMode': if (L && host && L.state === 'lobby' && LB_MODE.includes(m.m)) { if (LB_AR[L.m] !== LB_AR[m.m] || (L.m === 'pk') !== (m.m === 'pk')) L.a = -1; L.m = m.m; lbAturTim(L); lbKirim(L); } return;
+    case 'lbTim': {   // pemain pindah tim sendiri (Duel Tim)
+      if (!L || !x || L.state !== 'lobby') return;
+      const t = m.tm === 1 ? 1 : 0; if (t === x.tm) return;
+      if (lbJmlTim(L, t) >= TM_MAX) { send(ws, { t: 'err', msg: 'Tim itu sudah penuh (' + TM_MAX + ' pemain)' }); return; }
+      x.tm = t; lbKirim(L); return;
+    }
+    case 'lbBot': if (L && host && L.state === 'lobby') { L.bot = !!m.on; lbKirim(L); } return;
     case 'lbArena': {
       if (!L || !host || L.state !== 'lobby' || !LB_AR[L.m]) return;
       const a = m.a | 0; if (a < -1 || a >= LB_AR[L.m]) return;
@@ -444,12 +469,15 @@ function lbMsg(ws, m) {
       if (!L || !host || L.state !== 'lobby') return;
       if (!L.m) { send(ws, { t: 'err', msg: 'Pilih mode dulu: Duel, Parkur, atau Acak' }); return; }
       const on = lbOn(L);
-      if (on.length < 2) { send(ws, { t: 'err', msg: 'Tunggu teman masuk dulu (minimal 2 pemain)' }); return; }
-      L.rm = L.m === 'acak' ? (Math.random() < .5 ? 'duel' : 'pk') : L.m;
-      L.ra = L.m !== 'acak' && L.a >= 0 ? L.a : Math.floor(Math.random() * LB_AR[L.rm]);
+      if (on.length < (L.m === 'tim' && L.bot ? 1 : 2)) { send(ws, { t: 'err', msg: L.m === 'tim' ? 'Tunggu teman masuk dulu, atau nyalakan 🤖 Bot' : 'Tunggu teman masuk dulu (minimal 2 pemain)' }); return; }
+      L.rm = L.m === 'acak' ? (on.length > 2 ? (Math.random() < .5 ? 'tim' : 'pk') : (Math.random() < .5 ? 'duel' : 'pk')) : L.m;
+      L.ra = L.m !== 'acak' && L.a >= 0 && L.a < LB_AR[L.rm] ? L.a : Math.floor(Math.random() * LB_AR[L.rm]);
+      if (L.rm === 'tim') { lbAturTim(L); if (!L.bot && on.every(y => y.tm === on[0].tm)) on[on.length - 1].tm = 1 - on[0].tm; }   // tanpa bot: jangan semua di satu tim
+      // Duel 1 vs 1 dengan >2 pemain: yang paling jarang main yang maju (bergiliran), sisanya ikut ronde berikutnya
+      const maju = L.rm === 'duel' && on.length > 2 ? on.slice().sort((p, q) => (p.main || 0) - (q.main || 0) || Math.random() - .5).slice(0, 2) : on;
       L.state = 'hero'; L.cepat = 0; L.heroEnd = Date.now() + LB_HERO;
-      L.mem.forEach(y => { y.inR = !!(y.ws && y.ws.readyState === 1); y.pick = 0; });
-      on.forEach(y => send(y.ws, { t: 'lbHero', m: L.rm, a: L.ra, sec: LB_HERO / 1000 }));
+      L.mem.forEach(y => { y.inR = maju.includes(y); y.pick = 0; });
+      maju.forEach(y => send(y.ws, { t: 'lbHero', m: L.rm, a: L.ra, sec: LB_HERO / 1000, tm: L.rm === 'tim' ? y.tm | 0 : -1 }));
       L.heroT = setTimeout(() => lbLuncur(L), LB_HERO + 500);
       lbKirim(L); return;
     }

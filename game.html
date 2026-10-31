@@ -221,8 +221,13 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 .mbkan{flex:1;display:flex;flex-direction:column;gap:.8cqw;min-width:0}
 .mbh4{margin:0;font:700 1.45cqw Arial;color:#9fb3ff;letter-spacing:.15cqw;text-align:left}.mbh4 small{color:#7f8bb0;font-weight:400;letter-spacing:0;margin-left:.6cqw}
 .mbmode{display:flex;gap:1.2cqw}
-.mbm{flex:1;height:11.5cqw;border-radius:1.6cqw;border:.4cqw solid #2c3f73;background:#101a33;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2cqw;font:700 2.3cqw Arial;transition:transform .12s}
-.mbm i{font-style:normal;font-size:4.6cqw;line-height:1}.mbm small{font:1.15cqw Arial;color:#b9c3dd}
+.mbm{flex:1;height:10.5cqw;border-radius:1.6cqw;border:.4cqw solid #2c3f73;background:#101a33;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2cqw;font:700 2.3cqw Arial;transition:transform .12s}
+.mbm i{font-style:normal;font-size:4cqw;line-height:1}.mbmode{gap:1cqw}.mbm{font-size:2cqw}
+.mbm.tim{background:linear-gradient(160deg,#10204a 50%,#4a1010 50%)}
+.mbp.tb{border-color:#3aa0ff;background:#0b1f40}.mbp.tr{border-color:#ff4d4d;background:#3a0f14}.mbp.me.tb,.mbp.me.tr{box-shadow:0 0 0 .3cqw #ffd166;cursor:pointer}
+.mbp u{text-decoration:none;font:700 1.05cqw Arial;color:#cfd6e6}.mbp.tb u{color:#8cc8ff}.mbp.tr u{color:#ff9a9a}
+.mbopsi{display:flex;align-items:center;gap:1.2cqw;font:700 1.45cqw Arial;color:#cfd6e6}.mbopsi b{color:#ffd166}.mbopsi .mbb{font-size:1.4cqw;padding:.5cqw 1.3cqw}.mbopsi .mbb.on{background:#127a34}
+.mhar b{display:block;font:700 1.25cqw Arial;margin-top:.2cqw}.mhar b.b{color:#8cc8ff}.mhar b.m{color:#ff9a9a}.mbm small{font:1.15cqw Arial;color:#b9c3dd}
 .mbm.duel{background:linear-gradient(160deg,#4a0f1c,#14081a)}.mbm.pk{background:linear-gradient(160deg,#0f3a4a,#081420)}.mbm.acak{background:linear-gradient(160deg,#4a3a0f,#1a1408)}
 .mbm.on{border-color:#ffd166;box-shadow:0 0 2cqw #ffb70399;transform:scale(1.04)}.mbm.dis{cursor:default}.mbm.dis:not(.on){opacity:.45}
 .mbar{display:flex;gap:1cqw;overflow-x:auto;padding-bottom:.3cqw}
@@ -1624,9 +1629,9 @@ const _netMsg=netMsg;netMsg=function(m){if(m&&m.t=='cek'){const c=m.code;
 // Host memilih mode (Duel / Parkur / Acak) lalu arena (bawaan 🎲 acak). Hero dipilih paling akhir di layar penuh,
 // masing-masing hanya melihat hero sendiri. Selesai main → semua kembali ke lobi yang sama.
 // Arena baru cukup ditambahkan di MBA (dan jumlahnya di LB_AR server.js).
-const MBM={duel:{e:'⚔️',n:'DUEL',d:'Hantu lawan hantu'},pk:{e:'🏃',n:'PARKUR',d:'Balapan lompat-lompat'},acak:{e:'🎲',n:'ACAK',d:'Game yang memilihkan'}};
+const MBM={duel:{e:'⚔️',n:'DUEL',d:'1 lawan 1'},tim:{e:'👥',n:'DUEL TIM',d:'Biru lawan Merah'},pk:{e:'🏃',n:'PARKUR',d:'Balapan lompat-lompat'},acak:{e:'🎲',n:'ACAK',d:'Game yang memilihkan'}};
 const MBA={duel:[{n:'Lapangan SD',img:'gambar-game/7c244511a3.webp',k:'lapangan'},{n:'Kuil Malam',img:'gambar-game/455f6b31f9.webp',k:'kuil'}],
- pk:PKAR.map(a=>({n:a.n,e:a.e,bg:a.bg}))};
+ pk:PKAR.map(a=>({n:a.n,e:a.e,bg:a.bg}))};MBA.tim=MBA.duel;
 const MBWARNA=['#7b2cbf','#c1121f','#127a34','#1d5fbf','#b8860b','#8d3a7a'];
 const MB={room:null,hero:null,msg:'',tHero:0};
 const mbAr=(m,a)=>(MBA[m]||[])[a]||null;
@@ -1640,35 +1645,40 @@ function mbRender(){const r=MB.room,E=$('#mbl');
   <div class="mbwait"><i>👻</i>${MB.msg||'Menghubungkan…'}${MB.coba?'<button class="mbb" data-coba style="margin-top:1cqw">Coba Lagi</button>':''}</div>`;return}
  const host=r.host,mode=r.m,ars=MBA[mode]||[];
  let pl='';for(let k=0;k<r.max;k++){const p=r.pl[k];
-  pl+=p?`<div class="mbp ${p.k===r.me?'me':''} ${p.on?'':'off'}"><i style="--c:${MBWARNA[p.k%MBWARNA.length]}">👻</i><span>${esc(p.n)}${p.k===r.me?' (kamu)':''}</span>${p.h?'<em>👑</em>':''}</div>`
+  const tim=mode=='tim'&&p,aku=p&&p.k===r.me;
+  pl+=p?`<div class="mbp ${aku?'me':''} ${p.on?'':'off'} ${tim?(p.tm?'tr':'tb'):''}" ${tim&&aku?'data-tukar':''}><i style="--c:${MBWARNA[p.k%MBWARNA.length]}">👻</i><span>${esc(p.n)}${aku?' (kamu)':''}</span>${p.h?'<em>👑</em>':''}${tim?`<u>${p.tm?'🔴 MERAH':'🔵 BIRU'}${aku?' · ketuk pindah':''}</u>`:''}</div>`
    :`<div class="mbp kos" data-ajak><b>＋</b>Ajak teman</div>`}
  const modeH=Object.keys(MBM).map(k=>`<div class="mbm ${k} ${mode==k?'on':''} ${host?'':'dis'}" ${host?`data-mode="${k}"`:''}><i>${MBM[k].e}</i>${MBM[k].n}<small>${MBM[k].d}</small></div>`).join('');
  let arH='';
- if(mode=='duel'||mode=='pk')arH=`<h4 class="mbh4">${host?'2. PILIH ARENA':'ARENA'}<small>${host?'atau biarkan 🎲 acak':'dipilih host'}</small></h4><div class="mbar">`+
+ if(mode=='duel'||mode=='tim'||mode=='pk')arH=`<h4 class="mbh4">${host?'2. PILIH ARENA':'ARENA'}<small>${host?'atau biarkan 🎲 acak':'dipilih host'}</small></h4><div class="mbar">`+
   [-1].concat(ars.map((_,i)=>i)).map(i=>{const ar=i<0?null:ars[i];return `<div class="mba ${r.a==i?'on':''} ${host?'':'dis'}" ${host?`data-ar="${i}"`:''}>${mbArTh(ar)}${ar?esc(ar.n):'🎲 Acak'}</div>`}).join('')+'</div>';
  else if(mode=='acak')arH=`<div class="mbnote">🎲 Mode dan arena akan dipilih acak saat MULAI — kejutan!</div>`;
  else arH=`<div class="mbnote">${host?'⬆️ Ketuk salah satu mode di atas':'⏳ Menunggu host memilih mode…'}</div>`;
- const nOn=r.pl.filter(p=>p.on).length,bisa=host&&mode&&nOn>=2;
- let info=MB.msg||(host?(!mode?'Pilih mode dulu':nOn<2?'Ajak teman dulu — minimal 2 pemain':'Siap! Tekan MULAI'):'Host yang memilih mode & arena. Tunggu ya!');
+ const nOn=r.pl.filter(p=>p.on).length,botOn=mode=='tim'&&r.bot,bisa=host&&mode&&nOn>=(botOn?1:2);
+ const n0=r.pl.filter(p=>p.on&&!p.tm).length,n1=r.pl.filter(p=>p.on&&p.tm).length,tg=Math.min(r.tmMax||3,Math.max(n0,n1,1)),nb=botOn?(tg-n0)+(tg-n1):0;
+ if(mode=='tim')arH+=`<div class="mbopsi"><span>🔵 ${n0} vs ${n1} 🔴${nb?` · +${nb} 🤖 bot → <b>${tg} vs ${tg}</b>`:''}</span>${host?`<button class="mbb ${r.bot?'on':''}" data-bot>🤖 Isi dengan Bot: ${r.bot?'NYALA':'MATI'}</button>`:`<span>${r.bot?'🤖 slot kosong diisi bot':''}</span>`}</div>`;
+ let info=MB.msg||(host?(!mode?'Pilih mode dulu':nOn<(botOn?1:2)?(mode=='tim'?'Ajak teman, atau nyalakan 🤖 Bot':'Ajak teman dulu — minimal 2 pemain'):mode=='duel'&&nOn>2?'Bergiliran: 2 pemain maju, yang lain ronde berikutnya':mode=='tim'?'Ketuk kartumu untuk pindah tim · tekan MULAI':'Siap! Tekan MULAI'):mode=='tim'?'Ketuk kartumu untuk pindah tim 🔵/🔴':'Host yang memilih mode & arena. Tunggu ya!');
  let tunggu='';
  if(r.state!='lobby'&&!r.ikut)tunggu=`<div class="mbwait"><i>🎮</i>${r.state=='hero'?'Teman-teman sedang memilih hero…':'Teman-teman sedang bermain…'}<small>Kamu ikut di ronde berikutnya. Tunggu sebentar ya!</small></div>`;
  else if(r.state=='main'&&r.ikut)tunggu=`<div class="mbwait"><i>🚀</i>Menyiapkan pertandingan…</div>`;
  E.innerHTML=`<div class="mbtop"><h2>👥 MAIN BARENG</h2><div class="mbkode">KODE<b>${r.code}</b></div><button class="mbb wa" data-ajak>📲 Ajak Teman</button><span class="sp"></span><button class="mbb x" data-out>✖ Keluar</button></div>
  <div class="mbisi"><div class="mbpl">${pl}</div><div class="mbkan"><h4 class="mbh4">${host?'1. PILIH MODE':'MODE'}<small>${host?'kamu host 👑':'dipilih host'}</small></h4><div class="mbmode">${modeH}</div>${arH}
   <div class="mbbawah">${host?`<button class="mbgo" data-go ${bisa?'':'disabled'}>▶ MULAI</button>`:''}<div class="mbinfo" id="mbInfo">${info}${MB.coba?' <button class="mbb" data-coba>Coba Lagi</button>':''}</div></div></div></div>${tunggu}`}
-$('#mbl').addEventListener('click',e=>{const t=e.target.closest('[data-mode],[data-ar],[data-go],[data-out],[data-coba]');if(!t)return;const d=t.dataset;MB.msg='';
+$('#mbl').addEventListener('click',e=>{const t=e.target.closest('[data-mode],[data-ar],[data-go],[data-out],[data-coba],[data-tukar],[data-bot]');if(!t)return;const d=t.dataset;MB.msg='';
  if(d.mode){netSend({t:'lbMode',m:d.mode});if(navigator.vibrate)navigator.vibrate(20)}
  else if(d.ar!=null)netSend({t:'lbArena',a:+d.ar});
+ else if(t.hasAttribute('data-tukar')){const me=MB.room.pl.find(p=>p.k===MB.room.me);netSend({t:'lbTim',tm:me&&me.tm?0:1})}
+ else if(t.hasAttribute('data-bot'))netSend({t:'lbBot',on:MB.room.bot?0:1});
  else if(t.hasAttribute('data-go')){t.disabled=true;netSend({t:'lbGo'})}
  else if(t.hasAttribute('data-coba')){MB.coba=0;NET.sambung=0;if(KR&&KR.m=='lb')mbMasuk(KR.c);else sc('menu')}
  else if(t.hasAttribute('data-out')){netSend({t:'leave'});lupaRoom();MB.room=null;MB.hero=null;sc('menu')}});
 // ---- pilih hero: layar penuh, hanya hero sendiri + sedikit tampilan arena ----
-function mbHeroBuka(m){if(!punyaHero(pick))pick='pocong';MB.hero={m:m.m,a:m.a,tEnd:performance.now()+(m.sec||15)*1000,kunci:0};
+function mbHeroBuka(m){if(!punyaHero(pick))pick='pocong';MB.hero={m:m.m,a:m.a,tm:m.tm==null?-1:m.tm,tEnd:performance.now()+(m.sec||15)*1000,kunci:0};
  $('#ajk').classList.remove('on');sc('mbh');mbHeroRender();if(navigator.vibrate)navigator.vibrate([60,40,60])}
 function mbHeroRender(){const H=MB.hero;if(!H)return;const ar=mbAr(H.m,H.a),sk=skinOf(pick);
  const kartu=ALL.filter(a=>a[0]!='x').map(a=>{const ok=punyaHero(a[0]);return `<div class="mhc ${pick==a[0]?'on':''} ${ok?'':'kunci'}" ${ok&&!H.kunci?`data-h="${a[0]}"`:''}><i style="background-image:url(${heroHead(a[0],skinOf(a[0]))})"></i>${ok?'':'🔒 '}${a[1]}</div>`}).join('');
  $('#mbh').innerHTML=`<div class="mhbg" style="${ar&&ar.img?`background-image:url(${ar.img})`:`background:${ar?ar.bg:'#111'}`}"></div>
- <div class="mhar">${mbArTh(ar)}<div>${MBM[H.m].e} ${MBM[H.m].n}<small>${ar?esc(ar.n):''}</small></div></div>
+ <div class="mhar">${mbArTh(ar)}<div>${MBM[H.m].e} ${MBM[H.m].n}<small>${ar?esc(ar.n):''}</small>${H.tm>=0?`<b class="${H.tm?'m':'b'}">${H.tm?'🔴 TIM MERAH':'🔵 TIM BIRU'}</b>`:''}</div></div>
  <div class="mhkiri"><img src="${heroImg(pick,sk)}" style="filter:${skinF(sk)} drop-shadow(0 .8cqw 1.2cqw #000)"><b>${NM3D(pick).toUpperCase()}</b></div>
  <div class="mhkanan"><div class="mhjdl">PILIH HEROMU</div><div class="mhwkt" id="mhWkt">${Math.max(0,Math.ceil((H.tEnd-performance.now())/1000))}</div>
   <div class="mhgrid">${kartu}</div>
