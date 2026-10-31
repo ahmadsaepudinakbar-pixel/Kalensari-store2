@@ -751,7 +751,9 @@ function siapkanOcongLompat(gl, m, T) {   // model tanpa tulang: animasi Hop & I
   if (hop) { T.act.jalan = T.mixer.clipAction(hop); T.act.loncat = sekali(T.mixer.clipAction(hop.clone())); }
 }
 // Skin Boneka (bertopi): saat berjalan badan meloncat-loncat dengan kedua kaki rapat, sedikit condong ke depan & mendarat mengempis
+const GEND_KEPAL = new Set(['tinju', 'cakar', 'hantam', 'amuk', 'angry']);   // animasi serangan & skill → Genderuwo bertangan mengepal
 function lompatPocong(T, dt) {
+  if (T && T.gK) { const k = GEND_KEPAL.has(T.cur); if (T.gK[1].visible !== k) { T.gK[0].visible = !k; T.gK[1].visible = k; } }   // diam / jalan / mati → Genderuwo bercakar terbuka
   if (T && T.tegapG && (T.cur === 'diam' || T.cur === 'jalan' || T.cur === 'lari')) T.tegapG.forEach(([b, q, k]) => b.quaternion.slerp(q, k));   // Genderuwo lebih tegak
   if (!T || !T.hopLoncat || !T.model) return;
   const m = T.model;
@@ -1431,6 +1433,7 @@ const GEND = { tinggi: 2.05, cepat: 3.5, amukCepat: 1.3, lompat: 5, tinju: 62, t
   sb: { d: [70, 100, 200], kena1: .16, ganti1: .45, kena2: .95, ganti2: 1.2, lepas3: 1.47, darat3: 2.08, akhir: 2.3, maju: [2.4, 1.8], loncat: 2.6, r3: 2 } };   // lepas/darat: detik dalam animasi Jump Attack (diukur dari klipnya)
 const GW = { amuk: 0, combo: 0, comboT: 0 };
 function siapkanGenderuwo(gl, m, T) {
+  { let ku = null, ke = null; m.traverse(o => { if (o.name === 'gendKuku') ku = o; else if (o.name === 'gendKepal') ke = o; }); if (ku && ke) { T.gK = [ku, ke]; ku.visible = true; ke.visible = false; } }   // dua badan dalam satu kerangka
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
   const klip = c => rapikanKlip(c.clone(), m, 0, false);   // buang geseran mendatar (posisi diatur kode game)
   if (cari('idle')) T.act.diam = T.mixer.clipAction(klip(cari('idle')));
@@ -2568,7 +2571,9 @@ function kualitasOtomatis(dt) {   // fps < 26 selama ±4 detik → turunkan kual
   if (fps < (DI_HP ? 30 : 26) && KUAL.lv > 0) { setKual(KUAL.lv - 1); OTO.jeda = 3; const t = $('#fps'); if (t) t.textContent = 'Kualitas diturunkan otomatis (' + Math.round(fps) + ' fps)'; }
 }
 function panaskan() {   // siapkan semua shader sebelum main → tidak tersendat saat skill / efek pertama kali muncul
+  const sem = []; scene.traverse(o => { if (o.name === 'gendKepal' && !o.visible) { o.visible = true; sem.push(o); } });   // badan kepal ikut disiapkan
   try { percik(new THREE.Vector3(0, -60, 0), 2); renderer.compile(scene, camera); } catch (e) { }
+  sem.forEach(o => { o.visible = false; });
 }
 function mulaiLoop() {
   if (LOOP) return; LOOP = true; panaskan();
