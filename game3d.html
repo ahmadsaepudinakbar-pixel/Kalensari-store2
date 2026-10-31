@@ -81,7 +81,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 }
 #putar{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#07050cf2;color:#f2efe9;font:700 17px Arial;text-align:center;padding:24px}
 #putar.on{display:flex}#putar .hp{font-size:64px;animation:putarHP 1.6s ease-in-out infinite}#putar small{color:#9aa3b8;font-weight:500}
-#putar button{font:700 14px Arial;color:#cfd6e6;background:#1a1426;border:1px solid #3a2d52;border-radius:10px;padding:9px 16px}
+#putar button{font:700 17px Arial;color:#201400;background:#ffb703;border:0;border-radius:12px;padding:13px 26px;box-shadow:0 4px 18px #ffb70355}
 @keyframes putarHP{0%,25%{transform:rotate(0)}55%,100%{transform:rotate(-90deg)}}
 #mHero{grid-template-columns:repeat(3,1fr)}#koin{left:50%;top:10px;transform:translateX(-50%);background:#0b1020cc;border:1px solid #ffd04066;border-radius:10px;padding:5px 12px;font:700 14px Arial;color:#ffd166}#koin.penuh{background:#5a3a08dd;box-shadow:0 0 12px #ffb703}#koin b{color:#fff;margin-left:4px}
 #lbQr{display:flex;justify-content:center;margin-top:10px}#lbQr canvas{width:132px;height:132px;background:#fff;border-radius:8px;padding:6px}
@@ -152,7 +152,7 @@ body:has(#timHud:not([style*="none"])) #koin{top:52px}
  <div id="lbBagi"><button id="lbWa">📲 Kirim lewat WhatsApp</button><button id="lbSalin">🔗 Salin link</button></div>
  <div id="lbQr"></div><div id="lbTeman"></div><button id="lbMenu" class="kecil">← Kembali ke menu</button></div></div>
 
-<div id="putar"><div class="hp">📱</div>Miringkan HP untuk bermain<small>Game ini dimainkan dengan layar miring</small><button id="putarX">Tetap tegak</button></div>
+<div id="putar"><div class="hp">📱</div>Miringkan HP untuk bermain<small>Game ini dimainkan dengan layar miring</small><button id="putarX">📱 Layar Miring</button></div>
 <div id="load"><b>Memuat arena 3D…</b><div class="bar"><u></u></div><small id="lmsg">Pertama kali butuh beberapa detik</small></div>
 
 <script type="module">
@@ -709,7 +709,7 @@ function muatModelHero(hero, T, onProg, skin = '') {
     if (T.model) { T.pivot.remove(T.model); T.mixer && T.mixer.stopAllAction(); }                           // ganti skin
     m.position.y -= TINGGI / 2; T.pivot.add(m);
     T.model = m; T.mixer = new THREE.AnimationMixer(m); T.act = {}; T.cur = ''; T.bahan = []; T.skin = skin; T.prosedural = skin === 'lompat';
-    if (emas) { T.skin = 'emas'; m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xffc44a); o.material.metalness = .55; o.material.roughness = .35; } }); }
+    if (emas) { T.skin = 'emas'; m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xff9ccf); o.material.metalness = .05; o.material.roughness = .7; } }); }
     m.traverse(o => { if (o.isMesh) [].concat(o.material).forEach(x => { if (!T.bahan.includes(x)) T.bahan.push(x); }); });
     if (hero === 'tuyul') siapkanTuyul(gl, m, T); else if (hero === 'kunti') siapkanKunti(gl, m, T); else if (skin === 'lompat') siapkanOcongLompat(gl, m, T); else siapkanOcong(gl, m, T);
     mainObj(T, 'diam'); res();
@@ -1920,7 +1920,10 @@ async function layarMiring() {
 function cekTegak() { const ketik = document.activeElement && document.activeElement.tagName === 'INPUT'; const tegak = DI_HP && innerHeight > innerWidth && !LAYAR.tolak && !ketik; $('#putar').classList.toggle('on', tegak); }
 document.addEventListener('pointerdown', e => { if (DI_HP && !fsEl() && !e.target.closest('#putarX,#mNama,#mKode')) layarMiring(); }, true);
 addEventListener('resize', cekTegak); addEventListener('orientationchange', () => setTimeout(cekTegak, 300));
-$('#putarX').onclick = () => { LAYAR.tolak = true; cekTegak(); };
+$('#putarX').onclick = async () => {   // tombol: layar penuh + kunci miring; HP yang tidak bisa dikunci (iPhone) → minta putar manual
+  await layarMiring();
+  setTimeout(() => { if (innerHeight > innerWidth) $('#putar small').textContent = 'HP ini tidak bisa miring otomatis — putar HP-mu ke samping (matikan kunci rotasi)'; }, 900);
+};
 let MODEL_SIAP = null;
 async function mulai() {
   cekTegak();

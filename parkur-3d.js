@@ -12,6 +12,7 @@ const S = 1 / 62;                       // 62 piksel dunia = 1 meter
 const TINGGI = 1.7;                     // tinggi hero (meter) — sama untuk Ocong & Kunti
 const AIR = -50;                        // permukaan kali (piksel dunia); mati di PKWATER (-70)
 const MODEL_BONEKA = 'model-3d/skinocong.glb';   // dipakai untuk skin "Ocong Boneka Horor"
+const MODEL_OCONG = 'model-3d/skinocong-lompat.glb';   // hero Ocong (Pocong Lompat, sama dengan Game 3D); skin Pink (id kartu pocong:emas) = model ini berwarna pink
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 // ---------- renderer ----------
@@ -459,10 +460,10 @@ function mulai3D() {
   // Ocong & Kunti dibuat langsung dari bentuk 3D (tanpa file); skin "Ocong Boneka Horor" memakai model .glb
   function buatOcong(skin) {
     const g = new THREE.Group(), emas = skin === 'pocong:emas';
-    const kain = new THREE.MeshStandardMaterial(emas ? { color: 0xe0b04a, metalness: .55, roughness: .45 } : { map: T_KAIN, color: 0xffffff, roughness: .95 });
+    const kain = new THREE.MeshStandardMaterial(emas ? { color: 0xff9ccf, metalness: .05, roughness: .8 } : { map: T_KAIN, color: 0xffffff, roughness: .95 });
     const prof = [[0, 0], [.15, .02], [.21, .2], [.25, .6], [.265, 1.0], [.245, 1.22], [.165, 1.34], [.205, 1.44], [.215, 1.58], [.16, 1.69], [.06, 1.75], [0, 1.76]].map(p => new THREE.Vector2(p[0], p[1]));
     const badan = new THREE.Mesh(new THREE.LatheGeometry(prof, 22), kain); badan.castShadow = true; g.add(badan);
-    const ikat = emas ? new THREE.MeshStandardMaterial({ color: 0x8a5a10, metalness: .6, roughness: .5 }) : new THREE.MeshLambertMaterial({ color: 0xbdb5a5 });
+    const ikat = emas ? new THREE.MeshStandardMaterial({ color: 0xc0508a, metalness: .1, roughness: .7 }) : new THREE.MeshLambertMaterial({ color: 0xbdb5a5 });
     [[1.34, .17], [.16, .2]].forEach(([y, r]) => { const t = new THREE.Mesh(new THREE.TorusGeometry(r, .03, 6, 18), ikat); t.rotation.x = Math.PI / 2; t.position.y = y; g.add(t); });
     for (let i = 0; i < 4; i++) {        // pucuk ikatan kepala
       const c = new THREE.Mesh(new THREE.ConeGeometry(.045, .2, 5), kain); const a = i / 4 * Math.PI * 2;
@@ -544,6 +545,26 @@ function mulai3D() {
       for (const k in HERO) if (HERO[k].skin === 'pocong:boneka') { buang(k); }   // ganti boneka sementara dengan model asli
     }, undefined, () => { BONEKA = null; });
   }
+  // hero Ocong: model Pocong Lompat (animasi Hop & Idle), dimuat sekali lalu digandakan untuk tiap pemain
+  let OCONG3D = null, ocongMuat = 0;
+  function muatOcong3D() {
+    if (ocongMuat) return; ocongMuat = 1;
+    new GLTFLoader().load(MODEL_OCONG, gl => {
+      const m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.material) o.material.envMapIntensity = .6; } });
+      const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y, sk = TINGGI / h;
+      m.scale.set(sk * 1.2, sk, sk * 1.2); m.position.y = -bb.min.y * sk;   // sedikit gemuk, sama seperti di Game 3D
+      const cari = n => THREE.AnimationClip.findByName(gl.animations, n), hop = cari('Hop'), idle = cari('Idle') || hop;
+      OCONG3D = { m, K: { jalan: hop, diam: idle } };
+      for (const k in HERO) if (HERO[k].jenis === 'ocong') buang(k);   // ganti Ocong sementara dengan model asli
+    }, undefined, () => { OCONG3D = null; });
+  }
+  function buatOcong3D(skin) {
+    const m = SkeletonUtils.clone(OCONG3D.m), mixer = new THREE.AnimationMixer(m), act = {};
+    for (const n in OCONG3D.K) if (OCONG3D.K[n]) act[n] = mixer.clipAction(OCONG3D.K[n]);
+    if (skin === 'pocong:emas') m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xff9ccf); o.material.metalness = .05; o.material.roughness = .7; } });
+    const root = new THREE.Group(), badanG = new THREE.Group(); badanG.add(m); root.add(badanG);
+    return { root, badanG, jenis: 'lompat', mixer, act, cur: '' };
+  }
   function buatBoneka() {
     const m = SkeletonUtils.clone(BONEKA.m), mixer = new THREE.AnimationMixer(m), act = {};
     for (const n in BONEKA.K) { act[n] = mixer.clipAction(BONEKA.K[n]); }
@@ -564,8 +585,8 @@ function mulai3D() {
     const mauBoneka = id === 'pocong' && skin === 'pocong:boneka';
     if (h && (h.id !== id || h.skin !== skin || (mauBoneka && BONEKA && h.jenis !== 'boneka'))) { buang(k); h = null; }
     if (!h) {
-      if (mauBoneka) muatBoneka();
-      h = id === 'kuntilanak' ? buatKunti(skin) : mauBoneka && BONEKA ? buatBoneka() : buatOcong(skin);
+      if (mauBoneka) muatBoneka(); else if (id !== 'kuntilanak') muatOcong3D();
+      h = id === 'kuntilanak' ? buatKunti(skin) : mauBoneka && BONEKA ? buatBoneka() : !mauBoneka && OCONG3D ? buatOcong3D(skin) : buatOcong(skin);
       h.id = id; h.skin = skin; h.arah = 0; h.hop = 0;
       h.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
       h.bay = new THREE.Mesh(BAYANGAN, M_BAY.clone()); h.bay.rotation.x = -Math.PI / 2; h.bay.renderOrder = 1;
@@ -597,6 +618,9 @@ function mulai3D() {
       B.rotation.x = P2.walk > 0 ? .22 : .05;
       h.tangan.forEach((a, i) => { a.rotation.x = -1.1 + Math.sin(t * 3 + i * 1.7) * .12; });
       h.baju.emissiveIntensity = P2.glide > 0 ? 2.2 : .6;
+    } else if (h.jenis === 'lompat') {
+      mainAnim(h, jalan || !diTanah ? 'jalan' : 'diam'); h.mixer.update(dt * (jalan ? 1.4 : 1));
+      if (!diTanah) B.rotation.x = THREE.MathUtils.clamp(-(P2.vz || 0) * .03, -.25, .25);
     } else if (h.jenis === 'boneka') {
       mainAnim(h, !diTanah ? 'loncat' : jalan ? 'jalan' : 'diam'); h.mixer.update(dt * (jalan ? 1.3 : 1));
     }
