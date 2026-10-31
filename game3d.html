@@ -719,7 +719,7 @@ function muatModelHero(hero, T, onProg, skin = '') {
     if (skin === 'lompat') { const GEMOY = { lebar: 1.2, tinggi: 1 }, sk = TINGGI / h; m.scale.set(sk * GEMOY.lebar, sk * GEMOY.tinggi, sk * GEMOY.lebar); m.position.y = -bb.min.y * sk * GEMOY.tinggi; }   // Pocong Lompat: lebih gemuk & sedikit lebih tinggi
     if (!T.pivot) { T.pivot = new THREE.Group(); T.pivot.position.y = TINGGI / 2; T.tilt.add(T.pivot); }   // poros di tengah badan (untuk berguling)
     if (T.model) { T.pivot.remove(T.model); T.mixer && T.mixer.stopAllAction(); }                           // ganti skin
-    m.position.y -= TINGGI / 2; T.pivot.add(m);
+    m.position.y -= TINGGI / 2; T.pivot.add(m); m.userData.sx0 = m.scale.x; m.userData.sy0 = m.scale.y;
     T.model = m; T.mixer = new THREE.AnimationMixer(m); T.act = {}; T.cur = ''; T.bahan = []; T.skin = skin; T.prosedural = skin === 'lompat';
     if (emas) { T.skin = 'emas'; m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xff9ccf); o.material.metalness = .05; o.material.roughness = .7; } }); }
     m.traverse(o => { if (o.isMesh) [].concat(o.material).forEach(x => { if (!T.bahan.includes(x)) T.bahan.push(x); }); });
@@ -732,7 +732,9 @@ function siapkanOcong(gl, m, T) {
   const fps = 24, sub = (c, n, a, b) => THREE.AnimationUtils.subclip(c, n, a, b, fps);
   const sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
   const lompat = cari('jump_rope_01'), guling = cari('rolling'), kalah = cari('defeat'), diam = cari('pocong') || gl.animations[0];
-  if (lompat) T.act.jalan = T.mixer.clipAction(rapikanKlip(sub(lompat, 'jalan', 22, 46), m, .2, true));
+  // jalan = lompat-lompat khas pocong: badan tetap terbungkus kaku (pose diam), loncatan dibuat dengan kode (lompatPocong)
+  if (diam) { T.act.jalan = T.mixer.clipAction(rapikanKlip(diam.clone(), m, 0, false)); T.hopY0 = m.position.y; T.hopF = 0; T.hopLoncat = true; }
+  else if (lompat) T.act.jalan = T.mixer.clipAction(rapikanKlip(sub(lompat, 'jalan', 22, 46), m, .2, true));
   if (lompat) T.act.loncat = sekali(T.mixer.clipAction(rapikanKlip(sub(lompat, 'loncat', 18, 34), m, .2, true)));
   if (guling) T.act.guling = sekali(T.mixer.clipAction(rapikanKlip(sub(guling, 'guling', 14, 58), m, 0, true)));
   if (kalah) T.act.kalah = sekali(T.mixer.clipAction(rapikanKlip(kalah, m, .4, false)));
@@ -743,6 +745,23 @@ function siapkanOcongLompat(gl, m, T) {   // model tanpa tulang: animasi Hop & I
   const hop = cari('Hop'), idle = cari('Idle') || hop;
   if (idle) { T.act.diam = T.mixer.clipAction(idle); T.act.guling = T.mixer.clipAction(idle.clone()); T.act.kalah = sekali(T.mixer.clipAction(idle.clone())); }
   if (hop) { T.act.jalan = T.mixer.clipAction(hop); T.act.loncat = sekali(T.mixer.clipAction(hop.clone())); }
+}
+// Skin Boneka (bertopi): saat berjalan badan meloncat-loncat dengan kedua kaki rapat, sedikit condong ke depan & mendarat mengempis
+function lompatPocong(T, dt) {
+  if (!T || !T.hopLoncat || !T.model) return;
+  const m = T.model;
+  if (T.cur === 'jalan') {
+    T.hopF += dt * 8.5;                                   // ±2,7 loncatan per detik
+    const s = Math.abs(Math.sin(T.hopF)), darat = 1 - Math.min(1, s * 4);   // darat: 1 saat menyentuh tanah
+    m.position.y = T.hopY0 + s * .3;
+    m.rotation.x = .12 * s;                                // condong ke depan saat melayang
+    m.scale.y = m.userData.sy0 * (1 - .08 * darat); m.scale.x = m.scale.z = m.userData.sx0 * (1 + .05 * darat);
+  } else if (m.position.y !== T.hopY0 || m.rotation.x) {
+    const k = Math.min(1, dt * 14); m.position.y += (T.hopY0 - m.position.y) * k; m.rotation.x *= 1 - k;
+    m.scale.y += (m.userData.sy0 - m.scale.y) * k; m.scale.x = m.scale.z = m.scale.x + (m.userData.sx0 - m.scale.x) * k;
+    if (Math.abs(m.position.y - T.hopY0) < .002) { m.position.y = T.hopY0; m.rotation.x = 0; m.scale.y = m.userData.sy0; m.scale.x = m.scale.z = m.userData.sx0; }
+    T.hopF = 0;
+  }
 }
 function setTembus(T, a) { (T.bahan || []).forEach(x => { x.transparent = a < 1; x.opacity = a; x.depthWrite = a >= 1; }); }
 function main(nama, fade = .15, kecepatan = 1) {
@@ -1255,7 +1274,7 @@ function updPemain(dt) {
   batasi(pos);
   // putar badan ke arah hadap dengan halus
   let d = P.arah - P.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); P.root.rotation.y += d * Math.min(1, dt * 14);
-  P.mixer && P.mixer.update(dt);
+  P.mixer && P.mixer.update(dt); lompatPocong(P, dt);
   ['bA', 'b1', 'b2', 'b3'].forEach((id, i) => { const b = $('#' + id), c = P.cd[i], v = c > 0 ? Math.ceil(c) : 0; b.querySelector('.cd').style.background = c > 0 ? `conic-gradient(#000c ${c / CD_MAX[i]}turn,#0006 0)` : ''; b.querySelector('em').textContent = c > .5 && i ? v : ''; });
 }
 
@@ -1612,7 +1631,7 @@ async function buatBotPro(o) {
     // terlihat oleh pemain di HP ini?
     const tampak = ctx.kawan ? true : B.hilang <= 0 && terlihatDari(pos, P.root.position);
     T.root.visible = tampak; mt.sembunyi = !tampak; if (ctx.kawan) setTembus(T, B.hilang > 0 ? .35 : 1);
-    T.mixer.update(dt);
+    T.mixer.update(dt); lompatPocong(T, dt);
   }
   function jalankanSkill(dt, I) {
     const t = B.t, f = dep(T.arah);
@@ -1963,7 +1982,7 @@ function updLawan(dt) {
   if (R.root.position.distanceTo(R.tujuan) > 5) R.root.position.copy(R.tujuan); else R.root.position.lerp(R.tujuan, Math.min(1, dt * 12));
   let d = R.arah - R.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); R.root.rotation.y += d * Math.min(1, dt * 14);
   const k = Math.min(1, dt * 16); R.tilt.position.y += (R.ty - R.tilt.position.y) * k; R.tilt.rotation.x += (R.rx - R.tilt.rotation.x) * k; R.tilt.rotation.z += (R.rz - R.tilt.rotation.z) * k; R.tilt.rotation.y = R.ry;
-  mainObj(R, R.an, .15, R.ts); R.mixer.update(dt);
+  mainObj(R, R.an, .15, R.ts); R.mixer.update(dt); lompatPocong(R, dt);
   if (R.pivot) { R.gulingT = R.an === 'guling' && R.prosedural ? (R.gulingT || 0) + dt : 0; R.pivot.rotation.x = R.gulingT > 0 && R.gulingT < .8 ? R.gulingT * 15 : 0; }   // guling buatan (skin Pocong Lompat)
   const p = R.root.position;
   if (R.hero === 'kunti' && (R.fl & 1) && Math.random() < .7) percik(p.clone().setY(R.tilt.position.y + .5), 2, Math.random() < .5 ? KW.ungu : KW.merah, .7, .26);   // jejak Mode Terbang
@@ -2247,7 +2266,7 @@ function updObjTim(o, dt) {
   if (o.root.position.distanceTo(o.tujuan) > 5) o.root.position.copy(o.tujuan); else o.root.position.lerp(o.tujuan, Math.min(1, dt * 12));
   let d = o.arah - o.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); o.root.rotation.y += d * Math.min(1, dt * 14);
   const k = Math.min(1, dt * 16); o.tilt.position.y += (o.ty - o.tilt.position.y) * k; o.tilt.rotation.x += (o.rx - o.tilt.rotation.x) * k; o.tilt.rotation.z += (o.rz - o.tilt.rotation.z) * k; o.tilt.rotation.y = o.ry;
-  mainObj(o, o.act[o.an] ? o.an : 'diam', .15, o.ts); o.mixer.update(dt);
+  mainObj(o, o.act[o.an] ? o.an : 'diam', .15, o.ts); o.mixer.update(dt); lompatPocong(o, dt);
   if (o.pivot) { o.gulingT = o.an === 'guling' && o.prosedural ? (o.gulingT || 0) + dt : 0; o.pivot.rotation.x = o.gulingT > 0 && o.gulingT < .8 ? o.gulingT * 15 : 0; }
   const p = o.root.position;
   if (o.hero === 'kunti' && (o.fl & 1) && Math.random() < .7) percik(p.clone().setY(o.tilt.position.y + .5), 2, Math.random() < .5 ? KW.ungu : KW.merah, .7, .26);
