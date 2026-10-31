@@ -665,6 +665,7 @@ function mulai3D() {
     merah: { url: 'model-3d/skinkunti.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
     tuyul: { url: 'model-3d/tuyul.glb', tinggi: 1.15, klip: { diam: 'diam', jalan: 'lari', loncat: 'lompat' } },
     genderuwo: { url: 'model-3d/genderuwo.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // hero ke-4
+    leak: { url: 'model-3d/leak.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // skin Genderuwo: Leak
   };
   const M3D = {};
   function muatM3D(kunci) {
@@ -675,7 +676,7 @@ function mulai3D() {
       const K = {}; for (const n in c.klip) { const a = gl.animations.find(x => x.name === c.klip[n]); if (a) K[n] = rapikanKlip(a.clone(), m, 0, false); }
       if (!K.jalan) K.jalan = K.diam;
       M3D[kunci] = { m, K };
-      if (kunci === 'genderuwo') { const TG = { Hips: .6, Spine: .7, Spine1: .7, Spine2: .7, Neck: .6, Head: .4, LeftShoulder: .8, RightShoulder: .8, LeftArm: .8, RightArm: .8, LeftForeArm: .8, RightForeArm: .8, LeftHand: .9, RightHand: .9 }; M3D[kunci].tegap = TG; }   // punggung Genderuwo ditegakkan sebagian
+      if (kunci === 'genderuwo' || kunci === 'leak') { const TG = { Hips: .6, Spine: .7, Spine1: .7, Spine2: .7, Neck: .6, Head: .4, LeftShoulder: .8, RightShoulder: .8, LeftArm: .8, RightArm: .8, LeftForeArm: .8, RightForeArm: .8, LeftHand: .9, RightHand: .9 }; M3D[kunci].tegap = TG; }   // punggung Genderuwo ditegakkan sebagian
       for (const k in HERO) if (HERO[k].kunci3d === kunci && !HERO[k].mixer) buang(k);   // ganti bentuk sementara dengan model asli
     }, undefined, () => { });
   }
@@ -686,7 +687,7 @@ function mulai3D() {
     const root = new THREE.Group(), badanG = new THREE.Group(); badanG.add(m); root.add(badanG);
     m.traverse(o => { if (o.name === 'gendKepal') o.visible = false; });   // Parkur: Genderuwo bercakar terbuka saja
     const tegapG = []; if (D.tegap) m.traverse(o => { if (!o.isBone) return; const k = o.name.replace(/^mixamorig:?/, ''); const f = D.tegap[k] || (/(Thumb|Index|Middle|Ring|Pinky)/.test(k) ? 1 : 0); if (f) tegapG.push([o, o.quaternion.clone(), f]); });
-    return { root, badanG, jenis: kunci === 'tuyul' || kunci === 'genderuwo' ? 'tuyul3d' : 'kunti3d', mixer, act, cur: '', tegapG };   // Genderuwo memakai gerak yang sama dengan Tuyul (diam / lari / lompat)
+    return { root, badanG, jenis: kunci === 'tuyul' || kunci === 'genderuwo' || kunci === 'leak' ? 'tuyul3d' : 'kunti3d', mixer, act, cur: '', tegapG };   // Genderuwo memakai gerak yang sama dengan Tuyul (diam / lari / lompat)
   }
   function buatBoneka() {
     const m = SkeletonUtils.clone(BONEKA.m), mixer = new THREE.AnimationMixer(m), act = {};
@@ -708,7 +709,7 @@ function mulai3D() {
     const mauBoneka = id === 'pocong' && skin === 'pocong:boneka';
     if (h && (h.id !== id || h.skin !== skin || (mauBoneka && BONEKA && h.jenis !== 'boneka'))) { buang(k); h = null; }
     if (!h) {
-      const kunci3d = id === 'genderuwo' ? 'genderuwo' : id === 'tuyul' ? 'tuyul' : id === 'kuntilanak' ? (skin === 'kuntilanak:merah' ? 'merah' : 'kunti') : '';
+      const kunci3d = id === 'genderuwo' ? (skin === 'genderuwo:leak' ? 'leak' : 'genderuwo') : id === 'tuyul' ? 'tuyul' : id === 'kuntilanak' ? (skin === 'kuntilanak:merah' ? 'merah' : 'kunti') : '';
       if (kunci3d) muatM3D(kunci3d); else if (mauBoneka) muatBoneka(); else muatOcong3D();
       h = kunci3d && M3D[kunci3d] ? buatM3D(kunci3d) : id === 'tuyul' || id === 'genderuwo' ? buatOcong('') : id === 'kuntilanak' ? buatKunti(skin) : mauBoneka && BONEKA ? buatBoneka() : !mauBoneka && OCONG3D ? buatOcong3D(skin) : buatOcong(skin);
       h.id = id; h.skin = skin; h.arah = 0; h.hop = 0; h.kunci3d = kunci3d;

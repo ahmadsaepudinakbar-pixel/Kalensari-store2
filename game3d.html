@@ -193,8 +193,8 @@ let PUSAT_Z = 0;                                                              //
 function aturArena() { PUSAT_Z = ARENA === 'kuil' ? 0 : 1; }
 const JARAK_AWAL = () => ARENA === 'kuil' ? 6 : 4.5;   // jarak pemain dari tengah arena saat mulai
 aturArena();
-const SKIN = HERO === 'ocong' ? (['lompat', 'emas'].includes(Q.get('skin')) ? Q.get('skin') : '') : (Q.get('skin') === 'merah' ? 'merah' : '');   // Ocong: '' Boneka / 'lompat' Pocong Lompat · Kunti: '' Kunti (utama) / 'merah' Kunti Merah
-const MODEL = HERO === 'genderuwo' ? 'model-3d/genderuwo.glb' : HERO === 'tuyul' ? 'model-3d/tuyul.glb' : HERO === 'kunti' ? (SKIN === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
+const SKIN = HERO === 'ocong' ? (['lompat', 'emas'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'genderuwo' ? (Q.get('skin') === 'leak' ? 'leak' : '') : (Q.get('skin') === 'merah' ? 'merah' : '');   // Genderuwo: 'leak' = skin Leak   // Ocong: '' Boneka / 'lompat' Pocong Lompat · Kunti: '' Kunti (utama) / 'merah' Kunti Merah
+const MODEL = HERO === 'genderuwo' ? (SKIN === 'leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb') : HERO === 'tuyul' ? 'model-3d/tuyul.glb' : HERO === 'kunti' ? (SKIN === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
 const EFEK = 'gambar-game/skin-boneka/efek/';           // gambar efek skill (.webp)
 const TINGGI = 1.7;                                      // tinggi boneka (meter)
 const BATAS = { x0: -13.5, x1: 13.5, z0: -8.5, z1: 10.5 };  // area bisa dilewati (Lapangan SD)
@@ -713,7 +713,7 @@ function rapikanKlip(clip, model, tRef, putar) {
 }
 function muatModelHero(hero, T, onProg, skin = '') {
   const emas = skin === 'emas'; if (emas) skin = 'lompat';   // T = P (pemain) atau R (lawan online); skin 'lompat' = Pocong Lompat
-  const url = hero === 'genderuwo' ? 'model-3d/genderuwo.glb' : hero === 'tuyul' ? 'model-3d/tuyul.glb' : hero === 'kunti' ? (skin === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : skin === 'lompat' ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';
+  const url = hero === 'genderuwo' ? (skin === 'leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb') : hero === 'tuyul' ? 'model-3d/tuyul.glb' : hero === 'kunti' ? (skin === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : skin === 'lompat' ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';
   return new Promise((res, rej) => new GLTFLoader().load(url, gl => {
     const m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) o.material.envMapIntensity = .6; } });
     const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y; m.scale.setScalar(TINGGI / h); m.position.y = -bb.min.y * TINGGI / h;
@@ -1634,7 +1634,7 @@ function updKamera(dt) {
 // membidik ke arah gerak lawan, memakai combo, kabur saat darah tipis, bersembunyi di semak,
 // dan mencari lawan yang menghilang di tempat terakhir terlihat.
 const BOT_HERO = ['ocong', 'kunti', 'tuyul', 'genderuwo'];
-const BOT_SKIN = { ocong: ['', 'lompat', 'emas'], kunti: ['', 'merah'], tuyul: [''], genderuwo: [''] };
+const BOT_SKIN = { ocong: ['', 'lompat', 'emas'], kunti: ['', 'merah'], tuyul: [''], genderuwo: ['', 'leak'] };
 const BOT_SRV = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo'];
 const pilihAcak = a => a[Math.floor(Math.random() * a.length)];
 // keadaan sasaran dalam bentuk yang sama: pemain (P), bot lokal, atau pemain/bot lain di Duel Tim
@@ -2068,8 +2068,8 @@ const KILL_MENANG = 3; let SKOR = [0, 0];
 function updSkorBot() { const e = $('#timHud'); e.style.display = ''; e.innerHTML = `<span class="b">Anda ${SKOR[0]}</span><small>${KILL_MENANG} kill menang</small><span class="m">${SKOR[1]} Bot</span>`; }
 // ---- Pilih Hero langsung dari layar hasil (tanpa kembali ke menu) ----
 const IKON_HERO = { ocong: '👻', kunti: '🩸', tuyul: '👶', genderuwo: '👹' }, DESK_HERO = { ocong: 'jarak dekat', kunti: 'jarak jauh', tuyul: 'lincah', genderuwo: 'petarung kuat' };
-const PIL_SKIN = { ocong: [['lompat', '🐛 Pocong Lompat'], ['boneka', '🪆 Boneka Horor'], ['emas', '💗 Ocong Pink']], kunti: [['utama', '🤍 Kunti'], ['merah', '❤️ Kunti Merah']], tuyul: [['utama', '👶 Tuyul']], genderuwo: [['utama', '👹 Genderuwo']] };
-const kunciSkin = (h, s) => h === 'ocong' ? (s || 'boneka') : (s || 'utama'), skinUrl = (h, k) => h === 'ocong' ? (k === 'boneka' ? '' : k) : k === 'merah' ? 'merah' : '';
+const PIL_SKIN = { ocong: [['lompat', '🐛 Pocong Lompat'], ['boneka', '🪆 Boneka Horor'], ['emas', '💗 Ocong Pink']], kunti: [['utama', '🤍 Kunti'], ['merah', '❤️ Kunti Merah']], tuyul: [['utama', '👶 Tuyul']], genderuwo: [['utama', '👹 Genderuwo'], ['leak', '🔥 Leak']] };
+const kunciSkin = (h, s) => h === 'ocong' ? (s || 'boneka') : (s || 'utama'), skinUrl = (h, k) => h === 'ocong' ? (k === 'boneka' ? '' : k) : k === 'merah' ? 'merah' : k === 'leak' ? 'leak' : '';
 // hero & skin yang dimiliki dikirim game.html (dari kartu yang sudah diklaim)
 const PUNYA = (() => { const a = (Q.get('punya') || '').split(',').filter(h => NAMA_HERO[h]); ['ocong', HERO].forEach(h => { if (!a.includes(h)) a.push(h); }); return a; })();
 const SKIN_PUNYA = new Set(['ocong:lompat', 'kunti:utama', 'tuyul:utama', 'genderuwo:utama', HERO + ':' + kunciSkin(HERO, SKIN), ...(Q.get('skins') || '').split(',').filter(Boolean)]);
