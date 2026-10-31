@@ -773,7 +773,10 @@ function setTembus(T, a) { (T.bahan || []).forEach(x => { x.transparent = a < 1;
 function main(nama, fade = .15, kecepatan = 1) {
   const a = P.act[nama]; if (!a) return;
   a.timeScale = kecepatan; if (P.cur === nama) return;
-  a.reset().setEffectiveWeight(1).fadeIn(fade).play(); const lama = P.act[P.cur]; if (lama) lama.fadeOut(fade); P.cur = nama;
+  a.reset().setEffectiveWeight(1).fadeIn(fade).play(); const lama = P.act[P.cur]; if (lama && lama !== a) lama.fadeOut(fade); else if (!lama) lepasLain(P.act, a, fade); P.cur = nama;
+}
+function lepasLain(act, a, fade) {   // animasi sebelumnya tidak tercatat (mis. pose kalah saat ronde baru) → padamkan semua yang masih aktif
+  Object.values(act).forEach(x => { if (x && x !== a && x.isRunning && (x.isRunning() || x.getEffectiveWeight() > 0)) x.fadeOut(fade); });
 }
 
 // ================== BONEKA LATIHAN (MUSUH) ==================
@@ -1993,7 +1996,7 @@ $('#phMain').onclick = () => {
 function mainLagi(ronde) {   // ronde = lanjut ronde berikutnya (skor tetap); tanpa ronde = tanding ulang dari 0
   const darahP = ronde && P.state !== 'kalah' ? Math.max(1, P.hp) : HP_MAX[HERO];   // pemenang ronde: darah tidak kembali penuh
   SELESAI = false; $('#hasil').classList.remove('on'); K.terbangT = 0; K.lesat = 0;
-  P.hp = darahP; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
+  P.hp = darahP; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; GW.amuk = GW.combo = GW.comboT = 0; P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
   if (HERO === 'kunti') kuntiTembus(1);
   if (BOT) BOT.reset(!ronde, !!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
   if (LAWAN === 'bot' && !ronde) { SKOR = [0, 0]; updSkorBot(); }
@@ -2173,7 +2176,7 @@ function kirimKeadaan() {
 }
 function mainObj(T, nama, fade = .15, kec = 1) {
   const a = T.act[nama]; if (!a) return; a.timeScale = kec; if (T.cur === nama) return;
-  a.reset().setEffectiveWeight(1).fadeIn(fade).play(); const l = T.act[T.cur]; if (l) l.fadeOut(fade); T.cur = nama;
+  a.reset().setEffectiveWeight(1).fadeIn(fade).play(); const l = T.act[T.cur]; if (l && l !== a) l.fadeOut(fade); else if (!l) lepasLain(T.act, a, fade); T.cur = nama;
 }
 function updLawan(dt) {
   if (!R.model) return;
