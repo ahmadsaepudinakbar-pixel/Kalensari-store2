@@ -765,7 +765,7 @@ function buatMusuh(x, z) {
   MUSUH.push(mt); return mt;
 }
 function kena(mt, dmg, dari, dorong = 4, angkat = 0) {
-  if (mt.mati) return;
+  if (mt.mati || (SELESAI && LAWAN === 'bot')) return;   // jeda antar ronde: sisa efek tidak melukai bot
   if (mt.remote) {   // lawan online: kirim damage ke HP lawan (darahnya dihitung di sana)
     const [x, z] = keNet(dari.x, dari.z); netEvent({ k: 'hit', ke: mt.id, d: dmg, x: r2(x), z: r2(z), dr: dorong });
     angka(mt.g.position, dmg); mt.kilau = .18; hentiSejenak = Math.max(hentiSejenak, .05); return;
@@ -1701,9 +1701,9 @@ async function buatBotPro(o) {
     }
     else beres();
   }
-  async function reset(gantiHero) {
+  async function reset(gantiHero, simpanDarah) {   // simpanDarah: pemenang ronde tidak dipulihkan
     if (gantiHero) { const h = pilihAcak(BOT_HERO); await pakaiHero(h, pilihAcak(BOT_SKIN[h])); }
-    mt.hp = mt.hpMax; mt.mati = 0; mt.kunci = mt.pusing = 0; mt.v.set(0, 0, 0); mt.y = mt.vy = 0; mt.kilau = 0;
+    mt.hp = simpanDarah && !mt.mati ? Math.max(1, mt.hp) : mt.hpMax; mt.mati = 0; mt.kunci = mt.pusing = 0; mt.v.set(0, 0, 0); mt.y = mt.vy = 0; mt.kilau = 0;
     pos.copy(o.posAwal); Object.assign(B, { state: 'bebas', cd: [0, 1.5, 1.5, 3], pikir: .6, sudahMati: false, hilang: 0, terbangT: 0, lesat: 0, koin: 0, sergap: false, jatuh: 0, lihat: null, lihatT: 99, ent: null, prev: null, tujuan: null, combo: 0, agresi: rnd(.85, 1.2) });
     T.arah = o.arahAwal || 0; T.root.rotation.y = T.arah; T.tilt.rotation.set(0, 0, 0); setTembus(T, 1); T.cur = ''; mainObj(T, 'diam', .1); if (mt.bar) mt.bar.style.display = '';
   }
@@ -1734,7 +1734,8 @@ function selesai(hasil) {
     SKOR[hasil === 'menang' ? 0 : 1]++; updSkorBot();
     if (Math.max(SKOR[0], SKOR[1]) < KILL_MENANG) {
       banner((hasil === 'menang' ? '💀 Bot tumbang!  ' : '☠️ Anda tumbang!  ') + SKOR[0] + ' – ' + SKOR[1], hasil === 'menang' ? '#7ad0ff' : '#ff7a7a');
-      setTimeout(() => { if (!SELESAI) return; mainLagi(true); banner('⚔️ Ronde ' + (SKOR[0] + SKOR[1] + 1) + ' · mulai!', '#ffd166'); }, 2400);
+      setTimeout(() => { if (!SELESAI) return; mainLagi(true); banner('⚔️ Ronde ' + (SKOR[0] + SKOR[1] + 1) + ' · mulai!', '#ffd166');
+        banner(hasil === 'menang' ? '❤️ Darah Anda tetap sisa ronde lalu' : '❤️ Darah bot tetap sisa ronde lalu', '#ffb4b4'); }, 2400);
       return;
     }
   }
@@ -1773,10 +1774,11 @@ $('#phMain').onclick = () => {
   $('#phMain').textContent = 'Memuat…'; location.replace(location.pathname + '?' + q);
 };
 function mainLagi(ronde) {   // ronde = lanjut ronde berikutnya (skor tetap); tanpa ronde = tanding ulang dari 0
+  const darahP = ronde && P.state !== 'kalah' ? Math.max(1, P.hp) : HP_MAX[HERO];   // pemenang ronde: darah tidak kembali penuh
   SELESAI = false; $('#hasil').classList.remove('on'); K.terbangT = 0; K.lesat = 0;
-  P.hp = HP_MAX[HERO]; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
+  P.hp = darahP; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
   if (HERO === 'kunti') kuntiTembus(1);
-  if (BOT) BOT.reset(!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
+  if (BOT) BOT.reset(!ronde, !!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
   if (LAWAN === 'bot' && !ronde) { SKOR = [0, 0]; updSkorBot(); }
 }
 $('#lagi').onclick = () => { if (TIM.on) { timKeLobi(); return; } if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
