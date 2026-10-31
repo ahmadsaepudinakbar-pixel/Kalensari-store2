@@ -497,37 +497,48 @@ function mulai3D() {
   }
   function bangunJalan(dasarY) {
     const R = PK.run; if (!R) return;
-    const LEN = PK.pl[PK.pl.length - 1].x + PK.pl[PK.pl.length - 1].w;
+    const jl = PK.pl[0], Y0 = jl.y, Y1 = jl.y + jl.d, LJ = window.PKLANE || PKLANE, last = PK.pl[PK.pl.length - 1], LEN = last.x + last.w;
+    // pemandangan dikelompokkan per 1.500 px → yang jauh disembunyikan (ringan untuk HP)
+    const CH = 1500, kel = {}, chunk = x => { const k = Math.floor(x / CH); return kel[k] || (kel[k] = grup(dunia, 0, 0, 0)); };
+    JALAN = { kel, CH };
     bidang(0, -1500, LEN + 3000, -1600, 2400, dasarY - .1, new THREE.MeshBasicMaterial({ color: 0x050805 }));
-    // tanah di luar jalan: rumput (gang), kebun, kuburan
+    // tanah di luar jalan: rumput (gang/kampung), kebun, kuburan
     PK.pl.forEach(q => { const m = q.o.tanah === 'kubur' ? M2.kubur : q.o.tanah === 'kebun' ? M2.kebun : new THREE.MeshLambertMaterial({ map: T_RUMPUT });
       tanahKotak(q.x, q.x + q.w, -1600, q.y, dasarY, m); tanahKotak(q.x, q.x + q.w, q.y + q.d, 2400, dasarY, m); });
     tanahKotak(-1500, 0, -1600, 2400, dasarY, new THREE.MeshLambertMaterial({ map: T_RUMPUT })); tanahKotak(LEN, LEN + 3000, -1600, 2400, dasarY, new THREE.MeshLambertMaterial({ map: T_RUMPUT }));
     // garis jalur putus-putus & pagar bambu di kedua tepi jalan
-    { const n = Math.ceil(LEN / 70) * 2, im = new THREE.InstancedMesh(new THREE.BoxGeometry(34 * S, .012, .05), new THREE.MeshBasicMaterial({ color: 0xf2e6c0, transparent: true, opacity: .45 }), n), mt = new THREE.Matrix4();
-      let i = 0; [355, 405].forEach(y => { for (let x = 30; x < LEN && i < n; x += 70) { mt.makeTranslation(x * S, .006, y * S); im.setMatrixAt(i++, mt); } }); im.count = i; dunia.add(im); }
-    [294, 466].forEach(yy => { [.25, .5].forEach(h => { const r = tabung(.025, .025, LEN * S, M_BAMBU2, LEN / 2 * S, h, yy * S, dunia, 5); r.rotation.z = Math.PI / 2; r.castShadow = false; });
+    { const batas = LJ.slice(1).map((y, k) => (y + LJ[k]) / 2), n = Math.ceil(LEN / 70) * batas.length;
+      const im = new THREE.InstancedMesh(new THREE.BoxGeometry(34 * S, .012, .05), new THREE.MeshBasicMaterial({ color: 0xf2e6c0, transparent: true, opacity: .45 }), n), mt = new THREE.Matrix4();
+      let i = 0; batas.forEach(y => { for (let x = 30; x < LEN && i < n; x += 70) { mt.makeTranslation(x * S, .006, y * S); im.setMatrixAt(i++, mt); } }); im.count = i; dunia.add(im); }
+    [Y0 - 6, Y1 + 6].forEach(yy => { [.25, .5].forEach(h => { const r = tabung(.025, .025, LEN * S, M_BAMBU2, LEN / 2 * S, h, yy * S, dunia, 5); r.rotation.z = Math.PI / 2; r.castShadow = false; });
       const n = Math.floor(LEN / 75), im = new THREE.InstancedMesh(new THREE.CylinderGeometry(.035, .04, .65, 5), M_BAMBU2, n), mt = new THREE.Matrix4();
       for (let k = 0; k < n; k++) { mt.makeTranslation((k + .5) * 75 * S, .32, yy * S); im.setMatrixAt(k, mt); } dunia.add(im); });
-    // pemandangan kiri-kanan: gang (rumah & lampu), kebun pisang, kuburan
-    const warna = [0xffffff, 0xd8e8d0, 0xf0d8c8, 0xd0dcf0, 0xf0e6b8];
-    let w = 0; for (let x = 150; x < 6000; x += rnd(330, 430)) { const kiri = w % 2 === 0; const r = rumah(x * S, (kiri ? 180 : 585) * S, rnd(3.2, 4.2), warna[w % 5]); if (!kiri) r.rotation.y = Math.PI; w++; }
-    for (let x = 600, k = 0; x < 6000; x += 900, k++) lampu(x * S, (k % 2 ? 274 : 486) * S, k % 3 === 0);
-    for (let x = 6050; x < 12000; x += rnd(160, 260)) { pohonPisang(x * S, rnd(120, 250) * S, rnd(.9, 1.2)); pohonPisang((x + 80) * S, rnd(520, 650) * S, rnd(.9, 1.2)); }
-    for (let x = 12050; x < 18000; x += rnd(90, 150)) { nisan(x * S, rnd(150, 270) * S, rnd(-.3, .3)); if (Math.random() < .7) nisan(x * S, rnd(500, 620) * S, rnd(-.3, .3)); }
-    for (let x = 12400; x < 18000; x += 1400) lampu(x * S, 274 * S, 0);
-    DESA = { kenStart: posRonda(-160 * S, 190 * S) };
-    // rintangan
-    JALAN = R.obs.map(o => { const g = grup(dunia, o.x * S, 0, o.y * S), e = { o, g, rot: 0 };
+    // pemandangan kiri-kanan menurut bagian lintasan
+    const warna = [0xffffff, 0xd8e8d0, 0xf0d8c8, 0xd0dcf0, 0xf0e6b8], kiri = Y0 - 120, kanan = Y1 + 120;
+    const pindah = (o, x) => { chunk(x).add(o); };   // pindahkan objek dari "dunia" ke kelompoknya
+    PK.pl.forEach(q => { if (q.t === 'finis') return; const x0 = q.x + 120, x1 = q.x + q.w - 60, t = q.o.tanah;
+      if (t === 'gang' || t === 'kampung') {
+        let w = 0; for (let x = x0; x < x1; x += rnd(330, 430)) { const ki = w % 2 === 0; const r = rumah(x * S, (ki ? kiri - 30 : kanan + 30) * S, rnd(3.2, 4.2), warna[(w + (t === 'kampung' ? 2 : 0)) % 5]); if (!ki) r.rotation.y = Math.PI; pindah(r, x); w++; }
+        for (let x = x0 + 400, k = 0; x < x1; x += 900, k++) pindah(lampu(x * S, (k % 2 ? Y0 - 18 : Y1 + 18) * S, k % 4 === 0), x);
+      } else if (t === 'kebun') {
+        for (let x = x0; x < x1; x += rnd(170, 260)) { pindah(pohonPisang(x * S, rnd(kiri - 130, kiri) * S, rnd(.9, 1.2)), x); pindah(pohonPisang((x + 80) * S, rnd(kanan, kanan + 130) * S, rnd(.9, 1.2)), x); }
+      } else if (t === 'kubur') {
+        for (let x = x0; x < x1; x += rnd(95, 150)) { pindah(nisan(x * S, rnd(kiri - 100, kiri + 20) * S, rnd(-.3, .3)), x); if (Math.random() < .7) pindah(nisan(x * S, rnd(kanan - 20, kanan + 100) * S, rnd(-.3, .3)), x); }
+        for (let x = x0 + 300; x < x1; x += 1500) pindah(lampu(x * S, (Y0 - 18) * S, 0), x);
+      } });
+    DESA = { kenStart: posRonda(-160 * S, (Y0 - 80) * S) };
+    // rintangan (ikut dikelompokkan)
+    JALAN.ob = R.obs.map(o => { const g = grup(chunk(o.x), o.x * S, 0, o.y * S), e = { o, g, rot: 0 };
       if (o.jenis === 'gerobak') obGerobak(g); else if (o.jenis === 'keranda') obKeranda(g); else if (o.jenis === 'pagar') obPagar(g);
       else if (o.jenis === 'jemuran') e.kain = obJemuran(g); else if (o.jenis === 'kambing') Object.assign(e, obKambing(g));
       g.rotation.y = o.jenis === 'kambing' ? Math.PI / 2 : 0; return e; });
   }
   function updJalan(t, dt, P2) {
     if (!JALAN) return;
-    const px = P2.x;
-    JALAN.forEach(e => {
-      const o = e.o, dekat = Math.abs(o.x - px) < 4200; e.g.visible = dekat; if (!dekat) return;
+    const px = P2.x, kc = Math.floor(px / JALAN.CH);
+    for (const k in JALAN.kel) JALAN.kel[k].visible = k >= kc - 1 && k <= kc + 3;   // hanya sekitar hero (±1,5 km di belakang, 6 km di depan)
+    JALAN.ob.forEach(e => {
+      const o = e.o, dekat = o.x - px > -900 && o.x - px < 4200; if (!dekat) return;
       if (o.jenis === 'kambing') { const zz = o.y * S, arah = zz - e.g.position.z; e.g.position.z = zz; if (Math.abs(arah) > 1e-4) e.g.rotation.y = arah > 0 ? -Math.PI / 2 : Math.PI / 2;   // kepala menghadap arah jalan
         e.kaki.forEach((k, i) => { k.rotation.z = Math.sin(t * 10 + (i % 2) * Math.PI) * .45; }); e.b.position.y = Math.abs(Math.sin(t * 10)) * .03; }
       if (e.kain) e.kain.forEach((m, i) => { m.rotation.x = Math.sin(t * 3 + i * 1.3 + o.x) * .18; });
@@ -843,8 +854,9 @@ function mulai3D() {
     if (PK.run) {   // Lari Jalan Desa: kamera di belakang hero (seperti game lari 3 jalur), ikut pindah jalur dengan halus
       if (camBaru2) { camZ = P2.y * S; camBaru2 = 0; } camZ += (P2.y * S - camZ) * (1 - Math.pow(.004, dt));
       const hx = P2.x * S, hy = Math.max(0, P2.z * S);
-      camT.set(hx + 5.5, .9 + hy * .35, camZ * .7 + 380 * S * .3);
-      camera.position.set(hx - 5.4, 3.1 + hy * .45, camZ * .8 + 380 * S * .2); camera.lookAt(camT);
+      const tengah = (PK.pl[0].y + PK.pl[0].d / 2) * S;   // kamera agak tertarik ke tengah jalan supaya 5 jalur terlihat
+      camT.set(hx + 5.5, .9 + hy * .35, camZ * .65 + tengah * .35);
+      camera.position.set(hx - 5.6, 3.4 + hy * .45, camZ * .75 + tengah * .25); camera.lookAt(camT);
       langit.position.set(camera.position.x, 0, camT.z);
     } else {
       camBaru2 = 1;
