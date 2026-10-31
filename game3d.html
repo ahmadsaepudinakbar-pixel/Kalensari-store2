@@ -833,8 +833,8 @@ function updLabel(dt) {
 
 // ================== KONTROL ==================
 const inp = { x: 0, z: 0, k: {} };
-addEventListener('keydown', e => { inp.k[e.key.toLowerCase()] = 1; const m = { j: 0, ' ': 0, u: 1, i: 2, o: 3 }[e.key.toLowerCase()]; if (m !== undefined) { e.preventDefault(); if (m === 1 || (m === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo')) { if (!e.repeat) { mulaiBidik(m); K.bidikKey = true; } } else pakai(m); } });
-addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.key.toLowerCase(); if ((kk === 'u' && K.bidik === 1) || (kk === 'i' && K.bidik === 2)) lepasBidik(); } });
+addEventListener('keydown', e => { inp.k[e.key.toLowerCase()] = 1; const m = { j: 0, ' ': 0, u: 1, i: 2, o: 3 }[e.key.toLowerCase()]; if (m !== undefined) { e.preventDefault(); if (m === 1 || (m === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo') || (m === 3 && HERO === 'tuyul')) { if (!e.repeat) { mulaiBidik(m); K.bidikKey = true; } } else pakai(m); } });
+addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.key.toLowerCase(); if ((kk === 'u' && K.bidik === 1) || (kk === 'i' && K.bidik === 2) || (kk === 'o' && K.bidik === 3)) lepasBidik(); } });
 { const J = $('#joy'), K = $('#knob'); let id = null;
   const mv = e => { const r = J.getBoundingClientRect(), R = r.width / 2, dx = e.clientX - r.left - R, dy = e.clientY - r.top - R, m = Math.min(1, Math.hypot(dx, dy) / R), a = Math.atan2(dy, dx); inp.x = Math.cos(a) * m; inp.z = Math.sin(a) * m; K.style.transform = `translate(${inp.x * R * .55}px,${inp.z * R * .55}px)`; };
   J.onpointerdown = e => { id = e.pointerId; J.setPointerCapture(id); mv(e); }; J.onpointermove = e => { if (e.pointerId === id) mv(e); };
@@ -844,7 +844,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
   else if (HERO === 'tuyul') { b.style.background = 'radial-gradient(#6a4a20,#1e1206)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['👊', '🛝', '🌀', '👶'][i]}</span>`); }
   else if (HERO === 'genderuwo') { b.style.background = 'radial-gradient(#5a2a14,#1a0a04)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['🦶', '🥊', '💥', '😡'][i]}</span>`); }
   else b.style.backgroundImage = `url(${EFEK}${['ikon-dasar', 'ikon-skill1', 'ikon-skill2', 'ikon-skill3'][i]}.webp)`;
-  if (i === 1 || (i === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo')) {   // skill 1 & 2: tahan + geser tombol untuk mengarahkan, lepas untuk pakai (Tuyul: skill 2 langsung)
+  if (i === 1 || (i === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo') || (i === 3 && HERO === 'tuyul')) {   // Tuyul: skill 3 juga bisa diarahkan (blink) · skill 1 & 2: tahan + geser tombol untuk mengarahkan, lepas untuk pakai (Tuyul: skill 2 langsung)
     if (!b.querySelector('.ik')) b.insertAdjacentHTML('afterbegin', '<span class="ik"></span>');
     const ik = b.querySelector('.ik');
     const geser = e => { const r = b.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), L = Math.hypot(dx, dy);
@@ -856,7 +856,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) K.bidik = false; };
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/150/250 + pusing · Hantaman 10 m)';
-if (HERO === 'tuyul') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Colek Kilat (curi koin) · U (tahan + mouse): Seluncur Licin · I: Ngilang 2 detik · O: Gerombolan Tuyul';
+if (HERO === 'tuyul') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Colek Kilat (curi koin) · U (tahan + mouse): Seluncur Licin · I: Ngilang 2,5 detik · O (tahan + mouse): Blink + Gerombolan Tuyul';
 if (HERO === 'kunti') { $('#nmhero').textContent = 'Kunti Merah'; $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Roh · U (tahan, arahkan dgn mouse): Frekuensi Suara · I (tahan, arahkan dgn mouse): Mode Terbang · O: Roh Pemburu'; }
 const pingsan = () => (P.kunci || 0) > 0 || (P.pusing || 0) > 0;   // terkena Roh Pemburu / Loncat Jauh lawan
 function arahGerak() {
@@ -1162,7 +1162,7 @@ function updBidik() {
   if (K.bidik) bidikMouse();
   if (HERO === 'tuyul') {
     const on = K.bidik && P.state === 'bebas'; PANAH.visible = !!on; if (!on) return;
-    PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, (K.bidik === 1 ? TYS.jarakSel : TYS.jarakGas) / TERBANG.lesat);
+    PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, (K.bidik === 1 ? TYS.jarakSel : K.bidik === 3 ? TYS.blink : TYS.jarakGas) / TERBANG.lesat);
     return;
   }
   if (HERO === 'genderuwo') {   // skill 1: panah arah cakaran · skill 2: lingkaran tempat mendarat
@@ -1308,7 +1308,7 @@ function updPemain(dt) {
 // animasi di tuyul.glb: diam, lari, seluncur, gasing, kalah, lompat, dive, flee_02, run
 const TY = { koin: 0, hilang: 0, sergap: false, grup: [], kena: null };
 const TUYUL_CEPAT = 4.6, TUYUL_TINGGI = 1.15;
-const TYS = { colek: 28, seluncur: 80, bonusSel: 40, jarakSel: 5, jarakGas: 3.5, hilang: 2, klon: 3, lamaKlon: 3, bonusKlon: 1.5, dmgKlon: 15 };
+const TYS = { colek: 28, seluncur: 80, bonusSel: 40, jarakSel: 5, jarakGas: 3.5, hilang: 2.5, blink: 2.5, klon: 3, lamaKlon: 3, bonusKlon: 1.5, dmgKlon: 15 };
 function siapkanTuyul(gl, m, T) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
   const klip = c => rapikanKlip(c, m, 0, false);
@@ -1351,7 +1351,12 @@ function pakaiTuyul(i) {
     P.state = 'seluncur'; TY.kena = new Set(); TY.bonus = pakaiKoin(); mainUlang('seluncur', .06, 1.6); fx('gelombang', pos.clone(), 1, .35, 0xd0b080); }
   else if (i === 2) { TY.hilang = TYS.hilang; TY.sergap = true;   // menghilang di tempat (tanpa melesat)
     fx('gelombang', pos.clone(), 1.3, .4, 0x9a9aa8); fx('percik', pos.clone().setY(.6), 24, 0xb0b0c0, 2.4); }
-  else if (i === 3) { P.state = 'panggil'; mainUlang('lompat', .08, 1.6); }
+  else if (i === 3) {   // Blink pendek ke arah bidikan (atau arah hadap), lalu memanggil gerombolan
+    if (K.bidik === 3 && K.diarahkan) P.arah = K.arahBidik;
+    fx('gelombang', pos.clone(), 1.1, .35, 0xe0c080); fx('percik', pos.clone().setY(.5), 18, 0xd0b080, 2.2);
+    pos.copy(batasi(pos.clone().addScaledVector(depan(), TYS.blink))); P.root.rotation.y = P.arah;
+    fx('gelombang', pos.clone(), 1.3, .35, 0xffe0a0); fx('kilat', pos.clone().setY(.5), 22);
+    P.state = 'panggil'; mainUlang('lompat', .08, 1.6); }
   P.cd[i] = CD_MAX[i]; P.t = 0; P.hit = 0;
 }
 // ---- gerombolan tuyul kembaran ----
@@ -1680,7 +1685,10 @@ async function buatBotPro(o) {
   }
   function skillTuyul(I, L) {
     if (B.hilang > 0) { if (L < 1.6 && B.cd[0] <= 0) { T.arah = sudutKe(I.pos); mulai('colek', T.act.bacok ? 'bacok' : 'jalan', 2.6); B.cd[0] = CD[0]; return true; } return false; }
-    if (B.cd[3] <= 0 && L < 4 && (I.stun || Math.random() < .6)) { mulai('panggil', 'lompat', 1.6); B.cd[3] = CD[3]; return true; }
+    if (B.cd[3] <= 0 && L < 4 && (I.stun || Math.random() < .6)) {   // blink: mendekat kalau lawan agak jauh, kalau sudah dekat melompat ke samping
+      const a = L > 3 ? sudutKe(I.pos) : sudutKe(I.pos) + (Math.random() < .5 ? 1 : -1) * Math.PI / 2;
+      fx('gelombang', pos.clone(), 1.1, .35, 0xe0c080); pos.copy(batasi(pos.clone().addScaledVector(dep(a), TYS.blink))); T.arah = sudutKe(I.pos); T.root.rotation.y = T.arah; fx('kilat', pos.clone().setY(.5), 22);
+      mulai('panggil', 'lompat', 1.6); B.cd[3] = CD[3]; return true; }
     if (B.cd[1] <= 0 && L > 1.4 && L < 5.5) { T.arah = sudutKe(ramal(I, .3)); mulai('seluncur', 'seluncur', 1.6); B.kenaSel = false; B.bonus = B.koin >= 5; if (B.bonus) B.koin = 0; B.cd[1] = CD[1];
       fx('gelombang', pos.clone(), 1, .35, 0xd0b080); return true; }
     if (B.cd[2] <= 0 && L > 3 && L < 9) { hilang(); return true; }
