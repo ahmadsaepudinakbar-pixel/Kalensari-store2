@@ -1439,8 +1439,8 @@ function siapkanGenderuwo(gl, m, T) {
   if (cari('defeat_03')) T.act.kalah = sekali(T.mixer.clipAction(klip(cari('defeat_03'))));
   if (!T.act.jalan) T.act.jalan = T.act.diam; if (!T.act.lari) T.act.lari = T.act.jalan;
   // animasi Mutant sangat membungkuk (dari kamera atas terlihat seperti merangkak) → punggung ditegakkan sebagian saat diam / jalan / lari
-  const TG = { Hips: .5, Spine: .55, Spine1: .55, Spine2: .55, Neck: .5, Head: .3 };
-  T.tegapG = []; m.traverse(o => { if (!o.isBone) return; const k = o.name.replace(/^mixamorig:?/, ''); if (TG[k]) T.tegapG.push([o, o.quaternion.clone(), TG[k]]); });
+  const TG = { Hips: .6, Spine: .7, Spine1: .7, Spine2: .7, Neck: .6, Head: .4, LeftShoulder: .8, RightShoulder: .8, LeftArm: .8, RightArm: .8, LeftForeArm: .8, RightForeArm: .8, LeftHand: .9, RightHand: .9 };   // punggung tegak, lengan menggantung di samping, cakar terbuka (seperti konsep)
+  T.tegapG = []; m.traverse(o => { if (!o.isBone) return; const k = o.name.replace(/^mixamorig:?/, ''); const f = TG[k] || (/(Thumb|Index|Middle|Ring|Pinky)/.test(k) ? 1 : 0); if (f) T.tegapG.push([o, o.quaternion.clone(), f]); });
 }
 function dalamCakar(asal, a, p) {   // sapuan setengah lingkaran di depan
   const v = p.clone().sub(asal).setY(0), L = v.length(); if (L > GEND.cakarR + .4) return false; if (L < .8) return true;

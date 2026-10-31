@@ -675,7 +675,7 @@ function mulai3D() {
       const K = {}; for (const n in c.klip) { const a = gl.animations.find(x => x.name === c.klip[n]); if (a) K[n] = rapikanKlip(a.clone(), m, 0, false); }
       if (!K.jalan) K.jalan = K.diam;
       M3D[kunci] = { m, K };
-      if (kunci === 'genderuwo') { const TG = { Hips: .5, Spine: .55, Spine1: .55, Spine2: .55, Neck: .5, Head: .3 }; M3D[kunci].tegap = TG; }   // punggung Genderuwo ditegakkan sebagian
+      if (kunci === 'genderuwo') { const TG = { Hips: .6, Spine: .7, Spine1: .7, Spine2: .7, Neck: .6, Head: .4, LeftShoulder: .8, RightShoulder: .8, LeftArm: .8, RightArm: .8, LeftForeArm: .8, RightForeArm: .8, LeftHand: .9, RightHand: .9 }; M3D[kunci].tegap = TG; }   // punggung Genderuwo ditegakkan sebagian
       for (const k in HERO) if (HERO[k].kunci3d === kunci && !HERO[k].mixer) buang(k);   // ganti bentuk sementara dengan model asli
     }, undefined, () => { });
   }
@@ -684,7 +684,7 @@ function mulai3D() {
     for (const n in D.K) act[n] = mixer.clipAction(D.K[n]);
     if (act.loncat) { act.loncat.setLoop(THREE.LoopOnce); act.loncat.clampWhenFinished = true; }
     const root = new THREE.Group(), badanG = new THREE.Group(); badanG.add(m); root.add(badanG);
-    const tegapG = []; if (D.tegap) m.traverse(o => { if (!o.isBone) return; const k = o.name.replace(/^mixamorig:?/, ''); if (D.tegap[k]) tegapG.push([o, o.quaternion.clone(), D.tegap[k]]); });
+    const tegapG = []; if (D.tegap) m.traverse(o => { if (!o.isBone) return; const k = o.name.replace(/^mixamorig:?/, ''); const f = D.tegap[k] || (/(Thumb|Index|Middle|Ring|Pinky)/.test(k) ? 1 : 0); if (f) tegapG.push([o, o.quaternion.clone(), f]); });
     return { root, badanG, jenis: kunci === 'tuyul' || kunci === 'genderuwo' ? 'tuyul3d' : 'kunti3d', mixer, act, cur: '', tegapG };   // Genderuwo memakai gerak yang sama dengan Tuyul (diam / lari / lompat)
   }
   function buatBoneka() {
