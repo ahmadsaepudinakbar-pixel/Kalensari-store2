@@ -853,7 +853,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     b.onpointerup = e => { e.preventDefault(); ik.style.transform = ''; if (K.bidik === i) lepasBidik(); };
     b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) K.bidik = false; };
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
-if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 500 · Serbuan 2x + pusing · Hantaman 10 m)';
+if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 250 · Serbuan 200/300/500 + pusing · Hantaman 10 m)';
 if (HERO === 'tuyul') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Colek Kilat (curi koin) · U (tahan + mouse): Seluncur Licin · I: Ngilang 2 detik · O: Gerombolan Tuyul';
 if (HERO === 'kunti') { $('#nmhero').textContent = 'Kunti Merah'; $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Roh · U (tahan, arahkan dgn mouse): Frekuensi Suara · I (tahan, arahkan dgn mouse): Mode Terbang · O: Roh Pemburu'; }
 const pingsan = () => (P.kunci || 0) > 0 || (P.pusing || 0) > 0;   // terkena Roh Pemburu / Loncat Jauh lawan
@@ -1425,10 +1425,10 @@ function updTuyul(dt, pos, f) {
 // ================== GENDERUWO (hero ke-4: petarung kuat tapi lambat) ==================
 // animasi di genderuwo.glb (Mixamo, dipindah ke kerangka Tripo): idle, jalan, lari, tinju, cakar, hantam, lompat, lompat2, amuk, angry_02, defeat_03
 const GEND = { tinggi: 2.05, cepat: 3.5, amukCepat: 1.3, lompat: 5, tinju: 62, tinju3: 95, cakar: 95, cakarR: 3.1, cakarSudut: 1.2, hantam: 150, hantamR: 2.3,
-  amukLama: 6, amukDmg: 1.4, amukR: 4, besar: 1.45, amukLompat: 2, kejar: 7, kejarPutar: 10, amukS1: 2, amukStun: .7, amukDasar: 500, tsHantam: 1.5, lepas: .33, darat: 1.06,
+  amukLama: 6, amukDmg: 1.4, amukR: 4, besar: 1.45, amukLompat: 2, kejar: 7, kejarPutar: 10, amukS1: [200, 300, 500], amukStun: .7, amukDasar: 250, tsHantam: 1.5, lepas: .33, darat: 1.06,
   // Skill 1 Serbuan Rimba: 3 serangan sambil maju (Punch → Swiping → Jump Attack); waktu = detik sejak skill dipakai
-  dasar: { ts: 2.6, lepas: .19, darat: .61, akhir: .8, maju: 1.5, r: 1.6, d: 65 },   // serangan dasar: Jump Attack pendek
-  sb: { d: [50, 70, 105], kena1: .16, ganti1: .45, kena2: .95, ganti2: 1.2, lepas3: 1.47, darat3: 2.08, akhir: 2.3, maju: [2.4, 1.8], loncat: 2.6, r3: 2 } };   // lepas/darat: detik dalam animasi Jump Attack (diukur dari klipnya)
+  dasar: { ts: 2.6, lepas: .19, darat: .61, akhir: .8, maju: 1.5, r: 1.6, d: 100 },   // serangan dasar: Jump Attack pendek
+  sb: { d: [70, 100, 200], kena1: .16, ganti1: .45, kena2: .95, ganti2: 1.2, lepas3: 1.47, darat3: 2.08, akhir: 2.3, maju: [2.4, 1.8], loncat: 2.6, r3: 2 } };   // lepas/darat: detik dalam animasi Jump Attack (diukur dari klipnya)
 const GW = { amuk: 0, combo: 0, comboT: 0 };
 function siapkanGenderuwo(gl, m, T) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
@@ -1473,7 +1473,7 @@ function pakaiGenderuwo(i) {
 function updGenderuwo(dt, pos, f) {
   const t = P.t; updBidik();
   GW.amuk = Math.max(0, GW.amuk - dt); GW.comboT = Math.max(0, GW.comboT - dt);
-  const dm = GW.amuk > 0 ? GEND.amukDmg : 1, amk = GW.amuk > 0, s1 = amk ? GEND.amukS1 : 1, sJ = (m, d) => { if (amk) m.pusing = Math.max(m.pusing || 0, Math.max(d, GEND.amukStun)); else if (d) m.pusing = Math.max(m.pusing || 0, d); };   // Amukan: Skill 1 damage 2x + menyetun
+  const dm = GW.amuk > 0 ? GEND.amukDmg : 1, amk = GW.amuk > 0, s1 = amk ? GEND.amukS1 : GEND.sb.d, sJ = (m, d) => { if (amk) m.pusing = Math.max(m.pusing || 0, Math.max(d, GEND.amukStun)); else if (d) m.pusing = Math.max(m.pusing || 0, d); };   // Amukan: Skill 1 damage 2x + menyetun
   if (GW.amuk > 0) { P.tilt.scale.setScalar(GEND.besar); auraAmuk(pos); }
   if (P.state === 'bebas') {
     const [x, z] = arahGerak(), cp = GEND.cepat * (GW.amuk > 0 ? GEND.amukCepat : 1);
@@ -1499,19 +1499,19 @@ function updGenderuwo(dt, pos, f) {
     if (P.fase === 2 && km && t < SB.darat3) { const d = km.g.position.clone().sub(P.awal).setY(0), L = d.length(); if (L > .01) P.tujuan = batasi(P.awal.clone().addScaledVector(d.normalize(), Math.min(SB.loncat * 2, Math.max(0, L - .8)))); }   // lompatan terakhir mengejar lawan di udara
     if (P.fase === 0) { if (!dekat) pos.addScaledVector(f, SB.maju[0] * dt);
       if (t > SB.kena1 && !P.hit) { P.hit = 1; const hp = pos.clone().addScaledVector(f, 1.15); let ada = 0;
-        MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && m.g.position.distanceTo(hp) < 1.6) { kena(m, Math.round(SB.d[0] * s1), pos, 1.5); sJ(m, 0); ada = 1; } });
+        MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && m.g.position.distanceTo(hp) < 1.6) { kena(m, s1[0], pos, 1.5); sJ(m, 0); ada = 1; } });
         fx('gelombang', hp.clone().setY(0), 1, .3, 0xc08050); fx('percik', hp, 10, 0xc09060, 2.5); if (ada) goyang = Math.max(goyang, .1); }
       if (t > SB.ganti1) { P.fase = 1; P.hit = 0; mainUlang('cakar', .06, 2.2); } }
     else if (P.fase === 1) { if (!dekat) pos.addScaledVector(f, SB.maju[1] * dt);
       if (t > SB.kena2 && !P.hit) { P.hit = 1; const a = P.arah;
         fx('gelombangKipas', pos.clone(), a, GEND.cakarR, .4, 0xff5020); fx('gelombangKipas', pos.clone(), a, GEND.cakarR * .7, .3, 0xffb070); goyang = Math.max(goyang, .12);
-        MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && dalamCakar(pos, a, m.g.position)) { kena(m, Math.round(SB.d[1] * s1), pos, 1.5); sJ(m, .45); fx('kilat', m.g.position.clone(), 18); } }); }
+        MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && dalamCakar(pos, a, m.g.position)) { kena(m, s1[1], pos, 1.5); sJ(m, .45); fx('kilat', m.g.position.clone(), 18); } }); }
       if (t > SB.ganti2) { P.fase = 2; P.hit = 0; mainUlang('hantam', .06, 1.8); P.awal = pos.clone(); P.tujuan = batasi(pos.clone().addScaledVector(f, SB.loncat)); fx('lingkaranLantai', P.tujuan.clone(), SB.r3, .7, 3); } }
     else {
       if (t > SB.lepas3 && t < SB.darat3) { const u = (t - SB.lepas3) / (SB.darat3 - SB.lepas3), e = u * u * (3 - 2 * u); pos.lerpVectors(P.awal, P.tujuan, e); }
       else if (t >= SB.darat3 && !P.hit) { P.hit = 1; pos.copy(P.tujuan);
         fx('gelombang', pos.clone(), SB.r3 * 1.3, .5, 0xc07040); fx('percik', pos.clone(), 30, 0x8a6a40, 4.5, .22); fx('kilat', pos.clone(), 40); goyang = .24;
-        MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < SB.r3) { kena(m, Math.round(SB.d[2] * s1), pos, 6, 2.5); sJ(m, .8); } }); }
+        MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < SB.r3) { kena(m, s1[2], pos, 6, 2.5); sJ(m, .8); } }); }
       if (t > SB.akhir) { P.state = 'bebas'; main('diam', .2); } }
   } else if (P.state === 'cakar') {            // Cakaran Rimba: sapuan setengah lingkaran, lawan terhuyung
     if (t < .55) pos.addScaledVector(f, 1.2 * dt);
@@ -1891,21 +1891,21 @@ async function buatBotPro(o) {
       if (t > D.akhir) { B.tujuan = null; beres(); }
     }
     else if (B.state === 'serbu') {       // Genderuwo: Serbuan Rimba (tinju → cakar → lompat hantam, terus maju)
-      const SB = GEND.sb, s1 = B.amuk > 0 ? GEND.amukS1 : 1, sJ = d => { const x = B.amuk > 0 ? Math.max(d, GEND.amukStun) : d; if (x) stun('pusing', x); };
+      const SB = GEND.sb, s1 = B.amuk > 0 ? GEND.amukS1 : GEND.sb.d, sJ = d => { const x = B.amuk > 0 ? Math.max(d, GEND.amukStun) : d; if (x) stun('pusing', x); };
       const ke = B.amuk > 0 ? lawan() : null, kj = ke && !ke.mati && Math.hypot(ke.pos.x - pos.x, ke.pos.z - pos.z) < GEND.kejar ? ke : null; let dekat = false;   // Amukan: Serbuan mengikuti gerak lawan
       if (kj) { dekat = Math.hypot(kj.pos.x - pos.x, kj.pos.z - pos.z) < 1.1; let da = sudutKe(kj.pos) - T.arah; da = Math.atan2(Math.sin(da), Math.cos(da)); T.arah += da * Math.min(1, dt * GEND.kejarPutar); f.set(Math.sin(T.arah), 0, Math.cos(T.arah)); }
       if (B.fase === 2 && kj && B.awal && t < SB.darat3) { const d = kj.pos.clone().sub(B.awal).setY(0), L = d.length(); if (L > .01) B.tujuan = batasi(B.awal.clone().addScaledVector(d.normalize(), Math.min(SB.loncat * 2, Math.max(0, L - .8)))); }
       if (B.fase === 0) { if (!dekat) pos.addScaledVector(f, SB.maju[0] * dt);
-        if (t > SB.kena1 && !B.hit) { B.hit = 1; const hp = pos.clone().addScaledVector(f, 1.15); if (kenaDi(hp, 1.6)) { serang(Math.round(SB.d[0] * s1), pos.clone(), 1.5); sJ(0); goy(.1); } fx('percik', hp, 10, 0xc09060, 2.5); }
+        if (t > SB.kena1 && !B.hit) { B.hit = 1; const hp = pos.clone().addScaledVector(f, 1.15); if (kenaDi(hp, 1.6)) { serang(s1[0], pos.clone(), 1.5); sJ(0); goy(.1); } fx('percik', hp, 10, 0xc09060, 2.5); }
         if (t > SB.ganti1) { B.fase = 1; B.hit = 0; T.cur = ''; mainObj(T, 'cakar', .06, 2.2); } }
       else if (B.fase === 1) { if (!dekat) pos.addScaledVector(f, SB.maju[1] * dt);
         if (t > SB.kena2 && !B.hit) { B.hit = 1; const a = T.arah; fx('gelombangKipas', pos.clone(), a, GEND.cakarR, .4, 0xff5020);
-          const e = lawan(); if (e && !e.mati && dalamCakar(pos, a, e.pos)) { serang(Math.round(SB.d[1] * s1), pos.clone(), 1.5); sJ(.45); goy(.12); } }
+          const e = lawan(); if (e && !e.mati && dalamCakar(pos, a, e.pos)) { serang(s1[1], pos.clone(), 1.5); sJ(.45); goy(.12); } }
         if (t > SB.ganti2) { B.fase = 2; B.hit = 0; T.cur = ''; mainObj(T, 'hantam', .06, 1.8); B.awal = pos.clone(); B.tujuan = batasi(pos.clone().addScaledVector(f, SB.loncat)); fx('lingkaranLantai', B.tujuan.clone(), SB.r3, .7, 3); } }
       else {
         if (t > SB.lepas3 && t < SB.darat3 && B.tujuan) { const u = (t - SB.lepas3) / (SB.darat3 - SB.lepas3), e = u * u * (3 - 2 * u); pos.lerpVectors(B.awal, B.tujuan, e); }
         else if (t >= SB.darat3 && !B.hit) { B.hit = 1; if (B.tujuan) pos.copy(B.tujuan); fx('gelombang', pos.clone(), SB.r3 * 1.3, .5, 0xc07040); fx('percik', pos.clone(), 30, 0x8a6a40, 4.5, .22); fx('kilat', pos.clone(), 40);
-          if (kenaDi(pos, SB.r3)) { serang(Math.round(SB.d[2] * s1), pos.clone(), 6); sJ(.8); goy(.24); } }
+          if (kenaDi(pos, SB.r3)) { serang(s1[2], pos.clone(), 6); sJ(.8); goy(.24); } }
         if (t > SB.akhir) { B.tujuan = null; beres(); } }
     }
     else if (B.state === 'cakar') {       // Genderuwo: Cakaran Rimba
