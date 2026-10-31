@@ -664,6 +664,7 @@ function mulai3D() {
     kunti: { url: 'model-3d/skinkunti-asli.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
     merah: { url: 'model-3d/skinkunti.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
     tuyul: { url: 'model-3d/tuyul.glb', tinggi: 1.15, klip: { diam: 'diam', jalan: 'lari', loncat: 'lompat' } },
+    genderuwo: { url: 'model-3d/genderuwo.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // hero ke-4
   };
   const M3D = {};
   function muatM3D(kunci) {
@@ -682,7 +683,7 @@ function mulai3D() {
     for (const n in D.K) act[n] = mixer.clipAction(D.K[n]);
     if (act.loncat) { act.loncat.setLoop(THREE.LoopOnce); act.loncat.clampWhenFinished = true; }
     const root = new THREE.Group(), badanG = new THREE.Group(); badanG.add(m); root.add(badanG);
-    return { root, badanG, jenis: kunci === 'tuyul' ? 'tuyul3d' : 'kunti3d', mixer, act, cur: '' };
+    return { root, badanG, jenis: kunci === 'tuyul' || kunci === 'genderuwo' ? 'tuyul3d' : 'kunti3d', mixer, act, cur: '' };   // Genderuwo memakai gerak yang sama dengan Tuyul (diam / lari / lompat)
   }
   function buatBoneka() {
     const m = SkeletonUtils.clone(BONEKA.m), mixer = new THREE.AnimationMixer(m), act = {};
@@ -704,9 +705,9 @@ function mulai3D() {
     const mauBoneka = id === 'pocong' && skin === 'pocong:boneka';
     if (h && (h.id !== id || h.skin !== skin || (mauBoneka && BONEKA && h.jenis !== 'boneka'))) { buang(k); h = null; }
     if (!h) {
-      const kunci3d = id === 'tuyul' ? 'tuyul' : id === 'kuntilanak' ? (skin === 'kuntilanak:merah' ? 'merah' : 'kunti') : '';
+      const kunci3d = id === 'genderuwo' ? 'genderuwo' : id === 'tuyul' ? 'tuyul' : id === 'kuntilanak' ? (skin === 'kuntilanak:merah' ? 'merah' : 'kunti') : '';
       if (kunci3d) muatM3D(kunci3d); else if (mauBoneka) muatBoneka(); else muatOcong3D();
-      h = kunci3d && M3D[kunci3d] ? buatM3D(kunci3d) : id === 'tuyul' ? buatOcong('') : id === 'kuntilanak' ? buatKunti(skin) : mauBoneka && BONEKA ? buatBoneka() : !mauBoneka && OCONG3D ? buatOcong3D(skin) : buatOcong(skin);
+      h = kunci3d && M3D[kunci3d] ? buatM3D(kunci3d) : id === 'tuyul' || id === 'genderuwo' ? buatOcong('') : id === 'kuntilanak' ? buatKunti(skin) : mauBoneka && BONEKA ? buatBoneka() : !mauBoneka && OCONG3D ? buatOcong3D(skin) : buatOcong(skin);
       h.id = id; h.skin = skin; h.arah = 0; h.hop = 0; h.kunci3d = kunci3d;
       h.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
       h.bay = new THREE.Mesh(BAYANGAN, M_BAY.clone()); h.bay.rotation.x = -Math.PI / 2; h.bay.renderOrder = 1;
