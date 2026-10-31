@@ -735,6 +735,8 @@ function siapkanOcong(gl, m, T) {
   // jalan = lompat-lompat khas pocong: badan tetap terbungkus kaku (pose diam), loncatan dibuat dengan kode (lompatPocong)
   if (diam) { T.act.jalan = T.mixer.clipAction(rapikanKlip(diam.clone(), m, 0, false)); T.hopY0 = m.position.y; T.hopF = 0; T.hopLoncat = true; }
   else if (lompat) T.act.jalan = T.mixer.clipAction(rapikanKlip(sub(lompat, 'jalan', 22, 46), m, .2, true));
+  // badan tegap: simpan pose dasar (tegak lurus) tulang punggung, leher, kepala & kaki — dipakai saat diam / jalan
+  T.tegap = []; m.traverse(o => { if (o.isBone && /(Hips|Spine\d*|Neck|Head|UpLeg|Leg|Foot)$/.test(o.name) && !/Arm|Hand|Shoulder/.test(o.name)) T.tegap.push([o, o.quaternion.clone()]); });
   if (lompat) T.act.loncat = sekali(T.mixer.clipAction(rapikanKlip(sub(lompat, 'loncat', 18, 34), m, .2, true)));
   if (guling) T.act.guling = sekali(T.mixer.clipAction(rapikanKlip(sub(guling, 'guling', 14, 58), m, 0, true)));
   if (kalah) T.act.kalah = sekali(T.mixer.clipAction(rapikanKlip(kalah, m, .4, false)));
@@ -750,11 +752,12 @@ function siapkanOcongLompat(gl, m, T) {   // model tanpa tulang: animasi Hop & I
 function lompatPocong(T, dt) {
   if (!T || !T.hopLoncat || !T.model) return;
   const m = T.model;
+  if ((T.cur === 'diam' || T.cur === 'jalan') && T.tegap) T.tegap.forEach(([b, q]) => b.quaternion.slerp(q, .9));   // luruskan badan (pose asli agak membungkuk)
   if (T.cur === 'jalan') {
     T.hopF += dt * 8.5;                                   // ±2,7 loncatan per detik
     const s = Math.abs(Math.sin(T.hopF)), darat = 1 - Math.min(1, s * 4);   // darat: 1 saat menyentuh tanah
     m.position.y = T.hopY0 + s * .3;
-    m.rotation.x = .12 * s;                                // condong ke depan saat melayang
+    m.rotation.x = .05 * s;                                // sedikit condong ke depan saat melayang
     m.scale.y = m.userData.sy0 * (1 - .08 * darat); m.scale.x = m.scale.z = m.userData.sx0 * (1 + .05 * darat);
   } else if (m.position.y !== T.hopY0 || m.rotation.x) {
     const k = Math.min(1, dt * 14); m.position.y += (T.hopY0 - m.position.y) * k; m.rotation.x *= 1 - k;
