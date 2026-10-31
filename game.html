@@ -344,7 +344,7 @@ const CH={
  pocong:{n:'Ocong',spd:2.4,jump:-14,grav:.7,atk:55,rng:90,sk:[{n:'Loncat Jauh',k:'leap',cd:300,i:'',ic:'ic1'},{n:'Guling ke Arah Tujuan',k:'roll',cd:360,i:'',ic:'ic2'},{n:'Lingkaran & Lempar',k:'ring',cd:540,i:'',ic:'ic3'}]},
  kuntilanak:{n:'Kunti',spd:2.1,jump:-11,grav:.4,atk:60,rng:260,sk:[{n:'Frekuensi Suara',k:'wave',cd:420,i:'',ic:'kic1'},{n:'Nge Blink',k:'blink',cd:360,i:'',ic:'kic2'},{n:'Penjara Roh',k:'prison',cd:600,i:'',ic:'kic3'}]}};
 const ALL=[['pocong','Ocong','#e9e6df'],['kuntilanak','Kunti','#7b2cbf'],['tuyul','Tuyul','#c9a27a'],['x','Genderuwo','#a0522d'],['x','Leak','#c1121f'],['x','Sundel Bolong','#555'],['x','Wewe Gombel','#8d6e4c'],['x','Buto Ijo','#2d8f3a']];
-// ===== KARTU: hero gratis, skin, & koleksi pemain (dari Supabase, akun pembeli Kalensari Store) =====
+// ===== KARTU: hero gratis, skin, & koleksi pemain (dari Supabase, akun warga desa Kalensari Store) =====
 const GRATIS=['pocong'];   // hero yang bisa dipakai tanpa kartu
 const SKINS={              // id skin = 'hero:nama' (sama dengan isian "item" saat admin membuat kartu skin)
  'kuntilanak:merah':{h:'kuntilanak',n:'Kunti Merah',f:'none'},
@@ -1063,13 +1063,13 @@ async function krpc(fn,body){if(!KBASE)throw new Error('Tidak terhubung ke serve
  if(!r.ok){const m=String((j&&j.message)||t||('HTTP '+r.status));if(/PGRST202|Could not find the function/i.test(m))throw new Error('Fitur kartu belum dipasang di server.');const e=new Error(m.replace(/^SESI:\s*/,''));e.sesi=/^SESI:/.test(m);throw e}return j}
 async function muatKoleksi(){try{const k=await krpc('game_koleksi',{p_sesi:ksSesi()});KOL=Object.assign({login:false,hero:[],skin:[],kartu:[]},k||{});KOL.err=''}catch(e){KOL.err=e.message}
  if(!punyaHero(pick))pick='pocong';if($('#kar').classList.contains('on'))karRender();if($('#sel').classList.contains('on'))grid()}
-function kMasuk(kode){try{sessionStorage.setItem('kalensari_next','url:game.html'+(kode?'?kartu='+encodeURIComponent(kode):'')+'#kartu')}catch(e){}kSt('Membuka halaman masuk akun pembeli…');setTimeout(()=>location.href='akun-pembeli.html',600)}
+function kMasuk(kode){try{sessionStorage.setItem('kalensari_next','url:game.html'+(kode?'?kartu='+encodeURIComponent(kode):'')+'#kartu')}catch(e){}kSt('Membuka halaman masuk akun warga desa Kalensari Store…');setTimeout(()=>location.href='akun-pembeli.html',600)}
 function kSt(t,c){const e=$('#kSt');e.textContent=t||'';e.className='kst '+(c||'')}
 const NM3D=h=>({pocong:'Ocong',kuntilanak:'Kunti',tuyul:'Tuyul'})[h]||h;
 const itemNama=(j,it)=>j=='skin'?(SKINS[it]?SKINS[it].n:it):NM3D(it);
 const itemImg=(j,it)=>{const h=j=='skin'?(SKINS[it]&&SKINS[it].h):it;return (CH[h]||h=='tuyul')?`<img src="${heroImg(h,j=='skin'?it:'')}" style="filter:${j=='skin'?skinF(it):'none'} drop-shadow(0 .4cqw .6cqw #000)">`:''};
 function karRender(){const ak=$('#kAkun');
- ak.innerHTML=KOL.login?`Masuk sebagai <b>${(KOL.nama||'Pemain').replace(/[<>]/g,'')}</b> · akun pembeli Kalensari Store`:`${KOL.err?'⚠️ '+KOL.err+' · ':''}Belum masuk akun pembeli.<button class="btn" id="kLogin">Masuk</button>`;
+ ak.innerHTML=KOL.login?`Masuk sebagai <b>${(KOL.nama||'Pemain').replace(/[<>]/g,'')}</b> · akun warga desa Kalensari Store`:`${KOL.err?'⚠️ '+KOL.err+' · ':''}Belum masuk akun warga desa Kalensari Store.<button class="btn" id="kLogin">Masuk</button>`;
  const lg=$('#kLogin');if(lg)lg.onclick=()=>kMasuk(kRapi($('#kKode').value));
  const heroes=ALL.filter(a=>a[0]!='x'),kunci=ALL.filter(a=>a[0]=='x'),sk=Object.keys(SKINS);
  const nH=heroes.filter(a=>punyaHero(a[0])).length,nS=sk.filter(punyaSkin).length;
@@ -1078,7 +1078,7 @@ function karRender(){const ak=$('#kAkun');
   +sk.map(id=>{const own=punyaSkin(id);return `<div class="kc ${own?'':'lock'}" style="--c:${own?'#ffb703':'#2a3350'}"><em>SKIN${own&&skinOf(SKINS[id].h)==id?' · DIPAKAI':''}</em>${itemImg('skin',id)}<span>${SKINS[id].n}</span></div>`}).join('')
   +kunci.map(a=>`<div class="kc lock"><span>${a[1]}</span></div>`).join('')}
 async function kKlaim(raw){const kode=kRapi(raw);if(kode.length<6){kSt('Masukkan kode kartu, contoh KLS-KUN-7F3K9Q','err');return}
- if(!KOL.login){kSt('Masuk akun pembeli dulu untuk mengklaim kartu','err');kMasuk(kode);return}
+ if(!KOL.login){kSt('Masuk akun warga desa Kalensari Store dulu untuk mengklaim kartu','err');kMasuk(kode);return}
  kSt('Memeriksa kartu…');$('#kKlaim').disabled=true;
  try{const r=await krpc('game_klaim',{p_sesi:ksSesi(),p_kode:kode});
   if(!r||r.ok===false){kSt('⚠️ '+((r&&r.pesan)||'Kartu tidak valid'),'err');return}
@@ -1113,7 +1113,7 @@ $('#kBack').onclick=()=>{kCamOff();$('#kPop').classList.remove('on');sc('menu')}
 // buka dari link QR (…/game?kartu=KODE) atau setelah masuk akun (#kartu)
 (async()=>{let q=null;try{q=new URLSearchParams(location.search).get('kartu')}catch(e){}
  const lewatHash=location.hash=='#kartu';if(q||lewatHash){try{history.replaceState(null,'',location.pathname)}catch(e){}bukaKartu()}
- await muatKoleksi();if(q){$('#kKode').value=kRapi(q);if(KOL.login)kKlaim(q);else kSt('Masuk akun pembeli dulu untuk mengklaim kartu ini','err')}})();
+ await muatKoleksi();if(q){$('#kKode').value=kRapi(q);if(KOL.login)kKlaim(q);else kSt('Masuk akun warga desa Kalensari Store dulu untuk mengklaim kartu ini','err')}})();
 function oStat(h){$('#oStat').innerHTML=h}
 function netConnect(then,diam){if(then)NET.want=then;if(then&&then.t=='join')NET.joinC=then.code;const w=NET.ws;
  if(w&&w.readyState===1){if(then)netHello();return}if(w&&w.readyState===0)return;NET.tTry=Date.now();
@@ -1478,7 +1478,7 @@ function bukaAjak(){if(!KR){toast('Buat room dulu');return}const c=KR.c,L=linkRo
   <div class="frh">TEMAN YANG SEDANG ONLINE</div><div id="ajkTm" style="display:flex;flex-direction:column;gap:.6cqw"></div>`;
  $('#ajk').classList.add('on');ajkTeman();if(FR.login)netSend({t:'online',ids:FR.teman.filter(t=>t.status=='teman').map(t=>t.id)})}
 function ajkTeman(){const e=$('#ajkTm');if(!e)return;
- if(!KOL.login){e.innerHTML='<div class="onsm">Masuk akun pembeli untuk mengajak teman langsung dari daftar teman.</div>';return}
+ if(!KOL.login){e.innerHTML='<div class="onsm">Masuk akun warga desa Kalensari Store untuk mengajak teman langsung dari daftar teman.</div>';return}
  const L=FR.teman.filter(t=>t.status=='teman'&&FR.on[t.id]);
  e.innerHTML=L.length?L.map(t=>{const o=FR.on[t.id],sama=o.r&&o.r.c===KR.c;return `<div class="rmi"><i class="dot on"></i><div><b>${esc(t.nama)}</b><small>${t.id} · ${o.r?(sama?'sudah di room ini':'sedang di room lain'):'di menu game'}</small></div>${sama?'':`<button class="smb" data-ajakke="${t.id}">Ajak</button>`}</div>`}).join('')
   :'<div class="onsm">Belum ada teman yang membuka game. Kirim link lewat WhatsApp saja.</div>'}
@@ -1499,7 +1499,7 @@ document.querySelectorAll('.ontab button').forEach(b=>b.onclick=()=>{ONT=b.datas
 function onlPanel(){const P=$('#onPanel');if(!P)return;
  if(ONT=='room'){P.innerHTML=RL.length?RL.map(r=>`<div class="rmi"><span class="ic">${r.m=='pk'?'🏃':r.m=='tim'?'👥':'⚔️'}</span><div><b>${esc(r.n||'Pemain')}</b><small>${roomTeks(r)} · ${r.pl}/${r.max} pemain${r.q?' · acak':''}</small></div><button class="smb" data-gb="${r.c}">Gabung</button></div>`).join('')
    :`<div class="kosong">Belum ada room terbuka saat ini.<br>Buat room dengan pilihan <b>🌐 Terbuka</b> supaya warga lain bisa langsung ikut tanpa kode.</div>`;return}
- if(!KOL.login){P.innerHTML=`<div class="kosong">Masuk akun pembeli Kalensari Store untuk menambah teman dan saling mengajak mabar.<br><br><button class="smb" data-fmasuk>Masuk akun</button></div>`;return}
+ if(!KOL.login){P.innerHTML=`<div class="kosong">Masuk akun warga desa Kalensari Store untuk menambah teman dan saling mengajak mabar.<br><br><button class="smb" data-fmasuk>Masuk akun</button></div>`;return}
  if(FR.err){P.innerHTML=`<div class="kosong">⚠️ ${esc(FR.err)}</div>`;return}
  const tm=FR.teman,masuk=tm.filter(t=>t.status=='masuk'),teman=tm.filter(t=>t.status=='teman').sort((a,b)=>(FR.on[b.id]?1:0)-(FR.on[a.id]?1:0)),kel=tm.filter(t=>t.status=='keluar');
  const st=t=>{const o=FR.on[t.id];if(!o)return'Offline';if(!o.r)return'Online · di menu game';return(o.r.st=='main'?'Sedang main ':'Di lobby ')+MODEN[o.r.m]+' · '+o.r.pl+'/'+o.r.max};
