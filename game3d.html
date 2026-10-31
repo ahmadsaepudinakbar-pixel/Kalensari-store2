@@ -1781,7 +1781,7 @@ function mainLagi(ronde) {   // ronde = lanjut ronde berikutnya (skor tetap); ta
   if (BOT) BOT.reset(!ronde, !!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
   if (LAWAN === 'bot' && !ronde) { SKOR = [0, 0]; updSkorBot(); }
 }
-$('#lagi').onclick = () => { if (TIM.on) { timKeLobi(); return; } if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
+$('#lagi').onclick = () => { if (TIM.on) { if (LOBI) { keLobiMB(); return; } timKeLobi(); return; } if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
 $('#keMenu').onclick = () => { keluarRoom(); location.href = 'game.html'; };
 function posisiAwal() { if (TIM.on && TIM.saya) { const [x, z] = spawnTim(TIM.saya); P.root.position.set(x, 0, z); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); return; }
   P.root.position.set(0, 0, PUSAT_Z + JARAK_AWAL()); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); }
@@ -1804,6 +1804,10 @@ async function siapkanBot() {
 // ================== ONLINE 1 VS 1 ==================
 // Tiap HP menjalankan hero-nya sendiri dan mengirim keadaannya ±15x per detik lewat server (pesan 'st' dari pembuat room, 'in' dari tamu).
 // Damage dihitung di HP penyerang lalu dikirim ke lawan. Tiap pemain melihat dirinya di bawah layar: dunia lawan dicerminkan.
+// Main Bareng: datang dari lobi game.html (…&lobi=1234) → masuk otomatis, selesai kembali ke lobi yang sama
+const LOBI = (Q.get('lobi') || '').replace(/\D/g, '').slice(0, 4);
+const PID = (() => { try { return localStorage.getItem('kgPid') || ''; } catch (e) { return ''; } })();
+function keLobiMB() { NET.keluar = true; try { if (NET.ws) NET.ws.close(); } catch (e) { } const q = new URLSearchParams({ lobi: LOBI }); if (Q.get('server')) q.set('server', Q.get('server')); location.href = 'game.html?' + q; }
 const SESI = (() => { try { return localStorage.getItem('kalensari_sesi_pembeli') || ''; } catch (e) { return ''; } })();
 const ULANG = +Q.get('ulang') || 0;   // percobaan sambung ulang ke room yang sama
 function ingatRoom(c) { try { localStorage.setItem('kgRoom', JSON.stringify({ c: String(c), m: MODE.startsWith('tim') ? 'tim' : 'duel', t: Date.now() })); } catch (e) { } }
@@ -1878,14 +1882,15 @@ function lobi(teks, kode) {
 function linkRoom() { return location.origin + location.pathname + '?room=' + NET.kode; }
 $('#lbWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent('Ayo mabar Kalensari Game! 👻 ' + (TIM.on ? 'Duel Tim 3D' : 'Duel 1 vs 1') + ' · room ' + NET.kode + '\nKetuk untuk langsung masuk: ' + linkRoom()), '_blank');
 $('#lbSalin').onclick = () => { try { navigator.clipboard.writeText(linkRoom()); $('#lbSalin').textContent = '✅ Link disalin'; } catch (e) { prompt('Salin link ini:', linkRoom()); } };
-$('#lbMenu').onclick = () => { keluarRoom(); location.href = 'game.html'; };
+$('#lbMenu').onclick = () => { if (LOBI) { keLobiMB(); return; } keluarRoom(); location.href = 'game.html'; };
+if (LOBI) $('#lbMenu').textContent = '← Kembali ke Lobi';
 
 function sambung() {
   lobi('Menghubungkan ke server…');
   let ws; try { ws = new WebSocket(NET.url); } catch (e) { lobi('⚠️ Tidak bisa terhubung ke server game'); return; }
   NET.ws = ws;
   ws.onopen = () => {
-    kirim({ t: 'hello', name: NAMA, hero: HERO_SRV[HERO], arena: ARENA_IDX[ARENA], v: '3d', skin: SKIN, sesi: SESI });
+    kirim({ t: 'hello', name: NAMA, hero: HERO_SRV[HERO], arena: ARENA_IDX[ARENA], v: '3d', skin: SKIN, sesi: SESI, pid: PID });
     if (TIM.on) { if (MODE === 'timbuat') kirim({ t: 'tmCreate', pub: Q.get('pub') === '0' ? 0 : 1 }); else { kirim({ t: 'join', code: KODE }); lobi('Masuk ke room Duel Tim ' + KODE + '…'); } }
     else if (MODE === 'acak') { kirim({ t: 'quick' }); lobi('⚔️ Mencari lawan…<br><small>Menunggu pemain lain yang juga mencari lawan</small>'); }
     else if (MODE === 'buat') kirim({ t: 'create', pub: Q.get('pub') === '0' ? 0 : 1 });
@@ -2036,6 +2041,7 @@ function timLobi(m) {
   TIM.me = m.me; TIM.hostId = m.hostId; TIM.host = !!m.host; TIM.pl = m.pl; TIM.a = m.a; TIM.kw = m.kw; TIM.state = m.state; TIM.kode = m.code; NET.kode = m.code;
   ingatRoomTim(m.code);
   if (TIM.main || (SELESAI && $('#hasil').classList.contains('on'))) { TIM.lobiTunda = m; if (m.state === 'lobby' && TIM.main) timHentiMain(); return; }
+  if (LOBI) { lobi('<div class="tlj">👥 Main Bareng</div>⏳ Menyiapkan arena…<br><small>' + m.pl.length + ' / ' + (m.exp || m.pl.length) + ' pemain sudah masuk</small>'); return; }
   const saya = m.pl.find(p => p.i === m.me) || {}, kol = t => m.pl.filter(p => p.tm === t).map(p =>
     `<div class="tlp ${p.i === m.me ? 'aku' : ''}"><span class="ik">${IKON_H[p.h] || '👻'}</span><b>${escH(p.n)}${p.i === m.me ? ' (Anda)' : ''}</b>${p.i === m.hostId ? '<em>👑</em>' : ''}${p.bot ? '<em>🤖 bot</em>' + (TIM.host ? `<button data-bdel="${p.i}">✖</button>` : '') : `<em class="${p.r || p.i === m.hostId ? 'ok' : ''}">${p.i === m.hostId ? 'pembuat' : p.r ? '✔ siap' : '⌛'}</em>`}</div>`).join('') || '<div class="tlk">kosong</div>';
   const n0 = m.pl.filter(p => p.tm === 0).length, n1 = m.pl.filter(p => p.tm === 1).length, siapSemua = m.pl.every(p => p.bot || p.i === m.hostId || p.r);
@@ -2050,7 +2056,7 @@ function timLobi(m) {
   <div class="tli" id="tlInfo">${TIM.host ? (n0 && n1 ? (siapSemua ? 'Semua siap — tekan MULAI' : 'Menunggu semua pemain menekan SIAP') : 'Tiap tim minimal 1 pemain (boleh bot)') : 'Tekan SIAP, lalu tunggu pembuat room memulai'}${TIM.sudahMain && TIM.host ? '<br><small>Ganti arena: buat room baru</small>' : ''}</div>`;
   lobi(h, m.code);
 }
-function ingatRoomTim(c) { try { localStorage.setItem('kgRoom', JSON.stringify({ c: String(c), m: 'tim', t: Date.now() })); } catch (e) { } }
+function ingatRoomTim(c) { try { localStorage.setItem('kgRoom', JSON.stringify(LOBI ? { c: LOBI, m: 'lb', t: Date.now() } : { c: String(c), m: 'tim', t: Date.now() })); } catch (e) { } }
 function infoTim(t) { const e = $('#tlInfo'); if (e) { e.innerHTML = '⚠️ ' + escH(t); } else lobi('⚠️ ' + escH(t)); }
 $('#lbStat').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || !TIM.on) return; const d = b.dataset, saya = TIM.pl.find(p => p.i === TIM.me) || {};
@@ -2199,6 +2205,7 @@ function timTerima(m) {
     return true;
   }
   if ((m.t === 'st' || m.t === 'in') && m.v3 && m.w) { if (TIM.main) terimaDataTim(m); return true; }
+  if (m.t === 'err' && LOBI && (m.balik || m.hilang)) { lobi('⚠️ ' + escH(m.msg)); setTimeout(keLobiMB, 2500); return true; }
   if (m.t === 'err') { infoTim(m.msg); if (m.hilang) { try { localStorage.removeItem('kgRoom'); } catch (e) { } } if (m.tunggu && KODE) setTimeout(() => kirim({ t: 'join', code: KODE }), 4000); return true; }
   return false;
 }
