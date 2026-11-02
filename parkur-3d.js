@@ -686,7 +686,7 @@ function mulai3D() {
     for (const n in D.K) act[n] = mixer.clipAction(D.K[n]);
     if (act.loncat) { act.loncat.setLoop(THREE.LoopOnce); act.loncat.clampWhenFinished = true; }
     const root = new THREE.Group(), badanG = new THREE.Group(); badanG.add(m); root.add(badanG);
-    m.traverse(o => { if (o.name === 'gendKepal') o.visible = false; });   // Parkur: Genderuwo bercakar terbuka saja
+    m.traverse(o => { if (o.name === 'gendKepal' || o.name === 'golok') o.visible = false; });   // Parkur: Genderuwo bercakar terbuka saja · Si Pitung tanpa golok
     const tegapG = []; if (D.tegap) m.traverse(o => { if (!o.isBone) return; const k = o.name.replace(/^mixamorig:?/, ''); const f = D.tegap[k] || (/(Thumb|Index|Middle|Ring|Pinky)/.test(k) ? 1 : 0); if (f) tegapG.push([o, o.quaternion.clone(), f]); });
     return { root, badanG, jenis: kunci === 'tuyul' || kunci === 'genderuwo' || kunci === 'leak' || kunci === 'pitung' ? 'tuyul3d' : 'kunti3d', mixer, act, cur: '', tegapG };   // Genderuwo memakai gerak yang sama dengan Tuyul (diam / lari / lompat)
   }

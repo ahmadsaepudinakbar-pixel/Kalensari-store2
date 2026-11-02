@@ -2538,7 +2538,8 @@ class Hero {
     muatModel(urlHero(id, skin)).then(gl => {
       const m = klonKerangka(gl.scene), bb = gl.kotak, h = bb.max.y - bb.min.y || 1, k = TINGGI[id] / h;
       m.scale.setScalar(k); if (id == 'pocong' && skin != 'pocong:boneka') m.scale.set(k * 1.2, k, k * 1.2);
-      m.position.y = -bb.min.y * k; m.traverse(o => { if (o.name === 'gendKepal') o.visible = false;
+      m.position.y = -bb.min.y * k; m.traverse(o => { if (o.name === 'gendKepal' || o.name === 'golok') o.visible = false;   // Parkur: Si Pitung tanpa golok
+
         if (o.isMesh && skin == 'pocong:emas') { o.material = o.material.clone(); o.material.color = new THREE.Color(0xff9ccf); } });
       this.badan.remove(this.ganti); buang(this.ganti); this.badan.add(m); this.model = m; this.y0 = m.position.y;
       this.mixer = new THREE.AnimationMixer(m); this.act = {};
