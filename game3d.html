@@ -754,6 +754,7 @@ function siapkanOcongLompat(gl, m, T) {   // model tanpa tulang: animasi Hop & I
 // Skin Boneka (bertopi): saat berjalan badan meloncat-loncat dengan kedua kaki rapat, sedikit condong ke depan & mendarat mengempis
 const GEND_KEPAL = new Set(['tinju', 'cakar', 'hantam', 'amuk', 'angry']);   // animasi serangan & skill → Genderuwo bertangan mengepal
 function lompatPocong(T, dt) {
+  if (T && T.ultiM) { const u = T.cur === 'ulti' && T.ultiM.userData.m === T.model; if (T.ultiM.visible !== u) { T.ultiM.visible = u; if (T.model) T.model.visible = !u; } }   // Si Pitung: patung pose ulti
   if (T && T.golok) T.golok.visible = !PIT_TANPA_GOLOK.has(T.cur);
   if (T && T.gK) { const k = GEND_KEPAL.has(T.cur); if (T.gK[1].visible !== k) { T.gK[0].visible = !k; T.gK[1].visible = k; } }   // diam / jalan / mati → Genderuwo bercakar terbuka
   if (T && T.tegapG && (T.cur === 'diam' || T.cur === 'jalan' || T.cur === 'lari')) T.tegapG.forEach(([b, q, k]) => b.quaternion.slerp(q, k));   // Genderuwo lebih tegak
@@ -1650,6 +1651,15 @@ function siapkanPitung(gl, m, T) {
   pasang('ulti', cari('terbang')); pasang('serang2', sub('serang', 'serang2', .3, 1.3), 1); pasang('kalah', cari('mati'), 1);
   if (!T.act.diam) T.act.diam = T.act.jalan; if (!T.act.lari) T.act.lari = T.act.jalan;
   T.golok = m.getObjectByName('golok');
+  // pose ulti: model patung (pitung-ulti.glb, pose persis seperti contoh) ditampilkan menggantikan model bertulang selama melompat & melayang
+  if (T.ultiM && T.ultiM.parent) T.ultiM.parent.remove(T.ultiM); T.ultiM = null;
+  muatUltiPitung().then(sc => { if (T.model !== m || !m.parent) return; const u = sc.clone(); u.scale.setScalar(m.scale.x); u.rotation.y = Math.PI / 2;   // patung menghadap -x → diputar menghadap depan (+z)
+    u.position.set(0, m.position.y, .07 * m.scale.x); u.visible = false; u.userData.m = m; m.parent.add(u); T.ultiM = u; }).catch(() => { });
+}
+let _ultiPitung = null;
+function muatUltiPitung() {
+  return _ultiPitung || (_ultiPitung = new Promise((res, rej) => new GLTFLoader().load('model-3d/pitung-ulti.glb', g => {
+    g.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) o.material.envMapIntensity = .6; } }); res(g.scene); }, undefined, rej)));
 }
 function pTebas(pos, a) {   // sabetan golok: kilau perak + jejak merah
   tebas(pos, a, 0xdfe6ff, 0, -.5, 1.15); tebas(pos, a, 0xff3020, 0, .3, .85);
