@@ -73,6 +73,9 @@ small{font-size:1.5cqw;color:#9aa3b8}
 .card.lock{opacity:.55}.card.lock i{filter:grayscale(1)}
 #akBadge{position:absolute;left:1.6cqw;top:1.4cqw;display:flex;align-items:center;gap:.8cqw;background:#0b1020cc;border:.25cqw solid #2c3f73;border-radius:3cqw;padding:.35cqw 1.2cqw .35cqw .35cqw;color:#fff;font:700 1.4cqw Arial;cursor:pointer;z-index:2;max-width:26cqw}
 #akBadge i{width:3.6cqw;height:3.6cqw;border-radius:50%;background:#1a2440 center/cover;flex:none;border:.2cqw solid #ffd166;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:2cqw}#akBadge span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#akPop{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#000a;z-index:5}#akPop.on{display:flex}
+.akPopIsi{background:#0e1526;border:.35cqw solid #ffd166;border-radius:1.8cqw;padding:2.6cqw 4cqw;display:flex;flex-direction:column;align-items:center;gap:2cqw;box-shadow:0 0 3cqw #000}
+.akPopT{font:700 2.6cqw Arial;color:#fff}.akPopB{display:flex;gap:2cqw}.akPopB .btn{min-width:12cqw;font-size:2.2cqw}
 #akn{gap:1.6cqw;background:#050813ee}#akn h2{font-size:2.8cqw}.akBox{display:flex;gap:3cqw;align-items:center;background:#0e1526;border:.3cqw solid #2a3350;border-radius:1.6cqw;padding:2cqw 3cqw;width:68cqw}
 .akKiri{display:flex;flex-direction:column;align-items:center;gap:1cqw}.akFoto{width:15cqw;height:15cqw;border-radius:50%;background:#1a2440 center/cover;border:.4cqw solid #ffd166;box-shadow:0 0 2cqw #ffd16655;display:flex;align-items:center;justify-content:center;font-size:7cqw}
 .akBtns{display:flex;gap:.6cqw}.akBtns .btn{font-size:1.4cqw;padding:.5cqw 1cqw}.akKanan{flex:1;display:flex;flex-direction:column;gap:.8cqw;text-align:left}
@@ -382,7 +385,8 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
 <div class="akBox"><div class="akKiri"><div class="akFoto" id="akFoto"></div><div class="akBtns"><button class="btn" id="akGanti">📷 Ganti Foto</button><button class="btn" id="akHapus">🗑️</button></div><input type="file" id="akFile" accept="image/*" hidden></div>
 <div class="akKanan"><div id="akStatus" class="akStatus"></div><label for="akNama">Nama di game</label><input id="akNama" maxlength="16" placeholder="Nama kamu (2–16 huruf)" autocomplete="off">
 <div class="akMasuk" id="akMasuk"><button class="btn g" id="akLogin">🔑 Masuk</button><button class="btn" id="akDaftar">📝 Daftar</button></div><div class="akMasuk" id="akGantiAkun"><button class="btn" id="akKeluar">🔄 Ganti Akun</button></div><div id="akMsg" class="akMsg"></div></div></div>
-<div style="display:flex;gap:1.5cqw"><button class="btn" id="akBack">Kembali</button><button class="btn g" id="akSimpan">💾 Simpan</button></div></div>
+<div style="display:flex;gap:1.5cqw"><button class="btn" id="akBack">Kembali</button><button class="btn g" id="akSimpan">💾 Simpan</button></div>
+<div id="akPop"><div class="akPopIsi"><div class="akPopT">🔄 Yakin ingin ganti akun?</div><div class="akPopB"><button class="btn g" id="akYa">Iya</button><button class="btn" id="akTidak">Tidak</button></div></div></div></div>
 <div id="kar" class="scr"><div class="kl"><h2>Scan Kartu</h2>
 <div class="kcam"><video id="kVid" muted playsinline></video><div class="kfr"><i></i><i></i><i></i><i></i><b></b></div><div class="kph" id="kPh">📷<br>Tekan <b>Buka Kamera</b> lalu arahkan ke QR di kartu</div></div>
 <div class="krow"><button class="btn g" id="kCam">📷 Buka Kamera</button></div>
@@ -1190,7 +1194,10 @@ async function krpc(fn,body){if(!KBASE)throw new Error('Tidak terhubung ke serve
  const t=await r.text();let j=null;try{j=t?JSON.parse(t):null}catch(e){}
  if(!r.ok){const m=String((j&&j.message)||t||('HTTP '+r.status));if(/PGRST202|Could not find the function/i.test(m))throw new Error('Fitur kartu belum dipasang di server.');const e=new Error(m.replace(/^SESI:\s*/,''));e.sesi=/^SESI:/.test(m);throw e}return j}
 async function muatKoleksi(){try{const k=await krpc('game_koleksi',{p_sesi:ksSesi()});KOL=Object.assign({login:false,hero:[],skin:[],kartu:[]},k||{});KOL.err=''}catch(e){KOL.err=e.message}
- if(!punyaHero(pick))pick='pocong';if($('#kar').classList.contains('on'))karRender();if($('#sel').classList.contains('on'))grid();if(typeof akBadge=='function')akBadge();if($('#akn')&&$('#akn').classList.contains('on'))akRender()}
+ if(!punyaHero(pick))pick='pocong';if($('#kar').classList.contains('on'))karRender();if($('#sel').classList.contains('on'))grid();if(KOL.login)akSamakan();if(typeof akBadge=='function')akBadge();if($('#akn')&&$('#akn').classList.contains('on'))akRender()}
+// akun yang sedang masuk = sumber nama & foto game: salinan di HP ini selalu disamakan (penting setelah ganti akun)
+function akSamakan(){try{const n=String(KOL.nama||'').trim();if(n&&n!='Pemain'){localStorage.setItem('kgName',n);const o=$('#oName');if(o)o.value=n}
+ if('foto' in KOL){if(KOL.foto)localStorage.setItem('kgFoto',KOL.foto);else localStorage.removeItem('kgFoto')}}catch(e){}}
 function kMasuk(kode){try{sessionStorage.setItem('kalensari_next','url:game.html'+(kode?'?kartu='+encodeURIComponent(kode):'')+'#kartu')}catch(e){}kSt('Membuka halaman masuk akun warga desa Kalensari Store…');setTimeout(()=>location.href='akun-pembeli.html',600)}
 function kSt(t,c){const e=$('#kSt');e.textContent=t||'';e.className='kst '+(c||'')}
 const NM3D=h=>({pocong:'Ocong',kuntilanak:'Kunti',tuyul:'Tuyul',genderuwo:'Genderuwo',pitung:'Si Pitung'})[h]||h;
@@ -1250,16 +1257,18 @@ function bukaAkun(){AKG.foto=null;AKG.ubahFoto=false;akMsg('');$('#akNama').valu
 function akRender(){
  $('#akStatus').innerHTML=KOL.login?'✅ Game sudah terhubung dengan <b>akun warga desa Kalensari Store</b>. Nama, foto, kartu hero & skin, dan teman tersimpan di akunmu.'
   :`${KOL.err?'⚠️ '+String(KOL.err).replace(/[<>]/g,'')+'<br>':''}Belum masuk. <b>Masuk</b> atau <b>Daftar</b> akun warga desa Kalensari Store untuk mengaitkan game: kartu hero & skin, teman, serta nama & foto profil tersimpan di akunmu.<br><small>Tanpa akun, nama & foto hanya tersimpan di HP ini.</small>`;
- $('#akMasuk').style.display=KOL.login?'none':'';$('#akGantiAkun').style.display=KOL.login?'':'none';$('#akKeluar').textContent='🔄 Ganti Akun';AKG.keluar=0;akGambar($('#akFoto'),AKG.ubahFoto?AKG.foto:akFotoSaya());$('#akHapus').style.display=(AKG.ubahFoto?AKG.foto:akFotoSaya())?'':'none'}
+ $('#akMasuk').style.display=KOL.login?'none':'';$('#akGantiAkun').style.display=KOL.login?'':'none';$('#akPop').classList.remove('on');akGambar($('#akFoto'),AKG.ubahFoto?AKG.foto:akFotoSaya());$('#akHapus').style.display=(AKG.ubahFoto?AKG.foto:akFotoSaya())?'':'none'}
 function akKeAkun(hash){try{sessionStorage.setItem('kalensari_next','url:game.html#akun')}catch(e){}akMsg('Membuka halaman akun warga desa Kalensari Store…');setTimeout(()=>location.href='akun-pembeli.html'+hash,500)}
 function akPerkecil(file){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=()=>rej(new Error('Foto tidak bisa dibaca'));r.onload=()=>{const im=new Image();im.onerror=()=>rej(new Error('File bukan gambar'));im.onload=()=>{
   const S=160,c=document.createElement('canvas');c.width=c.height=S;const g2=c.getContext('2d'),m=Math.min(im.width,im.height);g2.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,S,S);   // potong persegi di tengah
   let d=c.toDataURL('image/webp',.82);if(!d.startsWith('data:image/webp'))d=c.toDataURL('image/jpeg',.82);res(d)};im.src=r.result};r.readAsDataURL(file)})}
 $('#bAkun').onclick=bukaAkun;$('#akBadge').onclick=bukaAkun;$('#akBack').onclick=()=>{sc('menu');akBadge()};
-$('#akKeluar').onclick=()=>{   // ganti akun: keluar dari akun warga desa di HP ini, lalu masuk dengan akun lain
- if(!AKG.keluar){AKG.keluar=1;$('#akKeluar').textContent='⚠️ Tekan lagi untuk keluar';akMsg('Akun warga desa di HP ini (termasuk di Kalensari Store) akan dikeluarkan, lalu kamu bisa masuk dengan akun lain.',1);return}
+$('#akKeluar').onclick=()=>$('#akPop').classList.add('on');   // ganti akun: tanya dulu lewat pop up
+$('#akTidak').onclick=()=>$('#akPop').classList.remove('on');
+$('#akYa').onclick=()=>{$('#akPop').classList.remove('on');   // keluar dari akun warga desa di HP ini, lalu masuk dengan akun lain
  const t=ksSesi();if(t)krpc('keluar_akun',{p_sesi:t}).catch(()=>{});
  ['pembeli','jasa'].forEach(r=>{try{localStorage.removeItem('kalensari_sesi_'+r);localStorage.removeItem('kalensari_'+r+'_login');localStorage.removeItem('kalensari_'+r+'_sess');sessionStorage.removeItem('kalensari_'+r+'_sess')}catch(e){}});
+ try{localStorage.removeItem('kgName');localStorage.removeItem('kgFoto')}catch(e){}if($('#oName'))$('#oName').value='';   // nama & foto akun lama dihapus dari HP ini
  KOL={login:false,hero:[],skin:[],kartu:[]};if(!punyaHero(pick))pick='pocong';akBadge();akKeAkun('#masuk')};
 $('#akLogin').onclick=()=>akKeAkun('#masuk');$('#akDaftar').onclick=()=>akKeAkun('#daftar');
 $('#akGanti').onclick=()=>$('#akFile').click();
