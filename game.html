@@ -1297,19 +1297,19 @@ function pkLevel3(){const SEG=12000,BAG=['gang','kebun','kubur','kampung'],LEN=S
 // ===== LINTASAN 4: Ular Tangga Hantu (papan 100 petak, langkah pakai dadu, mabar sampai 6) =====
 // Tiap pemain melempar dadunya sendiri (balapan, tanpa giliran). Hero melompat otomatis sejumlah angka dadu.
 // Kaki tangga = naik, kepala ular = turun. Petak 100 harus pas: kalau angka dadu lebih, sisanya mundur.
-const PKUT={K:10,N:100,TW:72,TD:60,PX:78,RY:70,X0:270,Y0:700,
- TG:{1:38,4:14,9:31,21:42,28:84,36:44,51:67,71:91,80:100},UL:{16:6,47:26,49:11,56:53,62:19,64:60,87:24,93:73,95:75,98:78}};
+const PKUT={K:10,N:100,TW:140,TD:112,PX:148,RY:122,X0:270,Y0:1250,
+ TG:{1:38,4:14,9:31,21:42,28:84,36:44,51:67,71:91,80:96},UL:{16:6,47:26,49:11,56:53,62:19,64:60,87:24,93:73,95:75,98:78}};
 function pkLevel4(){const U=PKUT;
  const pos=n=>{const i=n-1,r=Math.floor(i/U.K),c=i%U.K,col=r%2?U.K-1-c:c;return{x:U.X0+col*U.PX,y:U.Y0-r*U.RY,z:r*6}};
- const L=[[0,U.Y0-50,260,160,0,'',{no:0}]],WR=['#5b4a3a','#4a3a5a'];
+ const L=[[0,U.Y0-40,260,190,0,'',{no:0}]],WR=['#5b4a3a','#4a3a5a'];
  for(let n=1;n<=U.N;n++){const p=pos(n),r=Math.floor((n-1)/U.K);
   L.push([p.x,p.y,U.TW,U.TD,p.z,'',{no:n,tg:U.TG[n],ul:U.UL[n],warna:n==U.N?'#b8860b':WR[(n+r)%2]}])}
  PK.pl=L.map((a,i)=>({i,x:a[0],y:a[1],w:a[2],d:a[3],z:a[4],t:a[5]||'',o:a[6]||{},ox:0,oy:0,dx:0,dy:0,tm:0,turun:0}));
  PK.cps=[PK.pl[0]];PK.coins=[];PK.ut={pt:0,N:U.N};
  const k=PK.net?(PKN.idx||0):0;   // posisi kecil di dalam petak supaya 6 hero tidak bertumpuk
- PK.dd={st:'siap',t:0,muka:1,nilai:1,sisa:0,arah:1,hop:null,efek:0,lempar:0,off:[(k%3-1)*18,(Math.floor(k/3)-.5)*16]};
+ PK.dd={st:'siap',t:0,muka:1,nilai:1,sisa:0,arah:1,hop:null,efek:0,lempar:0,off:[(k%3-1)*36,(Math.floor(k/3)-.5)*32]};
  setTimeout(()=>toast('🎲 Ular Tangga Hantu! Ketuk LEMPAR DADU · siapa duluan sampai petak 100 menang'),400)}
-function pkPetakDi(x,y){let b=0,bd=1e9;PK.pl.forEach(q=>{const d=Math.hypot(pkPx(q)+36-x,pkPy(q)+q.d/2-y);if(d<bd){bd=d;b=q.o.no||0}});return b}
+function pkPetakDi(x,y){let b=0,bd=1e9;PK.pl.forEach(q=>{const d=Math.hypot(pkPx(q)+Math.min(q.w,PKUT.TW)/2-x,pkPy(q)+q.d/2-y);if(d<bd){bd=d;b=q.o.no||0}});return b}
 function pkDadu(P2){const D=PK.dd,U=PK.ut;P2.walk=0;
  if(PK.fin||D.st=='selesai'){PK.key.j=0;return}
  if(P2.ut){pkUtJalan(P2);if(!P2.ut)pkDaduSetelah(P2);return}
@@ -1321,7 +1321,7 @@ function pkDadu(P2){const D=PK.dd,U=PK.ut;P2.walk=0;
   if(!D.hop){if(D.sisa<=0){pkDaduSetelah(P2);return}
    if(D.arah==1&&U.pt>=U.N){D.arah=-1;toast('↩️ Angka kelebihan! Mundur '+D.sisa+' petak')}
    const b=PK.pl[U.pt+D.arah];D.hop={x0:P2.x,y0:P2.y,z0:P2.z,b,t:0}}
-  const H=D.hop,u=Math.min(1,++H.t/13),tx=pkPx(H.b)+36+D.off[0],ty=pkPy(H.b)+H.b.d/2+D.off[1],ox=P2.x;
+  const H=D.hop,u=Math.min(1,++H.t/13),tx=pkPx(H.b)+H.b.w/2+D.off[0],ty=pkPy(H.b)+H.b.d/2+D.off[1],ox=P2.x;
   P2.x=H.x0+(tx-H.x0)*u;P2.y=H.y0+(ty-H.y0)*u;P2.z=H.z0+(H.b.z-H.z0)*u+Math.sin(Math.PI*u)*32;P2.gr=null;P2.walk=1;
   const dx=tx-H.x0,dy=ty-H.y0,L=Math.hypot(dx,dy);if(L>1){P2.fvx=dx/L;P2.fvy=dy/L}
   if(u>=1){U.pt=H.b.o.no;D.sisa--;D.hop=null;P2.gr=H.b;P2.z=H.b.z}}}
@@ -1344,7 +1344,7 @@ function pkDaduHUD(Wd,Hd){const D=PK.dd,cx=716,cy=196,S=58,siap=D.st=='siap'&&!P
  if(t){g.strokeText(t,cx,cy-S/2-10);g.fillStyle='#ffd166';g.fillText(t,cx,cy-S/2-10)}
  g.textAlign='left'}
 function pkUtPt(a,b,j,u){   // titik di jalur tangga / badan ular (dunia: x, y, z)
- const A=[pkPx(a)+36,pkPy(a)+a.d/2,a.z],B=[pkPx(b)+36,pkPy(b)+b.d/2,b.z],dx=B[0]-A[0],dy=B[1]-A[1],L=Math.hypot(dx,dy)||1,px=-dy/L,py=dx/L;
+ const A=[pkPx(a)+Math.min(a.w,PKUT.TW)/2,pkPy(a)+a.d/2,a.z],B=[pkPx(b)+Math.min(b.w,PKUT.TW)/2,pkPy(b)+b.d/2,b.z],dx=B[0]-A[0],dy=B[1]-A[1],L=Math.hypot(dx,dy)||1,px=-dy/L,py=dx/L;
  let x=A[0]+dx*u,y=A[1]+dy*u,z=A[2]+(B[2]-A[2])*u;
  if(j=='ul'){const w=Math.sin(u*Math.PI*3.5)*26*Math.sin(Math.PI*u);x+=px*w;y+=py*w*.8;z+=Math.sin(Math.PI*u)*12}
  else if(j=='tg')z+=Math.sin(Math.PI*u)*30;
@@ -1359,19 +1359,22 @@ function pkUtGambar(pj){const U=PK.ut;if(!U)return;g.save();g.lineCap='round';g.
   for(let k=0;k<=m;k++){const p=pkUtPt(a,b,j,k/m),s=pj(p[0]+px*off,p[1]+py*off,p[2]);if(!s[2])return null;out.push(s)}return out};
  const garis=(P,w,c)=>{g.lineWidth=w;g.strokeStyle=c;g.beginPath();P.forEach((s,k)=>k?g.lineTo(s[0],s[1]):g.moveTo(s[0],s[1]));g.stroke()};
  PK.pl.forEach(q=>{const o=q.o;
-  if(o.tg){const b=PK.pl[o.tg],A=path(q,b,'tg',14,-10),B=path(q,b,'tg',14,10);if(!A||!B)return;   // tangga bambu
+  if(o.tg){const b=PK.pl[o.tg],A=path(q,b,'tg',14,-18),B=path(q,b,'tg',14,18);if(!A||!B)return;   // tangga bambu
    for(let k=1;k<14;k++){g.lineWidth=3;g.strokeStyle='#8a6a32';g.beginPath();g.moveTo(A[k][0],A[k][1]);g.lineTo(B[k][0],B[k][1]);g.stroke()}
    [A,B].forEach(P=>{garis(P,6,'rgba(40,24,8,.85)');garis(P,3.5,'#e0b860')})}
   if(o.ul){const b=PK.pl[o.ul],P=path(q,b,'ul',30,0);if(!P)return;   // ular hantu: kepala di petak atas
-   for(let k=P.length-1;k>0;k--){const w=4+9*(1-k/P.length);g.lineWidth=w+4;g.strokeStyle='rgba(10,20,10,.85)';g.beginPath();g.moveTo(P[k][0],P[k][1]);g.lineTo(P[k-1][0],P[k-1][1]);g.stroke();
+   for(let k=P.length-1;k>0;k--){const w=8+15*(1-k/P.length);g.lineWidth=w+4;g.strokeStyle='rgba(10,20,10,.85)';g.beginPath();g.moveTo(P[k][0],P[k][1]);g.lineTo(P[k-1][0],P[k-1][1]);g.stroke();
     g.lineWidth=w;g.strokeStyle=k%4<2?'#3fae4a':'#2a7a35';g.stroke()}
    const h=P[0],t=Math.sin(fr/6)*3;g.fillStyle='#2a7a35';g.strokeStyle='#0a140a';g.lineWidth=2;g.beginPath();g.ellipse(h[0],h[1],11,9,0,0,7);g.fill();g.stroke();
    g.fillStyle='#ff2a2a';g.beginPath();g.arc(h[0]-4,h[1]-3,2.4,0,7);g.arc(h[0]+4,h[1]-3,2.4,0,7);g.fill();
    g.strokeStyle='#ff4060';g.lineWidth=1.6;g.beginPath();g.moveTo(h[0],h[1]+7);g.lineTo(h[0]+t,h[1]+14);g.stroke()}});
- g.textAlign='center';g.textBaseline='middle';g.font=(U.N>50?'bold 11px':'bold 13px')+' Arial';
- PK.pl.forEach(q=>{const n=q.o.no;if(!n||q.turun)return;const s=pj(pkPx(q)+36,pkPy(q)+q.d/2,q.z);if(!s[2])return;
-  const tx=(q.o.tg?'🪜':q.o.ul?'🐍':'')+n;g.lineWidth=3;g.strokeStyle='rgba(0,0,0,.8)';g.strokeText(tx,s[0],s[1]);
-  g.fillStyle=n==U.pt?'#ffd166':q.o.tg?'#7dff9b':q.o.ul?'#ff8080':'#fff';g.fillText(tx,s[0],s[1])});
+ g.textAlign='center';g.textBaseline='middle';g.font='bold 19px Arial';
+ PK.pl.forEach(q=>{const n=q.o.no;if(!n||q.turun)return;const fin=n==U.N;
+  const s=fin?pj(pkPx(q)+q.w/2,pkPy(q)+q.d/2,q.z):pj(pkPx(q)+q.w-10,pkPy(q)+16,q.z);if(!s[2])return;   // angka di pojok kanan atas kotak
+  const tx=(q.o.tg?'🪜':'')+n,tulis=(t,x,y)=>{g.lineWidth=3;g.strokeStyle='rgba(0,0,0,.8)';g.strokeText(t,x,y);g.fillText(t,x,y)};
+  g.fillStyle=n==U.pt?'#ffd166':q.o.tg?'#7dff9b':q.o.ul?'#ff8080':'#fff';
+  if(fin){g.textAlign='center';g.font='bold 20px Arial';tulis(tx,s[0],s[1]-9);g.font='bold 15px Arial';g.fillStyle='#ffe9a8';tulis('🏁 FINISH',s[0],s[1]+11);g.font='bold 19px Arial'}
+  else{g.textAlign='right';tulis(tx,s[0],s[1])}});
  g.restore()}
 // ===== LINTASAN 5: Pasar Malam Hantu =====
 // lapak → komidi putar (kuda berputar) → kora-kora (perahu berayun) → bianglala (keranjang naik) → atap lapak turun → rumah hantu gelap → gerbang finis
