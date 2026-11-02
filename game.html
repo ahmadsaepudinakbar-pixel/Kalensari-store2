@@ -329,7 +329,7 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 <div id="onl" class="scr"><div class="onwrap"><div class="onL"><h2>Main Online</h2><div class="onrow" id="oBalik" style="display:none"></div>
 <div class="onrow" id="oMode"><label>Mode</label><button class="btn on" data-m="duel">⚔️ Duel 1 vs 1</button><button class="btn" data-m="tim">👥 Duel Tim</button><button class="btn" data-m="pk">🏃 Parkur Hantu</button></div>
 <div class="onrow"><label>Nama</label><input id="oName" maxlength="16" placeholder="Nama Anda"></div>
-<div class="onrow" id="oPkAr" style="display:none"><label>Lintasan</label><button class="btn" data-a="0">🌉 Kali Angker</button><button class="btn" data-a="1">🏘️ Dusun Malam Jumat</button><button class="btn" data-a="2">🏃 Lari Jalan Desa</button><button class="btn" data-a="3">🐍 Ular Tangga</button></div>
+<div class="onrow" id="oPkAr" style="display:none"><label>Lintasan</label><button class="btn" data-a="0">🌉 Kali Angker</button><button class="btn" data-a="1">🏘️ Dusun Malam Jumat</button><button class="btn" data-a="2">🏃 Lari Jalan Desa</button><button class="btn" data-a="3">🐍 Ular Tangga</button><button class="btn" data-a="4">🎡 Pasar Malam</button></div>
 <div class="onrow" id="oPub"><label>Room</label><button class="btn" data-p="1">🌐 Terbuka</button><button class="btn" data-p="0">🔒 Privat</button></div>
 <div class="onrow onsm" id="oInfo"></div>
 <div class="onrow"><button class="btn g" id="oQuick">Cari Lawan Acak</button><button class="btn" id="oCreate">Buat Room</button></div>
@@ -1233,10 +1233,11 @@ const PK={on:0,pl:[],coins:[],cp:0,cps:[],t:0,fin:0,dead:0,deaths:0,cam:{x:0,y:0
 const PKAR=[{n:'Jembatan Kali Angker',e:'🌉',d:'Pijakan batu, api & jembatan bambu di atas kali',bg:'linear-gradient(#0b1430,#0b2534)'},
  {n:'Balapan Dusun Malam Jumat',e:'🏘️',d:'Sawah, kali, kebun pisang, kuburan & gang kampung',bg:'linear-gradient(#0a1230,#163a1f)'},
  {n:'Lari Jalan Desa',e:'🏃',d:'Lari otomatis 3 jalur: pindah jalur, lompat & merunduk',bg:'linear-gradient(#1a0f30,#3a1a10)'},
- {n:'Ular Tangga Hantu',e:'🐍',d:'Papan 50 petak: naik tangga, lompati kepala ular',bg:'linear-gradient(#1a0f30,#0f3a2a)'}];
+ {n:'Ular Tangga Hantu',e:'🐍',d:'Papan 50 petak: naik tangga, lompati kepala ular',bg:'linear-gradient(#1a0f30,#0f3a2a)'},
+ {n:'Pasar Malam Hantu',e:'🎡',d:'Komidi putar, kora-kora, bianglala & rumah hantu',bg:'linear-gradient(#2a0a3a,#5a1a2a 60%,#c1121f)'}];
 PK.ar=0;try{PK.ar=Math.min(PKAR.length-1,Math.max(0,+localStorage.getItem('kgPkAr')||0))}catch(e){}
 function pkSetAr(a){PK.ar=a;try{localStorage.setItem('kgPkAr',a)}catch(e){}}
-function pkLevel(){PK.npc=null;PK.run=null;PK.ut=null;if(PK.ar==3)return pkLevel4();if(PK.ar==1)return pkLevel2();if(PK.ar==2)return pkLevel3();   // [x, y, lebar, dalam, tinggi, jenis, opsi]
+function pkLevel(){PK.npc=null;PK.run=null;PK.ut=null;PK.pm=null;if(PK.ar==3)return pkLevel4();if(PK.ar==4)return pkLevel5();if(PK.ar==1)return pkLevel2();if(PK.ar==2)return pkLevel3();   // [x, y, lebar, dalam, tinggi, jenis, opsi]
  const L=[[0,300,260,160,0],[330,330,100,100,20],[470,368,170,26,20,'bambu'],[690,320,110,120,50],[860,340,80,80,70,'runtuh'],
   [1000,300,180,160,60,'cp'],[1240,340,90,80,80,'gerak',{ax:60}],[1430,250,90,80,110],[1580,250,180,80,110,'api',{fx:1660}],
   [1820,340,80,80,140],[1960,420,72,60,150,'runtuh'],[2090,330,160,140,160,'cp'],[2320,300,70,60,190],[2450,380,70,60,220],
@@ -1342,6 +1343,68 @@ function pkUtGambar(pj){const U=PK.ut;if(!U)return;g.save();g.lineCap='round';g.
   const tx=(q.o.tg?'🪜':q.o.ul?'🐍':'')+n;g.lineWidth=3;g.strokeStyle='rgba(0,0,0,.8)';g.strokeText(tx,s[0],s[1]);
   g.fillStyle=n==U.pt?'#ffd166':q.o.tg?'#7dff9b':q.o.ul?'#ff8080':'#fff';g.fillText(tx,s[0],s[1])});
  g.restore()}
+// ===== LINTASAN 5: Pasar Malam Hantu =====
+// lapak → komidi putar (kuda berputar) → kora-kora (perahu berayun) → bianglala (keranjang naik) → atap lapak turun → rumah hantu gelap → gerbang finis
+const PKPM={kom:{cx:1060,cy:380,rx:120,ry:70,z:50,sp:.012,n:4},kora:{cx:1600,y:335,w:150,d:90,z:40,A:.95,sp:.022,L:190,H:70},
+ bg:{cx:2150,y:345,zc:190,R:140,n:6,sp:.006,w:64,d:56},rh:[3100,4330]};
+function pkLevel5(){const M=PKPM,W='#5b4a3a',LP=(x,y,w,d,z,t,warna)=>[x,y,w,d,z,t||'',{lapak:1,warna}];
+ const L=[[0,300,260,160,0,'',{warna:W}],
+  LP(300,330,110,100,25,'','#b0141c'),LP(490,340,100,90,50,'','#1d5fbf'),LP(650,320,110,110,30,'','#127a34'),LP(810,340,90,90,55,'runtuh','#b8860b'),
+  [M.kom.cx-12,M.kom.cy-10,24,20,200,'',{warna:'#d4a64a'}]];   // tiang tengah komidi putar (tidak bisa dinaiki)
+ for(let k=0;k<M.kom.n;k++)L.push([M.kom.cx-25,M.kom.cy-20,50,40,M.kom.z,'',{lay:1,warna:['#ff6bb5','#7dd3ff','#ffd166','#b07cff'][k],sisi:'#3a1a2a',
+  mv:q=>{const a=fr*M.kom.sp+k*Math.PI*2/M.kom.n;q.ox=Math.cos(a)*M.kom.rx;q.oy=Math.sin(a)*M.kom.ry;q.z=M.kom.z+Math.sin(fr/9+k*2)*4}}]);   // kuda naik-turun
+ L.push([1215,300,170,160,50,'cp',{warna:'#4a3a5a'}]);
+ L.push([M.kora.cx-M.kora.w/2,M.kora.y,M.kora.w,M.kora.d,M.kora.z,'',{lay:1,warna:'#8a2a1a',sisi:'#3a0a06',
+  mv:q=>{const t=Math.sin(fr*M.kora.sp)*M.kora.A;q.ox=Math.sin(t)*M.kora.L;q.z=M.kora.z+M.kora.H*(1-Math.cos(t))}}]);
+ L.push([1840,320,140,120,60,'',{warna:W}],[2000,345,70,60,45,'',{warna:W}]);
+ for(let k=0;k<M.bg.n;k++)L.push([M.bg.cx-M.bg.w/2,M.bg.y,M.bg.w,M.bg.d,M.bg.zc,'',{lay:1,warna:['#ff3b6b','#ffb703','#3fd16b','#2e8bff','#b07cff','#ff7a2a'][k],sisi:'#1a1a2a',
+  mv:q=>{const a=-fr*M.bg.sp+k*Math.PI*2/M.bg.n;q.ox=Math.cos(a)*M.bg.R;q.z=M.bg.zc+Math.sin(a)*M.bg.R}}]);   // berputar berlawanan jarum jam: naik di sisi kanan... kiri bawah ke atas
+ L.push([2250,330,200,100,316,'cp',{lay:1,warna:'#4a3a5a'}],
+  LP(2510,340,100,90,270,'','#b0141c'),LP(2660,330,100,100,220,'','#1d5fbf'),LP(2810,340,100,90,170,'','#127a34'),LP(2960,330,100,100,120,'','#b8860b'),
+  [3100,300,260,160,100,'',{warna:'#2a2028'}],[3420,330,90,90,100,'runtuh',{warna:'#3a2a20'}],[3580,340,110,80,100,'',{ay:45,warna:'#3a1a10'}],
+  [3760,330,90,90,110,'runtuh',{warna:'#3a2a20'}],[3910,340,120,80,110,'',{ax:50,warna:'#3a1a10'}],[4100,300,230,160,110,'',{warna:'#2a2028'}],
+  [4400,280,320,200,110,'finis',{warna:W}]);
+ PK.pl=L.map((a,i)=>({i,x:a[0],y:a[1],w:a[2],d:a[3],z:a[4],t:a[5]||'',o:a[6]||{},ox:0,oy:0,dx:0,dy:0,tm:0,turun:0}));
+ PK.cps=PK.pl.filter(q=>q.t=='cp'||q.i==0);
+ PK.coins=[[375,380,65],[540,385,90],[705,375,70],[1060,380,95],[1300,380,90],[1600,380,120],[1910,380,100],[2150,372,370],[2560,385,310],[2860,385,210],[3465,375,140],[3970,380,150]].map(c=>({x:c[0],y:c[1],z:c[2],ok:0}));
+ PK.pm={hi:0,hint:[[0,'🎡 Pasar Malam Hantu! Semua wahana masih bergerak sendiri…'],[880,'🎠 Lompat ke kuda komidi putar, lalu loncat keluar di sisi kanan'],[1390,'⛵ Naik kora-kora, tunggu perahunya mengayun ke kanan'],[1990,'🎡 Naik keranjang bianglala sampai puncak, lalu lompat ke panggung'],[3090,'🏚️ Rumah Hantu! Gelap… tunggu lampu berkedip'],[4330,'🏁 Gerbang keluar sudah dekat!']]};
+ setTimeout(()=>toast(PK.pm.hint[0][1]),400);PK.pm.hi=1}
+function pkPM(P2){const H=PK.pm;while(H.hi<H.hint.length&&P2.x>H.hint[H.hi][0]){toast(H.hint[H.hi][1]);H.hi++}}
+const pkPMKedip=()=>{const c=fr%300;return c<7||(c>16&&c<22)||(c>150&&c<156)};
+function pkPMBelakang(pj){const M=PKPM;g.save();g.lineCap='round';g.lineJoin='round';
+ const ln=(a,b,w,c)=>{const A=pj(...a),B=pj(...b);g.lineWidth=w;g.strokeStyle=c;g.beginPath();g.moveTo(A[0],A[1]);g.lineTo(B[0],B[1]);g.stroke()};
+ const bohlam=(p,k,r=3.2)=>{const s=pj(...p),on=(Math.floor(fr/12)+k)%3;g.fillStyle=['#ff4a6a','#ffd166','#7dd3ff'][on];g.shadowColor=g.fillStyle;g.shadowBlur=8;g.beginPath();g.arc(s[0],s[1],r,0,7);g.fill();g.shadowBlur=0};
+ // gerbang masuk
+ [[205,300],[205,460]].forEach(([x,y])=>ln([x,y,0],[x,y,170],5,'#8a1a14'));ln([205,300,170],[205,460,170],10,'#c1121f');
+ {const s=pj(205,380,182);g.font='bold 15px Georgia';g.textAlign='center';g.lineWidth=4;g.strokeStyle='#000';g.strokeText('PASAR MALAM',s[0],s[1]);g.fillStyle='#ffd166';g.fillText('PASAR MALAM',s[0],s[1])}
+ for(let k=0;k<8;k++)bohlam([205,300+k*23,165],k);
+ // untaian lampu di atas lapak
+ for(let x=300;x<3000;x+=36){const z=150+Math.sin(x/90)*14;if(x>950&&x<1250||x>1990&&x<2300)continue;bohlam([x,290,z],x/36|0,2.6)}
+ // komidi putar: tiang, kanopi bergaris, tiang kuda
+ const K=M.kom,top=[];for(let k=0;k<=24;k++){const a=k/24*Math.PI*2;top.push(pj(K.cx+Math.cos(a)*(K.rx+20),K.cy+Math.sin(a)*(K.ry+12),150))}
+ const pc=pj(K.cx,K.cy,215);for(let k=0;k<24;k++){g.fillStyle=k%2?'#c1121f':'#f5efe2';g.beginPath();g.moveTo(pc[0],pc[1]);g.lineTo(top[k][0],top[k][1]);g.lineTo(top[k+1][0],top[k+1][1]);g.fill()}
+ top.forEach((s,k)=>k%2||bohlam([K.cx+Math.cos(k/24*Math.PI*2)*(K.rx+20),K.cy+Math.sin(k/24*Math.PI*2)*(K.ry+12),148],k));
+ PK.pl.forEach(q=>{if(q.o.mv&&q.o.lapak==null&&q.z<100&&Math.abs(q.x+25-K.cx)<5){const x=pkPx(q)+25,y=pkPy(q)+20;ln([x,y,q.z+40],[x,y,150],3,'#d4a64a');const s=pj(x,y,q.z+18);g.font='22px Arial';g.textAlign='center';g.fillText('🐴',s[0],s[1])}});
+ // kora-kora: rangka A & tali ke perahu
+ const R=M.kora,pv=[R.cx,R.y+R.d/2,R.z+R.L+20];ln([R.cx-120,R.y+R.d/2,-40],pv,7,'#5a4a3a');ln([R.cx+120,R.y+R.d/2,-40],pv,7,'#5a4a3a');
+ PK.pl.forEach(q=>{if(q.o.mv&&q.w==R.w){const x=pkPx(q),y=pkPy(q)+q.d/2;ln(pv,[x+10,y,q.z+4],2.5,'#cfc2a0');ln(pv,[x+q.w-10,y,q.z+4],2.5,'#cfc2a0');
+  const s=pj(x+q.w/2,y,q.z+30);g.font='26px Arial';g.textAlign='center';g.fillText('⛵',s[0],s[1])}});
+ // bianglala: kaki, roda, jari-jari & lampu
+ const B=M.bg,yc=B.y+B.d/2;ln([B.cx-90,yc,-40],[B.cx,yc,B.zc],8,'#4a4a5a');ln([B.cx+90,yc,-40],[B.cx,yc,B.zc],8,'#4a4a5a');
+ const rim=[];for(let k=0;k<=36;k++){const a=k/36*Math.PI*2;rim.push(pj(B.cx+Math.cos(a)*(B.R+18),yc+12,B.zc+Math.sin(a)*(B.R+18)))}
+ g.lineWidth=4;g.strokeStyle='#8a8aa8';g.beginPath();rim.forEach((s,k)=>k?g.lineTo(s[0],s[1]):g.moveTo(s[0],s[1]));g.stroke();
+ for(let k=0;k<B.n;k++){const a=-fr*B.sp+k*Math.PI*2/B.n;ln([B.cx,yc+12,B.zc],[B.cx+Math.cos(a)*(B.R+18),yc+12,B.zc+Math.sin(a)*(B.R+18)],2.5,'#a8a8c8');ln([B.cx+Math.cos(a)*B.R,yc,B.zc+Math.sin(a)*B.R+40],[B.cx+Math.cos(a)*B.R,yc,B.zc+Math.sin(a)*B.R+4],2,'#cfcfe0')}
+ for(let k=0;k<36;k+=2){const a=k/36*Math.PI*2;bohlam([B.cx+Math.cos(a)*(B.R+18),yc+12,B.zc+Math.sin(a)*(B.R+18)],k)}
+ // rumah hantu: dinding & papan nama
+ const [r0,r1]=M.rh;ln([r0,290,100],[r0,290,330],10,'#1a1014');ln([r1,290,110],[r1,290,330],10,'#1a1014');ln([r0,290,330],[r1,290,330],12,'#1a1014');
+ {const s=pj(r0+120,290,300);g.font='bold 18px Georgia';g.textAlign='center';g.lineWidth=4;g.strokeStyle='#000';g.strokeText('💀 RUMAH HANTU 💀',s[0],s[1]);g.fillStyle=pkPMKedip()?'#fff':'#c1121f';g.fillText('💀 RUMAH HANTU 💀',s[0],s[1])}
+ g.restore()}
+function pkPMGelap(Wd,Hd,d3){const P2=PK.p,[r0,r1]=PKPM.rh;if(!P2||P2.x<r0-150||P2.x>r1+150)return;
+ const k=Math.min(1,(P2.x-(r0-150))/150,((r1+150)-P2.x)/150),kd=pkPMKedip();
+ let hx,hy;if(d3){const s=PK3.proj(P2.x,P2.y,P2.z+60);hx=s[0];hy=s[1]}else{hx=(P2.x-PK.cam.x)*.78+Wd/2;hy=(P2.y*PKY-P2.z-60-PK.cam.y)*.78+Hd/2}
+ if(kd){g.fillStyle=`rgba(220,230,255,${.25*k})`;g.fillRect(0,0,Wd,Hd);   // lampu berkedip: wajah hantu muncul
+  g.font='34px Arial';g.textAlign='center';[[-180,-60],[150,-90],[230,40],[-250,50]].forEach(([dx,dy],i)=>{g.globalAlpha=k*.9;g.fillText(i%2?'👻':'💀',hx+dx,hy+dy)});g.globalAlpha=1;return}
+ const gr=g.createRadialGradient(hx,hy,40,hx,hy,150);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,`rgba(0,0,6,${.93*k})`);g.fillStyle=gr;g.fillRect(0,0,Wd,Hd)}
 function pkLari(P2,mx,my){const R=PK.run;
  // input: tepi tekan (sekali tekan = sekali pindah jalur)
  const dx=(inp.r||PK.jm.x>.5?1:0)-(inp.l||PK.jm.x<-.5?1:0),up=inp.u||PK.jm.y<-.5?1:0,dn=inp.d||PK.jm.y>.5?1:0;
@@ -1392,7 +1455,7 @@ function pkNpc(P2,ox,oy){const N=PK.npc,t=PK.t,sama=x=>pkDi(x[0],x[1],0).some(q=
  if(P2.lambat>0)P2.lambat--;
  // petunjuk tiap bagian lintasan
  while(N.hi<N.hint.length&&P2.x>N.hint[N.hi][0]){banner(N.hint[N.hi][1]);N.hi++}}
-function pkJatuh(){if(PK.ar==3)return '💦 Jatuh dari papan ular tangga!';return PK.ar==1?(PK.p.x>520&&PK.p.x<1560?'🌾 Terpeleset ke sawah!':'💦 Jatuh ke kali!'):'💦 Jatuh ke kali!'}
+function pkJatuh(){if(PK.ar==3)return '💦 Jatuh dari papan ular tangga!';if(PK.ar==4)return '💦 Jatuh ke selokan pasar!';return PK.ar==1?(PK.p.x>520&&PK.p.x<1560?'🌾 Terpeleset ke sawah!':'💦 Jatuh ke kali!'):'💦 Jatuh ke kali!'}
 function pkSpawn(){const c=PK.cps[PK.cp];if(PK.ut)PK.ut.pt=c.o.no||0;Object.assign(PK.p,{ut:null,beku:0,lambat:0,kebal:0,x:pkPx(c)+(PK.cp?40:PK.net?30+(PKN.idx||0)*38:60),y:pkPy(c)+c.d/2,z:c.z,vz:0,gr:c,glide:0,mati:0});
  if(PK.run){const i=PK.net?(PKN.idx||0):0,n=PKLANE.length;PK.run.lane=PK.net?[2,1,3,0,4][i%n]:2;PK.p.y=PKLANE[PK.run.lane];PK.p.x=pkPx(c)+(PK.cp?40:60+Math.floor(i/n)*60)}}
 function pkMulai(){if(!punyaHero(pick))pick='pocong';pkLevel();PK.p={id:pick,x:0,y:0,z:0,vz:0,gr:null,fvx:1,fvy:0,glide:0,gl:0,cd:0,mati:0,walk:0,skin:skinOf(pick)};
@@ -1410,7 +1473,7 @@ function pkUpd(){const P2=PK.p;if(!P2)return;
   if(PKN.cdEnd){if(performance.now()<PKN.cdEnd){P2.walk=0;PK.key.j=PK.key.s=0;return}PKN.cdEnd=0;PKN.goT=performance.now();fr=0;PK.t=0}}
  if(!PK.fin)PK.t++;
  // platform bergerak & runtuh
- PK.pl.forEach(q=>{const ox=q.ox,oy=q.oy;if(q.o.ax)q.ox=Math.sin(fr/70)*q.o.ax;if(q.o.ay)q.oy=Math.sin(fr/60)*q.o.ay;q.dx=q.ox-ox;q.dy=q.oy-oy;
+ PK.pl.forEach(q=>{const ox=q.ox,oy=q.oy;if(q.o.ax)q.ox=Math.sin(fr/70)*q.o.ax;if(q.o.ay)q.oy=Math.sin(fr/60)*q.o.ay;if(q.o.mv)q.o.mv(q);q.dx=q.ox-ox;q.dy=q.oy-oy;
   if(q.t=='runtuh'){if(q.turun>0){if(--q.turun==0)q.tm=0}else if(q.tm>0&&++q.tm>45){q.turun=200;q.tm=0;if(P2.gr===q)P2.gr=null}}});
  if(P2.mati>0){if(--P2.mati==0)pkSpawn();return}
  if(P2.ut){pkUtJalan(P2);return}   // sedang naik tangga / meluncur di badan ular
@@ -1426,7 +1489,7 @@ function pkUpd(){const P2=PK.p;if(!P2)return;
  if(P2.gr){P2.x+=P2.gr.dx;P2.y+=P2.gr.dy}
  const ox=P2.x,oy=P2.y;P2.x+=vx+(P2.kx||0);P2.y+=vy+(P2.ky||0);if(P2.kx||P2.ky){P2.kx*=.86;P2.ky*=.86;if(Math.abs(P2.kx)+Math.abs(P2.ky)<.15)P2.kx=P2.ky=0}
  if(pkDi(P2.x,P2.y,0).some(q=>q.z>P2.z+4))P2.x=ox,P2.y=oy;   // menabrak sisi platform yang lebih tinggi
- if(PK.npc)pkNpc(P2,ox,oy);
+ if(PK.npc)pkNpc(P2,ox,oy);if(PK.pm)pkPM(P2);
  // lompat / skill
  if(PK.key.j&&P2.gr&&!(P2.beku>0)){P2.vz=PKJ;P2.gr=null}PK.key.j=0;
  if(P2.cd>0)P2.cd--;
@@ -1447,7 +1510,8 @@ function pkLT(id){return id=='pocong'||id=='genderuwo'}   // skill parkur: Lompa
 const pkApi=()=>fr%130>75;
 function pkMati(t){const P2=PK.p;if(P2.mati)return;P2.mati=55;PK.deaths++;banner(t);if(navigator.vibrate)navigator.vibrate(80)}
 function pkDraw(){const P2=PK.p,Wd=W,Hd=H;g.setTransform(1,0,0,1,0,0);
- let d3=0;if(window.PK3&&PK3.ok&&!PK.g3gagal){try{d3=PK3.draw()}catch(e){PK.g3gagal=1;console.warn('Parkur 3D gagal, pakai tampilan 2D',e);try{PK3.hide()}catch(x){}}}
+ const b3=window.PK3&&PK3.ok&&!PK.g3gagal&&(PK.ar<3||(PK3.dukung&&PK3.dukung(PK.ar)));if(window.PK3&&!b3){try{PK3.hide()}catch(e){}}
+ let d3=0;if(b3){try{d3=PK3.draw()}catch(e){PK.g3gagal=1;console.warn('Parkur 3D gagal, pakai tampilan 2D',e);try{PK3.hide()}catch(x){}}}
  if(d3){g.clearRect(0,0,Wd,Hd);pkLabel3()}else{   // 3D (parkur-3d.js); cadangan: tampilan 2D lama
  const tx=P2.x+P2.fvx*60,ty=P2.y*PKY-(P2.gr?P2.z:Math.max(P2.z,P2.z*.6))-20;PK.cam.x+=(tx-PK.cam.x)*.12;PK.cam.y+=(ty-PK.cam.y)*.08;
  const cx=PK.cam.x-Wd/2,cy=PK.cam.y-Hd/2;
@@ -1460,7 +1524,7 @@ function pkDraw(){const P2=PK.p,Wd=W,Hd=H;g.setTransform(1,0,0,1,0,0);
  const items=[];PK.pl.forEach(q=>items.push({k:pkPy(q)+q.d,q}));{const un=pkDi(P2.x,P2.y).filter(q=>q.z<=P2.z+2);items.push({k:un.length?Math.max(P2.y+2,...un.map(q=>pkPy(q)+q.d+.5)):P2.y+2,p:1})}   // hero digambar di atas platform pijakannya
  PK.coins.forEach(c=>{if(!c.ok)items.push({k:c.y+1,c})});if(PK.npc){const N=PK.npc;N.hal.concat(N.burung,[N.anjing]).forEach(h=>items.push({k:h.y+1,n:h}))}if(PK.net)for(const k in PKN.ot){const o=PKN.ot[k];if(o.ok&&!o.mati)items.push({k:o.y+1.5,o})}
  if(PK.run)PK.run.obs.forEach(o=>{if(Math.abs(o.x-P2.x)<700)items.push({k:o.y+.5,rb:o})});
- items.sort((a,b)=>a.k-b.k);
+ items.sort((a,b)=>a.k-b.k);if(PK.pm)pkPMBelakang((x,y,z)=>[x,y*PKY-z,true]);
  for(const it of items){
   if(it.rb){const o=it.rb,x=o.x,y=o.y*PKY,E={gerobak:'🛒',keranda:'⚰️',pagar:'🎋',kambing:'🐐',jemuran:'👕'}[o.jenis];g.save();if(o.kena)g.globalAlpha=.35;   // cadangan 2D: rintangan Lari Jalan Desa
    if(o.k=='atas'){g.strokeStyle='#8a6a40';g.lineWidth=3;g.beginPath();g.moveTo(x,y-10);g.lineTo(x,y-95);g.stroke()}
@@ -1468,10 +1532,11 @@ function pkDraw(){const P2=PK.p,Wd=W,Hd=H;g.setTransform(1,0,0,1,0,0);
   if(it.q){const q=it.q,x=pkPx(q),y=pkPy(q)*PKY-q.z,dd=q.d*PKY;let a=1,sh=0;
    if(q.turun){a=Math.max(0,1-(200-q.turun)/25);sh=(200-q.turun)*3}else if(q.tm){sh=Math.sin(fr*1.3)*2}
    if(a<=0)continue;g.save();g.globalAlpha=a;g.translate(q.tm&&!q.turun?sh:0,q.turun?sh:0);
-   const top=q.t=='bambu'?'#9c7a3e':q.t=='finis'?'#8a6d3b':q.t=='cp'?'#5f6b4c':q.t=='runtuh'?'#5d4c3c':'#6e5c47',side=q.t=='bambu'?'#5a4220':'#3a2e24';
-   if(q.t!='bambu'){g.fillStyle=side;g.fillRect(x,y+dd,q.w,q.z-PKWATER+10);g.fillStyle='rgba(0,0,0,.25)';for(let k=0;k<q.w;k+=26)g.fillRect(x+k,y+dd,2,q.z-PKWATER)}
+   const top=q.o.warna?q.o.warna:q.t=='bambu'?'#9c7a3e':q.t=='finis'?'#8a6d3b':q.t=='cp'?'#5f6b4c':q.t=='runtuh'?'#5d4c3c':'#6e5c47',side=q.t=='bambu'?'#5a4220':'#3a2e24';
+   if(q.o.lay){g.fillStyle=q.o.sisi||'#2a1a10';g.fillRect(x,y+dd,q.w,10)}
+   else if(q.t!='bambu'){g.fillStyle=side;g.fillRect(x,y+dd,q.w,q.z-PKWATER+10);g.fillStyle='rgba(0,0,0,.25)';for(let k=0;k<q.w;k+=26)g.fillRect(x+k,y+dd,2,q.z-PKWATER)}
    else{g.strokeStyle='#4a3418';g.lineWidth=3;for(let k=10;k<q.w;k+=40){g.beginPath();g.moveTo(x+k,y+dd);g.lineTo(x+k,y+dd+q.z-PKWATER);g.stroke()}}
-   g.fillStyle=top;g.beginPath();g.roundRect(x,y,q.w,dd,5);g.fill();g.strokeStyle='rgba(255,255,255,.13)';g.lineWidth=1.5;g.stroke();
+   g.fillStyle=top;g.beginPath();g.roundRect(x,y,q.w,dd,5);g.fill();if(q.o.lapak){g.save();g.clip();g.fillStyle='rgba(255,245,230,.85)';for(let k=8;k<q.w;k+=26)g.fillRect(x+k,y,12,dd);g.restore()}g.strokeStyle='rgba(255,255,255,.13)';g.lineWidth=1.5;g.stroke();
    g.strokeStyle='rgba(0,0,0,.2)';for(let k=24;k<q.w;k+=24){g.beginPath();g.moveTo(x+k,y);g.lineTo(x+k,y+dd);g.stroke()}
    if(q.t=='runtuh'){g.strokeStyle='#1a0d06';g.lineWidth=2.5;g.beginPath();g.moveTo(x+q.w*.3,y+3);g.lineTo(x+q.w*.5,y+dd*.5);g.lineTo(x+q.w*.35,y+dd-2);g.moveTo(x+q.w*.5,y+dd*.5);g.lineTo(x+q.w*.75,y+dd*.4);g.stroke()}
    if(q.t=='cp'){const on=PK.cps.indexOf(q)<=PK.cp;g.fillStyle='#2b2b2b';g.fillRect(x+q.w-26,y-30,4,40);g.fillStyle=on?'#3fd14b':'#777';g.shadowColor='#3fd14b';g.shadowBlur=on?16:0;g.beginPath();g.roundRect(x+q.w-32,y-44,16,18,4);g.fill();g.shadowBlur=0}
@@ -1487,6 +1552,7 @@ function pkDraw(){const P2=PK.p,Wd=W,Hd=H;g.setTransform(1,0,0,1,0,0);
   else pkHero()}
  if(PK.ut)pkUtGambar((x,y,z)=>[x,y*PKY-z,true]);
  g.restore()}
+ if(PK.pm)pkPMGelap(Wd,Hd,d3);
  // HUD
  g.fillStyle='rgba(8,12,28,.85)';g.beginPath();g.roundRect(Wd/2-130,6,260,44,10);g.fill();g.fillStyle='#ffd166';g.font='bold 10px Arial';g.textAlign='center';g.fillText('PARKUR HANTU · '+PKAR[PK.ar].n,Wd/2,20);
  g.fillStyle='#fff';g.font='bold 18px Arial';g.fillText('⏱ '+pkJam(PK.t/60),Wd/2-40,42);g.fillStyle='#9fffa8';g.font='bold 12px Arial';g.fillText(PK.ut?'Petak '+PK.ut.pt+'/'+PK.ut.N:'CP '+PK.cp+'/'+(PK.cps.length-1),Wd/2+75,41);
