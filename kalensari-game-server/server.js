@@ -57,7 +57,7 @@ wss.clients = clients;
 
 const PORT = +process.env.PORT || 8090;
 const HOST = process.env.HOST || '127.0.0.1';
-const HEROES = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo'];   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
+const HEROES = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo', 'pitung'];   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
 const RELAY_FROM_HOST = new Set(['st', 'end']);   // data pertandingan dari host → tamu
 const RELAY_FROM_GUEST = new Set(['in']);         // tombol tamu → host
 
@@ -231,7 +231,7 @@ const PK_CD = 3500;          // hitung mundur sebelum mulai (ms)
 const PK_LIMIT = 10 * 60000; // batas waktu balapan: 10 menit (ms)
 const PK_DORONG = 9500;      // jeda minimal antar serangan Dorong (ms); di game 10 detik
 const PK_AUTO = 12000;       // room acak: mulai otomatis 12 detik setelah ada 2 pemain
-const PK_ARENA = 3;         // jumlah lintasan parkur (0 = Jembatan Kali Angker, 1 = Dusun Malam Jumat, 2 = Lari Jalan Desa)
+const PK_ARENA = 6;         // jumlah lintasan parkur (0 = Jembatan Kali Angker, 1 = Dusun Malam Jumat, 2 = Lari Jalan Desa)
 const pkAr = m => Math.max(0, Math.min(PK_ARENA - 1, m.ar | 0));
 const prooms = new Map();    // kode → {code, quick, host, pl:[ws], state:'lobby'|'race', t0, fin:[], tm, auto}
 const pkInfo = ws => ({ i: ws.id, n: ws.name, h: ws.hero, s: ws.skin || '' });
