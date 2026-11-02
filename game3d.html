@@ -836,7 +836,7 @@ function updLabel(dt) {
 
 // ================== KONTROL ==================
 const inp = { x: 0, z: 0, k: {} };
-addEventListener('keydown', e => { inp.k[e.key.toLowerCase()] = 1; const m = { j: 0, ' ': 0, u: 1, i: 2, o: 3 }[e.key.toLowerCase()]; if (m !== undefined) { e.preventDefault(); if (m === 1 || (m === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo' && HERO !== 'pitung') || (m === 3 && HERO === 'tuyul')) { if (!e.repeat) { mulaiBidik(m); K.bidikKey = true; } } else pakai(m); } });
+addEventListener('keydown', e => { inp.k[e.key.toLowerCase()] = 1; const m = { j: 0, ' ': 0, u: 1, i: 2, o: 3 }[e.key.toLowerCase()]; if (m !== undefined) { e.preventDefault(); if (m === 1 || (m === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo') || (m === 3 && HERO === 'tuyul')) { if (!e.repeat) { mulaiBidik(m); K.bidikKey = true; } } else pakai(m); } });
 addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.key.toLowerCase(); if ((kk === 'u' && K.bidik === 1) || (kk === 'i' && K.bidik === 2) || (kk === 'o' && K.bidik === 3)) lepasBidik(); } });
 { const J = $('#joy'), K = $('#knob'); let id = null;
   const mv = e => { const r = J.getBoundingClientRect(), R = r.width / 2, dx = e.clientX - r.left - R, dy = e.clientY - r.top - R, m = Math.min(1, Math.hypot(dx, dy) / R), a = Math.atan2(dy, dx); inp.x = Math.cos(a) * m; inp.z = Math.sin(a) * m; K.style.transform = `translate(${inp.x * R * .55}px,${inp.z * R * .55}px)`; };
@@ -848,7 +848,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
   else if (HERO === 'pitung') { b.style.background = 'radial-gradient(#9a1010,#2a0404)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['👊', '⚡', '🗡️', '🦅'][i]}</span>`); }
   else if (HERO === 'genderuwo') { b.style.background = 'radial-gradient(#5a2a14,#1a0a04)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['🦶', '🥊', '💥', '😡'][i]}</span>`); }
   else b.style.backgroundImage = `url(${EFEK}${['ikon-dasar', 'ikon-skill1', 'ikon-skill2', 'ikon-skill3'][i]}.webp)`;
-  if (i === 1 || (i === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo' && HERO !== 'pitung') || (i === 3 && HERO === 'tuyul')) {   // Tuyul: skill 3 juga bisa diarahkan (blink) · skill 1 & 2: tahan + geser tombol untuk mengarahkan, lepas untuk pakai (Tuyul: skill 2 langsung)
+  if (i === 1 || (i === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo') || (i === 3 && HERO === 'tuyul')) {   // Tuyul: skill 3 juga bisa diarahkan (blink) · skill 1 & 2: tahan + geser tombol untuk mengarahkan, lepas untuk pakai (Tuyul: skill 2 langsung)
     if (!b.querySelector('.ik')) b.insertAdjacentHTML('afterbegin', '<span class="ik"></span>');
     const ik = b.querySelector('.ik');
     const geser = e => { const r = b.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), L = Math.hypot(dx, dy);
@@ -860,8 +860,8 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) K.bidik = false; };
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
-if (HERO === 'pitung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul ×3 lalu Tendang (tekan 4x) · U (tahan + mouse): Tusukan Kilat (melesat & menusuk) · I: Bacok Golok · O: Terbang Si Pitung (lepas dari stun, lompat & menebas lawan)';
-if (HERO === 'tuyul') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Colek Kilat (curi koin) · U (tahan + mouse): Seluncur Licin · I: Ngilang 2,5 detik · O (tahan + mouse): Blink + Gerombolan Tuyul';
+if (HERO === 'pitung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul ×3 lalu Tendang (tekan 4x) · U (tahan + mouse): Tusukan Kilat (melesat & menusuk) · I (tahan + mouse): Bacok Golok sambil menerjang · O: Terbang Si Pitung (lepas dari stun, lompat & menebas lawan)';
+if (HERO === 'tuyul') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Colek Kilat (curi koin) · U (tahan + mouse): Seluncur Licin · I: Ngilang 2,5 detik · O (tahan + mouse): Blink kilat + Gerombolan Tuyul (bisa dipakai saat terkena stun)';
 if (HERO === 'kunti') { $('#nmhero').textContent = 'Kunti Merah'; $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Roh · U (tahan, arahkan dgn mouse): Frekuensi Suara · I (tahan, arahkan dgn mouse): Mode Terbang · O: Roh Pemburu'; }
 const pingsan = () => (P.kunci || 0) > 0 || (P.pusing || 0) > 0;   // terkena Roh Pemburu / Loncat Jauh lawan
 function arahGerak() {
@@ -875,7 +875,7 @@ function terdekat(maks) { let b = null, bd = maks; MUSUH.forEach(m => { if (m.ma
 function hadapKe(p) { const d = p.clone().sub(P.root.position); if (d.lengthSq() > .01) P.arah = Math.atan2(d.x, d.z); }
 
 // ================== SKILL OCONG ==================
-const lepasStun = i => (HERO === 'genderuwo' && i === 1) || (HERO === 'pitung' && i === 3);   // Pitung: skill 3 membebaskan dari stun   // Serbuan Rimba Genderuwo bisa dipakai saat terkena stun (melepaskan diri)
+const lepasStun = i => (HERO === 'genderuwo' && i === 1) || ((HERO === 'pitung' || HERO === 'tuyul') && i === 3);   // Tuyul: skill 3 juga melepaskan diri dari stun   // Pitung: skill 3 membebaskan dari stun   // Serbuan Rimba Genderuwo bisa dipakai saat terkena stun (melepaskan diri)
 function pakai(i) {
   if (P.state !== 'bebas' || P.cd[i] > 0 || !P.model || (pingsan() && !lepasStun(i)) || SELESAI) return;
   if (HERO === 'kunti') return pakaiKunti(i);
@@ -1245,8 +1245,8 @@ function updBidik() {
     return;
   }
   if (HERO === 'pitung') {   // skill 1: panah arah Tusukan Kilat
-    const on = K.bidik === 1 && P.state === 'bebas'; PANAH.visible = !!on; if (!on) return;
-    PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, PIT.tusukJarak / TERBANG.lesat); return;
+    const on = (K.bidik === 1 || K.bidik === 2) && P.state === 'bebas'; PANAH.visible = !!on; if (!on) return;   // skill 1: Tusukan Kilat · skill 2: arah terjangan Bacok
+    PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, (K.bidik === 1 ? PIT.tusukJarak : PIT.bacokMaju * PIT.bacokMajuT + 1) / TERBANG.lesat); return;
   }
   if (HERO === 'genderuwo') {   // skill 1: panah arah cakaran · skill 2: lingkaran tempat mendarat
     const on = K.bidik && P.state === 'bebas';
@@ -1392,7 +1392,9 @@ function updPemain(dt) {
 // animasi di tuyul.glb: diam, lari, seluncur, gasing, kalah, lompat, dive, flee_02, run
 const TY = { koin: 0, hilang: 0, sergap: false, grup: [], kena: null };
 const TUYUL_CEPAT = 4.6, TUYUL_TINGGI = 1.15;
-const TYS = { colek: 28, seluncur: 80, bonusSel: 40, jarakSel: 5, jarakGas: 3.5, hilang: 2.5, blink: 2.5, blinkT: 1.7, klon: 3, lamaKlon: 3, bonusKlon: 1.5, dmgKlon: 15 };
+const kecLompatTuyul = T => Math.max(1.6, T.act.lompat ? T.act.lompat.getClip().duration / TYS.blinkT : 1.6);   // animasi lompat dipercepat supaya selesai dalam 0,7 dtk
+const TYS = { colek: 28, seluncur: 100, stunSel: .8, stunSelKoin: 1.5, bonusSel: 50,   // koin penuh: Seluncur jadi 150 damage + stun 1,5 dtk
+  jarakSel: 5, jarakGas: 3.5, hilang: 2.5, blink: 2.5, blinkT: .7, klon: 3, lamaKlon: 3, bonusKlon: 1.5, dmgKlon: 15, dmgPenuh: 35 };   // koin penuh: gerombolan lebih lama & cubitannya lebih sakit (35 per cubit)
 function siapkanTuyul(gl, m, T) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
   const klip = c => rapikanKlip(c, m, 0, false);
@@ -1436,20 +1438,21 @@ function pakaiTuyul(i) {
   else if (i === 2) { TY.hilang = TYS.hilang; TY.sergap = true;   // menghilang di tempat (tanpa melesat)
     fx('gelombang', pos.clone(), 1.3, .4, 0x9a9aa8); fx('percik', pos.clone().setY(.6), 24, 0xb0b0c0, 2.4); }
   else if (i === 3) {   // Blink pendek ke arah bidikan (atau arah hadap), lalu memanggil gerombolan
+    if (pingsan()) { P.kunci = P.pusing = 0; banner('👶 Lepas dari stun!', '#ffd166'); fx('percik', pos.clone().setY(1), 20, 0xffe0a0, 3); }   // skill 3 Tuyul melepaskan diri dari stun
     if (K.bidik === 3 && K.diarahkan) P.arah = K.arahBidik;
     fx('gelombang', pos.clone(), 1.1, .35, 0xe0c080); fx('percik', pos.clone().setY(.5), 18, 0xd0b080, 2.2);
-    P.awal = pos.clone(); P.tujuan = batasi(pos.clone().addScaledVector(depan(), TYS.blink)); P.root.rotation.y = P.arah;   // melompat ke titik tujuan selama ±1,7 dtk
-    P.state = 'panggil'; mainUlang('lompat', .08, 1.6); }
+    P.awal = pos.clone(); P.tujuan = batasi(pos.clone().addScaledVector(depan(), TYS.blink)); P.root.rotation.y = P.arah;   // melompat ke titik tujuan selama 0,7 dtk
+    P.state = 'panggil'; mainUlang('lompat', .08, kecLompatTuyul(P)); }
   P.cd[i] = CD_MAX[i]; P.t = 0; P.hit = 0;
 }
 // ---- gerombolan tuyul kembaran ----
-function panggilGerombolan(asal, dariT, sasaranFn, visual, lama, cb = null) {   // cb(pos): cubitan gerombolan milik bot
-  const g = { klon: [], t: 0, lama, visual, sasaranFn, cb };
+function panggilGerombolan(asal, dariT, sasaranFn, visual, lama, cb = null, penuh = false) {   // penuh: koin penuh → damage naik, tuyul berkilau emas   // cb(pos): cubitan gerombolan milik bot
+  const g = { klon: [], t: 0, lama, visual, sasaranFn, cb, dmg: penuh ? TYS.dmgPenuh : TYS.dmgKlon };
   const src = dariT.model, clips = dariT.act;
   for (let i = 0; i < TYS.klon; i++) {
     const root = new THREE.Group(), m = cloneSkel(src); m.scale.multiplyScalar(.72); m.position.set(0, (src.position.y + TINGGI / 2) * .72, 0);
     root.add(m); root.position.copy(asal).add(new THREE.Vector3(Math.cos(i * 2.1) * .8, 0, Math.sin(i * 2.1) * .8)); scene.add(root);
-    m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material = o.material.clone(); o.material.emissive && (o.material.emissive = new THREE.Color(0x401000)); } });
+    m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material = o.material.clone(); o.material.emissive && (o.material.emissive = new THREE.Color(penuh ? 0xa07000 : 0x401000)); } });
     const mx = new THREE.AnimationMixer(m), lari = mx.clipAction(clips.jalan.getClip()); lari.timeScale = 1.6; lari.play();
     g.klon.push({ root, m, mx, lari, ang: i * Math.PI * 2 / 3, tik: rnd(.1, .4), arah: 0, kecil: 0 });
     fx('percik', root.position.clone(), 14, 0xc0a080, 2.2);
@@ -1470,7 +1473,7 @@ function updGerombolan(dt) {
       let da = k.arah - k.root.rotation.y; da = Math.atan2(Math.sin(da), Math.cos(da)); k.root.rotation.y += da * Math.min(1, dt * 12);
       batasi(k.root.position);
       if ((!g.visual || g.cb) && sas && !sas.mati && (k.tik -= dt) <= 0 && k.root.position.distanceTo(sp) < 1.4) {   // cubit & curi koin
-        k.tik = .5; if (g.cb) g.cb(k.root.position.clone()); else { kena(sas, TYS.dmgKlon, k.root.position.clone(), .6); if (Math.random() < .35) curiKoin(sas); }
+        k.tik = .5; if (g.cb) g.cb(k.root.position.clone()); else { kena(sas, g.dmg, k.root.position.clone(), .6); if (Math.random() < .35) curiKoin(sas); }
       }
       if (Math.random() < .08) percik(k.root.position.clone(), 2, 0xa08a70, 1, .2);
     });
@@ -1495,7 +1498,7 @@ function updTuyul(dt, pos, f) {
   } else if (P.state === 'seluncur') {        // meluncur ke arah bidikan, lawan yang dilewati terjatuh
     const durasi = TYS.jarakSel / 9;
     if (t < durasi) { pos.addScaledVector(f, 9 * dt); if (Math.random() < .7) percik(pos.clone(), 3, 0xb09878, 1.6, .22);
-      MUSUH.forEach(m => { if (!m.mati && !TY.kena.has(m) && m.g.position.distanceTo(pos) < 1.2) { TY.kena.add(m); kena(m, TYS.seluncur + (TY.bonus ? TYS.bonusSel : 0), pos.clone().addScaledVector(f, -1), 4, 3); m.pusing = .8; fx('kilat', m.g.position.clone(), 25); } }); }
+      MUSUH.forEach(m => { if (!m.mati && !TY.kena.has(m) && m.g.position.distanceTo(pos) < 1.2) { TY.kena.add(m); kena(m, TYS.seluncur + (TY.bonus ? TYS.bonusSel : 0), pos.clone().addScaledVector(f, -1), 4, 3); m.pusing = Math.max(m.pusing || 0, TY.bonus ? TYS.stunSelKoin : TYS.stunSel); fx('kilat', m.g.position.clone(), 25); } }); }
     if (t > durasi + .2) { P.state = 'bebas'; main('diam', .2); }
   } else if (P.state === 'gasing') {          // berputar seperti gasing lalu menghilang
     if (t < .35) pos.addScaledVector(f, (TYS.jarakGas / .35) * dt);
@@ -1505,11 +1508,11 @@ function updTuyul(dt, pos, f) {
     const u = Math.min(1, t / TYS.blinkT);
     if (P.tujuan) { const e = u * u * (3 - 2 * u); pos.lerpVectors(P.awal, P.tujuan, e); P.tilt.position.y = Math.sin(u * Math.PI) * .9; if (Math.random() < .3) percik(pos.clone().setY(.4), 2, 0xd0b080, 1, .2);
       if (u >= 1) { pos.copy(P.tujuan); P.tujuan = null; fx('gelombang', pos.clone(), 1.3, .35, 0xffe0a0); fx('kilat', pos.clone().setY(.5), 22); } }   // mendarat
-    if (t > .25 && !P.hit) { P.hit = 1; const lama = TYS.lamaKlon + (pakaiKoin() ? TYS.bonusKlon : 0);
-      panggilGerombolan(pos.clone(), P, () => { const m = terdekat(14); return m; }, false, lama);
-      if (NET.on) netEvent({ k: 'gerombolan', l: lama });
+    if (t > .25 && !P.hit) { P.hit = 1; const penuh = pakaiKoin(), lama = TYS.lamaKlon + (penuh ? TYS.bonusKlon : 0);
+      panggilGerombolan(pos.clone(), P, () => { const m = terdekat(14); return m; }, false, lama, null, penuh); if (penuh) banner('🪙 Gerombolan Emas! Damage naik', '#ffd040');
+      if (NET.on) netEvent({ k: 'gerombolan', l: lama, p: penuh ? 1 : 0 });
       fx('gelombang', pos.clone(), 2.2, .5, 0xd0a060); fx('kilat', pos.clone(), 30); goyang = Math.max(goyang, .15); }
-    const lamaLompat = Math.max(TYS.blinkT + .15, P.act.lompat ? P.act.lompat.getClip().duration / 1.6 : .7);   // animasi lompat diputar sampai selesai
+    const lamaLompat = TYS.blinkT + .05;   // animasi lompat diputar sampai selesai
     if (t > lamaLompat) { P.state = 'bebas'; P.tujuan = null; main('diam', .2); }
   }
 }
@@ -1668,8 +1671,8 @@ function pSabet(pos, a, miring = -.5, R = 1.15, warna = PUTIH_P, umur = .32) {  
   [[warna, 1, 1], [EMAS_P, .8, .9], [MERAH_P, .6, 1.08]].forEach(([w, op, sk]) => { const i = new THREE.Group(); i.rotation.x = Math.PI / 2; const arc = new THREE.Mesh(GEO_TEBAS, bahanG({ color: w, opacity: op, blending: THREE.AdditiveBlending })); arc.rotation.z = -.1 * Math.PI; arc.scale.setScalar(sk); i.add(arc); tl.add(i); });
   scene.add(g); GFX.push({ o: g, t: 0, umur, jenis: 'tebas', R });
 }
-function pTebas(pos, a) {   // Bacok golok: dua sabetan bercahaya bersilang + percikan emas
-  pSabet(pos, a, -.6, 1.9); pSabet(pos, a, .45, 1.5, EMAS_P, .3);
+function pTebas(pos, a) {   // Bacok golok: satu sabetan bercahaya + percikan emas
+  pSabet(pos, a, -.5, 1.9);   // satu sabetan saja (tidak bersilang)
   const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), p = pos.clone().addScaledVector(d, 1.2);
   percik(p.clone().setY(1), 22, EMAS_P, 3.6, .15); nyala(p.clone().setY(1.1), 1.4, PUTIH_P, .25); gelombang(p.setY(0), 1.3, .3, EMAS_P); kilat(pos, 30);
 }
@@ -1713,7 +1716,7 @@ function pakaiPitung(i) {
   else if (i === 1) {   // Tusukan Kilat: melesat ke arah bidikan lalu menusuk
     if (K.bidik === 1 && K.diarahkan) P.arah = K.arahBidik; else { const m = terdekat(PIT.tusukJarak + 1.5); if (m) hadapKe(m.g.position); }
     P.state = 'tusuk'; mainUlang('tusuk', .05, 1.3); fx('gelombang', pos.clone(), 1, .3, 0xffe0a0); fx('pDebu', pos.clone()); }
-  else if (i === 2) { const m = terdekat(3); if (m) hadapKe(m.g.position); P.state = 'bacokP'; mainUlang('bacokP', .05, 1.3); }
+  else if (i === 2) { if (K.bidik === 2 && K.diarahkan) P.arah = K.arahBidik; else { const m = terdekat(4); if (m) hadapKe(m.g.position); } P.state = 'bacokP'; mainUlang('bacokP', .05, 1.3); }
   else if (i === 3) {   // lepas dari stun, lalu Terbang Si Pitung (mengunci lawan terdekat; kalau tidak ada: ke depan)
     if (pingsan()) { P.kunci = P.pusing = 0; banner('🥋 Lepas dari stun!', '#ffd166'); } fx('pLepas', pos.clone());
     const m = terdekat(PIT.ultiJarak); let tj;
@@ -1916,7 +1919,7 @@ async function buatBotPro(o) {
     if (B.cd[3] <= 0 && L < 4 && (I.stun || Math.random() < .6)) {   // blink: mendekat kalau lawan agak jauh, kalau sudah dekat melompat ke samping
       const a = L > 3 ? sudutKe(I.pos) : sudutKe(I.pos) + (Math.random() < .5 ? 1 : -1) * Math.PI / 2;
       fx('gelombang', pos.clone(), 1.1, .35, 0xe0c080); B.awal = pos.clone(); B.tujuan = batasi(pos.clone().addScaledVector(dep(a), TYS.blink)); T.arah = a;
-      mulai('panggil', 'lompat', 1.6); B.cd[3] = CD[3]; return true; }
+      mulai('panggil', 'lompat', kecLompatTuyul(T)); B.cd[3] = CD[3]; return true; }
     if (B.cd[1] <= 0 && L > 1.4 && L < 5.5) { T.arah = sudutKe(ramal(I, .3)); mulai('seluncur', 'seluncur', 1.6); B.kenaSel = false; B.bonus = B.koin >= 5; if (B.bonus) B.koin = 0; B.cd[1] = CD[1];
       fx('gelombang', pos.clone(), 1, .35, 0xd0b080); return true; }
     if (B.cd[2] <= 0 && L > 3 && L < 9) { hilang(); return true; }
@@ -2005,6 +2008,9 @@ async function buatBotPro(o) {
     mt.kilau = Math.max(0, mt.kilau - dt);
     if (hero === 'genderuwo' && B.state === 'serbu') mt.kunci = mt.pusing = 0;   // Serbuan Rimba: kebal stun
     else if (hero === 'pitung' && B.state === 'ulti') mt.kunci = mt.pusing = 0;   // Terbang Si Pitung: kebal stun
+    else if (hero === 'tuyul' && (mt.kunci > 0 || mt.pusing > 0) && B.cd[3] <= 0 && !mt.mati && B.ent && Math.random() < dt * 5) {   // bot Tuyul melepaskan diri dari stun dengan skill 3 (blink ke samping + gerombolan)
+      const I0 = infoEnt(B.ent); if (I0 && !I0.mati) { mt.kunci = mt.pusing = 0; B.state = 'bebas'; const a = sudutKe(I0.pos) + (Math.random() < .5 ? 1 : -1) * Math.PI / 2;
+        fx('gelombang', pos.clone(), 1.1, .35, 0xe0c080); B.awal = pos.clone(); B.tujuan = batasi(pos.clone().addScaledVector(dep(a), TYS.blink)); T.arah = a; mulai('panggil', 'lompat', kecLompatTuyul(T)); B.cd[3] = CD[3]; } }
     else if (hero === 'pitung' && (mt.kunci > 0 || mt.pusing > 0) && B.cd[3] <= 0 && !mt.mati && B.ent && Math.random() < dt * 5) ultiBot();   // bot Pitung melepaskan diri dari stun
     else if (hero === 'genderuwo' && (mt.kunci > 0 || mt.pusing > 0) && B.cd[1] <= 0 && !mt.mati && B.ent && Math.random() < dt * 5) {   // bot Genderuwo melepaskan diri dari stun dengan Serbuan Rimba
       const I0 = infoEnt(B.ent); if (I0 && !I0.mati) { mt.kunci = mt.pusing = 0; B.state = 'bebas'; T.arah = sudutKe(I0.pos); mulai('serbu', 'tinju', 1.6); B.fase = 0; B.cd[1] = CD[1]; fx('gLepas', pos.clone()); } }
@@ -2117,17 +2123,17 @@ async function buatBotPro(o) {
     else if (B.state === 'seluncur') {    // Tuyul: meluncur menembus lawan, lawan terjatuh
       const durasi = TYS.jarakSel / 9;
       if (t < durasi) { pos.addScaledVector(f, 9 * dt); if (Math.random() < .7) percik(pos.clone(), 3, 0xb09878, 1.6, .22);
-        if (!B.kenaSel && kenaDi(pos, 1.2)) { B.kenaSel = true; serang(TYS.seluncur + (B.bonus ? TYS.bonusSel : 0), pos.clone().addScaledVector(f, -1), 4); stun('pusing', .8); goy(.15); } }
+        if (!B.kenaSel && kenaDi(pos, 1.2)) { B.kenaSel = true; serang(TYS.seluncur + (B.bonus ? TYS.bonusSel : 0), pos.clone().addScaledVector(f, -1), 4); stun('pusing', B.bonus ? TYS.stunSelKoin : TYS.stunSel); goy(.15); } }
       if (t > durasi + .2) beres();
     }
     else if (B.state === 'panggil') {     // Tuyul: melompat lalu memanggil gerombolan
       const u = Math.min(1, t / TYS.blinkT);
       if (B.tujuan) { const e = u * u * (3 - 2 * u); pos.lerpVectors(B.awal, B.tujuan, e); B.naik = Math.sin(u * Math.PI) * .9; if (u >= 1) { pos.copy(B.tujuan); B.tujuan = null; fx('kilat', pos.clone().setY(.5), 22); } }
-      if (t > .25 && !B.hit) { B.hit = 1; const lama = TYS.lamaKlon + (B.koin >= 5 ? TYS.bonusKlon : 0); if (B.koin >= 5) B.koin = 0;
-        panggilGerombolan(pos.clone(), T, () => { const e = lawan(); return e && !e.mati ? e.vis : null; }, true, lama, p => { serang(TYS.dmgKlon, p, .6); if (Math.random() < .35) B.koin = Math.min(5, B.koin + 1); });
-        if (ctx.kirim) ctx.kirim({ k: 'gerombolan', l: lama });
+      if (t > .25 && !B.hit) { B.hit = 1; const penuh = B.koin >= 5, lama = TYS.lamaKlon + (penuh ? TYS.bonusKlon : 0); if (penuh) B.koin = 0;
+        panggilGerombolan(pos.clone(), T, () => { const e = lawan(); return e && !e.mati ? e.vis : null; }, true, lama, p => { serang(penuh ? TYS.dmgPenuh : TYS.dmgKlon, p, .6); if (Math.random() < .35) B.koin = Math.min(5, B.koin + 1); }, penuh);
+        if (ctx.kirim) ctx.kirim({ k: 'gerombolan', l: lama, p: penuh ? 1 : 0 });
         fx('gelombang', pos.clone(), 2.2, .5, 0xd0a060); fx('kilat', pos.clone(), 30); }
-      const lamaLompat = Math.max(TYS.blinkT + .15, T.act.lompat ? T.act.lompat.getClip().duration / 1.6 : .7);
+      const lamaLompat = TYS.blinkT + .05;
       if (t > lamaLompat) { B.tujuan = null; beres(); }
     }
     else if (B.state === 'tinju') {       // Genderuwo: pukulan berat, ke-3 mendorong jauh
@@ -2459,7 +2465,7 @@ function terimaData(m) {
     else if (e.k === 'lagi') { NET.lawanLagi = true; cekLagi(); }
     else if (e.k === 'halo') { const h = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung'].includes(e.h) ? e.h : R.hero, ganti = h !== R.hero || (R.skin || '') !== (e.s || ''); R.hero = h; R.skinMau = e.s || ''; R.mt.hpMax = HP_MAX[h]; if (R.model && ganti) muatModelHero(R.hero, R, null, R.skinMau); }   // hero & skin lawan
     else if (e.k === 'koin') koinTerbang(P.root.position, R);
-    else if (e.k === 'gerombolan') { if (R.model && R.act.jalan) panggilGerombolan(R.root.position.clone(), R, () => DIRI, true, e.l || 3); }
+    else if (e.k === 'gerombolan') { if (R.model && R.act.jalan) panggilGerombolan(R.root.position.clone(), R, () => DIRI, true, e.l || 3, null, !!e.p); }
   });
 }
 function kirimKeadaan() {
@@ -2743,7 +2749,7 @@ function terimaDataTim(m) {
     else if (e.k === 'bola') { const [x, z] = keNet(e.x, e.z), sas = utkSaya ? DIRI : (objek(ke) || {}).mt; if (sas) bolaRoh(new THREE.Vector3(x, e.y, z), sas, new THREE.Vector3(Math.sin(sudutNet(e.a)), 0, Math.cos(sudutNet(e.a))), true); }
     else if (e.k === 'roh') { const sas = utkSaya ? DIRI : (objek(ke) || {}).mt; if (sas && srcObj && srcObj.root) lepasRohPemburu(sas, true, srcObj); }
     else if (e.k === 'koin') { const t = utkSaya ? P : objek(ke); if (t && srcObj) koinTerbang(t.root.position, srcObj); }
-    else if (e.k === 'gerombolan') { if (srcObj && srcObj.model && srcObj.act && srcObj.act.jalan) panggilGerombolan(srcObj.root.position.clone(), srcObj, () => musuhTerdekatDari(srcObj), true, e.l || 3); }
+    else if (e.k === 'gerombolan') { if (srcObj && srcObj.model && srcObj.act && srcObj.act.jalan) panggilGerombolan(srcObj.root.position.clone(), srcObj, () => musuhTerdekatDari(srcObj), true, e.l || 3, null, !!e.p); }
     else if (e.k === 'mati') timTerimaMati(e.id, e.oleh);
     else if (e.k === 'akhir') timAkhir(e.m);
   });
