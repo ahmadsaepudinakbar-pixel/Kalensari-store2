@@ -147,7 +147,7 @@ body:has(#timHud:not([style*="none"])) #koin{top:52px}
  <div class="mjudul"><h1>KALENSARI <span>3D</span></h1><p class="sub">Duel hantu 1 lawan 1</p></div>
  <div class="mkol"><div class="mki">
  <label>Nama</label><input id="mNama" maxlength="16" placeholder="Nama kamu">
- <label>Hero</label><div class="pil" id="mHero"><button data-v="ocong">👻<b>Ocong</b><small>jarak dekat</small></button><button data-v="kunti">🩸<b>Kunti</b><small>jarak jauh</small></button><button data-v="tuyul">👶<b>Tuyul</b><small>lincah</small></button><button data-v="genderuwo">👹<b>Genderuwo</b><small>petarung kuat</small></button></div>
+ <label>Hero</label><div class="pil" id="mHero"><button data-v="ocong">👻<b>Ocong</b><small>jarak dekat</small></button><button data-v="kunti">🩸<b>Kunti</b><small>jarak jauh</small></button><button data-v="tuyul">👶<b>Tuyul</b><small>lincah</small></button><button data-v="genderuwo">👹<b>Genderuwo</b><small>petarung kuat</small></button><button data-v="pitung">🥋<b>Si Pitung</b><small>pendekar golok</small></button></div>
  <div id="mSkinRow"><label>Skin Ocong</label><div class="pil" id="mSkin"><button data-v="boneka">🪆<b>Boneka</b><small>klasik</small></button><button data-v="lompat">🐛<b>Pocong Lompat</b><small>baru</small></button></div></div>
  <div id="mSkinRowK"><label>Skin Kunti</label><div class="pil" id="mSkinK"><button data-v="">🤍<b>Kunti</b><small>utama</small></button><button data-v="merah">❤️<b>Kunti Merah</b><small>skin</small></button></div></div>
  <label>Arena</label><div class="pil" id="mArena"><button data-v="lapangan">🏫<b>Lapangan SD</b><small>senja</small></button><button data-v="kuil">⛩️<b>Kuil Malam</b><small>bulan purnama</small></button></div>
@@ -182,8 +182,8 @@ import { clone as cloneSkel } from 'three/addons/utils/SkeletonUtils.js';
 // ================== PENGATURAN ==================
 const Q = new URLSearchParams(location.search);
 const MAIN = Q.get('main') === '1';                                           // tanpa ini → tampilkan menu
-const HERO = ['kunti', 'tuyul', 'genderuwo'].includes(Q.get('hero')) ? Q.get('hero') : 'ocong';
-const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul', genderuwo: 'Genderuwo' }, HP_MAX = { ocong: 1000, kunti: 1000, tuyul: 850, genderuwo: 1200 };
+const HERO = ['kunti', 'tuyul', 'genderuwo', 'pitung'].includes(Q.get('hero')) ? Q.get('hero') : 'ocong';
+const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul', genderuwo: 'Genderuwo', pitung: 'Si Pitung' }, HP_MAX = { ocong: 1000, kunti: 1000, tuyul: 850, genderuwo: 1200, pitung: 1000 };
 const MODE = ['latihan', 'bot', 'acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(Q.get('mode')) ? Q.get('mode') : 'latihan';
 const ONLINE = ['acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(MODE);
 const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'bot' : 'boneka';
@@ -194,7 +194,7 @@ function aturArena() { PUSAT_Z = ARENA === 'kuil' ? 0 : 1; }
 const JARAK_AWAL = () => ARENA === 'kuil' ? 6 : 4.5;   // jarak pemain dari tengah arena saat mulai
 aturArena();
 const SKIN = HERO === 'ocong' ? (['lompat', 'emas'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'genderuwo' ? (Q.get('skin') === 'leak' ? 'leak' : '') : (Q.get('skin') === 'merah' ? 'merah' : '');   // Genderuwo: 'leak' = skin Leak   // Ocong: '' Boneka / 'lompat' Pocong Lompat · Kunti: '' Kunti (utama) / 'merah' Kunti Merah
-const MODEL = HERO === 'genderuwo' ? (SKIN === 'leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb') : HERO === 'tuyul' ? 'model-3d/tuyul.glb' : HERO === 'kunti' ? (SKIN === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
+const MODEL = HERO === 'pitung' ? 'model-3d/pitung.glb' : HERO === 'genderuwo' ? (SKIN === 'leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb') : HERO === 'tuyul' ? 'model-3d/tuyul.glb' : HERO === 'kunti' ? (SKIN === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
 const EFEK = 'gambar-game/skin-boneka/efek/';           // gambar efek skill (.webp)
 const TINGGI = 1.7;                                      // tinggi boneka (meter)
 const BATAS = { x0: -13.5, x1: 13.5, z0: -8.5, z1: 10.5 };  // area bisa dilewati (Lapangan SD)
@@ -686,7 +686,7 @@ function updEfek(dt) {
 // ================== BONEKA (PEMAIN) ==================
 const P = { root: new THREE.Group(), tilt: new THREE.Group(), model: null, mixer: null, act: {}, cur: '', arah: 0, cd: [0, 0, 0, 0], state: 'bebas', t: 0, hp: HP_MAX[HERO] };
 P.root.add(P.tilt); scene.add(P.root); P.root.position.set(0, 0, 4);
-const CD_MAX = HERO === 'genderuwo' ? [.75, 6, 7, 14] : HERO === 'tuyul' ? [.4, 5, 8, 12] : HERO === 'kunti' ? [.5, 4, 9, 6] : [.5, 4, 4, 6];   // Kunti: skill 2 (Mode Terbang) jeda 9 dtk   // jeda: serangan, skill 1, 2, 3 (detik)
+const CD_MAX = HERO === 'pitung' ? [.55, 5, 7, 12] : HERO === 'genderuwo' ? [.75, 6, 7, 14] : HERO === 'tuyul' ? [.4, 5, 8, 12] : HERO === 'kunti' ? [.5, 4, 9, 6] : [.5, 4, 4, 6];   // Kunti: skill 2 (Mode Terbang) jeda 9 dtk   // jeda: serangan, skill 1, 2, 3 (detik)
 
 // rapikan animasi Mixamo: badan tidak berputar menyamping & tidak bergeser sendiri
 function rapikanKlip(clip, model, tRef, putar) {
@@ -713,7 +713,7 @@ function rapikanKlip(clip, model, tRef, putar) {
 }
 function muatModelHero(hero, T, onProg, skin = '') {
   const emas = skin === 'emas'; if (emas) skin = 'lompat';   // T = P (pemain) atau R (lawan online); skin 'lompat' = Pocong Lompat
-  const url = hero === 'genderuwo' ? (skin === 'leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb') : hero === 'tuyul' ? 'model-3d/tuyul.glb' : hero === 'kunti' ? (skin === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : skin === 'lompat' ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';
+  const url = hero === 'pitung' ? 'model-3d/pitung.glb' : hero === 'genderuwo' ? (skin === 'leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb') : hero === 'tuyul' ? 'model-3d/tuyul.glb' : hero === 'kunti' ? (skin === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : skin === 'lompat' ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';
   return new Promise((res, rej) => new GLTFLoader().load(url, gl => {
     const m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) o.material.envMapIntensity = .6; } });
     const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y; m.scale.setScalar(TINGGI / h); m.position.y = -bb.min.y * TINGGI / h;
@@ -726,7 +726,7 @@ function muatModelHero(hero, T, onProg, skin = '') {
     T.model = m; T.mixer = new THREE.AnimationMixer(m); T.act = {}; T.cur = ''; T.bahan = []; T.skin = skin; T.prosedural = skin === 'lompat';
     if (emas) { T.skin = 'emas'; m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xff9ccf); o.material.metalness = .05; o.material.roughness = .7; } }); }
     m.traverse(o => { if (o.isMesh) [].concat(o.material).forEach(x => { if (!T.bahan.includes(x)) T.bahan.push(x); }); });
-    if (hero === 'genderuwo') siapkanGenderuwo(gl, m, T); else if (hero === 'tuyul') siapkanTuyul(gl, m, T); else if (hero === 'kunti') siapkanKunti(gl, m, T); else if (skin === 'lompat') siapkanOcongLompat(gl, m, T); else siapkanOcong(gl, m, T);
+    if (hero === 'pitung') siapkanPitung(gl, m, T); else if (hero === 'genderuwo') siapkanGenderuwo(gl, m, T); else if (hero === 'tuyul') siapkanTuyul(gl, m, T); else if (hero === 'kunti') siapkanKunti(gl, m, T); else if (skin === 'lompat') siapkanOcongLompat(gl, m, T); else siapkanOcong(gl, m, T);
     mainObj(T, 'diam'); res();
   }, x => onProg && x.total && onProg(x.loaded / x.total), rej));
 }
@@ -834,7 +834,7 @@ function updLabel(dt) {
 
 // ================== KONTROL ==================
 const inp = { x: 0, z: 0, k: {} };
-addEventListener('keydown', e => { inp.k[e.key.toLowerCase()] = 1; const m = { j: 0, ' ': 0, u: 1, i: 2, o: 3 }[e.key.toLowerCase()]; if (m !== undefined) { e.preventDefault(); if (m === 1 || (m === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo') || (m === 3 && HERO === 'tuyul')) { if (!e.repeat) { mulaiBidik(m); K.bidikKey = true; } } else pakai(m); } });
+addEventListener('keydown', e => { inp.k[e.key.toLowerCase()] = 1; const m = { j: 0, ' ': 0, u: 1, i: 2, o: 3 }[e.key.toLowerCase()]; if (m !== undefined) { e.preventDefault(); if (m === 1 || (m === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo' && HERO !== 'pitung') || (m === 3 && HERO === 'tuyul')) { if (!e.repeat) { mulaiBidik(m); K.bidikKey = true; } } else pakai(m); } });
 addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.key.toLowerCase(); if ((kk === 'u' && K.bidik === 1) || (kk === 'i' && K.bidik === 2) || (kk === 'o' && K.bidik === 3)) lepasBidik(); } });
 { const J = $('#joy'), K = $('#knob'); let id = null;
   const mv = e => { const r = J.getBoundingClientRect(), R = r.width / 2, dx = e.clientX - r.left - R, dy = e.clientY - r.top - R, m = Math.min(1, Math.hypot(dx, dy) / R), a = Math.atan2(dy, dx); inp.x = Math.cos(a) * m; inp.z = Math.sin(a) * m; K.style.transform = `translate(${inp.x * R * .55}px,${inp.z * R * .55}px)`; };
@@ -843,9 +843,10 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
 ['bA', 'b1', 'b2', 'b3'].forEach((id, i) => { const b = $('#' + id);
   if (HERO === 'kunti') { b.style.background = 'radial-gradient(#5a1030,#1a0410)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['🔮', '📢', '🕊️', '⛓️'][i]}</span>`); }
   else if (HERO === 'tuyul') { b.style.background = 'radial-gradient(#6a4a20,#1e1206)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['👊', '🛝', '🌀', '👶'][i]}</span>`); }
+  else if (HERO === 'pitung') { b.style.background = 'radial-gradient(#9a1010,#2a0404)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['🗡️', '⚡', '🥋', '🦅'][i]}</span>`); }
   else if (HERO === 'genderuwo') { b.style.background = 'radial-gradient(#5a2a14,#1a0a04)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['🦶', '🥊', '💥', '😡'][i]}</span>`); }
   else b.style.backgroundImage = `url(${EFEK}${['ikon-dasar', 'ikon-skill1', 'ikon-skill2', 'ikon-skill3'][i]}.webp)`;
-  if (i === 1 || (i === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo') || (i === 3 && HERO === 'tuyul')) {   // Tuyul: skill 3 juga bisa diarahkan (blink) · skill 1 & 2: tahan + geser tombol untuk mengarahkan, lepas untuk pakai (Tuyul: skill 2 langsung)
+  if (i === 1 || (i === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo' && HERO !== 'pitung') || (i === 3 && HERO === 'tuyul')) {   // Tuyul: skill 3 juga bisa diarahkan (blink) · skill 1 & 2: tahan + geser tombol untuk mengarahkan, lepas untuk pakai (Tuyul: skill 2 langsung)
     if (!b.querySelector('.ik')) b.insertAdjacentHTML('afterbegin', '<span class="ik"></span>');
     const ik = b.querySelector('.ik');
     const geser = e => { const r = b.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), L = Math.hypot(dx, dy);
@@ -857,6 +858,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) K.bidik = false; };
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
+if (HERO === 'pitung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Golok · U (tahan + mouse): Tusukan Kilat (melesat & menusuk) · I: Jurus Silat Betawi (pukulan beruntun + tendangan, lawan pusing) · O: Terbang Si Pitung (melompat ke lawan, menebas dari udara)';
 if (HERO === 'tuyul') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Colek Kilat (curi koin) · U (tahan + mouse): Seluncur Licin · I: Ngilang 2,5 detik · O (tahan + mouse): Blink + Gerombolan Tuyul';
 if (HERO === 'kunti') { $('#nmhero').textContent = 'Kunti Merah'; $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Roh · U (tahan, arahkan dgn mouse): Frekuensi Suara · I (tahan, arahkan dgn mouse): Mode Terbang · O: Roh Pemburu'; }
 const pingsan = () => (P.kunci || 0) > 0 || (P.pusing || 0) > 0;   // terkena Roh Pemburu / Loncat Jauh lawan
@@ -877,6 +879,7 @@ function pakai(i) {
   if (HERO === 'kunti') return pakaiKunti(i);
   if (HERO === 'tuyul') return pakaiTuyul(i);
   if (HERO === 'genderuwo') return pakaiGenderuwo(i);
+  if (HERO === 'pitung') return pakaiPitung(i);
   P.cd[i] = CD_MAX[i]; P.t = 0; P.hit = 0; P.jejak = 0;
   if (i === 0) { const m = terdekat(3.2); if (m) hadapKe(m.g.position); P.state = 'sundul'; }
   else if (i === 1) {
@@ -1239,6 +1242,10 @@ function updBidik() {
     PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, (K.bidik === 1 ? TYS.jarakSel : K.bidik === 3 ? TYS.blink : TYS.jarakGas) / TERBANG.lesat);
     return;
   }
+  if (HERO === 'pitung') {   // skill 1: panah arah Tusukan Kilat
+    const on = K.bidik === 1 && P.state === 'bebas'; PANAH.visible = !!on; if (!on) return;
+    PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, PIT.tusukJarak / TERBANG.lesat); return;
+  }
   if (HERO === 'genderuwo') {   // skill 1: panah arah cakaran · skill 2: lingkaran tempat mendarat
     const on = K.bidik && P.state === 'bebas';
     LINGKAR.visible = LINGKAR.garis.visible = on && K.bidik === 2; PANAH.visible = on && K.bidik === 1; if (!on) return;
@@ -1331,6 +1338,7 @@ function updPemain(dt) {
   if (HERO === 'kunti') updKunti(dt, pos, f);
   else if (HERO === 'tuyul') updTuyul(dt, pos, f);
   else if (HERO === 'genderuwo') updGenderuwo(dt, pos, f);
+  else if (HERO === 'pitung') updPitung(dt, pos, f);
   else if (P.state === 'bebas') {
     updBidik();
     const [x, z] = arahGerak();
@@ -1620,6 +1628,85 @@ function updGenderuwo(dt, pos, f) {
   }
 }
 
+// ================== SI PITUNG (hero ke-5: pendekar golok Betawi) ==================
+// animasi di pitung.glb (Mixamo → kerangka model, dibuat skrip): diam, jalan, lari, tendang, tebas1, tebas2, tusuk, silat, pukul, serang, combo, kena, mati, terbang (pose ulti seperti foto ikonik)
+const PIT = { cepat: 4.2, tebas: 75, tebasR: 1.7, tusukJarak: 4.2, tusukT: .28, tusuk: 130, silat: 35, silatT: [.22, .59, 1.16], tendangT: 1.88, tendang: 95, silatAkhir: 2.1,
+  ultiJarak: 7.5, ultiTanpa: 4.5, ultiR: 2.6, ulti: 230, tinggi: 2.6,
+  u: { jongkok: .22, naik: .7, layang: 1.25, darat: 1.5, akhir: 1.95 } };   // Terbang Si Pitung: jongkok → melompat → melayang berpose (lambat) → menukik & menebas
+const PW = { combo: 0 };
+function siapkanPitung(gl, m, T) {
+  const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
+  const klip = c => rapikanKlip(c.clone(), m, 0, false), sub = (n, nama, a, b) => { const c = cari(n); return c ? THREE.AnimationUtils.subclip(c, nama, Math.round(a * 30), Math.round(b * 30), 30) : null; };
+  const pasang = (k, c, satu) => { if (c) T.act[k] = satu ? sekali(T.mixer.clipAction(klip(c))) : T.mixer.clipAction(klip(c)); };
+  pasang('diam', cari('diam')); pasang('jalan', cari('jalan')); pasang('lari', cari('lari'));
+  pasang('tebasA', sub('tebas2', 'tebasA', .4, 1.25), 1); pasang('tebasB', sub('serang', 'tebasB', .15, 1.05), 1);
+  pasang('tusuk', sub('tusuk', 'tusuk', .2, 1.05), 1); pasang('silat', sub('silat', 'silat', .9, 4.5), 1);
+  pasang('ulti', cari('terbang')); pasang('serang2', sub('serang', 'serang2', .3, 1.3), 1); pasang('kalah', cari('mati'), 1);
+  if (!T.act.diam) T.act.diam = T.act.jalan; if (!T.act.lari) T.act.lari = T.act.jalan;
+}
+function pTebas(pos, a) {   // sabetan golok: kilau perak + jejak merah
+  tebas(pos, a, 0xdfe6ff, 0, -.5, 1.15); tebas(pos, a, 0xff3020, 0, .3, .85);
+  percik(pos.clone().setY(.9).add(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)).multiplyScalar(1.1)), 10, 0xfff0c0, 2.5, .16);
+}
+function pTusuk(pos, a) { const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), p = pos.clone().addScaledVector(d, 1.1); percik(p.clone().setY(1), 18, 0xfff0c0, 3.5, .14); kilat(p, 24); gelombang(p.setY(0), .8, .25, 0xffe0a0); }
+function pUlti(pos, R) {   // pendaratan Terbang Si Pitung: debu tebal seperti di foto + kilatan golok
+  const p = pos.clone().setY(0); gelGelap(p, R * 1.4, .7, COKLAT_MUDA); asap(p, 18, COKLAT_MUDA, 1.6, 1.4); asap(p, 8, COKLAT, 1.2, 1); retak(p, R, 1.2, 0);
+  gelombang(p, R * 1.1, .5, 0xff3020); gelombang(p, R * .6, .4, 0xfff0c0); percik(pos.clone().setY(.4), 34, 0xffd8a0, 5, .2); kilat(pos, 50);
+}
+function pDebu(pos) { asap(pos.clone().setY(.15), 5, COKLAT_MUDA, .9, .8); }
+function pakaiPitung(i) {
+  const pos = P.root.position;
+  if (i === 0) { const m = terdekat(3); if (m) hadapKe(m.g.position); P.state = 'tebasP'; PW.combo++; mainUlang(PW.combo % 2 ? 'tebasA' : 'tebasB', .06, 1.5); }
+  else if (i === 1) {   // Tusukan Kilat: melesat ke arah bidikan lalu menusuk
+    if (K.bidik === 1 && K.diarahkan) P.arah = K.arahBidik; else { const m = terdekat(PIT.tusukJarak + 1.5); if (m) hadapKe(m.g.position); }
+    P.state = 'tusuk'; mainUlang('tusuk', .05, 1.3); fx('gelombang', pos.clone(), 1, .3, 0xffe0a0); fx('pDebu', pos.clone()); }
+  else if (i === 2) { const m = terdekat(3); if (m) hadapKe(m.g.position); P.state = 'silat'; P.fase = 0; mainUlang('silat', .08, 1.7); }
+  else if (i === 3) {   // Terbang Si Pitung: ke lawan terdekat (kalau tidak ada: ke depan)
+    const m = terdekat(PIT.ultiJarak); let tj;
+    if (m) { hadapKe(m.g.position); tj = m.g.position.clone(); } else tj = pos.clone().addScaledVector(depan(), PIT.ultiTanpa);
+    tj.y = 0; batasi(tj); P.awal = pos.clone(); P.tujuan = tj; P.state = 'ulti'; mainUlang('diam', .1);
+    fx('gTanda', tj.clone(), PIT.ultiR, 1.5, 0); fx('pDebu', pos.clone());
+    banner('🦅 TERBANG SI PITUNG!', '#ffd166'); }
+  P.cd[i] = CD_MAX[i]; P.t = 0; P.hit = 0;
+}
+function kenaDepan(pos, f, maju, r, cb) { const hp = pos.clone().addScaledVector(f, maju); let ada = 0; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && m.g.position.distanceTo(hp) < r) { cb(m); ada = 1; } }); return ada; }
+function updPitung(dt, pos, f) {
+  const t = P.t; updBidik();
+  if (P.state === 'bebas') {
+    const [x, z] = arahGerak();
+    if (x || z) { pos.x += x * PIT.cepat * dt; pos.z += z * PIT.cepat * dt; P.arah = K.bidik ? K.arahBidik : Math.atan2(x, z); main('lari', .15, 1); }
+    else { main('diam', .25); if (K.bidik) P.arah = K.arahBidik; }
+  } else if (P.state === 'tebasP') {            // Tebasan Golok (bergantian dua gaya)
+    if (t < .16) pos.addScaledVector(f, 2.5 * dt);
+    if (t > .26 && !P.hit) { P.hit = 1; fx('pTebas', pos.clone(), P.arah);
+      if (kenaDepan(pos, f, .9, PIT.tebasR, m => kena(m, PIT.tebas, pos, 2.5))) goyang = Math.max(goyang, .1); }
+    if (t > .5) { P.state = 'bebas'; main('diam', .2); }
+  } else if (P.state === 'tusuk') {             // Tusukan Kilat: melesat lalu menusuk lawan pertama
+    if (t < PIT.tusukT) { const lawanDepan = kenaDepan(pos, f, .9, .9, () => {}); if (!lawanDepan) pos.addScaledVector(f, PIT.tusukJarak / PIT.tusukT * dt); if (Math.random() < .6) pDebu(pos); }
+    else if (!P.hit) { P.hit = 1; fx('pTusuk', pos.clone(), P.arah);
+      if (kenaDepan(pos, f, 1, 1.5, m => kena(m, PIT.tusuk, pos, 4))) goyang = Math.max(goyang, .16); }
+    if (t > .62) { P.state = 'bebas'; main('diam', .2); }
+  } else if (P.state === 'silat') {             // Jurus Silat Betawi: 3 pukulan beruntun → tendangan, lawan pusing
+    if (t < PIT.tendangT) pos.addScaledVector(f, .8 * dt);
+    if (P.fase < 3 && t > PIT.silatT[P.fase]) { P.fase++; const hp = pos.clone().addScaledVector(f, 1);
+      if (kenaDepan(pos, f, 1, 1.6, m => { kena(m, PIT.silat, pos, 1); m.pusing = Math.max(m.pusing || 0, .3); })) goyang = Math.max(goyang, .08); fx('gPukul', hp, .8, 0); }
+    if (P.fase === 3 && t > PIT.tendangT) { P.fase = 4; const hp = pos.clone().addScaledVector(f, 1.1);
+      fx('gPukul', hp, 1.4, 0); fx('kilat', hp, 30);
+      if (kenaDepan(pos, f, 1.1, 1.8, m => { kena(m, PIT.tendang, pos, 8); m.pusing = Math.max(m.pusing || 0, 1); })) goyang = Math.max(goyang, .2); }
+    if (t > PIT.silatAkhir) { P.state = 'bebas'; main('diam', .2); }
+  } else if (P.state === 'ulti') {              // Terbang Si Pitung
+    const U = PIT.u, tinggi = PIT.tinggi;
+    if (t < U.jongkok) { const c = t / U.jongkok; P.tilt.scale.set(1 + .1 * c, 1 - .16 * c, 1 + .1 * c); }
+    else if (t < U.naik) { const u = (t - U.jongkok) / (U.naik - U.jongkok); main('ulti', .12); pos.lerpVectors(P.awal, P.tujuan, .6 * u); P.tilt.position.y = tinggi * Math.sin(u * Math.PI / 2); }
+    else if (t < U.layang) { const u = (t - U.naik) / (U.layang - U.naik); main('ulti', .1); pos.lerpVectors(P.awal, P.tujuan, .6 + .2 * u); P.tilt.position.y = tinggi + .15 * Math.sin(u * Math.PI);   // melayang pelan: pose foto
+      if (Math.random() < .5) percik(pos.clone().setY(P.tilt.position.y + .9), 2, Math.random() < .5 ? 0xff2a2a : 0xfff0c0, .6, .2); }
+    else if (t < U.darat) { const u = (t - U.layang) / (U.darat - U.layang); main('serang2', .08, 1.6); pos.lerpVectors(P.awal, P.tujuan, .8 + .2 * u); P.tilt.position.y = tinggi * (1 - u * u); }
+    else if (!P.hit) { P.hit = 1; pos.copy(P.tujuan); fx('pUlti', pos.clone(), PIT.ultiR); goyang = .3;
+      MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < PIT.ultiR) { kena(m, PIT.ulti, pos, 6, 2.5); m.pusing = Math.max(m.pusing || 0, .9); } }); }
+    if (t > U.akhir) { P.state = 'bebas'; P.tujuan = null; main('diam', .2); }
+  }
+}
+
 // ================== KAMERA ==================
 const camPos = new THREE.Vector3(), camLihat = new THREE.Vector3();
 function updKamera(dt) {
@@ -1633,12 +1720,12 @@ function updKamera(dt) {
 // Dipakai di Lawan Bot (1 vs 1) dan Duel Tim. Bot "pro": membaca serangan lawan lalu menghindar,
 // membidik ke arah gerak lawan, memakai combo, kabur saat darah tipis, bersembunyi di semak,
 // dan mencari lawan yang menghilang di tempat terakhir terlihat.
-const BOT_HERO = ['ocong', 'kunti', 'tuyul', 'genderuwo'];
-const BOT_SKIN = { ocong: ['', 'lompat', 'emas'], kunti: ['', 'merah'], tuyul: [''], genderuwo: ['', 'leak'] };
-const BOT_SRV = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo'];
+const BOT_HERO = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung'];
+const BOT_SKIN = { ocong: ['', 'lompat', 'emas'], kunti: ['', 'merah'], tuyul: [''], genderuwo: ['', 'leak'], pitung: [''] };
+const BOT_SRV = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo', 'pitung'];
 const pilihAcak = a => a[Math.floor(Math.random() * a.length)];
 // keadaan sasaran dalam bentuk yang sama: pemain (P), bot lokal, atau pemain/bot lain di Duel Tim
-const AN_AKSI = { loncat: 'loncat', guling: 'guling', jerit: 'jerit', seluncur: 'seluncur', bacok: 'colek', tembak: 'tembak', tangan: 'penjara', lompat: 'panggil', tinju: 'tinju', cakar: 'cakar', hantam: 'hantam', amuk: 'amuk' };
+const AN_AKSI = { loncat: 'loncat', guling: 'guling', jerit: 'jerit', seluncur: 'seluncur', bacok: 'colek', tembak: 'tembak', tangan: 'penjara', lompat: 'panggil', tinju: 'tinju', cakar: 'cakar', hantam: 'hantam', amuk: 'amuk', tebasA: 'tebasP', tebasB: 'tebasP', tusuk: 'tusuk', silat: 'silat', ulti: 'ulti', serang2: 'ulti' };
 function infoEnt(t) {
   if (t === P) return { pos: P.root.position, hero: HERO, aksi: P.state, arah: P.state === 'jerit' ? K.arahJerit : P.arah, tujuan: P.tujuan, stun: pingsan(), hp: P.hp / HP_MAX[HERO], vis: DIRI, id: TIM.on ? TIM.me : null, mati: P.state === 'kalah' };
   if (t.pro) return t.pro.info();
@@ -1661,8 +1748,8 @@ async function buatBotPro(o) {
   async function pakaiHero(h, s) {
     await muatModelHero(h, T, null, s || '');
     hero = h; T.hero = h; mt.hpMax = HP_MAX[h];
-    CD = h === 'genderuwo' ? [.8, 6, 7, 14] : h === 'tuyul' ? [.4, 5, 8, 12] : h === 'kunti' ? [.55, 4, 9, 6] : [.55, 4, 4, 6];
-    CEPAT = h === 'genderuwo' ? GEND.cepat : h === 'tuyul' ? TUYUL_CEPAT : h === 'kunti' ? KUNTI_CEPAT : OCONG_CEPAT;
+    CD = h === 'pitung' ? [.6, 5, 7, 12] : h === 'genderuwo' ? [.8, 6, 7, 14] : h === 'tuyul' ? [.4, 5, 8, 12] : h === 'kunti' ? [.55, 4, 9, 6] : [.55, 4, 4, 6];
+    CEPAT = h === 'pitung' ? PIT.cepat : h === 'genderuwo' ? GEND.cepat : h === 'tuyul' ? TUYUL_CEPAT : h === 'kunti' ? KUNTI_CEPAT : OCONG_CEPAT;
     o.onHero && o.onHero(h);
   }
   await pakaiHero(hero, o.skin);
@@ -1673,7 +1760,7 @@ async function buatBotPro(o) {
   const sudutKe = p => Math.atan2(p.x - pos.x, p.z - pos.z);
   const jarak = p => Math.hypot(p.x - pos.x, p.z - pos.z);
   const lawan = () => B.ent ? infoEnt(B.ent) : null;
-  const animGerak = () => hero === 'kunti' && B.terbangT > 0 ? ['terbang', 1.3] : hero === 'tuyul' ? ['jalan', 1.4] : hero === 'genderuwo' ? (B.amuk > 0 ? ['lari', 1] : ['jalan', 1.15]) : ['jalan', 1.5];
+  const animGerak = () => hero === 'pitung' ? ['lari', 1] : hero === 'kunti' && B.terbangT > 0 ? ['terbang', 1.3] : hero === 'tuyul' ? ['jalan', 1.4] : hero === 'genderuwo' ? (B.amuk > 0 ? ['lari', 1] : ['jalan', 1.15]) : ['jalan', 1.5];
   function mulai(s, anim, kec = 1) { B.state = s; B.t = 0; B.hit = 0; if (anim && T.act[anim]) { if (T.cur === anim) T.cur = ''; mainObj(T, anim, .08, kec); } }
   function beres() { B.state = 'bebas'; mainObj(T, 'diam', .2); }
   function serang(dmg, dari, dorong) { if (B.ent) ctx.serang(B.ent, dmg, dari, dorong); }
@@ -1725,6 +1812,10 @@ async function buatBotPro(o) {
       case 'amuk': return jauhi(I.pos, GEND.amukR + .3);
       case 'serbu': return L < 5 && d.dot(f) > 0 && Math.abs(d.dot(samping)) < 2.2 ? sisi() : null;
       case 'dasar': return L < 2.8 ? d.clone().normalize().add(sisi().multiplyScalar(.7)) : null;
+      case 'tebasP': return L < 2.3 ? d.clone().normalize().add(sisi().multiplyScalar(.7)) : null;
+      case 'tusuk': { const mj = d.dot(f), sp = Math.abs(d.dot(samping)); return mj > -.5 && mj < PIT.tusukJarak + 1 && sp < 1.4 ? sisi() : null; }
+      case 'silat': return L < 2.6 ? d.clone().normalize().add(sisi().multiplyScalar(.5)) : null;
+      case 'ulti': return I.tujuan ? jauhi(I.tujuan, PIT.ultiR + .5) : (L < PIT.ultiJarak && d.dot(f) > 0 ? sisi() : null);
     }
     return null;
   }
@@ -1733,6 +1824,7 @@ async function buatBotPro(o) {
     if (hero === 'kunti' && B.cd[2] <= 0 && besar) { terbang(Math.atan2(esc.x, esc.z)); return true; }
     if (hero === 'ocong' && B.cd[2] <= 0 && besar && Math.random() < .45) { T.arah = Math.atan2(esc.x, esc.z); mulai('guling', 'guling', 1.6); B.kenaT = 0; B.cd[2] = CD[2]; return true; }
     if (hero === 'tuyul' && B.cd[2] <= 0 && besar && Math.random() < .5) { hilang(); return false; }   // menghilang lalu tetap lari
+    if (hero === 'pitung' && B.cd[1] <= 0 && besar && Math.random() < .5) { T.arah = Math.atan2(esc.x, esc.z); mulai('tusuk', 'tusuk', 1.3); B.cd[1] = CD[1]; return true; }   // Tusukan Kilat untuk menghindar
 
     return false;
   }
@@ -1770,6 +1862,14 @@ async function buatBotPro(o) {
       fx('gelombang', pos.clone(), 1, .35, 0xd0b080); return true; }
     if (B.cd[2] <= 0 && L > 3 && L < 9) { hilang(); return true; }
     if (B.cd[0] <= 0 && L < 1.6) { T.arah = sudutKe(I.pos); mulai('colek', T.act.bacok ? 'bacok' : 'jalan', 2.6); B.cd[0] = CD[0]; return true; }
+    return false;
+  }
+  function skillPitung(I, L) {
+    if (B.cd[3] <= 0 && L < PIT.ultiJarak && (I.stun || L > 2.4 || Math.random() < .4)) { const tj = ramal(I, I.stun ? 0 : 1.1), d = tj.clone().sub(pos).setY(0); if (d.length() > PIT.ultiJarak) tj.copy(pos).addScaledVector(d.normalize(), PIT.ultiJarak);
+      batasi(tj); B.awal = pos.clone(); B.tujuan = tj; T.arah = sudutKe(tj); mulai('ulti', 'diam'); B.cd[3] = CD[3]; fx('gTanda', tj.clone(), PIT.ultiR, 1.5, 0); return true; }
+    if (B.cd[1] <= 0 && L > 1.8 && L < PIT.tusukJarak + 1) { T.arah = sudutKe(ramal(I, .25)); mulai('tusuk', 'tusuk', 1.3); B.cd[1] = CD[1]; fx('pDebu', pos.clone()); return true; }
+    if (B.cd[2] <= 0 && L < 2.2) { T.arah = sudutKe(I.pos); mulai('silat', 'silat', 1.7); B.fase = 0; B.cd[2] = CD[2]; return true; }
+    if (B.cd[0] <= 0 && L < 2.3) { T.arah = sudutKe(I.pos); B.gc++; mulai('tebasP', B.gc % 2 ? 'tebasA' : 'tebasB', 1.5); B.cd[0] = CD[0]; return true; }
     return false;
   }
   function skillGenderuwo(I, L) {
@@ -1822,7 +1922,7 @@ async function buatBotPro(o) {
       if (B.hindar) { const [d, h] = posisi(I, L, hpR); jalan(d, kec, dt, h); return; }   // sedang bereaksi: jangan mengunci diri dengan skill
     } else B.bahayaT = 0;
     if (B.pikir <= 0) {   // 2) pakai skill
-      const pakai = hero === 'kunti' ? skillKunti(I, L) : hero === 'tuyul' ? skillTuyul(I, L) : hero === 'genderuwo' ? skillGenderuwo(I, L) : skillOcong(I, L);
+      const pakai = hero === 'pitung' ? skillPitung(I, L) : hero === 'kunti' ? skillKunti(I, L) : hero === 'tuyul' ? skillTuyul(I, L) : hero === 'genderuwo' ? skillGenderuwo(I, L) : skillOcong(I, L);
       if (pakai) { B.pikir = rnd(.12, .3) / B.agresi; return; }
     }
     const [d, h] = posisi(I, L, hpR); jalan(d, kec, dt, h);   // 3) bergerak
@@ -2018,6 +2118,32 @@ async function buatBotPro(o) {
         if (kenaDi(pos, GEND.amukR)) { serang(30, pos.clone(), 3); stun('pusing', .8); goy(.25); } }
       if (t > 1.5) beres();
     }
+    else if (B.state === 'tebasP') {      // Pitung: Tebasan Golok
+      if (t < .16) pos.addScaledVector(f, 2.5 * dt);
+      if (t > .26 && !B.hit) { B.hit = 1; fx('pTebas', pos.clone(), T.arah); if (kenaDi(pos.clone().addScaledVector(f, .9), PIT.tebasR)) { serang(PIT.tebas, pos.clone(), 2.5); goy(.1); } }
+      if (t > .5) beres();
+    }
+    else if (B.state === 'tusuk') {       // Pitung: Tusukan Kilat
+      if (t < PIT.tusukT) { if (!kenaDi(pos.clone().addScaledVector(f, .9), .9)) pos.addScaledVector(f, PIT.tusukJarak / PIT.tusukT * dt); if (Math.random() < .6) pDebu(pos); }
+      else if (!B.hit) { B.hit = 1; fx('pTusuk', pos.clone(), T.arah); if (kenaDi(pos.clone().addScaledVector(f, 1), 1.5)) { serang(PIT.tusuk, pos.clone(), 4); goy(.16); } }
+      if (t > .62) beres();
+    }
+    else if (B.state === 'silat') {       // Pitung: Jurus Silat Betawi
+      if (t < PIT.tendangT) pos.addScaledVector(f, .8 * dt);
+      if (B.fase < 3 && t > PIT.silatT[B.fase]) { B.fase++; const hp = pos.clone().addScaledVector(f, 1); if (kenaDi(hp, 1.6)) { serang(PIT.silat, pos.clone(), 1); stun('pusing', .3); goy(.08); } fx('gPukul', hp, .8, 0); }
+      if (B.fase === 3 && t > PIT.tendangT) { B.fase = 4; const hp = pos.clone().addScaledVector(f, 1.1); fx('gPukul', hp, 1.4, 0); fx('kilat', hp, 30);
+        if (kenaDi(hp, 1.8)) { serang(PIT.tendang, pos.clone(), 8); stun('pusing', 1); goy(.2); } }
+      if (t > PIT.silatAkhir) beres();
+    }
+    else if (B.state === 'ulti') {        // Pitung: Terbang Si Pitung
+      const U = PIT.u, tg = PIT.tinggi;
+      if (t < U.jongkok) { const c = t / U.jongkok; T.tilt.scale.set(1 + .1 * c, 1 - .16 * c, 1 + .1 * c); }
+      else if (B.tujuan && t < U.naik) { const u = (t - U.jongkok) / (U.naik - U.jongkok); mainObj(T, 'ulti', .12); pos.lerpVectors(B.awal, B.tujuan, .6 * u); B.naik = tg * Math.sin(u * Math.PI / 2); }
+      else if (B.tujuan && t < U.layang) { const u = (t - U.naik) / (U.layang - U.naik); mainObj(T, 'ulti', .1); pos.lerpVectors(B.awal, B.tujuan, .6 + .2 * u); B.naik = tg + .15 * Math.sin(u * Math.PI); }
+      else if (B.tujuan && t < U.darat) { const u = (t - U.layang) / (U.darat - U.layang); mainObj(T, 'serang2', .08, 1.6); pos.lerpVectors(B.awal, B.tujuan, .8 + .2 * u); B.naik = tg * (1 - u * u); }
+      else if (!B.hit) { B.hit = 1; if (B.tujuan) pos.copy(B.tujuan); fx('pUlti', pos.clone(), PIT.ultiR); if (kenaDi(pos, PIT.ultiR)) { serang(PIT.ulti, pos.clone(), 6); stun('pusing', .9); goy(.3); } }
+      if (t > U.akhir) { B.tujuan = null; beres(); }
+    }
     else beres();
   }
   async function reset(gantiHero, simpanDarah) {   // simpanDarah: pemenang ronde tidak dipulihkan
@@ -2067,15 +2193,15 @@ function selesai(hasil) {
 const KILL_MENANG = 3; let SKOR = [0, 0];
 function updSkorBot() { const e = $('#timHud'); e.style.display = ''; e.innerHTML = `<span class="b">Anda ${SKOR[0]}</span><small>${KILL_MENANG} kill menang</small><span class="m">${SKOR[1]} Bot</span>`; }
 // ---- Pilih Hero langsung dari layar hasil (tanpa kembali ke menu) ----
-const IKON_HERO = { ocong: '👻', kunti: '🩸', tuyul: '👶', genderuwo: '👹' }, DESK_HERO = { ocong: 'jarak dekat', kunti: 'jarak jauh', tuyul: 'lincah', genderuwo: 'petarung kuat' };
-const PIL_SKIN = { ocong: [['lompat', '🐛 Pocong Lompat'], ['boneka', '🪆 Boneka Horor'], ['emas', '💗 Ocong Pink']], kunti: [['utama', '🤍 Kunti'], ['merah', '❤️ Kunti Merah']], tuyul: [['utama', '👶 Tuyul']], genderuwo: [['utama', '👹 Genderuwo'], ['leak', '🔥 Leak']] };
+const IKON_HERO = { ocong: '👻', kunti: '🩸', tuyul: '👶', genderuwo: '👹', pitung: '🥋' }, DESK_HERO = { ocong: 'jarak dekat', kunti: 'jarak jauh', tuyul: 'lincah', genderuwo: 'petarung kuat', pitung: 'pendekar golok' };
+const PIL_SKIN = { ocong: [['lompat', '🐛 Pocong Lompat'], ['boneka', '🪆 Boneka Horor'], ['emas', '💗 Ocong Pink']], kunti: [['utama', '🤍 Kunti'], ['merah', '❤️ Kunti Merah']], tuyul: [['utama', '👶 Tuyul']], genderuwo: [['utama', '👹 Genderuwo'], ['leak', '🔥 Leak']], pitung: [['utama', '🥋 Si Pitung']] };
 const kunciSkin = (h, s) => h === 'ocong' ? (s || 'boneka') : (s || 'utama'), skinUrl = (h, k) => h === 'ocong' ? (k === 'boneka' ? '' : k) : k === 'merah' ? 'merah' : k === 'leak' ? 'leak' : '';
 // hero & skin yang dimiliki dikirim game.html (dari kartu yang sudah diklaim)
 const PUNYA = (() => { const a = (Q.get('punya') || '').split(',').filter(h => NAMA_HERO[h]); ['ocong', HERO].forEach(h => { if (!a.includes(h)) a.push(h); }); return a; })();
-const SKIN_PUNYA = new Set(['ocong:lompat', 'kunti:utama', 'tuyul:utama', 'genderuwo:utama', HERO + ':' + kunciSkin(HERO, SKIN), ...(Q.get('skins') || '').split(',').filter(Boolean)]);
+const SKIN_PUNYA = new Set(['ocong:lompat', 'kunti:utama', 'tuyul:utama', 'genderuwo:utama', 'pitung:utama', HERO + ':' + kunciSkin(HERO, SKIN), ...(Q.get('skins') || '').split(',').filter(Boolean)]);
 const PH = { hero: HERO, skin: kunciSkin(HERO, SKIN) };
 function gambarPilihHero() {
-  $('#phHero').innerHTML = ['ocong', 'kunti', 'tuyul', 'genderuwo'].map(h => { const ok = PUNYA.includes(h); return `<button data-h="${h}" class="${PH.hero === h ? 'on' : ''} ${ok ? '' : 'kunci'}"><i>${IKON_HERO[h]}</i><b>${NAMA_HERO[h]}</b><small>${ok ? DESK_HERO[h] : '🔒 butuh kartu'}</small></button>`; }).join('');
+  $('#phHero').innerHTML = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung'].map(h => { const ok = PUNYA.includes(h); return `<button data-h="${h}" class="${PH.hero === h ? 'on' : ''} ${ok ? '' : 'kunci'}"><i>${IKON_HERO[h]}</i><b>${NAMA_HERO[h]}</b><small>${ok ? DESK_HERO[h] : '🔒 butuh kartu'}</small></button>`; }).join('');
   $('#phSkin').innerHTML = PIL_SKIN[PH.hero].length > 1 ? PIL_SKIN[PH.hero].map(([k, n]) => { const ok = SKIN_PUNYA.has(PH.hero + ':' + k); return `<button data-k="${k}" class="${PH.skin === k ? 'on' : ''} ${ok ? '' : 'kunci'}">${ok ? '' : '🔒 '}${n}</button>`; }).join('') : '';
   document.querySelectorAll('#phHero button').forEach(b => b.onclick = () => { const h = b.dataset.h;
     if (!PUNYA.includes(h)) { $('#phInfo').textContent = '🔒 ' + NAMA_HERO[h] + ' terkunci — klaim kartunya di Koleksi Kartu'; return; }
@@ -2133,7 +2259,7 @@ const ULANG = +Q.get('ulang') || 0;   // percobaan sambung ulang ke room yang sa
 function ingatRoom(c) { try { localStorage.setItem('kgRoom', JSON.stringify({ c: String(c), m: MODE.startsWith('tim') ? 'tim' : 'duel', t: Date.now() })); } catch (e) { } }
 function keluarRoom() { NET.keluar = true; kirim({ t: 'leave' }); try { localStorage.removeItem('kgRoom'); } catch (e) { } }
 const NET = { url: Q.get('server') || 'wss://game.kalensari.web.id/ws', ws: null, role: '', on: false, kirimT: 0, antre: [], sayaLagi: false, lawanLagi: false, kode: '', v3: false, mulaiT: 0 };
-const HERO_SRV = { ocong: 'pocong', kunti: 'kuntilanak', tuyul: 'tuyul', genderuwo: 'genderuwo' }, HERO_3D = { pocong: 'ocong', kuntilanak: 'kunti', tuyul: 'tuyul', genderuwo: 'genderuwo' };
+const HERO_SRV = { ocong: 'pocong', kunti: 'kuntilanak', tuyul: 'tuyul', genderuwo: 'genderuwo', pitung: 'pitung' }, HERO_3D = { pocong: 'ocong', kuntilanak: 'kunti', tuyul: 'tuyul', genderuwo: 'genderuwo', pitung: 'pitung' };
 const ARENA_IDX = { lapangan: 0, kuil: 1 }, ARENA_NAMA = ['lapangan', 'kuil'];
 const r2 = v => Math.round(v * 100) / 100;
 // cermin: koordinat dikirim dalam sistem pembuat room; tamu memutar dunia 180° di pusat arena
@@ -2149,8 +2275,8 @@ R.root.add(R.tilt);
 R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, remote: true, bar: null };
 
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
-const FXF = { gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas };
-const FX_SUDUT = { gelombangKipas: [1], gTebas: [1] };
+const FXF = { gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu };
+const FX_SUDUT = { gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
 function fx(n, ...a) {
   FXF[n](...a);
   if (!NET.on) return;
@@ -2264,7 +2390,7 @@ function terimaData(m) {
     else if (e.k === 'roh') lepasRohPemburu(DIRI, true, R);
     else if (e.k === 'mati') selesai('menang');
     else if (e.k === 'lagi') { NET.lawanLagi = true; cekLagi(); }
-    else if (e.k === 'halo') { const h = ['ocong', 'kunti', 'tuyul', 'genderuwo'].includes(e.h) ? e.h : R.hero, ganti = h !== R.hero || (R.skin || '') !== (e.s || ''); R.hero = h; R.skinMau = e.s || ''; R.mt.hpMax = HP_MAX[h]; if (R.model && ganti) muatModelHero(R.hero, R, null, R.skinMau); }   // hero & skin lawan
+    else if (e.k === 'halo') { const h = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung'].includes(e.h) ? e.h : R.hero, ganti = h !== R.hero || (R.skin || '') !== (e.s || ''); R.hero = h; R.skinMau = e.s || ''; R.mt.hpMax = HP_MAX[h]; if (R.model && ganti) muatModelHero(R.hero, R, null, R.skinMau); }   // hero & skin lawan
     else if (e.k === 'koin') koinTerbang(P.root.position, R);
     else if (e.k === 'gerombolan') { if (R.model && R.act.jalan) panggilGerombolan(R.root.position.clone(), R, () => DIRI, true, e.l || 3); }
   });
@@ -2351,7 +2477,7 @@ function tampilkanMenu() {
 // Koordinat dikirim dalam sudut pandang Tim Biru; pemain Tim Merah mencerminkan dunia, jadi semua orang melihat timnya di bawah layar.
 const TIM = { on: MODE === 'timbuat' || MODE === 'timgabung', me: 0, hostId: 0, host: false, pl: [], a: 1, kw: 10, state: 'lobby', saya: null,
   skor: [0, 0], obj: new Map(), bot: new Map(), main: false, sisa: 300, DUR: 300, terakhir: null, hidupT: 0, sudahMain: false, kode: '', lobiTunda: null, akhir: false };
-const TIM_KW = [3, 5, 10, 15, 20], NAMA_TIM = ['TIM BIRU', 'TIM MERAH'], IKON_H = { pocong: '👻', kuntilanak: '🩸', tuyul: '👶', genderuwo: '👹' };
+const TIM_KW = [3, 5, 10, 15, 20], NAMA_TIM = ['TIM BIRU', 'TIM MERAH'], IKON_H = { pocong: '👻', kuntilanak: '🩸', tuyul: '👶', genderuwo: '👹', pitung: '🥋' };
 const escH = x => String(x == null ? '' : x).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 const timOf = id => { const p = TIM.pl.find(x => x.i === id); return p ? p.tm : -1; };
 const namaOf = id => { const p = TIM.pl.find(x => x.i === id); return p ? p.n : 'Pemain'; };

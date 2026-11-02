@@ -458,9 +458,9 @@ let EMB=Array.from({length:90},()=>({x:Math.random()*WW,y:Math.random()*WH,v:.3+
 const CH={
  pocong:{n:'Ocong',spd:2.4,jump:-14,grav:.7,atk:55,rng:90,sk:[{n:'Loncat Jauh',k:'leap',cd:300,i:'',ic:'ic1'},{n:'Guling ke Arah Tujuan',k:'roll',cd:360,i:'',ic:'ic2'},{n:'Lingkaran & Lempar',k:'ring',cd:540,i:'',ic:'ic3'}]},
  kuntilanak:{n:'Kunti',spd:2.1,jump:-11,grav:.4,atk:60,rng:260,sk:[{n:'Frekuensi Suara',k:'wave',cd:420,i:'',ic:'kic1'},{n:'Nge Blink',k:'blink',cd:360,i:'',ic:'kic2'},{n:'Penjara Roh',k:'prison',cd:600,i:'',ic:'kic3'}]}};
-const ALL=[['pocong','Ocong','#e9e6df'],['kuntilanak','Kunti','#7b2cbf'],['tuyul','Tuyul','#c9a27a'],['genderuwo','Genderuwo','#5a3a2a'],['x','Sundel Bolong','#555'],['x','Wewe Gombel','#8d6e4c'],['x','Buto Ijo','#2d8f3a']];
+const ALL=[['pocong','Ocong','#e9e6df'],['kuntilanak','Kunti','#7b2cbf'],['tuyul','Tuyul','#c9a27a'],['genderuwo','Genderuwo','#5a3a2a'],['pitung','Si Pitung','#c1121f'],['x','Sundel Bolong','#555'],['x','Wewe Gombel','#8d6e4c'],['x','Buto Ijo','#2d8f3a']];
 // ===== KARTU: hero gratis, skin, & koleksi pemain (dari Supabase, akun warga desa Kalensari Store) =====
-const GRATIS=['pocong'];   // hero yang bisa dipakai tanpa kartu
+const GRATIS=['pocong','pitung'];   // Si Pitung sementara gratis (hapus 'pitung' dari sini kalau mau dibuka lewat kartu)   // hero yang bisa dipakai tanpa kartu
 const SKINS={              // id skin = 'hero:nama' (sama dengan isian "item" saat admin membuat kartu skin)
  'kuntilanak:merah':{h:'kuntilanak',n:'Kunti Merah',f:'none'},
  'genderuwo:leak':{h:'genderuwo',n:'Leak',f:'none'},
@@ -1124,7 +1124,7 @@ function tmBegin(m){clearTimeout(TM.vsT);NET.on=1;NET.team=1;NET.inGame=1;NET.ro
   netReset();start(null,R);netReady();banner('⚔️ Anda di '+(meT?'TIM MERAH':'TIM BIRU')+' · '+nB+' vs '+nR)}};TM.vsT=setTimeout(tick,1100)}
 // ---------- PERSIAPAN DUEL (pilih hero & arena) + LAYAR VS ----------
 let LB=null,vsT=0;const LB_TIME=30;
-const POT3D=(id,s)=>'gambar-game/potret-3d/'+(id=='genderuwo'?(s=='genderuwo:leak'?'leak':'genderuwo'):id=='tuyul'?'tuyul':id=='kuntilanak'?(s=='kuntilanak:merah'?'kunti-merah':'kunti'):s=='pocong:boneka'?'ocong-boneka':s=='pocong:emas'?'ocong-pink':'ocong-lompat');
+const POT3D=(id,s)=>'gambar-game/potret-3d/'+(id=='pitung'?'pitung':id=='genderuwo'?(s=='genderuwo:leak'?'leak':'genderuwo'):id=='tuyul'?'tuyul':id=='kuntilanak'?(s=='kuntilanak:merah'?'kunti-merah':'kunti'):s=='pocong:boneka'?'ocong-boneka':s=='pocong:emas'?'ocong-pink':'ocong-lompat');
 const heroImg=(id,s)=>POT3D(id,s)+'-badan.webp',heroHead=(id,s)=>POT3D(id,s)+'-kepala.webp';   // potret model 3D
 function lobSend(){if(!LB)return;LB.me.s=skinOf(LB.me.h);const o={lb:{h:LB.me.h,r:LB.me.r,s:LB.me.s}};if(NET.role=='host'){o.t='st';o.lb.a=LB.a}else o.t='in';netSend(o)}
 function lobRender(){if(!LB)return;const host=NET.role=='host',p1=host?LB.me:LB.op,p2=host?LB.op:LB.me,n1=host?myName():NET.oppName,n2=host?NET.oppName:myName();
@@ -1181,8 +1181,8 @@ async function muatKoleksi(){try{const k=await krpc('game_koleksi',{p_sesi:ksSes
  if(!punyaHero(pick))pick='pocong';if($('#kar').classList.contains('on'))karRender();if($('#sel').classList.contains('on'))grid()}
 function kMasuk(kode){try{sessionStorage.setItem('kalensari_next','url:game.html'+(kode?'?kartu='+encodeURIComponent(kode):'')+'#kartu')}catch(e){}kSt('Membuka halaman masuk akun warga desa Kalensari Store…');setTimeout(()=>location.href='akun-pembeli.html',600)}
 function kSt(t,c){const e=$('#kSt');e.textContent=t||'';e.className='kst '+(c||'')}
-const NM3D=h=>({pocong:'Ocong',kuntilanak:'Kunti',tuyul:'Tuyul',genderuwo:'Genderuwo'})[h]||h;
-const HEROK=['pocong','kuntilanak','tuyul','genderuwo'],adaHero=h=>HEROK.includes(h);   // semua hero yang bisa dimainkan (CH hanya berisi data duel 2D lama)
+const NM3D=h=>({pocong:'Ocong',kuntilanak:'Kunti',tuyul:'Tuyul',genderuwo:'Genderuwo',pitung:'Si Pitung'})[h]||h;
+const HEROK=['pocong','kuntilanak','tuyul','genderuwo','pitung'],adaHero=h=>HEROK.includes(h);   // semua hero yang bisa dimainkan (CH hanya berisi data duel 2D lama)
 const itemNama=(j,it)=>j=='skin'?(SKINS[it]?SKINS[it].n:it):NM3D(it);
 const itemImg=(j,it)=>{const h=j=='skin'?(SKINS[it]&&SKINS[it].h):it;return adaHero(h)?`<img src="${heroImg(h,j=='skin'?it:'')}" style="filter:${j=='skin'?skinF(it):'none'} drop-shadow(0 .4cqw .6cqw #000)">`:''};
 function karRender(){const ak=$('#kAkun');
@@ -1576,10 +1576,9 @@ function pkPMLabel(Wd,P2,k,kd){   // tulisan RUMAH HANTU di atas layar, tetap te
 // ===== LINTASAN 6: Lomba 17-an Hantu (siang hari) =====
 // balap karung (hero hanya bisa lompat-lompat) → titian bambu di atas kolam lumpur → panjat pinang licin (ketuk LOMPAT terus) → lomba makan kerupuk (gigit 10x, pintu terbuka) → finis
 const P17={karung:[300,1380],bakiak:[2560,3580],tiang:[{x:3760,y:340},{x:3760,y:420}],kelereng:[4610,5680],kerupuk:[5860,6000],gigit:10,lumpur:[1560,2370],
- angin:{siklus:7000,tenang:3600,aba:1200,tiup:1400},   // angin kencang: tenang 3.6dtk → peringatan 1.2dtk → tiupan 1.4dtk (pakai jam sistem, jadi sama untuk semua pemain)
  genangan:[[4760,410,42],[5060,345,46],[5170,425,40],[5480,360,46],[5590,430,38]]};   // genangan air di lintasan kelereng (x, y, jari-jari)
 function pk17Lapangan(warna){   // lapangan karung dipotong-potong: celah melintang (strip) di antara petak, dan beberapa kotak bolong
- const SEG=[[258,122],[380,100],[480,100],[640,100],[740,100],[840,100],[1000,100],[1100,100],[1260,120]],X=SEG.map(a=>a[0]),W=SEG.map(a=>a[1]),H=[54,53,53],BOLONG={1:[2],4:[1]},out=[];   // kolom → baris yang bolong (baris 0..2); hanya 2 lubang + 3 celah melintang (580-640, 940-1000, 1200-1260)
+ const X=[258,440,600,760,920,1080,1240],W=[122,100,100,100,100,100,140],H=[54,53,53],BOLONG={1:[0],2:[2],3:[1],4:[2],5:[0],6:[1]},out=[];   // kolom → baris yang bolong (baris 0..2); celah antar kolom 60
  X.forEach((x,c)=>{let y=300;H.forEach((h,r)=>{if(!(BOLONG[c]||[]).includes(r))out.push([x,y,W[c],h,0,'',{warna:(c+r)%2?warna:'#4f7d33',sisi:'#4a3a24',karungLap:1}]);y+=h})});
  return out}
 function pkLevel6(){const W='#5b4a3a',RUMPUT='#5a8a3a';
@@ -1601,28 +1600,14 @@ function pkLevel6(){const W='#5b4a3a',RUMPUT='#5a8a3a';
  PK.pl=L.map((a,i)=>({i,x:a[0],y:a[1],w:a[2],d:a[3],z:a[4],t:a[5]||'',o:a[6]||{},ox:0,oy:0,dx:0,dy:0,tm:0,turun:0}));
  PK.cps=PK.pl.filter(q=>q.t=='cp'||q.i==0);
  PK.coins=[[450,380,60],[760,380,60],[1020,380,60],[1690,376,40],[1960,406,40],[2230,371,40],[2800,340,340],[2900,420,340],[3065,380,280],[3325,380,160],[3650,380,40],[4700,370,40],[5150,380,70],[5600,380,40]].map(c=>[c[0]>=2800&&c[0]<4600?geser(c[0]):c[0],c[1],c[2]]).map(c=>({x:c[0],y:c[1],z:c[2],ok:0}));
- PK.l17={hi:1,gigit:0,makan:0,bk:{kaki:0,dorong:0,sandung:0},kel:{gob:0,gr:1,arah:[1,0],grace:150,n:-1,hit:-1,diam:0},pintu:PK.pl.find(q=>q.o.pintu),puncak:PK.pl.find(q=>q.o.puncak),tap:0,remah:[],
-  hint:[[0,'🎉 Lomba 17-an Hantu! Ayo ikut semua lombanya!'],[290,'🥔 Balap karung! Awas lubang! Loncat kecil pakai joystick, LOMPAT untuk melewati celah'],[1410,'🎋 Titian bambu! Di bawahnya kolam lumpur'],[2550,'👣 Balap bakiak! Ketuk KIRI dan KANAN bergantian'],[3610,'🪵 Panjat pinang! Dekati tiang, lalu ketuk LOMPAT terus-terusan'],[4600,'🥄 Lomba kelereng! Jalan pelan, hindari genangan. Kalau ada 💨 ANGIN: BERHENTI DIAM, jangan bergerak atau melompat!'],[5710,'🍘 Makan kerupuk! Berdiri di bawah kerupuk, ketuk LOMPAT untuk menggigit']]};
+ PK.l17={hi:1,gigit:0,makan:0,bk:{kaki:0,dorong:0,sandung:0},kel:{gob:0,gr:1,arah:[1,0]},pintu:PK.pl.find(q=>q.o.pintu),puncak:PK.pl.find(q=>q.o.puncak),tap:0,remah:[],
+  hint:[[0,'🎉 Lomba 17-an Hantu! Ayo ikut semua lombanya!'],[290,'🥔 Balap karung! Awas lubang! Loncat kecil pakai joystick, LOMPAT untuk melewati celah'],[1410,'🎋 Titian bambu! Di bawahnya kolam lumpur'],[2550,'👣 Balap bakiak! Ketuk KIRI dan KANAN bergantian'],[3610,'🪵 Panjat pinang! Dekati tiang, lalu ketuk LOMPAT terus-terusan'],[4600,'🥄 Lomba kelereng! Jalan pelan, hindari genangan, jangan sampai kelerengnya jatuh'],[5710,'🍘 Makan kerupuk! Berdiri di bawah kerupuk, ketuk LOMPAT untuk menggigit']]};
  setTimeout(()=>toast(PK.l17.hint[0][1]),400)}
 function pk17Karung(P2,vx,vy){if(P2.x>=P17.kelereng[0]&&P2.x<=P17.kelereng[1]){const L=PK.l17.kel,n=Math.hypot(vx,vy);   // bawa kelereng: jalan pelan, belok tajam bikin goyang
   if(n>.1){const d=(vx*L.arah[0]+vy*L.arah[1])/n;if(d<.3)L.gob+=.22;L.arah=[vx/n,vy/n]}return[vx*.62,vy*.62]}
  const di=P2.x>=P17.karung[0]&&P2.x<=P17.karung[1]&&!P2.panjat;P2.karung=di?1:0;if(!di)return[vx,vy];
  if(!P2.gr&&PK.key.j){P2.bufJ=16;PK.key.j=0}else if(P2.bufJ>0)P2.bufJ--;   // LOMPAT ditekan saat masih di udara → disimpan, dipakai begitu mendarat
  if(P2.gr){if(P2.bufJ>0){P2.bufJ=0;PK.key.j=1}if(PK.key.j)return[0,0];if(vx||vy){P2.vz=3.4;P2.gr=null}return[0,0]}return[vx*.95,vy*.95]}   // di dalam karung: joystick = loncat kecil, tombol LOMPAT = loncat jauh untuk melewati celah
-function pk17Angin(){const A=P17.angin,now=Date.now(),n=Math.floor(now/A.siklus),t=now-n*A.siklus,dir=((n*7+(n>>1))&1)?1:-1;   // dir: -1 = dari depan (mendorong mundur), +1 = dari belakang
- const f=t<A.tenang?0:t<A.tenang+A.aba?1:t<A.tenang+A.aba+A.tiup?2:0;return{f,n,dir,k:f==1?(t-A.tenang)/A.aba:f==2?(t-A.tenang-A.aba)/A.tiup:0}}
-function pk17AnginGambar(pj,P2,L){   // garis angin, daun beterbangan, dan peringatan di atas hero
- if(P2.x<P17.kelereng[0]-60||P2.x>P17.kelereng[1]||P2.mati)return;const A=pk17Angin(),K=L.kel;if(!A.f)return;
- g.save();g.lineCap='round';g.textAlign='center';g.textBaseline='middle';
- const gust=A.f==2,sp=gust?26:5,N=gust?46:14;
- for(let i=0;i<N;i++){const run=(i*131+fr*sp*-A.dir)%760,x=P2.x-380+(run<0?run+760:run),y=302+(i*37)%156,z=14+(i*53)%130,len=gust?60:26;
-  const a=pj(x,y,z),b=pj(x-A.dir*len,y,z);if(!a[2]||!b[2])continue;
-  g.strokeStyle='rgba(255,255,255,'+(gust?.55:.25)+')';g.lineWidth=gust?2:1.2;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();
-  if(gust&&i%6==0){g.font='15px Arial';g.fillText('🍃',a[0],a[1]+Math.sin(fr/5+i)*6)}}
- const m=pj(P2.x,P2.y,P2.z+185);if(m[2]){g.font='bold 15px Arial';g.lineWidth=4;g.strokeStyle='#000';
-  const arrow=A.dir<0?'◀◀◀':'▶▶▶',txt=gust?(K.diam?'💨 '+arrow+' TAHAN! 🛡️':'💨 '+arrow+' BERHENTI!!'):'⚠️ ANGIN DATANG '+arrow+' DIAM!';
-  g.strokeText(txt,m[0],m[1]);g.fillStyle=gust?(K.diam?'#7dff9a':'#ff6a6a'):((fr>>3)&1?'#ffd166':'#fff');g.fillText(txt,m[0],m[1])}
- g.restore()}
 function pk17Khusus(P2){const L=PK.l17,top=L.puncak;
  while(L.hi<L.hint.length&&P2.x>L.hint[L.hi][0]){toast(L.hint[L.hi][1]);L.hi++}
  L.remah.forEach(r=>{r.x+=r.vx;r.z+=r.vz;r.vz-=.25;r.t++});L.remah=L.remah.filter(r=>r.t<40);
@@ -1638,16 +1623,9 @@ function pk17Khusus(P2){const L=PK.l17,top=L.puncak;
   if(K.gr&&!P2.gr&&P2.vz>0)K.gob+=.28;if(!K.gr&&P2.gr)K.gob+=.2;K.gr=!!P2.gr;
   if(Math.abs(P2.kx||0)+Math.abs(P2.ky||0)>2)K.gob+=.08;
   if(P2.gr&&P17.genangan.some(([x,y,r])=>Math.hypot(P2.x-x,(P2.y-y)*1.3)<r))K.gob+=.025;
-  // ANGIN KENCANG: peringatan dulu, lalu tiupan. Yang bergerak/melompat saat tiupan → kelereng cepat jatuh. Yang berdiri diam (menahan) → aman.
-  const A=pk17Angin(),diam=!!P2.gr&&!(P2.walk>0)&&Math.abs(P2.kx||0)+Math.abs(P2.ky||0)<2;K.diam=diam?1:0;if(K.grace>0)K.grace--;
-  if(A.f==1&&A.n!=K.n&&K.grace<=0){K.n=A.n;toast(A.dir<0?'💨 Angin kencang dari DEPAN! BERHENTI DIAM!':'💨 Angin kencang dari BELAKANG! BERHENTI DIAM!');if(navigator.vibrate)navigator.vibrate(40)}
-  if(A.f==2&&K.grace<=0){if(K.hit!=A.n){K.hit=A.n;if(!diam)K.gob+=.25}   // kena hembusan pertama
-   K.gob+=diam?.004:.03;if(P2.gr)P2.kx=(P2.kx||0)+A.dir*.05}
-  else if(diam)K.gob-=.003;   // berdiri tenang = kelereng cepat stabil
-  if(P2.x<P17.kelereng[0]+25&&(P2.kx||0)<0)P2.kx=0;if(P2.x>P17.kelereng[1]-25&&(P2.kx||0)>0)P2.kx=0;
   K.gob=Math.max(0,K.gob*.985-.002);
-  if(K.gob>=1){K.gob=0;K.grace=100;P2.x=Math.max(P17.kelereng[0]+20,P2.x-250);P2.beku=60;toast(A.f==2?'💨 Kelerengnya tertiup angin! Mundur, ambil lagi':'🥄 Kelerengnya jatuh! Mundur, ambil lagi');if(navigator.vibrate)navigator.vibrate([60,40,60])}}
- else{L.kel.gob=0;L.kel.grace=150}
+  if(K.gob>=1){K.gob=0;P2.x=Math.max(P17.kelereng[0]+20,P2.x-250);P2.beku=60;toast('🥄 Kelerengnya jatuh! Mundur, ambil lagi');if(navigator.vibrate)navigator.vibrate([60,40,60])}}
+ else L.kel.gob=0;
  if(P2.panjat){const t=P2.panjat;   // memanjat: tiap ketukan naik, tiang licin membuat melorot
   if(PK.key.j){PK.key.j=0;P2.z+=10;L.tap=8;if(navigator.vibrate)navigator.vibrate(12)}
   P2.z=Math.max(0,P2.z-(.55+P2.z/900));if(L.tap>0)L.tap--;
@@ -1719,7 +1697,6 @@ function pk17Atas(pj){const L=PK.l17,P2=PK.p;if(!L||!P2)return;g.save();g.lineCa
  else if(P2.panjat)pesan('PANJAT! '+Math.round(P2.z/L.puncak.z*100)+'%  (ketuk terus!)',150,'#ffd166');
  else if(P2.gr&&P17.tiang.some(t=>Math.hypot(P2.x-(t.x-16),(P2.y-t.y)*1.3)<60))pesan('Ketuk LOMPAT untuk memanjat',150,'#fff');
  else if(!L.makan&&P2.x>P17.kerupuk[0]-80&&P2.x<P17.kerupuk[1])pesan('Gigit kerupuk: '+L.gigit+'/'+P17.gigit,150,'#ffd166');
- pk17AnginGambar(pj,P2,L);
  g.restore()}
 function pkLari(P2,mx,my){const R=PK.run;
  // input: tepi tekan (sekali tekan = sekali pindah jalur)
@@ -1824,7 +1801,7 @@ function pkUpd(){const P2=PK.p;if(!P2)return;
  if(P2.z<PKWATER)pkMati(pkJatuh());
  if(kbT>0&&--kbT===0)$('#kbn').classList.remove('on');
  cdUI($('#pkSk'),P2.cd,pkLT(P2.id)?180:150)}
-function pkLT(id){return id=='pocong'||id=='genderuwo'}   // skill parkur: Lompat Tinggi (Ocong, Genderuwo) / Melayang (Kunti, Tuyul)
+function pkLT(id){return id=='pocong'||id=='genderuwo'||id=='pitung'}   // skill parkur: Lompat Tinggi (Ocong, Genderuwo) / Melayang (Kunti, Tuyul)
 const pkApi=()=>fr%130>75;
 function pkMati(t){const P2=PK.p;if(P2.mati)return;P2.mati=55;PK.deaths++;banner(t);if(navigator.vibrate)navigator.vibrate(80)}
 function pkDraw(){const P2=PK.p,Wd=W,Hd=H;g.setTransform(1,0,0,1,0,0);
@@ -2135,7 +2112,7 @@ const linkT=setInterval(()=>{if(!window.KG_DEV||$('#ldg').classList.contains('on
 ['aGo','bOnl','pkaGo'].forEach(id=>{const b=$('#'+id),f=b.onclick;if(f)b.onclick=e=>kgWait(()=>f.call(b,e))});
 window.KG_READY=1;kgCek();
 // ===================== SEMUA DUEL DI GAME 3D =====================
-const H3D={pocong:'ocong',kuntilanak:'kunti',tuyul:'tuyul',genderuwo:'genderuwo'};
+const H3D={pocong:'ocong',kuntilanak:'kunti',tuyul:'tuyul',genderuwo:'genderuwo',pitung:'pitung'};
 function skin3D(h){const s=skinOf(h);if(h=='pocong')return s=='pocong:boneka'?'':s=='pocong:emas'?'emas':'lompat';if(h=='kuntilanak')return s=='kuntilanak:merah'?'merah':'';if(h=='genderuwo')return s=='genderuwo:leak'?'leak':'';return''}
 function namaSaya(){let n=($('#oName').value||'').trim();if(!n){try{n=localStorage.getItem('kgName')||''}catch(e){}}n=(n||KOL.nama||'Pemain').slice(0,16);try{localStorage.setItem('kgName',n)}catch(e){}return n}
 function ke3D(mode,x){if(!punyaHero(pick))pick='pocong';x=x||{};
@@ -2526,10 +2503,11 @@ function lomba17() {
 }
 
 // ---------- HERO (model 3D dari folder model-3d, sama dengan duel 3D) ----------
-const TINGGI = { pocong: 1.7, kuntilanak: 1.7, tuyul: 1.15, genderuwo: 2.05 };
+const TINGGI = { pocong: 1.7, kuntilanak: 1.7, tuyul: 1.15, genderuwo: 2.05, pitung: 1.7 };
 function urlHero(id, skin) {
   if (id == 'kuntilanak') return skin == 'kuntilanak:merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb';
   if (id == 'tuyul') return 'model-3d/tuyul.glb';
+  if (id == 'pitung') return 'model-3d/pitung.glb';
   if (id == 'genderuwo') return skin == 'genderuwo:leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb';
   return skin == 'pocong:boneka' ? 'model-3d/skinocong.glb' : 'model-3d/skinocong-lompat.glb';
 }
