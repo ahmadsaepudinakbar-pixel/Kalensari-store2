@@ -381,7 +381,7 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
 <div id="akn" class="scr"><h2>👤 Akun Game</h2>
 <div class="akBox"><div class="akKiri"><div class="akFoto" id="akFoto"></div><div class="akBtns"><button class="btn" id="akGanti">📷 Ganti Foto</button><button class="btn" id="akHapus">🗑️</button></div><input type="file" id="akFile" accept="image/*" hidden></div>
 <div class="akKanan"><div id="akStatus" class="akStatus"></div><label for="akNama">Nama di game</label><input id="akNama" maxlength="16" placeholder="Nama kamu (2–16 huruf)" autocomplete="off">
-<div class="akMasuk" id="akMasuk"><button class="btn g" id="akLogin">🔑 Masuk</button><button class="btn" id="akDaftar">📝 Daftar</button></div><div id="akMsg" class="akMsg"></div></div></div>
+<div class="akMasuk" id="akMasuk"><button class="btn g" id="akLogin">🔑 Masuk</button><button class="btn" id="akDaftar">📝 Daftar</button></div><div class="akMasuk" id="akGantiAkun"><button class="btn" id="akKeluar">🔄 Ganti Akun</button></div><div id="akMsg" class="akMsg"></div></div></div>
 <div style="display:flex;gap:1.5cqw"><button class="btn" id="akBack">Kembali</button><button class="btn g" id="akSimpan">💾 Simpan</button></div></div>
 <div id="kar" class="scr"><div class="kl"><h2>Scan Kartu</h2>
 <div class="kcam"><video id="kVid" muted playsinline></video><div class="kfr"><i></i><i></i><i></i><i></i><b></b></div><div class="kph" id="kPh">📷<br>Tekan <b>Buka Kamera</b> lalu arahkan ke QR di kartu</div></div>
@@ -1250,12 +1250,17 @@ function bukaAkun(){AKG.foto=null;AKG.ubahFoto=false;akMsg('');$('#akNama').valu
 function akRender(){
  $('#akStatus').innerHTML=KOL.login?'✅ Game sudah terhubung dengan <b>akun warga desa Kalensari Store</b>. Nama, foto, kartu hero & skin, dan teman tersimpan di akunmu.'
   :`${KOL.err?'⚠️ '+String(KOL.err).replace(/[<>]/g,'')+'<br>':''}Belum masuk. <b>Masuk</b> atau <b>Daftar</b> akun warga desa Kalensari Store untuk mengaitkan game: kartu hero & skin, teman, serta nama & foto profil tersimpan di akunmu.<br><small>Tanpa akun, nama & foto hanya tersimpan di HP ini.</small>`;
- $('#akMasuk').style.display=KOL.login?'none':'';akGambar($('#akFoto'),AKG.ubahFoto?AKG.foto:akFotoSaya());$('#akHapus').style.display=(AKG.ubahFoto?AKG.foto:akFotoSaya())?'':'none'}
+ $('#akMasuk').style.display=KOL.login?'none':'';$('#akGantiAkun').style.display=KOL.login?'':'none';$('#akKeluar').textContent='🔄 Ganti Akun';AKG.keluar=0;akGambar($('#akFoto'),AKG.ubahFoto?AKG.foto:akFotoSaya());$('#akHapus').style.display=(AKG.ubahFoto?AKG.foto:akFotoSaya())?'':'none'}
 function akKeAkun(hash){try{sessionStorage.setItem('kalensari_next','url:game.html#akun')}catch(e){}akMsg('Membuka halaman akun warga desa Kalensari Store…');setTimeout(()=>location.href='akun-pembeli.html'+hash,500)}
 function akPerkecil(file){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=()=>rej(new Error('Foto tidak bisa dibaca'));r.onload=()=>{const im=new Image();im.onerror=()=>rej(new Error('File bukan gambar'));im.onload=()=>{
   const S=160,c=document.createElement('canvas');c.width=c.height=S;const g2=c.getContext('2d'),m=Math.min(im.width,im.height);g2.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,S,S);   // potong persegi di tengah
   let d=c.toDataURL('image/webp',.82);if(!d.startsWith('data:image/webp'))d=c.toDataURL('image/jpeg',.82);res(d)};im.src=r.result};r.readAsDataURL(file)})}
 $('#bAkun').onclick=bukaAkun;$('#akBadge').onclick=bukaAkun;$('#akBack').onclick=()=>{sc('menu');akBadge()};
+$('#akKeluar').onclick=()=>{   // ganti akun: keluar dari akun warga desa di HP ini, lalu masuk dengan akun lain
+ if(!AKG.keluar){AKG.keluar=1;$('#akKeluar').textContent='⚠️ Tekan lagi untuk keluar';akMsg('Akun warga desa di HP ini (termasuk di Kalensari Store) akan dikeluarkan, lalu kamu bisa masuk dengan akun lain.',1);return}
+ const t=ksSesi();if(t)krpc('keluar_akun',{p_sesi:t}).catch(()=>{});
+ ['pembeli','jasa'].forEach(r=>{try{localStorage.removeItem('kalensari_sesi_'+r);localStorage.removeItem('kalensari_'+r+'_login');localStorage.removeItem('kalensari_'+r+'_sess');sessionStorage.removeItem('kalensari_'+r+'_sess')}catch(e){}});
+ KOL={login:false,hero:[],skin:[],kartu:[]};if(!punyaHero(pick))pick='pocong';akBadge();akKeAkun('#masuk')};
 $('#akLogin').onclick=()=>akKeAkun('#masuk');$('#akDaftar').onclick=()=>akKeAkun('#daftar');
 $('#akGanti').onclick=()=>$('#akFile').click();
 $('#akFile').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;try{AKG.foto=await akPerkecil(f);AKG.ubahFoto=true;akRender();akMsg('Foto siap. Tekan 💾 Simpan.')}catch(x){akMsg(x.message,1)}};
