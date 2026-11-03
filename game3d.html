@@ -985,11 +985,39 @@ function rapikanKlip(clip, model, tRef, putar) {
   }
   return clip;
 }
+// model 3D dimuat & diurai SEKALI per file, lalu tiap karakter memakai salinannya:
+// geometri & tekstur dipakai bersama (hemat RAM / memori grafis — penting untuk 5 bot di HP 3 GB),
+// bahan (material) & klip animasi disalin per karakter karena diubah-ubah per karakter.
+const GLB = new Map();
+function muatGLB(url, onProg) {
+  if (!GLB.has(url)) GLB.set(url, new Promise((res, rej) => new GLTFLoader().load(url, res, x => onProg && x.total && onProg(x.loaded / x.total), e => { GLB.delete(url); rej(e); })));
+  return GLB.get(url);
+}
+function salinKlip(c) { return new THREE.AnimationClip(c.name, c.duration, c.tracks.map(t => { const k = new t.constructor(t.name, t.times.slice(), t.values.slice()); if (t.getInterpolation) k.setInterpolation(t.getInterpolation()); return k; }), c.blendMode); }
+function salinGLB(g) {
+  const scene = cloneSkel(g.scene), cache = new Map();
+  scene.traverse(o => { if (o.isMesh && o.material) o.material = Array.isArray(o.material) ? o.material.map(x => cache.get(x) || (cache.set(x, x.clone()), cache.get(x))) : (cache.get(o.material) || (cache.set(o.material, o.material.clone()), cache.get(o.material))); });
+  return { scene, animations: g.animations.map(salinKlip) };
+}
+// animasi karakter lain (bot & pemain online) di kualitas Rendah: tidak perlu tiap frame.
+// di layar ±30x/detik (±20x kalau karakternya banyak), di luar layar / tersembunyi cukup ±7x/detik.
+const FRUS = new THREE.Frustum(), FRUM = new THREE.Matrix4(), BOLA = new THREE.Sphere(new THREE.Vector3(), 2.2); let frusN = -1;
+function diLayar(g) {
+  if (frusN !== renderer.info.render.frame) { frusN = renderer.info.render.frame; FRUM.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); FRUS.setFromProjectionMatrix(FRUM); }
+  BOLA.center.copy(g.position); BOLA.center.y += 1; return FRUS.intersectsSphere(BOLA);
+}
+function animasi(T, dt) {
+  if (!T.mixer) return;
+  if (KUAL.lv > 0) { T.mixer.update(dt); return; }
+  T.mdt = (T.mdt || 0) + dt;
+  const banyak = TIM.on && TIM.obj.size + TIM.bot.size >= 3, jeda = !T.root.visible || !diLayar(T.root) ? .14 : banyak ? .05 : .033;
+  if (T.mdt >= jeda) { T.mixer.update(T.mdt); T.mdt = 0; }
+}
 function muatModelHero(hero, T, onProg, skin = '') {
   const emas = skin === 'emas'; if (emas) skin = 'lompat';   // T = P (pemain) atau R (lawan online); skin 'lompat' = Pocong Lompat
   const url = hero === 'pitung' ? 'model-3d/pitung.glb' : hero === 'genderuwo' ? (skin === 'leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb') : hero === 'tuyul' ? 'model-3d/tuyul.glb' : hero === 'kunti' ? (skin === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : skin === 'lompat' ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';
-  return new Promise((res, rej) => new GLTFLoader().load(url, gl => {
-    const m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) o.material.envMapIntensity = .6; } }); if (KUAL.lv === 0) gantiBahan(m, keLambert);
+  return muatGLB(url, onProg).then(g0 => {
+    const gl = salinGLB(g0), m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; if (o.material) o.material.envMapIntensity = .6; } }); if (KUAL.lv === 0) gantiBahan(m, keLambert);
     const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y; m.scale.setScalar(TINGGI / h); m.position.y = -bb.min.y * TINGGI / h;
     if (hero === 'tuyul') { const sk = TUYUL_TINGGI / h; m.scale.setScalar(sk); m.position.y = -bb.min.y * sk; }   // Tuyul: kecil
     if (hero === 'genderuwo') { const sk = GEND.tinggi / h; m.scale.setScalar(sk); m.position.y = -bb.min.y * sk; }   // Genderuwo: besar
@@ -1001,8 +1029,8 @@ function muatModelHero(hero, T, onProg, skin = '') {
     if (emas) { T.skin = 'emas'; m.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); o.material.color = new THREE.Color(0xff9ccf); o.material.metalness = .05; o.material.roughness = .7; } }); }
     m.traverse(o => { if (o.isMesh) [].concat(o.material).forEach(x => { if (!T.bahan.includes(x)) T.bahan.push(x); }); });
     if (hero === 'pitung') siapkanPitung(gl, m, T); else if (hero === 'genderuwo') siapkanGenderuwo(gl, m, T); else if (hero === 'tuyul') siapkanTuyul(gl, m, T); else if (hero === 'kunti') siapkanKunti(gl, m, T); else if (skin === 'lompat') siapkanOcongLompat(gl, m, T); else siapkanOcong(gl, m, T);
-    mainObj(T, 'diam'); res();
-  }, x => onProg && x.total && onProg(x.loaded / x.total), rej));
+    mainObj(T, 'diam');
+  });
 }
 function siapkanOcong(gl, m, T) {
   const cari = k => gl.animations.find(a => a.name.toLowerCase().includes(k));
@@ -2292,7 +2320,7 @@ async function buatBotPro(o) {
         if (T.act.kalah) { T.cur = ''; mainObj(T, 'kalah', .1); } else mainObj(T, 'diam', .2); if (hero === 'kunti') setTembus(T, .4); ctx.mati && ctx.mati(); }
       mt.vy -= 20 * dt; mt.y = Math.max(0, mt.y + mt.vy * dt); T.tilt.position.y = mt.y; mt.mati = Math.max(.01, mt.mati);
       if (T.prosedural) { B.jatuh += dt; T.tilt.rotation.x = -Math.min(1.45, B.jatuh * 5); }
-      T.mixer.update(dt); if (mt.bar) mt.bar.style.display = 'none'; return;
+      animasi(T, dt); if (mt.bar) mt.bar.style.display = 'none'; return;
     }
     pos.addScaledVector(mt.v, dt); mt.v.multiplyScalar(Math.pow(.02, dt));   // terdorong serangan
     mt.vy -= 20 * dt; mt.y = Math.max(0, mt.y + mt.vy * dt); if (mt.y === 0 && mt.vy < 0) mt.vy = 0;
@@ -2339,7 +2367,7 @@ async function buatBotPro(o) {
     // terlihat oleh pemain di HP ini?
     const tampak = ctx.kawan ? true : B.hilang <= 0 && terlihatDari(pos, P.root.position);
     T.root.visible = tampak; mt.sembunyi = !tampak; if (ctx.kawan) setTembus(T, B.hilang > 0 ? .35 : 1);
-    T.mixer.update(dt); lompatPocong(T, dt);
+    animasi(T, dt); lompatPocong(T, dt);
   }
   function jalankanSkill(dt, I) {
     const t = B.t, f = dep(T.arah);
@@ -3070,7 +3098,7 @@ function updObjTim(o, dt) {
   if (o.root.position.distanceTo(o.tujuan) > 5) o.root.position.copy(o.tujuan); else o.root.position.lerp(o.tujuan, Math.min(1, dt * 12));
   let d = o.arah - o.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); o.root.rotation.y += d * Math.min(1, dt * 14);
   const k = Math.min(1, dt * 16); o.tilt.position.y += (o.ty - o.tilt.position.y) * k; o.tilt.rotation.x += (o.rx - o.tilt.rotation.x) * k; o.tilt.rotation.z += (o.rz - o.tilt.rotation.z) * k; o.tilt.rotation.y = o.ry;
-  mainObj(o, o.act[o.an] ? o.an : 'diam', .15, o.ts); o.mdt = (o.mdt || 0) + dt; if (KUAL.lv > 0 || o.mdt > .03) { o.mixer.update(o.mdt); o.mdt = 0; } lompatPocong(o, dt);   // Rendah: animasi pemain lain maks ±30x/detik
+  mainObj(o, o.act[o.an] ? o.an : 'diam', .15, o.ts); animasi(o, dt); lompatPocong(o, dt);   // Rendah: animasi pemain lain maks ±30x/detik
   o.tilt.scale.setScalar(o.fl & 16 ? GEND.besar : 1); if (o.fl & 16) auraLain(o);
   if (o.pivot) { o.gulingT = o.an === 'guling' && o.prosedural ? (o.gulingT || 0) + dt : 0; o.pivot.rotation.x = o.gulingT > 0 && o.gulingT < .8 ? o.gulingT * 15 : 0; }
   const p = o.root.position;
@@ -3092,7 +3120,8 @@ function updTim(dt, nyata) {
   TIM.obj.forEach(o => { updObjTim(o, dt); if (o.kawan) barKawan(o.mt); });
   TIM.bot.forEach(o => {
     if (o.mt.mati) { if (o.hidupT && performance.now() > o.hidupT && !TIM.akhir) { o.hidupT = 0; o.B.reset(); } }
-    else o.sas = pilihSasaran(o);
+    else { o.sasT = (o.sasT || 0) - dt; const s = o.sas, habis = !s || (s === P ? P.state === 'kalah' : s.mt && s.mt.mati);
+      if (habis || o.sasT <= 0 || KUAL.lv > 0) { o.sasT = .15; o.sas = pilihSasaran(o); } }
     o.B.upd(dt); if (o.kawan) barKawan(o.mt);
   });
   if (!TIM.akhir && !UMP.on) {

@@ -376,9 +376,12 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
  function unduh(){if(mulai)return;mulai=1;$i('ldg').classList.add('on');
   for(var n in FILES)(function(n){SISA++;var im=new _I(),t=0;im.onload=im.onerror=function(){if(t)return;t=1;DONE+=FILES[n];SISA--;tampil();kgCek()};im.src='gambar-game/'+n+'.webp'})(n);
   tampil();kgCek()}
- function pick(m){window.KG_DEV=m;D.body.classList.add('dev-'+m);$i('dev').classList.add('off');unduh();
-  if(!window.KG_READY)$i('ldg').classList.add('on');if(m=='hp'&&!fsEl())hp()}
+ function pick(m,otomatis){window.KG_DEV=m;try{sessionStorage.setItem('kgDev',m)}catch(x){}D.body.classList.add('dev-'+m);$i('dev').classList.add('off');unduh();
+  if(!window.KG_READY)$i('ldg').classList.add('on');if(m=='hp'&&!fsEl()&&!otomatis)hp()}
  $i('dvHP').onclick=function(){pick('hp')};$i('dvPC').onclick=function(){pick('pc')};
+ // kembali dari arena 3D (tab yang sama): langsung pakai pilihan HP/PC sebelumnya, tidak perlu memilih lagi.
+ // HP: layar penuh & miring dipasang lagi pada ketukan pertama (browser tidak mengizinkan tanpa ketukan).
+ try{var dv=sessionStorage.getItem('kgDev');if(dv=='hp'||dv=='pc')pick(dv,1)}catch(x){}
  $i('rotX').onclick=function(){$i('rot').classList.remove('on')};
  addEventListener('resize',function(){if(innerWidth>innerHeight)$i('rot').classList.remove('on')});
 })();
