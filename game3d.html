@@ -256,6 +256,7 @@ scene.background = (() => {
 
 // cahaya: matahari sore + langit + api
 const hemi = new THREE.HemisphereLight(0xffc89a, 0x2a1a30, 0.75); scene.add(hemi);
+const LAMA = new THREE.AmbientLight(0xffffff, 0); scene.add(LAMA);   // cahaya pengisi khusus kualitas Rendah (arena gelap)
 const sun = new THREE.DirectionalLight(0xffa860, 2.2);
 sun.position.set(-18, 16, 10); sun.target.position.set(0, 0, 0);
 sun.shadow.camera.left = -22; sun.shadow.camera.right = 22; sun.shadow.camera.top = 22; sun.shadow.camera.bottom = -22;
@@ -861,12 +862,22 @@ function setKual(lv) {
   sun.shadow.mapSize.setScalar(lv === 2 ? 2048 : 512); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
   LAMPU.forEach((l, i) => l.visible = i < (DI_HP ? [0, 2, 4] : [0, 3, 6])[lv]);   // HP: lampu api lebih sedikit
   KILAT.forEach(k => k.l.visible = lv > 0);   // Rendah: tanpa lampu kilat (2 lampu titik = berat untuk semua bahan)
-  terapBahan(); if (BARA.p) BARA.p.geometry.setDrawRange(0, lv === 0 ? 50 : BARA.n);
+  terapBahan(); terapTerang(); if (BARA.p) BARA.p.geometry.setDrawRange(0, lv === 0 ? 50 : BARA.n);
   KUAL.bloom = lv === 2 && ARENA !== 'pink' && ARENA !== 'sawah';   // arena terang: tanpa efek glow (kalau dipakai, warna jadi putih silau)
   scene.traverse(o => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); } });
   resize();
 }
 document.querySelectorAll('#kual button').forEach(b => b.onclick = () => setKual(+b.dataset.q));
+// Rendah: tanpa pantulan lingkungan, bayangan, lampu api & kilat -> Kuil Malam, Lapangan SD & Kebun Malam jadi sangat gelap.
+// Gantinya dipasang cahaya pengisi + sedikit eksposur. Ubah angka di sini kalau mau lebih terang / lebih redup:
+// [warna cahaya, kekuatan cahaya, tambahan eksposur]
+const TERANG_RENDAH = { kuil: [0x9aa8e0, 1.1, .3], lapangan: [0xffe2c0, .75, .2], kebun: [0xa8b8e8, .8, .22] };
+function terapTerang() {
+  const t = KUAL.lv === 0 ? TERANG_RENDAH[ARENA] : null, cur = renderer.toneMappingExposure;
+  const dasar = (KUAL.eSet !== undefined && cur === KUAL.eSet) ? KUAL.eDasar : cur;   // bila arena menimpa eksposur, pakai nilai barunya
+  KUAL.eDasar = dasar; KUAL.eSet = dasar + (t ? t[2] : 0); renderer.toneMappingExposure = KUAL.eSet;
+  if (t) LAMA.color.setHex(t[0]); LAMA.intensity = t ? t[1] : 0;
+}
 function terapResolusi() {   // Rendah di HP: resolusi lebih kecil, bisa turun lagi otomatis (KUAL.skala)
   const lv = KUAL.lv, dasar = lv === 0 ? (DI_HP ? .7 : 1) : lv === 1 ? (DI_HP ? 1 : 1.5) : 2;
   renderer.setPixelRatio(Math.max(.45, Math.min(devicePixelRatio, dasar) * (KUAL.skala || 1)));
@@ -1168,6 +1179,9 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
   else if (HERO === 'pitung') { b.style.background = 'radial-gradient(#9a1010,#2a0404)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['👊', '⚡', '🗡️', '🦅'][i]}</span>`); }
   else if (HERO === 'genderuwo') { b.style.background = 'radial-gradient(#5a2a14,#1a0a04)'; b.insertAdjacentHTML('afterbegin', `<span class="ik">${['🦶', '🥊', '💥', '😡'][i]}</span>`); }
   else b.style.backgroundImage = `url(${EFEK}${['ikon-dasar', 'ikon-skill1', 'ikon-skill2', 'ikon-skill3'][i]}.webp)`;
+  if (HERO !== 'ocong') {   // gambar ikon skill: gambar-game/ikon-skill/<hero>-<0..3>.webp (0 = serangan dasar, 1-3 = skill 1-3). Belum ada / gagal dimuat -> tetap pakai emoji
+    const im = new Image(); im.onload = () => { b.style.background = `url(${im.src}) center/cover`; const k = b.querySelector('.ik'); if (k) k.style.visibility = 'hidden'; };
+    im.src = `gambar-game/ikon-skill/${HERO}-${i}.webp`; }
   if (i === 1 || (i === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo') || (i === 3 && HERO === 'tuyul')) {   // Tuyul: skill 3 juga bisa diarahkan (blink) · skill 1 & 2: tahan + geser tombol untuk mengarahkan, lepas untuk pakai (Tuyul: skill 2 langsung)
     if (!b.querySelector('.ik')) b.insertAdjacentHTML('afterbegin', '<span class="ik"></span>');
     const ik = b.querySelector('.ik');
@@ -3176,7 +3190,7 @@ function umpetMulai(m) {
   const b = $('#bA'), k = UMP.aku ? ['🔦', 'Intip', 14] : KEMAMPUAN[HERO];
   CD_MAX[0] = k[2]; P.cd = [0, 0, 0, 0];
   b.style.background = UMP.aku ? 'radial-gradient(#8a6a14,#2a1a04)' : 'radial-gradient(#1f7a3a,#06200f)';
-  let ik = b.querySelector('.ik'); if (!ik) { ik = document.createElement('span'); ik.className = 'ik'; b.prepend(ik); } ik.textContent = k[0];
+  let ik = b.querySelector('.ik'); if (!ik) { ik = document.createElement('span'); ik.className = 'ik'; b.prepend(ik); } ik.textContent = k[0]; ik.style.visibility = '';
   $('#help').textContent = UMP.aku ? 'Kamu PENJAGA · tunggu hitungan, lalu cari & sentuh teman yang sembunyi (HONG!) · J / Spasi: Intip — lihat yang sembunyi di dekatmu'
     : 'Kamu SEMBUNYI · masuk ke semak · sentuh pohon jaga untuk membebaskan teman yang tertangkap (INGLO!) · J / Spasi: ' + k[1];
   TIM.obj.forEach(o => { if (o.id === UMP.jaga && o.mt.bar) o.mt.bar.classList.add('jaga'); });
