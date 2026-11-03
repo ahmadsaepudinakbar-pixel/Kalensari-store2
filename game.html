@@ -286,6 +286,7 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 .mbmode{display:flex;gap:1cqw}
 .mbm{position:relative;flex:1;height:12.2cqw;border-radius:1.4cqw;border:.3cqw solid #2f6fd1;background:#0b1430;color:#fff;cursor:pointer;overflow:hidden;transition:transform .12s;box-shadow:0 .5cqw 1.2cqw #000a}
 .mbm img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mbm .mbmE{position:absolute;inset:0;display:flex;align-items:flex-start;justify-content:center;padding-top:1.2cqw;font-size:5.5cqw}
 .mbm .mt{position:absolute;left:0;right:0;bottom:0;padding:2.6cqw .4cqw .7cqw;background:linear-gradient(transparent,#050813e6 55%);display:flex;flex-direction:column;align-items:center}
 .mbm .mt b{font:900 2.2cqw 'Arial Black',Arial;background:linear-gradient(#fff8d0,#ffd23f 55%,#e88b00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 .2cqw 0 #3a1a00);white-space:nowrap}
 .mbm .mt small{font:700 1.15cqw Arial;color:#fff;white-space:nowrap;text-shadow:0 .15cqw 0 #000}
@@ -2199,9 +2200,9 @@ const _netMsg=netMsg;netMsg=function(m){if(m&&m.t=='cek'){const c=m.code;
 // Host memilih mode (Duel / Parkur / Acak) lalu arena (bawaan 🎲 acak). Hero dipilih paling akhir di layar penuh,
 // masing-masing hanya melihat hero sendiri. Selesai main → semua kembali ke lobi yang sama.
 // Arena baru cukup ditambahkan di MBA (dan jumlahnya di LB_AR server.js).
-const MBM={duel:{e:'⚔️',n:'DUEL',d:'1 lawan 1',img:'mode-duel'},tim:{e:'👥',n:'DUEL TIM',d:'Biru lawan Merah',img:'mode-tim'},pk:{e:'🏃',n:'PARKUR',d:'Balapan lompat-lompat',img:'mode-parkur'},acak:{e:'🎲',n:'ACAK',d:'Game yang memilihkan',img:'mode-acak'}};
+const MBM={duel:{e:'⚔️',n:'DUEL',d:'1 lawan 1',img:'mode-duel'},tim:{e:'👥',n:'DUEL TIM',d:'Biru lawan Merah',img:'mode-tim'},pk:{e:'🏃',n:'PARKUR',d:'Balapan lompat-lompat',img:'mode-parkur'},umpet:{e:'🙈',n:'PETAK UMPET',d:'Sembunyi dari penjaga',bg:'radial-gradient(circle at 50% 35%,#3a6a2a,#0b1a12 70%)'},acak:{e:'🎲',n:'ACAK',d:'Game yang memilihkan',img:'mode-acak'}};
 const MBIMG=n=>'gambar-game/lobi/'+n+'.webp';
-const MBA={duel:[{n:'Lapangan SD',img:'gambar-game/7c244511a3.webp',k:'lapangan'},{n:'Kuil Malam',img:'gambar-game/455f6b31f9.webp',k:'kuil'},{n:'Sawah Siang',e:'🌾',bg:'linear-gradient(#5fb0f0 0 38%,#7fc3c4 38% 48%,#76b843 48%)',k:'sawah'},{n:'Taman Pink',e:'💗',bg:'linear-gradient(#ff7ab8,#ffb3d6 50%,#ffa6cd 50%,#ffc2dc)',k:'pink'}],
+const MBA={umpet:[{n:'Kebun Malam',e:'🌳',bg:'linear-gradient(#0b1430,#1d3a1f)',k:'kebun'}],duel:[{n:'Lapangan SD',img:'gambar-game/7c244511a3.webp',k:'lapangan'},{n:'Kuil Malam',img:'gambar-game/455f6b31f9.webp',k:'kuil'},{n:'Sawah Siang',e:'🌾',bg:'linear-gradient(#5fb0f0 0 38%,#7fc3c4 38% 48%,#76b843 48%)',k:'sawah'},{n:'Taman Pink',e:'💗',bg:'linear-gradient(#ff7ab8,#ffb3d6 50%,#ffa6cd 50%,#ffc2dc)',k:'pink'}],
  pk:PKAR.map((a,i)=>({n:a.n,e:a.e,bg:a.bg,img:'gambar-game/ui/arena-'+(i+1)+'.webp'}))};MBA.tim=MBA.duel;
 const MBWARNA=['#7b2cbf','#c1121f','#127a34','#1d5fbf','#b8860b','#8d3a7a'];
 const MB={room:null,hero:null,msg:'',tHero:0};
@@ -2219,16 +2220,17 @@ function mbRender(){const r=MB.room,E=$('#mbl');
   const tim=mode=='tim'&&p,aku=p&&p.k===r.me;
   pl+=p?`<div class="mbp ${aku?'me':''} ${p.on?'':'off'} ${tim?(p.tm?'tr':'tb'):''}" ${tim&&aku?'data-tukar':''}><i style="--c:${MBWARNA[p.k%MBWARNA.length]};--h:${(p.k*57)%360}deg"><img src="${MBIMG('avatar-hantu')}" alt=""></i><span>${esc(p.n)}${aku?' (kamu)':''}</span>${p.h?'<em>👑</em>':''}${tim?`<u>${p.tm?'🔴 MERAH':'🔵 BIRU'}${aku?' · ketuk ganti':''}</u>`:''}</div>`
    :`<div class="mbp kos" data-ajak><b>＋</b>Ajak teman</div>`}
- const modeH=Object.keys(MBM).map(k=>`<div class="mbm ${k} ${mode==k?'on':''} ${host?'':'dis'}" ${host?`data-mode="${k}"`:''}><img src="${MBIMG(MBM[k].img)}" alt=""><div class="mt"><b>${MBM[k].n}</b><small>${MBM[k].d}</small></div></div>`).join('');
+ const modeH=Object.keys(MBM).map(k=>`<div class="mbm ${k} ${mode==k?'on':''} ${host?'':'dis'}" ${host?`data-mode="${k}"`:''}>${MBM[k].img?`<img src="${MBIMG(MBM[k].img)}" alt="">`:`<span class="mbmE" style="background:${MBM[k].bg}">${MBM[k].e}</span>`}<div class="mt"><b>${MBM[k].n}</b><small>${MBM[k].d}</small></div></div>`).join('');
  let arH='';
  if(mode=='duel'||mode=='tim'||mode=='pk')arH=`<h4 class="mbh4">${host?'<em>2.</em> PILIH ARENA':'ARENA'}<small>${host?'atau biarkan 🎲 acak':'dipilih host'}</small></h4><div class="mbar">`+
   [-1].concat(ars.map((_,i)=>i)).map(i=>{const ar=i<0?null:ars[i];return `<div class="mba ${r.a==i?'on':''} ${host?'':'dis'}" ${host?`data-ar="${i}"`:''}>${mbArTh(ar)}${ar?esc(ar.n):'🎲 Acak'}</div>`}).join('')+'</div>';
+ else if(mode=='umpet')arH=`<div class="mbnote">🌳 Arena: Kebun Malam · 1 penjaga mencari, yang lain sembunyi di semak. Sentuh pohon jaga untuk membebaskan teman!</div>`;
  else if(mode=='acak')arH=`<div class="mbnote">🎲 Mode dan arena akan dipilih acak saat MULAI — kejutan!</div>`;
  else arH=`<div class="mbnote">${host?'Ketuk salah satu mode di atas':'Menunggu host memilih mode…'}</div>`;
  const nOn=r.pl.filter(p=>p.on).length,botOn=mode=='tim'&&r.bot,bisa=host&&mode&&nOn>=(botOn?1:2);
  const n0=r.pl.filter(p=>p.on&&!p.tm).length,n1=r.pl.filter(p=>p.on&&p.tm).length,tg=Math.min(r.tmMax||3,Math.max(n0,n1,1)),nb=botOn?(tg-n0)+(tg-n1):0;
  if(mode=='tim')arH+=`<div class="mbopsi"><span>🔵 ${n0} vs ${n1} 🔴${nb?` · +${nb} 🤖 bot → <b>${tg} vs ${tg}</b>`:''}</span>${host?`<button class="mbb ${r.bot?'on':''}" data-bot>🤖 Isi dengan Bot: ${r.bot?'NYALA':'MATI'}</button>`:`<span>${r.bot?'🤖 slot kosong diisi bot':''}</span>`}</div>`;
- let info=MB.msg||(host?(!mode?'Pilih mode dulu':nOn<(botOn?1:2)?(mode=='tim'?'Ajak teman, atau nyalakan 🤖 Bot':'Ajak teman dulu — minimal 2 pemain'):mode=='duel'&&nOn>2?'Bergiliran: 2 pemain maju, yang lain ronde berikutnya':mode=='tim'?'Ketuk kartumu untuk pindah tim · tekan MULAI':'Siap! Tekan MULAI'):mode=='tim'?'Ketuk kartumu untuk pindah tim 🔵/🔴':'Host yang memilih mode & arena. Tunggu ya!');
+ let info=MB.msg||(host?(!mode?'Pilih mode dulu':nOn<(botOn?1:2)?(mode=='tim'?'Ajak teman, atau nyalakan 🤖 Bot':'Ajak teman dulu — minimal 2 pemain'):mode=='duel'&&nOn>2?'Bergiliran: 2 pemain maju, yang lain ronde berikutnya':mode=='tim'?'Ketuk kartumu untuk pindah tim · tekan MULAI':mode=='umpet'?'Siap! Penjaga dipilih acak · tekan MULAI':'Siap! Tekan MULAI'):mode=='tim'?'Ketuk kartumu untuk pindah tim 🔵/🔴':'Host yang memilih mode & arena. Tunggu ya!');
  let tunggu='';
  if(r.state!='lobby'&&!r.ikut)tunggu=`<div class="mbwait"><i>🎮</i>${r.state=='hero'?'Teman-teman sedang memilih hero…':'Teman-teman sedang bermain…'}<small>Kamu ikut di ronde berikutnya. Tunggu sebentar ya!</small></div>`;
  else if(r.state=='main'&&r.ikut)tunggu=`<div class="mbwait"><i>🚀</i>Menyiapkan pertandingan…</div>`;
@@ -2268,8 +2270,8 @@ function mbNet(m){
   if(PK.on)return;
   if(!$('#mbl').classList.contains('on'))sc('mbl');mbRender();return}
  if(m.t=='lbHero'){mbHeroBuka(m);return}
- if(m.t=='lbGo3d'){if(!adaHero(m.h))return;pick=m.h;MB.hero=null;const ar=mbAr('duel',m.a);
-  $('#mbh').innerHTML=`<div class="mbwait"><i>⚔️</i>Membuka arena ${ar?esc(ar.n):''}…<small>Tim kamu: ${m.tm?'🔴 MERAH':'🔵 BIRU'}</small></div>`;
+ if(m.t=='lbGo3d'){if(!adaHero(m.h))return;pick=m.h;MB.hero=null;const um=m.m=='umpet',ar=um?MBA.umpet[0]:mbAr('duel',m.a);
+  $('#mbh').innerHTML=`<div class="mbwait"><i>${um?'🙈':'⚔️'}</i>Membuka arena ${ar?esc(ar.n):''}…<small>${um?'Petak Umpet Hantu':'Tim kamu: '+(m.tm?'🔴 MERAH':'🔵 BIRU')}</small></div>`;
   setTimeout(()=>ke3D('timgabung',{kode:m.code,lobi:m.lb,arena:ar?ar.k:'kuil'}),700);return}}
 function mbDariParkur(){PK.on=0;PKN.on=0;PK.net=0;clearTimeout(PK.tEnd);$('#pkEnd').classList.remove('on');$('#kbn').classList.remove('on');pkNetReset();
  sc('mbl');mbRender()}
