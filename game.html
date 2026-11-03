@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Kalensari Game">
 <script src="pwa.js" defer></script>
 <script>/* dibuka sebagai aplikasi (ikon layar utama / APK Play Store): layar sudah penuh & terkunci miring oleh aplikasinya */
-try{var _a=/[?&]app=1/.test(location.search)||matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||document.referrer.indexOf('android-app://')===0;if(_a)sessionStorage.setItem('kgApp','1');window.KG_APP=_a||sessionStorage.getItem('kgApp')==='1';if(window.KG_APP)document.documentElement.classList.add('kgapp')}catch(e){window.KG_APP=false}</script>
+try{var _a=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches;window.KG_CT=!_a&&document.referrer.indexOf('android-app://')===0;try{if(_a&&screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(function(){})}catch(e){}if(_a)sessionStorage.setItem('kgApp','1');window.KG_APP=_a||sessionStorage.getItem('kgApp')==='1';if(window.KG_APP)document.documentElement.classList.add('kgapp')}catch(e){window.KG_APP=false}</script>
 <style>.kgapp #bLand{display:none!important}</style>
 <title>Kalensari Game – Duel 1 vs 1</title>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Lilita+One&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -391,12 +391,12 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
   tampil();kgCek()}
  function pick(m,otomatis){window.KG_DEV=m;try{sessionStorage.setItem('kgDev',m)}catch(x){}D.body.classList.add('dev-'+m);$i('dev').classList.add('off');unduh();
   if(!window.KG_READY)$i('ldg').classList.add('on');if(m=='hp'&&!fsEl()&&!otomatis)hp();
-  if(m=='hp'&&otomatis&&innerHeight>innerWidth&&!window.KG_APP){$i('rotT').textContent='Ketuk tombol di bawah untuk kembali ke layar penuh & miring';$i('rotX').textContent='📱 Layar Miring';$i('rot').classList.add('on');
+  if(m=='hp'&&otomatis&&innerHeight>innerWidth&&!window.KG_APP){$i('rotT').textContent=window.KG_CT?'Ketuk tombol di bawah untuk bermain dalam layar penuh & miring':'Ketuk tombol di bawah untuk kembali ke layar penuh & miring';$i('rotX').textContent='📱 Layar Miring';$i('rot').classList.add('on');
    $i('rotX').onclick=function(){$i('rot').classList.remove('on');hp()}}}
  $i('dvHP').onclick=function(){pick('hp')};$i('dvPC').onclick=function(){pick('pc')};
  // kembali dari arena 3D (tab yang sama): langsung pakai pilihan HP/PC sebelumnya, tidak perlu memilih lagi.
  // HP: layar penuh & miring dipasang lagi pada ketukan pertama (browser tidak mengizinkan tanpa ketukan).
- try{var dv=sessionStorage.getItem('kgDev');if(window.KG_APP&&!dv)dv=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?'hp':'pc';if(dv=='hp'||dv=='pc')pick(dv,1)}catch(x){}
+ try{var dv=sessionStorage.getItem('kgDev');if((window.KG_APP||window.KG_CT)&&!dv)dv=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?'hp':'pc';if(dv=='hp'||dv=='pc')pick(dv,1)}catch(x){}
  $i('rotX').onclick=function(){$i('rot').classList.remove('on')};
  addEventListener('resize',function(){if(innerWidth>innerHeight)$i('rot').classList.remove('on')});
 })();
