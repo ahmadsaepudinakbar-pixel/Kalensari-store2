@@ -1,0 +1,39 @@
+APLIKASI KALENSARI GAME (PWA + APK Play Store lewat PWABuilder)
+==============================================================
+Kalensari Game sekarang punya aplikasi sendiri (ikon & nama sendiri), terpisah dari Kalensari Store:
+  Kalensari Game -> game.html   (selalu LAYAR PENUH & MIRING, langsung masuk game tanpa pilih HP/PC)
+
+FILE BARU / BERUBAH (unggah semua ke GitHub, timpa yang lama)
+- game.html, game3d.html           (sudah memakai manifest game)
+- manifest-game.webmanifest        (BARU: nama, ikon, layar penuh, orientasi miring)
+- icons/game-192.png, game-512.png, game-maskable-512.png,
+  game-apple-touch-icon.png, game-favicon-48.png   (BARU, masuk ke folder icons/)
+- sw.js   (versi ks-v90: model 3D & three.js disimpan di HP -> arena lebih cepat terbuka)
+- pwa.js  (tombol "Pasang aplikasi Kalensari Game")
+- server.js tidak berubah dari kiriman terakhir (tidak perlu dikirim ulang ke VPS kalau sudah)
+
+1) COBA DULU SEBAGAI PWA (tanpa Play Store)
+   Di HP buka kalensari.web.id/game.html -> menu Chrome (titik tiga) -> "Instal aplikasi"
+   / "Tambahkan ke layar utama" -> muncul ikon "Kalensari Game".
+   Buka dari ikon itu: langsung layar penuh & miring, tidak tegak lagi saat pindah ke arena 3D.
+
+2) BUAT APK DI PWABUILDER (sama seperti Kalensari Store)
+   - Buka pwabuilder.com -> masukkan: https://kalensari.web.id/game.html
+   - Package for stores -> Android -> Options:
+       Package ID      : id.web.kalensari.game      (JANGAN sama dengan id.web.kalensari.twa)
+       App name        : Kalensari Game
+       Launcher name   : Kalensari Game
+       Display mode    : Fullscreen
+       Orientation     : Landscape
+       Status bar/nav  : warna #03050b
+       Signing key     : "Create new" (SIMPAN baik-baik file .keystore & sandinya!)
+   - Unduh -> di dalam zip ada file "assetlinks.json" dan "signing-key-info.txt"
+     yang berisi SHA-256 aplikasi game.
+
+3) SAMBUNGKAN APK DENGAN SITUS (supaya bilah alamat Chrome tidak muncul)
+   Kirim SHA-256 aplikasi game ke saya, nanti saya tambahkan ke .well-known/assetlinks.json
+   di samping id.web.kalensari.twa (Kalensari Store). Dua aplikasi boleh ada di satu file.
+
+CATATAN
+- Pembaruan game cukup unggah ke GitHub seperti biasa; aplikasi otomatis memakai versi terbaru.
+- APK memakai Chrome di HP, jadi akun Kalensari yang sudah masuk di Chrome ikut terbawa.

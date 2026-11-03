@@ -2,7 +2,7 @@
    Strategi: network-first untuk file situs sendiri (agar update selalu terbaru),
    cache hanya sebagai cadangan saat offline. Permintaan ke server lain
    (database/cloud, Google Maps, Google Sheets, WhatsApp) TIDAK disentuh sama sekali. */
-const VERSION = "ks-v89";
+const VERSION = "ks-v90";
 const CACHE = "kalensari-" + VERSION;
 // Gambar Kalensari Game (folder gambar-game/): nama file = kode isi, jadi isinya tidak pernah berubah.
 // Disimpan permanen di HP (cache-first) supaya game terbuka cepat walau sinyal lemah.
@@ -39,10 +39,28 @@ self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
+  // Kalensari Game 3D: pustaka three.js versi tetap (isinya tidak pernah berubah) → simpan permanen di HP
+  if (url.origin === "https://cdn.jsdelivr.net" && url.pathname.startsWith("/npm/three@0.170.0/")) {
+    e.respondWith(caches.open(ASET).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => {
+      if (res && res.status === 200) c.put(req, res.clone()).catch(() => {});
+      return res;
+    }))));
+    return;
+  }
   if (url.origin !== self.location.origin) return;      // biarkan cloud/Maps/Sheets/WA lewat langsung
   if (req.headers.has("range")) return;                 // musik/video (potongan data) biarkan langsung
   if (/\.(mp3|mp4|m4a|ogg|wav|webm|apk)$/i.test(url.pathname)) return;   // file besar (musik/video/APK) jangan disimpan di cache
 
+  // Model 3D hero (model-3d/*.glb, 1–4 MB): pakai salinan di HP dulu supaya arena cepat terbuka,
+  // sambil diam-diam mengambil versi terbaru untuk dipakai berikutnya
+  if (/\/model-3d\/[\w-]+\.glb$/.test(url.pathname)) {
+    e.respondWith(caches.open(ASET).then((c) => c.match(req).then((hit) => {
+      const baru = fetch(req).then((res) => { if (res && res.status === 200 && res.type === "basic") c.put(req, res.clone()).catch(() => {}); return res; });
+      if (hit) { e.waitUntil(baru.catch(() => {})); return hit; }
+      return baru;
+    })));
+    return;
+  }
   if (/\/gambar-game\/[0-9a-f]{10}\.webp$/.test(url.pathname)) {
     e.respondWith(
       caches.open(ASET).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => {

@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="id"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest-game.webmanifest">
+<meta name="theme-color" content="#03050b">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/game-favicon-48.png">
+<link rel="apple-touch-icon" href="icons/game-apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kalensari Game">
+<script src="pwa.js" defer></script>
+<script>/* dibuka sebagai aplikasi (ikon layar utama / APK Play Store): layar sudah penuh & terkunci miring oleh aplikasinya */
+try{var _a=/[?&]app=1/.test(location.search)||matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||document.referrer.indexOf('android-app://')===0;if(_a)sessionStorage.setItem('kgApp','1');window.KG_APP=_a||sessionStorage.getItem('kgApp')==='1';if(window.KG_APP)document.documentElement.classList.add('kgapp')}catch(e){window.KG_APP=false}</script>
+<style>.kgapp #bLand{display:none!important}</style>
 <title>Kalensari Game – Duel 1 vs 1</title>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Lilita+One&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
@@ -380,12 +391,12 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
   tampil();kgCek()}
  function pick(m,otomatis){window.KG_DEV=m;try{sessionStorage.setItem('kgDev',m)}catch(x){}D.body.classList.add('dev-'+m);$i('dev').classList.add('off');unduh();
   if(!window.KG_READY)$i('ldg').classList.add('on');if(m=='hp'&&!fsEl()&&!otomatis)hp();
-  if(m=='hp'&&otomatis&&innerHeight>innerWidth){$i('rotT').textContent='Ketuk tombol di bawah untuk kembali ke layar penuh & miring';$i('rotX').textContent='📱 Layar Miring';$i('rot').classList.add('on');
+  if(m=='hp'&&otomatis&&innerHeight>innerWidth&&!window.KG_APP){$i('rotT').textContent='Ketuk tombol di bawah untuk kembali ke layar penuh & miring';$i('rotX').textContent='📱 Layar Miring';$i('rot').classList.add('on');
    $i('rotX').onclick=function(){$i('rot').classList.remove('on');hp()}}}
  $i('dvHP').onclick=function(){pick('hp')};$i('dvPC').onclick=function(){pick('pc')};
  // kembali dari arena 3D (tab yang sama): langsung pakai pilihan HP/PC sebelumnya, tidak perlu memilih lagi.
  // HP: layar penuh & miring dipasang lagi pada ketukan pertama (browser tidak mengizinkan tanpa ketukan).
- try{var dv=sessionStorage.getItem('kgDev');if(dv=='hp'||dv=='pc')pick(dv,1)}catch(x){}
+ try{var dv=sessionStorage.getItem('kgDev');if(window.KG_APP&&!dv)dv=/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?'hp':'pc';if(dv=='hp'||dv=='pc')pick(dv,1)}catch(x){}
  $i('rotX').onclick=function(){$i('rot').classList.remove('on')};
  addEventListener('resize',function(){if(innerWidth>innerHeight)$i('rot').classList.remove('on')});
 })();
@@ -581,7 +592,7 @@ $('#bLand').onclick=landscape;$('#rotX').onclick=()=>$('#rot').classList.remove(
 let fsKeluar=0;
 $('#bLand').onclick=()=>{fsKeluar=!!fsEl();landscape()};
 // mode HP: kalau layar penuh tertutup (mis. tombol kembali), ketukan berikutnya otomatis masuk layar penuh miring lagi
-document.addEventListener('pointerdown',e=>{if(window.KG_DEV=='hp'&&!fsEl()&&!fsKeluar&&!e.target.closest('#bLand,#rot,#dev'))landscape()},true);
+document.addEventListener('pointerdown',e=>{if(window.KG_DEV=='hp'&&!window.KG_APP&&!fsEl()&&!fsKeluar&&!e.target.closest('#bLand,#rot,#dev'))landscape()},true);
 // arena duel 3D (urutan sama dengan ARENA_NAMA di game3d.html & server.js)
 const AR3=[{k:'lapangan',n:'Lapangan SD',th:'gambar-game/7c244511a3.webp'},{k:'kuil',n:'Kuil Malam',th:'gambar-game/455f6b31f9.webp'},{k:'sawah',n:'Sawah Siang',e:'🌾',bg:'linear-gradient(#5fb0f0 0 38%,#7fc3c4 38% 48%,#76b843 48%)',sub:'cerah · ringan untuk HP'},{k:'pink',n:'Taman Pink',e:'💗',bg:'linear-gradient(#ff7ab8,#ffb3d6 50%,#ffa6cd 50%,#ffc2dc)',sub:'full pink · ringan'}];
 let ar3=(()=>{try{const v=localStorage.getItem('kgAr3');if(AR3.some(a=>a.k==v))return v}catch(e){}return 'kuil'})();
