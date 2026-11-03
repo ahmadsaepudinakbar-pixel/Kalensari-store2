@@ -245,6 +245,8 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 .tvs .tp i{width:6cqw;height:6cqw;border-radius:50%;background:center/cover;border:.3cqw solid #3aa0ff}.tvs .r .tp i{border-color:#ff3b30}.tvs .tp small{display:block;font:1.1cqw Arial;color:#9aa3b8}
 .tvs .vvs{position:static;transform:none}
 #ldg{position:fixed;inset:0;z-index:45;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(#141b33,#03050b);color:#f2efe9;font:600 16px Arial,sans-serif;text-align:center}
+#ldg .ketuk{display:none;color:#ffd166;font-weight:700}
+@media (orientation:portrait){body.dev-hp #ldg.on{inset:auto;top:100vh;left:0;width:100vh;height:100vw;transform-origin:0 0;transform:rotate(-90deg)}body.dev-hp #ldg .ketuk{display:block}}
 #ldg.on{display:flex}#ldg .lbar{width:min(70vw,360px);height:12px;border-radius:8px;background:#101a33;border:2px solid #2c3f73;overflow:hidden}#ldg .lbar u{display:block;height:100%;width:0;background:linear-gradient(90deg,#c1121f,#ffb703);transition:width .2s}#ldg em{font:700 18px Arial;font-style:normal;color:#ffd166}#ldg i{width:46px;height:46px;border-radius:50%;border:5px solid #2c3f73;border-top-color:#ffb703;animation:ldsp .8s linear infinite}#ldg small{color:#9aa3b8;font-size:13px}
 @keyframes ldsp{to{transform:rotate(360deg)}}
 /* ===== MAIN BARENG (lobi mudah untuk anak-anak) ===== */
@@ -347,7 +349,7 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 <div id="dev"><h1>KALENSARI<i style="display:block;color:#c1121f;font-style:normal">GAME</i></h1><p>Main pakai apa?</p><p id="devAjak" style="display:none;color:#3fd14b;font:700 15px Arial"></p>
 <div class="dvr"><button class="g" id="dvHP"><b>📱</b>HP<small>Layar penuh &amp; miring otomatis</small></button><button id="dvPC"><b>💻</b>PC / Laptop<small>Main pakai keyboard</small></button></div></div>
 <div id="rot"><div class="ph"></div><b>Putar HP ke posisi miring</b><span id="rotT">HP Anda tidak bisa memiringkan layar otomatis — putar HP secara manual</span><button id="rotX">Tutup</button></div>
-<div id="ldg"><i></i><b>Memuat game…</b><div class="lbar"><u></u></div><em id="ldMb">0 / 0 MB</em><small>Pertama kali butuh beberapa detik, berikutnya langsung masuk</small></div>
+<div id="ldg"><i></i><b>Memuat game…</b><div class="lbar"><u></u></div><em id="ldMb">0 / 0 MB</em><small>Pertama kali butuh beberapa detik, berikutnya langsung masuk</small><div class="ketuk">👆 Ketuk layar untuk layar penuh & miring</div></div>
 <script>
 // Pilihan HP/PC langsung bisa ditekan walau isi game (gambar) masih diunduh
 window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e.className=kelas;e.textContent=teks;img.replaceWith(e)};   // gambar UI belum diunggah → tampilkan teks
@@ -377,7 +379,9 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
   for(var n in FILES)(function(n){SISA++;var im=new _I(),t=0;im.onload=im.onerror=function(){if(t)return;t=1;DONE+=FILES[n];SISA--;tampil();kgCek()};im.src='gambar-game/'+n+'.webp'})(n);
   tampil();kgCek()}
  function pick(m,otomatis){window.KG_DEV=m;try{sessionStorage.setItem('kgDev',m)}catch(x){}D.body.classList.add('dev-'+m);$i('dev').classList.add('off');unduh();
-  if(!window.KG_READY)$i('ldg').classList.add('on');if(m=='hp'&&!fsEl()&&!otomatis)hp()}
+  if(!window.KG_READY)$i('ldg').classList.add('on');if(m=='hp'&&!fsEl()&&!otomatis)hp();
+  if(m=='hp'&&otomatis&&innerHeight>innerWidth){$i('rotT').textContent='Ketuk tombol di bawah untuk kembali ke layar penuh & miring';$i('rotX').textContent='📱 Layar Miring';$i('rot').classList.add('on');
+   $i('rotX').onclick=function(){$i('rot').classList.remove('on');hp()}}}
  $i('dvHP').onclick=function(){pick('hp')};$i('dvPC').onclick=function(){pick('pc')};
  // kembali dari arena 3D (tab yang sama): langsung pakai pilihan HP/PC sebelumnya, tidak perlu memilih lagi.
  // HP: layar penuh & miring dipasang lagi pada ketukan pertama (browser tidak mengizinkan tanpa ketukan).
