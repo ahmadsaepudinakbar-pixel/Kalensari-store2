@@ -159,7 +159,7 @@ body:has(#timHud:not([style*="none"])) #koin{top:52px}
  <div class="mode"><button data-m="acak" class="utama">⚔️ Cari Lawan Acak</button><button data-m="buat">🏠 Buat Room</button></div>
  <div class="gab"><input id="mKode" placeholder="Kode room" inputmode="numeric" maxlength="4"><button data-m="gabung">Gabung</button></div>
  <label>Main Sendiri</label>
- <div class="mode"><button data-m="bot">🤖 Lawan Bot Acak (Pro)</button><button data-m="latihan">🎯 Latihan</button></div>
+ <div class="mode"><button data-m="bot">🤖 Lawan Bot</button><button data-m="latihan">🎯 Latihan</button></div>
  <p class="cat">Arena online mengikuti pilihan pembuat room.</p>
  <a class="kecil" href="game.html" style="text-align:center;text-decoration:none">← Kembali ke Kalensari Game</a>
  </div></div>
@@ -1151,6 +1151,7 @@ function hadapKe(p) { const d = p.clone().sub(P.root.position); if (d.lengthSq()
 // ================== SKILL OCONG ==================
 const lepasStun = i => (HERO === 'genderuwo' && i === 1) || ((HERO === 'pitung' || HERO === 'tuyul') && i === 3);   // Tuyul: skill 3 juga melepaskan diri dari stun   // Pitung: skill 3 membebaskan dari stun   // Serbuan Rimba Genderuwo bisa dipakai saat terkena stun (melepaskan diri)
 function pakai(i) {
+  if (TIM.tonton) return;   // wasit tidak bertanding
   if (UMP.on) { if (i === 0) umpetPakai(); return; }   // Petak Umpet: hanya 1 tombol kemampuan
   if (P.state !== 'bebas' || P.cd[i] > 0 || !P.model || (pingsan() && !lepasStun(i)) || SELESAI) return;
   if (HERO === 'kunti') return pakaiKunti(i);
@@ -2595,12 +2596,13 @@ $('#keMenu').onclick = () => { keluarRoom(); location.href = 'game.html'; };
 function posisiAwal() { if (TIM.on && TIM.saya) { const [x, z] = spawnTim(TIM.saya); P.root.position.set(x, 0, z); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); return; }
   P.root.position.set(0, 0, PUSAT_Z + JARAK_AWAL()); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); }
 function updBarPemain() {
+  if (TIM.tonton) { barPemain.style.display = 'none'; return; }
   if (!BOT && !NET.on) return; const [x, y, ok] = layar(V.copy(P.root.position).setY(P.root.position.y + 2.35)); barPemain.classList.toggle('stun', pingsan());
   barPemain.style.display = ok ? '' : 'none'; barPemain.style.left = x + 'px'; barPemain.style.top = y + 'px'; barPemain.firstChild.style.width = P.hp / HP_MAX[HERO] * 100 + '%';
 }
 async function siapkanBot() {
   const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i><span class="nm"></span>'; $('#bars').appendChild(bar);
-  const h = pilihAcak(BOT_HERO), namaBot = hero => { const n = NAMA_HERO[hero] + ' · Bot Pro'; bar.querySelector('.nm').textContent = n; $('#nmlawan').textContent = 'vs ' + n; if (BOT) BOT.mt.nama = n; };
+  const h = pilihAcak(BOT_HERO), namaBot = hero => { const n = NAMA_HERO[hero] + ' · Bot'; bar.querySelector('.nm').textContent = n; $('#nmlawan').textContent = 'vs ' + n; if (BOT) BOT.mt.nama = n; };
   BOT = await buatBotPro({ hero: h, skin: pilihAcak(BOT_SKIN[h]), nama: 'Bot', bar, posAwal: new THREE.Vector3(0, 0, PUSAT_Z - JARAK_AWAL()), arahAwal: 0, id: null, onHero: namaBot,
     ctx: { kawan: false,
       sasaran: b => P.state !== 'kalah' && !SELESAI && !(TY.hilang > 0) && terlihatDari(P.root.position, b.root.position) ? P : null,   // bot tidak melihat pemain di semak / saat menghilang
@@ -2859,7 +2861,7 @@ function timLobi(m) {
   <div class="tlcol"><div class="tlt b"><h4>🔵 Tim Biru <small>${n0}/${m.max || 3}</small></h4>${kol(0)}</div><div class="tlt m"><h4>🔴 Tim Merah <small>${n1}/${m.max || 3}</small></h4>${kol(1)}</div></div>`;
   if (TIM.host) h += `<div class="tlcfg"><span>Arena</span>${ARENA_NAMA.slice(0, 4).map((a, i) => `<button data-ar="${i}" class="${m.a === i ? 'on' : ''}" ${TIM.sudahMain ? 'disabled' : ''}>${IKON_AR[i]} ${NAMA_ARENA[a]}</button>`).join('')}</div>
     <div class="tlcfg"><span>Target</span>${TIM_KW.map(k => `<button data-kw="${k}" class="${m.kw === k ? 'on' : ''}">${k}</button>`).join('')}</div>
-    <div class="tlcfg"><span>Bot Acak (Pro)</span><button data-bot="0">＋ Tim Biru</button><button data-bot="1">＋ Tim Merah</button></div>`;
+    <div class="tlcfg"><span>Bot</span><button data-bot="0">＋ Tim Biru</button><button data-bot="1">＋ Tim Merah</button></div>`;
   else h += `<div class="tlcfg"><span>Arena</span><b>${IKON_AR[m.a] || ''} ${NAMA_ARENA[ARENA_NAMA[m.a]] || ''}</b></div>`;
   h += `<div class="tlbtn"><button data-pindah="1">⇄ Pindah ke ${saya.tm ? 'Tim Biru' : 'Tim Merah'}</button>` +
     (TIM.host ? `<button data-go="1" class="utama" ${n0 && n1 && siapSemua && m.state === 'lobby' ? '' : 'disabled'}>▶ MULAI</button>` : `<button data-siap="1" class="utama">${saya.r ? '✖ Batal Siap' : '✔ SIAP'}</button>`) + `</div>
@@ -2959,6 +2961,7 @@ function musuhTerdekatDari(o) {   // dipakai efek gerombolan Tuyul milik pemain 
 // ---------- mulai / selesai ----------
 async function timMulai(m) {
   TIM.pl = m.pl; TIM.me = m.me; TIM.hostId = m.host; TIM.host = m.host === m.me; TIM.kw = m.kw; TIM.kode = m.code; TIM.saya = m.pl.find(p => p.i === m.me);
+  TIM.tonton = !!m.tonton; if (TIM.tonton) TIM.saya = { i: m.me, tm: 0, n: NAMA, tonton: 1 };   // wasit: hanya menonton
   if (!TIM.saya) return;
   UMP.on = !!m.um; UMP.jaga = m.um || 0;
   $('#lobi').classList.remove('on'); $('#hasil').classList.remove('on'); $('#load').classList.remove('off'); $('#load b').textContent = 'Memuat Duel Tim…';
@@ -2966,12 +2969,13 @@ async function timMulai(m) {
   try { await MODEL_SIAP; } catch (e) { $('#load b').textContent = 'Model tidak bisa dimuat'; return; }
   timBersihkan();
   for (const p of m.pl) { if (p.i === m.me) continue; if (p.bot && TIM.host) await buatBotTim(p); else await buatObjTim(p); }
+  TIM.DUR = m.dur > 0 ? m.dur : 300;   // batas durasi dari lobi Main Bareng (5/7/10/15 menit)
   TIM.skor = [0, 0]; TIM.sisa = TIM.DUR; TIM.mulaiT = performance.now(); TIM.akhir = false; TIM.hidupT = 0; TIM.terakhir = null; TIM.sudahMain = true; TIM.lobiTunda = null;
   NET.antre = []; mainLagi(); NET.on = true; TIM.main = true;
   $('#nmlawan').textContent = '· ' + NAMA_TIM[TIM.saya.tm]; $('#nmhero').textContent = NAMA_HERO[HERO] + ' · ' + NAMA_ARENA[ARENA];
   $('#timHud').style.display = ''; updHudTim();
   barPemain.classList.add(TIM.saya.tm ? 'merah' : 'biru');
-  if (UMP.on) umpetMulai(m); else banner('⚔️ Anda di ' + NAMA_TIM[TIM.saya.tm]);
+  if (TIM.tonton) wasitMulai(); else if (UMP.on) umpetMulai(m); else banner('⚔️ Anda di ' + NAMA_TIM[TIM.saya.tm]);
   $('#load').classList.add('off'); mulaiLoop();
 }
 function timTerimaMati(id, oleh) {
@@ -2987,8 +2991,12 @@ function timAkhir(menang) {   // menang = 0/1, -1 = seri
   if (TIM.host) { netEvent({ k: 'akhir', m: menang }); kirimKeadaanTim(); setTimeout(() => kirim({ t: 'tmOver' }), 400); }
   const saya = TIM.saya.tm, t = $('#hasilT');
   setTimeout(() => {
-    t.textContent = menang < 0 ? 'SERI' : menang === saya ? NAMA_TIM[menang] + ' MENANG!' : NAMA_TIM[menang] + ' MENANG'; t.className = menang < 0 ? 'info' : menang === saya ? 'menang' : 'kalah';
-    $('#lagi').textContent = 'Kembali ke Lobi'; $('#lagi').style.display = ''; $('#hasil').classList.add('on');
+    const satu = menang >= 0 && TIM.pl.filter(p => p.tm === menang).length === 1 ? TIM.pl.find(p => p.tm === menang) : null;   // duel 1 lawan 1: tampilkan nama pemenang
+    const judul = menang < 0 ? 'SERI' : (satu ? (satu.i === TIM.me ? 'KAMU' : (satu.bot ? '🤖 ' : '') + satu.n) : NAMA_TIM[menang]) + ' MENANG!';
+    t.textContent = judul; t.className = TIM.tonton || menang < 0 ? 'info' : menang === saya ? 'menang' : 'kalah';
+    $('#hasilS').textContent = TIM.tonton ? '👁️ Kamu menonton sebagai wasit · skor ' + TIM.skor[0] + ' – ' + TIM.skor[1] : '';
+    $('#lagi').textContent = 'Kembali ke Lobi'; $('#lagi').style.display = ''; $('#pilihH').style.display = 'none'; $('#hasil').classList.add('on');
+    if (LOBI) setTimeout(() => { if ($('#hasil').classList.contains('on')) keLobiMB(); }, 10000);   // Main Bareng: otomatis kembali ke lobi
   }, 900);
 }
 function timHentiMain() { TIM.main = false; NET.on = false; }
@@ -3068,7 +3076,7 @@ function updObjTim(o, dt) {
   const p = o.root.position;
   if (o.hero === 'kunti' && (o.fl & 1) && Math.random() < .7) percik(p.clone().setY(o.tilt.position.y + .5), 2, Math.random() < .5 ? KW.ungu : KW.merah, .7, .26);
   if (o.hero === 'ocong' && o.an === 'guling' && Math.random() < .8) nyala(p.clone().setY(.75 + rnd(-.35, .35)), rnd(.5, 1), 0xff4018, .3);
-  const lihat = UMP.on ? umpetLihat(o) : o.kawan ? true : terlihatDari(p, P.root.position) && !(o.fl & 2);
+  const lihat = TIM.tonton ? true : UMP.on ? umpetLihat(o) : o.kawan ? true : terlihatDari(p, P.root.position) && !(o.fl & 2);
   o.root.visible = lihat; o.mt.sembunyi = !lihat; o.mt.mati = o.hp <= 0 || (o.fl & 8) ? 1 : 0;
   if (o.kawan) setTembus(o, UMP.on && (o.fl & 32) ? .45 : o.fl & 2 ? .35 : 1);
   if (o.mt.kunci > 0) { netEvent({ k: 'kunci', ke: o.id, d: r2(o.mt.kunci) }); o.mt.kunci = 0; }
@@ -3092,7 +3100,7 @@ function updTim(dt, nyata) {
     if (TIM.sisa <= 0 && TIM.host) timAkhir(TIM.skor[0] === TIM.skor[1] ? -1 : TIM.skor[0] > TIM.skor[1] ? 0 : 1);
     if (TIM.hidupT && performance.now() > TIM.hidupT) { TIM.hidupT = 0; mainLagi(); TIM.terakhir = null; }
   }
-  NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaanTim(); }
+  if (TIM.tonton) wasitKamera(); else { NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaanTim(); } }
   TIM.hudT = (TIM.hudT || 0) - nyata; if (TIM.hudT <= 0) { TIM.hudT = .25; updHudTim(); }
 }
 // pemain kalah di Duel Tim: bangkit lagi 4 detik kemudian
@@ -3216,6 +3224,18 @@ function umpetHud() {
     + (UMP.tangkap ? '<div class="hdp">Tunggu teman menyentuh pohon jaga (INGLO!)</div>' : !UMP.aku && UMP.tk.size ? '<div class="hdp">🌳 ' + UMP.tk.size + ' teman tertangkap — sentuh pohon jaga!</div>' : UMP.aku && UMP.fase === 'cari' ? '<div class="hdp">Cari di semak-semak · sentuh untuk HONG!</div>' : '');
 }
 
+// ================== WASIT (menonton duel Main Bareng) ==================
+function wasitMulai() {
+  ['#joy', '#bA', '#b1', '#b2', '#b3', '#koin'].forEach(q => { const e = $(q); if (e) e.style.display = 'none'; });
+  P.root.visible = false; $('#nmhero').textContent = '👁️ Wasit · ' + NAMA_ARENA[ARENA]; $('#nmlawan').textContent = '';
+  $('#help').textContent = '👁️ Kamu WASIT — menonton temanmu bertanding. Kamera mengikuti kedua pemain.';
+  banner('👁️ Kamu WASIT — selamat menonton!', '#9fe3ff');
+}
+function wasitKamera() {   // kamera wasit: di tengah para petarung yang masih hidup
+  P.root.visible = false; let n = 0; const c = new THREE.Vector3();
+  TIM.obj.forEach(o => { if (o.ada && !o.mt.mati) { c.add(o.root.position); n++; } });
+  if (n) { c.divideScalar(n); P.root.position.lerp(c.setY(0), .2); }
+}
 // ================== MULAI ==================
 const bar = $('#load .bar u');
 function prog(x) { bar.style.width = Math.round(x * 100) + '%'; }
