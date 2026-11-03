@@ -167,7 +167,7 @@ small{font-size:1.5cqw;color:#9aa3b8}
 .ajx{position:absolute;right:.8cqw;top:.6cqw;background:none;border:0;color:#fff;font-size:2cqw;cursor:pointer}
 #djk{position:absolute;left:50%;top:1cqw;transform:translateX(-50%);z-index:40;display:none;background:#0b1020f7;border:.3cqw solid #3fd14b;border-radius:1.2cqw;padding:1cqw 1.4cqw;font:1.5cqw Arial;gap:1cqw;align-items:center;box-shadow:0 0 3cqw #000;max-width:80cqw}#djk.on{display:flex}#djk b{color:#3fd14b}
 #tst{position:absolute;left:50%;bottom:2cqw;transform:translateX(-50%);z-index:45;background:#000d;color:#fff3b0;font:700 1.5cqw Arial;padding:.7cqw 1.6cqw;border-radius:2cqw;display:none;pointer-events:none;white-space:nowrap}#tst.on{display:block}
-.pkth{display:flex;align-items:center;justify-content:center;font-size:6cqw}#agrid{display:flex;gap:2cqw}.acard{background:#0e1526;border:.35cqw solid #2a3350;padding:.6cqw;font-size:1.9cqw;cursor:pointer;width:30cqw;border-radius:.8cqw}.acard i{display:block;width:100%;aspect-ratio:16/9.5;background:#000 center/cover;border-radius:.5cqw;margin-bottom:.6cqw}.acard.sel{border-color:var(--gold);box-shadow:0 0 1.6cqw #ffb70388}
+.pkth{display:flex;align-items:center;justify-content:center;font-size:6cqw}#agrid{display:flex;gap:1.6cqw}.acard{background:#0e1526;border:.35cqw solid #2a3350;padding:.6cqw;font-size:1.9cqw;cursor:pointer;width:26cqw;border-radius:.8cqw}.acard i{display:block;width:100%;aspect-ratio:16/9.5;background:#000 center/cover;border-radius:.5cqw;margin-bottom:.6cqw}.acard.sel{border-color:var(--gold);box-shadow:0 0 1.6cqw #ffb70388}
 #grid{display:grid;grid-template-columns:repeat(4,13cqw);gap:1cqw}
 .card{background:#0e1526;border:.3cqw solid #2a3350;padding:.7cqw;font-size:1.7cqw;cursor:pointer}
 .card i{display:block;width:5cqw;height:5cqw;border-radius:50%;margin:0 auto .4cqw;box-shadow:inset -.5cqw -.5cqw 1cqw #0008}
@@ -557,8 +557,11 @@ let fsKeluar=0;
 $('#bLand').onclick=()=>{fsKeluar=!!fsEl();landscape()};
 // mode HP: kalau layar penuh tertutup (mis. tombol kembali), ketukan berikutnya otomatis masuk layar penuh miring lagi
 document.addEventListener('pointerdown',e=>{if(window.KG_DEV=='hp'&&!fsEl()&&!fsKeluar&&!e.target.closest('#bLand,#rot,#dev'))landscape()},true);
-function agrid(){$('#agrid').innerHTML=ARENAS.map((a,i)=>`<div class="acard ${i==arenaIdx?'sel':''}" data-i="${i}"><i style="background-image:url(${a.th})"></i>${a.n}</div>`).join('');
- document.querySelectorAll('.acard').forEach(c=>c.onclick=()=>{setArena(+c.dataset.i);agrid()})}
+// arena duel 3D (urutan sama dengan ARENA_NAMA di game3d.html & server.js)
+const AR3=[{k:'lapangan',n:'Lapangan SD',th:'gambar-game/7c244511a3.webp'},{k:'kuil',n:'Kuil Malam',th:'gambar-game/455f6b31f9.webp'},{k:'sawah',n:'Sawah Siang',e:'🌾',bg:'linear-gradient(#5fb0f0 0 38%,#7fc3c4 38% 48%,#76b843 48%)',sub:'cerah · ringan untuk HP'}];
+let ar3=(()=>{try{const v=localStorage.getItem('kgAr3');if(AR3.some(a=>a.k==v))return v}catch(e){}return 'kuil'})();
+function agrid(){$('#agrid').innerHTML=AR3.map(a=>`<div class="acard ${a.k==ar3?'sel':''}" data-k="${a.k}"><i style="${a.th?`background-image:url(${a.th})`:`background:${a.bg};display:flex;align-items:center;justify-content:center;font-size:5cqw;font-style:normal`}">${a.e||''}</i>${a.n}${a.sub?`<small style="display:block;font-size:1.3cqw;color:#9fe39a">${a.sub}</small>`:''}</div>`).join('');
+ document.querySelectorAll('.acard').forEach(c=>c.onclick=()=>{ar3=c.dataset.k;try{localStorage.setItem('kgAr3',ar3)}catch(e){}agrid()})}
 $('#bMain').onclick=$('#bGo').onclick=()=>{agrid();sc('ars')};$('#aBack').onclick=()=>sc('menu');$('#aGo').onclick=()=>start();$('#bNext').onclick=()=>{playing=0;TM.hold=0;$('#bWinOut').style.display='none';if(NET.rm&&!TM.room&&KR&&NET.ws&&NET.ws.readyState===1){NET.rm=0;$('#bNext').textContent='Lanjut';duelLagi();return}NET.rm=0;if(TM.room){$('#bNext').textContent='Lanjut';NET.on=0;NET.role='';NET.live=0;NET.team=0;netSend({t:'tmBack'});sc('tml');tmlRender();return}if(NET.on)netEnd();sc('menu')};
 // ===== TIM: lawan = petarung beda tim; teman satu tim tidak bisa saling melukai =====
 const DUMMY={dead:1,x:-99999,y:-99999,hp:0,inv:0,stun:0,side:-1,kills:0,c:{n:''}};
@@ -1307,7 +1310,7 @@ let ONM='duel';try{const m=localStorage.getItem('kgMode');if(m=='pk'||m=='tim')O
 function onlInfo(){document.querySelectorAll('#oMode .btn').forEach(x=>x.classList.toggle('on',x.dataset.m==ONM));
  $('#oQuick').style.display=ONM=='tim'?'none':'';$('#oPkAr').style.display=ONM=='pk'?'':'none';document.querySelectorAll('#oPkAr .btn').forEach(x=>x.classList.toggle('on',+x.dataset.a==PK.ar));
  if(ONM=='tim'){$('#oInfo').textContent='Custom 1–3 vs 1–3 · Buat room, bagikan kode, teman pilih Tim Biru / Merah';return}
- $('#oInfo').textContent=ONM=='pk'?'Hero Anda: '+NM3D(pick)+' · Balapan saling dorong · 2–6 pemain · lintasan dipilih pembuat room':'Duel 3D · Hero Anda: '+NM3D(pick)+' · Arena (bila Anda pembuat room): '+AR.n;
+ $('#oInfo').textContent=ONM=='pk'?'Hero Anda: '+NM3D(pick)+' · Balapan saling dorong · 2–6 pemain · lintasan dipilih pembuat room':'Duel 3D · Hero Anda: '+NM3D(pick)+' · Arena (bila Anda pembuat room): '+(AR3.find(a=>a.k==ar3)||AR3[1]).n;
  $('#oQuick').textContent=ONM=='pk'?'Cari Room Acak':'Cari Lawan Acak'}
 document.querySelectorAll('#oPkAr .btn').forEach(b=>b.onclick=()=>{pkSetAr(+b.dataset.a);onlInfo()});
 document.querySelectorAll('#oMode .btn').forEach(b=>b.onclick=()=>{ONM=b.dataset.m;try{localStorage.setItem('kgMode',ONM)}catch(e){}onlInfo();oStat('')});
@@ -2171,7 +2174,7 @@ const H3D={pocong:'ocong',kuntilanak:'kunti',tuyul:'tuyul',genderuwo:'genderuwo'
 function skin3D(h){const s=skinOf(h);if(h=='pocong')return s=='pocong:boneka'?'':s=='pocong:emas'?'emas':'lompat';if(h=='kuntilanak')return s=='kuntilanak:merah'?'merah':'';if(h=='genderuwo')return s=='genderuwo:leak'?'leak':'';return''}
 function namaSaya(){let n=($('#oName').value||'').trim();if(!n){try{n=localStorage.getItem('kgName')||''}catch(e){}}n=(n||KOL.nama||'Pemain').slice(0,16);try{localStorage.setItem('kgName',n)}catch(e){}return n}
 function ke3D(mode,x){if(!punyaHero(pick))pick='pocong';x=x||{};
- const q=new URLSearchParams({main:1,hero:H3D[pick]||'ocong',arena:arenaIdx==1?'lapangan':'kuil',mode,nama:namaSaya()});const sk=skin3D(pick);if(sk)q.set('skin',sk);
+ const q=new URLSearchParams({main:1,hero:H3D[pick]||'ocong',arena:ar3,mode,nama:namaSaya()});const sk=skin3D(pick);if(sk)q.set('skin',sk);
  q.set('punya',HEROK.filter(punyaHero).map(h=>H3D[h]).join(','));   // hero & skin milik pemain → bisa ganti hero di game 3D
  const SK3={'pocong:boneka':'ocong:boneka','pocong:emas':'ocong:emas','kuntilanak:merah':'kunti:merah','genderuwo:leak':'genderuwo:leak'};q.set('skins',KOL.skin.map(s=>SK3[s]).filter(Boolean).join(','));
  if(x.kode)q.set('kode',x.kode);if(x.pub!=null)q.set('pub',x.pub);if(x.arena)q.set('arena',x.arena);if(x.lobi)q.set('lobi',x.lobi);try{const sv=new URLSearchParams(location.search).get('server');if(sv)q.set('server',sv)}catch(e){}
@@ -2197,7 +2200,7 @@ const _netMsg=netMsg;netMsg=function(m){if(m&&m.t=='cek'){const c=m.code;
 // Arena baru cukup ditambahkan di MBA (dan jumlahnya di LB_AR server.js).
 const MBM={duel:{e:'⚔️',n:'DUEL',d:'1 lawan 1',img:'mode-duel'},tim:{e:'👥',n:'DUEL TIM',d:'Biru lawan Merah',img:'mode-tim'},pk:{e:'🏃',n:'PARKUR',d:'Balapan lompat-lompat',img:'mode-parkur'},acak:{e:'🎲',n:'ACAK',d:'Game yang memilihkan',img:'mode-acak'}};
 const MBIMG=n=>'gambar-game/lobi/'+n+'.webp';
-const MBA={duel:[{n:'Lapangan SD',img:'gambar-game/7c244511a3.webp',k:'lapangan'},{n:'Kuil Malam',img:'gambar-game/455f6b31f9.webp',k:'kuil'}],
+const MBA={duel:[{n:'Lapangan SD',img:'gambar-game/7c244511a3.webp',k:'lapangan'},{n:'Kuil Malam',img:'gambar-game/455f6b31f9.webp',k:'kuil'},{n:'Sawah Siang',e:'🌾',bg:'linear-gradient(#5fb0f0 0 38%,#7fc3c4 38% 48%,#76b843 48%)',k:'sawah'}],
  pk:PKAR.map((a,i)=>({n:a.n,e:a.e,bg:a.bg,img:'gambar-game/ui/arena-'+(i+1)+'.webp'}))};MBA.tim=MBA.duel;
 const MBWARNA=['#7b2cbf','#c1121f','#127a34','#1d5fbf','#b8860b','#8d3a7a'];
 const MB={room:null,hero:null,msg:'',tHero:0};
