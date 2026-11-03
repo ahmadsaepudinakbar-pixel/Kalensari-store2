@@ -150,7 +150,7 @@ body:has(#timHud:not([style*="none"])) #koin{top:52px}
  <label>Hero</label><div class="pil" id="mHero"><button data-v="ocong">👻<b>Ocong</b><small>jarak dekat</small></button><button data-v="kunti">🩸<b>Kunti</b><small>jarak jauh</small></button><button data-v="tuyul">👶<b>Tuyul</b><small>lincah</small></button><button data-v="genderuwo">👹<b>Genderuwo</b><small>petarung kuat</small></button><button data-v="pitung">🥋<b>Si Pitung</b><small>pendekar golok</small></button></div>
  <div id="mSkinRow"><label>Skin Ocong</label><div class="pil" id="mSkin"><button data-v="boneka">🪆<b>Boneka</b><small>klasik</small></button><button data-v="lompat">🐛<b>Pocong Lompat</b><small>baru</small></button></div></div>
  <div id="mSkinRowK"><label>Skin Kunti</label><div class="pil" id="mSkinK"><button data-v="">🤍<b>Kunti</b><small>utama</small></button><button data-v="merah">❤️<b>Kunti Merah</b><small>skin</small></button></div></div>
- <label>Arena</label><div class="pil" id="mArena"><button data-v="lapangan">🏫<b>Lapangan SD</b><small>senja</small></button><button data-v="kuil">⛩️<b>Kuil Malam</b><small>bulan purnama</small></button><button data-v="sawah">🌾<b>Sawah Siang</b><small>cerah · ringan</small></button></div>
+ <label>Arena</label><div class="pil" id="mArena"><button data-v="lapangan">🏫<b>Lapangan SD</b><small>senja</small></button><button data-v="kuil">⛩️<b>Kuil Malam</b><small>bulan purnama</small></button><button data-v="sawah">🌾<b>Sawah Siang</b><small>cerah · ringan</small></button><button data-v="pink">💗<b>Taman Pink</b><small>full pink · ringan</small></button></div>
  </div><div class="mka">
  <label>Main Online · 1 lawan 1</label>
  <div class="mode"><button data-m="acak" class="utama">⚔️ Cari Lawan Acak</button><button data-m="buat">🏠 Buat Room</button></div>
@@ -188,11 +188,11 @@ const MODE = ['latihan', 'bot', 'acak', 'buat', 'gabung', 'timbuat', 'timgabung'
 const ONLINE = ['acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(MODE);
 const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'bot' : 'boneka';
 const NAMA = (Q.get('nama') || 'Pemain').slice(0, 16), KODE = (Q.get('kode') || '').replace(/\D/g, '').slice(0, 4);
-let ARENA = ['lapangan', 'sawah'].includes(Q.get('arena')) ? Q.get('arena') : 'kuil';
-const NAMA_ARENA = { lapangan: 'Lapangan SD', kuil: 'Kuil Malam', sawah: 'Sawah Siang' };             // online: diganti arena pilihan pembuat room
+let ARENA = ['lapangan', 'sawah', 'pink'].includes(Q.get('arena')) ? Q.get('arena') : 'kuil';
+const NAMA_ARENA = { lapangan: 'Lapangan SD', kuil: 'Kuil Malam', sawah: 'Sawah Siang', pink: 'Taman Pink' };             // online: diganti arena pilihan pembuat room
 let PUSAT_Z = 0;                                                              // titik tengah arena (pemain lawan dicerminkan di sini)
-function aturArena() { PUSAT_Z = ARENA === 'lapangan' ? 1 : 0; if (ARENA === 'sawah') Object.assign(BATAS, { x0: -12.8, x1: 12.8, z0: -8.8, z1: 8.8 }); }
-const JARAK_AWAL = () => ARENA === 'kuil' ? 6 : ARENA === 'sawah' ? 5 : 4.5;   // jarak pemain dari tengah arena saat mulai
+function aturArena() { PUSAT_Z = ARENA === 'lapangan' ? 1 : 0; if (ARENA === 'sawah' || ARENA === 'pink') Object.assign(BATAS, { x0: -12.8, x1: 12.8, z0: -8.8, z1: 8.8 }); }
+const JARAK_AWAL = () => ARENA === 'kuil' ? 6 : ARENA === 'sawah' || ARENA === 'pink' ? 5 : 4.5;   // jarak pemain dari tengah arena saat mulai
 const SKIN = HERO === 'ocong' ? (['lompat', 'emas'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'genderuwo' ? (Q.get('skin') === 'leak' ? 'leak' : '') : (Q.get('skin') === 'merah' ? 'merah' : '');   // Genderuwo: 'leak' = skin Leak   // Ocong: '' Boneka / 'lompat' Pocong Lompat · Kunti: '' Kunti (utama) / 'merah' Kunti Merah
 const MODEL = HERO === 'pitung' ? 'model-3d/pitung.glb' : HERO === 'genderuwo' ? (SKIN === 'leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb') : HERO === 'tuyul' ? 'model-3d/tuyul.glb' : HERO === 'kunti' ? (SKIN === 'merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb') : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
 const EFEK = 'gambar-game/skin-boneka/efek/';           // gambar efek skill (.webp)
@@ -408,7 +408,7 @@ function buatArenaKuil() {
   for (let i = 0; i < 46; i++) { const a = i / 46 * Math.PI * 2, r = rnd(29, 45); const t = new THREE.Mesh(new THREE.ConeGeometry(rnd(2, 4), rnd(8, 14), 6), new THREE.MeshLambertMaterial({ color: 0x0e1410 })); t.position.set(Math.cos(a) * r, 5, Math.sin(a) * r - 4); scene.add(t); }
 }
 function updKain(t) {
-  AWAN.forEach(a => { a.s.position.x = a.x0 + ((t * a.v + a.f) % 140) - 70; });
+  AWAN.forEach(a => { a.s.position.x = a.x0 + ((t * a.v + a.f) % 140) - 70; }); updKelopak(t);
   KAIN.forEach(k => { const p = k.m.geometry.attributes.position, b = k.base; for (let i = 0; i < p.count; i++) { const turun = -b[i * 3 + 1]; p.setZ(i, Math.sin(turun * 2.2 - t * 3.4 + k.ph) * .12 * turun + Math.sin(t * 1.3 + k.ph) * .05 * turun); } p.needsUpdate = true; if (KUAL.lv === 2) k.m.geometry.computeVertexNormals(); });
 }
 // semak: pahlawan di dalam semak tidak terlihat lawan, kecuali lawan sangat dekat / di semak yang sama
@@ -505,9 +505,97 @@ function buatArenaSawah() {
   });
 }
 
+// ================== ARENA: TAMAN PINK (full pink, ringan seperti Sawah Siang) ==================
+let KELOPAK = null;
+function buatArenaPink() {
+  scene.background = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, '#ff7ab8'); g.addColorStop(.5, '#ffb3d6'); g.addColorStop(1, '#ffe4f1'); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+  scene.fog = new THREE.Fog(0xffd0e6, 32, 80);
+  scene.environmentIntensity = .5; renderer.toneMappingExposure = 1.1;
+  hemi.color.setHex(0xffe6f2); hemi.groundColor.setHex(0xd0608f); hemi.intensity = 1.25;
+  sun.color.setHex(0xfff0f6); sun.intensity = 2.1; sun.position.set(-12, 24, 14);
+  const L = c => new THREE.MeshLambertMaterial({ color: c, flatShading: true });
+  // matahari hati & awan pink
+  const tHati = tex(128, 128, x => { x.translate(64, 70); const g = x.createRadialGradient(0, -6, 0, 0, -6, 60); g.addColorStop(0, '#fff'); g.addColorStop(.5, '#ffd6ea'); g.addColorStop(1, 'rgba(255,170,210,0)'); x.fillStyle = g; x.fillRect(-64, -70, 128, 128);
+    x.fillStyle = '#ffffff'; x.beginPath(); x.moveTo(0, 22); x.bezierCurveTo(-40, -6, -22, -40, 0, -20); x.bezierCurveTo(22, -40, 40, -6, 0, 22); x.fill(); });
+  tHati.wrapS = tHati.wrapT = THREE.ClampToEdgeWrapping; tHati.repeat.set(1, 1);
+  const hati = new THREE.Sprite(new THREE.SpriteMaterial({ map: tHati, fog: false, depthWrite: false, toneMapped: false })); hati.position.set(30, 38, -72); hati.scale.setScalar(20); scene.add(hati);
+  const tAwan = tex(256, 128, x => { [[70, 80, 42], [120, 64, 52], [175, 80, 40], [128, 92, 46]].forEach(([a, b, r]) => { const g = x.createRadialGradient(a, b, 0, a, b, r); g.addColorStop(0, 'rgba(255,240,248,.95)'); g.addColorStop(.7, 'rgba(255,220,238,.75)'); g.addColorStop(1, 'rgba(255,210,235,0)'); x.fillStyle = g; x.beginPath(); x.arc(a, b, r, 0, 7); x.fill(); }); });
+  tAwan.wrapS = tAwan.wrapT = THREE.ClampToEdgeWrapping; tAwan.repeat.set(1, 1);
+  const mAwan = new THREE.SpriteMaterial({ map: tAwan, fog: false, depthWrite: false, transparent: true });
+  for (let i = 0; i < 6; i++) { const a = new THREE.Sprite(mAwan); const sk = rnd(14, 22); a.position.set(0, rnd(24, 34), rnd(-75, -45)); a.scale.set(sk, sk / 2, 1); scene.add(a); AWAN.push({ s: a, x0: 0, v: rnd(.25, .6), f: i * 24 }); }
+
+  // lantai: luar (rumput pink), jalan permen, lapangan kotak-kotak pink dengan hati
+  const T_LUAR = tex(256, 256, (x, w, h) => { x.fillStyle = '#f59ac4'; x.fillRect(0, 0, w, h); for (let i = 0; i < 1200; i++) { x.fillStyle = Math.random() < .5 ? 'rgba(220,90,150,.35)' : 'rgba(255,200,225,.4)'; x.fillRect(Math.random() * w, Math.random() * h, 1.5, rnd(3, 7)); }
+    for (let i = 0; i < 18; i++) { x.fillStyle = ['#ffffff', '#ffe36e', '#ff5fa2'][i % 3]; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, 2.4, 0, 7); x.fill(); } }, 24, 24);
+  const T_JALAN = tex(128, 128, (x, w, h) => { x.fillStyle = '#fff0f6'; x.fillRect(0, 0, w, h); x.fillStyle = '#ff8cc0'; for (let i = -h; i < w; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 16, 0); x.lineTo(i + 16 + h, h); x.lineTo(i + h, h); x.fill(); } }, 10, 8);
+  const T_LANTAI = tex(256, 256, (x, w, h) => { for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { x.fillStyle = (r + c) % 2 ? '#ffc2dc' : '#ffa6cd'; x.fillRect(c * 64, r * 64, 64, 64); }
+    x.fillStyle = 'rgba(255,255,255,.55)'; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if ((r + c) % 2) { x.save(); x.translate(c * 64 + 32, r * 64 + 34); x.scale(.5, .5); x.beginPath(); x.moveTo(0, 22); x.bezierCurveTo(-40, -6, -22, -40, 0, -20); x.bezierCurveTo(22, -40, 40, -6, 0, 22); x.fill(); x.restore(); } }, 7, 5);
+  const bidang = (w, d, m, y) => { const o = new THREE.Mesh(new THREE.PlaneGeometry(w, d), m); o.rotation.x = -Math.PI / 2; o.position.y = y; o.receiveShadow = true; scene.add(o); return o; };
+  bidang(170, 170, new THREE.MeshLambertMaterial({ map: T_LUAR }), -.06);
+  bidang(33, 25, new THREE.MeshLambertMaterial({ map: T_JALAN }), -.01);
+  bidang(28, 20, new THREE.MeshLambertMaterial({ map: T_LANTAI }), .01);
+  const mPutih = new THREE.MeshBasicMaterial({ color: 0xfff6fa });
+  const lk = new THREE.Mesh(new THREE.RingGeometry(2.3, 2.5, 40), mPutih); lk.rotation.x = -Math.PI / 2; lk.position.y = .02; scene.add(lk);
+
+  // pagar permen (tiang loreng putih-pink + pita)
+  const mTiang = [L(0xffffff), L(0xff5fa2)], mPita = L(0xff8cc0);
+  const pagar = (x0, z0, x1, z1) => { const Lp = Math.hypot(x1 - x0, z1 - z0), n = Math.round(Lp / 2.2), a = Math.atan2(x1 - x0, z1 - z0);
+    for (let i = 0; i <= n; i++) { const t = i / n, x = x0 + (x1 - x0) * t, z = z0 + (z1 - z0) * t; for (let k = 0; k < 3; k++) cyl(.09, .09, .3, mTiang[k % 2], x, .15 + k * .3, z, scene, 6);
+      const b = new THREE.Mesh(new THREE.SphereGeometry(.14, 8, 6), mTiang[1]); b.position.set(x, .98, z); scene.add(b); }
+    const r = box(.06, .1, Lp, mPita, (x0 + x1) / 2, .7, (z0 + z1) / 2); r.rotation.y = a; r.castShadow = false; };
+  pagar(-14.3, -10.3, 14.3, -10.3); pagar(-14.3, 10.3, 14.3, 10.3); pagar(-14.3, -10.3, -14.3, 10.3); pagar(14.3, -10.3, 14.3, 10.3);
+
+  // istana pink di belakang
+  const mDind = L(0xffb8d8), mAtap = L(0xff4f98), mJen = new THREE.MeshBasicMaterial({ color: 0xfff2a8 });
+  box(16, 7, 5, mDind, 0, 3.5, -26); box(16.4, .5, 5.4, L(0xffffff), 0, 7.1, -26);
+  [-8, -3, 3, 8].forEach((x, i) => { const tinggi = i % 3 ? 10 : 12; cyl(1.5, 1.5, tinggi, mDind, x, tinggi / 2, -24.5, scene, 10);
+    const at = new THREE.Mesh(new THREE.ConeGeometry(1.9, 3.5, 10), mAtap); at.position.set(x, tinggi + 1.75, -24.5); at.castShadow = true; scene.add(at);
+    const bd = box(.05, .8, .5, L(0xff2f80), x + .25, tinggi + 4, -24.5); bd.castShadow = false; cyl(.04, .04, 1.2, L(0xffffff), x, tinggi + 3.9, -24.5, scene, 4);
+    const j = box(.7, 1.1, .1, mJen, x, tinggi - 2.5, -22.95); j.castShadow = false; });
+  const pintu = box(2.4, 3.4, .1, L(0xff4f98), 0, 1.7, -23.45); pintu.castShadow = false;
+  for (let i = -7; i <= 7; i += 2) { const j = box(.8, 1.1, .1, mJen, i, 5, -23.45); j.castShadow = false; }
+
+  // pohon gulali (batang loreng + bola awan pink) & permen lolipop raksasa
+  const mGulali = [L(0xff9ccd), L(0xffc0e0), L(0xff7ab8)];
+  const gulali = (x, z, s) => { const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s); scene.add(g);
+    for (let k = 0; k < 6; k++) cyl(.18, .2, .55, mTiang[k % 2], 0, .27 + k * .55, 0, g, 6);
+    for (let i = 0; i < 6; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.9, 1.3), 1), mGulali[i % 3]); m.position.set(rnd(-.8, .8), rnd(3.6, 4.8), rnd(-.8, .8)); m.castShadow = true; g.add(m); } };
+  [[-18, -6, 1], [-21, 5, 1.15], [18, -8, 1.1], [22, 3, .95], [-16, 15, 1], [16, -16, 1.2], [-9, -18, 1], [9, 18, .95], [-25, -14, 1.2], [26, 13, 1.1]].forEach(p => gulali(...p));
+  const tLoli = tex(128, 128, x => { x.translate(64, 64); for (let i = 0; i < 12; i++) { x.fillStyle = i % 2 ? '#ffffff' : '#ff4f98'; x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 64, i * Math.PI / 6, (i + 1) * Math.PI / 6 + .02); x.fill(); } });
+  tLoli.wrapS = tLoli.wrapT = THREE.ClampToEdgeWrapping; tLoli.repeat.set(1, 1);
+  const mLoli = new THREE.MeshLambertMaterial({ map: tLoli });
+  [[-17, 11], [17, 10], [-12, -15], [13, -14]].forEach(([x, z], i) => { cyl(.1, .1, 4, L(0xffffff), x, 2, z, scene, 6);
+    const d = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, .3, 20), [L(0xff4f98), mLoli, mLoli]); d.rotation.x = Math.PI / 2; d.rotation.z = i * .7; d.position.set(x, 4.6, z); d.castShadow = true; scene.add(d); });
+  // donat & bola hati raksasa di kejauhan
+  const mDonat = L(0xff6fae);
+  [[-38, -60, 6], [40, -58, 5], [-55, -30, 4], [56, -24, 4.5]].forEach(([x, z, r], i) => { const d = new THREE.Mesh(new THREE.TorusGeometry(r, r * .42, 8, 18), i % 2 ? mDonat : L(0xffa6cd)); d.position.set(x, r * 1.1, z); d.rotation.y = i; scene.add(d); });
+
+  // semak mawar pink tempat sembunyi
+  const mSemak = [0xff6fae, 0xff8cc0, 0xffa6cd].map(c => L(c));
+  [[-8.5, -5], [8.5, -5], [-8.5, 5], [8.5, 5]].forEach(([x, z]) => {
+    const mats = mSemak.map(m => m.clone()); SEMAK.push({ x, z, r: 1.5, mats });
+    for (let i = 0; i < 7; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.55, .8), 0), mats[i % 3]); const b = rnd(0, 6.3), q = rnd(0, 1); m.position.set(x + Math.cos(b) * q, rnd(.35, .8), z + Math.sin(b) * q); m.castShadow = true; scene.add(m); }
+  });
+
+  // kelopak sakura berjatuhan (80 titik, sangat ringan)
+  const n = 80, p = new Float32Array(n * 3), dasar = [];
+  for (let i = 0; i < n; i++) dasar.push([rnd(-18, 18), rnd(0, 12), rnd(-14, 14), rnd(.5, 1.1), rnd(0, 6.3)]);
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  const tKel = tex(32, 32, x => { x.fillStyle = '#ffd6ea'; x.beginPath(); x.ellipse(16, 16, 12, 7, .6, 0, 7); x.fill(); x.fillStyle = '#ff9ccd'; x.beginPath(); x.ellipse(16, 16, 6, 3, .6, 0, 7); x.fill(); });
+  tKel.wrapS = tKel.wrapT = THREE.ClampToEdgeWrapping; tKel.repeat.set(1, 1);
+  KELOPAK = { pts: new THREE.Points(geo, new THREE.PointsMaterial({ map: tKel, size: .28, transparent: true, depthWrite: false, alphaTest: .1 })), dasar };
+  KELOPAK.pts.frustumCulled = false; scene.add(KELOPAK.pts);
+}
+function updKelopak(t) {
+  if (!KELOPAK) return; const a = KELOPAK.pts.geometry.attributes.position, cx = camLihat.x, cz = camLihat.z;
+  KELOPAK.dasar.forEach(([x, y, z, v, f], i) => { const yy = 12 - ((12 - y + t * v) % 12); a.setXYZ(i, cx + x + Math.sin(t * .8 + f) * 1.2, yy, cz + z + Math.cos(t * .6 + f) * .8); });
+  a.needsUpdate = true;
+}
+
 // ================== ARENA: LAPANGAN SD KALENSARI ==================
 let ARENA_DIBUAT = false;
-function buatArena() { if (ARENA_DIBUAT) return; ARENA_DIBUAT = true; const awal = new Set(scene.children); if (ARENA === 'kuil') buatArenaKuil(); else if (ARENA === 'sawah') buatArenaSawah(); else buatArenaLapangan(); gabungStatis(awal); }
+function buatArena() { if (ARENA_DIBUAT) return; ARENA_DIBUAT = true; const awal = new Set(scene.children); if (ARENA === 'kuil') buatArenaKuil(); else if (ARENA === 'sawah') buatArenaSawah(); else if (ARENA === 'pink') buatArenaPink(); else buatArenaLapangan(); gabungStatis(awal); }
 function gabungStatis(kecuali) {
   scene.updateMatrixWorld(true);
   const grup = new Map(), buang = [];
@@ -2439,7 +2527,7 @@ function ingatRoom(c) { try { localStorage.setItem('kgRoom', JSON.stringify({ c:
 function keluarRoom() { NET.keluar = true; kirim({ t: 'leave' }); try { localStorage.removeItem('kgRoom'); } catch (e) { } }
 const NET = { url: Q.get('server') || 'wss://game.kalensari.web.id/ws', ws: null, role: '', on: false, kirimT: 0, antre: [], sayaLagi: false, lawanLagi: false, kode: '', v3: false, mulaiT: 0 };
 const HERO_SRV = { ocong: 'pocong', kunti: 'kuntilanak', tuyul: 'tuyul', genderuwo: 'genderuwo', pitung: 'pitung' }, HERO_3D = { pocong: 'ocong', kuntilanak: 'kunti', tuyul: 'tuyul', genderuwo: 'genderuwo', pitung: 'pitung' };
-const ARENA_IDX = { lapangan: 0, kuil: 1, sawah: 2 }, ARENA_NAMA = ['lapangan', 'kuil', 'sawah'];
+const ARENA_IDX = { lapangan: 0, kuil: 1, sawah: 2, pink: 3 }, ARENA_NAMA = ['lapangan', 'kuil', 'sawah', 'pink'];
 const r2 = v => Math.round(v * 100) / 100;
 // cermin: koordinat dikirim dalam sistem pembuat room; tamu memutar dunia 180° di pusat arena
 const cermin = () => typeof TIM !== 'undefined' && TIM.on ? !!(TIM.saya && TIM.saya.tm === 1) : NET.role === 'guest';
@@ -2515,7 +2603,7 @@ function sambung() {
   let ws; try { ws = new WebSocket(NET.url); } catch (e) { lobi('⚠️ Tidak bisa terhubung ke server game'); return; }
   NET.ws = ws;
   ws.onopen = () => {
-    kirim({ t: 'hello', name: NAMA, hero: HERO_SRV[HERO], arena: ARENA_IDX[ARENA], v: '3d', skin: SKIN, sesi: SESI, pid: PID });
+    kirim({ t: 'hello', name: NAMA, hero: HERO_SRV[HERO], arena: ARENA_IDX[ARENA], v: '3d', skin: SKIN, sesi: SESI, pid: PID, kuat: (navigator.deviceMemory || 4) * 10 + (navigator.hardwareConcurrency || 4) + (DI_HP ? 0 : 200) });
     if (TIM.on) { if (MODE === 'timbuat') kirim({ t: 'tmCreate', pub: Q.get('pub') === '0' ? 0 : 1 }); else { kirim({ t: 'join', code: KODE }); lobi('Masuk ke room Duel Tim ' + KODE + '…'); } }
     else if (MODE === 'acak') { kirim({ t: 'quick' }); lobi('⚔️ Mencari lawan…<br><small>Menunggu pemain lain yang juga mencari lawan</small>'); }
     else if (MODE === 'buat') kirim({ t: 'create', pub: Q.get('pub') === '0' ? 0 : 1 });
@@ -2656,7 +2744,7 @@ function tampilkanMenu() {
 // Koordinat dikirim dalam sudut pandang Tim Biru; pemain Tim Merah mencerminkan dunia, jadi semua orang melihat timnya di bawah layar.
 const TIM = { on: MODE === 'timbuat' || MODE === 'timgabung', me: 0, hostId: 0, host: false, pl: [], a: 1, kw: 10, state: 'lobby', saya: null,
   skor: [0, 0], obj: new Map(), bot: new Map(), main: false, sisa: 300, DUR: 300, terakhir: null, hidupT: 0, sudahMain: false, kode: '', lobiTunda: null, akhir: false };
-const IKON_AR = ['🏫', '⛩️', '🌾'], TIM_KW = [3, 5, 10, 15, 20], NAMA_TIM = ['TIM BIRU', 'TIM MERAH'], IKON_H = { pocong: '👻', kuntilanak: '🩸', tuyul: '👶', genderuwo: '👹', pitung: '🥋' };
+const IKON_AR = ['🏫', '⛩️', '🌾', '💗'], TIM_KW = [3, 5, 10, 15, 20], NAMA_TIM = ['TIM BIRU', 'TIM MERAH'], IKON_H = { pocong: '👻', kuntilanak: '🩸', tuyul: '👶', genderuwo: '👹', pitung: '🥋' };
 const escH = x => String(x == null ? '' : x).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
 const timOf = id => { const p = TIM.pl.find(x => x.i === id); return p ? p.tm : -1; };
 const namaOf = id => { const p = TIM.pl.find(x => x.i === id); return p ? p.n : 'Pemain'; };
@@ -2873,7 +2961,7 @@ function updObjTim(o, dt) {
   if (o.root.position.distanceTo(o.tujuan) > 5) o.root.position.copy(o.tujuan); else o.root.position.lerp(o.tujuan, Math.min(1, dt * 12));
   let d = o.arah - o.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); o.root.rotation.y += d * Math.min(1, dt * 14);
   const k = Math.min(1, dt * 16); o.tilt.position.y += (o.ty - o.tilt.position.y) * k; o.tilt.rotation.x += (o.rx - o.tilt.rotation.x) * k; o.tilt.rotation.z += (o.rz - o.tilt.rotation.z) * k; o.tilt.rotation.y = o.ry;
-  mainObj(o, o.act[o.an] ? o.an : 'diam', .15, o.ts); o.mixer.update(dt); lompatPocong(o, dt);
+  mainObj(o, o.act[o.an] ? o.an : 'diam', .15, o.ts); o.mdt = (o.mdt || 0) + dt; if (KUAL.lv > 0 || o.mdt > .03) { o.mixer.update(o.mdt); o.mdt = 0; } lompatPocong(o, dt);   // Rendah: animasi pemain lain maks ±30x/detik
   o.tilt.scale.setScalar(o.fl & 16 ? GEND.besar : 1); if (o.fl & 16) auraLain(o);
   if (o.pivot) { o.gulingT = o.an === 'guling' && o.prosedural ? (o.gulingT || 0) + dt : 0; o.pivot.rotation.x = o.gulingT > 0 && o.gulingT < .8 ? o.gulingT * 15 : 0; }
   const p = o.root.position;

@@ -57,7 +57,7 @@ wss.clients = clients;
 
 const PORT = +process.env.PORT || 8090;
 const HOST = process.env.HOST || '127.0.0.1';
-const HEROES = ['pocong', 'kuntilanak', 'tuyul'];   // tuyul: hero ke-3 (game3d)
+const HEROES = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo', 'pitung'];   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
 const RELAY_FROM_HOST = new Set(['st', 'end']);   // data pertandingan dari host → tamu
 const RELAY_FROM_GUEST = new Set(['in']);         // tombol tamu → host
 
@@ -231,7 +231,7 @@ const PK_CD = 3500;          // hitung mundur sebelum mulai (ms)
 const PK_LIMIT = 10 * 60000; // batas waktu balapan: 10 menit (ms)
 const PK_DORONG = 9500;      // jeda minimal antar serangan Dorong (ms); di game 10 detik
 const PK_AUTO = 12000;       // room acak: mulai otomatis 12 detik setelah ada 2 pemain
-const PK_ARENA = 3;         // jumlah lintasan parkur (0 = Jembatan Kali Angker, 1 = Dusun Malam Jumat, 2 = Lari Jalan Desa)
+const PK_ARENA = 6;         // jumlah lintasan parkur (0 = Jembatan Kali Angker, 1 = Dusun Malam Jumat, 2 = Lari Jalan Desa)
 const pkAr = m => Math.max(0, Math.min(PK_ARENA - 1, m.ar | 0));
 const prooms = new Map();    // kode → {code, quick, host, pl:[ws], state:'lobby'|'race', t0, fin:[], tm, auto}
 const pkInfo = ws => ({ i: ws.id, n: ws.name, h: ws.hero, s: ws.skin || '' });
@@ -330,7 +330,7 @@ const LB_HOST_GANTI = 20000;               // host terputus 20 detik di lobi →
 const LB_TUNGGU_3D = 30000;                // batas menunggu semua pemain masuk arena Duel 3D (ms)
 const LB_KW = 10;                          // target kill Duel Main Bareng
 const LB_MODE = ['duel', 'tim', 'pk', 'acak'];   // duel = 1 vs 1 (bergiliran bila >2 pemain), tim = Biru vs Merah (+ bot)
-const LB_AR = { duel: 2, tim: 2, pk: PK_ARENA };   // jumlah arena: duel 3D (0 Lapangan SD, 1 Kuil Malam), parkur (lihat PK_ARENA)
+const LB_AR = { duel: 4, tim: 4, pk: PK_ARENA };   // jumlah arena: duel 3D (0 Lapangan SD, 1 Kuil Malam, 2 Sawah Siang, 3 Taman Pink), parkur (lihat PK_ARENA)
 const lbrooms = new Map();                 // kode → {code, hostPid, mem: Map pid→anggota, m, a, state:'lobby'|'hero'|'main', ...}
 let lbSeq = 0;
 const lbOn = L => [...L.mem.values()].filter(x => x.ws && x.ws.readyState === 1);
@@ -439,7 +439,8 @@ function lbTmMulai(r, waktuHabis) {   // semua pemain Main Bareng sudah masuk ar
     const w = r.pl.length > 1 && r.pl.filter(x => x.tmT !== t).length > 1 ? r.pl.filter(x => x.tmT !== t)[0] : null;
     if (w) w.tmT = t; else { const b = r.bots.find(x => x.tm !== t); if (b && tmCount(r, 1 - t) > 1) b.tm = t; else r.bots.push({ i: -(++botSeq), n: 'Bot ' + (r.bots.length + 1), h: HEROES[Math.floor(Math.random() * HEROES.length)], tm: t }); }
   }
-  r.host = r.pl.find(w => w.pid === r.hostPid) || r.pl[0];
+  // yang menjalankan bot = HP paling kuat (bukan selalu host lobi), supaya HP kentang tidak terbebani
+  r.host = r.pl.slice().sort((p, q) => (q.kuat || 0) - (p.kuat || 0) || (q.pid === r.hostPid) - (p.pid === r.hostPid))[0];
   tmMulaiRoom(r);
 }
 function lbMsg(ws, m) {
@@ -553,6 +554,7 @@ wss.on('connection', (ws, req) => {
         ws.hero = HEROES.includes(m.hero) ? m.hero : 'pocong';
         ws.arena = Math.max(0, Math.min(9, m.arena | 0));
         ws.skin = clean(m.skin, 20);
+        ws.kuat = Math.max(0, Math.min(999, +m.kuat || 0));   // perkiraan kekuatan HP (RAM, inti prosesor)
         ws.ver = clean(m.v, 8);   // '' = game.html (2D), '3d' = game3d.html
         if (m.pid) ws.pid = String(m.pid).replace(/[^A-Za-z0-9]/g, '').slice(0, 24);   // pengenal HP (Main Bareng)
         send(ws, { t: 'hi', id: ws.id });
