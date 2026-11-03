@@ -125,7 +125,8 @@ small{font-size:1.5cqw;color:#9aa3b8}
 .pkaJudul{display:flex;flex-direction:column;align-items:center;margin-top:.6cqw}
 .pkaLogo{width:24cqw;filter:drop-shadow(0 .4cqw .8cqw #000c)}.pkaJ1{width:27cqw;margin-top:-1.2cqw;filter:drop-shadow(0 .3cqw .6cqw #000c)}.pkaJ2{width:24cqw;margin-top:-.4cqw;filter:drop-shadow(0 .3cqw .6cqw #000c)}
 .pkaT0,.pkaT1,.pkaT2{font-family:'Lilita One',Arial;color:#ffd23f;text-shadow:0 .25cqw 0 #6a1a00,0 0 1cqw #000;line-height:1.1}.pkaT0{font-size:3.6cqw}.pkaT1{font-size:2.6cqw;color:#fff;background:#2a1a30e6;border:.25cqw solid #8a6a4a;border-radius:1cqw;padding:.2cqw 2cqw;margin-top:.3cqw}.pkaT2{font-size:1.9cqw;background:#a01018;border-radius:.6cqw;padding:.15cqw 2cqw;margin-top:.4cqw}
-#pkaGrid{display:grid;grid-template-columns:repeat(3,27.5cqw);grid-auto-rows:12cqw;gap:1.4cqw 1.9cqw;margin-top:1cqw}
+#pkaGrid{display:grid;grid-template-columns:repeat(4,21.6cqw);grid-auto-rows:12cqw;gap:1.4cqw 1.5cqw;margin-top:1cqw}
+#pkaGrid .pkkTx b{font-size:1.6cqw}#pkaGrid .pkkTx b span{max-width:17cqw}#pkaGrid .pkkTx small{font-size:.98cqw}#pkaGrid .pkkTx b img{height:2.1cqw}
 .pkk{position:relative;cursor:pointer;transition:transform .15s}
 .pkkIn{position:absolute;inset:0;border-radius:1.4cqw;overflow:hidden;border:.3cqw solid var(--c);box-shadow:0 0 1.3cqw var(--c),inset 0 0 1cqw #000a;background:var(--bg)}
 .pkkIn img.gb{width:100%;height:100%;object-fit:cover;display:block}
@@ -272,6 +273,7 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 .mbp{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3cqw;border-radius:1.3cqw;font:700 1.5cqw Arial;color:#fff;overflow:hidden;
  background:linear-gradient(#11224a,#0a1430);border:.25cqw solid #2f8cff;box-shadow:0 0 1.2cqw #2f8cff55,inset 0 0 1.2cqw #2f8cff33}
 .mbp i{width:5.2cqw;height:5.2cqw;border-radius:50%;display:block;padding:.25cqw;background:conic-gradient(var(--c,#ffd23f),#fff3,var(--c,#ffd23f));box-shadow:0 0 1cqw var(--c,#ffd23f)}
+.mbp i.ft img{filter:none;object-fit:cover}
 .mbp i img{width:100%;height:100%;border-radius:50%;display:block;filter:hue-rotate(var(--h,0deg))}
 .mbp span{max-width:13cqw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 .15cqw 0 #000}.mbp em{position:absolute;top:.4cqw;right:.7cqw;font-style:normal;font-size:2cqw;filter:drop-shadow(0 0 .5cqw #ffb703)}
 .mbp.me{border-color:#ffd23f;box-shadow:0 0 1.6cqw #ffd23f88,inset 0 0 1.2cqw #ffd23f33}.mbp.off{opacity:.45}.mbp.off span:after{content:' · menyambung…';font-weight:400;font-size:1.05cqw}
@@ -1255,7 +1257,13 @@ const AKG={foto:null,ubahFoto:false};
 const akFotoLokal=()=>{try{return localStorage.getItem('kgFoto')||''}catch(e){return''}};
 const akFotoSaya=()=>(KOL.login&&KOL.foto)||akFotoLokal();
 function akGambar(el,foto){if(foto){el.style.backgroundImage=`url(${foto})`;el.textContent=''}else{el.style.backgroundImage=`url(${heroHead(pick,skinOf(pick))})`;el.textContent=''}}
-function akBadge(){const b=$('#akBadge');if(!b)return;akGambar(b.querySelector('i'),akFotoSaya());b.querySelector('span').textContent=KOL.login?myName():'Masuk / Daftar'}
+// foto profil kecil (72 px) untuk ditampilkan di kotak pemain lobi Main Bareng
+let FOTO_KECIL='',FOTO_SUMBER=null;
+function kirimFoto(){if(NET.ws&&NET.ws.readyState===1)netSend({t:'foto',f:FOTO_KECIL})}
+function fotoKecilCek(){const f=akFotoSaya()||'';if(f===FOTO_SUMBER)return;FOTO_SUMBER=f;if(!f){FOTO_KECIL='';kirimFoto();return}
+ const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{try{const c=document.createElement('canvas');c.width=c.height=72;const x=c.getContext('2d'),m=Math.min(im.width,im.height);x.drawImage(im,(im.width-m)/2,(im.height-m)/2,m,m,0,0,72,72);
+  let d=c.toDataURL('image/webp',.72);if(!d.startsWith('data:image/webp'))d=c.toDataURL('image/jpeg',.72);FOTO_KECIL=d.length<9000?d:''}catch(e){FOTO_KECIL=''}kirimFoto()};im.onerror=()=>{FOTO_KECIL=''};im.src=f}
+function akBadge(){fotoKecilCek();const b=$('#akBadge');if(!b)return;akGambar(b.querySelector('i'),akFotoSaya());b.querySelector('span').textContent=KOL.login?myName():'Masuk / Daftar'}
 function akMsg(t,err){const e=$('#akMsg');e.textContent=t||'';e.className='akMsg'+(err?' err':'')}
 function bukaAkun(){AKG.foto=null;AKG.ubahFoto=false;akMsg('');$('#akNama').value=myName()=='Pemain'?'':myName();akRender();sc('akn')}
 function akRender(){
@@ -1301,14 +1309,14 @@ function netConnect(then,diam){if(then)NET.want=then;if(then&&then.t=='join')NET
    else{sc('onl');oStat('⚠️ Koneksi ke server terputus. Coba lagi.')}return}
   const wasOn=NET.on&&playing;NET.ws=null;if(wasOn){playing=0;netStop();$('#dead').classList.remove('on');$('#wt').textContent='TERPUTUS';$('#wn').textContent='Koneksi ke server terputus';sc('win')}else if($('#onl').classList.contains('on')||$('#tml').classList.contains('on')){TM.room=null;sc('onl');oStat('⚠️ Koneksi ke server terputus. Coba lagi.')}};
  ws.onerror=()=>{}}
-function netHello(){let n=($('#oName').value||'').trim();if(n)try{localStorage.setItem('kgName',n)}catch(e){}if(!n){try{n=localStorage.getItem('kgName')||''}catch(e){}n=n||KOL.nama||'Pemain'}netSend({t:'hello',name:n,hero:pick,arena:arenaIdx,skin:skinOf(pick)||'',sesi:KOL.login?ksSesi():'',pid:kgPid()})}
+function netHello(){let n=($('#oName').value||'').trim();if(n)try{localStorage.setItem('kgName',n)}catch(e){}if(!n){try{n=localStorage.getItem('kgName')||''}catch(e){}n=n||KOL.nama||'Pemain'}netSend({t:'hello',name:n,hero:pick,arena:arenaIdx,skin:skinOf(pick)||'',sesi:KOL.login?ksSesi():'',pid:kgPid()});if(FOTO_KECIL)kirimFoto()}
 function kgPid(){let p='';try{p=localStorage.getItem('kgPid')||''}catch(e){}if(!/^[A-Za-z0-9]{8,24}$/.test(p)){p=(Math.random().toString(36).slice(2,10)+Date.now().toString(36)).replace(/[^a-z0-9]/g,'').slice(0,20);try{localStorage.setItem('kgPid',p)}catch(e){}}return p}
 function netStop(){NET.on=0;NET.role='';NET.inGame=0;NET.live=0;NET.rins={};NET.team=0;FS.forEach(f=>{delete f._tx;delete f._ty})}
 function netEnd(){netSend({t:'leave'});netStop()}
 $('#bOnl').onclick=()=>bukaOnline();
 // ===== MODE PERTANDINGAN ONLINE: Duel 1 vs 1 atau Parkur Hantu =====
 let ONM='duel';try{const m=localStorage.getItem('kgMode');if(m=='pk'||m=='tim')ONM=m}catch(e){}
-function onlInfo(){document.querySelectorAll('#oMode .btn').forEach(x=>x.classList.toggle('on',x.dataset.m==ONM));
+function onlInfo(){if(PKAR[PK.ar]&&PKAR[PK.ar].um)PK.ar=0;document.querySelectorAll('#oMode .btn').forEach(x=>x.classList.toggle('on',x.dataset.m==ONM));
  $('#oQuick').style.display=ONM=='tim'?'none':'';$('#oPkAr').style.display=ONM=='pk'?'':'none';document.querySelectorAll('#oPkAr .btn').forEach(x=>x.classList.toggle('on',+x.dataset.a==PK.ar));
  if(ONM=='tim'){$('#oInfo').textContent='Custom 1–3 vs 1–3 · Buat room, bagikan kode, teman pilih Tim Biru / Merah';return}
  $('#oInfo').textContent=ONM=='pk'?'Hero Anda: '+NM3D(pick)+' · Balapan saling dorong · 2–6 pemain · lintasan dipilih pembuat room':'Duel 3D · Hero Anda: '+NM3D(pick)+' · Arena (bila Anda pembuat room): '+(AR3.find(a=>a.k==ar3)||AR3[1]).n;
@@ -1330,7 +1338,8 @@ const PKAR=[{n:'Jembatan Kali Angker',e:'🌉',d:'Pijakan batu, api & jembatan b
  {n:'Lari Jalan Desa',e:'🏃',d:'Lari 6 jalur, pindah, lompat & merunduk',bg:'linear-gradient(#1a0f30,#3a1a10)'},
  {n:'Ular Tangga Hantu',e:'🐍',d:'Papan 100 petak, mabar 2–6 pemain',bg:'linear-gradient(#1a0f30,#0f3a2a)'},
  {n:'Pasar Malam Hantu',e:'🎡',d:'Komidi putar, kora-kora, bianglala & rumah hantu',bg:'linear-gradient(#2a0a3a,#5a1a2a 60%,#c1121f)'},
- {n:'Lomba 17-an Hantu',e:'🎉',d:'Balap karung, bakiak, panjat pinang, kelereng & kerupuk',bg:'linear-gradient(#c1121f 50%,#f5efe2 50%)'}];
+ {n:'Lomba 17-an Hantu',e:'🎉',d:'Balap karung, bakiak, panjat pinang, kelereng & kerupuk',bg:'linear-gradient(#c1121f 50%,#f5efe2 50%)'},
+ {n:'Petak Umpet Hantu',e:'🙈',d:'Sembunyi dari penjaga · mabar 2–6 pemain',bg:'radial-gradient(circle at 50% 30%,#3a6a2a,#0b1a12 70%)',um:1}];   // um: dimainkan lewat Main Bareng (game3d, arena Kebun Malam)
 PK.ar=0;try{PK.ar=Math.min(PKAR.length-1,Math.max(0,+localStorage.getItem('kgPkAr')||0))}catch(e){}
 function pkSetAr(a){PK.ar=a;try{localStorage.setItem('kgPkAr',a)}catch(e){}}
 function pkLevel(){PK.dd=null;PK.npc=null;PK.run=null;PK.ut=null;PK.pm=null;PK.l17=null;if(PK.ar==3)return pkLevel4();if(PK.ar==4)return pkLevel5();if(PK.ar==5)return pkLevel6();if(PK.ar==1)return pkLevel2();if(PK.ar==2)return pkLevel3();   // [x, y, lebar, dalam, tinggi, jenis, opsi]
@@ -1969,12 +1978,12 @@ const PKA_WARNA=['#a05cff','#3a8bff','#6a7bff','#3fd16b','#b06cff','#ff8a3a'],PK
 function pkaGrid(){$('#pkaGrid').innerHTML=PKAR.map((a,i)=>{let b=0;try{b=+localStorage.getItem('pkBest'+(i+1))||0}catch(e){}const ik=PKA_IKON[i];
   return `<div class="pkk ${i==PK.ar?'on':''}" data-i="${i}" style="--c:${PKA_WARNA[i]||'#a05cff'};--bg:${a.bg}">
    <div class="pkkIn"><img class="gb" src="gambar-game/ui/arena-${i+1}.webp" alt="" onerror="this.remove()"><div class="pkkTx"><b>${ik?`<img src="gambar-game/ui/${ik}.webp" alt="" onerror="this.outerHTML='<i>${a.e}</i>'">`:`<i>${a.e}</i>`}<span>${a.n}</span></b><small>${a.d}</small></div></div>
-   <img class="pkkNo" src="gambar-game/ui/nomor-${Math.min(i+1,6)}.webp" alt="${i+1}" onerror="this.outerHTML='<span class=pkkNoT><span>${i+1}</span></span>'">
+   <img class="pkkNo" src="gambar-game/ui/nomor-${i+1}.webp" alt="${i+1}" onerror="this.outerHTML='<span class=pkkNoT><span>${i+1}</span></span>'">
    ${b?`<span class="pkkRek"><img src="gambar-game/ui/ikon-piala.webp" alt="" onerror="this.outerHTML='🏆'">${pkJam(b)}</span>`:''}</div>`}).join('');
  document.querySelectorAll('#pkaGrid .pkk').forEach(c=>c.onclick=()=>{pkSetAr(+c.dataset.i);pkaGrid()})}
 $('#bPk').onclick=()=>{pkaGrid();sc('pka')};
 $('#pkaBack').onclick=()=>sc('menu');
-$('#pkaGo').onclick=()=>{pkNetReset();pkMulai()};
+$('#pkaGo').onclick=()=>{if(PKAR[PK.ar]&&PKAR[PK.ar].um){mbBuatUmpet();return}pkNetReset();pkMulai()};   // Petak Umpet butuh teman → buka lobi Main Bareng
 const pkKeluar=()=>{if(PKN.room){netSend({t:'leave'});lupaRoom();pkNetReset()}PK.on=0;$('#kbn').classList.remove('on');sc('menu')};$('#pkOut').onclick=pkKeluar;$('#pkMenu').onclick=pkKeluar;
 // ===================== PARKUR HANTU ONLINE =====================
 // Tiap HP menjalankan karakternya sendiri, mengirim posisi 12x/detik; pemain lain digambar transparan (bisa ditembus seperti hantu).
@@ -2203,10 +2212,11 @@ const _netMsg=netMsg;netMsg=function(m){if(m&&m.t=='cek'){const c=m.code;
 const MBM={duel:{e:'⚔️',n:'DUEL',d:'1 lawan 1',img:'mode-duel'},tim:{e:'👥',n:'DUEL TIM',d:'Biru lawan Merah',img:'mode-tim'},pk:{e:'🏃',n:'PARKUR',d:'Balapan lompat-lompat',img:'mode-parkur'},umpet:{e:'🙈',n:'PETAK UMPET',d:'Sembunyi dari penjaga',bg:'radial-gradient(circle at 50% 35%,#3a6a2a,#0b1a12 70%)'},acak:{e:'🎲',n:'ACAK',d:'Game yang memilihkan',img:'mode-acak'}};
 const MBIMG=n=>'gambar-game/lobi/'+n+'.webp';
 const MBA={umpet:[{n:'Kebun Malam',e:'🌳',bg:'linear-gradient(#0b1430,#1d3a1f)',k:'kebun'}],duel:[{n:'Lapangan SD',img:'gambar-game/7c244511a3.webp',k:'lapangan'},{n:'Kuil Malam',img:'gambar-game/455f6b31f9.webp',k:'kuil'},{n:'Sawah Siang',e:'🌾',bg:'linear-gradient(#5fb0f0 0 38%,#7fc3c4 38% 48%,#76b843 48%)',k:'sawah'},{n:'Taman Pink',e:'💗',bg:'linear-gradient(#ff7ab8,#ffb3d6 50%,#ffa6cd 50%,#ffc2dc)',k:'pink'}],
- pk:PKAR.map((a,i)=>({n:a.n,e:a.e,bg:a.bg,img:'gambar-game/ui/arena-'+(i+1)+'.webp'}))};MBA.tim=MBA.duel;
+ pk:PKAR.map((a,i)=>({n:a.n,e:a.e,bg:a.bg,img:a.um?'':'gambar-game/ui/arena-'+(i+1)+'.webp'}))};MBA.tim=MBA.duel;
 const MBWARNA=['#7b2cbf','#c1121f','#127a34','#1d5fbf','#b8860b','#8d3a7a'];
 const MB={room:null,hero:null,msg:'',tHero:0};
-const mbAr=(m,a)=>(MBA[m]||[])[a]||null;
+const mbAr=(m,a)=>m=='umpet'?MBA.umpet[0]:(MBA[m]||[])[a]||null;
+function mbBuatUmpet(){MB.preset={m:'pk',a:PKAR.findIndex(x=>x.um)};mbBuat()}   // dari menu Parkur: buat lobi dengan Petak Umpet sudah terpilih
 const mbArTh=(ar,cls)=>ar?(ar.img?`<i style="background:url(${ar.img}) center/cover${ar.bg?','+ar.bg:''}"></i>`:`<i style="background:${ar.bg}">${ar.e}</i>`):`<i style="background:linear-gradient(135deg,#3a2a6a,#0e1526)">🎲</i>`;
 function mbPesan(t,coba){MB.msg=t;MB.coba=coba?1:0;if(!MB.room)mbRender();else{const e=$('#mbInfo');if(e)e.innerHTML=t+(coba?' <button class="mbb" data-coba>Coba Lagi</button>':'')}}
 let mbPre=0;function mbMuatGambar(){if(mbPre)return;mbPre=1;['avatar-hantu','mode-duel','mode-tim','mode-parkur','mode-acak'].forEach(n=>{const i=new Image();i.src=MBIMG(n)});ALL.filter(a=>a[0]!='x').forEach(a=>{const h=a[0],s=skinOf(h);[heroHead(h,s),heroImg(h,s)].forEach(u=>{const i=new Image();i.src=u})})}
@@ -2218,9 +2228,9 @@ function mbRender(){const r=MB.room,E=$('#mbl');
  const host=r.host,mode=r.m,ars=MBA[mode]||[];
  let pl='';for(let k=0;k<r.max;k++){const p=r.pl[k];
   const tim=mode=='tim'&&p,aku=p&&p.k===r.me;
-  pl+=p?`<div class="mbp ${aku?'me':''} ${p.on?'':'off'} ${tim?(p.tm?'tr':'tb'):''}" ${tim&&aku?'data-tukar':''}><i style="--c:${MBWARNA[p.k%MBWARNA.length]};--h:${(p.k*57)%360}deg"><img src="${MBIMG('avatar-hantu')}" alt=""></i><span>${esc(p.n)}${aku?' (kamu)':''}</span>${p.h?'<em>👑</em>':''}${tim?`<u>${p.tm?'🔴 MERAH':'🔵 BIRU'}${aku?' · ketuk ganti':''}</u>`:''}</div>`
+  pl+=p?`<div class="mbp ${aku?'me':''} ${p.on?'':'off'} ${tim?(p.tm?'tr':'tb'):''}" ${tim&&aku?'data-tukar':''}>${MB.foto&&MB.foto[p.k]?`<i class="ft" style="--c:${MBWARNA[p.k%MBWARNA.length]}"><img src="${MB.foto[p.k]}" alt=""></i>`:`<i style="--c:${MBWARNA[p.k%MBWARNA.length]};--h:${(p.k*57)%360}deg"><img src="${MBIMG('avatar-hantu')}" alt=""></i>`}<span>${esc(p.n)}${aku?' (kamu)':''}</span>${p.h?'<em>👑</em>':''}${tim?`<u>${p.tm?'🔴 MERAH':'🔵 BIRU'}${aku?' · ketuk ganti':''}</u>`:''}</div>`
    :`<div class="mbp kos" data-ajak><b>＋</b>Ajak teman</div>`}
- const modeH=Object.keys(MBM).map(k=>`<div class="mbm ${k} ${mode==k?'on':''} ${host?'':'dis'}" ${host?`data-mode="${k}"`:''}>${MBM[k].img?`<img src="${MBIMG(MBM[k].img)}" alt="">`:`<span class="mbmE" style="background:${MBM[k].bg}">${MBM[k].e}</span>`}<div class="mt"><b>${MBM[k].n}</b><small>${MBM[k].d}</small></div></div>`).join('');
+ const modeH=Object.keys(MBM).filter(k=>k!='umpet').map(k=>`<div class="mbm ${k} ${mode==k?'on':''} ${host?'':'dis'}" ${host?`data-mode="${k}"`:''}>${MBM[k].img?`<img src="${MBIMG(MBM[k].img)}" alt="">`:`<span class="mbmE" style="background:${MBM[k].bg}">${MBM[k].e}</span>`}<div class="mt"><b>${MBM[k].n}</b><small>${MBM[k].d}</small></div></div>`).join('');
  let arH='';
  if(mode=='duel'||mode=='tim'||mode=='pk')arH=`<h4 class="mbh4">${host?'<em>2.</em> PILIH ARENA':'ARENA'}<small>${host?'atau biarkan 🎲 acak':'dipilih host'}</small></h4><div class="mbar">`+
   [-1].concat(ars.map((_,i)=>i)).map(i=>{const ar=i<0?null:ars[i];return `<div class="mba ${r.a==i?'on':''} ${host?'':'dis'}" ${host?`data-ar="${i}"`:''}>${mbArTh(ar)}${ar?esc(ar.n):'🎲 Acak'}</div>`}).join('')+'</div>';
@@ -2265,7 +2275,8 @@ setInterval(()=>{const H=MB.hero;if(!H||!$('#mbh').classList.contains('on'))retu
  if(e){e.textContent=s;e.classList.toggle('mepet',s<=5)}if(s<=0&&!H.kunci)mbPilih()},250);
 // ---- dari server ----
 function mbNet(m){
- if(m.t=='lbRoom'){const baru=!MB.room||MB.room.code!==m.code;MB.room=m;NET.joinC='';NET.sambung=0;ingatRoom(m.code,'lb');if(baru)MB.msg='';
+ if(m.t=='lbFoto'){MB.foto=MB.foto||{};(m.L||[]).forEach(x=>{if(x.f)MB.foto[x.k]=x.f;else delete MB.foto[x.k]});if(MB.room&&$('#mbl').classList.contains('on'))mbRender();return}
+ if(m.t=='lbRoom'){const baru=!MB.room||MB.room.code!==m.code;MB.room=m;if(MB.preset&&m.host&&m.state=='lobby'){const p=MB.preset;MB.preset=null;netSend({t:'lbMode',m:p.m});netSend({t:'lbArena',a:p.a});MB.msg='🙈 Petak Umpet siap — ajak teman lalu tekan MULAI'}NET.joinC='';NET.sambung=0;ingatRoom(m.code,'lb');if(baru)MB.msg='';
   if($('#mbh').classList.contains('on')){if(m.state=='lobby'){MB.hero=null;sc('mbl')}else return}
   if(PK.on)return;
   if(!$('#mbl').classList.contains('on'))sc('mbl');mbRender();return}
