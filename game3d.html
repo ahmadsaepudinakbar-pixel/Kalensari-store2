@@ -509,11 +509,11 @@ function buatArenaSawah() {
 let KELOPAK = null;
 function buatArenaPink() {
   scene.background = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
-    g.addColorStop(0, '#ff7ab8'); g.addColorStop(.5, '#ffb3d6'); g.addColorStop(1, '#ffe4f1'); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
-  scene.fog = new THREE.Fog(0xffd0e6, 32, 80);
-  scene.environmentIntensity = .5; renderer.toneMappingExposure = 1.1;
-  hemi.color.setHex(0xffe6f2); hemi.groundColor.setHex(0xd0608f); hemi.intensity = 1.25;
-  sun.color.setHex(0xfff0f6); sun.intensity = 2.1; sun.position.set(-12, 24, 14);
+    g.addColorStop(0, '#e0508f'); g.addColorStop(.5, '#f08cba'); g.addColorStop(1, '#f8c4dc'); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+  scene.fog = new THREE.Fog(0xe89cc0, 32, 80);
+  scene.environmentIntensity = .25; renderer.toneMappingExposure = .82;
+  hemi.color.setHex(0xffd6ea); hemi.groundColor.setHex(0x8a3060); hemi.intensity = .75;
+  sun.color.setHex(0xffe6f0); sun.intensity = 1.5; sun.position.set(-12, 24, 14);
   const L = c => new THREE.MeshLambertMaterial({ color: c, flatShading: true });
   // matahari hati & awan pink
   const tHati = tex(128, 128, x => { x.translate(64, 70); const g = x.createRadialGradient(0, -6, 0, 0, -6, 60); g.addColorStop(0, '#fff'); g.addColorStop(.5, '#ffd6ea'); g.addColorStop(1, 'rgba(255,170,210,0)'); x.fillStyle = g; x.fillRect(-64, -70, 128, 128);
@@ -526,16 +526,16 @@ function buatArenaPink() {
   for (let i = 0; i < 6; i++) { const a = new THREE.Sprite(mAwan); const sk = rnd(14, 22); a.position.set(0, rnd(24, 34), rnd(-75, -45)); a.scale.set(sk, sk / 2, 1); scene.add(a); AWAN.push({ s: a, x0: 0, v: rnd(.25, .6), f: i * 24 }); }
 
   // lantai: luar (rumput pink), jalan permen, lapangan kotak-kotak pink dengan hati
-  const T_LUAR = tex(256, 256, (x, w, h) => { x.fillStyle = '#f59ac4'; x.fillRect(0, 0, w, h); for (let i = 0; i < 1200; i++) { x.fillStyle = Math.random() < .5 ? 'rgba(220,90,150,.35)' : 'rgba(255,200,225,.4)'; x.fillRect(Math.random() * w, Math.random() * h, 1.5, rnd(3, 7)); }
+  const T_LUAR = tex(256, 256, (x, w, h) => { x.fillStyle = '#c85a8e'; x.fillRect(0, 0, w, h); for (let i = 0; i < 1200; i++) { x.fillStyle = Math.random() < .5 ? 'rgba(140,40,90,.35)' : 'rgba(240,150,195,.35)'; x.fillRect(Math.random() * w, Math.random() * h, 1.5, rnd(3, 7)); }
     for (let i = 0; i < 18; i++) { x.fillStyle = ['#ffffff', '#ffe36e', '#ff5fa2'][i % 3]; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, 2.4, 0, 7); x.fill(); } }, 24, 24);
-  const T_JALAN = tex(128, 128, (x, w, h) => { x.fillStyle = '#fff0f6'; x.fillRect(0, 0, w, h); x.fillStyle = '#ff8cc0'; for (let i = -h; i < w; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 16, 0); x.lineTo(i + 16 + h, h); x.lineTo(i + h, h); x.fill(); } }, 10, 8);
-  const T_LANTAI = tex(256, 256, (x, w, h) => { for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { x.fillStyle = (r + c) % 2 ? '#ffc2dc' : '#ffa6cd'; x.fillRect(c * 64, r * 64, 64, 64); }
-    x.fillStyle = 'rgba(255,255,255,.55)'; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if ((r + c) % 2) { x.save(); x.translate(c * 64 + 32, r * 64 + 34); x.scale(.5, .5); x.beginPath(); x.moveTo(0, 22); x.bezierCurveTo(-40, -6, -22, -40, 0, -20); x.bezierCurveTo(22, -40, 40, -6, 0, 22); x.fill(); x.restore(); } }, 7, 5);
+  const T_JALAN = tex(128, 128, (x, w, h) => { x.fillStyle = '#f2c6da'; x.fillRect(0, 0, w, h); x.fillStyle = '#d4558f'; for (let i = -h; i < w; i += 32) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 16, 0); x.lineTo(i + 16 + h, h); x.lineTo(i + h, h); x.fill(); } }, 10, 8);
+  const T_LANTAI = tex(256, 256, (x, w, h) => { for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) { x.fillStyle = (r + c) % 2 ? '#e88ab4' : '#d86a9c'; x.fillRect(c * 64, r * 64, 64, 64); }
+    x.fillStyle = 'rgba(255,220,236,.45)'; for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) if ((r + c) % 2) { x.save(); x.translate(c * 64 + 32, r * 64 + 34); x.scale(.5, .5); x.beginPath(); x.moveTo(0, 22); x.bezierCurveTo(-40, -6, -22, -40, 0, -20); x.bezierCurveTo(22, -40, 40, -6, 0, 22); x.fill(); x.restore(); } }, 7, 5);
   const bidang = (w, d, m, y) => { const o = new THREE.Mesh(new THREE.PlaneGeometry(w, d), m); o.rotation.x = -Math.PI / 2; o.position.y = y; o.receiveShadow = true; scene.add(o); return o; };
   bidang(170, 170, new THREE.MeshLambertMaterial({ map: T_LUAR }), -.06);
   bidang(33, 25, new THREE.MeshLambertMaterial({ map: T_JALAN }), -.01);
   bidang(28, 20, new THREE.MeshLambertMaterial({ map: T_LANTAI }), .01);
-  const mPutih = new THREE.MeshBasicMaterial({ color: 0xfff6fa });
+  const mPutih = new THREE.MeshBasicMaterial({ color: 0xd8a0bc });
   const lk = new THREE.Mesh(new THREE.RingGeometry(2.3, 2.5, 40), mPutih); lk.rotation.x = -Math.PI / 2; lk.position.y = .02; scene.add(lk);
 
   // pagar permen (tiang loreng putih-pink + pita)
