@@ -2157,7 +2157,7 @@ const EW = { combo: 0, comboT: 0, amuk: 0, st: null, gelombang: [], aura: 0 };
 const ER_DARAH = 0xb30000, ER_MERAH = 0xff2020, ER_PUTIH = 0xffe0e0;
 // ---- Sayatan pita: pita merah-darah melingkar berinti putih panas + jejak asap hitam (ala efek sayatan berputar) ----
 const PITA_V = 'uniform float uW; varying vec2 vUv; void main(){ vUv = uv; float tp = pow(max(sin(3.14159 * uv.x), 0.0), .6); vec3 p = position + normal * (uv.y * 2.0 - 1.0) * uW * tp; gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }';
-const PITA_F = 'uniform float uT, uTrail, uFade, uAlpha; uniform vec3 uC1, uC2; varying vec2 vUv; void main(){ float head = uT * (1.0 + uTrail); float u = vUv.x; float vis = smoothstep(head - uTrail, head - .03, u) * (1.0 - smoothstep(head - .03, head, u)); float e = 1.0 - abs(vUv.y * 2.0 - 1.0); float streak = .62 + .38 * sin(vUv.y * 38.0 + sin(u * 14.0) * 2.5 + uT * 6.0); float core = pow(max(0.0, 1.0 - abs(vUv.y * 2.0 - 1.3) * 1.7), 2.5); vec3 c = mix(uC1, uC2, core) * (1.0 + core * .9); gl_FragColor = vec4(c, vis * pow(e, .6) * streak * uFade * uAlpha); }';
+const PITA_F = 'uniform float uT, uTrail, uFade, uAlpha, uStreak; uniform vec3 uC1, uC2; varying vec2 vUv; void main(){ float head = uT * (1.0 + uTrail); float u = vUv.x; float vis = smoothstep(head - uTrail, head - .14, u) * (1.0 - smoothstep(head - .14, head, u)); float e = 1.0 - abs(vUv.y * 2.0 - 1.0); float streak = .8 + .2 * sin(vUv.y * 22.0 + sin(u * 6.0) * 1.2 + uT * 4.0); float core = pow(max(0.0, 1.0 - abs(vUv.y * 2.0 - 1.3) * 1.7), 2.5); vec3 c = mix(uC1, uC2, core) * (1.0 + core * .9); gl_FragColor = vec4(c, vis * smoothstep(0.0, .45, e) * mix(1.0, streak, uStreak) * uFade * uAlpha); }';
 function pitaGeo(seg, sweep, r0, r1, tinggi, putar, gel) {
   const P = [], N = [], UV = [], ID = [];
   for (let i = 0; i <= seg; i++) { const u = i / seg, th = (u - .5) * sweep, r = r0 + (r1 - r0) * u + gel * Math.sin(u * 9), y = tinggi * (u - .5) + gel * .5 * Math.sin(u * 6 + 1), sx = Math.sin(th), cz = Math.cos(th);
@@ -2168,14 +2168,14 @@ function pitaGeo(seg, sweep, r0, r1, tinggi, putar, gel) {
 }
 let _pitaG = null;
 function pitaMat(c1, c2, w, alpha, add, trail) {
-  return new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 }, uTrail: { value: trail }, uFade: { value: 1 }, uAlpha: { value: alpha }, uW: { value: w }, uC1: { value: new THREE.Color(c1) }, uC2: { value: new THREE.Color(c2) } },
+  return new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 }, uTrail: { value: trail }, uFade: { value: 1 }, uAlpha: { value: alpha }, uStreak: { value: add ? 1 : 0 }, uW: { value: w }, uC1: { value: new THREE.Color(c1) }, uC2: { value: new THREE.Color(c2) } },
     vertexShader: PITA_V, fragmentShader: PITA_F, transparent: true, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending });
 }
 function pitaSusun(R, tegak) {   // kumpulan pita: asap hitam → merah darah → inti putih
-  if (!_pitaG) _pitaG = { A: pitaGeo(40, 3.5, 1, 1.18, .3, 2, .05), B: pitaGeo(52, 5.4, .75, 1.35, .95, 3, .1) };
+  if (!_pitaG) _pitaG = { A: pitaGeo(48, 3.5, 1, 1.18, .3, 2, .015), B: pitaGeo(64, 5.4, .75, 1.35, .95, 3, .03) };
   const g = new THREE.Group(), rendah = KUAL.lv === 0;
-  const spec = [[_pitaG.A, 0x1a0008, 0x1a0008, .55, .8, 0, .9, 0, 0, 0], [_pitaG.A, ER_DARAH, ER_MERAH, .32, 1, 1, .7, 0, 0, 0], [_pitaG.A, 0xff3a96, 0xfff0f8, .12, 1, 1, .6, 0, 0, 0]];
-  if (!rendah) spec.push([_pitaG.B, 0x1a0008, 0x1a0008, .45, .6, 0, 1.0, .5, .55, .3], [_pitaG.B, ER_DARAH, 0xff4a9a, .26, .95, 1, .8, .5, .55, .3], [_pitaG.B, 0xff3a96, 0xfff0f8, .09, 1, 1, .7, .5, .55, .3]);
+  const spec = [[_pitaG.A, 0x0a0004, 0x0a0004, .55, .97, 0, .9, 0, 0, 0], [_pitaG.A, ER_DARAH, ER_MERAH, .32, 1, 1, .8, 0, 0, 0], [_pitaG.A, 0xff3a96, 0xfff0f8, .12, 1, 1, .7, 0, 0, 0]];
+  if (!rendah) spec.push([_pitaG.B, 0x0a0004, 0x0a0004, .45, .9, 0, 1.0, .5, .55, .3], [_pitaG.B, ER_DARAH, 0xff4a9a, .26, .95, 1, .85, .5, .55, .3], [_pitaG.B, 0xff3a96, 0xfff0f8, .09, 1, 1, .75, .5, .55, .3]);
   spec.forEach(([geo, c1, c2, w, al, add, tr, ry, rz, rx], k) => { const m = new THREE.Mesh(geo, pitaMat(c1, c2, w, al, add, tr)); m.rotation.set(rx, ry, rz); m.renderOrder = 10 + k; m.frustumCulled = false; g.add(m); });
   g.scale.setScalar(R); return g;
 }
@@ -3580,7 +3580,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v15'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v18'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
