@@ -147,7 +147,7 @@ body:has(#timHud:not([style*="none"])) #koin{top:52px}
 <canvas id="c"></canvas>
 <div id="top" class="ui">
  <div id="ttl"><b>KALENSARI 3D</b><br><small><span id="nmhero">Ocong</span> <span id="nmlawan"></span> · <a id="back" href="game.html">☰ Menu</a></small><div id="fps"></div></div>
- <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button></div>
+ <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"></div>
 </div>
 <div id="joy" class="ui"><div id="knob"></div></div>
 <button id="bA" class="sb"><i class="cd"></i><em></em></button>
@@ -873,12 +873,17 @@ document.querySelectorAll('#kual button').forEach(b => b.onclick = () => setKual
 // Rendah: tanpa pantulan lingkungan, bayangan, lampu api & kilat -> Kuil Malam, Lapangan SD & Kebun Malam jadi sangat gelap.
 // Gantinya dipasang cahaya pengisi + sedikit eksposur (catatan: di three.js terbaru cahaya ambient 1.0 hanya memberi sekitar sepertiga terang bahan, jadi angkanya perlu besar). Ubah angka di sini kalau mau lebih terang / lebih redup:
 // [warna cahaya, kekuatan cahaya, tambahan eksposur]
-const TERANG_RENDAH = { kuil: [0xd8e0ff, 6, .35], lapangan: [0xfff0dc, 2.2, .2], kebun: [0xdde6ff, 3.5, .25] };
+const TERANG_RENDAH = { kuil: [0xd8e0ff, 3.5, .25], lapangan: [0xfff0dc, 1.8, .15], kebun: [0xdde6ff, 2.5, .2] };
+// Pengaturan ☀ (geser di panel kualitas, hanya tampil saat Rendah): pengali kecerahan 0–2, tersimpan di HP. 1 = nilai standar di atas
 function terapTerang() {
-  const t = KUAL.lv === 0 ? TERANG_RENDAH[ARENA] : null, cur = renderer.toneMappingExposure;
+  if (KUAL.fT === undefined) { KUAL.fT = 1; try { const v = parseFloat(localStorage.getItem('terangRendah')); if (v >= 0 && v <= 2) KUAL.fT = v; } catch (e) { } }
+  const t = KUAL.lv === 0 ? TERANG_RENDAH[ARENA] : null, f = KUAL.fT, cur = renderer.toneMappingExposure;
   const dasar = (KUAL.eSet !== undefined && cur === KUAL.eSet) ? KUAL.eDasar : cur;   // bila arena menimpa eksposur, pakai nilai barunya
-  KUAL.eDasar = dasar; KUAL.eSet = dasar + (t ? t[2] : 0); renderer.toneMappingExposure = KUAL.eSet;
-  if (t) LAMA.color.setHex(t[0]); LAMA.intensity = t ? t[1] : 0;
+  KUAL.eDasar = dasar; KUAL.eSet = dasar + (t ? t[2] * f : 0); renderer.toneMappingExposure = KUAL.eSet;
+  if (t) LAMA.color.setHex(t[0]); LAMA.intensity = t ? t[1] * f : 0;
+  const sl = $('#trg'), lb = $('#trgL');
+  if (sl) { sl.style.display = lb.style.display = t ? '' : 'none'; sl.value = f;
+    if (!sl.dataset.ok) { sl.dataset.ok = 1; sl.onpointerdown = e => e.stopPropagation(); sl.oninput = () => { KUAL.fT = +sl.value; try { localStorage.setItem('terangRendah', KUAL.fT); } catch (e) { } terapTerang(); }; } }
 }
 function terapResolusi() {   // Rendah di HP: resolusi lebih kecil, bisa turun lagi otomatis (KUAL.skala)
   const lv = KUAL.lv, dasar = lv === 0 ? (DI_HP ? .7 : 1) : lv === 1 ? (DI_HP ? 1 : 1.5) : 2;
@@ -3361,7 +3366,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · ikon-v3'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · ikon-v4'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
