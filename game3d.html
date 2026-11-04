@@ -2174,8 +2174,8 @@ function pitaMat(c1, c2, w, alpha, add, trail) {
 function pitaSusun(R, tegak) {   // kumpulan pita: asap hitam → merah darah → inti putih
   if (!_pitaG) _pitaG = { A: pitaGeo(40, 3.5, 1, 1.18, .3, 2, .05), B: pitaGeo(52, 5.4, .75, 1.35, .95, 3, .1) };
   const g = new THREE.Group(), rendah = KUAL.lv === 0;
-  const spec = [[_pitaG.A, 0x1a0008, 0x1a0008, .95, .85, 0, 1.1, 0, 0, 0], [_pitaG.A, ER_DARAH, ER_MERAH, .6, 1, 1, .95, 0, 0, 0], [_pitaG.A, 0xff3a96, 0xfff0f8, .22, 1, 1, .8, 0, 0, 0]];
-  if (!rendah) spec.push([_pitaG.B, 0x1a0008, 0x1a0008, .8, .65, 0, 1.2, .5, .55, .3], [_pitaG.B, ER_DARAH, 0xff4a9a, .48, .95, 1, 1.0, .5, .55, .3], [_pitaG.B, 0xff3a96, 0xfff0f8, .17, 1, 1, .85, .5, .55, .3]);
+  const spec = [[_pitaG.A, 0x1a0008, 0x1a0008, .55, .8, 0, .9, 0, 0, 0], [_pitaG.A, ER_DARAH, ER_MERAH, .32, 1, 1, .7, 0, 0, 0], [_pitaG.A, 0xff3a96, 0xfff0f8, .12, 1, 1, .6, 0, 0, 0]];
+  if (!rendah) spec.push([_pitaG.B, 0x1a0008, 0x1a0008, .45, .6, 0, 1.0, .5, .55, .3], [_pitaG.B, ER_DARAH, 0xff4a9a, .26, .95, 1, .8, .5, .55, .3], [_pitaG.B, 0xff3a96, 0xfff0f8, .09, 1, 1, .7, .5, .55, .3]);
   spec.forEach(([geo, c1, c2, w, al, add, tr, ry, rz, rx], k) => { const m = new THREE.Mesh(geo, pitaMat(c1, c2, w, al, add, tr)); m.rotation.set(rx, ry, rz); m.renderOrder = 10 + k; m.frustumCulled = false; g.add(m); });
   g.scale.setScalar(R); return g;
 }
@@ -3580,7 +3580,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v16'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v15'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
