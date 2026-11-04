@@ -1560,6 +1560,11 @@ const LANE = (() => {   // indikator area serangan: jalur persegi panjang sesuai
     x.fillStyle = 'rgba(255,255,255,.95)'; x.fillRect(0, 0, 4, 128); x.fillRect(60, 0, 4, 128); x.fillRect(0, 124, 64, 4); x.fillRect(0, 0, 64, 3); });
   const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: T, color: 0xff2030, transparent: true, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })); m.position.y = .07; m.renderOrder = 2; m.visible = false; scene.add(m); return m;
 })();
+const SABIT = (() => {   // indikator gelombang sabit (skill 2 mode amuk)
+  const sh = new THREE.Shape(); sh.moveTo(-.5, 0); sh.quadraticCurveTo(-.5, .8, 0, 1); sh.quadraticCurveTo(.5, .8, .5, 0); sh.quadraticCurveTo(.22, .5, 0, .6); sh.quadraticCurveTo(-.22, .5, -.5, 0);
+  const g = new THREE.ShapeGeometry(sh); g.rotateX(Math.PI / 2);
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xff2030, transparent: true, opacity: .5, depthWrite: false, toneMapped: false, side: THREE.DoubleSide })); m.position.y = .07; m.renderOrder = 2; m.visible = false; scene.add(m); return m;
+})();
 const PANAH = (() => {
   const L = TERBANG.lesat, w = .28, kp = .9, sh = new THREE.Shape();
   sh.moveTo(-w, .5); sh.lineTo(-w, L - kp); sh.lineTo(-w * 2.6, L - kp); sh.lineTo(0, L); sh.lineTo(w * 2.6, L - kp); sh.lineTo(w, L - kp); sh.lineTo(w, .5); sh.lineTo(-w, .5);
@@ -1602,9 +1607,12 @@ function updBidik() {
     return;
   }
   if (HERO === 'erick') {   // skill 1 & 2: panah arah (Tendangan Terbang / Blink Tebas · Tendangan Dinding / Gelombang Sabit)
-    const am = EW.amuk > 0, on = (K.bidik === 1 || K.bidik === 2) && P.state === 'bebas'; PANAH.visible = false; LANE.visible = !!on; if (!on) return;
-    const pj = K.bidik === 1 ? (am ? [ER.blink.lebar * 2, ER.blink.jarak] : [3.4, ER.terbang.jarak + 1.5]) : (am ? [ER.gel.R * 2, ER.gel.jarak] : [ER.kombo.R * 2, ER.kombo.jarak + 1.5]);
-    LANE.material.color.setHex(am ? 0xff2030 : 0xffa030); LANE.position.x = P.root.position.x; LANE.position.z = P.root.position.z; LANE.rotation.y = K.arahBidik; LANE.scale.set(pj[0], 1, pj[1]); return;
+    const am = EW.amuk > 0, on = (K.bidik === 1 || K.bidik === 2) && P.state === 'bebas'; if (!on) { PANAH.visible = LANE.visible = SABIT.visible = false; return; }
+    const ln = on && am && K.bidik === 1, sb = on && am && K.bidik === 2; LANE.visible = ln; SABIT.visible = sb; PANAH.visible = !!on && !am;
+    if (ln) { LANE.position.x = P.root.position.x; LANE.position.z = P.root.position.z; LANE.rotation.y = K.arahBidik; LANE.scale.set(ER.blink.lebar * 2, 1, ER.blink.jarak); }
+    else if (sb) { SABIT.position.x = P.root.position.x; SABIT.position.z = P.root.position.z; SABIT.rotation.y = K.arahBidik; SABIT.scale.set(ER.gel.R * 2.4, 1, ER.gel.jarak); }
+    else if (on) { const jarak = K.bidik === 1 ? ER.terbang.jarak : ER.kombo.jarak; PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, jarak / TERBANG.lesat); }
+    return;
   }
   if (HERO === 'pitung') {   // skill 1: panah arah Tusukan Kilat
     const on = (K.bidik === 1 || K.bidik === 2) && P.state === 'bebas'; PANAH.visible = !!on && K.bidik === 1; KIPAS_PIT.visible = !!on && K.bidik === 2; if (!on) return;   // skill 1: panah Tusukan Kilat · skill 2: kipas Bacok
@@ -2157,7 +2165,7 @@ const ER = { cepat: 3.1, cepatAmuk: 6.2, blok: 3,
   amukBasik: { tH: .12, akhir: .27, dmg: 42, R: 1.9 },
   terbang: { jarak: 6.5, mulai: .15, dash: .4, tH: .5, akhir: .95, dmg: 130 },
   tembok: { tH: [.3, .67, .97], akhir: 1.3, dmg: [55, 55, 100], R: 2, maju: 3.2 },
-  blink: { jarak: 8, tut: .4, hilang: 1, tH: [.12, .27, .42, .57, .72], akhir: 1.15, dmg: 55, lebar: 1.7 },
+  blink: { jarak: 8, tut: .3, hilang: .5, tH: [.08, .16, .24, .32, .42, .6, .7, .8, .9, 1], akhir: 1.2, dmg: 55, lebar: 1.7 },
   gel: { rilis: .2, akhir: .55, jarak: 12, cepat: 17, dmg: 160, R: 1.9 },
   cd: { amuk: [.2, 3.5, 5, 0] } };
 const EW = { combo: 0, comboT: 0, amuk: 0, st: null, gelombang: [], aura: 0 };
@@ -2350,7 +2358,7 @@ function updErick(dt, pos, f) {
     if (t < B.hilang) { if (P.model) P.model.visible = false; P.blinkHid = 1; }
     else if (P.blinkHid) { P.blinkHid = 0; if (P.model) P.model.visible = true; eBlinkFx(Z); eSabet(Z, P.arah, -.4, 2.4, .35); mainUlang('amuk2', .03, 2.2); goyang = Math.max(goyang, .15); }
     const k = P.hit2 || 0; if (k < B.tH.length && t >= B.tH[k]) { P.hit2 = k + 1;
-      const u = Math.random(), tp = A.clone().lerp(Z, .1 + .85 * u), sd = Math.atan2(Z.x - A.x, Z.z - A.z) + rnd(-.9, .9); eSabet(tp, sd, rnd(-.8, .8), 1.9, .28); percik(tp.clone().setY(1), 8, ER_DARAH, 2.5, .12);
+      const ujung = t >= B.hilang, u = Math.random(), tp = ujung ? Z.clone().add(new THREE.Vector3(rnd(-.8, .8), 0, rnd(-.8, .8))) : A.clone().lerp(Z, .1 + .85 * u), sd = Math.atan2(Z.x - A.x, Z.z - A.z) + rnd(-.9, .9); if (ujung) mainUlang('amuk' + (k % 4), .02, 2.4); eSabet(tp, sd, rnd(-.8, .8), 1.9, .28); percik(tp.clone().setY(1), 8, ER_DARAH, 2.5, .12);
       let ada = 0; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && (jarakSegmen(m.g.position, A, Z) < B.lebar || m.g.position.distanceTo(Z) < 2.1)) { kena(m, B.dmg, Z, 1.2); eTebasKena(m.g.position); ada = 1; } }); if (ada) goyang = Math.max(goyang, .08); }
     if (t > B.akhir) { P.state = 'bebas'; P.blinkHid = 0; if (P.model) P.model.visible = true; main('diam', .15); }
   }
@@ -3606,7 +3614,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v23'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v25'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
