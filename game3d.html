@@ -2191,7 +2191,8 @@ function pitaSusun(R, tegak) {   // kumpulan pita: asap hitam → merah darah �
   if (!_pitaG) _pitaG = { A: pitaGeo(48, 3.5, 1, 1.18, .3, 2, .015), B: pitaGeo(64, 5.4, .75, 1.35, .95, 3, .03) };
   const g = new THREE.Group(), rendah = KUAL.lv === 0;
   const spec = [[_pitaG.A, 0x0a0004, 0x0a0004, .36, .97, 0, .9, 0, 0, 0], [_pitaG.A, ER_DARAH, ER_MERAH, .32, 1, 1, .8, 0, 0, 0], [_pitaG.A, 0xff3a96, 0xfff0f8, .12, 1, 1, .7, 0, 0, 0]];
-  if (!rendah) spec.push([_pitaG.B, 0x0a0004, 0x0a0004, .3, .9, 0, 1.0, .5, .55, .3], [_pitaG.B, ER_DARAH, 0xff4a9a, .26, .95, 1, .85, .5, .55, .3], [_pitaG.B, 0xff3a96, 0xfff0f8, .09, 1, 1, .75, .5, .55, .3]);
+  spec.forEach(q => { q[3] *= KUAL.lv === 0 ? .72 : .78; });   // semua kualitas: sayatan lebih tipis
+  if (!rendah) spec.push([_pitaG.B, ER_DARAH, 0xff4a9a, KUAL.lv === 1 ? .15 : .17, .9, 1, .85, .5, .55, .3], [_pitaG.B, 0xff3a96, 0xfff0f8, .06, 1, 1, .75, .5, .55, .3]);
   spec.forEach(([geo, c1, c2, w, al, add, tr, ry, rz, rx], k) => { const m = new THREE.Mesh(geo, pitaMat(c1, c2, w, al, add, tr)); m.rotation.set(rx, ry, rz); m.renderOrder = 10 + k; m.frustumCulled = false; g.add(m); });
   g.scale.setScalar(R); return g;
 }
@@ -2228,7 +2229,7 @@ function erAksi(gl, m, mixer) {
   pasang('tinju1', sub('tinju1', 'tinju1s', .27, .8), 1); pasang('tinju2', sub('tinju2', 'tinju2s', .4, .93), 1); pasang('pukul0', sub('pukul', 'pukul0', .3, .6), 1); pasang('pukul1', sub('pukul', 'pukul1', .55, 1.0), 1); pasang('tendang0', sub('tendang', 'tendang0', 1.15, 1.65), 1); pasang('tendang1', sub('tendang', 'tendang1', 1.55, 2.1), 1); pasang('lutut', sub('lutut', 'lutut', .3, .95), 1);
   pasang('terbang', sub('terbangTendang', 'terbang', 0, 1.2), 1); pasang('tembok', cari('larTembok'), 1); pasang('ulti', cari('ulti'), 1);
   pasang('amuk0', sub('tebas1', 'amuk0', .2, .75), 1); pasang('amuk1', sub('tebas2', 'amuk1', .45, 1.0), 1); pasang('amuk2', sub('tebas2', 'amuk2', 1.05, 1.5), 1); pasang('amuk3', sub('tebas2', 'amuk3', 2.3, 2.75), 1);
-  pasang('gelombang', sub('tebas2', 'gelombang', .45, 1.1), 1); pasang('kalah', cari('mati'), 1);
+  pasang('gelombang', sub('tebas2', 'gelombang', .45, 1.1), 1); pasang('kalah', (cari('jalanAmuk') && cari('mati2')) || cari('mati'), 1);   // mode amuk: animasi mati sendiri (mati2)
   if (!act.diam) act.diam = act.lari; return act;
 }
 function siapkanErick(gl, m, T) {
@@ -2257,8 +2258,8 @@ function ericGanti(T, amuk) {   // tukar model: normal (rambut hitam) ↔ mengam
 }
 function erIkon(amuk) { ['bA', 'b1', 'b2', 'b3'].forEach((id, i) => { const g = document.querySelector('#' + id + ' .ikg'); if (g) g.src = (amuk ? ER_IKON_AMUK : ER_IKON_NORMAL)[i]; }); }
 function erAmukMulai() { EW.st = 'ulti'; ericGanti(P, true); erIkon(true); }
-function erAmukSelesai(selesai) {
-  EW.amuk = 0; EW.st = null; ericGanti(P, false); erIkon(false); EW.gelombang.forEach(w => scene.remove(w.o)); EW.gelombang.length = 0;
+function erAmukSelesai(selesai, tetap) {   // tetap: gugur saat mengamuk → model amuk dipertahankan agar animasi matinya terlihat
+  EW.amuk = 0; EW.st = null; if (tetap) { EW.matiAmuk = 1; ER_AURA.forEach(a => { a.opacity = .12; }); } else ericGanti(P, false); erIkon(false); EW.gelombang.forEach(w => scene.remove(w.o)); EW.gelombang.length = 0;
   P.cd[1] = selesai ? 0 : 2; P.cd[2] = selesai ? 0 : 3; P.cd[0] = 0; if (!selesai) { eAmukMulai(P.root.position); banner('😤 Amukan Erick reda', '#ffb4b4'); }
 }
 // ---- memakai skill ----
@@ -2302,7 +2303,8 @@ function ericUpdGelombang(dt) {
 function updErick(dt, pos, f) {
   if (P.blinkHid && P.state !== 'erBlink') { P.blinkHid = 0; if (P.model) P.model.visible = true; }   // pengaman: model tidak boleh tetap hilang
   const t = P.t; updBidik(); EW.comboT = Math.max(0, EW.comboT - dt); ericUpdGelombang(dt);
-  if ((P.state === 'kalah' || SELESAI) && (EW.amuk > 0 || EW.st)) erAmukSelesai(true);
+  if ((P.state === 'kalah' || SELESAI) && (EW.amuk > 0 || EW.st)) { const gugur = P.state === 'kalah'; erAmukSelesai(true, gugur); if (gugur) { const ps = pos.clone().setY(0.1); nyala(ps.clone().setY(1), 2.2, ER_MERAH, .4); percik(ps.clone().setY(1), 22, ER_DARAH, 4, .14); asap(ps, 6, ER_DARAH, 1.2, 1); } }
+  if (EW.matiAmuk && P.state !== 'kalah' && !SELESAI) { EW.matiAmuk = 0; ericGanti(P, false); }   // ronde baru: kembali ke model normal
   if (EW.amuk > 0 && P.state !== 'erUlti') { EW.amuk -= dt; eAmukAura(dt, pos); if (EW.amuk <= 0) erAmukSelesai(false); }
   if (P.state === 'erUlti') P.kunci = P.pusing = 0;
   const amuk = EW.amuk > 0 || P.state === 'erUlti';
@@ -2358,7 +2360,7 @@ function updErick(dt, pos, f) {
     if (t < B.hilang) { if (P.model) P.model.visible = false; P.blinkHid = 1; }
     else if (P.blinkHid) { P.blinkHid = 0; if (P.model) P.model.visible = true; eBlinkFx(Z); eSabet(Z, P.arah, -.4, 2.4, .35); mainUlang('amuk2', .03, 2.2); goyang = Math.max(goyang, .15); }
     const k = P.hit2 || 0; if (k < B.tH.length && t >= B.tH[k]) { P.hit2 = k + 1;
-      const ujung = t >= B.hilang, u = Math.random(), tp = ujung ? Z.clone().add(new THREE.Vector3(rnd(-.8, .8), 0, rnd(-.8, .8))) : A.clone().lerp(Z, .1 + .85 * u), sd = Math.atan2(Z.x - A.x, Z.z - A.z) + rnd(-.9, .9); if (ujung) mainUlang('amuk' + (k % 4), .02, 2.4); eSabet(tp, sd, rnd(-.8, .8), 1.9, .28); percik(tp.clone().setY(1), 8, ER_DARAH, 2.5, .12);
+      const ujung = t >= B.hilang, u = Math.random(), tp = ujung ? Z.clone().add(new THREE.Vector3(rnd(-.8, .8), 0, rnd(-.8, .8))) : A.clone().lerp(Z, .1 + .85 * u), sd = Math.atan2(Z.x - A.x, Z.z - A.z) + rnd(-.9, .9); if (ujung) mainUlang('amuk' + (k % 4), .02, 2.4); if (k % 2 === 0 || ujung) eSabet(tp, sd, rnd(-.8, .8), 1.55, .26); percik(tp.clone().setY(1), 3, ER_DARAH, 2.2, .1);
       let ada = 0; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && (jarakSegmen(m.g.position, A, Z) < B.lebar || m.g.position.distanceTo(Z) < 2.1)) { kena(m, B.dmg, Z, 1.2); eTebasKena(m.g.position); ada = 1; } }); if (ada) goyang = Math.max(goyang, .08); }
     if (t > B.akhir) { P.state = 'bebas'; P.blinkHid = 0; if (P.model) P.model.visible = true; main('diam', .15); }
   }
@@ -3614,7 +3616,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v25'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v28'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
