@@ -2170,7 +2170,7 @@ function erAksi(gl, m, mixer) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
   const klip = c => rapikanKlip(c.clone(), m, 0, false), sub = (n, nama, a, b) => { const c = cari(n); return c ? THREE.AnimationUtils.subclip(c, nama, Math.round(a * 30), Math.round(b * 30), 30) : null; };
   const act = {}, pasang = (k, c, satu) => { if (c) act[k] = satu ? sekali(mixer.clipAction(klip(c))) : mixer.clipAction(klip(c)); };
-  pasang('diam', cari('diam')); pasang('lari', cari('lari')); act.jalan = act.lari;
+  pasang('diam', cari('diam')); pasang('lari', cari('lari')); pasang('jalanK', cari('jalanKepal')); act.jalan = act.lari;
   pasang('tendang0', sub('tendang', 'tendang0', 1.15, 1.65), 1); pasang('tendang1', sub('tendang', 'tendang1', 1.55, 2.1), 1); pasang('lutut', sub('lutut', 'lutut', .3, .95), 1);
   pasang('terbang', sub('terbangTendang', 'terbang', 0, 1.2), 1); pasang('tembok', cari('larTembok'), 1); pasang('ulti', cari('ulti'), 1);
   pasang('amuk0', sub('tebas1', 'amuk0', .2, .75), 1); pasang('amuk1', sub('tebas2', 'amuk1', .45, 1.0), 1); pasang('amuk2', sub('tebas2', 'amuk2', 1.05, 1.5), 1); pasang('amuk3', sub('tebas2', 'amuk3', 2.3, 2.75), 1);
@@ -2248,7 +2248,7 @@ function updErick(dt, pos, f) {
   const amuk = EW.amuk > 0 || P.state === 'erUlti';
   if (P.state === 'bebas') {
     const [x, z] = arahGerak(), v = amuk ? ER.cepatAmuk : ER.cepat;
-    if (x || z) { pos.x += x * v * dt; pos.z += z * v * dt; P.arah = K.bidik ? K.arahBidik : Math.atan2(x, z); main('lari', .15, amuk ? 1.25 : 1); }
+    if (x || z) { pos.x += x * v * dt; pos.z += z * v * dt; P.arah = K.bidik ? K.arahBidik : Math.atan2(x, z); if (amuk || !P.act.jalanK) main('lari', .15, amuk ? 1.25 : 1); else main('jalanK', .2, 2.2); }
     else { main('diam', .25); if (K.bidik) P.arah = K.arahBidik; }
   }
   else if (P.state === 'erBasik') {
@@ -3535,7 +3535,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v1'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v2'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
