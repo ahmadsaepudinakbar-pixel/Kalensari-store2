@@ -871,9 +871,9 @@ function setKual(lv) {
 }
 document.querySelectorAll('#kual button').forEach(b => b.onclick = () => setKual(+b.dataset.q));
 // Rendah: tanpa pantulan lingkungan, bayangan, lampu api & kilat -> Kuil Malam, Lapangan SD & Kebun Malam jadi sangat gelap.
-// Gantinya dipasang cahaya pengisi + sedikit eksposur. Ubah angka di sini kalau mau lebih terang / lebih redup:
+// Gantinya dipasang cahaya pengisi + sedikit eksposur (catatan: di three.js terbaru cahaya ambient 1.0 hanya memberi sekitar sepertiga terang bahan, jadi angkanya perlu besar). Ubah angka di sini kalau mau lebih terang / lebih redup:
 // [warna cahaya, kekuatan cahaya, tambahan eksposur]
-const TERANG_RENDAH = { kuil: [0x9aa8e0, 1.1, .3], lapangan: [0xffe2c0, .75, .2], kebun: [0xa8b8e8, .8, .22] };
+const TERANG_RENDAH = { kuil: [0xd8e0ff, 6, .35], lapangan: [0xfff0dc, 2.2, .2], kebun: [0xdde6ff, 3.5, .25] };
 function terapTerang() {
   const t = KUAL.lv === 0 ? TERANG_RENDAH[ARENA] : null, cur = renderer.toneMappingExposure;
   const dasar = (KUAL.eSet !== undefined && cur === KUAL.eSet) ? KUAL.eDasar : cur;   // bila arena menimpa eksposur, pakai nilai barunya
@@ -3361,7 +3361,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · ikon-v2'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · ikon-v3'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
