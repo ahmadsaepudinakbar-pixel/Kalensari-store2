@@ -1526,10 +1526,11 @@ function updGFX(dt) {
   for (let i = GFX.length - 1; i >= 0; i--) { const e = GFX[i]; e.t += dt; const q = Math.min(1, e.t / e.umur), o = e.o;
     if (e.jenis === 'asap') { o.position.addScaledVector(e.v, dt); e.v.multiplyScalar(Math.pow(.25, dt)); o.scale.setScalar(e.uk * (.5 + q * 1.3)); o.material.opacity = .78 * Math.min(1, q * 6) * (1 - q); }
     else if (e.jenis === 'tebas') { o.scale.setScalar(e.R * (.55 + .75 * (1 - (1 - q) ** 2))); o.children[0].rotation.y = -.5 + q * 1.1; o.traverse(c => { if (c.material) c.material.opacity = (c.material.blending === THREE.AdditiveBlending ? 1 : .9) * (1 - q); }); }
+    else if (e.jenis === 'pita') { pitaAtur(e.pita, q); e.pita.rotation.y += dt * .9; }
     else if (e.jenis === 'retak') { const masuk = Math.min(1, e.t / .08); o.material.opacity = (e.nyalaM ? 1 : .92) * masuk * (q < .6 ? 1 : 1 - (q - .6) / .4); }
     else if (e.jenis === 'gel') { o.scale.setScalar(e.R * (.2 + .8 * (1 - (1 - q) ** 3))); o.material.opacity = .9 * (1 - q); }
     else if (e.jenis === 'petir') o.material.opacity = 1 - q;
-    if (e.t >= e.umur) { scene.remove(o); o.traverse(c => { if (c.material) c.material.dispose(); if (c.geometry && c.geometry !== GEO_TEBAS && c.geometry !== GEO_BIDANG) c.geometry.dispose(); }); GFX.splice(i, 1); } }
+    if (e.t >= e.umur) { scene.remove(o); o.traverse(c => { if (c.material) c.material.dispose(); if (c.geometry && c.geometry !== GEO_TEBAS && c.geometry !== GEO_BIDANG && !c.geometry.userData.bagi) c.geometry.dispose(); }); GFX.splice(i, 1); } }
 }
 // paket efek Genderuwo (dikirim sekali lewat jaringan: fx('gPukul', ...)) · m = 1 saat Amukan
 function gPukul(pos, k = 1, m = 0) {   // pukulan / hantaman kecil
@@ -2154,10 +2155,35 @@ const ER = { cepat: 3.1, cepatAmuk: 6.2, blok: 3,
   cd: { amuk: [.2, 3.5, 5, 0] } };
 const EW = { combo: 0, comboT: 0, amuk: 0, st: null, gelombang: [], aura: 0 };
 const ER_DARAH = 0xb30000, ER_MERAH = 0xff2020, ER_PUTIH = 0xffe0e0;
-function eSabet(pos, a, miring = -.5, R = 1.4, umur = .3) {   // jejak katana: merah darah + inti putih
+// ---- Sayatan pita: pita merah-darah melingkar berinti putih panas + jejak asap hitam (ala efek sayatan berputar) ----
+const PITA_V = 'uniform float uW; varying vec2 vUv; void main(){ vUv = uv; float tp = pow(max(sin(3.14159 * uv.x), 0.0), .6); vec3 p = position + normal * (uv.y * 2.0 - 1.0) * uW * tp; gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0); }';
+const PITA_F = 'uniform float uT, uTrail, uFade, uAlpha; uniform vec3 uC1, uC2; varying vec2 vUv; void main(){ float head = uT * (1.0 + uTrail); float u = vUv.x; float vis = smoothstep(head - uTrail, head - .03, u) * (1.0 - smoothstep(head - .03, head, u)); float e = 1.0 - abs(vUv.y * 2.0 - 1.0); float streak = .62 + .38 * sin(vUv.y * 38.0 + sin(u * 14.0) * 2.5 + uT * 6.0); float core = pow(max(0.0, 1.0 - abs(vUv.y * 2.0 - 1.3) * 1.7), 2.5); vec3 c = mix(uC1, uC2, core) * (1.0 + core * .9); gl_FragColor = vec4(c, vis * pow(e, .6) * streak * uFade * uAlpha); }';
+function pitaGeo(seg, sweep, r0, r1, tinggi, putar, gel) {
+  const P = [], N = [], UV = [], ID = [];
+  for (let i = 0; i <= seg; i++) { const u = i / seg, th = (u - .5) * sweep, r = r0 + (r1 - r0) * u + gel * Math.sin(u * 9), y = tinggi * (u - .5) + gel * .5 * Math.sin(u * 6 + 1), sx = Math.sin(th), cz = Math.cos(th);
+    const w = new THREE.Vector3(sx, .7 * Math.sin(u * putar * Math.PI), cz).normalize();
+    for (let v = 0; v < 2; v++) { P.push(sx * r, y, cz * r); N.push(w.x, w.y, w.z); UV.push(u, v); }
+    if (i < seg) { const k = i * 2; ID.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(ID); g.userData.bagi = true; return g;
+}
+let _pitaG = null;
+function pitaMat(c1, c2, w, alpha, add, trail) {
+  return new THREE.ShaderMaterial({ uniforms: { uT: { value: 0 }, uTrail: { value: trail }, uFade: { value: 1 }, uAlpha: { value: alpha }, uW: { value: w }, uC1: { value: new THREE.Color(c1) }, uC2: { value: new THREE.Color(c2) } },
+    vertexShader: PITA_V, fragmentShader: PITA_F, transparent: true, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, blending: add ? THREE.AdditiveBlending : THREE.NormalBlending });
+}
+function pitaSusun(R, tegak) {   // kumpulan pita: asap hitam → merah darah → inti putih
+  if (!_pitaG) _pitaG = { A: pitaGeo(40, 3.5, 1, 1.18, .3, 2, .05), B: pitaGeo(52, 5.4, .75, 1.35, .95, 3, .1) };
+  const g = new THREE.Group(), rendah = KUAL.lv === 0;
+  const spec = [[_pitaG.A, 0x1a0008, 0x1a0008, .55, .8, 0, .9, 0, 0, 0], [_pitaG.A, ER_DARAH, ER_MERAH, .32, 1, 1, .7, 0, 0, 0], [_pitaG.A, 0xff3a96, 0xfff0f8, .12, 1, 1, .6, 0, 0, 0]];
+  if (!rendah) spec.push([_pitaG.B, 0x1a0008, 0x1a0008, .45, .6, 0, 1.0, .5, .55, .3], [_pitaG.B, ER_DARAH, 0xff4a9a, .26, .95, 1, .8, .5, .55, .3], [_pitaG.B, 0xff3a96, 0xfff0f8, .09, 1, 1, .7, .5, .55, .3]);
+  spec.forEach(([geo, c1, c2, w, al, add, tr, ry, rz, rx], k) => { const m = new THREE.Mesh(geo, pitaMat(c1, c2, w, al, add, tr)); m.rotation.set(rx, ry, rz); m.renderOrder = 10 + k; m.frustumCulled = false; g.add(m); });
+  g.scale.setScalar(R); return g;
+}
+function pitaAtur(g, q, pudar = 1) { g.traverse(c => { const u = c.material && c.material.uniforms; if (u) { u.uT.value = q; u.uFade.value = pudar * (1 - Math.max(0, (q - .72) / .28)); } }); }
+function eSabet(pos, a, miring = -.5, R = 1.4, umur = .3) {   // sayatan katana: pita berputar merah darah berinti putih
   const g = new THREE.Group(); g.position.set(pos.x, 1.1, pos.z); g.rotation.y = a; const tl = new THREE.Group(); tl.rotation.z = miring; g.add(tl);
-  [[ER_PUTIH, 1, .98], [ER_MERAH, .85, 1.06], [ER_DARAH, .7, 1.14]].forEach(([w, op, sk]) => { const i = new THREE.Group(); i.rotation.x = Math.PI / 2; const arc = new THREE.Mesh(GEO_TEBAS, bahanG({ color: w, opacity: op, blending: THREE.AdditiveBlending })); arc.rotation.z = -.1 * Math.PI; arc.scale.setScalar(sk); i.add(arc); tl.add(i); });
-  scene.add(g); GFX.push({ o: g, t: 0, umur, jenis: 'tebas', R });
+  const p = pitaSusun(R * .8); p.rotation.y = rnd(-.4, .4); tl.add(p); g.scale.setScalar(1);
+  scene.add(g); GFX.push({ o: g, t: 0, umur: umur * 1.5, jenis: 'pita', pita: p });
 }
 function eTendang(pos, k = 1) { nyala(pos.clone().setY(1), 1.3 * k, 0xffd080, .22); gelombang(pos.clone().setY(0), 1.2 * k, .3, 0xffb060); percik(pos.clone().setY(.9), Math.round(16 * k), 0xfff0c0, 3.5, .14); kilat(pos, 24 * k); }
 function eTebasKena(pos) { nyala(pos.clone().setY(1.1), 1, ER_MERAH, .18); percik(pos.clone().setY(1), 10, ER_DARAH, 3, .13); percik(pos.clone().setY(1), 6, ER_PUTIH, 2.5, .1); }
@@ -2230,17 +2256,17 @@ function pakaiErick(i) {
 }
 function eBlokFx(pos, kuat) { const p = pos.clone().setY(0); gelombang(p, kuat ? 1.2 : .7, .3, kuat ? 0xffd070 : 0xffffff); percik(pos.clone().setY(1), kuat ? 18 : 10, 0xffe9a0, 3, .1); kilat(pos, kuat ? 25 : 15); }
 function eBlinkFx(pos) { const p = pos.clone().setY(0); gelombang(p, 1.3, .35, ER_MERAH); percik(pos.clone().setY(.9), 24, ER_DARAH, 3.5, .16); asap(p, 6, ER_DARAH, 1, .7); kilat(pos, 30); }
-function ericGelombang(pos, a) {
-  const g = new THREE.Group(); g.position.set(pos.x, .9, pos.z); g.rotation.y = a; const isi = new THREE.Group(); g.add(isi);
-  [[ER_PUTIH, 1, 1], [ER_MERAH, .8, 1.12], [ER_DARAH, .6, 1.26]].forEach(([w, op, sk]) => { const i = new THREE.Group(); i.rotation.x = Math.PI / 2; const arc = new THREE.Mesh(GEO_TEBAS, bahanG({ color: w, opacity: op, blending: THREE.AdditiveBlending })); arc.rotation.z = -.1 * Math.PI; arc.scale.set(sk * 1.9, sk * 1.9, sk * 1.9); i.add(arc); isi.add(i); });
-  scene.add(g); EW.gelombang.push({ o: g, a, x: pos.x, z: pos.z, t: 0, kena: new Set() }); nyala(pos.clone().setY(1), 2, ER_MERAH, .3); kilat(pos, 35);
+function ericGelombang(pos, a) {   // gelombang sabit angin: pita merah besar melesat ke depan
+  const g = new THREE.Group(); g.position.set(pos.x, .95, pos.z); g.rotation.y = a; const isi = new THREE.Group(); isi.rotation.z = .25; g.add(isi);
+  const p = pitaSusun(2.0); isi.add(p); pitaAtur(p, 0);
+  scene.add(g); EW.gelombang.push({ o: g, p, a, x: pos.x, z: pos.z, t: 0, kena: new Set() }); nyala(pos.clone().setY(1), 2, ER_MERAH, .3); kilat(pos, 35);
 }
 function ericUpdGelombang(dt) {
   for (let k = EW.gelombang.length - 1; k >= 0; k--) { const w = EW.gelombang[k]; w.t += dt; const v = ER.gel.cepat * dt; w.x += Math.sin(w.a) * v; w.z += Math.cos(w.a) * v; w.o.position.x = w.x; w.o.position.z = w.z;
     const hp = new THREE.Vector3(w.x, 0, w.z);
     MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && !w.kena.has(m) && m.g.position.distanceTo(hp) < ER.gel.R) { w.kena.add(m); kena(m, ER.gel.dmg, hp.clone().addScaledVector(new THREE.Vector3(-Math.sin(w.a), 0, -Math.cos(w.a)), 1), 6); eTebasKena(m.g.position); goyang = Math.max(goyang, .12); } });
     if (Math.random() < .7) percik(hp.clone().setY(.6), 2, ER_MERAH, 1.2, .12);
-    w.o.scale.setScalar(1 + w.t * .3); w.o.children[0].children.forEach(c => c.children[0] && (c.children[0].material.opacity = Math.max(0, c.children[0].material.opacity - dt * .15)));
+    pitaAtur(w.p, Math.min(.7, w.t * 2.6), 1 - Math.max(0, (w.t * ER.gel.cepat / ER.gel.jarak - .55) / .45)); w.p.rotation.y += dt * .8; w.o.children[0].rotation.x = Math.sin(w.t * 5) * .08;
     if (w.t * ER.gel.cepat > ER.gel.jarak || Math.abs(w.x) > 30 || Math.abs(w.z) > 30) { scene.remove(w.o); EW.gelombang.splice(k, 1); } }
 }
 function updErick(dt, pos, f) {
@@ -3554,7 +3580,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v13'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v15'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
