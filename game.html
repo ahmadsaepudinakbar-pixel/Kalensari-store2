@@ -510,9 +510,9 @@ let EMB=Array.from({length:90},()=>({x:Math.random()*WW,y:Math.random()*WH,v:.3+
 const CH={
  pocong:{n:'Ocong',spd:2.4,jump:-14,grav:.7,atk:55,rng:90,sk:[{n:'Loncat Jauh',k:'leap',cd:300,i:'',ic:'ic1'},{n:'Guling ke Arah Tujuan',k:'roll',cd:360,i:'',ic:'ic2'},{n:'Lingkaran & Lempar',k:'ring',cd:540,i:'',ic:'ic3'}]},
  kuntilanak:{n:'Kunti',spd:2.1,jump:-11,grav:.4,atk:60,rng:260,sk:[{n:'Frekuensi Suara',k:'wave',cd:420,i:'',ic:'kic1'},{n:'Nge Blink',k:'blink',cd:360,i:'',ic:'kic2'},{n:'Penjara Roh',k:'prison',cd:600,i:'',ic:'kic3'}]}};
-const ALL=[['pocong','Ocong','#e9e6df'],['kuntilanak','Kunti','#7b2cbf'],['tuyul','Tuyul','#c9a27a'],['genderuwo','Genderuwo','#5a3a2a'],['pitung','Si Pitung','#c1121f'],['x','Sundel Bolong','#555'],['x','Wewe Gombel','#8d6e4c'],['x','Buto Ijo','#2d8f3a']];
+const ALL=[['pocong','Ocong','#e9e6df'],['kuntilanak','Kunti','#7b2cbf'],['tuyul','Tuyul','#c9a27a'],['genderuwo','Genderuwo','#5a3a2a'],['pitung','Si Pitung','#c1121f'],['erick','Erick','#e63946'],['x','Sundel Bolong','#555'],['x','Wewe Gombel','#8d6e4c'],['x','Buto Ijo','#2d8f3a']];
 // ===== KARTU: hero gratis, skin, & koleksi pemain (dari Supabase, akun warga desa Kalensari Store) =====
-const GRATIS=['pocong','pitung'];   // Si Pitung sementara gratis (hapus 'pitung' dari sini kalau mau dibuka lewat kartu)   // hero yang bisa dipakai tanpa kartu
+const GRATIS=['pocong','pitung','erick'];   // Si Pitung sementara gratis (hapus 'pitung' dari sini kalau mau dibuka lewat kartu)   // hero yang bisa dipakai tanpa kartu
 const SKINS={              // id skin = 'hero:nama' (sama dengan isian "item" saat admin membuat kartu skin)
  'kuntilanak:merah':{h:'kuntilanak',n:'Kunti Merah',f:'none'},
  'genderuwo:leak':{h:'genderuwo',n:'Leak',f:'none'},
@@ -1179,7 +1179,7 @@ function tmBegin(m){clearTimeout(TM.vsT);NET.on=1;NET.team=1;NET.inGame=1;NET.ro
   netReset();start(null,R);netReady();banner('⚔️ Anda di '+(meT?'TIM MERAH':'TIM BIRU')+' · '+nB+' vs '+nR)}};TM.vsT=setTimeout(tick,1100)}
 // ---------- PERSIAPAN DUEL (pilih hero & arena) + LAYAR VS ----------
 let LB=null,vsT=0;const LB_TIME=30;
-const POT3D=(id,s)=>'gambar-game/potret-3d/'+(id=='pitung'?'pitung':id=='genderuwo'?(s=='genderuwo:leak'?'leak':'genderuwo'):id=='tuyul'?'tuyul':id=='kuntilanak'?(s=='kuntilanak:merah'?'kunti-merah':'kunti'):s=='pocong:boneka'?'ocong-boneka':s=='pocong:emas'?'ocong-pink':'ocong-lompat');
+const POT3D=(id,s)=>'gambar-game/potret-3d/'+(id=='erick'?'erick':id=='pitung'?'pitung':id=='genderuwo'?(s=='genderuwo:leak'?'leak':'genderuwo'):id=='tuyul'?'tuyul':id=='kuntilanak'?(s=='kuntilanak:merah'?'kunti-merah':'kunti'):s=='pocong:boneka'?'ocong-boneka':s=='pocong:emas'?'ocong-pink':'ocong-lompat');
 const heroImg=(id,s)=>POT3D(id,s)+'-badan.webp',heroHead=(id,s)=>POT3D(id,s)+'-kepala.webp';   // potret model 3D
 function lobSend(){if(!LB)return;LB.me.s=skinOf(LB.me.h);const o={lb:{h:LB.me.h,r:LB.me.r,s:LB.me.s}};if(NET.role=='host'){o.t='st';o.lb.a=LB.a}else o.t='in';netSend(o)}
 function lobRender(){if(!LB)return;const host=NET.role=='host',p1=host?LB.me:LB.op,p2=host?LB.op:LB.me,n1=host?myName():NET.oppName,n2=host?NET.oppName:myName();
@@ -1239,8 +1239,8 @@ function akSamakan(){try{const n=String(KOL.nama||'').trim();if(n&&n!='Pemain'){
  if('foto' in KOL){if(KOL.foto)localStorage.setItem('kgFoto',KOL.foto);else localStorage.removeItem('kgFoto')}}catch(e){}}
 function kMasuk(kode){try{sessionStorage.setItem('kalensari_next','url:game.html'+(kode?'?kartu='+encodeURIComponent(kode):'')+'#kartu')}catch(e){}kSt('Membuka halaman masuk akun warga desa Kalensari Store…');setTimeout(()=>location.href='akun-pembeli.html',600)}
 function kSt(t,c){const e=$('#kSt');e.textContent=t||'';e.className='kst '+(c||'')}
-const NM3D=h=>({pocong:'Ocong',kuntilanak:'Kunti',tuyul:'Tuyul',genderuwo:'Genderuwo',pitung:'Si Pitung'})[h]||h;
-const HEROK=['pocong','kuntilanak','tuyul','genderuwo','pitung'],adaHero=h=>HEROK.includes(h);   // semua hero yang bisa dimainkan (CH hanya berisi data duel 2D lama)
+const NM3D=h=>({pocong:'Ocong',kuntilanak:'Kunti',tuyul:'Tuyul',genderuwo:'Genderuwo',pitung:'Si Pitung',erick:'Erick'})[h]||h;
+const HEROK=['pocong','kuntilanak','tuyul','genderuwo','pitung','erick'],adaHero=h=>HEROK.includes(h);   // semua hero yang bisa dimainkan (CH hanya berisi data duel 2D lama)
 const itemNama=(j,it)=>j=='skin'?(SKINS[it]?SKINS[it].n:it):NM3D(it);
 const itemImg=(j,it)=>{const h=j=='skin'?(SKINS[it]&&SKINS[it].h):it;return adaHero(h)?`<img src="${heroImg(h,j=='skin'?it:'')}" style="filter:${j=='skin'?skinF(it):'none'} drop-shadow(0 .4cqw .6cqw #000)">`:''};
 function karRender(){const ak=$('#kAkun');
@@ -2214,7 +2214,7 @@ const linkT=setInterval(()=>{if(!window.KG_DEV||$('#ldg').classList.contains('on
 ['aGo','bOnl','pkaGo'].forEach(id=>{const b=$('#'+id),f=b.onclick;if(f)b.onclick=e=>kgWait(()=>f.call(b,e))});
 window.KG_READY=1;kgCek();
 // ===================== SEMUA DUEL DI GAME 3D =====================
-const H3D={pocong:'ocong',kuntilanak:'kunti',tuyul:'tuyul',genderuwo:'genderuwo',pitung:'pitung'};
+const H3D={pocong:'ocong',kuntilanak:'kunti',tuyul:'tuyul',genderuwo:'genderuwo',pitung:'pitung',erick:'erick'};
 function skin3D(h){const s=skinOf(h);if(h=='pocong')return s=='pocong:boneka'?'':s=='pocong:emas'?'emas':'lompat';if(h=='kuntilanak')return s=='kuntilanak:merah'?'merah':'';if(h=='genderuwo')return s=='genderuwo:leak'?'leak':'';return''}
 function namaSaya(){let n=($('#oName').value||'').trim();if(!n){try{n=localStorage.getItem('kgName')||''}catch(e){}}n=(n||KOL.nama||'Pemain').slice(0,16);try{localStorage.setItem('kgName',n)}catch(e){}return n}
 function ke3D(mode,x){if(!punyaHero(pick))pick='pocong';x=x||{};
@@ -2702,11 +2702,12 @@ function lomba17() {
 }
 
 // ---------- HERO (model 3D dari folder model-3d, sama dengan duel 3D) ----------
-const TINGGI = { pocong: 1.7, kuntilanak: 1.7, tuyul: 1.15, genderuwo: 2.05, pitung: 1.7 };
+const TINGGI = { pocong: 1.7, kuntilanak: 1.7, tuyul: 1.15, genderuwo: 2.05, pitung: 1.7, erick: 1.7 };
 function urlHero(id, skin) {
   if (id == 'kuntilanak') return skin == 'kuntilanak:merah' ? 'model-3d/skinkunti.glb' : 'model-3d/skinkunti-asli.glb';
   if (id == 'tuyul') return 'model-3d/tuyul.glb';
   if (id == 'pitung') return 'model-3d/pitung.glb';
+  if (id == 'erick') return 'model-3d/erick.glb';
   if (id == 'genderuwo') return skin == 'genderuwo:leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb';
   return skin == 'pocong:boneka' ? 'model-3d/skinocong.glb' : 'model-3d/skinocong-lompat.glb';
 }
