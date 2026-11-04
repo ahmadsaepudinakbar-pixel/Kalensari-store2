@@ -1205,7 +1205,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) K.bidik = false; };
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
-if (HERO === 'erick') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul-Pukul-Tendang · U (tahan + mouse): Melesat (tendangan terbang) · I (tahan + mouse): Tendangan beruntun + Tendangan Terbang · O: MENGAMUK 7 detik (rambut merah + katana: serangan tebas brutal · U: Blink Tebas · I: Gelombang Sabit)';
+if (HERO === 'erick') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul-Pukul · U (tahan + mouse): Melesat (tendangan terbang) · I (tahan + mouse): Tendangan beruntun + Tendangan Terbang · O: MENGAMUK 7 detik (rambut merah + katana: serangan tebas brutal · U: Blink Tebas · I: Gelombang Sabit)';
 if (HERO === 'pitung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul ×2 lalu Tendang (tekan 3x) · U (tahan + mouse): Tusukan Kilat (melesat & menusuk) · I (tahan + mouse): Bacok Golok sambil menerjang · O: Terbang Si Pitung (lepas dari stun, lompat & menebas lawan)';
 if (HERO === 'tuyul') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Colek Kilat (curi koin) · U (tahan + mouse): Seluncur Licin · I: Ngilang 2,5 detik · O (tahan + mouse): Blink kilat + Gerombolan Tuyul (bisa dipakai saat terkena stun)';
 if (HERO === 'kunti') { $('#nmhero').textContent = 'Kunti Merah'; $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Roh · U (tahan, arahkan dgn mouse): Frekuensi Suara · I (tahan, arahkan dgn mouse): Mode Terbang · O: Roh Pemburu'; }
@@ -2145,7 +2145,7 @@ function updPitung(dt, pos, f) {
 // Mengamuk: rambut merah + katana + aura darah · serangan = tebasan cepat brutal · skill 1 Blink Tebas (menebas jalur di belakangnya) · skill 2 Gelombang Sabit (tebasan angin melesat)
 const ER = { cepat: 3.1, cepatAmuk: 4.0, blok: 3,
   kombo: { mulai: [0, .5, 1, 1.55], tH: [.2, .2, .26, .45], dmg: [45, 45, 60, 140], dorong: [1.6, 1.6, 3, 11], R: 1.9, maju: 3, jarak: 5, akhir: 2.5 }, amukLama: 7, amukMulaiT: 1.3,
-  basik: { tH: [.1, .13, .2], akhir: [.27, .34, .46], dmg: [40, 40, 100], dorong: [1.2, 1.2, 6], R: 1.7, jeda: 1.4 },
+  basik: { tH: [.12, .11], akhir: [.33, .34], dmg: [55, 65], dorong: [1.4, 4], R: 1.7, jeda: 1.4 },
   amukBasik: { tH: .12, akhir: .27, dmg: 42, R: 1.9 },
   terbang: { jarak: 6.5, mulai: .15, dash: .4, tH: .5, akhir: .95, dmg: 130 },
   tembok: { tH: [.3, .67, .97], akhir: 1.3, dmg: [55, 55, 100], R: 2, maju: 3.2 },
@@ -2172,8 +2172,8 @@ function erAksi(gl, m, mixer) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
   const klip = c => rapikanKlip(c.clone(), m, 0, false), sub = (n, nama, a, b) => { const c = cari(n); return c ? THREE.AnimationUtils.subclip(c, nama, Math.round(a * 30), Math.round(b * 30), 30) : null; };
   const act = {}, pasang = (k, c, satu) => { if (c) act[k] = satu ? sekali(mixer.clipAction(klip(c))) : mixer.clipAction(klip(c)); };
-  pasang('diam', cari('diamN') || cari('diam')); pasang('lari', cari('lari')); pasang('jalanK', cari('jalanKepal')); pasang('blok', cari('blok'), 1); act.jalan = act.lari;
-  pasang('pukul0', sub('pukul', 'pukul0', .3, .6), 1); pasang('pukul1', sub('pukul', 'pukul1', .55, 1.0), 1); pasang('tendang0', sub('tendang', 'tendang0', 1.15, 1.65), 1); pasang('tendang1', sub('tendang', 'tendang1', 1.55, 2.1), 1); pasang('lutut', sub('lutut', 'lutut', .3, .95), 1);
+  pasang('diam', cari('diamN') || cari('diam')); pasang('lari', cari('lari')); pasang('jalanK', cari('jalanKepal')); pasang('blok', cari('blok'), 1); pasang('jalanA', cari('jalanAmuk')); act.jalan = act.lari;
+  pasang('tinju1', sub('tinju1', 'tinju1s', .27, .8), 1); pasang('tinju2', sub('tinju2', 'tinju2s', .4, .93), 1); pasang('pukul0', sub('pukul', 'pukul0', .3, .6), 1); pasang('pukul1', sub('pukul', 'pukul1', .55, 1.0), 1); pasang('tendang0', sub('tendang', 'tendang0', 1.15, 1.65), 1); pasang('tendang1', sub('tendang', 'tendang1', 1.55, 2.1), 1); pasang('lutut', sub('lutut', 'lutut', .3, .95), 1);
   pasang('terbang', sub('terbangTendang', 'terbang', 0, 1.2), 1); pasang('tembok', cari('larTembok'), 1); pasang('ulti', cari('ulti'), 1);
   pasang('amuk0', sub('tebas1', 'amuk0', .2, .75), 1); pasang('amuk1', sub('tebas2', 'amuk1', .45, 1.0), 1); pasang('amuk2', sub('tebas2', 'amuk2', 1.05, 1.5), 1); pasang('amuk3', sub('tebas2', 'amuk3', 2.3, 2.75), 1);
   pasang('gelombang', sub('tebas2', 'gelombang', .45, 1.1), 1); pasang('kalah', cari('mati'), 1);
@@ -2211,7 +2211,7 @@ function pakaiErick(i) {
   const arahi = maks => { if (K.bidik === i && K.diarahkan) P.arah = K.arahBidik; else { const m = terdekat(maks); if (m) hadapKe(m.g.position); } };
   if (i === 0) {
     if (amuk) { arahi(3); P.langkah = EW.combo = (EW.combo + 1) % 4; P.state = 'erBasik'; mainUlang('amuk' + P.langkah, .03, 2.3); P.cd[0] = ER.cd.amuk[0]; }
-    else { if (EW.comboT <= 0) EW.combo = 0; arahi(2.8); P.langkah = EW.combo; P.state = 'erBasik'; mainUlang(['pukul0', 'pukul1', 'tendang1'][EW.combo], .04, EW.combo < 2 ? 1.2 : 1.35); EW.combo = (EW.combo + 1) % 3; EW.comboT = ER.basik.jeda; P.cd[0] = CD_MAX[0]; }
+    else { if (EW.comboT <= 0) EW.combo = 0; arahi(2.8); P.langkah = EW.combo; P.state = 'erBasik'; mainUlang(['tinju1', 'tinju2'][EW.combo], .04, 1.5); EW.combo = (EW.combo + 1) % 2; EW.comboT = ER.basik.jeda; P.cd[0] = CD_MAX[0]; }
   }
   else if (i === 1) {
     if (amuk) { arahi(ER.blink.jarak + 1.5); P.state = 'erBlink'; P.awal = pos.clone(); P.tujuan = tujuanBlink(pos, P.arah, ER.blink.jarak); mainUlang('amuk1', .03, 2.2); eBlinkFx(pos); P.cd[1] = ER.cd.amuk[1]; }
@@ -2251,7 +2251,7 @@ function updErick(dt, pos, f) {
   const amuk = EW.amuk > 0 || P.state === 'erUlti';
   if (P.state === 'bebas') {
     const [x, z] = arahGerak(), v = amuk ? ER.cepatAmuk : ER.cepat;
-    if (x || z) { pos.x += x * v * dt; pos.z += z * v * dt; P.arah = K.bidik ? K.arahBidik : Math.atan2(x, z); if (!P.act.jalanK) main('lari', .15, amuk ? 1.25 : 1); else main('jalanK', .2, amuk ? 2.8 : 2); }
+    if (x || z) { pos.x += x * v * dt; pos.z += z * v * dt; P.arah = K.bidik ? K.arahBidik : Math.atan2(x, z); if (amuk && P.act.jalanA) main('jalanA', .15, 1.3); else if (!P.act.jalanK) main('lari', .15, amuk ? 1.25 : 1); else main('jalanK', .2, amuk ? 2.8 : 2); }
     else { main('diam', .25); if (K.bidik) P.arah = K.arahBidik; }
   }
   else if (P.state === 'erBasik') {
@@ -2262,8 +2262,8 @@ function updErick(dt, pos, f) {
       if (t > B.akhir) { P.state = 'bebas'; main('diam', .1); }
     } else {
       const s = P.langkah, B = ER.basik; if (t < B.tH[s]) pos.addScaledVector(f, 2 * dt);
-      if (t > B.tH[s] && !P.hit) { P.hit = 1; const hp = pos.clone().addScaledVector(f, 1.1); eTendang(hp, s === 2 ? 1.4 : 1);
-        if (kenaDepan(pos, f, 1.1, B.R, m => { kena(m, B.dmg[s], pos, B.dorong[s]); if (s === 2) m.pusing = Math.max(m.pusing || 0, .4); })) goyang = Math.max(goyang, s === 2 ? .15 : .06); }
+      if (t > B.tH[s] && !P.hit) { P.hit = 1; const hp = pos.clone().addScaledVector(f, 1.1); eTendang(hp, s === 1 ? 1.4 : 1);
+        if (kenaDepan(pos, f, 1.1, B.R, m => { kena(m, B.dmg[s], pos, B.dorong[s]); if (s === 1) m.pusing = Math.max(m.pusing || 0, .4); })) goyang = Math.max(goyang, s === 1 ? .15 : .06); }
       if (t > B.akhir[s]) { P.state = 'bebas'; main('diam', .15); }
     }
   }
@@ -3554,7 +3554,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v6'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v8'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
