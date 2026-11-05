@@ -1000,7 +1000,7 @@ function updEfek(dt) {
 // ================== BONEKA (PEMAIN) ==================
 const P = { root: new THREE.Group(), tilt: new THREE.Group(), model: null, mixer: null, act: {}, cur: '', arah: 0, cd: [0, 0, 0, 0], state: 'bebas', t: 0, hp: HP_MAX[HERO] };
 P.root.add(P.tilt); scene.add(P.root); P.root.position.set(0, 0, 4);
-const CD_MAX = HERO === 'doni' ? [.55, 5, 8, 12] : HERO === 'erick' ? [.5, 5, 8, 14] : HERO === 'pitung' ? [.3, 5, 6, 12] : HERO === 'genderuwo' ? [.75, 6, 7, 14] : HERO === 'tuyul' ? [.4, 5, 8, 12] : HERO === 'kunti' ? [.5, 4, 9, 6] : [.5, 4, 4, 6];   // Kunti: skill 2 (Mode Terbang) jeda 9 dtk   // jeda: serangan, skill 1, 2, 3 (detik)
+const CD_MAX = HERO === 'doni' ? [.27, 5, 8, 12] : HERO === 'erick' ? [.5, 5, 8, 14] : HERO === 'pitung' ? [.3, 5, 6, 12] : HERO === 'genderuwo' ? [.75, 6, 7, 14] : HERO === 'tuyul' ? [.4, 5, 8, 12] : HERO === 'kunti' ? [.5, 4, 9, 6] : [.5, 4, 4, 6];   // Kunti: skill 2 (Mode Terbang) jeda 9 dtk   // jeda: serangan, skill 1, 2, 3 (detik)
 
 // rapikan animasi Mixamo: badan tidak berputar menyamping & tidak bergeser sendiri
 function rapikanKlip(clip, model, tRef, putar) {
@@ -2390,7 +2390,7 @@ function updErick(dt, pos, f) {
 // Serangan dasar: pukul, pukul, tendang (tangan kosong) · Skill 1: Gear Throw (diarahkan, Bleeding) · Skill 2: Chain Pull (otomatis kena + tarik + Stun 1,5 dtk) · Skill 3: Gear Whirl (rantai bergir berputar, area luas, Bleeding)
 // Combo pasti kena: Skill 2 → Skill 1 → Skill 3. Rantai & gir dibuat dari kode (InstancedMesh: ratusan mata rantai = 1 kali gambar, ringan di HP).
 const DN = { cepat: 4.1,
-  pukul: { kec: [1.5, 1.5, 1.6], tH: [.17, .15, .36], akhir: [.4, .43, .62], dmg: [45, 50, 95], R: [1.6, 1.6, 1.9], dorong: [1.2, 1.5, 6], jeda: 1.2 },   // pukul (hook kiri), pukul (hook kanan), TENDANG
+  pukul: { kec: [2.2, 2.2, 2.2], tH: [.11, .1, .26], akhir: [.27, .29, .45], dmg: [45, 50, 95], R: [1.6, 1.6, 1.9], dorong: [1.2, 1.5, 6], jeda: 1.2 },   // pukul (hook kiri), pukul (hook kanan), TENDANG
   gir: { rilis: .26, akhir: .62, jarak: 10, cepat: 18, dmg: 110, R: .95, darah: [3, 22, 1] },   // Bleeding: 3x 22 damage, tiap 1 detik
   tarik: { jangkau: 7.5, lempar: .3, julur: .16, kait: .1, tarik: .32, akhir: .95, dmg: 90, stun: 1.5, sisa: 1.35 },
   pusar: { lama: 2.1, R: 4.2, tik: .3, dmg: 38, buka: .3, tutup: .25, darah: [2, 18, .8], rantai: 4 } };
@@ -3826,7 +3826,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v4'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v5'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
