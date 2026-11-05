@@ -667,6 +667,7 @@ function mulai3D() {
     genderuwo: { url: 'model-3d/genderuwo.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // hero ke-4
     leak: { url: 'model-3d/leak.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // skin Genderuwo: Leak
     pitung: { url: 'model-3d/pitung.glb', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'lari', loncat: 'terbang' } },   // hero ke-5: melompat dengan pose ikonik
+    pendekar: { url: 'model-3d/pitung-batik.glb', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'lari', loncat: 'terbang' } },   // skin Si Pitung: Pendekar Silat
   };
   const M3D = {};
   function muatM3D(kunci) {
@@ -688,7 +689,7 @@ function mulai3D() {
     const root = new THREE.Group(), badanG = new THREE.Group(); badanG.add(m); root.add(badanG);
     m.traverse(o => { if (o.name === 'gendKepal' || o.name === 'golok') o.visible = false; });   // Parkur: Genderuwo bercakar terbuka saja · Si Pitung tanpa golok
     const tegapG = []; if (D.tegap) m.traverse(o => { if (!o.isBone) return; const k = o.name.replace(/^mixamorig:?/, ''); const f = D.tegap[k] || (/(Thumb|Index|Middle|Ring|Pinky)/.test(k) ? 1 : 0); if (f) tegapG.push([o, o.quaternion.clone(), f]); });
-    return { root, badanG, jenis: kunci === 'tuyul' || kunci === 'genderuwo' || kunci === 'leak' || kunci === 'pitung' ? 'tuyul3d' : 'kunti3d', mixer, act, cur: '', tegapG };   // Genderuwo memakai gerak yang sama dengan Tuyul (diam / lari / lompat)
+    return { root, badanG, jenis: kunci === 'tuyul' || kunci === 'genderuwo' || kunci === 'leak' || kunci === 'pitung' || kunci === 'pendekar' ? 'tuyul3d' : 'kunti3d', mixer, act, cur: '', tegapG };   // Genderuwo memakai gerak yang sama dengan Tuyul (diam / lari / lompat)
   }
   function buatBoneka() {
     const m = SkeletonUtils.clone(BONEKA.m), mixer = new THREE.AnimationMixer(m), act = {};
@@ -710,7 +711,7 @@ function mulai3D() {
     const mauBoneka = id === 'pocong' && skin === 'pocong:boneka';
     if (h && (h.id !== id || h.skin !== skin || (mauBoneka && BONEKA && h.jenis !== 'boneka'))) { buang(k); h = null; }
     if (!h) {
-      const kunci3d = id === 'pitung' ? 'pitung' : id === 'genderuwo' ? (skin === 'genderuwo:leak' ? 'leak' : 'genderuwo') : id === 'tuyul' ? 'tuyul' : id === 'kuntilanak' ? (skin === 'kuntilanak:merah' ? 'merah' : 'kunti') : '';
+      const kunci3d = id === 'pitung' ? (skin === 'pitung:pendekar' ? 'pendekar' : 'pitung') : id === 'genderuwo' ? (skin === 'genderuwo:leak' ? 'leak' : 'genderuwo') : id === 'tuyul' ? 'tuyul' : id === 'kuntilanak' ? (skin === 'kuntilanak:merah' ? 'merah' : 'kunti') : '';
       if (kunci3d) muatM3D(kunci3d); else if (mauBoneka) muatBoneka(); else muatOcong3D();
       h = kunci3d && M3D[kunci3d] ? buatM3D(kunci3d) : id === 'tuyul' || id === 'genderuwo' || id === 'pitung' ? buatOcong('') : id === 'kuntilanak' ? buatKunti(skin) : mauBoneka && BONEKA ? buatBoneka() : !mauBoneka && OCONG3D ? buatOcong3D(skin) : buatOcong(skin);
       h.id = id; h.skin = skin; h.arah = 0; h.hop = 0; h.kunci3d = kunci3d;
