@@ -46,7 +46,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #back{color:#ffd166;text-decoration:none}
 #pilhero{display:flex;gap:4px;margin-top:5px}#pilhero a{font:700 11px Arial;color:#cfd6e6;background:#141b33;border:1px solid #2c3f73;border-radius:7px;padding:4px 10px;text-decoration:none}#pilhero a.on{background:#c1121f;color:#fff;border-color:#ff5a6a}
 .sb .ikg{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}.sb .ik{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;pointer-events:none}#b1 .ik,#b2 .ik,#b3 .ik{font-size:24px}
-@media (max-width:700px){#help{display:none}}
+#help{display:none!important}
 #menu,#lobi{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:16px;overflow:auto;background:radial-gradient(circle at 50% 30%,#2a0f1e,#07050c 70%)}
 #menu.on,#lobi.on{display:flex}#lobi{background:#05040acc}
 .mbox{width:min(460px,100%);background:#0f0b16ee;border:1px solid #ffffff1c;border-radius:16px;padding:18px 18px 14px;box-shadow:0 10px 40px #000a}
@@ -100,7 +100,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 /* HP masih tegak saat memuat (pindah halaman membuat browser melepas layar miring): layar memuat diputar
    supaya tetap terbaca dengan HP dipegang miring, dan ketukan di layar memuat langsung memasang layar penuh + miring */
 #load .ketuk{display:none;color:#ffd166;font-weight:700}
-@media (orientation:portrait){body.hp #load:not(.off){inset:auto;top:100vh;left:0;width:100vh;height:100vw;transform-origin:0 0;transform:rotate(-90deg)}body.hp #load .ketuk{display:block}}
+@media (orientation:portrait){body.ponsel #load:not(.off){inset:auto;top:100vh;left:0;width:100vh;height:100vw;transform-origin:0 0;transform:rotate(-90deg)}body.ponsel #load .ketuk{display:block}}
 #putar{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#07050cf2;color:#f2efe9;font:700 17px Arial;text-align:center;padding:24px}
 #putar.on{display:flex}#putar .hp{font-size:64px;animation:putarHP 1.6s ease-in-out infinite}#putar small{color:#9aa3b8;font-weight:500}
 #putar button{font:700 17px Arial;color:#201400;background:#ffb703;border:0;border-radius:12px;padding:13px 26px;box-shadow:0 4px 18px #ffb70355}
@@ -114,7 +114,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #timHud{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;background:#0b1020d8;border:1px solid #ffffff22;border-radius:12px;padding:5px 14px;font:900 20px Arial;color:#fff;pointer-events:none;flex-wrap:wrap;justify-content:center}
 #timHud .b{color:#5ab4ff}#timHud .m{color:#ff6060}#timHud small{font:700 12px Arial;color:#b8c0d8}#timHud .hdp{flex-basis:100%;text-align:center;font:700 13px Arial;color:#ffd166}
 body:has(#timHud:not([style*="none"])) #koin{top:52px}
-#tbans{position:fixed;left:50%;top:60px;transform:translateX(-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
+#tbans{position:fixed;left:10px;top:148px;max-width:230px;z-index:6;display:flex;flex-direction:column;align-items:flex-start;gap:4px;pointer-events:none}
 .tban{font:700 14px Arial;color:#fff;background:#000a;border-radius:8px;padding:4px 12px;text-shadow:0 1px 0 #000;transition:opacity .5s}.tban.hilang{opacity:0}
 .hp.kawan{width:70px;margin-left:-35px;height:8px;border:1px solid #9ad0ff88;overflow:visible}.hp.kawan i{background:#3a9cff;border-radius:3px}.hp.kawan .nm{color:#cfe6ff}
 #lobi.tim .mbox{width:min(680px,96vw);max-height:94vh;overflow:auto}
@@ -140,7 +140,7 @@ body:has(#timHud:not([style*="none"])) #koin{top:52px}
 </script>
 </head>
 <body>
-<script>if(/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)){document.body.classList.add('hp');
+<script>if(/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)){document.body.classList.add('ponsel');
  // ketukan selama layar memuat (sebelum kode game siap) → langsung layar penuh + kunci miring
  document.addEventListener('pointerdown',function(){var d=document.documentElement,L=document.getElementById('load');if(window.KG_APP||document.fullscreenElement||document.webkitFullscreenElement||!L||L.classList.contains('off'))return;
   try{var p=d.requestFullscreen?d.requestFullscreen({navigationUI:'hide'}):(d.webkitRequestFullscreen&&d.webkitRequestFullscreen());var k=function(){try{screen.orientation.lock('landscape').catch(function(){})}catch(e){}};if(p&&p.then)p.then(k,k);else k()}catch(e){}},true)}</script>
@@ -875,16 +875,18 @@ document.querySelectorAll('#kual button').forEach(b => b.onclick = () => setKual
 // Rendah: tanpa pantulan lingkungan, bayangan, lampu api & kilat -> Kuil Malam, Lapangan SD & Kebun Malam jadi sangat gelap.
 // Gantinya dipasang cahaya pengisi + sedikit eksposur (catatan: di three.js terbaru cahaya ambient 1.0 hanya memberi sekitar sepertiga terang bahan, jadi angkanya perlu besar). Ubah angka di sini kalau mau lebih terang / lebih redup:
 // [warna cahaya, kekuatan cahaya, tambahan eksposur]
+// Sedang & Tinggi (hanya Kuil Malam): cahaya pengisi lebih kecil karena sudah ada pantulan lingkungan, bayangan & obor. Samakan terangnya dengan Rendah; ubah angka ini bila perlu: [warna, kekuatan, tambahan eksposur]
+const TERANG_LANJUT = { kuil: { 1: [0xd8e0ff, 2.1, .18], 2: [0xd8e0ff, 1.8, .12] } };
 const TERANG_RENDAH = { kuil: [0xd8e0ff, 3.5, .25], lapangan: [0xfff0dc, 1.8, .15], kebun: [0xdde6ff, 2.5, .2] };
 // Pengaturan ☀ (geser di panel kualitas, hanya tampil saat Rendah): pengali kecerahan 0–2, tersimpan di HP. 1 = nilai standar di atas
 function terapTerang() {
   if (KUAL.fT === undefined) { KUAL.fT = 1; try { const v = parseFloat(localStorage.getItem('terangRendah')); if (v >= 0 && v <= 2) KUAL.fT = v; } catch (e) { } }
-  const t = KUAL.lv === 0 ? TERANG_RENDAH[ARENA] : null, f = KUAL.fT, cur = renderer.toneMappingExposure;
+  const t = KUAL.lv === 0 ? TERANG_RENDAH[ARENA] : (TERANG_LANJUT[ARENA] && TERANG_LANJUT[ARENA][KUAL.lv]) || null, f = KUAL.lv === 0 ? KUAL.fT : 1, cur = renderer.toneMappingExposure;
   const dasar = (KUAL.eSet !== undefined && cur === KUAL.eSet) ? KUAL.eDasar : cur;   // bila arena menimpa eksposur, pakai nilai barunya
   KUAL.eDasar = dasar; KUAL.eSet = dasar + (t ? t[2] * f : 0); renderer.toneMappingExposure = KUAL.eSet;
   if (t) LAMA.color.setHex(t[0]); LAMA.intensity = t ? t[1] * f : 0;
   const sl = $('#trg'), lb = $('#trgL');
-  if (sl) { sl.style.display = lb.style.display = t ? '' : 'none'; sl.value = f;
+  if (sl) { sl.style.display = lb.style.display = (t && KUAL.lv === 0) ? '' : 'none'; sl.value = f;
     if (!sl.dataset.ok) { sl.dataset.ok = 1; sl.onpointerdown = e => e.stopPropagation(); sl.oninput = () => { KUAL.fT = +sl.value; try { localStorage.setItem('terangRendah', KUAL.fT); } catch (e) { } terapTerang(); }; } }
 }
 function terapResolusi() {   // Rendah di HP: resolusi lebih kecil, bisa turun lagi otomatis (KUAL.skala)
@@ -3568,7 +3570,7 @@ async function layarMiring() {
 }
 function cekTegak() { const ketik = document.activeElement && document.activeElement.tagName === 'INPUT', muat = !$('#load').classList.contains('off'); const tegak = DI_HP && innerHeight > innerWidth && !LAYAR.tolak && !ketik && !muat; $('#putar').classList.toggle('on', tegak); }
 document.addEventListener('pointerdown', e => { if (DI_HP && !window.KG_APP && !fsEl() && !e.target.closest('#putarX,#mNama,#mKode')) layarMiring(); }, true);
-addEventListener('resize', cekTegak); if (DI_HP) document.body.classList.add('hp');
+addEventListener('resize', cekTegak); if (DI_HP) document.body.classList.add('ponsel');
 new MutationObserver(cekTegak).observe($('#load'), { attributes: true, attributeFilter: ['class'] });   // selesai memuat → baru minta miringkan HP addEventListener('orientationchange', () => setTimeout(cekTegak, 300));
 $('#putarX').onclick = async () => {   // tombol: layar penuh + kunci miring; HP yang tidak bisa dikunci (iPhone) → minta putar manual
   await layarMiring();
@@ -3616,7 +3618,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v28'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · erick-v29'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
