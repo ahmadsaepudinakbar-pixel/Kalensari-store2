@@ -667,7 +667,7 @@ function mulai3D() {
     genderuwo: { url: 'model-3d/genderuwo.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // hero ke-4
     leak: { url: 'model-3d/leak.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // skin Genderuwo: Leak
     pitung: { url: 'model-3d/pitung.glb', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'lari', loncat: 'terbang' } },   // hero ke-5: melompat dengan pose ikonik
-    pendekar: { url: 'model-3d/pitung-batik.glb', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'lari', loncat: 'terbang' } },   // skin Si Pitung: Pendekar Silat
+    pendekar: { url: 'model-3d/pitung-batik.glb', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'lari', loncat: 'terbang' } },   // skin Si Pitung: Aziz Ajiguna
   };
   const M3D = {};
   function muatM3D(kunci) {

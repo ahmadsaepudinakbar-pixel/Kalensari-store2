@@ -2053,7 +2053,7 @@ function siapkanPitung(gl, m, T) {
   T.golok = m.getObjectByName('golok');
   // pose ulti: model patung (pitung-ulti.glb, pose persis seperti contoh) ditampilkan menggantikan model bertulang selama melompat & melayang
   if (T.ultiM && T.ultiM.parent) T.ultiM.parent.remove(T.ultiM); T.ultiM = null;
-  if (T.skin === 'pendekar') return;   // skin Pendekar Silat: ulti memakai animasi melayang (patung pose ulti hanya untuk model asli)
+  if (T.skin === 'pendekar') return;   // skin Aziz Ajiguna: ulti memakai animasi melayang (patung pose ulti hanya untuk model asli)
   muatUltiPitung().then(sc => { if (T.model !== m || !m.parent) return; const u = sc.clone(); u.scale.setScalar(m.scale.x); u.rotation.y = Math.PI / 2;   // patung menghadap -x → diputar menghadap depan (+z)
     u.position.set(0, m.position.y, .07 * m.scale.x); u.visible = false; u.userData.m = m; m.parent.add(u); T.ultiM = u; }).catch(() => { });
 }
@@ -3101,7 +3101,7 @@ const KILL_MENANG = 3; let SKOR = [0, 0];
 function updSkorBot() { const e = $('#timHud'); e.style.display = ''; e.innerHTML = `<span class="b">Anda ${SKOR[0]}</span><small>${KILL_MENANG} kill menang</small><span class="m">${SKOR[1]} Bot</span>`; }
 // ---- Pilih Hero langsung dari layar hasil (tanpa kembali ke menu) ----
 const IKON_HERO = { ocong: '👻', kunti: '🩸', tuyul: '👶', genderuwo: '👹', pitung: '🥋', erick: '🔥', doni: '⛓️' }, DESK_HERO = { ocong: 'jarak dekat', kunti: 'jarak jauh', tuyul: 'lincah', genderuwo: 'petarung kuat', pitung: 'pendekar golok', erick: 'tendang & katana', doni: 'rantai & gir' };
-const PIL_SKIN = { ocong: [['lompat', '🐛 Pocong Lompat'], ['boneka', '🪆 Boneka Horor'], ['emas', '💗 Ocong Pink']], kunti: [['utama', '🤍 Kunti'], ['merah', '❤️ Kunti Merah']], tuyul: [['utama', '👶 Tuyul']], genderuwo: [['utama', '👹 Genderuwo'], ['leak', '🔥 Leak']], pitung: [['utama', '🥋 Si Pitung'], ['pendekar', '🟡 Pendekar Silat']], erick: [['utama', '🔥 Erick']], doni: [['utama', '⛓️ Doni']] };
+const PIL_SKIN = { ocong: [['lompat', '🐛 Pocong Lompat'], ['boneka', '🪆 Boneka Horor'], ['emas', '💗 Ocong Pink']], kunti: [['utama', '🤍 Kunti'], ['merah', '❤️ Kunti Merah']], tuyul: [['utama', '👶 Tuyul']], genderuwo: [['utama', '👹 Genderuwo'], ['leak', '🔥 Leak']], pitung: [['utama', '🥋 Si Pitung'], ['pendekar', '🟡 Aziz Ajiguna']], erick: [['utama', '🔥 Erick']], doni: [['utama', '⛓️ Doni']] };
 const kunciSkin = (h, s) => h === 'ocong' ? (s || 'boneka') : (s || 'utama'), skinUrl = (h, k) => h === 'ocong' ? (k === 'boneka' ? '' : k) : k === 'merah' ? 'merah' : k === 'leak' ? 'leak' : k === 'pendekar' ? 'pendekar' : '';
 // hero & skin yang dimiliki dikirim game.html (dari kartu yang sudah diklaim)
 const PUNYA = (() => { const a = (Q.get('punya') || '').split(',').filter(h => NAMA_HERO[h]); ['ocong', HERO].forEach(h => { if (!a.includes(h)) a.push(h); }); return a; })();
