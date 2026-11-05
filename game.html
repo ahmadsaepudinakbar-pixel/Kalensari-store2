@@ -1856,6 +1856,18 @@ function pkNpc(P2,ox,oy){const N=PK.npc,t=PK.t,sama=x=>pkDi(x[0],x[1],0).some(q=
 function pkJatuh(){if(PK.ar==3)return '💦 Jatuh dari papan ular tangga!';if(PK.ar==4)return '💦 Jatuh ke selokan pasar!';if(PK.ar==5)return '💩 Kecebur kolam lumpur!';return PK.ar==1?(PK.p.x>520&&PK.p.x<1560?'🌾 Terpeleset ke sawah!':'💦 Jatuh ke kali!'):'💦 Jatuh ke kali!'}
 function pkSpawn(){const c=PK.cps[PK.cp];if(PK.ut)PK.ut.pt=c.o.no||0;Object.assign(PK.p,{ut:null,panjat:null,karung:0,bakiak:0,beku:0,lambat:0,kebal:0,x:pkPx(c)+(PK.cp?40:PK.net?30+(PKN.idx||0)*38:60),y:pkPy(c)+c.d/2,z:c.z,vz:0,gr:c,glide:0,mati:0});
  if(PK.run){const i=PK.net?(PKN.idx||0):0,n=PKLANE.length;PK.run.lane=PK.net?[2,3,1,4,0,5][i%n]:2;PK.p.y=PKLANE[PK.run.lane];PK.p.x=pkPx(c)+(PK.cp?40:60+Math.floor(i/n)*60)}}
+// ===== Kamera ala Roblox (Parkur lintasan 1): geser layar / seret mouse untuk memutar kamera, roda mouse untuk zoom, gerak mengikuti arah kamera =====
+const pkRoblox=()=>!!(PK.on&&PK.ar==0&&!PK.run&&!PK.dd&&!PK.l17&&!PK.pm);
+window.PKCAM={yaw:0,pitch:.56,jarak:9,aktif:pkRoblox};
+(()=>{const el=document.getElementById('wrap');if(!el)return;const P={};let jp=0;
+ const abaikan=e=>!pkRoblox()||e.target.closest('button,#pkJoy,#pkEnd,#pk17Bk,input,a');
+ el.addEventListener('pointerdown',e=>{if(abaikan(e))return;P[e.pointerId]={x:e.clientX,y:e.clientY};jp=0});
+ el.addEventListener('pointermove',e=>{const q=P[e.pointerId];if(!q)return;const ids=Object.keys(P);
+  if(ids.length>=2){const [a,b]=ids.map(i=>P[i]);const d0=Math.hypot(a.x-b.x,a.y-b.y);q.x=e.clientX;q.y=e.clientY;const d1=Math.hypot(a.x-b.x,a.y-b.y);if(d0>0)PKCAM.jarak=Math.min(16,Math.max(3.5,PKCAM.jarak*d0/Math.max(1,d1)));return}   // cubit 2 jari: zoom
+  const dx=e.clientX-q.x,dy=e.clientY-q.y;q.x=e.clientX;q.y=e.clientY;PKCAM.yaw-=dx*.008;PKCAM.pitch=Math.min(1.25,Math.max(.12,PKCAM.pitch+dy*.006))});
+ const lepas=e=>{delete P[e.pointerId]};el.addEventListener('pointerup',lepas);el.addEventListener('pointercancel',lepas);el.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')lepas(e)});
+ el.addEventListener('wheel',e=>{if(!pkRoblox())return;e.preventDefault();PKCAM.jarak=Math.min(16,Math.max(3.5,PKCAM.jarak*(e.deltaY>0?1.1:.9)))},{passive:false});
+ el.addEventListener('contextmenu',e=>{if(pkRoblox())e.preventDefault()});})();
 function pkMulai(){if(!punyaHero(pick))pick='pocong';pkLevel();PK.p={id:pick,x:0,y:0,z:0,vz:0,gr:null,fvx:1,fvy:0,glide:0,gl:0,cd:0,mati:0,walk:0,skin:skinOf(pick)};
  PK.cp=0;PK.t=0;PK.fin=0;PK.deaths=0;pkSpawn();PK.cam.x=PK.p.x;PK.cam.y=PK.p.y*PKY-PK.p.z;
  const ku=!pkLT(pick);$('#pkSk b').textContent=ku?'🕊':'🚀';$('#pkSk span').textContent=ku?'Melayang':'Lompat Tinggi';
@@ -1883,8 +1895,10 @@ function pkUpd(){const P2=PK.p;if(!P2)return;
   cdUI($('#pkAtk'),P2.acd,PKDCD)}else PK.key.a=0;
  if(PK.fin){P2.walk=0;return}
  // gerak
- let mx=(inp.r||PK.jm.x>.3?1:0)-(inp.l||PK.jm.x<-.3?1:0),my=(inp.d||PK.jm.y>.3?1:0)-((inp.u&&!PK.key.sp)||PK.jm.y<-.3?1:0);if(P2.beku>0){P2.beku--;mx=my=0}const n=Math.hypot(mx,my)||1,lb=P2.lambat>0?.55:1;
- let vx=mx/n*PKSP*lb,vy=my/n*PKSP*.75*lb;if(mx||my){P2.fvx=mx/n;P2.fvy=my/n;P2.walk++}else P2.walk=0;
+ let mx=(inp.r||PK.jm.x>.3?1:0)-(inp.l||PK.jm.x<-.3?1:0),my=(inp.d||PK.jm.y>.3?1:0)-((inp.u&&!PK.key.sp)||PK.jm.y<-.3?1:0);const rb=pkRoblox();if(rb){let ax=(inp.r?1:0)-(inp.l?1:0)+PK.jm.x,ay=(inp.d?1:0)-((inp.u&&!PK.key.sp)?1:0)+PK.jm.y;const L=Math.hypot(ax,ay);   // kamera Roblox: arah gerak diputar mengikuti kamera
+  if(L<.25)mx=my=0;else{const c=Math.cos(PKCAM.yaw),s=Math.sin(PKCAM.yaw);mx=ax*c+ay*s;my=-ax*s+ay*c}}
+ if(P2.beku>0){P2.beku--;mx=my=0}const n=Math.hypot(mx,my)||1,lb=P2.lambat>0?.55:1;
+ let vx=mx/n*PKSP*lb,vy=my/n*PKSP*(rb?1:.75)*lb;if(mx||my){P2.fvx=mx/n;P2.fvy=my/n;P2.walk++}else P2.walk=0;
  if(PK.run)[vx,vy]=pkLari(P2,mx,my);if(PK.l17)[vx,vy]=pk17Karung(P2,vx,vy);
  if(P2.gr){P2.x+=P2.gr.dx;P2.y+=P2.gr.dy;P2.z+=P2.gr.dz||0}
  const ox=P2.x,oy=P2.y;P2.x+=vx+(P2.kx||0);P2.y+=vy+(P2.ky||0);if(P2.kx||P2.ky){P2.kx*=.86;P2.ky*=.86;if(Math.abs(P2.kx)+Math.abs(P2.ky)<.15)P2.kx=P2.ky=0}

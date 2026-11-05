@@ -855,8 +855,8 @@ function mulai3D() {
     T_AIR.offset.x = (T_AIR.offset.x + dt * .03) % 1; T_AIR.offset.y = Math.sin(t * .5) * .02;
 
     // kamera mengikuti hero (melihat sedikit ke depan arah gerak)
-    const dasar = P2.gr ? P2.z : Math.max(P2.z, P2.z * .6);
-    const tx = (P2.x + (P2.fvx || 0) * 90) * S, ty = Math.max(AIR, dasar) * S + .9, tz = (P2.y + (P2.fvy || 0) * 25) * S;
+    const dasar = P2.gr ? P2.z : Math.max(P2.z, P2.z * .6), rb = !!(window.PKCAM && PKCAM.aktif());   // rb: kamera ala Roblox (lintasan 1)
+    const tx = (P2.x + (rb ? 0 : (P2.fvx || 0) * 90)) * S, ty = Math.max(AIR, dasar) * S + .9, tz = (P2.y + (rb ? 0 : (P2.fvy || 0) * 25)) * S;
     if (camBaru) { camT.set(tx, ty, tz); camBaru = 0; }
     else { const kx = 1 - Math.pow(.02, dt), ky = 1 - Math.pow(.12, dt); camT.x += (tx - camT.x) * kx; camT.y += (ty - camT.y) * ky; camT.z += (tz - camT.z) * kx; }
     if (PK.run) {   // Lari Jalan Desa: kamera di belakang hero (seperti game lari 3 jalur), ikut pindah jalur dengan halus
@@ -866,6 +866,10 @@ function mulai3D() {
       camT.set(hx + 5.5, .9 + hy * .35, camZ * .65 + tengah * .35);
       camera.position.set(hx - 5.6, 3.4 + hy * .45, camZ * .75 + tengah * .25); camera.lookAt(camT);
       langit.position.set(camera.position.x, 0, camT.z);
+    } else if (rb) {   // kamera berputar di sekeliling hero (diatur geser layar / mouse di game.html)
+      camBaru2 = 1; const C = PKCAM, cp = Math.cos(C.pitch);
+      camera.position.set(camT.x + Math.sin(C.yaw) * C.jarak * cp, camT.y + Math.sin(C.pitch) * C.jarak, camT.z + Math.cos(C.yaw) * C.jarak * cp); camera.lookAt(camT);
+      langit.position.set(camT.x * .85, 0, 0);
     } else {
       camBaru2 = 1;
       camPos.copy(camT).add(CAM_OFF); camera.position.copy(camPos); camera.lookAt(camT.x, camT.y, camT.z);
