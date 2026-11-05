@@ -1305,6 +1305,10 @@ const buatTexRoh = (W) => tex(320, 240, (x) => {   // W: warna (merah = Kunti, p
   x.fillStyle = g; x.shadowBlur = 22; x.shadowColor = W.bayang; x.beginPath();
   x.moveTo(-75, 10); x.quadraticCurveTo(-43, -39, -10, -35); x.quadraticCurveTo(26, -43, 33, -14); x.quadraticCurveTo(54, 9, 24, 30); x.quadraticCurveTo(4, 42, -14, 27); x.quadraticCurveTo(-49, 35, -75, 10); x.fill();
   for (let i = 0; i < 8; i++) { x.strokeStyle = i % 2 ? W.s1 : W.s2; x.lineWidth = 1 + (i % 3) * .8; x.beginPath(); x.moveTo(-18, 12 + i * 2); x.bezierCurveTo(-35, -18 + i * 5, -53, (i * 37 % 40) - 20, -80 - (i * 13 % 28), Math.sin(i * 1.7) * 22 + i * 2); x.stroke(); }
+  if (W.polos) {   // tanpa wajah (Lunara): hanya roh cahaya dengan inti terang
+    const gi = x.createRadialGradient(14, -2, 0, 14, -2, 26); gi.addColorStop(0, 'rgba(255,255,255,1)'); gi.addColorStop(.4, W.inti); gi.addColorStop(1, 'rgba(255,255,255,0)');
+    x.shadowBlur = 26; x.shadowColor = W.bayang; x.fillStyle = gi; x.beginPath(); x.ellipse(14, -2, 26, 24, 0, 0, Math.PI * 2); x.fill(); return;
+  }
   x.shadowBlur = 10; x.fillStyle = '#090106'; x.beginPath(); x.ellipse(12, -4, 18, 23, -.1, 0, Math.PI * 2); x.fill();
   x.strokeStyle = W.alis; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-1, -15); x.lineTo(8, -11); x.moveTo(17, -11); x.lineTo(27, -16); x.stroke();   // alis marah
   const mata = (cx) => { x.save(); x.shadowBlur = 16; x.shadowColor = '#fff8f7'; x.fillStyle = '#fff8f7'; x.beginPath(); x.arc(cx, -8, 5.2, 0, Math.PI * 2); x.fill(); x.shadowColor = W.mata; x.fillStyle = W.mata; x.beginPath(); x.arc(cx, -8, 2.2, 0, Math.PI * 2); x.fill(); x.restore(); };
@@ -1315,7 +1319,7 @@ const buatTexRoh = (W) => tex(320, 240, (x) => {   // W: warna (merah = Kunti, p
   x.strokeStyle = W.mulut; x.lineWidth = 1.6; for (let j = 0; j < 4; j++) { x.beginPath(); x.moveTo(1 + j * 8, 14); x.quadraticCurveTo(-1 + j * 8, 22, j * 7, 29 + (j % 2) * 3); x.stroke(); }   // tetesan
 });
 const T_ROH = buatTexRoh({ g0: 'rgba(35,0,10,0)', g1: 'rgba(91,0,23,.55)', g2: 'rgba(245,13,49,.97)', bayang: '#f00032', s1: '#ff2046', s2: '#7c001b', alis: '#ff526a', mata: '#ff002b', mulut: '#ff243f' });
-const T_ROH_L = buatTexRoh({ g0: 'rgba(10,8,40,0)', g1: 'rgba(60,50,150,.55)', g2: 'rgba(190,225,255,.97)', bayang: '#8ab8ff', s1: '#c8e4ff', s2: '#3a2c8a', alis: '#e8f4ff', mata: '#5a8aff', mulut: '#b8dcff' });   // roh cahaya bulan (Lunara)
+const T_ROH_L = buatTexRoh({ polos: 1, inti: 'rgba(200,230,255,.85)', g0: 'rgba(10,8,40,0)', g1: 'rgba(60,50,150,.55)', g2: 'rgba(190,225,255,.97)', bayang: '#8ab8ff', s1: '#c8e4ff', s2: '#3a2c8a', alis: '#e8f4ff', mata: '#5a8aff', mulut: '#b8dcff' });   // roh cahaya bulan (Lunara)
 [T_ROH, T_ROH_L].forEach(t => { t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.repeat.set(1, 1); });
 const ROH_RASIO = 240 / 320;
 const matCahaya = (map, warna = 0xffffff, op = 1) => new THREE.SpriteMaterial({ map, color: warna, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
@@ -4103,7 +4107,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · lunara-v2'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · lunara-v3'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
