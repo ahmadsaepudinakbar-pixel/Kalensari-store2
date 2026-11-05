@@ -1715,7 +1715,7 @@ function updPemain(dt) {
   P.cd = P.cd.map(c => Math.max(0, c - dt)); P.t += dt;
   P.kunci = Math.max(0, (P.kunci || 0) - dt); P.pusing = Math.max(0, (P.pusing || 0) - dt);
   if (HERO === 'genderuwo' && P.state === 'serbu') P.kunci = P.pusing = 0;   // selama Serbuan Rimba kebal stun
-  if (HERO === 'erick' && (P.state === 'erBlok' || P.state === 'erBlink')) P.kunci = P.pusing = 0;   // selama Mode Bertahan kebal stun
+  if (HERO === 'erick' && (P.state === 'erBlok' || (P.state === 'erBlink' && P.t < ER.blink.hilang))) P.kunci = P.pusing = 0;   // Mode Bertahan / saat menghilang: kebal stun
   const pos = P.root.position, f = depan();
   P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; if (P.pivot) P.pivot.rotation.set(0, 0, 0);
   if (HERO === 'kunti') updKunti(dt, pos, f);
@@ -2169,15 +2169,15 @@ function updPitung(dt, pos, f) {
 // ================== HERO ERICK (Mixamo: tendangan & pedang katana) ==================
 // Normal: serangan = tendang, tendang, lutut · skill 1 Tendangan Terbang (melesat) · skill 2 Tendangan Dinding (beruntun) · skill 3 MENGAMUK (7 detik)
 // Mengamuk: rambut merah + katana + aura darah · serangan = tebasan cepat brutal · skill 1 Blink Tebas (menebas jalur di belakangnya) · skill 2 Gelombang Sabit (tebasan angin melesat)
-const ER = { cepat: 3.1, cepatAmuk: 6.2, blok: 3,
+const ER = { cepat: 3.1, cepatAmuk: 5.8, blok: 3,
   kombo: { mulai: [0, .5, 1, 1.55], tH: [.2, .2, .26, .45], dmg: [45, 45, 60, 140], dorong: [1.6, 1.6, 3, 11], R: 1.9, maju: 3, jarak: 5, akhir: 2.5 }, amukLama: 7, amukMulaiT: 1.3,
   basik: { tH: [.12, .11], akhir: [.33, .34], dmg: [55, 65], dorong: [1.4, 4], R: 1.7, jeda: 1.4 },
-  amukBasik: { tH: .12, akhir: .27, dmg: 42, R: 1.9 },
+  amukBasik: { tH: .12, akhir: .27, dmg: 36, R: 1.9 },
   terbang: { jarak: 6.5, mulai: .15, dash: .4, tH: .5, akhir: .95, dmg: 130 },
   tembok: { tH: [.3, .67, .97], akhir: 1.3, dmg: [55, 55, 100], R: 2, maju: 3.2 },
-  blink: { jarak: 8, tut: .3, hilang: .5, tH: [.08, .16, .24, .32, .42, .6, .7, .8, .9, 1], akhir: 1.2, dmg: 55, lebar: 1.7 },
-  gel: { rilis: .2, akhir: .55, jarak: 12, cepat: 17, dmg: 160, R: 1.9 },
-  cd: { amuk: [.2, 3.5, 5, 0] } };
+  blink: { jarak: 8, tut: .3, hilang: .5, tH: [.1, .22, .36, .6, .75, .9], akhir: 1.2, dmg: 40, lebar: 1.7 },
+  gel: { rilis: .2, akhir: .55, jarak: 12, cepat: 17, dmg: 120, R: 1.9 },
+  cd: { amuk: [.2, 6, 5, 0], awal: 1 } };   // awal: jeda skill 1 & 2 setelah amuk mulai
 const EW = { combo: 0, comboT: 0, amuk: 0, st: null, gelombang: [], aura: 0 };
 let ER_AURA = [];   // bahan kilau merah di seluruh badan (mode mengamuk)
 const ER_DARAH = 0xb30000, ER_MERAH = 0xff2020, ER_PUTIH = 0xffe0e0;
@@ -2291,7 +2291,7 @@ function pakaiErick(i) {
   else if (i === 3) {
     if (amuk) return;   // sudah mengamuk
     if (pingsan()) { P.kunci = P.pusing = 0; banner('💢 Lepas dari stun!', '#ff9a9a'); }
-    P.state = 'erUlti'; erAmukMulai(); mainUlang('ulti', .08, 1.7); eAmukMulai(pos); banner('🔥 ERICK MENGAMUK!', '#ff3030'); goyang = .3; P.cd[3] = CD_MAX[3] + ER.amukLama; P.cd[1] = P.cd[2] = 0;
+    P.state = 'erUlti'; erAmukMulai(); mainUlang('ulti', .08, 1.7); eAmukMulai(pos); banner('🔥 ERICK MENGAMUK!', '#ff3030'); goyang = .3; P.cd[3] = CD_MAX[3] + ER.amukLama; P.cd[1] = P.cd[2] = ER.amukMulaiT + ER.cd.awal;   // skill 1 & 2 baru siap 1 dtk setelah amuk mulai
   }
   P.t = 0; P.hit = 0; P.hit2 = 0;
 }
@@ -2364,7 +2364,7 @@ function updErick(dt, pos, f) {
     if (t > B.akhir) { P.state = 'bebas'; main('diam', .2); }
   }
   else if (P.state === 'erBlink') {   // Blink Tebas (ala ulti Benedetta): menghilang 1 dtk, menembus apa pun, semua musuh di jalur tersayat
-    const B = ER.blink, A = P.awal, Z = P.tujuan; P.kunci = P.pusing = 0;
+    const B = ER.blink, A = P.awal, Z = P.tujuan; if (t < B.hilang) P.kunci = P.pusing = 0;
     const c = Math.min(1, t / B.tut), e = c < .5 ? 2 * c * c : 1 - Math.pow(-2 * c + 2, 2) / 2; pos.lerpVectors(A, Z, e);
     if (t < B.tut && Math.random() < .8) percik(pos.clone().setY(1), 3, ER_DARAH, 2, .12);
     if (t < B.hilang) { if (P.model) P.model.visible = false; P.blinkHid = 1; }
@@ -3070,7 +3070,7 @@ const barPemain = document.createElement('div'); barPemain.className = 'hp me'; 
 function kenaPemain(dmg, dari, dorong = 3) {
   if (P.state === 'kalah' || SELESAI) return;
   if (HERO === 'genderuwo' && GW.amuk > 0) dorong = 0;   // Amukan Genderuwo: tidak bisa didorong
-  if (HERO === 'erick' && P.state === 'erBlink') return;   // menghilang: tidak bisa dilukai
+  if (HERO === 'erick' && P.state === 'erBlink' && P.t < ER.blink.hilang) return;   // hanya saat menghilang (0,5 dtk): tidak bisa dilukai
   if (HERO === 'erick' && P.state === 'erBlok') { eBlokFx(P.root.position.clone().addScaledVector(depan(), .5), 0); angka(P.root.position, 'BLOK', '#ffe08a'); return; }   // Mode Bertahan: serangan diblok
   P.hp = Math.max(0, P.hp - dmg);
   const d = P.root.position.clone().sub(dari).setY(0); if (d.lengthSq() > 1e-4) P.root.position.addScaledVector(d.normalize(), dorong * .12);
@@ -3844,7 +3844,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v2'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
