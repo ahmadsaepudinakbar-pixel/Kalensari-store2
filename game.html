@@ -27,6 +27,7 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 h1{margin:0;font-size:8.5cqw;line-height:.95;color:#e8e8ee;transform:rotate(-3deg)}
 h1 i{display:block;color:var(--red);font-style:normal;text-shadow:.3cqw .3cqw 0 #fff3}
 h2{margin:0;font-size:3.6cqw;color:#fff;background:var(--red);padding:.3cqw 3cqw;transform:skewX(-12deg)}
+.blv{display:flex;align-items:center;gap:1.4cqw;margin:.4cqw 0 1.2cqw;font:700 1.9cqw Arial;color:#cfd8f5}#aLv{display:flex;gap:.8cqw}#aLv button{font:700 1.8cqw Arial;color:#cfd8f5;background:#101a33;border:.25cqw solid #2c3f73;border-radius:.8cqw;padding:.5cqw 1.6cqw;cursor:pointer}#aLv button.on{background:#2f8a1a;border-color:#8fff6a;color:#fff;box-shadow:0 0 1.2cqw rgba(140,255,100,.45)}
 .btn{font:inherit;font-size:2.4cqw;color:var(--ink);background:#101a33;border:.3cqw solid #2c3f73;padding:.7cqw 7cqw;border-radius:.8cqw;cursor:pointer;pointer-events:auto}
 .btn.g{background:var(--gold);color:#201400;border-color:#ffd166;font-weight:700}
 small{font-size:1.5cqw;color:#9aa3b8}
@@ -450,6 +451,7 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
 <div class="onrow"><button class="btn" id="pklOut">Keluar</button><button class="btn g" id="pklGo">MULAI BALAPAN</button></div></div><div id="vsx" class="scr"></div><div id="mbl" class="scr"></div><div id="mbk" class="scr"><h2>🔢 Masukkan Kode</h2><div class="mkk" id="mkKotak"></div><div class="mkpad" id="mkPad"></div><div class="mkinfo" id="mkInfo">Ketik 4 angka kode dari temanmu</div><button class="mbb x" id="mkX">✖ Kembali</button></div><div id="mbh" class="scr"></div>
 <div id="solo" class="scr"><h2>Main Solo · Pilih Mode</h2><div class="slg"><button class="slc" id="slDuel"><i>⚔️</i><b>Duel 1 vs 1</b><small>lawan bot atau latihan · 3D</small></button><button class="slc" id="slPk"><i>🏃</i><b>Parkur Hantu</b><small>lintasan rintangan · balapan</small></button></div><div class="slstep"><b>① Mode</b> → ② Arena → ③ Hero</div><button class="btn" id="slBack">Kembali</button></div>
 <div id="ars" class="scr"><h2>② Pilih Arena</h2><div id="agrid"></div>
+<div class="blv"><span>🤖 Tingkat Bot</span><div id="aLv"><button data-lv="0">🙂 Mudah</button><button data-lv="1">😐 Sedang</button><button data-lv="2">😠 Susah</button><button data-lv="3">😈 Pro Player</button></div></div>
 <div style="display:flex;gap:1.5cqw"><button class="btn" id="aBack">Kembali</button><button class="btn" id="aLat">🎯 Latihan</button><button class="btn g" id="aGo">🤖 Lawan Bot</button></div></div>
 <div id="sel" class="scr"><h2>③ Pilih Hero</h2><div id="grid"></div><div id="skins"></div><div id="info" style="font-size:1.9cqw;min-height:2.4cqw"></div>
 <div style="display:flex;gap:1.5cqw"><button class="btn" id="bBack">Kembali</button><button class="btn g" id="bGo">Main</button></div></div>
@@ -2237,7 +2239,7 @@ function skin3D(h){const s=skinOf(h);if(h=='pocong')return s=='pocong:boneka'?''
 function namaSaya(){let n=($('#oName').value||'').trim();if(!n){try{n=localStorage.getItem('kgName')||''}catch(e){}}n=(n||KOL.nama||'Pemain').slice(0,16);try{localStorage.setItem('kgName',n)}catch(e){}return n}
 function ke3D(mode,x){if(!punyaHero(pick))pick='pocong';x=x||{};
  const q=new URLSearchParams({main:1,hero:H3D[pick]||'ocong',arena:ar3,mode,nama:namaSaya()});const sk=skin3D(pick);if(sk)q.set('skin',sk);
- q.set('punya',HEROK.filter(punyaHero).map(h=>H3D[h]).join(','));   // hero & skin milik pemain → bisa ganti hero di game 3D
+ q.set('punya',HEROK.filter(punyaHero).map(h=>H3D[h]).join(','));if(mode=='bot')q.set('lv',BOTLV);   // tingkat kesulitan bot (Main Solo)   // hero & skin milik pemain → bisa ganti hero di game 3D
  const SK3={'pocong:boneka':'ocong:boneka','pocong:emas':'ocong:emas','kuntilanak:merah':'kunti:merah','kuntilanak:gothic':'kunti:gothic','genderuwo:leak':'genderuwo:leak','pitung:pendekar':'pitung:pendekar'};q.set('skins',KOL.skin.map(s=>SK3[s]).filter(Boolean).join(','));
  if(x.kode)q.set('kode',x.kode);if(x.pub!=null)q.set('pub',x.pub);if(x.arena)q.set('arena',x.arena);if(x.lobi)q.set('lobi',x.lobi);try{const sv=new URLSearchParams(location.search).get('server');if(sv)q.set('server',sv)}catch(e){}
  if(NET.ws&&NET.ws.readyState===1&&!x.lobi)netSend({t:'leave'});location.href='game3d.html?'+q}
@@ -2252,8 +2254,11 @@ $('#bMain').onclick=()=>sc('solo');$('#slBack').onclick=()=>sc('menu');
 $('#slDuel').onclick=()=>{SOLO.mode='duel';agrid();sc('ars')};
 $('#slPk').onclick=()=>{SOLO.mode='pk';pkaGrid();sc('pka')};
 $('#aBack').onclick=$('#pkaBack').onclick=()=>sc('solo');
+let BOTLV=1;try{const v=localStorage.getItem('kgBotLv');if(v!=null)BOTLV=Math.min(3,Math.max(0,+v||0))}catch(e){}   // 0 Mudah · 1 Sedang · 2 Susah · 3 Pro Player
+function botLvTandai(){document.querySelectorAll('#aLv button').forEach(b=>b.classList.toggle('on',+b.dataset.lv===BOTLV))}
+document.querySelectorAll('#aLv button').forEach(b=>b.onclick=()=>{BOTLV=+b.dataset.lv;try{localStorage.setItem('kgBotLv',BOTLV)}catch(e){}botLvTandai()});botLvTandai();
 function soloHero(lanjut,ket){SOLO.lanjut=lanjut;$('#bGo').textContent='▶ '+ket;grid();$('#info').textContent='';sc('sel')}
-$('#aGo').onclick=()=>soloHero(()=>ke3D('bot'),'Lawan Bot');$('#aLat').onclick=()=>soloHero(()=>ke3D('latihan'),'Latihan');
+$('#aGo').onclick=()=>soloHero(()=>ke3D('bot'),'Lawan Bot · '+['Mudah','Sedang','Susah','Pro Player'][BOTLV]);$('#aLat').onclick=()=>soloHero(()=>ke3D('latihan'),'Latihan');
 $('#pkaGo').onclick=()=>{if(PKAR[PK.ar]&&PKAR[PK.ar].um){kgWait(mbBuatUmpet);return}soloHero(()=>{pkNetReset();pkMulai()},'Mulai Parkur')};   // Petak Umpet butuh teman → lobi Main Bareng
 $('#bGo').onclick=()=>{if(!punyaHero(pick)){$('#info').textContent='🔒 Pilih hero yang sudah kamu punya';return}const f=SOLO.lanjut;if(f)kgWait(f);else sc('menu')};
 $('#bBack').onclick=()=>sc(SOLO.mode=='pk'?'pka':SOLO.mode=='duel'?'ars':'menu');

@@ -2874,6 +2874,13 @@ function stunEnt(t, jenis, d) {   // jenis: 'kunci' (tidak bisa bergerak) / 'pus
   if (t === P) { P[jenis] = Math.max(P[jenis] || 0, d); return; }
   t.mt[jenis] = Math.max(t.mt[jenis] || 0, d);   // lawan online: diteruskan lewat jaringan oleh updObjTim
 }
+// tingkat kesulitan bot (khusus Main Solo · Lawan Bot): mudah / sedang / susah / pro player
+const BOT_LV = [
+  { n: 'Mudah', ik: '🙂', hindar: .3, r: [.4, .65], pikir: 2.4, dmg: .55, cepat: .85, cd: 1.6, agresi: .7 },
+  { n: 'Sedang', ik: '😐', hindar: .6, r: [.22, .38], pikir: 1.5, dmg: .8, cepat: .93, cd: 1.25, agresi: .85 },
+  { n: 'Susah', ik: '😠', hindar: .88, r: [.1, .2], pikir: 1, dmg: 1, cepat: 1, cd: 1, agresi: 1 },
+  { n: 'Pro Player', ik: '😈', hindar: .97, r: [.04, .09], pikir: .65, dmg: 1.15, cepat: 1.08, cd: .82, agresi: 1.3 }];
+const BOT_LV_I = Math.min(3, Math.max(0, parseInt(Q.get('lv') ?? '1', 10) || 0));   // bawaan: Sedang
 async function buatBotPro(o) {
   const T = { root: new THREE.Group(), tilt: new THREE.Group(), model: null, mixer: null, act: {}, cur: '', arah: o.arahAwal || 0, hero: o.hero, nama: o.nama };
   T.root.add(T.tilt); T.root.position.copy(o.posAwal); T.root.rotation.y = T.arah;
@@ -2881,13 +2888,15 @@ async function buatBotPro(o) {
   const mt = { g: T.root, hp: 1000, hpMax: 1000, v: new THREE.Vector3(), y: 0, vy: 0, putar: 0, kilau: 0, mati: 0, kunci: 0, pusing: 0, bar: o.bar, bot: true, nama: o.nama };
   const B = { state: 'bebas', t: 0, hit: 0, cd: [0, 1.5, 1.5, 3], pikir: .6, lihat: null, lihatT: 99, vel: new THREE.Vector3(), prev: null, ent: null,
     strafe: Math.random() < .5 ? 1 : -1, strafeT: 1, bahayaT: 0, reaksi: .15, hindar: true, terbangT: 0, lesat: 0, arahLesat: 0, hilang: 0, sergap: false, koin: 0,
-    sudahMati: false, amuk: 0, gc: 0, gcT: 0, agresi: rnd(.85, 1.2), tujuan: null, awal: null, arahSkill: 0, gel: 0, kenaT: 0, combo: 0, patrol: null, patrolT: 0, jatuh: 0, bonus: false, kenaSel: false };
+    sudahMati: false, amuk: 0, gc: 0, gcT: 0, agresi: rnd(.85, 1.2) * (BOT_LV[o.lv ?? 2].agresi), tujuan: null, awal: null, arahSkill: 0, gel: 0, kenaT: 0, combo: 0, patrol: null, patrolT: 0, jatuh: 0, bonus: false, kenaSel: false };
+  const LVB = BOT_LV[o.lv ?? 2];   // bot Duel Tim tetap 'Susah' (perilaku lama)
   let hero = o.hero, CD = [.5, 4, 4, 6], CEPAT = OCONG_CEPAT;
   async function pakaiHero(h, s) {
     await muatModelHero(h, T, null, s || '');
     hero = h; T.hero = h; mt.hpMax = HP_MAX[h];
     CD = h === 'pitung' ? [.35, 5, 6, 12] : h === 'genderuwo' ? [.8, 6, 7, 14] : h === 'tuyul' ? [.4, 5, 8, 12] : h === 'kunti' ? [.55, 4, 9, 6] : [.55, 4, 4, 6];
     CEPAT = h === 'pitung' ? PIT.cepat : h === 'genderuwo' ? GEND.cepat : h === 'tuyul' ? TUYUL_CEPAT : h === 'kunti' ? KUNTI_CEPAT : OCONG_CEPAT;
+    CD = CD.map(x => x * LVB.cd); CEPAT *= LVB.cepat;   // tingkat kesulitan
     o.onHero && o.onHero(h);
   }
   await pakaiHero(hero, o.skin);
@@ -2901,7 +2910,7 @@ async function buatBotPro(o) {
   const animGerak = () => hero === 'pitung' ? ['lari', 1] : hero === 'kunti' && B.terbangT > 0 ? ['terbang', 1.3] : hero === 'tuyul' ? ['jalan', 1.4] : hero === 'genderuwo' ? (B.amuk > 0 ? ['lari', 1] : ['jalan', 1.15]) : ['jalan', 1.5];
   function mulai(s, anim, kec = 1) { B.state = s; B.t = 0; B.hit = 0; if (anim && T.act[anim]) { if (T.cur === anim) T.cur = ''; mainObj(T, anim, .08, kec); } }
   function beres() { B.state = 'bebas'; mainObj(T, 'diam', .2); }
-  function serang(dmg, dari, dorong) { if (B.ent) ctx.serang(B.ent, dmg, dari, dorong); }
+  function serang(dmg, dari, dorong) { if (B.ent) ctx.serang(B.ent, Math.round(dmg * LVB.dmg), dari, dorong); }
   function stun(j, d) { if (B.ent) ctx.stun(B.ent, j, d); }
   function kenaDi(p, r) { const I = lawan(); return I && !I.mati && Math.hypot(I.pos.x - p.x, I.pos.z - p.z) < r; }
   function goy(v) { if (B.ent === P) goyang = Math.max(goyang, v); }
@@ -3058,14 +3067,14 @@ async function buatBotPro(o) {
     const L = jarak(I.pos), hpR = mt.hp / mt.hpMax;
     const esc = bahaya(I);   // 1) hindari serangan lawan (dengan waktu reaksi manusiawi)
     if (esc) {
-      if (B.bahayaT === 0) { B.reaksi = rnd(.1, .2); B.hindar = Math.random() < .88; }
+      if (B.bahayaT === 0) { B.reaksi = rnd(LVB.r[0], LVB.r[1]); B.hindar = Math.random() < LVB.hindar; }
       B.bahayaT += dt;
       if (B.hindar && B.bahayaT > B.reaksi) { if (kaburSkill(I, esc)) return; jalan(esc, kec, dt); return; }
       if (B.hindar) { const [d, h] = posisi(I, L, hpR); jalan(d, kec, dt, h); return; }   // sedang bereaksi: jangan mengunci diri dengan skill
     } else B.bahayaT = 0;
     if (B.pikir <= 0) {   // 2) pakai skill
       const pakai = hero === 'pitung' ? skillPitung(I, L) : hero === 'kunti' ? skillKunti(I, L) : hero === 'tuyul' ? skillTuyul(I, L) : hero === 'genderuwo' ? skillGenderuwo(I, L) : skillOcong(I, L);
-      if (pakai) { B.pikir = rnd(.12, .3) / B.agresi; return; }
+      if (pakai) { B.pikir = rnd(.12, .3) / B.agresi * LVB.pikir; return; }
     }
     const [d, h] = posisi(I, L, hpR); jalan(d, kec, dt, h);   // 3) bergerak
   }
@@ -3390,8 +3399,8 @@ function updBarPemain() {
 }
 async function siapkanBot() {
   const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i><span class="nm"></span>'; $('#bars').appendChild(bar);
-  const h = pilihAcak(BOT_HERO), namaBot = hero => { const n = NAMA_HERO[hero] + ' · Bot'; bar.querySelector('.nm').textContent = n; $('#nmlawan').textContent = 'vs ' + n; if (BOT) BOT.mt.nama = n; };
-  BOT = await buatBotPro({ hero: h, skin: pilihAcak(BOT_SKIN[h]), nama: 'Bot', bar, posAwal: new THREE.Vector3(0, 0, PUSAT_Z - JARAK_AWAL()), arahAwal: 0, id: null, onHero: namaBot,
+  const h = pilihAcak(BOT_HERO), namaBot = hero => { const n = NAMA_HERO[hero] + ' · Bot ' + BOT_LV[BOT_LV_I].ik + ' ' + BOT_LV[BOT_LV_I].n; bar.querySelector('.nm').textContent = n; $('#nmlawan').textContent = 'vs ' + n; if (BOT) BOT.mt.nama = n; };
+  BOT = await buatBotPro({ hero: h, lv: BOT_LV_I, skin: pilihAcak(BOT_SKIN[h]), nama: 'Bot', bar, posAwal: new THREE.Vector3(0, 0, PUSAT_Z - JARAK_AWAL()), arahAwal: 0, id: null, onHero: namaBot,
     ctx: { kawan: false,
       sasaran: b => P.state !== 'kalah' && !SELESAI && !(TY.hilang > 0) && terlihatDari(P.root.position, b.root.position) ? P : null,   // bot tidak melihat pemain di semak / saat menghilang
       serang: (t, d, dari, dr) => kenaPemain(d, dari, dr), stun: stunEnt, mati: () => selesai('menang'), kirim: null } });
