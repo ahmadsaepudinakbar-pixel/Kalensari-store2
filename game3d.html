@@ -1208,7 +1208,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) K.bidik = false; };
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
-if (HERO === 'doni') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul, Pukul, Tendang (tekan 3x) · U (tahan + mouse): Gear Throw (lempar gir + Bleeding) · I: Chain Pull (otomatis mengunci musuh terdekat, menarik + Stun 1,5 dtk) · O: Gear Whirl (rantai bergir berputar, area luas + Bleeding) · Combo: I → U → O';
+if (HERO === 'doni') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul, Pukul, Tendang (tekan 3x) · U (tahan + mouse): Gear Throw (lempar gir, damage Doni 2x selama 2 dtk) · I: Chain Pull (otomatis mengunci musuh terdekat, menarik + Stun 1,5 dtk) · O: Gear Whirl (rantai bergir berputar, area luas + Bleeding) · Combo: I → U → O';
 if (HERO === 'erick') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul-Pukul · U (tahan + mouse): Melesat (tendangan terbang) · I (tahan + mouse): Tendangan beruntun + Tendangan Terbang · O: MENGAMUK 7 detik (rambut merah + katana: serangan tebas brutal · U: Blink Tebas · I: Gelombang Sabit)';
 if (HERO === 'pitung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul ×2 lalu Tendang (tekan 3x) · U (tahan + mouse): Tusukan Kilat (melesat & menusuk) · I (tahan + mouse): Bacok Golok sambil menerjang · O: Terbang Si Pitung (lepas dari stun, lompat & menebas lawan)';
 if (HERO === 'tuyul') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Colek Kilat (curi koin) · U (tahan + mouse): Seluncur Licin · I: Ngilang 2,5 detik · O (tahan + mouse): Blink kilat + Gerombolan Tuyul (bisa dipakai saat terkena stun)';
@@ -2387,13 +2387,13 @@ function updErick(dt, pos, f) {
 
 // ================== DONI MANCHUNG (hero ke-7: petarung rantai & gir) ==================
 // animasi di doni.glb (Tripo + Mixamo, dibuat skrip): idle (dance), lari, mati, Dual_Weapon_Combo, Standing_1H_Magic_Attack_02, Double_Dagger_Stab, Great_Sword_High_Spin_Attack
-// Serangan dasar: pukul, pukul, tendang (tangan kosong) · Skill 1: Gear Throw (diarahkan, Bleeding) · Skill 2: Chain Pull (otomatis kena + tarik + Stun 1,5 dtk) · Skill 3: Gear Whirl (rantai bergir berputar, area luas, Bleeding)
+// Serangan dasar: pukul, pukul, tendang (tangan kosong) · Skill 1: Gear Throw (diarahkan, tanda damage 2x selama 2 dtk) · Skill 2: Chain Pull (otomatis kena + tarik + Stun 1,5 dtk) · Skill 3: Gear Whirl (rantai bergir berputar, area luas, Bleeding)
 // Combo pasti kena: Skill 2 → Skill 1 → Skill 3. Rantai & gir dibuat dari kode (InstancedMesh: ratusan mata rantai = 1 kali gambar, ringan di HP).
 const DN = { cepat: 4.1,
   pukul: { kec: [2.2, 2.2, 2.2], tH: [.11, .1, .26], akhir: [.27, .29, .45], dmg: [45, 50, 95], R: [1.6, 1.6, 1.9], dorong: [1.2, 1.5, 6], jeda: 1.2 },   // pukul (hook kiri), pukul (hook kanan), TENDANG
-  gir: { rilis: .26, akhir: .62, jarak: 10, cepat: 18, dmg: 110, R: .95, darah: [3, 22, 1], tanda: 2, kali: 2 },   // tanda: musuh yang kena gir menerima damage Doni 2x selama 2 detik   // Bleeding: 3x 22 damage, tiap 1 detik
-  tarik: { jangkau: 7.5, lempar: .3, julur: .16, kait: .1, tarik: .32, akhir: .95, dmg: 90, stun: 1.5, sisa: 1.35 },
-  pusar: { jalan: .85, lama: 2.1, R: 4.2, tik: .3, dmg: 38, buka: .3, tutup: .25, darah: [2, 18, .8], rantai: 4 } };
+  gir: { rilis: .26, akhir: .62, jarak: 10, cepat: 18, dmg: 100, R: .95, tanda: 2, kali: 2 },   // tanda: musuh yang kena gir menerima damage Doni 2x selama 2 detik   // Bleeding: 3x 22 damage, tiap 1 detik
+  tarik: { jangkau: 7.5, lempar: .3, julur: .16, kait: .1, tarik: .32, akhir: .95, dmg: 78, stun: 1.5, sisa: 1.35 },
+  pusar: { jalan: .85, lama: 2.1, R: 4.2, tik: .3, dmg: 31, buka: .3, tutup: .25, darah: [2, 18, .8], rantai: 4 } };
 const DW = { combo: 0, comboT: 0 };
 const DN_MERAH = 0xff1a1a, DN_DARAH = 0xb00000, DN_PUTIH = 0xffe0d8;
 function siapkanDoni(gl, m, T) {
@@ -2576,7 +2576,7 @@ function updDoni(dt, pos, f) {
     const G = DN.gir;
     if (t > G.rilis && !P.hit) { P.hit = 1; const d = depan(), st = pos.clone().addScaledVector(d, .6); st.y = 1.1;
       let L = G.jarak; MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const v = m.g.position.clone().sub(st).setY(0), mj = v.dot(d), sp = v.clone().addScaledVector(d, -mj).length(); if (mj > 0 && mj < L && sp < G.R + .3) L = mj; });   // perkiraan jarak tempuh (tampilan di layar lain)
-      fx('dGir', st, P.arah, L, p => { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && m.g.position.clone().setY(1.1).distanceTo(p) < G.R + .35) { kena(m, dmgD(m, G.dmg), p.clone().addScaledVector(d, -1), 3); lukai(m, G.darah); tandaiDoni(m); return true; } } return false; });
+      fx('dGir', st, P.arah, L, p => { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && m.g.position.clone().setY(1.1).distanceTo(p) < G.R + .35) { kena(m, dmgD(m, G.dmg), p.clone().addScaledVector(d, -1), 3); tandaiDoni(m); return true; } } return false; });
       goyang = Math.max(goyang, .05); }
     if (t > G.akhir) { P.state = 'bebas'; main('diam', .2); }
   }
@@ -3844,7 +3844,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v8'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
