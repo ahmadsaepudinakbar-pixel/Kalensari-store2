@@ -2734,7 +2734,7 @@ function lomba17() {
 // ---------- HERO (model 3D dari folder model-3d, sama dengan duel 3D) ----------
 const TINGGI = { pocong: 1.7, kuntilanak: 1.7, tuyul: 1.15, genderuwo: 2.05, pitung: 1.7, erick: 1.7, doni: 1.7, timunmas: 1.7 };
 function urlHero(id, skin) {
-  if (id == 'kuntilanak') return skin == 'kuntilanak:merah' ? 'model-3d/skinkunti.glb' : skin == 'kuntilanak:gothic' ? 'model-3d/skinkunti-jalan.glb?v=1' : 'model-3d/skinkunti-asli.glb';
+  if (id == 'kuntilanak') return skin == 'kuntilanak:merah' ? 'model-3d/skinkunti.glb' : skin == 'kuntilanak:gothic' ? 'model-3d/skinkunti-jalan.glb?v=2' : 'model-3d/skinkunti-asli.glb';
   if (id == 'tuyul') return 'model-3d/tuyul.glb';
   if (id == 'pitung') return skin == 'pitung:pendekar' ? 'model-3d/pitung-batik.glb?v=2' : 'model-3d/pitung.glb';
   if (id == 'erick') return 'model-3d/erick.glb?v=14';
@@ -2755,7 +2755,7 @@ const CACHE = {};
 function muatModel(url) {
   return CACHE[url] || (CACHE[url] = new Promise((res, rej) => new GLTFLoader().load(url, gl => {
     const cari = l => { for (const n of l) { const c = gl.animations.find(a => a.name.toLowerCase().includes(n)); if (c) return c; } return null; };
-    const diam = cari(['idle', 'diam', 'melayang', 'pocong']) || gl.animations[0] || null, jalan = cari(['hop', 'jalanKaki', 'lari', 'jalan', 'run']) || diam;
+    const diam = cari(['idle', 'diamKaki', 'diam', 'melayang', 'pocong']) || gl.animations[0] || null, jalan = cari(['hop', 'jalanKaki', 'lari', 'jalan', 'run']) || diam;
     gl.klipDiam = diam && rapikan(diam.clone(), gl.scene); gl.klipJalan = jalan && rapikan(jalan.clone(), gl.scene);
     gl.scene.updateMatrixWorld(true); gl.kotak = new THREE.Box3().setFromObject(gl.scene); res(gl);
   }, undefined, rej)));

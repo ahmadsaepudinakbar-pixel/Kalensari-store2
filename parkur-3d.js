@@ -663,7 +663,7 @@ function mulai3D() {
   const MODEL_LAIN = {
     kunti: { url: 'model-3d/skinkunti-asli.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
     merah: { url: 'model-3d/skinkunti.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
-    gothic: { url: 'model-3d/skinkunti-jalan.glb?v=1', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'jalanKaki', loncat: 'terbang' } },   // skin Kunti Gothic: berjalan kaki
+    gothic: { url: 'model-3d/skinkunti-jalan.glb?v=2', tinggi: TINGGI, klip: { diam: 'diamKaki', jalan: 'jalanKaki', loncat: 'lompatKaki' } },   // skin Lunara: berdiri & berjalan kaki
     tuyul: { url: 'model-3d/tuyul.glb', tinggi: 1.15, klip: { diam: 'diam', jalan: 'lari', loncat: 'lompat' } },
     genderuwo: { url: 'model-3d/genderuwo.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // hero ke-4
     leak: { url: 'model-3d/leak.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // skin Genderuwo: Leak
