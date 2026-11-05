@@ -203,7 +203,7 @@ import { clone as cloneSkel } from 'three/addons/utils/SkeletonUtils.js';
 const Q = new URLSearchParams(location.search);
 const MAIN = Q.get('main') === '1';                                           // tanpa ini → tampilkan menu
 const HERO = ['kunti', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timun'].includes(Q.get('hero')) ? Q.get('hero') : 'ocong';
-const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul', genderuwo: 'Genderuwo', pitung: 'Si Pitung', erick: 'Erick', doni: 'Doni', timun: 'Timun Mas' }, HP_MAX = { ocong: 1000, kunti: 1000, tuyul: 850, genderuwo: 1200, pitung: 1000, erick: 1000, doni: 1000, timun: 900 };
+const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul', genderuwo: 'Genderuwo', pitung: 'Si Pitung', erick: 'Erick', doni: 'Doni', timun: 'Timun Mas' }, HP_MAX = { ocong: 1000, kunti: 1000, tuyul: 850, genderuwo: 1200, pitung: 1000, erick: 1000, doni: 1000, timun: 950 };
 const MODE = ['latihan', 'bot', 'acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(Q.get('mode')) ? Q.get('mode') : 'latihan';
 const ONLINE = ['acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(MODE);
 const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'bot' : 'boneka';
@@ -1209,13 +1209,13 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) K.bidik = false; };
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
-if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang) · Combo: I → U → O';
+if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
 if (HERO === 'doni') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul, Pukul, Tendang (tekan 3x) · U (tahan + mouse): Gear Throw (lempar gir, damage Doni 2x selama 2 dtk) · I: Chain Pull (otomatis mengunci musuh terdekat, menarik + Stun 1,5 dtk) · O: Gear Whirl (rantai bergir berputar, area luas + Bleeding) · Combo: I → U → O';
 if (HERO === 'erick') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul-Pukul · U (tahan + mouse): Melesat (tendangan terbang) · I (tahan + mouse): Tendangan beruntun + Tendangan Terbang · O: MENGAMUK 7 detik (rambut merah + katana: serangan tebas brutal · U: Blink Tebas · I: Gelombang Sabit)';
 if (HERO === 'pitung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul ×2 lalu Tendang (tekan 3x) · U (tahan + mouse): Tusukan Kilat (melesat & menusuk) · I (tahan + mouse): Bacok Golok sambil menerjang · O: Terbang Si Pitung (lepas dari stun, lompat & menebas lawan)';
 if (HERO === 'tuyul') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Colek Kilat (curi koin) · U (tahan + mouse): Seluncur Licin · I: Ngilang 2,5 detik · O (tahan + mouse): Blink kilat + Gerombolan Tuyul (bisa dipakai saat terkena stun)';
 if (HERO === 'kunti') { $('#nmhero').textContent = 'Kunti Merah'; $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Roh · U (tahan, arahkan dgn mouse): Frekuensi Suara · I (tahan, arahkan dgn mouse): Mode Terbang · O: Roh Pemburu'; }
-const pingsan = () => (P.kunci || 0) > 0 || (P.pusing || 0) > 0;   // terkena Roh Pemburu / Loncat Jauh lawan
+const pingsan = () => !(HERO === 'timun' && dalamLumpurku()) && ((P.kunci || 0) > 0 || (P.pusing || 0) > 0);   // Timun Mas di lumpur ultinya sendiri: kebal stun   // terkena Roh Pemburu / Loncat Jauh lawan
 function arahGerak() {
   if (pingsan()) return [0, 0];
   let x = inp.x, z = inp.z; const k = inp.k;
@@ -1728,6 +1728,7 @@ function updPemain(dt) {
   P.kunci = Math.max(0, (P.kunci || 0) - dt); P.pusing = Math.max(0, (P.pusing || 0) - dt);
   if (P.lambat > 0) { P.lambat = Math.max(0, P.lambat - dt); if (Math.random() < dt * 8) percik(P.root.position.clone().setY(.3), 2, TM_HIJAU, .8, .12); }   // terkena Slow
   if (HERO === 'genderuwo' && P.state === 'serbu') P.kunci = P.pusing = 0;   // selama Serbuan Rimba kebal stun
+  if (HERO === 'timun' && dalamLumpurku()) P.kunci = P.pusing = 0;   // Timun Mas di lumpur ultinya sendiri: kebal stun
   if (HERO === 'erick' && (P.state === 'erBlok' || (P.state === 'erBlink' && P.t < ER.blink.kebal))) P.kunci = P.pusing = 0;   // Mode Bertahan / saat menghilang: kebal stun
   const pos = P.root.position, f = depan();
   P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; if (P.pivot) P.pivot.rotation.set(0, 0, 0);
@@ -2620,10 +2621,10 @@ function updDoni(dt, pos, f) {
 // Serangan dasar: Golden Seed (biji emas jarak jauh) · Skill 1: Bamboo Pierce (jarum → bambu muncul, Stun) · Skill 2: Cucumber Trap (sulur, Slow)
 // Skill 3: Boiling Mud Abyss (lumpur mendidih luas, damage berkali-kali + Slow) · Combo: Skill 2 → Skill 1 → Skill 3
 const TM = { cepat: 3.6, lambatK: .55,   // lambatK: kecepatan lawan saat terkena Slow (55%)
-  biji: { rilis: [.36, .25], akhir: [.5, .48], jarak: 9, cepat: 16, dmg: 55, R: .8 },
-  bambu: { tanam: .35, tunda: .32, akhir: .8, jarak: 7, R: 2, dmg: 140, stun: .8 },
+  biji: { rilis: [.36, .25], akhir: [.5, .48], jarak: 9, cepat: 16, dmg: 55, R: .8, lambat: .4 },   // tiap biji yang kena: Slow 0,4 dtk
+  bambu: { tanam: .35, tunda: .18, akhir: .8, jarak: 7, R: 2, dmg: 140, stun: 1.2 },
   sulur: { rilis: .5, akhir: .7, jarak: 8, cepat: 14, R: 1.9, lama: 3, dmg: 80, tik: .5, dmgTik: 15, lambat: .6 },
-  lumpur: { slam: .8, akhir: 1.25, R: 5, lama: 4, tik: .5, dmg: 35, lambat: .6, jarak: 8, cepat: 1.35, serang: 1.4 } };   // jarak: ulti bisa diarahkan · cepat/serang: Timun Mas di dalam lumpurnya sendiri lebih cepat bergerak & menyerang
+  lumpur: { slam: .8, akhir: 1.25, R: 5, lama: 4, tik: .5, dmgAwal: 135, dmg: 35, lambat: .6, jarak: 8, cepat: 1.35, serang: 1.4 } };   // jarak: ulti bisa diarahkan · cepat/serang: Timun Mas di dalam lumpurnya sendiri lebih cepat bergerak & menyerang
 const TW = { combo: 0, area: [] };
 const TM_HIJAU = 0x6dff3a, TM_EMAS = 0xffc83a, TM_LUMPUR = 0x6a3e12, TM_JINGGA = 0xff9a20;
 function siapkanTimun(gl, m, T) {
@@ -2762,9 +2763,9 @@ function updAreaTimun(dt) {
       a.tik = S.tik; }
     a.sisa -= dt; a.tik -= dt;
     if (a.tik <= 0) { a.tik = S.tik; let ada = 0;
-      MUSUH.forEach(m => { if (dalamAreaT(m, a)) { kena(m, a.jenis === 'sulur' ? S.dmgTik : S.dmg, a.p.clone().add(new THREE.Vector3(0, 0, .01)), 0); lambatkan(m, S.lambat); ada = 1;
+      MUSUH.forEach(m => { if (dalamAreaT(m, a)) { kena(m, a.jenis === 'sulur' ? S.dmgTik : a.pertama ? S.dmgAwal : S.dmg, a.p.clone().add(new THREE.Vector3(0, 0, .01)), 0); lambatkan(m, S.lambat); ada = 1;
         percik(m.g.position.clone().setY(.4), 4, a.jenis === 'sulur' ? TM_HIJAU : TM_JINGGA, 1, .12); } });
-      if (ada && a.jenis === 'lumpur') goyang = Math.max(goyang, .04); }
+      if (ada && a.jenis === 'lumpur') goyang = Math.max(goyang, a.pertama ? .2 : .04); a.pertama = false; }
     if (a.sisa <= 0) TW.area.splice(k, 1); }
 }
 function jarakTempuh(st, d, maks, R) {   // perkiraan jarak proyektil sampai musuh pertama (untuk tampilan di layar lain)
@@ -2807,7 +2808,7 @@ function updTimun(dt, pos, f) {
     const B = TM.biji, s = P.langkah, tc = t * (P.cepatS || 1);   // tc: waktu animasi (lebih cepat di lumpur sendiri)
     if (tc > B.rilis[s] && !P.hit) { P.hit = 1; const d = depan(), st = tanganTimun(P); st.y = Math.max(.9, Math.min(1.5, st.y)); st.addScaledVector(d, .2);
       const L = jarakTempuh(st, d, B.jarak, B.R);
-      fx('tBiji', st, P.arah, L, p => { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && m.g.position.clone().setY(1.1).distanceTo(p) < B.R + .35) { kena(m, B.dmg, p.clone().addScaledVector(d, -1), 1.5); return true; } } return false; }); }
+      fx('tBiji', st, P.arah, L, p => { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && m.g.position.clone().setY(1.1).distanceTo(p) < B.R + .35) { kena(m, B.dmg, p.clone().addScaledVector(d, -1), 1.5); lambatkan(m, B.lambat); return true; } } return false; }); }
     if (tc > B.akhir[s]) { P.state = 'bebas'; main('diam', .2); }
   }
   else if (P.state === 'tmBambu') {   // Bamboo Pierce
@@ -2830,7 +2831,7 @@ function updTimun(dt, pos, f) {
     const U = TM.lumpur;
     if (t < U.slam && Math.random() < .5) percik(pos.clone().setY(rnd(.2, 1.4)), 2, Math.random() < .5 ? TM_EMAS : TM_JINGGA, 1.4, .14);
     if (t > U.slam && !P.hit) { P.hit = 1; const c = (P.tujuanT || pos).clone().setY(0); fx('tLumpur', c.clone(), U.R, U.lama); goyang = Math.max(goyang, .25);
-      TW.area.push({ jenis: 'lumpur', p: c, R: U.R, sisa: U.lama, mulai: 0, tik: 0 }); }
+      TW.area.push({ jenis: 'lumpur', p: c, R: U.R, sisa: U.lama, mulai: 0, tik: 0, pertama: true }); }   // hantaman pertama: dmgAwal
     if (t > U.akhir) { P.state = 'bebas'; main('diam', .2); }
   }
 }
@@ -4083,7 +4084,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v3'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
