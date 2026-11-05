@@ -2391,9 +2391,9 @@ function updErick(dt, pos, f) {
 // Combo pasti kena: Skill 2 → Skill 1 → Skill 3. Rantai & gir dibuat dari kode (InstancedMesh: ratusan mata rantai = 1 kali gambar, ringan di HP).
 const DN = { cepat: 4.1,
   pukul: { kec: [2.2, 2.2, 2.2], tH: [.11, .1, .26], akhir: [.27, .29, .45], dmg: [45, 50, 95], R: [1.6, 1.6, 1.9], dorong: [1.2, 1.5, 6], jeda: 1.2 },   // pukul (hook kiri), pukul (hook kanan), TENDANG
-  gir: { rilis: .26, akhir: .62, jarak: 10, cepat: 18, dmg: 110, R: .95, darah: [3, 22, 1] },   // Bleeding: 3x 22 damage, tiap 1 detik
+  gir: { rilis: .26, akhir: .62, jarak: 10, cepat: 18, dmg: 110, R: .95, darah: [3, 22, 1], tanda: 2, kali: 2 },   // tanda: musuh yang kena gir menerima damage Doni 2x selama 2 detik   // Bleeding: 3x 22 damage, tiap 1 detik
   tarik: { jangkau: 7.5, lempar: .3, julur: .16, kait: .1, tarik: .32, akhir: .95, dmg: 90, stun: 1.5, sisa: 1.35 },
-  pusar: { lama: 2.1, R: 4.2, tik: .3, dmg: 38, buka: .3, tutup: .25, darah: [2, 18, .8], rantai: 4 } };
+  pusar: { jalan: .85, lama: 2.1, R: 4.2, tik: .3, dmg: 38, buka: .3, tutup: .25, darah: [2, 18, .8], rantai: 4 } };
 const DW = { combo: 0, comboT: 0 };
 const DN_MERAH = 0xff1a1a, DN_DARAH = 0xb00000, DN_PUTIH = 0xffe0d8;
 function siapkanDoni(gl, m, T) {
@@ -2489,14 +2489,20 @@ function dKait(p) {   // rantai mengunci: bidikan merah + bintang pusing
   gelombang(p.clone().setY(0), 1.3, .35, DN_MERAH); nyala(p.clone(), 1.2, DN_MERAH, .25); percik(p.clone().setY(1), 14, DN_PUTIH, 2.5, .13); kilat(p, 25);
   percik(p.clone().setY(1.6), 10, 0xffe066, 1.1, .16);
 }
-function dPusar(pos, a0, lama, R, n = 4) {   // Gear Whirl: rantai bergir di ujungnya berputar sangat cepat di sekeliling Doni
-  const U = DN.pusar, o = pos.clone().setY(0), pusat = pos.clone().setY(1);
+function akarTerdekat(pos) {   // badan hero (diri sendiri / lawan / pemain Duel Tim) yang paling dekat dengan titik — untuk efek yang ikut berjalan
+  let best = null, bd = 2.5; const coba = r => { if (!r) return; const d = Math.hypot(r.position.x - pos.x, r.position.z - pos.z); if (d < bd) { bd = d; best = r; } };
+  coba(P.root); if (R.ada) coba(R.root); if (typeof TIM !== 'undefined' && TIM.on) TIM.obj.forEach(o => coba(o.root));
+  return best;
+}
+function dPusar(pos, a0, lama, R, n = 4) {   // Gear Whirl: rantai bergir di ujungnya berputar sangat cepat di sekeliling Doni (ikut ke mana Doni berjalan)
+  const U = DN.pusar, o = pos.clone().setY(0), pusat = pos.clone().setY(1), ikut = akarTerdekat(pos);
   const datar = g => g.rotateX(-Math.PI / 2), bhn = op => new THREE.MeshBasicMaterial({ color: DN_MERAH, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
   const cincin = new THREE.Mesh(datar(new THREE.RingGeometry(.94, 1, 64)), bhn(0)), isi = new THREE.Mesh(datar(new THREE.CircleGeometry(1, 48)), bhn(0));
   cincin.position.set(o.x, .06, o.z); isi.position.set(o.x, .05, o.z); scene.add(cincin); scene.add(isi);
   nyala(pusat.clone(), 2, DN_MERAH, .3); kilat(pos, 40); gelombang(o, R, .4, DN_MERAH);
   DNFX.push({ t: 0, gel: 0, upd(e, dt) {
     const t = e.t; if (t > lama) return false;
+    if (ikut) { o.set(ikut.position.x, 0, ikut.position.z); pusat.set(o.x, 1, o.z); cincin.position.set(o.x, .06, o.z); isi.position.set(o.x, .05, o.z); }   // area ulti mengikuti Doni
     const op = Math.min(1, t / U.buka, Math.max(0, (lama - t) / U.tutup)), L = R * op * (1 - .04 * Math.sin(t * 9)), sudut = a0 + t * 11 + t * t * 1.5;
     cincin.scale.setScalar(Math.max(.01, L + .25)); isi.scale.setScalar(Math.max(.01, L + .25)); cincin.material.opacity = .9 * op; isi.material.opacity = .14 * op;
     for (let k = 0; k < n; k++) {
@@ -2511,6 +2517,13 @@ function dPusar(pos, a0, lama, R, n = 4) {   // Gear Whirl: rantai bergir di uju
 }
 // ---- Bleeding (luka berdarah) & tarikan rantai: berlaku untuk bot, boneka latihan, dan pemain online ----
 const BERDARAH = [], TARIK = [];
+const TANDA_D = new Map();   // musuh yang kena Gear Throw → damage Doni ke musuh itu 2x (sisa detik)
+function tandaiDoni(m) { const baru = !TANDA_D.has(m); TANDA_D.set(m, { s: DN.gir.tanda, k: 0 }); if (baru) angka(m.g.position, '⚙️ 2x DAMAGE', '#ff4040'); }
+function dmgD(m, d) { return TANDA_D.has(m) ? Math.round(d * DN.gir.kali) : d; }
+function updTandaD(dt) {
+  TANDA_D.forEach((q, m) => { q.s -= dt; if (q.s <= 0 || m.mati || SELESAI) { TANDA_D.delete(m); return; }
+    q.k -= dt; if (q.k <= 0) { q.k = .25; const p = m.g.position; nyala(p.clone().setY(2.1), .55, DN_MERAH, .22); percik(p.clone().setY(2), 3, DN_MERAH, .8, .12); } });   // tanda merah di atas kepala musuh
+}
 function lukai(m, [n, dmg, jeda]) {
   const ada = BERDARAH.find(b => b.m === m); if (ada) { ada.n = Math.max(ada.n, n); ada.dmg = Math.max(ada.dmg, dmg); return; }
   BERDARAH.push({ m, n, dmg, jeda, t: jeda });
@@ -2518,7 +2531,7 @@ function lukai(m, [n, dmg, jeda]) {
 function updBerdarah(dt) {
   for (let k = BERDARAH.length - 1; k >= 0; k--) { const b = BERDARAH[k]; if (b.m.mati || SELESAI) { BERDARAH.splice(k, 1); continue; }
     b.t -= dt; if (b.t > 0) continue; b.t = b.jeda; b.n--;
-    const p = b.m.g.position; kena(b.m, b.dmg, p.clone().add(new THREE.Vector3(0, 0, .05)), .5); fx('dDarah', p.clone());
+    const p = b.m.g.position; kena(b.m, dmgD(b.m, b.dmg), p.clone().add(new THREE.Vector3(0, 0, .05)), .5); fx('dDarah', p.clone());
     if (b.n <= 0) BERDARAH.splice(k, 1); }
 }
 function tarikMusuh(m, c, d) {
@@ -2556,14 +2569,14 @@ function updDoni(dt, pos, f) {
     const k = P.langkah, B = DN.pukul, tendang = k === 2;
     if (t < B.tH[k]) pos.addScaledVector(f, (tendang ? 1.6 : 2) * dt);
     if (t > B.tH[k] && !P.hit) { P.hit = 1; const hp = pos.clone().addScaledVector(f, 1); fx('dPukul', hp, tendang ? 1.6 : 1);
-      if (kenaDepan(pos, f, 1, B.R[k], m => kena(m, B.dmg[k], pos, B.dorong[k]))) goyang = Math.max(goyang, tendang ? .18 : .06); }
+      if (kenaDepan(pos, f, 1, B.R[k], m => kena(m, dmgD(m, B.dmg[k]), pos, B.dorong[k]))) goyang = Math.max(goyang, tendang ? .18 : .06); }
     if (t > B.akhir[k]) { P.state = 'bebas'; main('diam', .2); }
   }
   else if (P.state === 'dnGir') {   // Gear Throw
     const G = DN.gir;
     if (t > G.rilis && !P.hit) { P.hit = 1; const d = depan(), st = pos.clone().addScaledVector(d, .6); st.y = 1.1;
       let L = G.jarak; MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const v = m.g.position.clone().sub(st).setY(0), mj = v.dot(d), sp = v.clone().addScaledVector(d, -mj).length(); if (mj > 0 && mj < L && sp < G.R + .3) L = mj; });   // perkiraan jarak tempuh (tampilan di layar lain)
-      fx('dGir', st, P.arah, L, p => { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && m.g.position.clone().setY(1.1).distanceTo(p) < G.R + .35) { kena(m, G.dmg, p.clone().addScaledVector(d, -1), 3); lukai(m, G.darah); return true; } } return false; });
+      fx('dGir', st, P.arah, L, p => { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && m.g.position.clone().setY(1.1).distanceTo(p) < G.R + .35) { kena(m, dmgD(m, G.dmg), p.clone().addScaledVector(d, -1), 3); lukai(m, G.darah); tandaiDoni(m); return true; } } return false; });
       goyang = Math.max(goyang, .05); }
     if (t > G.akhir) { P.state = 'bebas'; main('diam', .2); }
   }
@@ -2573,14 +2586,15 @@ function updDoni(dt, pos, f) {
     if (t > T_.lempar && !P.hit) { P.hit = 1;
       if (hidup) { P.tujuanD = batasi(pos.clone().addScaledVector(depan(), T_.sisa).setY(0)); fx('dTarik', tanganDoni(P), m.g.position.clone(), P.tujuanD.clone()); } }
     if (t > T_.lempar + T_.julur && P.hit === 1) { P.hit = 2;
-      if (hidup && P.tujuanD) { kena(m, T_.dmg, pos, .5); m.pusing = Math.max(m.pusing || 0, T_.stun); goyang = Math.max(goyang, .12); } }
+      if (hidup && P.tujuanD) { kena(m, dmgD(m, T_.dmg), pos, .5); m.pusing = Math.max(m.pusing || 0, T_.stun); goyang = Math.max(goyang, .12); } }
     if (t > T_.lempar + T_.julur + T_.kait && P.hit === 2) { P.hit = 3; if (hidup && P.tujuanD) tarikMusuh(m, P.tujuanD, T_.tarik); }
     if (t > T_.akhir) { P.state = 'bebas'; P.sasaranD = null; P.tujuanD = null; main('diam', .2); }
   }
-  else if (P.state === 'dnPusar') {   // Gear Whirl: berputar di tempat, semua musuh di area kena berkali-kali + Bleeding
+  else if (P.state === 'dnPusar') {   // Gear Whirl: bisa sambil berjalan, area ikut Doni — semua musuh di area kena berkali-kali + Bleeding
+    { const [x, z] = arahGerak(); if (x || z) { pos.x += x * DN.cepat * DN.pusar.jalan * dt; pos.z += z * DN.cepat * DN.pusar.jalan * dt; } }
     const U = DN.pusar, k = Math.floor((t - U.buka * .5) / U.tik);
     if (t > U.buka * .5 && t < U.lama - U.tutup && k >= (P.hit2 || 0)) { P.hit2 = k + 1; const Rk = U.R * Math.min(1, t / U.buka); let ada = 0;
-      MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && m.g.position.distanceTo(pos) < Rk + .5) { kena(m, U.dmg, pos, .5); lukai(m, U.darah); ada = 1; if (k % 2 === 0) fx('dKena', m.g.position.clone(), .5); } });
+      MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && m.g.position.distanceTo(pos) < Rk + .5) { kena(m, dmgD(m, U.dmg), pos, .5); lukai(m, U.darah); ada = 1; if (k % 2 === 0) fx('dKena', m.g.position.clone(), .5); } });
       if (ada) goyang = Math.max(goyang, .05); }
     if (t > U.lama) { P.state = 'bebas'; main('diam', .2); }
   }
@@ -3830,11 +3844,11 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v6'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v8'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
-    updTarik(dt); updBerdarah(dt); updDnFx(dt);   // Doni: tarikan rantai, Bleeding, rantai & gir
+    updTarik(dt); updBerdarah(dt); updTandaD(dt); updDnFx(dt);   // Doni: tarikan rantai, Bleeding, rantai & gir
     if (NET.on && !TIM.on) { updLawan(dt); NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaan(); } }
     updPeluru(dt); updRohPemburu(dt); updGelKipas(dt);
     setTembus(P, UMP.on && UMP.tangkap ? .45 : HERO === 'kunti' && P.state === 'kalah' ? .4 : TY.hilang > 0 ? .3 : 1); updSemak(dt); updGerombolan(dt); updKoin(dt);   // di dalam semak: semaknya yang tembus pandang
