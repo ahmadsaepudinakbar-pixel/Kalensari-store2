@@ -2306,8 +2306,8 @@ function pakaiErick(i) {
   const pos = P.root.position, amuk = EW.amuk > 0;
   const arahi = maks => { if (K.bidik === i && K.diarahkan) P.arah = K.arahBidik; else { const m = terdekat(maks); if (m) hadapKe(m.g.position); } };
   if (i === 0) {
-    if (amuk) { arahi(3); P.langkah = EW.combo = (EW.combo + 1) % 4; P.state = 'erBasik'; mainUlang('amuk' + P.langkah, .03, 2.3); P.cd[0] = ER.cd.amuk[0]; }
-    else { if (EW.comboT <= 0) EW.combo = 0; arahi(2.8); P.langkah = EW.combo; P.state = 'erBasik'; mainUlang(['tinju1', 'tinju2'][EW.combo], .04, 1.5); EW.combo = (EW.combo + 1) % 2; EW.comboT = ER.basik.jeda; P.cd[0] = CD_MAX[0]; }
+    if (amuk) { arahi(3); P.langkah = EW.combo = (EW.combo + 1) % 4; P.state = 'erBasik'; P.basikAmuk = 1; mainUlang('amuk' + P.langkah, .03, 2.3); P.cd[0] = ER.cd.amuk[0]; }
+    else { if (EW.comboT <= 0) EW.combo = 0; arahi(2.8); P.langkah = EW.combo; P.state = 'erBasik'; P.basikAmuk = 0; mainUlang(['tinju1', 'tinju2'][EW.combo], .04, 1.5); EW.combo = (EW.combo + 1) % 2; EW.comboT = ER.basik.jeda; P.cd[0] = CD_MAX[0]; }
   }
   else if (i === 1) {
     if (amuk) { arahi(ER.blink.jarak + 1.5); P.state = 'erBlink'; P.awal = pos.clone(); P.tujuan = batasi(pos.clone().addScaledVector(new THREE.Vector3(Math.sin(P.arah), 0, Math.cos(P.arah)), ER.blink.jarak).setY(0)); mainUlang('amuk1', .03, 2.2); eBlinkFx(pos); P.blinkHid = 1; if (P.model) P.model.visible = false; P.kunci = P.pusing = 0; P.cd[1] = ER.cd.amuk[1]; }
@@ -2346,6 +2346,7 @@ function updErick(dt, pos, f) {
   if (EW.matiAmuk && P.state !== 'kalah' && !SELESAI) { EW.matiAmuk = 0; ericGanti(P, false); }   // ronde baru: kembali ke model normal
   if (EW.amuk > 0 && P.state !== 'erUlti') { EW.amuk -= dt; eAmukAura(dt, pos); if (EW.amuk <= 0) erAmukSelesai(false); }
   if (P.state === 'erUlti') P.kunci = P.pusing = 0;
+  if (/^er/.test(P.state) && t > 3.3) { P.state = 'bebas'; P.blinkHid = 0; if (P.model) P.model.visible = true; main('diam', .15); }   // pengaman: skill Erick tidak boleh terkunci lebih dari 3,3 dtk
   const amuk = EW.amuk > 0 || P.state === 'erUlti';
   if (P.state === 'bebas') {
     const [x, z] = arahGerak(), v = amuk ? ER.cepatAmuk : ER.cepat;
@@ -2353,7 +2354,7 @@ function updErick(dt, pos, f) {
     else { main('diam', .25); if (K.bidik) P.arah = K.arahBidik; }
   }
   else if (P.state === 'erBasik') {
-    if (EW.amuk > 0) {   // tebasan cepat brutal
+    if (P.basikAmuk) {   // tebasan cepat brutal (ikut jenis serangan saat dimulai, walau amukan habis di tengah tebasan)
       const B = ER.amukBasik; if (t < B.tH) pos.addScaledVector(f, 3 * dt);
       if (t > B.tH && !P.hit) { P.hit = 1; const hp = pos.clone().addScaledVector(f, 1); eSabet(pos, P.arah, P.langkah % 2 ? .6 : -.6, 1.25, .2);
         if (kenaDepan(pos, f, 1, B.R, m => { kena(m, B.dmg, pos, 1.4); eTebasKena(m.g.position); })) goyang = Math.max(goyang, .05); }
