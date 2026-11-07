@@ -57,7 +57,8 @@ wss.clients = clients;
 
 const PORT = +process.env.PORT || 8090;
 const HOST = process.env.HOST || '127.0.0.1';
-const HEROES = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo', 'pitung'];   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
+const HEROES = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timunmas', 'buto', 'lutung'];
+const HEROES_BOT = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo', 'pitung'];   // bot hanya memakai hero yang punya AI bot (hero baru seperti Buto tidak dipakai bot)   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
 const RELAY_FROM_HOST = new Set(['st', 'end']);   // data pertandingan dari host → tamu
 const RELAY_FROM_GUEST = new Set(['in']);         // tombol tamu → host
 
@@ -192,7 +193,7 @@ function tmMsg(ws, m, raw) {
       if (!r || r.host !== ws || r.state !== 'lobby') return;
       const tm = m.tm === 1 ? 1 : 0;
       if (tmCount(r, tm) >= TM_MAX) { send(ws, { t: 'err', msg: 'Tim itu sudah penuh' }); return; }
-      const h = HEROES.includes(m.h) ? m.h : HEROES[Math.floor(Math.random() * HEROES.length)];
+      const h = HEROES_BOT.includes(m.h) ? m.h : HEROES_BOT[Math.floor(Math.random() * HEROES_BOT.length)];
       let k = 1; while (r.bots.some(b => b.n === 'Bot ' + k)) k++;
       r.bots.push({ i: -(++botSeq), n: 'Bot ' + k, h, tm });
       tmRoomMsg(r); return;
@@ -200,7 +201,7 @@ function tmMsg(ws, m, raw) {
     case 'tmBotDel': {   // hapus bot / ganti hero bot
       if (!r || r.host !== ws || r.state !== 'lobby') return;
       const b = r.bots.find(x => x.i === (m.i | 0)); if (!b) return;
-      if (HEROES.includes(m.h)) b.h = m.h; else r.bots = r.bots.filter(x => x !== b);
+      if (HEROES.includes(m.h)) { if (HEROES_BOT.includes(m.h)) b.h = m.h; } else r.bots = r.bots.filter(x => x !== b);
       tmRoomMsg(r); return;
     }
     case 'tmGo': {
@@ -420,7 +421,7 @@ function lbLuncur(L) {
     if (L.rm === 'tim') ikut.forEach(x => exp.set(x.pid, x.tm | 0));             // tim pilihan pemain sendiri
     else ikut.slice().sort(() => Math.random() - .5).forEach((x, i) => exp.set(x.pid, i % 2));   // 1 vs 1
     const n0 = [...exp.values()].filter(t => t === 0).length, n1 = exp.size - n0;
-    const bots = pakaiBot ? lbRencanaBot(n0, n1).map((tm, i) => ({ i: -(++botSeq), n: 'Bot ' + (i + 1), h: HEROES[Math.floor(Math.random() * HEROES.length)], tm })) : [];
+    const bots = pakaiBot ? lbRencanaBot(n0, n1).map((tm, i) => ({ i: -(++botSeq), n: 'Bot ' + (i + 1), h: HEROES_BOT[Math.floor(Math.random() * HEROES_BOT.length)], tm })) : [];
     const r = { code, host: null, pl: [], bots: [], botRencana: bots, state: 'lobby', a: L.ra, kw: LB_KW, pub: false, t0: Date.now(), ver: '3d', lb: L.code, exp, hostPid: L.hostPid };
     trooms.set(code, r);
     r.autoT = setTimeout(() => lbTmMulai(r, 1), LB_TUNGGU_3D);
@@ -437,7 +438,7 @@ function lbTmMulai(r, waktuHabis) {   // semua pemain Main Bareng sudah masuk ar
   if (r.pl.length + r.bots.length < 2 || !r.pl.length) { r.pl.forEach(w => send(w, { t: 'err', msg: 'Teman belum masuk arena — kembali ke lobi…', balik: 1 })); r.exp = null; lbKembali(r.lb, r.code); return; }
   for (const t of [0, 1]) if (!tmCount(r, t)) {   // tim kosong (ada yang tidak masuk) → pindahkan 1 pemain / bot
     const w = r.pl.length > 1 && r.pl.filter(x => x.tmT !== t).length > 1 ? r.pl.filter(x => x.tmT !== t)[0] : null;
-    if (w) w.tmT = t; else { const b = r.bots.find(x => x.tm !== t); if (b && tmCount(r, 1 - t) > 1) b.tm = t; else r.bots.push({ i: -(++botSeq), n: 'Bot ' + (r.bots.length + 1), h: HEROES[Math.floor(Math.random() * HEROES.length)], tm: t }); }
+    if (w) w.tmT = t; else { const b = r.bots.find(x => x.tm !== t); if (b && tmCount(r, 1 - t) > 1) b.tm = t; else r.bots.push({ i: -(++botSeq), n: 'Bot ' + (r.bots.length + 1), h: HEROES_BOT[Math.floor(Math.random() * HEROES_BOT.length)], tm: t }); }
   }
   r.host = r.pl.find(w => w.pid === r.hostPid) || r.pl[0];
   tmMulaiRoom(r);
