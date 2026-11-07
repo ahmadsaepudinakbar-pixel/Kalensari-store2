@@ -81,7 +81,20 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #ph #phHero button i{font-style:normal;font-size:28px}#ph #phSkin button{min-width:0;flex-direction:row;padding:7px 12px}
 #ph #phHero button small{font:500 11px Arial;color:#9aa3b8}
 #ph #phHero button.on,#ph #phSkin button.on{background:#3a0f1c;border-color:#e8392f;box-shadow:0 0 12px #e8392f55}
-#ph #phHero button.kunci,#ph #phSkin button.kunci{opacity:.45}#phInfo{font:12px Arial;color:#ffd166;min-height:14px;text-align:center}
+#ph #phHero button.kunci,#ph #phSkin button.kunci{opacity:.45}
+/* Pilih Hero: kartu hero rapi & seragam (nama hero tidak ikut gaya judul besar #hasil b) */
+#ph{max-height:94vh;overflow-y:auto;box-sizing:border-box;width:min(680px,94vw)}
+#ph #phHero{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;width:100%}
+#ph #phHero button{min-width:0;width:100%;box-sizing:border-box;padding:7px 4px;gap:1px;cursor:pointer}
+#ph #phHero button b{font:800 14px Arial!important;letter-spacing:0!important;text-shadow:none!important;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#ph #phHero button small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+#ph #phSkin button{font:700 13px Arial;color:#e8e2f0;padding:6px 12px;cursor:pointer}#ph .tb button{padding:9px 20px;font-size:15px}
+@media (orientation:landscape) and (max-height:560px){#ph{padding:8px 10px;gap:6px}#ph .phj{font-size:17px!important}#ph #phHero{gap:5px}#ph #phHero button{padding:4px 3px;border-radius:9px}#ph #phHero button i{font-size:19px}#ph #phHero button b{font-size:12px!important}#ph #phHero button small{font-size:9px}#ph #phSkin button{padding:4px 10px;font-size:12px}#ph .tb button{padding:7px 16px;font-size:13px}}
+@media (orientation:portrait) and (max-width:520px){#ph #phHero{grid-template-columns:repeat(3,minmax(0,1fr))}}
+#ph #phHero .fm{width:58px;height:58px;border-radius:50%;overflow:hidden;background:radial-gradient(#3a2d52,#140f20);border:2px solid #4a3a66;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:3px}
+#ph #phHero .fm img{width:100%;height:100%;object-fit:cover;object-position:50% 30%}#ph #phHero button.on .fm{border-color:#ff5a4a;box-shadow:0 0 10px #e8392f88}
+#ph #phSkin button{display:flex;align-items:center;gap:6px}#ph #phSkin .fs{width:26px;height:26px;border-radius:50%;object-fit:cover;object-position:50% 30%;background:#140f20;border:1px solid #4a3a66}
+@media (orientation:landscape) and (max-height:560px){#ph #phHero .fm{width:40px;height:40px;margin-bottom:1px}#ph #phSkin .fs{width:20px;height:20px}}#phInfo{font:12px Arial;color:#ffd166;min-height:14px;text-align:center}
 @media (max-height:430px){#ph #phHero button{min-width:84px;padding:5px 8px}#ph #phHero button i{font-size:22px}#hasil b{font-size:40px}#hasil{gap:10px}}#hasil button.abu{background:#2c3f73;color:#fff}
 
 /* layar miring (HP): menu dua kolom & ringkas supaya muat tanpa menggulir */
@@ -3595,9 +3608,12 @@ const kunciSkin = (h, s) => h === 'ocong' ? (s || 'boneka') : (s || 'utama'), sk
 const PUNYA = (() => { const a = (Q.get('punya') || '').split(',').filter(h => NAMA_HERO[h]); ['ocong', 'buto', HERO].forEach(h => { if (!a.includes(h)) a.push(h); }); return a; })();
 const SKIN_PUNYA = new Set(['ocong:lompat', 'kunti:utama', 'tuyul:utama', 'genderuwo:utama', 'pitung:utama', 'erick:utama', 'doni:utama', 'timun:utama', 'buto:utama', 'buto:ijo', 'doni:robot', 'erick:robot', HERO + ':' + kunciSkin(HERO, SKIN), ...(Q.get('skins') || '').split(',').filter(Boolean)]);
 const PH = { hero: HERO, skin: kunciSkin(HERO, SKIN) };
+const FOTO_HERO = { ocong: 'ocong-lompat', kunti: 'kunti', tuyul: 'tuyul', genderuwo: 'genderuwo', pitung: 'pitung', erick: 'erick', doni: 'doni', timun: 'timunmas', buto: 'buto' },
+  FOTO_SKIN = { 'ocong:lompat': 'ocong-lompat', 'ocong:boneka': 'ocong-boneka', 'ocong:emas': 'ocong-pink', 'kunti:merah': 'kunti-merah', 'kunti:gothic': 'kunti-gothic', 'genderuwo:leak': 'leak', 'pitung:pendekar': 'pendekar', 'doni:robot': 'doni-robot', 'erick:robot': 'erick-robot', 'buto:ijo': 'buto-ijo' };
+const fotoMuka = (h, k) => 'gambar-game/potret-3d/' + (FOTO_SKIN[h + ':' + k] || FOTO_HERO[h]) + '-kepala.webp';   // foto muka hero / skin (dipakai di layar Pilih Hero)
 function gambarPilihHero() {
-  $('#phHero').innerHTML = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timun', 'buto'].map(h => { const ok = PUNYA.includes(h); return `<button data-h="${h}" class="${PH.hero === h ? 'on' : ''} ${ok ? '' : 'kunci'}"><i>${IKON_HERO[h]}</i><b>${NAMA_HERO[h]}</b><small>${ok ? DESK_HERO[h] : '🔒 butuh kartu'}</small></button>`; }).join('');
-  $('#phSkin').innerHTML = PIL_SKIN[PH.hero].length > 1 ? PIL_SKIN[PH.hero].map(([k, n]) => { const ok = SKIN_PUNYA.has(PH.hero + ':' + k); return `<button data-k="${k}" class="${PH.skin === k ? 'on' : ''} ${ok ? '' : 'kunci'}">${ok ? '' : '🔒 '}${n}</button>`; }).join('') : '';
+  $('#phHero').innerHTML = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timun', 'buto'].map(h => { const ok = PUNYA.includes(h); return `<button data-h="${h}" class="${PH.hero === h ? 'on' : ''} ${ok ? '' : 'kunci'}"><span class="fm"><img src="${fotoMuka(h, PH.hero === h ? PH.skin : '')}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${IKON_HERO[h]}'))"></span><b>${NAMA_HERO[h]}</b><small>${ok ? DESK_HERO[h] : '🔒 butuh kartu'}</small></button>`; }).join('');
+  $('#phSkin').innerHTML = PIL_SKIN[PH.hero].length > 1 ? PIL_SKIN[PH.hero].map(([k, n]) => { const ok = SKIN_PUNYA.has(PH.hero + ':' + k); return `<button data-k="${k}" class="${PH.skin === k ? 'on' : ''} ${ok ? '' : 'kunci'}"><img class="fs" src="${fotoMuka(PH.hero, k)}" alt="" onerror="this.remove()">${ok ? '' : '🔒 '}${n.replace(/^\S+\s/, '')}</button>`; }).join('') : '';
   document.querySelectorAll('#phHero button').forEach(b => b.onclick = () => { const h = b.dataset.h;
     if (!PUNYA.includes(h)) { $('#phInfo').textContent = '🔒 ' + NAMA_HERO[h] + ' terkunci — klaim kartunya di Koleksi Kartu'; return; }
     $('#phInfo').textContent = ''; PH.hero = h; PH.skin = h === HERO ? kunciSkin(HERO, SKIN) : (PIL_SKIN[h].find(([k]) => SKIN_PUNYA.has(h + ':' + k)) || PIL_SKIN[h][0])[0]; gambarPilihHero(); });
