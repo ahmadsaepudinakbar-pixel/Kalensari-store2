@@ -138,6 +138,7 @@ body.aturOn #joy,body.aturOn .sb{z-index:41;pointer-events:none;outline:2px dash
 #aturBar button{font:700 12px Arial;color:#fff;background:#1f2a4d;border:1px solid #3a4f8a;border-radius:8px;padding:7px 12px;cursor:pointer}#aturBar button.ok{background:#1f8a4c;border-color:#3fd07c}
 #batalB{position:fixed;right:26px;top:64px;width:76px;height:76px;z-index:6;border-radius:50%;border:3px dashed #ff6b6bcc;background:#3a0a0acc;color:#ffb4b4;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 12px Arial;pointer-events:none;visibility:hidden;transition:transform .1s,background .1s}
 #batalB b{font-size:26px;line-height:1}#batalB.on{visibility:visible}#batalB.siap{background:#c81e1e;color:#fff;border-style:solid;border-color:#fff;transform:scale(1.15)}body.aturOn #batalB{visibility:visible;z-index:41;outline:2px dashed #ffd166;outline-offset:4px}
+.sb .k2{position:absolute;top:2px;right:6px;font:900 15px Arial;color:#ffd166;text-shadow:0 0 4px #000,0 1px 0 #000;pointer-events:none}
 #bAtur{font:700 11px Arial;color:#ffd166;background:#141b33;border:1px solid #ffd16688;border-radius:7px;padding:6px 9px;cursor:pointer}
 @media (orientation:landscape) and (max-height:560px){#aturBar{top:4px;padding:5px 8px;font-size:11px}#aturBar small{display:none}#aturBar input{width:100px}#aturBar button{padding:5px 9px}}
 @media (orientation:landscape) and (max-height:560px){#tbans{top:68px;max-width:220px;gap:3px}.tban{font-size:11px;padding:2px 9px}}   /* HP miring: notif lebih ke atas & kecil, jauh dari joystick */
@@ -1290,7 +1291,7 @@ if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / S
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
 if (HERO === 'buto') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Gebukan Raksasa (pukul, pukul, hantam tanah) · U (tahan + mouse): Seruduk Buto (lawan terdorong; menabrak pinggir arena / batu = Stun) · I: Tangkap & Banting (lawan terdekat + Stun 1 dtk) · O (tahan + mouse): Lempar Batu Raksasa (area besar: Stun + Slow, batunya jadi tembok 4 dtk) · Pasif Kulit Buto: darah tebal, sulit didorong, darah < 30% damage −25% · Combo: O → U → I';
 if (HERO === 'doni') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul, Pukul, Tendang (tekan 3x) · U (tahan + mouse): Gear Throw (lempar gir, damage Doni 2x selama 2 dtk) · I: Chain Pull (otomatis mengunci musuh terdekat, menarik + Stun 1,5 dtk) · O: Gear Whirl (rantai bergir berputar, area luas + Bleeding) · Combo: I → U → O';
-if (HERO === 'erick') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul-Pukul · U (tahan + mouse): Melesat (tendangan terbang) · I (tahan + mouse): Tendangan beruntun + Tendangan Terbang · O: MENGAMUK 7 detik (rambut merah + katana: serangan tebas brutal · U: Blink Tebas · I: Gelombang Sabit)';
+if (HERO === 'erick') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul-Pukul · U (tahan + mouse): Melesat (tendangan terbang) · I (tahan + mouse, 3x tekan): Tendangan Beruntun ala Chou — tendang, tendang, tendangan terbang (lanjutkan dalam 4 dtk, kalau tidak kembali ke tendangan 1 + cooldown) · O: MENGAMUK 7 detik (rambut merah + katana: serangan tebas brutal · U: Blink Tebas · I: Gelombang Sabit)';
 if (HERO === 'pitung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul ×2 lalu Tendang (tekan 3x) · U (tahan + mouse): Tusukan Kilat (melesat & menusuk) · I (tahan + mouse): Bacok Golok sambil menerjang · O: Terbang Si Pitung (lepas dari stun, lompat & menebas lawan)';
 if (HERO === 'tuyul') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Colek Kilat (curi koin) · U (tahan + mouse): Seluncur Licin · I: Ngilang 2,5 detik · O (tahan + mouse): Blink kilat + Gerombolan Tuyul (bisa dipakai saat terkena stun)';
 if (HERO === 'kunti') { $('#nmhero').textContent = 'Kunti Merah'; $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Roh · U (tahan, arahkan dgn mouse): Frekuensi Suara · I (tahan, arahkan dgn mouse): Mode Terbang · O: Roh Pemburu'; }
@@ -1716,7 +1717,7 @@ function updBidik() {
     const ln = on && am && K.bidik === 1, sb = on && am && K.bidik === 2; LANE.visible = ln; SABIT.visible = sb; PANAH.visible = !!on && !am;
     if (ln) { LANE.position.x = P.root.position.x; LANE.position.z = P.root.position.z; LANE.rotation.y = K.arahBidik; LANE.scale.set(ER.blink.lebar * 2, 1, ER.blink.jarak); }
     else if (sb) { SABIT.position.x = P.root.position.x; SABIT.position.z = P.root.position.z; SABIT.rotation.y = K.arahBidik; SABIT.scale.set(ER.gel.R * 2.4, 1, ER.gel.jarak); }
-    else if (on) { const jarak = K.bidik === 1 ? ER.terbang.jarak : ER.kombo.jarak; PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, jarak / TERBANG.lesat); }
+    else if (on) { const jarak = K.bidik === 1 ? ER.terbang.jarak : ER_K2.tahap[EW.k2].jarak; PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, jarak / TERBANG.lesat); }
     return;
   }
   if (HERO === 'timun') {   // skill 1 & 3: lingkaran tempat bambu / lumpur muncul · skill 2: panah arah lemparan biji timun
@@ -2301,7 +2302,16 @@ const ER = { cepat: 3.1, cepatAmuk: 6, blok: 3,
   blink: { jarak: 8, tut: .3, hilang: .5, kebal: .8, tH: [.08, .18, .28, .4, .6, .72, .85, 1], akhir: 1.2, dmg: 45, lebar: 1.7 },
   gel: { rilis: .2, akhir: .55, jarak: 12, cepat: 17, dmg: 140, R: 1.9 },
   cd: { amuk: [.2, 4.5, 5, 0], awal: .5 } };   // awal: jeda skill 1 & 2 setelah amuk mulai
-const EW = { combo: 0, comboT: 0, amuk: 0, st: null, gelombang: [], aura: 0 };
+const EW = { combo: 0, comboT: 0, amuk: 0, st: null, gelombang: [], aura: 0, k2: 0, k2T: 0 };   // k2: tahap Tendangan Beruntun berikutnya (0..2), k2T: sisa waktu untuk tahap berikutnya
+// Skill 2 mode biasa (ala Jeet Kune Do Chou MLBB): 3 tendangan, masing-masing 1x tekan dan bisa diarahkan.
+// Setelah tahap 1/2: jeda singkat lalu ada waktu 'jendela' untuk tahap berikutnya. Lewat jendela / selesai tahap 3 → kembali ke tahap 1 + cooldown penuh.
+const ER_K2 = { jeda: .4, jendela: 4, tahap: [
+  { anim: 'tendang0', ts: 1.1, maju: [.04, .28], jarak: 3, tH: .22, dmg: 70, dorong: 3, stun: 0, angkat: 0, akhir: .5 },
+  { anim: 'tendang1', ts: 1.1, maju: [.04, .28], jarak: 3, tH: .22, dmg: 70, dorong: 3, stun: 0, angkat: 0, akhir: .5 },
+  { anim: 'terbang', ts: 1.25, maju: [.12, .45], jarak: 4, tH: .45, dmg: 140, dorong: 11, stun: 1, angkat: 6, akhir: .85 }] };
+function erK2Reset(cd) { EW.k2 = 0; EW.k2T = 0; if (cd) P.cd[2] = Math.max(P.cd[2], CD_MAX[2]); erK2Lencana(); }
+function erK2Lencana() { const b = document.getElementById('b2'); if (!b) return; let e = b.querySelector('.k2'); if (!e) { e = document.createElement('span'); e.className = 'k2'; b.appendChild(e); }
+  const tx = EW.amuk <= 0 && EW.st !== 'ulti' ? String(EW.k2 + 1) : ''; if (e.textContent !== tx) e.textContent = tx; }   // tanda tendangan berikutnya: 1, 2, 3 (disembunyikan saat mengamuk)
 let ER_AURA = [];   // bahan kilau merah di seluruh badan (mode mengamuk)
 let ER_DARAH = 0xb30000, ER_MERAH = 0xff2020, ER_PUTIH = 0xffe0e0, ER_ASAP = 0x0a0004, ER_INTI = 0xff3a96, ER_INTI2 = 0xfff0f8, ER_PITA2 = 0xff4a9a, ER_API = 0xffc060, ER_AURA_W = 0xff2a14, ER_TEKS = '#ff3030', ER_KATANA_E = 0x6a0000;
 if (HERO === 'erick' && SKIN === 'robot') {   // skin Robot Erick: efek ulti & sayatan mengikuti warna pedang (hijau neon) dan lis robot (biru muda + emas)
@@ -2392,8 +2402,9 @@ function ericGanti(T, amuk) {   // tukar model: normal (rambut hitam) ↔ mengam
   const E = T.erick; if (!E || !E.rage) return false; const on = amuk ? E.rage : E.normal, off = amuk ? E.normal : E.rage;
   off.m.visible = false; on.m.visible = true; T.model = on.m; T.mixer = on.mixer; T.act = on.act; T.bahan = on.bahan; T.cur = ''; return true;
 }
-function erIkon(amuk) { ['bA', 'b1', 'b2', 'b3'].forEach((id, i) => { const g = document.querySelector('#' + id + ' .ikg'); if (g) g.src = (amuk ? ER_IKON_AMUK : ER_IKON_NORMAL)[i]; }); }
-function erAmukMulai() { EW.st = 'ulti'; ericGanti(P, true); erIkon(true); }
+if (HERO === 'erick') setTimeout(erK2Lencana, 0);
+function erIkon(amuk) { ['bA', 'b1', 'b2', 'b3'].forEach((id, i) => { const g = document.querySelector('#' + id + ' .ikg'); if (g) g.src = (amuk ? ER_IKON_AMUK : ER_IKON_NORMAL)[i]; }); erK2Lencana(); }
+function erAmukMulai() { EW.k2 = 0; EW.k2T = 0; erK2Lencana(); EW.st = 'ulti'; ericGanti(P, true); erIkon(true); }
 function erAmukSelesai(selesai, tetap) {   // tetap: gugur saat mengamuk → model amuk dipertahankan agar animasi matinya terlihat
   EW.amuk = 0; EW.st = null; if (tetap) { EW.matiAmuk = 1; ER_AURA.forEach(a => { a.opacity = .12; }); } else ericGanti(P, false); erIkon(false); EW.gelombang.forEach(w => scene.remove(w.o)); EW.gelombang.length = 0;
   P.cd[1] = selesai ? 0 : 2; P.cd[2] = selesai ? 0 : 3; P.cd[0] = 0; if (!selesai) { eAmukMulai(P.root.position); banner('😤 Amukan Erick reda', '#ffb4b4'); }
@@ -2412,7 +2423,8 @@ function pakaiErick(i) {
   }
   else if (i === 2) {
     if (amuk) { arahi(8); P.state = 'erGel'; mainUlang('gelombang', .04, 1.6); P.cd[2] = ER.cd.amuk[2]; }
-    else { arahi(ER.kombo.jarak + 1); P.state = 'erKombo'; mainUlang('tendang0', .05, 1.1); P.cd[2] = CD_MAX[2]; }
+    else { const k = EW.k2, B = ER_K2.tahap[k]; arahi(B.jarak + 1.5); P.state = 'erK2'; P.langkah = k; mainUlang(B.anim, .04, B.ts);
+      if (k < 2) { EW.k2 = k + 1; EW.k2T = ER_K2.jendela; P.cd[2] = ER_K2.jeda; } else { EW.k2 = 0; EW.k2T = 0; P.cd[2] = CD_MAX[2]; } erK2Lencana(); }
   }
   else if (i === 3) {
     if (amuk) return;   // sudah mengamuk
@@ -2437,6 +2449,8 @@ function ericUpdGelombang(dt) {
     if (w.t * ER.gel.cepat > ER.gel.jarak || Math.abs(w.x) > 30 || Math.abs(w.z) > 30) { scene.remove(w.o); EW.gelombang.splice(k, 1); } }
 }
 function updErick(dt, pos, f) {
+  if (EW.k2T > 0) { EW.k2T -= dt; if (EW.k2T <= 0 && EW.k2 > 0) erK2Reset(true); }
+  erK2Lencana();   // tidak dilanjutkan dalam jendela waktu → tahap 1 lagi + jeda (cooldown) penuh
   if (P.blinkHid && P.state !== 'erBlink') { P.blinkHid = 0; if (P.model) P.model.visible = true; }   // pengaman: model tidak boleh tetap hilang
   const t = P.t; updBidik(); EW.comboT = Math.max(0, EW.comboT - dt); ericUpdGelombang(dt);
   if ((P.state === 'kalah' || SELESAI) && (EW.amuk > 0 || EW.st)) { const gugur = P.state === 'kalah'; erAmukSelesai(true, gugur); if (gugur) { const ps = pos.clone().setY(0.1); nyala(ps.clone().setY(1), 2.2, ER_MERAH, .4); percik(ps.clone().setY(1), 22, ER_DARAH, 4, .14); asap(ps, 6, ER_DARAH, 1.2, 1); } }
@@ -2467,7 +2481,14 @@ function updErick(dt, pos, f) {
     P.kunci = P.pusing = 0; if (Math.random() < dt * 4) nyala(pos.clone().setY(1), 1, 0xffd070, .25);
     if (t > ER.blok) { P.state = 'bebas'; main('diam', .2); }
   }
-  else if (P.state === 'erKombo') {   // tendang beruntun, ditutup tendangan terbang yang menerbangkan musuh
+  else if (P.state === 'erK2') {   // satu tahap Tendangan Beruntun: melesat pendek ke arah bidikan lalu menendang (tahap 3: tendangan terbang, musuh terpental + stun)
+    const B = ER_K2.tahap[P.langkah], tt = t;
+    if (tt > B.maju[0] && tt < B.maju[1] && !kenaDepan(pos, f, .9, .9, () => { })) { pos.addScaledVector(f, B.jarak / (B.maju[1] - B.maju[0]) * dt); if (Math.random() < .5) asap(pos.clone().setY(.2), 1, COKLAT_MUDA, .8, .5); }
+    if (tt > B.tH && !P.hit) { P.hit = 1; const hp = pos.clone().addScaledVector(f, 1.1), ak = P.langkah === 2; eTendang(hp, ak ? 1.9 : 1.2); if (ak) gelombang(hp.clone().setY(0), 2, .4, 0xffb060);
+      if (kenaDepan(pos, f, 1.1, ER.kombo.R, m => { kena(m, B.dmg, pos, B.dorong, B.angkat); if (B.stun) m.pusing = Math.max(m.pusing || 0, B.stun); })) goyang = Math.max(goyang, ak ? .25 : .08); }
+    if (tt > B.akhir) { P.state = 'bebas'; main('diam', .2); }
+  }
+  else if (P.state === 'erKombo') {   // (lama) tendang beruntun 1x tekan — tidak dipakai lagi
     const B = ER.kombo; let g = 0; for (let q = 0; q < 4; q++) if (t >= B.mulai[q]) g = q;
     if (P.hit2 !== g + 1) { P.hit2 = g + 1; P.hit = 0; if (g) mainUlang(['', 'tendang1', 'lutut', 'terbang'][g], .04, g === 3 ? 1.25 : 1.1); }
     const tm = t - B.mulai[g];
@@ -3633,7 +3654,7 @@ $('#phMain').onclick = () => {
 function mainLagi(ronde) {   // ronde = lanjut ronde berikutnya (skor tetap); tanpa ronde = tanding ulang dari 0
   const darahP = ronde && P.state !== 'kalah' ? Math.max(1, P.hp) : HP_MAX[HERO];   // pemenang ronde: darah tidak kembali penuh
   SELESAI = false; $('#hasil').classList.remove('on'); K.terbangT = 0; K.lesat = 0;
-  P.hp = darahP; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; P.tarikD = null; BERDARAH.length = 0; TARIK.length = 0; DW.combo = 0; GW.amuk = GW.combo = GW.comboT = 0; BW.combo = BW.comboT = 0; BW.batu.length = 0; P.pegang = null; P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
+  P.hp = darahP; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; P.tarikD = null; BERDARAH.length = 0; TARIK.length = 0; DW.combo = 0; GW.amuk = GW.combo = GW.comboT = 0; BW.combo = BW.comboT = 0; BW.batu.length = 0; P.pegang = null; EW.k2 = EW.k2T = 0; erK2Lencana(); P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
   if (HERO === 'kunti') kuntiTembus(1);
   if (BOT) BOT.reset(!ronde, !!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
   if (LAWAN === 'bot' && !ronde) { SKOR = [0, 0]; updSkorBot(); }
