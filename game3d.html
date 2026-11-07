@@ -123,6 +123,8 @@ body.aturOn #joy,body.aturOn .sb{z-index:41;pointer-events:none;outline:2px dash
 #aturBar{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:42;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px;max-width:96vw;background:#0b1020ee;border:1px solid #ffd16655;border-radius:12px;padding:8px 12px;font:700 13px Arial;color:#fff}
 #aturBar small{color:#aab3c8;font-weight:400}#aturBar label{display:flex;align-items:center;gap:6px;color:#ffd166}#aturBar input{width:130px}
 #aturBar button{font:700 12px Arial;color:#fff;background:#1f2a4d;border:1px solid #3a4f8a;border-radius:8px;padding:7px 12px;cursor:pointer}#aturBar button.ok{background:#1f8a4c;border-color:#3fd07c}
+#batalB{position:fixed;right:26px;top:64px;width:76px;height:76px;z-index:6;border-radius:50%;border:3px dashed #ff6b6bcc;background:#3a0a0acc;color:#ffb4b4;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 12px Arial;pointer-events:none;visibility:hidden;transition:transform .1s,background .1s}
+#batalB b{font-size:26px;line-height:1}#batalB.on{visibility:visible}#batalB.siap{background:#c81e1e;color:#fff;border-style:solid;border-color:#fff;transform:scale(1.15)}body.aturOn #batalB{visibility:visible;z-index:41;outline:2px dashed #ffd166;outline-offset:4px}
 #bAtur{font:700 11px Arial;color:#ffd166;background:#141b33;border:1px solid #ffd16688;border-radius:7px;padding:6px 9px;cursor:pointer}
 @media (orientation:landscape) and (max-height:560px){#aturBar{top:4px;padding:5px 8px;font-size:11px}#aturBar small{display:none}#aturBar input{width:100px}#aturBar button{padding:5px 9px}}
 @media (orientation:landscape) and (max-height:560px){#tbans{top:68px;max-width:220px;gap:3px}.tban{font-size:11px;padding:2px 9px}}   /* HP miring: notif lebih ke atas & kecil, jauh dari joystick */
@@ -161,6 +163,7 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
  <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"><button id="bAtur" title="Atur posisi & ukuran joystick dan tombol skill">🎮 Tombol</button></div>
 </div>
 <div id="joy" class="ui"><div id="knob"></div></div>
+<div id="batalB"><b>✖</b>Batal</div>
 <div id="atur"><div id="aturBar"><b>🎮 Atur Tombol</b><small>Geser joystick / tombol skill · ketuk lalu atur ukurannya</small><label>Ukuran <input id="aturUk" type="range" min="60" max="160" step="5" value="100"><span id="aturUkT">100%</span></label><button id="aturReset">Reset</button><button id="aturBatal">Batal</button><button id="aturSimpan" class="ok">Simpan</button></div></div>
 <button id="bA" class="sb"><i class="cd"></i><em></em></button>
 <button id="b1" class="sb"><i class="cd"></i><em></em></button>
@@ -1194,6 +1197,8 @@ function updLabel(dt) {
 // ================== KONTROL ==================
 const inp = { x: 0, z: 0, k: {} };
 addEventListener('keydown', e => { inp.k[e.key.toLowerCase()] = 1; const m = { j: 0, ' ': 0, u: 1, i: 2, o: 3 }[e.key.toLowerCase()]; if (m !== undefined) { e.preventDefault(); if (m === 1 || (m === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo' && HERO !== 'doni' && HERO !== 'buto') || (m === 3 && (HERO === 'tuyul' || HERO === 'timun' || HERO === 'buto'))) { if (!e.repeat) { mulaiBidik(m); K.bidikKey = true; } } else pakai(m); } });
+addEventListener('keydown', e => { if (e.key === 'Escape' && K.bidik) batalBidik(); });   // PC: Esc = batal skill yang sedang dibidik
+addEventListener('contextmenu', e => { if (K.bidik) { e.preventDefault(); batalBidik(); } });   // PC: klik kanan = batal
 addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.key.toLowerCase(); if ((kk === 'u' && K.bidik === 1) || (kk === 'i' && K.bidik === 2) || (kk === 'o' && K.bidik === 3)) lepasBidik(); } });
 { const J = $('#joy'), K = $('#knob'); let id = null;
   const mv = e => { const r = J.getBoundingClientRect(), R = r.width / 2, dx = e.clientX - r.left - R, dy = e.clientY - r.top - R, m = Math.min(1, Math.hypot(dx, dy) / R), a = Math.atan2(dy, dx); inp.x = Math.cos(a) * m; inp.z = Math.sin(a) * m; K.style.transform = `translate(${inp.x * R * .55}px,${inp.z * R * .55}px)`; };
@@ -1216,15 +1221,17 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     if (!b.querySelector('.ik')) b.insertAdjacentHTML('afterbegin', '<span class="ik"></span>');
     const ik = b.querySelector('.ik');
     const geser = e => { const r = b.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), L = Math.hypot(dx, dy);
+      { const z = $('#batalB').getBoundingClientRect(), siap = K.bidik === i && e.clientX > z.left - 12 && e.clientX < z.right + 12 && e.clientY > z.top - 12 && e.clientY < z.bottom + 12;   // jari di atas zona Batal
+        if (siap !== !!K.batalSiap) { K.batalSiap = siap; $('#batalB').classList.toggle('siap', siap); if (siap && navigator.vibrate) try { navigator.vibrate(15); } catch (x) {} } }
       if (L > 14 && K.bidik === i) { K.arahBidik = Math.atan2(dx, dy); K.diarahkan = true; K.jarakBidik = Math.min(1, Math.max(.3, L / 70)); }   // kamera tidak berputar: kanan layar = +x, bawah layar = +z
       const k = Math.min(1, L / 60); ik.style.transform = L > 4 ? `translate(${dx / (L || 1) * k * 22}px,${dy / (L || 1) * k * 22}px)` : ''; };
-    b.onpointerdown = e => { e.preventDefault(); b.setPointerCapture(e.pointerId); mulaiBidik(i); geser(e); };
+    b.onpointerdown = e => { e.preventDefault(); b.setPointerCapture(e.pointerId); mulaiBidik(i); if (K.bidik === i) tampilBatal(true); geser(e); };
     b.onpointermove = e => { if (K.bidik === i) geser(e); };
-    b.onpointerup = e => { e.preventDefault(); ik.style.transform = ''; if (K.bidik === i) lepasBidik(); };
-    b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) K.bidik = false; };
+    b.onpointerup = e => { e.preventDefault(); ik.style.transform = ''; if (K.bidik === i) { if (K.batalSiap) batalBidik(); else lepasBidik(); } tampilBatal(false); };
+    b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) batalBidik(); tampilBatal(false); };
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
 // ---- ATUR TOMBOL: posisi & ukuran joystick dan tombol skill bisa diatur sendiri (disimpan per perangkat: HP / PC) ----
-const ATUR = { on: false, kunci: 'ks3dTombol' + (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'HP' : 'PC'), ids: ['joy', 'bA', 'b1', 'b2', 'b3'], data: {}, cadangan: null, pil: 'joy', seret: null };
+const ATUR = { on: false, kunci: 'ks3dTombol' + (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'HP' : 'PC'), ids: ['joy', 'bA', 'b1', 'b2', 'b3', 'batalB'], data: {}, cadangan: null, pil: 'joy', seret: null };
 try { ATUR.data = JSON.parse(localStorage.getItem(ATUR.kunci) || '{}') || {}; } catch (e) { ATUR.data = {}; }
 function terapTombol() {   // data: { id: { x, y (titik tengah, bagian dari lebar/tinggi layar), s (skala ukuran) } }
   const W = innerWidth, H = innerHeight;
@@ -1657,6 +1664,11 @@ const PANAH = (() => {
 })();
 // tahan tombol skill 1 / 2 (atau U / I) lalu geser untuk mengarahkan, lepas untuk memakai
 function mulaiBidik(i) { if (UMP.on || P.state !== 'bebas' || P.cd[i] > 0 || !P.model || K.bidik || (pingsan() && !lepasStun(i)) || SELESAI) return; K.bidik = i; K.arahBidik = P.arah; K.diarahkan = false; K.jarakBidik = 1; K.bidikKey = false; }
+function batalBidik() {   // skill yang sedang dibidik dibatalkan: tidak dipakai, tidak masuk jeda (cooldown)
+  if (!K.bidik) return; K.bidik = false; K.diarahkan = false; K.batalSiap = false; tampilBatal(false);
+  PANAH.visible = KIPAS.visible = false; if (typeof LANE !== 'undefined') LANE.visible = false; if (typeof LINGKAR !== 'undefined') LINGKAR.visible = LINGKAR.garis.visible = false; KIPAS_PIT.visible = false;
+}
+function tampilBatal(on) { const z = document.getElementById('batalB'); if (!z) return; z.classList.toggle('on', !!on); if (!on) { z.classList.remove('siap'); K.batalSiap = false; } }
 function lepasBidik() { const i = K.bidik; if (!i) return; pakai(i); K.bidik = false; PANAH.visible = KIPAS.visible = false; if (HERO === 'buto') LANE.visible = false; if (typeof LINGKAR !== 'undefined') LINGKAR.visible = LINGKAR.garis.visible = false; KIPAS_PIT.visible = false; }
 const OC = { lompat: 7, guling: 6.1 };   // jarak maks Loncat Jauh & Guling Cepat (meter)
 const LINGKAR = (() => {
