@@ -3170,7 +3170,7 @@ function updButo(dt, pos, f) {
 // Pasif Naluri Rimba: setelah mendarat dari loncatan, cakaran dasar berikutnya ×1,5 + Bleeding
 // Serangan dasar: cakar, cakar, cakar silang · Skill 1: Loncatan Lutung (diarahkan, bisa 2x dalam 3 dtk — loncatan ke-2 salto)
 // Skill 2: Badai Cakar (menerjang 3 m, 5 cakaran, terakhir Stun) · Skill 3: Terkaman Kasarung (lawan terdekat ditubruk, dicabik-cabik, lalu cakaran pamungkas)
-const LK = { tinggi: 1.65, cepat: 4.6, emas: 0xffc23a, jingga: 0xff7a1a,
+const LK = { tinggi: 1.65, cepat: 5.2, lariTs: 1.55, emas: 0xffc23a, jingga: 0xff7a1a,
   cakar: [{ anim: 'cakar1', ts: 1.3, tH: .17, akhir: .34, dmg: 55, R: 1.6, miring: -.6 }, { anim: 'cakar2', ts: 1.3, tH: .15, akhir: .32, dmg: 55, R: 1.6, miring: .6 },
     { anim: 'cakar3', ts: 1.35, tH: .4, akhir: .62, dmg: 85, R: 1.9, miring: 0 }], jeda: 1.2, pasifK: 1.5, darah: [3, 20, .5],
   loncat: { jarak: 6, R: 2, dmg: 90, jendela: 3, jedaAntar: .35,
@@ -3255,7 +3255,7 @@ function updLutung(dt, pos, f) {
   if (LW.l2T > 0) { LW.l2T -= dt; if (LW.l2T <= 0 && LW.l2 > 0) { LW.l2 = 0; P.cd[1] = Math.max(P.cd[1], CD_MAX[1] - LK.loncat.jendela); lkLencana(); } }   // tidak dipakai lagi → jeda penuh
   if (P.state === 'bebas') {
     const [x, z] = arahGerak();
-    if (x || z) { pos.x += x * LK.cepat * dt; pos.z += z * LK.cepat * dt; P.arah = K.bidik ? K.arahBidik : Math.atan2(x, z); main('lari', .15, 1.15); }
+    if (x || z) { pos.x += x * LK.cepat * dt; pos.z += z * LK.cepat * dt; P.arah = K.bidik ? K.arahBidik : Math.atan2(x, z); main('lari', .15, LK.lariTs); }
     else { main('diam', .25); if (K.bidik) P.arah = K.arahBidik; }
   }
   else if (P.state === 'lkCakar') {
