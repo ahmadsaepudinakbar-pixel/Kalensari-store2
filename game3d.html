@@ -253,7 +253,9 @@ const ER_IKON_NORMAL = IKON_IMG.erick, ER_IKON_AMUK = ["data:image/webp;base64,U
 const TINGGI = 1.7;                                      // tinggi boneka (meter)
 const BATAS = { x0: -13.5, x1: 13.5, z0: -8.5, z1: 10.5 };  // area bisa dilewati (Lapangan SD)
 aturArena();
+const BATU_TEMBOK = [];   // batu Lempar Batu Raksasa yang tertancap: padat seperti tembok (tidak bisa ditembus siapa pun)
 function batasi(v) {   // tahan posisi di dalam arena
+  for (const b of BATU_TEMBOK) { const dx = v.x - b.x, dz = v.z - b.z, L = Math.hypot(dx, dz); if (L < b.R) { if (L < 1e-3) { v.x = b.x + b.R; } else { v.x = b.x + dx / L * b.R; v.z = b.z + dz / L * b.R; } } }
   if (ARENA === 'kuil') { const L = Math.hypot(v.x, v.z); if (L > KUIL_R) { v.x *= KUIL_R / L; v.z *= KUIL_R / L; } }
   else { v.x = Math.min(BATAS.x1, Math.max(BATAS.x0, v.x)); v.z = Math.min(BATAS.z1, Math.max(BATAS.z0, v.z)); }
   return v;
@@ -1212,7 +1214,7 @@ function updLabel(dt) {
 
 // ================== KONTROL ==================
 const inp = { x: 0, z: 0, k: {} };
-addEventListener('keydown', e => { inp.k[e.key.toLowerCase()] = 1; const m = { j: 0, ' ': 0, u: 1, i: 2, o: 3 }[e.key.toLowerCase()]; if (m !== undefined) { e.preventDefault(); if (m === 1 || (m === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo' && HERO !== 'doni' && HERO !== 'buto') || (m === 3 && (HERO === 'tuyul' || HERO === 'timun' || HERO === 'buto'))) { if (!e.repeat) { mulaiBidik(m); K.bidikKey = true; } } else pakai(m); } });
+addEventListener('keydown', e => { inp.k[e.key.toLowerCase()] = 1; const m = { j: 0, ' ': 0, u: 1, i: 2, o: 3 }[e.key.toLowerCase()]; if (m !== undefined) { e.preventDefault(); if (m === 1 || (m === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo' && HERO !== 'doni') || (m === 3 && (HERO === 'tuyul' || HERO === 'timun' || HERO === 'buto'))) { if (!e.repeat) { mulaiBidik(m); K.bidikKey = true; } } else pakai(m); } });
 addEventListener('keydown', e => { if (e.key === 'Escape' && K.bidik) batalBidik(); });   // PC: Esc = batal skill yang sedang dibidik
 addEventListener('contextmenu', e => { if (K.bidik) { e.preventDefault(); batalBidik(); } });   // PC: klik kanan = batal
 addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.key.toLowerCase(); if ((kk === 'u' && K.bidik === 1) || (kk === 'i' && K.bidik === 2) || (kk === 'o' && K.bidik === 3)) lepasBidik(); } });
@@ -1234,7 +1236,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
   if (IKON_IMG[HERO]) {   // gambar ikon skill (tertanam di file ini, tidak butuh file lain): 0 = serangan dasar, 1-3 = skill 1-3
     b.insertAdjacentHTML('afterbegin', `<img class="ikg" alt="" draggable="false" src="${IKON_IMG[HERO][i]}">`);
     const k = b.querySelector('.ik'); if (k) k.style.visibility = 'hidden'; }
-  if (i === 1 || (i === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo' && HERO !== 'doni' && HERO !== 'buto') || (i === 3 && (HERO === 'tuyul' || HERO === 'timun' || HERO === 'buto'))) {   // Timun Mas: ulti juga diarahkan · Tuyul: skill 3 juga bisa diarahkan (blink) · skill 1 & 2: tahan + geser tombol untuk mengarahkan, lepas untuk pakai (Tuyul: skill 2 langsung)
+  if (i === 1 || (i === 2 && HERO !== 'tuyul' && HERO !== 'genderuwo' && HERO !== 'doni') || (i === 3 && (HERO === 'tuyul' || HERO === 'timun' || HERO === 'buto'))) {   // Timun Mas: ulti juga diarahkan · Tuyul: skill 3 juga bisa diarahkan (blink) · skill 1 & 2: tahan + geser tombol untuk mengarahkan, lepas untuk pakai (Tuyul: skill 2 langsung)
     if (!b.querySelector('.ik')) b.insertAdjacentHTML('afterbegin', '<span class="ik"></span>');
     const ik = b.querySelector('.ik');
     const geser = e => { const r = b.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), L = Math.hypot(dx, dy);
@@ -1293,7 +1295,7 @@ function aturSimpanPosisi(id) { const e = $('#' + id), r = e.getBoundingClientRe
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
 if (HERO === 'lutung') $('#help').textContent = 'WASD / panah: gerak (berlari 4 kaki) · J / Spasi: Cakaran (cakar, cakar, cakar silang) · U (tahan + mouse): Loncatan Lutung (mendarat di lingkaran; bisa 2x dalam 3 dtk, loncatan ke-2 salto) · I (tahan + mouse): Badai Cakar (menerjang 3 m, 5 cakaran, terakhir Stun) · O: Terkaman Kasarung (otomatis ke lawan terdekat 7 m: menubruk, mencabik-cabik, cakaran pamungkas; damage diterima −50% & kebal stun) · Pasif Naluri Rimba: setelah mendarat, cakaran berikutnya ×1,5 + Bleeding';
-if (HERO === 'buto') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Gebukan Raksasa (pukul, pukul, hantam tanah) · U (tahan + mouse): Seruduk Buto (lawan terdorong; menabrak pinggir arena / batu = Stun) · I: Tangkap & Banting (lawan terdekat + Stun 1 dtk) · O (tahan + mouse): Lempar Batu Raksasa (area besar: Stun + Slow, batunya jadi tembok 4 dtk) · Pasif Kulit Buto: darah tebal, sulit didorong, darah < 30% damage −25% · Combo: O → U → I';
+if (HERO === 'buto') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Gebukan Raksasa (pukul, pukul, hantam tanah) · U (tahan + mouse): Seruduk Buto (lawan terdorong; menabrak pinggir arena / batu = Stun) · I: Tangkap & Banting (tekan: lawan terdekat dibanting di depan · tahan + mouse: lawan diangkat lalu DILEMPAR ke arah pilihan sampai 5,5 m — kena batu / pinggir arena = damage & Stun tambahan) · O (tahan + mouse): Lempar Batu Raksasa (area besar: Stun + Slow, batunya jadi tembok padat 4 dtk: tidak bisa dilewati siapa pun) · Pasif Kulit Buto: darah tebal, sulit didorong, darah < 30% damage −25% · Combo: O → U → I';
 if (HERO === 'doni') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul, Pukul, Tendang (tekan 3x) · U (tahan + mouse): Gear Throw (lempar gir, damage Doni 2x selama 2 dtk) · I: Chain Pull (otomatis mengunci musuh terdekat, menarik + Stun 1,5 dtk) · O: Gear Whirl (rantai bergir berputar, area luas + Bleeding) · Combo: I → U → O';
 if (HERO === 'erick') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul-Pukul · U (tahan + mouse): Melesat (tendangan terbang) · I (tahan + mouse, 3x tekan): Tendangan Beruntun ala Chou — tendang, tendang, tendangan terbang (lanjutkan dalam 4 dtk, kalau tidak kembali ke tendangan 1 + cooldown) · O: MENGAMUK 7 detik (rambut merah + katana: serangan tebas brutal · U: Blink Tebas · I: Gelombang Sabit)';
 if (HERO === 'pitung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul ×2 lalu Tendang (tekan 3x) · U (tahan + mouse): Tusukan Kilat (melesat & menusuk) · I (tahan + mouse): Bacok Golok sambil menerjang · O: Terbang Si Pitung (lepas dari stun, lompat & menebas lawan)';
@@ -1708,7 +1710,7 @@ function bidikMouse() {   // dipanggil tiap frame saat membidik lewat keyboard
   _m.set(MOUSE[0] / innerWidth * 2 - 1, -MOUSE[1] / innerHeight * 2 + 1); _ray.setFromCamera(_m, camera);
   if (!_ray.ray.intersectPlane(_lantai, _t)) return;
   const dx = _t.x - P.root.position.x, dz = _t.z - P.root.position.z, L = Math.hypot(dx, dz); if (L < .3) return;
-  K.arahBidik = Math.atan2(dx, dz); K.diarahkan = true; K.jarakBidik = Math.min(1, Math.max(.3, L / (HERO === 'lutung' ? (K.bidik === 1 ? LK.loncat.jarak : LK.badai.jarak) : HERO === 'buto' ? (K.bidik === 3 ? BT.batu.jarak : BT.seruduk.jarak) : HERO === 'ocong' ? OC.lompat : HERO === 'genderuwo' ? (K.bidik === 2 ? GEND.lompat : GEND.cakarR) : 6)));
+  K.arahBidik = Math.atan2(dx, dz); K.diarahkan = true; K.jarakBidik = Math.min(1, Math.max(.3, L / (HERO === 'lutung' ? (K.bidik === 1 ? LK.loncat.jarak : LK.badai.jarak) : HERO === 'buto' ? (K.bidik === 3 ? BT.batu.jarak : K.bidik === 2 ? BT.banting.lempar : BT.seruduk.jarak) : HERO === 'ocong' ? OC.lompat : HERO === 'genderuwo' ? (K.bidik === 2 ? GEND.lompat : GEND.cakarR) : 6)));
 }
 function updBidik() {
   if (K.bidik) bidikMouse();
@@ -1741,8 +1743,9 @@ function updBidik() {
     return;
   }
   if (HERO === 'buto') {   // skill 1: jalur Seruduk · skill 3: lingkaran tempat batu jatuh
-    const on = !!K.bidik && P.state === 'bebas', sr = on && K.bidik === 1, ul = on && K.bidik === 3;
-    LANE.visible = sr; LINGKAR.visible = LINGKAR.garis.visible = ul; if (!on) return;
+    const on = !!K.bidik && P.state === 'bebas', sr = on && K.bidik === 1, ul = on && K.bidik === 3, lp = on && K.bidik === 2;
+    LANE.visible = sr; LINGKAR.visible = LINGKAR.garis.visible = ul; PANAH.visible = lp; if (!on) return;
+    if (lp) { PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, BT.banting.lempar * (K.diarahkan ? K.jarakBidik : .25) / TERBANG.lesat); return; }   // skill 2: arah & jarak lemparan
     if (sr) { LANE.position.x = P.root.position.x; LANE.position.z = P.root.position.z; LANE.rotation.y = K.arahBidik; LANE.scale.set(BT.seruduk.lebar * 2, 1, BT.seruduk.jarak); }
     else if (ul) { const t = tujuanLompat(BT.batu.jarak), p = P.root.position; LINGKAR.position.set(t.x, 0, t.z); LINGKAR.scale.setScalar(BT.batu.R / 2); const L = Math.hypot(t.x - p.x, t.z - p.z);
       LINGKAR.garis.position.set((t.x + p.x) / 2, .05, (t.z + p.z) / 2); LINGKAR.garis.scale.y = Math.max(.01, L); LINGKAR.garis.rotation.z = Math.atan2(t.x - p.x, t.z - p.z); LINGKAR.garis.rotation.order = 'XYZ'; }
@@ -2707,26 +2710,29 @@ function tarikMusuh(m, c, d) {
 // ---- diangkat (Tangkap & Banting Buto): korban dipegang di atas kepala lalu dibanting ke titik jatuh ----
 // bot & boneka di HP ini: daftar ANGKAT · diri sendiri (diangkat Buto lawan online): P.angkatD · lawan online: dikirim 'angkat' ke HP-nya
 const ANGKAT = [], BT_ANGKAT = { tinggi: 2, naik: .42, maju: .9 };
-function angkatLawan(m, dari, fd, lama, jatuh) {
-  if (m.remote) { const [x, z] = keNet(dari.x, dari.z), [bx, bz] = keNet(jatuh.x, jatuh.z); netEvent({ k: 'angkat', ke: m.id, x: r2(x), z: r2(z), bx: r2(bx), bz: r2(bz), d: r2(lama) }); return; }
+const terbangLempar = j => j > 2 ? Math.min(.45, .12 + j * .06) : .1;   // lama lawan melayang dari atas kepala Buto ke titik jatuh
+function angkatLawan(m, dari, fd, lama, jatuh, terbang = .1) {
+  if (m.remote) { const [x, z] = keNet(dari.x, dari.z), [bx, bz] = keNet(jatuh.x, jatuh.z), [fx_, fz] = keNet(dari.x + fd.x, dari.z + fd.z); netEvent({ k: 'angkat', ke: m.id, x: r2(x), z: r2(z), bx: r2(bx), bz: r2(bz), fx: r2(fx_), fz: r2(fz), d: r2(lama), tb: r2(terbang) }); return; }
   for (let k = ANGKAT.length - 1; k >= 0; k--) if (ANGKAT[k].mt === m) ANGKAT.splice(k, 1);
-  ANGKAT.push(buatAngkat(m.g.position, dari, jatuh, lama, m));
+  ANGKAT.push(buatAngkat(m.g.position, dari, jatuh, lama, m, fd, terbang));
 }
-function buatAngkat(p, dari, jatuh, lama, mt) {   // dari: posisi Buto · jatuh: titik bantingan
-  const d = p.clone().sub(dari).setY(0); if (d.lengthSq() < 1e-4) d.set(0, 0, 1); d.normalize();
-  return { mt, a: p.clone().setY(0), dari: dari.clone().setY(0), arah: d, c: jatuh.clone().setY(0), t: 0, d: Math.max(.2, Math.min(1.5, lama) - .1) };   // jatuhnya (0,1 dtk) selesai tepat saat bantingan
+function buatAngkat(p, dari, jatuh, lama, mt, fd, terbang = .1) {   // dari: posisi Buto · fd: arah hadap Buto · jatuh: titik bantingan / lemparan
+  const d = fd ? fd.clone().setY(0) : p.clone().sub(dari).setY(0); if (d.lengthSq() < 1e-4) d.set(0, 0, 1); d.normalize();
+  return { mt, a: p.clone().setY(0), dari: dari.clone().setY(0), arah: d, c: jatuh.clone().setY(0), t: 0, d: Math.max(.2, Math.min(1.5, lama) - .1), tb: Math.min(.6, Math.max(.1, terbang)) };   // jatuh / melayang (tb) selesai tepat saat bantingan
 }
 function terimaAngkat(e, mt) {   // dari jaringan: mt = bot milik HP ini, kosong = diri sendiri
   const [x, z] = keNet(e.x, e.z), [bx, bz] = keNet(e.bx, e.bz), dari = new THREE.Vector3(x, 0, z), c = new THREE.Vector3(bx, 0, bz), lama = Math.min(1.5, e.d || .6);
-  if (mt) { if (!mt.mati) ANGKAT.push(buatAngkat(mt.g.position, dari, c, lama, mt)); return; }
-  if (P.state === 'kalah') return; P.tarikD = null; P.angkatD = buatAngkat(P.root.position, dari, c, lama, null); P.pusing = Math.max(P.pusing || 0, lama + .25);
+  const fd = e.fx !== undefined ? (() => { const [qx, qz] = keNet(e.fx, e.fz); return new THREE.Vector3(qx - x, 0, qz - z); })() : null, tb = e.tb || .1;
+  if (mt) { if (!mt.mati) ANGKAT.push(buatAngkat(mt.g.position, dari, c, lama, mt, fd, tb)); return; }
+  if (P.state === 'kalah') return; P.tarikD = null; P.angkatD = buatAngkat(P.root.position, dari, c, lama, null, fd, tb); P.pusing = Math.max(P.pusing || 0, lama + tb + .25);
 }
 function posAngkat(q, dt, pos) {   // menghitung posisi korban: ditarik ke depan Buto, naik ke atas kepala, meronta, lalu dibanting. Hasil: tinggi (y) atau -1 bila selesai
   q.t += dt;
   if (q.t < q.d) { const u = Math.min(1, q.t / BT_ANGKAT.naik), e = u * u * (3 - 2 * u), tx = q.dari.x + q.arah.x * BT_ANGKAT.maju, tz = q.dari.z + q.arah.z * BT_ANGKAT.maju;
     pos.x = q.a.x + (tx - q.a.x) * e; pos.z = q.a.z + (tz - q.a.z) * e; return BT_ANGKAT.tinggi * Math.sin(u * Math.PI / 2) + .1 * Math.sin(q.t * 16) * u; }
-  const u = Math.min(1, (q.t - q.d) / .1); pos.x = q.dari.x + q.arah.x * BT_ANGKAT.maju + (q.c.x - q.dari.x - q.arah.x * BT_ANGKAT.maju) * u; pos.z = q.dari.z + q.arah.z * BT_ANGKAT.maju + (q.c.z - q.dari.z - q.arah.z * BT_ANGKAT.maju) * u;
-  return u >= 1 ? -1 : BT_ANGKAT.tinggi * (1 - u * u);
+  const u = Math.min(1, (q.t - q.d) / q.tb), hx = q.dari.x + q.arah.x * BT_ANGKAT.maju, hz = q.dari.z + q.arah.z * BT_ANGKAT.maju, jauh = Math.hypot(q.c.x - hx, q.c.z - hz);
+  pos.x = hx + (q.c.x - hx) * u; pos.z = hz + (q.c.z - hz) * u;
+  return u >= 1 ? -1 : BT_ANGKAT.tinggi * (1 - u * u) + Math.sin(u * Math.PI) * Math.min(1.6, jauh * .3);   // dilempar jauh: melayang melengkung
 }
 function updAngkat(dt) {   // dipanggil SETELAH pemain, bot & boneka diperbarui → posisi angkatan yang dipakai saat digambar
   for (let k = ANGKAT.length - 1; k >= 0; k--) { const q = ANGKAT[k], m = q.mt, p = m.g.position;
@@ -3034,7 +3040,7 @@ const BT = { tinggi: 2.15, cepat: 3.1, rendah: .3, kurang: .25, dorongK: .5,   /
   pukul: { ts: 1.25, tH: .32, akhir: .6, dmg: 60, R: 1.7, jeda: 1.5 },          // waktu dalam detik nyata (sudah dibagi kecepatan animasi ts)
   sapu: { ts: 1.6, tH: .69, akhir: 1.12, dmg: 95, R: 2.4 },
   seruduk: { jarak: 6.5, mulai: .12, lama: .5, akhir: .8, dmg: 90, lebar: 1.35, stun: .5, tembok: 1, dmgTembok: 40, cek: .3 },
-  banting: { ts: 1.1, tangkap: .23, R: 2.6, tH: .9, akhir: 1.48, dmg: 110, stun: 1, ciprat: 2.2, dmgCiprat: 45 },
+  banting: { ts: 1.1, tangkap: .23, R: 2.6, tH: .9, akhir: 1.48, dmg: 110, stun: 1, ciprat: 2.2, dmgCiprat: 45, lempar: 5.5, dmgTembok: 40, stunTembok: .8 },   // lempar: jarak maks saat diarahkan
   batu: { ts: 1.15, cabut: .83, rilis: 1.6, terbang: .5, akhir: 2.2, jarak: 9, R: 4, dmg: 150, stun: 1, lambat: 2.5, lama: 4, Rbatu: 1.1,
     pegang: [.95, 1.85] } };   // pegang: waktu klip 'ulti' saat batu ada di tangan (dari mencabut sampai dilempar)
 const BW = { combo: 0, comboT: 0, batu: [] };   // batu: batu yang tertancap di arena (milik Buto ini) → tembok untuk Seruduk
@@ -3070,18 +3076,19 @@ function bBatu(dari, ke, lama, R, diam) {   // efek Lempar Batu Raksasa: batu me
     const t = e.t;
     if (t < lama) { const u = t / lama; batu.position.lerpVectors(a, b, u); batu.position.y = a.y * (1 - u) + .6 * u + Math.sin(u * Math.PI) * tinggi; batu.rotation.x += dt * 5; batu.rotation.z += dt * 3; batu.scale.setScalar(.5 + .45 * u);
       L.atur(R * (.7 + .3 * u), Math.min(1, t * 5)); if (Math.random() < .5) asap(batu.position.clone(), 1, COKLAT_MUDA, .6, .4); return true; }
-    if (!e.jatuh) { e.jatuh = true; batu.position.set(b.x, .5, b.z); batu.rotation.set(rnd(-.3, .3), rnd(0, 6), rnd(-.3, .3)); batu.scale.setScalar(BT.batu.Rbatu);
+    if (!e.jatuh) { e.jatuh = true; batu.position.set(b.x, .5, b.z); e.tembok = { x: b.x, z: b.z, R: BT.batu.Rbatu + .45 }; BATU_TEMBOK.push(e.tembok);   // mulai jadi tembok batu.rotation.set(rnd(-.3, .3), rnd(0, 6), rnd(-.3, .3)); batu.scale.setScalar(BT.batu.Rbatu);
       gHantam(b, R * .75, 0); gelombang(b.clone(), R, .55, 0xffa040); gelGelap(b, R * 1.15, .6, COKLAT); percik(b.clone().setY(.6), KUAL.lv === 0 ? 24 : 40, COKLAT_MUDA, 6, .22); asap(b, 8, COKLAT, 1.4, 1); kilat(b, 45); }
     const s = t - lama; L.atur(R, Math.max(0, 1 - s / .5));
-    if (s > diam) { batu.position.y = .5 - (s - diam) / .6 * 1.6; if (s > diam + .6) return false; }   // batu amblas ke tanah
+    if (s > diam) { lepasTembok(e); batu.position.y = .5 - (s - diam) / .6 * 1.6; if (s > diam + .6) return false; }   // batu amblas ke tanah (tidak lagi jadi tembok)
     return true; },
-    akhir() { scene.remove(batu); L.hapus(); } });
+    akhir() { lepasTembok(this); scene.remove(batu); L.hapus(); } });
 }
+function lepasTembok(e) { if (!e.tembok) return; const k = BATU_TEMBOK.indexOf(e.tembok); if (k >= 0) BATU_TEMBOK.splice(k, 1); e.tembok = null; }
 function dekatTembok(p) {   // pinggir arena atau batu Buto (untuk Seruduk: lawan yang menabraknya terkena stun tambahan)
   const s = 1.1;
   if (ARENA === 'kuil') { if (Math.hypot(p.x, p.z) > KUIL_R - s) return true; }
   else if (p.x < BATAS.x0 + s || p.x > BATAS.x1 - s || p.z < BATAS.z0 + s || p.z > BATAS.z1 - s) return true;
-  return BW.batu.some(b => Math.hypot(p.x - b.p.x, p.z - b.p.z) < BT.batu.Rbatu + .8);
+  return BATU_TEMBOK.some(b => Math.hypot(p.x - b.x, p.z - b.z) < b.R + .45);   // batu Buto siapa pun (juga milik Buto lawan)
 }
 // ---- memakai skill ----
 function pakaiButo(i) {
@@ -3092,7 +3099,7 @@ function pakaiButo(i) {
     if (P.langkah < 2) { P.state = 'btPukul'; mainUlang('pukul', .05, BT.pukul.ts); } else { P.state = 'btSapu'; mainUlang('sapu', .05, BT.sapu.ts); }
   }
   else if (i === 1) { arahi(BT.seruduk.jarak + 1); P.state = 'btSeruduk'; P.kenaS = new Set(); mainUlang('seruduk', .05, 1.5); fx('gPukul', pos.clone(), 1.1, 0); }
-  else if (i === 2) { arahi(BT.banting.R + 1); P.state = 'btBanting'; P.pegang = null; mainUlang('banting', .05, BT.banting.ts); }
+  else if (i === 2) { P.lempar = K.bidik === 2 && K.diarahkan ? { a: K.arahBidik, j: Math.max(1.3, BT.banting.lempar * K.jarakBidik) } : null; arahi(BT.banting.R + 1); P.state = 'btBanting'; P.pegang = null; P.tLempar = 0; mainUlang('banting', .05, BT.banting.ts); }   // ditahan & diarahkan: lawan dilempar ke arah itu
   else if (i === 3) {   // dibidik = titik lingkaran · tanpa bidik = lawan terdekat (dalam jangkauan), kalau tidak ada 5 m di depan
     const U = BT.batu; let tj;
     if (K.bidik === 3 && K.diarahkan) { tj = tujuanLompat(U.jarak); P.arah = K.arahBidik; }
@@ -3139,16 +3146,19 @@ function updButo(dt, pos, f) {
   else if (P.state === 'btBanting') {   // Tangkap & Banting: lawan terdekat ditarik, diangkat ke atas kepala, lalu dibanting
     const B = BT.banting;
     if (t > B.tangkap && P.hit === 0) { P.hit = 1; const m = terdekat(B.R);
-      if (m) { P.pegang = m; hadapKe(m.g.position); P.root.rotation.y = P.arah; const fd = depan(), lama = B.tH - B.tangkap, jatuh = pos.clone().addScaledVector(fd, 1.3);
-        kena(m, 10, m.g.position.clone().addScaledVector(fd, -1), 0); m.pusing = Math.max(m.pusing || 0, lama + .25);
-        angkatLawan(m, pos, fd, lama, jatuh);   // lawan benar-benar diangkat ke atas kepala Buto (boneka, bot & pemain online)
+      if (m) { P.pegang = m; if (P.lempar) P.arah = P.lempar.a; else hadapKe(m.g.position); P.root.rotation.y = P.arah;   // diarahkan: Buto langsung menghadap arah lemparan
+        const fd = depan(), lama = B.tH - B.tangkap, jarak = P.lempar ? P.lempar.j : 1.3, jatuh = batasi(pos.clone().addScaledVector(fd, jarak)), terbang = terbangLempar(jarak);
+        P.jatuhB = jatuh; P.tLempar = B.tH - .1 + terbang;   // waktu lawan menghantam tanah
+        kena(m, 10, m.g.position.clone().addScaledVector(fd, -1), 0); m.pusing = Math.max(m.pusing || 0, lama + terbang + .25);
+        angkatLawan(m, pos, fd, lama, jatuh, terbang);   // lawan benar-benar diangkat ke atas kepala Buto (boneka, bot & pemain online), lalu dibanting / dilempar
         fx('gPukul', m.g.position.clone(), .8, 0); } }
     const m = P.pegang;
-    if (t > B.tH && P.hit === 1) { P.hit = 2; const hp = pos.clone().addScaledVector(f, 1.3); let ada = 0;
-      if (m && !m.mati && m.g.position.distanceTo(pos) < B.R + 1.5) { if (!m.remote && !m.bot) { m.g.position.copy(hp); m.y = 0; } kena(m, B.dmg, pos, 3, 3); m.pusing = Math.max(m.pusing || 0, B.stun); ada = 1; }
+    if (P.hit === 1 && t > (P.pegang ? P.tLempar : B.tH)) { P.hit = 2; const hp = P.pegang && P.jatuhB ? P.jatuhB.clone() : pos.clone().addScaledVector(f, 1.3); let ada = 0;
+      if (m && !m.mati && m.g.position.distanceTo(hp) < 3) { if (!m.remote && !m.bot) { m.g.position.copy(hp); m.y = 0; } kena(m, B.dmg, hp.clone().addScaledVector(f, -1), 3, 3); m.pusing = Math.max(m.pusing || 0, B.stun); ada = 1;
+        if (dekatTembok(hp)) { kena(m, B.dmgTembok, hp.clone().addScaledVector(f, -1), 0); m.pusing = Math.max(m.pusing || 0, B.stun + B.stunTembok); angka(hp, 'BRAK!', '#ffb070'); } }   // dilempar ke batu / pinggir arena: damage & stun tambahan
       MUSUH.forEach(o => { if (o !== m && !o.mati && !o.sembunyi && o.g.position.distanceTo(hp) < B.ciprat) { kena(o, B.dmgCiprat, hp, 3); o.pusing = Math.max(o.pusing || 0, .4); ada = 1; } });
       fx('gHantam', hp, 2, 0); goyang = Math.max(goyang, ada ? .26 : .12); P.pegang = null; }
-    if (t > B.akhir) { P.state = 'bebas'; P.pegang = null; main('diam', .2); }
+    if (t > Math.max(B.akhir, P.tLempar + .15)) { P.state = 'bebas'; P.pegang = null; main('diam', .2); }
   }
   else if (P.state === 'btUlti') {   // Lempar Batu Raksasa: mencabut batu → mengangkat ke atas kepala → melempar ke area sasaran
     const U = BT.batu;
@@ -3849,7 +3859,7 @@ $('#phMain').onclick = () => {
 function mainLagi(ronde) {   // ronde = lanjut ronde berikutnya (skor tetap); tanpa ronde = tanding ulang dari 0
   const darahP = ronde && P.state !== 'kalah' ? Math.max(1, P.hp) : HP_MAX[HERO];   // pemenang ronde: darah tidak kembali penuh
   SELESAI = false; $('#hasil').classList.remove('on'); K.terbangT = 0; K.lesat = 0;
-  P.hp = darahP; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; P.tarikD = null; P.angkatD = null; ANGKAT.length = 0; BERDARAH.length = 0; TARIK.length = 0; DW.combo = 0; GW.amuk = GW.combo = GW.comboT = 0; BW.combo = BW.comboT = 0; BW.batu.length = 0; P.pegang = null; EW.k2 = EW.k2T = 0; erK2Lencana(); LW.combo = LW.comboT = LW.l2 = LW.l2T = 0; LW.pasif = false; P.mangsa = null; if (HERO === 'lutung') lkLencana(); P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
+  P.hp = darahP; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; P.tarikD = null; P.angkatD = null; ANGKAT.length = 0; BERDARAH.length = 0; TARIK.length = 0; DW.combo = 0; GW.amuk = GW.combo = GW.comboT = 0; BW.combo = BW.comboT = 0; BW.batu.length = 0; BATU_TEMBOK.length = 0; P.pegang = null; EW.k2 = EW.k2T = 0; erK2Lencana(); LW.combo = LW.comboT = LW.l2 = LW.l2T = 0; LW.pasif = false; P.mangsa = null; if (HERO === 'lutung') lkLencana(); P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
   if (HERO === 'kunti') kuntiTembus(1);
   if (BOT) BOT.reset(!ronde, !!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
   if (LAWAN === 'bot' && !ronde) { SKOR = [0, 0]; updSkorBot(); }
@@ -4574,7 +4584,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v2 · lutung-v1 · roberick-v1 · lunara-v3'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v3 · lutung-v1 · roberick-v1 · lunara-v3'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     if (ATUR.on && !NET.on) dt = 0;   // sedang Atur Tombol (main sendiri): permainan berhenti sebentar
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
