@@ -3070,7 +3070,15 @@ const BW = { combo: 0, comboT: 0, batu: [] };   // batu: batu yang tertancap di 
 const BT_GEO_BATU = (() => { const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position;
   for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), h = Math.sin(x * 12.99 + y * 78.23 + z * 37.71) * 43758.55, k = .8 + .38 * (h - Math.floor(h)); p.setXYZ(i, x * k, y * k * .82, z * k); }
   g.computeVertexNormals(); return g; })();
-const BT_BAHAN_BATU = new THREE.MeshLambertMaterial({ color: 0x7d6a58, flatShading: true }), BT_BAHAN_KRISTAL = new THREE.MeshLambertMaterial({ color: 0x7a3acc, emissive: 0x3a0a80, flatShading: true });   // Golem Ungu: batu kristal ungu bercahaya
+const BT_BAHAN_BATU = new THREE.MeshLambertMaterial({ color: 0x7d6a58, flatShading: true }), BT_BAHAN_KRISTAL = new THREE.MeshLambertMaterial({ color: 0xa45aff, emissive: 0x5a14c8, flatShading: true });   // Golem Ungu: kristal ungu bercahaya
+const BT_GEO_KRISTAL = new THREE.OctahedronGeometry(1, 0);
+function buatBatuGolem() {   // Golem Ungu: batu tanah biasa dengan kristal-kristal ungu mencuat dari permukaannya
+  const g = new THREE.Group(), batu = new THREE.Mesh(BT_GEO_BATU, BT_BAHAN_BATU); batu.castShadow = true; g.add(batu);
+  const ARAH = [[0, 1, 0, .62], [.55, .75, .2, .48], [-.5, .7, -.35, .52], [.25, .55, -.75, .42], [-.3, .6, .7, .45], [.85, .2, -.3, .36], [-.85, .25, .2, .38], [.4, .3, .8, .34]];
+  ARAH.forEach(([x, y, z, p]) => { const d = new THREE.Vector3(x, y, z).normalize(), k = new THREE.Mesh(BT_GEO_KRISTAL, BT_BAHAN_KRISTAL);
+    k.scale.set(.13 + p * .12, p, .13 + p * .12); k.position.copy(d).multiplyScalar(.72); k.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d); k.castShadow = true; g.add(k); });
+  return g;
+}
 const btU = (T = P) => T && T.skin === 'golem' ? 'u' : 0;
 function siapkanButo(gl, m, T) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
@@ -3084,7 +3092,9 @@ function siapkanButo(gl, m, T) {
   T.tegapG = []; m.traverse(o => { if (!o.isBone) return; const k = o.name.replace(/^mixamorig:?/, ''); if (TG[k]) T.tegapG.push([o, o.quaternion.clone(), TG[k]]); });
   T.tanganB = []; m.traverse(o => { if (o.isBone && /(Left|Right)Hand$/.test(o.name)) T.tanganB.push(o); });
   if (!T.batuB) { T.batuB = new THREE.Mesh(BT_GEO_BATU, BT_BAHAN_BATU); T.batuB.castShadow = true; T.batuB.visible = false; scene.add(T.batuB); }   // batu di tangan saat ulti
-  T.batuB.material = T.skin === 'golem' ? BT_BAHAN_KRISTAL : BT_BAHAN_BATU;
+  const golem = T.skin === 'golem';
+  if (T.batuB && !!T.batuB.userData.golem !== golem) { scene.remove(T.batuB); T.batuB = null; }   // ganti skin: ganti jenis batu di tangan
+  if (!T.batuB) { T.batuB = golem ? buatBatuGolem() : new THREE.Mesh(BT_GEO_BATU, BT_BAHAN_BATU); T.batuB.castShadow = true; T.batuB.visible = false; T.batuB.userData.golem = golem; scene.add(T.batuB); }
 }
 const _bv1 = new THREE.Vector3(), _bv2 = new THREE.Vector3();
 function tanganButo(T) { if (T.tanganB && T.tanganB.length === 2) { T.tanganB[0].getWorldPosition(_bv1); T.tanganB[1].getWorldPosition(_bv2); return _bv1.clone().add(_bv2).multiplyScalar(.5); } return T.root.position.clone().setY(2.2); }
@@ -3096,7 +3106,7 @@ function batuTangan(T) {   // dipanggil tiap frame untuk semua Buto (pemain, law
 }
 function bBatu(dari, ke, lama, R, diam, w = 0) {   // w = 'u': kristal ungu (Golem Ungu)
   const U_ = w === 'u', C1 = U_ ? UNGU_G : 0xffa040, C2 = U_ ? UNGU_TUA : COKLAT, C3 = U_ ? UNGU_MUDA : COKLAT_MUDA;   // efek Lempar Batu Raksasa: batu melayang melengkung → menghantam area → tertancap beberapa detik
-  const a = dari.clone(), b = ke.clone().setY(0), batu = new THREE.Mesh(BT_GEO_BATU, U_ ? BT_BAHAN_KRISTAL : BT_BAHAN_BATU); batu.castShadow = true; batu.scale.setScalar(.5); batu.position.copy(a); scene.add(batu);
+  const a = dari.clone(), b = ke.clone().setY(0), batu = U_ ? buatBatuGolem() : new THREE.Mesh(BT_GEO_BATU, BT_BAHAN_BATU); batu.castShadow = true; batu.scale.setScalar(.5); batu.position.copy(a); scene.add(batu);
   const L = tLantai(b, C1, U_ ? 0x2a0a50 : 0x5a3010, .32, false), tinggi = 2.2 + Math.hypot(a.x - b.x, a.z - b.z) * .25;
   TMFX.push({ t: 0, jatuh: false, upd(e, dt) {
     const t = e.t;
@@ -4770,7 +4780,7 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v3 · lutung-v4 · saras-v3 · tuyulbot-v1 · tuyulhalo-v1 · tuyulmecha-v1 · tuyulsetan-v1 · tuyultangan-v2 · golem-v1 · roberick-v1 · lunara-v3'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v3 · lutung-v4 · saras-v3 · tuyulbot-v1 · tuyulhalo-v1 · tuyulmecha-v1 · tuyulsetan-v1 · tuyultangan-v2 · golem-v2 · roberick-v1 · lunara-v3'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     if (ATUR.on && !NET.on) dt = 0;   // sedang Atur Tombol (main sendiri): permainan berhenti sebentar
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
