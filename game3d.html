@@ -116,8 +116,17 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 body:has(#timHud:not([style*="none"])) #koin{top:52px}
 #tbans{position:fixed;left:10px;top:82px;max-width:230px;z-index:6;display:flex;flex-direction:column;align-items:flex-start;gap:4px;pointer-events:none}
 .tban{font:700 14px Arial;color:#fff;background:#000a;border-radius:8px;padding:4px 12px;text-shadow:0 1px 0 #000;transition:opacity .5s}.tban.hilang{opacity:0}
+/* Atur Tombol: pemain menggeser & mengubah ukuran joystick dan tombol skill (tersimpan di perangkat) */
+.sb .ik{font-size:calc(30px * var(--sk,1))!important}#b1 .ik,#b2 .ik,#b3 .ik{font-size:calc(24px * var(--sk,1))!important}.sb em{font-size:calc(20px * var(--sk,1))!important}
+#atur{position:fixed;inset:0;z-index:40;background:#05081a66;touch-action:none;display:none}#atur.on{display:block}
+body.aturOn #joy,body.aturOn .sb{z-index:41;pointer-events:none;outline:2px dashed #ffd166;outline-offset:4px}body.aturOn .aturPil{outline:3px solid #4cff9a!important}
+#aturBar{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:42;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px;max-width:96vw;background:#0b1020ee;border:1px solid #ffd16655;border-radius:12px;padding:8px 12px;font:700 13px Arial;color:#fff}
+#aturBar small{color:#aab3c8;font-weight:400}#aturBar label{display:flex;align-items:center;gap:6px;color:#ffd166}#aturBar input{width:130px}
+#aturBar button{font:700 12px Arial;color:#fff;background:#1f2a4d;border:1px solid #3a4f8a;border-radius:8px;padding:7px 12px;cursor:pointer}#aturBar button.ok{background:#1f8a4c;border-color:#3fd07c}
+#bAtur{font:700 11px Arial;color:#ffd166;background:#141b33;border:1px solid #ffd16688;border-radius:7px;padding:6px 9px;cursor:pointer}
+@media (orientation:landscape) and (max-height:560px){#aturBar{top:4px;padding:5px 8px;font-size:11px}#aturBar small{display:none}#aturBar input{width:100px}#aturBar button{padding:5px 9px}}
 @media (orientation:landscape) and (max-height:560px){#tbans{top:68px;max-width:220px;gap:3px}.tban{font-size:11px;padding:2px 9px}}   /* HP miring: notif lebih ke atas & kecil, jauh dari joystick */
-body.ponsel #joy{width:118px;height:118px;left:16px;bottom:16px;border-width:3px}body.ponsel #knob{width:48px;height:48px}   /* HP: joystick sedikit lebih kecil */
+body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px}body.ponsel #knob{width:55px;height:55px}   /* HP: joystick sedikit lebih kecil */
 .hp.kawan{width:70px;margin-left:-35px;height:8px;border:1px solid #9ad0ff88;overflow:visible}.hp.kawan i{background:#3a9cff;border-radius:3px}.hp.kawan .nm{color:#cfe6ff}
 #lobi.tim .mbox{width:min(680px,96vw);max-height:94vh;overflow:auto}
 .tlj{font:13px Arial;color:#c8cfe6;margin-bottom:8px}.tlcol{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -149,9 +158,10 @@ body.ponsel #joy{width:118px;height:118px;left:16px;bottom:16px;border-width:3px
 <canvas id="c"></canvas>
 <div id="top" class="ui">
  <div id="ttl"><b>KALENSARI 3D</b><br><small><span id="nmhero">Ocong</span> <span id="nmlawan"></span> · <a id="back" href="game.html">☰ Menu</a></small><div id="fps"></div></div>
- <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"></div>
+ <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"><button id="bAtur" title="Atur posisi & ukuran joystick dan tombol skill">🎮 Tombol</button></div>
 </div>
 <div id="joy" class="ui"><div id="knob"></div></div>
+<div id="atur"><div id="aturBar"><b>🎮 Atur Tombol</b><small>Geser joystick / tombol skill · ketuk lalu atur ukurannya</small><label>Ukuran <input id="aturUk" type="range" min="60" max="160" step="5" value="100"><span id="aturUkT">100%</span></label><button id="aturReset">Reset</button><button id="aturBatal">Batal</button><button id="aturSimpan" class="ok">Simpan</button></div></div>
 <button id="bA" class="sb"><i class="cd"></i><em></em></button>
 <button id="b1" class="sb"><i class="cd"></i><em></em></button>
 <button id="b2" class="sb"><i class="cd"></i><em></em></button>
@@ -1213,6 +1223,49 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     b.onpointerup = e => { e.preventDefault(); ik.style.transform = ''; if (K.bidik === i) lepasBidik(); };
     b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) K.bidik = false; };
   } else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
+// ---- ATUR TOMBOL: posisi & ukuran joystick dan tombol skill bisa diatur sendiri (disimpan per perangkat: HP / PC) ----
+const ATUR = { on: false, kunci: 'ks3dTombol' + (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'HP' : 'PC'), ids: ['joy', 'bA', 'b1', 'b2', 'b3'], data: {}, cadangan: null, pil: 'joy', seret: null };
+try { ATUR.data = JSON.parse(localStorage.getItem(ATUR.kunci) || '{}') || {}; } catch (e) { ATUR.data = {}; }
+function terapTombol() {   // data: { id: { x, y (titik tengah, bagian dari lebar/tinggi layar), s (skala ukuran) } }
+  const W = innerWidth, H = innerHeight;
+  ATUR.ids.forEach(id => { const e = $('#' + id); if (!e) return;
+    ['left', 'top', 'right', 'bottom', 'width', 'height'].forEach(k => e.style[k] = ''); e.style.removeProperty('--sk');
+    const d = ATUR.data[id]; if (id === 'joy') { const kn = $('#knob'); kn.style.width = kn.style.height = ''; }
+    if (!d) return;
+    const cs = getComputedStyle(e), s = Math.min(1.6, Math.max(.6, d.s || 1)), w = (parseFloat(cs.width) || 70) * s, h = (parseFloat(cs.height) || 70) * s;   // ukuran dasar dari CSS (juga untuk tombol yang sedang disembunyikan)
+    const x = Math.min(W - w / 2, Math.max(w / 2, d.x * W)), y = Math.min(H - h / 2, Math.max(h / 2, d.y * H));
+    Object.assign(e.style, { left: (x - w / 2) + 'px', top: (y - h / 2) + 'px', right: 'auto', bottom: 'auto', width: w + 'px', height: h + 'px' }); e.style.setProperty('--sk', s);
+    if (id === 'joy') { const kn = $('#knob'); kn.style.width = kn.style.height = ((parseFloat(getComputedStyle(kn).width) || 55) * s) + 'px'; }
+  });
+}
+function aturPilih(id) { ATUR.pil = id; ATUR.ids.forEach(i => { const e = $('#' + i); if (e) e.classList.toggle('aturPil', i === id); });
+  const s = Math.round(((ATUR.data[id] || {}).s || 1) * 100); $('#aturUk').value = s; $('#aturUkT').textContent = s + '%'; }
+function aturBuka() { if (ATUR.on) return; ATUR.on = true; ATUR.cadangan = JSON.stringify(ATUR.data); document.body.classList.add('aturOn'); $('#atur').classList.add('on');
+  ATUR.ids.forEach(id => { const e = $('#' + id); if (e && getComputedStyle(e).display === 'none') e.dataset.aturSembunyi = 1; });   // tombol yang sedang disembunyikan tetap bisa diatur
+  ATUR.ids.forEach(id => { const e = $('#' + id); if (e && e.dataset.aturSembunyi) e.style.display = ''; });
+  inp.x = inp.z = 0; K.bidik = false; aturPilih(ATUR.pil); }
+function aturTutup(simpan) { if (!ATUR.on) return; ATUR.on = false; document.body.classList.remove('aturOn'); $('#atur').classList.remove('on');
+  ATUR.ids.forEach(id => { const e = $('#' + id); if (!e) return; e.classList.remove('aturPil'); if (e.dataset.aturSembunyi) { e.style.display = 'none'; delete e.dataset.aturSembunyi; } });
+  if (simpan) { try { localStorage.setItem(ATUR.kunci, JSON.stringify(ATUR.data)); } catch (e) {} banner('🎮 Tata letak tombol disimpan', '#7dffb0'); }
+  else { ATUR.data = JSON.parse(ATUR.cadangan || '{}'); terapTombol(); } }
+function aturSimpanPosisi(id) { const e = $('#' + id), r = e.getBoundingClientRect(), d = ATUR.data[id] || { s: 1 };
+  d.x = (r.left + r.width / 2) / innerWidth; d.y = (r.top + r.height / 2) / innerHeight; ATUR.data[id] = d; }
+{ const lap = $('#atur');
+  lap.onpointerdown = e => { if (e.target.closest('#aturBar')) return; e.preventDefault();
+    let id = null, best = 1e9;
+    ATUR.ids.forEach(i => { const el = $('#' + i); if (!el) return; const r = el.getBoundingClientRect(); if (!r.width) return;
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2, L = Math.hypot(e.clientX - cx, e.clientY - cy); if (L < r.width / 2 + 18 && L < best) { best = L; id = i; } });
+    if (!id) return; aturPilih(id); const r = $('#' + id).getBoundingClientRect();
+    ATUR.seret = { id, dx: e.clientX - (r.left + r.width / 2), dy: e.clientY - (r.top + r.height / 2), p: e.pointerId }; lap.setPointerCapture(e.pointerId); };
+  lap.onpointermove = e => { const S = ATUR.seret; if (!S || S.p !== e.pointerId) return;
+    const d = ATUR.data[S.id] || { s: 1 }; d.x = (e.clientX - S.dx) / innerWidth; d.y = (e.clientY - S.dy) / innerHeight; ATUR.data[S.id] = d; terapTombol(); };
+  lap.onpointerup = lap.onpointercancel = () => { ATUR.seret = null; };
+  $('#aturUk').oninput = () => { const v = +$('#aturUk').value, id = ATUR.pil; $('#aturUkT').textContent = v + '%';
+    if (!ATUR.data[id]) aturSimpanPosisi(id); ATUR.data[id].s = v / 100; terapTombol(); };
+  $('#aturReset').onclick = () => { ATUR.data = {}; terapTombol(); aturPilih(ATUR.pil); banner('↺ Tombol kembali ke posisi awal'); };
+  $('#aturBatal').onclick = () => aturTutup(false); $('#aturSimpan').onclick = () => aturTutup(true);
+  $('#bAtur').onclick = () => aturBuka();
+  addEventListener('resize', () => setTimeout(terapTombol, 60)); terapTombol(); setTimeout(terapTombol, 600); }   // diulang setelah kelas HP (ponsel) terpasang
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
 if (HERO === 'buto') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Gebukan Raksasa (pukul, pukul, hantam tanah) · U (tahan + mouse): Seruduk Buto (lawan terdorong; menabrak pinggir arena / batu = Stun) · I: Tangkap & Banting (lawan terdekat + Stun 1 dtk) · O (tahan + mouse): Lempar Batu Raksasa (area besar: Stun + Slow, batunya jadi tembok 4 dtk) · Pasif Kulit Buto: darah tebal, sulit didorong, darah < 30% damage −25% · Combo: O → U → I';
@@ -4274,6 +4327,7 @@ function mulaiLoop() {
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
     fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v1 · lunara-v3'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
+    if (ATUR.on && !NET.on) dt = 0;   // sedang Atur Tombol (main sendiri): permainan berhenti sebentar
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
     updTarik(dt); updBerdarah(dt); updTandaD(dt); updDnFx(dt); updTmFx(dt);   // Doni: tarikan rantai, Bleeding, rantai & gir
