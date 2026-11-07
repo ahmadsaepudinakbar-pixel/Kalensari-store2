@@ -1851,7 +1851,7 @@ function updPemain(dt) {
   if (HERO === 'lutung' && LK_ULTI.has(P.state)) P.kunci = P.pusing = 0;   // Terkaman Kasarung: kebal stun
   if (HERO === 'erick' && (P.state === 'erBlok' || (P.state === 'erBlink' && P.t < ER.blink.kebal))) P.kunci = P.pusing = 0;   // Mode Bertahan / saat menghilang: kebal stun
   const pos = P.root.position, f = depan();
-  P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; if (P.pivot) P.pivot.rotation.set(0, 0, 0);
+  P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = P.angkatD ? P.angkatD.y || 0 : 0; if (P.pivot) P.pivot.rotation.set(0, 0, 0);   // sedang diangkat Buto: tetap di atas (dikirim ke pemain lain)
   if (HERO === 'kunti') updKunti(dt, pos, f);
   else if (HERO === 'tuyul') updTuyul(dt, pos, f);
   else if (HERO === 'genderuwo') updGenderuwo(dt, pos, f);
@@ -2704,6 +2704,43 @@ function tarikMusuh(m, c, d) {
   if (m.remote) { const [x, z] = keNet(c.x, c.z); netEvent({ k: 'tarik', ke: m.id, x: r2(x), z: r2(z), d }); return; }   // pemain online: ditarik di HP-nya sendiri
   TARIK.push({ mt: m, a: m.g.position.clone(), c: c.clone(), t: 0, d });
 }
+// ---- diangkat (Tangkap & Banting Buto): korban dipegang di atas kepala lalu dibanting ke titik jatuh ----
+// bot & boneka di HP ini: daftar ANGKAT · diri sendiri (diangkat Buto lawan online): P.angkatD · lawan online: dikirim 'angkat' ke HP-nya
+const ANGKAT = [], BT_ANGKAT = { tinggi: 2, naik: .42, maju: .9 };
+function angkatLawan(m, dari, fd, lama, jatuh) {
+  if (m.remote) { const [x, z] = keNet(dari.x, dari.z), [bx, bz] = keNet(jatuh.x, jatuh.z); netEvent({ k: 'angkat', ke: m.id, x: r2(x), z: r2(z), bx: r2(bx), bz: r2(bz), d: r2(lama) }); return; }
+  for (let k = ANGKAT.length - 1; k >= 0; k--) if (ANGKAT[k].mt === m) ANGKAT.splice(k, 1);
+  ANGKAT.push(buatAngkat(m.g.position, dari, jatuh, lama, m));
+}
+function buatAngkat(p, dari, jatuh, lama, mt) {   // dari: posisi Buto · jatuh: titik bantingan
+  const d = p.clone().sub(dari).setY(0); if (d.lengthSq() < 1e-4) d.set(0, 0, 1); d.normalize();
+  return { mt, a: p.clone().setY(0), dari: dari.clone().setY(0), arah: d, c: jatuh.clone().setY(0), t: 0, d: Math.max(.2, Math.min(1.5, lama) - .1) };   // jatuhnya (0,1 dtk) selesai tepat saat bantingan
+}
+function terimaAngkat(e, mt) {   // dari jaringan: mt = bot milik HP ini, kosong = diri sendiri
+  const [x, z] = keNet(e.x, e.z), [bx, bz] = keNet(e.bx, e.bz), dari = new THREE.Vector3(x, 0, z), c = new THREE.Vector3(bx, 0, bz), lama = Math.min(1.5, e.d || .6);
+  if (mt) { if (!mt.mati) ANGKAT.push(buatAngkat(mt.g.position, dari, c, lama, mt)); return; }
+  if (P.state === 'kalah') return; P.tarikD = null; P.angkatD = buatAngkat(P.root.position, dari, c, lama, null); P.pusing = Math.max(P.pusing || 0, lama + .25);
+}
+function posAngkat(q, dt, pos) {   // menghitung posisi korban: ditarik ke depan Buto, naik ke atas kepala, meronta, lalu dibanting. Hasil: tinggi (y) atau -1 bila selesai
+  q.t += dt;
+  if (q.t < q.d) { const u = Math.min(1, q.t / BT_ANGKAT.naik), e = u * u * (3 - 2 * u), tx = q.dari.x + q.arah.x * BT_ANGKAT.maju, tz = q.dari.z + q.arah.z * BT_ANGKAT.maju;
+    pos.x = q.a.x + (tx - q.a.x) * e; pos.z = q.a.z + (tz - q.a.z) * e; return BT_ANGKAT.tinggi * Math.sin(u * Math.PI / 2) + .1 * Math.sin(q.t * 16) * u; }
+  const u = Math.min(1, (q.t - q.d) / .1); pos.x = q.dari.x + q.arah.x * BT_ANGKAT.maju + (q.c.x - q.dari.x - q.arah.x * BT_ANGKAT.maju) * u; pos.z = q.dari.z + q.arah.z * BT_ANGKAT.maju + (q.c.z - q.dari.z - q.arah.z * BT_ANGKAT.maju) * u;
+  return u >= 1 ? -1 : BT_ANGKAT.tinggi * (1 - u * u);
+}
+function updAngkat(dt) {   // dipanggil SETELAH pemain, bot & boneka diperbarui → posisi angkatan yang dipakai saat digambar
+  for (let k = ANGKAT.length - 1; k >= 0; k--) { const q = ANGKAT[k], m = q.mt, p = m.g.position;
+    if (m.mati) { ANGKAT.splice(k, 1); continue; }
+    const y = posAngkat(q, dt, p), naik = Math.max(0, y), miring = y < 0 ? 0 : -.5 * Math.min(1, q.t / BT_ANGKAT.naik);
+    if (m.v) m.v.set(0, 0, 0); m.vy = 0;
+    if (m.bot) { m.y = naik; const tl = m.g.children[0]; if (tl) { tl.position.y = naik; tl.rotation.x = miring; tl.rotation.z = Math.sin(q.t * 14) * .15 * (y > 0); } }   // bot: dimiringkan & meronta
+    else { m.y = naik; p.y = naik; if (m.b) m.b.rotation.x = miring; }   // boneka latihan
+    if (y < 0) ANGKAT.splice(k, 1); }
+  const q = P.angkatD; if (q) {
+    if (P.state === 'kalah') { P.angkatD = null; return; }
+    const y = posAngkat(q, dt, P.root.position); q.y = Math.max(0, y); P.pusing = Math.max(P.pusing || 0, .15);
+    if (y < 0) { P.angkatD = null; P.tilt.position.y = 0; P.tilt.rotation.x = 0; } else { P.tilt.position.y = y; P.tilt.rotation.x = -.5 * Math.min(1, q.t / BT_ANGKAT.naik); P.tilt.rotation.z = Math.sin(q.t * 14) * .15; } }
+}
 function updTarik(dt) {
   for (let k = TARIK.length - 1; k >= 0; k--) { const q = TARIK[k]; q.t += dt; const u = Math.min(1, q.t / q.d), e = u * u * (3 - 2 * u);
     q.mt.g.position.x = q.a.x + (q.c.x - q.a.x) * e; q.mt.g.position.z = q.a.z + (q.c.z - q.a.z) * e; if (q.mt.v) q.mt.v.set(0, 0, 0); if (u >= 1 || q.mt.mati) TARIK.splice(k, 1); }
@@ -3102,12 +3139,11 @@ function updButo(dt, pos, f) {
   else if (P.state === 'btBanting') {   // Tangkap & Banting: lawan terdekat ditarik, diangkat ke atas kepala, lalu dibanting
     const B = BT.banting;
     if (t > B.tangkap && P.hit === 0) { P.hit = 1; const m = terdekat(B.R);
-      if (m) { P.pegang = m; hadapKe(m.g.position); P.root.rotation.y = P.arah; const dpn = pos.clone().addScaledVector(depan(), 1), L = m.g.position.distanceTo(dpn);
-        kena(m, 10, m.g.position.clone().add(m.g.position.clone().sub(dpn).setY(0).normalize()), Math.min(8, L * 3.9)); m.pusing = Math.max(m.pusing || 0, B.tH - B.tangkap + .25);
+      if (m) { P.pegang = m; hadapKe(m.g.position); P.root.rotation.y = P.arah; const fd = depan(), lama = B.tH - B.tangkap, jatuh = pos.clone().addScaledVector(fd, 1.3);
+        kena(m, 10, m.g.position.clone().addScaledVector(fd, -1), 0); m.pusing = Math.max(m.pusing || 0, lama + .25);
+        angkatLawan(m, pos, fd, lama, jatuh);   // lawan benar-benar diangkat ke atas kepala Buto (boneka, bot & pemain online)
         fx('gPukul', m.g.position.clone(), .8, 0); } }
     const m = P.pegang;
-    if (m && P.hit === 1 && !m.remote && !m.bot && !m.mati) { const u = Math.min(1, (t - B.tangkap) / (B.tH * .75 - B.tangkap));   // boneka latihan ikut terangkat
-      m.g.position.copy(pos).addScaledVector(f, .8); m.y = 2.3 * Math.sin(u * Math.PI / 2); m.vy = 0; m.v.set(0, 0, 0); }
     if (t > B.tH && P.hit === 1) { P.hit = 2; const hp = pos.clone().addScaledVector(f, 1.3); let ada = 0;
       if (m && !m.mati && m.g.position.distanceTo(pos) < B.R + 1.5) { if (!m.remote && !m.bot) { m.g.position.copy(hp); m.y = 0; } kena(m, B.dmg, pos, 3, 3); m.pusing = Math.max(m.pusing || 0, B.stun); ada = 1; }
       MUSUH.forEach(o => { if (o !== m && !o.mati && !o.sembunyi && o.g.position.distanceTo(hp) < B.ciprat) { kena(o, B.dmgCiprat, hp, 3); o.pusing = Math.max(o.pusing || 0, .4); ada = 1; } });
@@ -3813,7 +3849,7 @@ $('#phMain').onclick = () => {
 function mainLagi(ronde) {   // ronde = lanjut ronde berikutnya (skor tetap); tanpa ronde = tanding ulang dari 0
   const darahP = ronde && P.state !== 'kalah' ? Math.max(1, P.hp) : HP_MAX[HERO];   // pemenang ronde: darah tidak kembali penuh
   SELESAI = false; $('#hasil').classList.remove('on'); K.terbangT = 0; K.lesat = 0;
-  P.hp = darahP; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; P.tarikD = null; BERDARAH.length = 0; TARIK.length = 0; DW.combo = 0; GW.amuk = GW.combo = GW.comboT = 0; BW.combo = BW.comboT = 0; BW.batu.length = 0; P.pegang = null; EW.k2 = EW.k2T = 0; erK2Lencana(); LW.combo = LW.comboT = LW.l2 = LW.l2T = 0; LW.pasif = false; P.mangsa = null; if (HERO === 'lutung') lkLencana(); P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
+  P.hp = darahP; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; P.tarikD = null; P.angkatD = null; ANGKAT.length = 0; BERDARAH.length = 0; TARIK.length = 0; DW.combo = 0; GW.amuk = GW.combo = GW.comboT = 0; BW.combo = BW.comboT = 0; BW.batu.length = 0; P.pegang = null; EW.k2 = EW.k2T = 0; erK2Lencana(); LW.combo = LW.comboT = LW.l2 = LW.l2T = 0; LW.pasif = false; P.mangsa = null; if (HERO === 'lutung') lkLencana(); P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
   if (HERO === 'kunti') kuntiTembus(1);
   if (BOT) BOT.reset(!ronde, !!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
   if (LAWAN === 'bot' && !ronde) { SKOR = [0, 0]; updSkorBot(); }
@@ -3985,6 +4021,7 @@ function terimaData(m) {
     else if (e.k === 'lagi') { NET.lawanLagi = true; cekLagi(); }
     else if (e.k === 'halo') { const h = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timun', 'buto', 'lutung'].includes(e.h) ? e.h : R.hero, ganti = h !== R.hero || (R.skin || '') !== (e.s || ''); R.hero = h; R.skinMau = e.s || ''; R.mt.hpMax = HP_MAX[h]; if (R.model && ganti) muatModelHero(R.hero, R, null, R.skinMau); }   // hero & skin lawan
     else if (e.k === 'koin') koinTerbang(P.root.position, R);
+    else if (e.k === 'angkat') terimaAngkat(e, null);   // diangkat Buto lawan (Tangkap & Banting)
     else if (e.k === 'tarik') { const [x, z] = keNet(e.x, e.z); if (P.state !== 'kalah') P.tarikD = { a: P.root.position.clone(), c: new THREE.Vector3(x, 0, z), t: 0, d: Math.min(.6, e.d || .3) }; }   // ditarik rantai Doni lawan
     else if (e.k === 'gerombolan') { if (R.model && R.act.jalan) panggilGerombolan(R.root.position.clone(), R, () => DIRI, true, e.l || 3, null, !!e.p); }
   });
@@ -4284,6 +4321,7 @@ function terimaDataTim(m) {
     else if (e.k === 'lambat') { if (utkSaya) P.lambat = Math.max(P.lambat || 0, Math.min(2, e.d)); else if (botSaya) botSaya.mt.lambat = Math.min(2, e.d); }
     else if (e.k === 'bola') { const [x, z] = keNet(e.x, e.z), sas = utkSaya ? DIRI : (objek(ke) || {}).mt; if (sas) bolaRoh(new THREE.Vector3(x, e.y, z), sas, new THREE.Vector3(Math.sin(sudutNet(e.a)), 0, Math.cos(sudutNet(e.a))), true, null, kwDari(srcObj)); }
     else if (e.k === 'roh') { const sas = utkSaya ? DIRI : (objek(ke) || {}).mt; if (sas && srcObj && srcObj.root) lepasRohPemburu(sas, true, srcObj); }
+    else if (e.k === 'angkat') { if (utkSaya) terimaAngkat(e, null); else if (botSaya) terimaAngkat(e, botSaya.mt); }   // diangkat Buto (Tangkap & Banting)
     else if (e.k === 'tarik') { const [x, z] = keNet(e.x, e.z), c = new THREE.Vector3(x, 0, z), d = Math.min(.6, e.d || .3);   // ditarik rantai Doni
       if (utkSaya) { if (P.state !== 'kalah') P.tarikD = { a: P.root.position.clone(), c, t: 0, d }; } else if (botSaya) TARIK.push({ mt: botSaya.mt, a: botSaya.mt.g.position.clone(), c, t: 0, d }); }
     else if (e.k === 'koin') { const t = utkSaya ? P : objek(ke); if (t && srcObj) koinTerbang(t.root.position, srcObj); }
@@ -4536,12 +4574,12 @@ function mulaiLoop() {
   renderer.setAnimationLoop(now => {
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v1 · lutung-v1 · roberick-v1 · lunara-v3'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v2 · lutung-v1 · roberick-v1 · lunara-v3'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     if (ATUR.on && !NET.on) dt = 0;   // sedang Atur Tombol (main sendiri): permainan berhenti sebentar
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
-    updTarik(dt); updBerdarah(dt); updTandaD(dt); updDnFx(dt); updTmFx(dt);   // Doni: tarikan rantai, Bleeding, rantai & gir
+    updTarik(dt); updAngkat(dt); updBerdarah(dt); updTandaD(dt); updDnFx(dt); updTmFx(dt);   // Doni: tarikan rantai, Bleeding, rantai & gir
     if (NET.on && !TIM.on) { updLawan(dt); NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaan(); } }
     updPeluru(dt); updRohPemburu(dt); updGelKipas(dt);
     setTembus(P, UMP.on && UMP.tangkap ? .45 : HERO === 'kunti' && P.state === 'kalah' ? .4 : TY.hilang > 0 ? .3 : 1); updSemak(dt); updGerombolan(dt); updKoin(dt);   // di dalam semak: semaknya yang tembus pandang
