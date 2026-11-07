@@ -3041,7 +3041,7 @@ const BT = { tinggi: 2.15, cepat: 3.1, rendah: .3, kurang: .25, dorongK: .5,   /
   sapu: { ts: 1.6, tH: .69, akhir: 1.12, dmg: 95, R: 2.4 },
   seruduk: { jarak: 6.5, mulai: .12, lama: .5, akhir: .8, dmg: 90, lebar: 1.35, stun: .5, tembok: 1, dmgTembok: 40, cek: .3 },
   banting: { ts: 1.1, tangkap: .23, R: 2.6, tH: .9, akhir: 1.48, dmg: 110, stun: 1, ciprat: 2.2, dmgCiprat: 45, lempar: 5.5, dmgTembok: 40, stunTembok: .8 },   // lempar: jarak maks saat diarahkan
-  batu: { ts: 1.15, cabut: .83, rilis: 1.6, terbang: .5, akhir: 2.2, jarak: 9, R: 4, dmg: 150, stun: 1, lambat: 2.5, lama: 4, Rbatu: 1.1,
+  batu: { ts: 1.15, cabut: .83, rilis: 1.6, terbang: .5, akhir: 2.2, jarak: 9, R: 4, dmg: 150, stun: 1, lambat: 2.5, lama: 4, Rbatu: 1.8,
     pegang: [.95, 1.85] } };   // pegang: waktu klip 'ulti' saat batu ada di tangan (dari mencabut sampai dilempar)
 const BW = { combo: 0, comboT: 0, batu: [] };   // batu: batu yang tertancap di arena (milik Buto ini) → tembok untuk Seruduk
 const BT_GEO_BATU = (() => { const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position;
@@ -3067,19 +3067,20 @@ function batuTangan(T) {   // dipanggil tiap frame untuk semua Buto (pemain, law
   const a = T.act && T.act.ulti, P0 = BT.batu.pegang, on = !!T.model && T.cur === 'ulti' && !!a && a.time > P0[0] && a.time < P0[1] && T.root.visible !== false;
   if (T.batuB.visible !== on) T.batuB.visible = on; if (!on) return;
   const p = tanganButo(T); T.batuB.position.copy(p); T.batuB.position.y += .2; T.batuB.rotation.set(.3, T.root.rotation.y, .2);
-  T.batuB.scale.setScalar(.46 * Math.min(1, (a.time - P0[0]) / .15) + .01);
+  T.batuB.scale.setScalar(.6 * Math.min(1, (a.time - P0[0]) / .15) + .01);
 }
 function bBatu(dari, ke, lama, R, diam) {   // efek Lempar Batu Raksasa: batu melayang melengkung → menghantam area → tertancap beberapa detik
   const a = dari.clone(), b = ke.clone().setY(0), batu = new THREE.Mesh(BT_GEO_BATU, BT_BAHAN_BATU); batu.castShadow = true; batu.scale.setScalar(.5); batu.position.copy(a); scene.add(batu);
   const L = tLantai(b, 0xffa040, 0x5a3010, .32, false), tinggi = 2.2 + Math.hypot(a.x - b.x, a.z - b.z) * .25;
   TMFX.push({ t: 0, jatuh: false, upd(e, dt) {
     const t = e.t;
-    if (t < lama) { const u = t / lama; batu.position.lerpVectors(a, b, u); batu.position.y = a.y * (1 - u) + .6 * u + Math.sin(u * Math.PI) * tinggi; batu.rotation.x += dt * 5; batu.rotation.z += dt * 3; batu.scale.setScalar(.5 + .45 * u);
+    if (t < lama) { const u = t / lama; batu.position.lerpVectors(a, b, u); batu.position.y = a.y * (1 - u) + .6 * u + Math.sin(u * Math.PI) * tinggi; batu.rotation.x += dt * 5; batu.rotation.z += dt * 3; batu.scale.setScalar(.6 + (BT.batu.Rbatu * .85 - .6) * u);
       L.atur(R * (.7 + .3 * u), Math.min(1, t * 5)); if (Math.random() < .5) asap(batu.position.clone(), 1, COKLAT_MUDA, .6, .4); return true; }
-    if (!e.jatuh) { e.jatuh = true; batu.position.set(b.x, .5, b.z); e.tembok = { x: b.x, z: b.z, R: BT.batu.Rbatu + .45 }; BATU_TEMBOK.push(e.tembok);   // mulai jadi tembok batu.rotation.set(rnd(-.3, .3), rnd(0, 6), rnd(-.3, .3)); batu.scale.setScalar(BT.batu.Rbatu);
+    if (!e.jatuh) { e.jatuh = true; batu.position.set(b.x, .45 * BT.batu.Rbatu, b.z); batu.rotation.set(rnd(-.3, .3), rnd(0, 6), rnd(-.3, .3)); batu.scale.setScalar(BT.batu.Rbatu);
+      e.tembok = { x: b.x, z: b.z, R: BT.batu.Rbatu + .4 }; BATU_TEMBOK.push(e.tembok);   // mulai jadi tembok padat
       gHantam(b, R * .75, 0); gelombang(b.clone(), R, .55, 0xffa040); gelGelap(b, R * 1.15, .6, COKLAT); percik(b.clone().setY(.6), KUAL.lv === 0 ? 24 : 40, COKLAT_MUDA, 6, .22); asap(b, 8, COKLAT, 1.4, 1); kilat(b, 45); }
     const s = t - lama; L.atur(R, Math.max(0, 1 - s / .5));
-    if (s > diam) { lepasTembok(e); batu.position.y = .5 - (s - diam) / .6 * 1.6; if (s > diam + .6) return false; }   // batu amblas ke tanah (tidak lagi jadi tembok)
+    if (s > diam) { lepasTembok(e); batu.position.y = BT.batu.Rbatu * (.45 - (s - diam) / .6 * 1.5); if (s > diam + .6) return false; }   // batu amblas ke tanah (tidak lagi jadi tembok)
     return true; },
     akhir() { lepasTembok(this); scene.remove(batu); L.hapus(); } });
 }
