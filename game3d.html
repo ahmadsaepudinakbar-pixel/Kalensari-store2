@@ -114,8 +114,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #timHud{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;background:#0b1020d8;border:1px solid #ffffff22;border-radius:12px;padding:5px 14px;font:900 20px Arial;color:#fff;pointer-events:none;flex-wrap:wrap;justify-content:center}
 #timHud .b{color:#5ab4ff}#timHud .m{color:#ff6060}#timHud small{font:700 12px Arial;color:#b8c0d8}#timHud .hdp{flex-basis:100%;text-align:center;font:700 13px Arial;color:#ffd166}
 body:has(#timHud:not([style*="none"])) #koin{top:52px}
-#tbans{position:fixed;left:10px;top:148px;max-width:230px;z-index:6;display:flex;flex-direction:column;align-items:flex-start;gap:4px;pointer-events:none}
+#tbans{position:fixed;left:10px;top:82px;max-width:230px;z-index:6;display:flex;flex-direction:column;align-items:flex-start;gap:4px;pointer-events:none}
 .tban{font:700 14px Arial;color:#fff;background:#000a;border-radius:8px;padding:4px 12px;text-shadow:0 1px 0 #000;transition:opacity .5s}.tban.hilang{opacity:0}
+@media (orientation:landscape) and (max-height:560px){#tbans{top:68px;max-width:220px;gap:3px}.tban{font-size:11px;padding:2px 9px}}   /* HP miring: notif lebih ke atas & kecil, jauh dari joystick */
+body.ponsel #joy{width:118px;height:118px;left:16px;bottom:16px;border-width:3px}body.ponsel #knob{width:48px;height:48px}   /* HP: joystick sedikit lebih kecil */
 .hp.kawan{width:70px;margin-left:-35px;height:8px;border:1px solid #9ad0ff88;overflow:visible}.hp.kawan i{background:#3a9cff;border-radius:3px}.hp.kawan .nm{color:#cfe6ff}
 #lobi.tim .mbox{width:min(680px,96vw);max-height:94vh;overflow:auto}
 .tlj{font:13px Arial;color:#c8cfe6;margin-bottom:8px}.tlcol{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -3974,9 +3976,12 @@ function updHudTim() {
   e.innerHTML = `<span class="b">🔵 ${TIM.skor[0]}</span><small>${Math.floor(mm / 60)}:${String(mm % 60).padStart(2, '0')} · target ${TIM.kw}</small><span class="m">${TIM.skor[1]} 🔴</span>` + (TIM.hidupT ? `<div class="hdp">Bangkit dalam ${Math.max(1, Math.ceil((TIM.hidupT - performance.now()) / 1000))}…</div>` : '');
   e.classList.toggle('kanan', s === 1);
 }
-function banner(t, warna) {
-  const e = document.createElement('div'); e.className = 'tban'; e.textContent = t; if (warna) e.style.color = warna; $('#tbans').appendChild(e);
-  setTimeout(() => e.classList.add('hilang'), 2600); setTimeout(() => e.remove(), 3200);
+function banner(t, warna) {   // notif kiri atas: maks 5, notif yang sama berturut-turut tidak ditumpuk (cukup diperpanjang)
+  const box = $('#tbans'), akhir = box.lastElementChild;
+  if (akhir && akhir.textContent === t && !akhir.classList.contains('hilang')) { clearTimeout(akhir._t1); clearTimeout(akhir._t2); akhir._t1 = setTimeout(() => akhir.classList.add('hilang'), 2600); akhir._t2 = setTimeout(() => akhir.remove(), 3200); return; }
+  const e = document.createElement('div'); e.className = 'tban'; e.textContent = t; if (warna) e.style.color = warna; box.appendChild(e);
+  while (box.children.length > 5) box.firstElementChild.remove();
+  e._t1 = setTimeout(() => e.classList.add('hilang'), 2600); e._t2 = setTimeout(() => e.remove(), 3200);
 }
 
 // ---------- jaringan ----------
