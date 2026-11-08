@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model Studio ASA27 – GLB + FBX + Animasi</title>
+<style>
+:root{--bg:#14181c;--panel:#1d2329;--line:#2d363e;--text:#e6ebef;--mute:#8d9aa5;--acc:#4cc3b0;--accText:#07201c}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.app{display:grid;grid-template-columns:330px 1fr;height:100%}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:18px;overflow:auto;display:flex;flex-direction:column;gap:14px}
+h1{font-size:19px;margin:0}
+h2{font-size:13px;margin:0;color:var(--mute);font-weight:600}
+p.sub{margin:2px 0 0;color:var(--mute);font-size:13px}
+button,label.btn{display:block;width:100%;text-align:center;border:1px solid var(--line);background:#252d35;color:var(--text);padding:9px 12px;border-radius:8px;font:inherit;cursor:pointer}
+button:hover,label.btn:hover{border-color:var(--acc)}
+button.primary{background:var(--acc);color:var(--accText);border-color:var(--acc);font-weight:600}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible,label.btn:focus-within,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input[type=file]{position:absolute;opacity:0;width:0;height:0}
+.row{display:flex;flex-direction:column;gap:6px}
+.row>label,.grid label{font-size:13px;color:var(--mute);display:flex;justify-content:space-between}
+input[type=range]{width:100%;accent-color:var(--acc)}
+select{width:100%;background:#12171b;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:7px 8px;font:inherit}
+input[type=number]{width:100%;background:#12171b;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font:inherit}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid>div{display:flex;flex-direction:column;gap:4px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px}
+.chk input{accent-color:var(--acc)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.list{display:flex;flex-direction:column;gap:6px}
+.layer{display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:#12171b}
+.layer.on{border-color:var(--acc);background:#16262a}
+.layer .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.layer .ext{font-size:11px;color:var(--mute);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+.layer .pl{color:var(--acc);font-size:12px}
+.ext.pt{color:var(--acc);border-color:var(--acc)}
+.ext.pa{color:#f0b429;border-color:#f0b429}
+.ext.pr{color:#ff9f6b;border-color:#ff9f6b}
+.ext.pq{color:var(--mute)}
+.layer input{accent-color:var(--acc)}
+.layer .x{width:auto;padding:0 8px;line-height:1.4;background:transparent;border-color:transparent;font-size:18px;color:var(--mute)}
+.layer .x:hover{color:#ff8a80;border-color:transparent}
+.empty{font-size:13px;color:var(--mute)}
+.note{font-size:12px;color:var(--mute)}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}
+dt{color:var(--mute)}dd{margin:0;text-align:right;word-break:break-all}
+main{position:relative;min-width:0}
+#view{position:absolute;inset:0}
+#view canvas{display:block;width:100%;height:100%}
+#drop{position:absolute;inset:16px;border:2px dashed var(--line);border-radius:14px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--mute);pointer-events:none;transition:.15s}
+#drop.hide{opacity:0}
+main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
+#msg{position:absolute;left:16px;bottom:14px;right:16px;font-size:13px;color:var(--mute);pointer-events:none}
+#msg.err{color:#ff8a80}
+@media (max-width:760px){.app{grid-template-columns:1fr;grid-template-rows:auto 55vh}aside{border-right:0;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div>
+      <h1>Model Studio ASA27</h1>
+      <p class="sub">Buka GLB/FBX, gabungkan, putar animasi di karakter, lalu simpan jadi satu GLB.</p>
+    </div>
+
+    <label class="btn" for="file">Tambah file (GLB / FBX)
+      <input id="file" type="file" accept=".glb,.gltf,.fbx" multiple>
+    </label>
+    <label class="chk"><input id="fbxModel" type="checkbox"> FBX berisi animasi juga dimuat sebagai model</label>
+
+    <div>
+      <h2>Model (karakter)</h2>
+      <div id="layers" class="list" style="margin-top:6px"><div class="empty">Belum ada model.</div></div>
+    </div>
+
+    <div id="anim" hidden>
+      <h2>Animasi — klik untuk memutar di model terpilih</h2>
+      <div id="clips" class="list" style="margin-top:6px"></div>
+      <div class="two" style="margin-top:8px">
+        <button id="pause">Jeda</button>
+        <button id="stop">Stop (pose awal)</button>
+      </div>
+      <label class="chk" style="margin-top:8px"><input id="loop" type="checkbox" checked> Ulangi terus</label>
+      <div class="row" style="margin-top:6px">
+        <label for="speed"><span>Kecepatan</span><span id="speedV">1.0×</span></label>
+        <input id="speed" type="range" min="0.1" max="2" step="0.1" value="1">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label for="method"><span>Metode retarget</span></label>
+        <select id="method">
+          <option value="world">Dunia (disarankan)</option>
+          <option value="local">Lokal (koreksi pose)</option>
+          <option value="direct">Salin langsung</option>
+        </select>
+      </div>
+      <label class="chk" style="margin-top:8px"><input id="inplace" type="checkbox"> Di tempat (kunci gerak panggul maju/samping)</label>
+    </div>
+
+    <div id="edit" hidden>
+      <h2>Atur model terpilih</h2>
+      <div class="grid" style="margin-top:6px">
+        <div><label for="px">X</label><input id="px" type="number" step="any" value="0"></div>
+        <div><label for="py">Y</label><input id="py" type="number" step="any" value="0"></div>
+        <div><label for="pz">Z</label><input id="pz" type="number" step="any" value="0"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label for="sc"><span>Skala</span></label>
+        <input id="sc" type="number" step="any" min="0.0001" value="1">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label for="rotY"><span>Putar (sumbu Y)</span><span id="rotV">0°</span></label>
+        <input id="rotY" type="range" min="-180" max="180" step="1" value="0">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label for="rotX"><span>Putar (sumbu X)</span><span id="rotXV">0°</span></label>
+        <input id="rotX" type="range" min="-180" max="180" step="1" value="0">
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label for="rotZ"><span>Putar (sumbu Z)</span><span id="rotZV">0°</span></label>
+        <input id="rotZ" type="range" min="-180" max="180" step="1" value="0">
+      </div>
+      <div class="two" style="margin-top:8px">
+        <button id="norm">Normalkan ukuran</button>
+        <button id="floor">Taruh di lantai</button>
+      </div>
+      <div id="attachBox" style="margin-top:12px" hidden>
+        <h2>Pasang ke tulang (senjata / aksesori)</h2>
+        <div class="row" style="margin-top:6px">
+          <label for="attachTo"><span>Karakter</span></label>
+          <select id="attachTo"></select>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <label for="attachBone"><span>Tulang</span></label>
+          <select id="attachBone"></select>
+        </div>
+        <div class="two" style="margin-top:8px">
+          <button id="attachBtn">Pasang</button>
+          <button id="detachBtn">Lepas</button>
+        </div>
+        <p class="note" id="attachNote" style="margin:6px 0 0"></p>
+      </div>
+      <dl id="info" style="margin-top:10px"></dl>
+    </div>
+
+    <label class="chk"><input id="expAnim" type="checkbox" checked> Sertakan semua animasi saat simpan</label>
+    <button id="save" class="primary" disabled>Simpan sebagai GLB</button>
+    <button id="saveOrig" disabled>Unduh file asli model terpilih</button>
+
+    <div>
+      <h2>Tampilan</h2>
+      <div class="row" style="margin-top:6px">
+        <label for="bg"><span>Warna latar</span></label>
+        <input id="bg" type="color" value="#14181c">
+      </div>
+      <label class="chk" style="margin-top:8px"><input id="wire" type="checkbox"> Mode kerangka (wireframe)</label>
+      <label class="chk"><input id="auto" type="checkbox"> Putar kamera otomatis</label>
+      <button id="reset" style="margin-top:8px" disabled>Pas-kan kamera ke semua model</button>
+      <button id="clear" style="margin-top:8px" disabled>Kosongkan semua</button>
+    </div>
+  </aside>
+
+  <main id="stage">
+    <div id="view"></div>
+    <div id="drop"><div><strong>Seret file GLB / FBX ke sini</strong><br>Karakter (GLB) dan animasi (FBX) bisa sekaligus</div></div>
+    <div id="msg"></div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/inflate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const view = $('view'), stage = $('stage'), msg = $('msg');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#14181c');
+const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 5000);
+camera.position.set(2, 1.5, 3);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+view.appendChild(renderer.domElement);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 1.0));
+const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+sun.position.set(3, 5, 4);
+scene.add(sun);
+const grid = new THREE.GridHelper(10, 20, 0x3a4650, 0x2a343c);
+scene.add(grid);
+
+const holder = new THREE.Group();
+scene.add(holder);
+
+const layers = [];   // model di scene
+const clips = [];    // animasi yang dimuat
+let sel = null, idc = 0, cid = 0;
+const clock = new THREE.Clock();
+
+function resize(){
+  const w = view.clientWidth, h = view.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+(function loop(){
+  requestAnimationFrame(loop);
+  const dt = clock.getDelta();
+  layers.forEach(l => l.mixer && l.mixer.update(dt));
+  controls.autoRotate = $('auto').checked;
+  controls.update();
+  renderer.render(scene, camera);
+})();
+
+function say(t, err){ msg.textContent = t; msg.className = err ? 'err' : ''; }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const maxDim = o => { const s = new THREE.Box3().setFromObject(o).getSize(new THREE.Vector3()); return Math.max(s.x, s.y, s.z); };
+const fmtSize = b => b > 1048576 ? (b/1048576).toFixed(2)+' MB' : (b/1024).toFixed(1)+' KB';
+const r2 = n => Math.round(n*10000)/10000;
+const norm = n => String(n).replace(/^mixamorig[:_]?/i, '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+
+/* ---------- Deteksi pose awal: T atau A ---------- */
+function armNames(side){
+  const s = side === 'L' ? 'left' : 'right', c = side === 'L' ? 'l' : 'r';
+  return {
+    arm:  [s+'arm', s+'upperarm', 'upperarm'+c, 'arm'+c, c+'arm', 'arm'+s, 'upperarm'+s, c+'upperarm'],
+    fore: [s+'forearm', s+'lowerarm', 'forearm'+c, 'lowerarm'+c, c+'forearm', 'forearm'+s, 'lowerarm'+s, c+'lowerarm'],
+    hand: [s+'hand', 'hand'+c, c+'hand', 'hand'+s]
+  };
+}
+// Sudut lengan di bawah garis horizontal: ~0° = pose T, ~30–60° = pose A, >75° = lengan lurus ke bawah.
+function detectPose(root){
+  root.updateMatrixWorld(true);
+  const map = new Map();
+  root.traverse(o => { if(o.name){ const k = norm(o.name); if(!map.has(k) || o.isBone) map.set(k, o); } });
+  const find = list => { for(const k of list) if(map.has(k)) return map.get(k); return null; };
+  const angs = [];
+  ['L','R'].forEach(sd => {
+    const c = armNames(sd), a = find(c.arm), f = find(c.fore) || find(c.hand);
+    if(!a || !f) return;
+    const pa = new THREE.Vector3(), pf = new THREE.Vector3();
+    a.getWorldPosition(pa); f.getWorldPosition(pf);
+    const d = pf.sub(pa);
+    if(d.length() < 1e-6) return;
+    angs.push(Math.atan2(-d.y, Math.hypot(d.x, d.z)) * 180 / Math.PI);
+  });
+  if(!angs.length) return {type:'?', deg:null};
+  const deg = Math.round(angs.reduce((s, v) => s + v, 0) / angs.length);
+  return {type: deg < 18 ? 'T' : deg < 75 ? 'A' : 'R', deg};
+}
+const poseText = p => p.type === '?' ? 'tidak terdeteksi' : (p.type === 'R' ? 'Rileks' : 'Pose ' + p.type) + ' (' + p.deg + '°)';
+function poseBadge(p){
+  const cls = p.type === 'T' ? 'pt' : p.type === 'A' ? 'pa' : p.type === 'R' ? 'pr' : 'pq';
+  const txt = p.type === 'R' ? 'Rileks' : p.type === '?' ? 'Pose ?' : 'Pose ' + p.type;
+  const tip = p.deg == null ? 'Tulang lengan tidak terdeteksi' : 'Lengan ' + p.deg + '° di bawah garis horizontal';
+  return `<span class="ext ${cls}" title="${tip}">${txt}</span>`;
+}
+
+function frame(){
+  if(!layers.length) return;
+  const box = new THREE.Box3().setFromObject(holder);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const r = Math.max(size.x, size.y, size.z) || 1;
+  controls.target.copy(center);
+  camera.position.copy(center).add(new THREE.Vector3(r*0.9, r*0.6, r*1.4));
+  camera.near = r/100; camera.far = r*100; camera.updateProjectionMatrix();
+  grid.position.y = box.min.y;
+  grid.scale.setScalar(Math.max(r/5, 0.1));
+}
+
+/* ---------- Pose awal & nama tulang ---------- */
+function snapshot(root){
+  root.updateMatrixWorld(true);
+  const byName = {q:new Map(), p:new Map(), w:new Map(), pw:new Map()}, byUuid = new Map(), bones = new Map();
+  root.traverse(o => {
+    byUuid.set(o.uuid, {q:o.quaternion.clone(), p:o.position.clone()});
+    if(o.name){
+      byName.q.set(o.name, o.quaternion.clone());
+      byName.p.set(o.name, o.position.clone());
+      byName.w.set(o.name, o.getWorldQuaternion(new THREE.Quaternion()));
+      byName.pw.set(o.name, o.parent ? o.parent.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion());
+      const k = norm(o.name);
+      if(!bones.has(k) || o.isBone) bones.set(k, o.name);
+    }
+  });
+  return {byName, byUuid, bones};
+}
+
+function resetPose(l){
+  if(l.mixer) l.mixer.stopAllAction();
+  l.obj.traverse(o => {
+    const r = l.snap.byUuid.get(o.uuid);
+    if(r){ o.quaternion.copy(r.q); o.position.copy(r.p); }
+  });
+  l.playing = null; l.action = null; l.paused = false;
+}
+
+/* ---------- Retarget animasi ke tulang model ---------- */
+/* Metode:
+   world  : q_t = inv(R_parent_t) · R_parent_s · q_s · inv(R_s) · R_t  (R = rotasi pose diam di ruang dunia)
+            -> tetap benar walau arah sumbu tulang kedua rig berbeda.
+   local  : q_t = rest_t · inv(rest_s) · q_s  (anggap sumbu lokal sama)
+   direct : salin rotasi apa adanya. */
+function retarget(entry, l){
+  const method = $('method').value, inPlace = $('inplace').checked;
+  const ck = entry.id + '|' + method + '|' + inPlace;
+  if(!l.cache) l.cache = new Map();
+  if(l.cache.has(ck)) return l.cache.get(ck);
+
+  const bones = l.snap.bones, tracks = [], matched = new Set(), srcNodes = new Set();
+  const splitName = n => { const i = n.lastIndexOf('.'); return [n.slice(0, i), n.slice(i+1)]; };
+
+  let ratio = 1;
+  const hipsName = bones.get('hips');
+  const hp = entry.clip.tracks.find(t => { const [n,p] = splitName(t.name); return p === 'position' && norm(n) === 'hips'; });
+  if(hp && hipsName){
+    const sY = hp.values[1], tY = l.snap.byName.p.get(hipsName).y;
+    if(sY && tY) ratio = tY / sY;
+  }
+
+  entry.clip.tracks.forEach(t => {
+    const [node, prop] = splitName(t.name);
+    const key = norm(node);
+    if(prop === 'quaternion') srcNodes.add(key);
+    const tn = bones.get(key);
+    if(!tn) return;
+    const sw = entry.srcW.get(key);
+    const tw = l.snap.byName.w.get(tn), tpw = l.snap.byName.pw.get(tn);
+    const useWorld = method === 'world' && sw && tw && tpw;
+    // M = inv(R_parent_t) · R_parent_s  (menerjemahkan ruang induk sumber ke ruang induk target)
+    const M = useWorld ? tpw.clone().invert().multiply(sw.pw) : null;
+
+    if(prop === 'quaternion'){
+      let pre = null, post = null;
+      if(useWorld){ pre = M; post = sw.w.clone().invert().multiply(tw); }
+      else if(method === 'local'){
+        const sq = entry.srcQ.get(key), tq = l.snap.byName.q.get(tn);
+        if(sq && tq) pre = tq.clone().multiply(sq.clone().invert());
+      }
+      const out = new Float32Array(t.values.length), tmp = new THREE.Quaternion();
+      for(let k = 0; k < t.values.length; k += 4){
+        tmp.set(t.values[k], t.values[k+1], t.values[k+2], t.values[k+3]);
+        if(pre) tmp.premultiply(pre);
+        if(post) tmp.multiply(post);
+        out[k] = tmp.x; out[k+1] = tmp.y; out[k+2] = tmp.z; out[k+3] = tmp.w;
+      }
+      tracks.push(new THREE.QuaternionKeyframeTrack(tn + '.quaternion', t.times.slice(), out));
+      matched.add(tn);
+    } else if(prop === 'position' && key === 'hips'){
+      const out = new Float32Array(t.values.length), v = new THREE.Vector3();
+      for(let k = 0; k < out.length; k += 3){
+        v.set(t.values[k], t.values[k+1], t.values[k+2]).multiplyScalar(ratio);
+        if(M) v.applyQuaternion(M);
+        out[k] = v.x; out[k+1] = v.y; out[k+2] = v.z;
+      }
+      if(inPlace){
+        // buang gerak horizontal: hanya sisakan gerak searah "atas" (naik/turun)
+        const up = useWorld ? new THREE.Vector3(0,1,0).applyQuaternion(tpw.clone().invert()) : new THREE.Vector3(0,1,0);
+        const p0 = new THREE.Vector3(out[0], out[1], out[2]), d = new THREE.Vector3();
+        for(let k = 0; k < out.length; k += 3){
+          d.set(out[k], out[k+1], out[k+2]).sub(p0);
+          const vert = d.dot(up);
+          out[k] = p0.x + up.x * vert; out[k+1] = p0.y + up.y * vert; out[k+2] = p0.z + up.z * vert;
+        }
+      }
+      tracks.push(new THREE.VectorKeyframeTrack(tn + '.position', t.times.slice(), out));
+    }
+  });
+
+  const res = { clip: new THREE.AnimationClip(entry.name, entry.clip.duration, tracks), matched: matched.size, total: srcNodes.size };
+  l.cache.set(ck, res);
+  return res;
+}
+
+/* ---------- Putar animasi ---------- */
+function play(entry){
+  if(!sel){ say('Pilih model karakter dulu di daftar Model.', true); return; }
+  const l = sel;
+  const r = retarget(entry, l);
+  if(r.matched === 0){
+    const sample = Array.from(l.snap.bones.values()).slice(0, 6).join(', ') || '(tidak ada)';
+    say('Nama tulang tidak cocok dengan animasi ini. Contoh nama di model: ' + sample, true);
+    return;
+  }
+  if(!l.mixer) l.mixer = new THREE.AnimationMixer(l.obj);
+  resetPose(l);
+  const a = l.mixer.clipAction(r.clip);
+  a.setLoop($('loop').checked ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
+  a.clampWhenFinished = true;
+  a.reset().play();
+  l.action = a; l.playing = entry.id; l.paused = false;
+  l.mixer.timeScale = +$('speed').value;
+  $('pause').textContent = 'Jeda';
+  renderClips();
+  say('Memutar “' + entry.name + '” — ' + r.matched + ' dari ' + r.total + ' tulang cocok.' + (r.matched < r.total * 0.6 ? ' Banyak tulang tidak cocok, gerakan bisa aneh.' : '') + (l.pose.type !== '?' && entry.pose.type !== '?' && l.pose.type !== entry.pose.type ? ' Perhatian: model ' + poseText(l.pose) + ', animasi ' + poseText(entry.pose) + '. Gerakan lengan bisa melenceng.' : ''));
+}
+
+function replayCurrent(){
+  if(!sel || !sel.playing) return;
+  const c = clips.find(x => x.id === sel.playing);
+  if(c) play(c);
+}
+$('method').onchange = replayCurrent;
+$('inplace').onchange = replayCurrent;
+
+$('pause').onclick = () => {
+  if(!sel || !sel.mixer || !sel.action) return;
+  sel.paused = !sel.paused;
+  sel.mixer.timeScale = sel.paused ? 0 : +$('speed').value;
+  $('pause').textContent = sel.paused ? 'Lanjut' : 'Jeda';
+};
+$('stop').onclick = () => { if(sel){ resetPose(sel); $('pause').textContent = 'Jeda'; renderClips(); } };
+$('speed').oninput = e => {
+  $('speedV').textContent = (+e.target.value).toFixed(1) + '×';
+  if(sel && sel.mixer && !sel.paused) sel.mixer.timeScale = +e.target.value;
+};
+$('loop').onchange = () => {
+  if(sel && sel.action){ sel.action.setLoop($('loop').checked ? THREE.LoopRepeat : THREE.LoopOnce, Infinity); if($('loop').checked && sel.action.paused === false) sel.action.enabled = true; }
+};
+
+/* ---------- Daftar model & animasi ---------- */
+function renderLayers(){
+  const box = $('layers');
+  if(!layers.length) box.innerHTML = '<div class="empty">Belum ada model.</div>';
+  else box.innerHTML = layers.map(l =>
+    `<div class="layer${l===sel?' on':''}" data-id="${l.id}">
+      <input type="checkbox" class="vis" title="Tampilkan / sembunyikan" ${l.wrapper.visible?'checked':''}>
+      <span class="nm" title="${esc(l.file.name)}">${esc(l.file.name)}</span>
+      <span class="ext">${l.ext.toUpperCase()}</span>${poseBadge(l.pose)}${l.attach ? `<span class="ext" title="Terpasang di tulang ${esc(l.attach.bone)}">↳ ${esc(l.attach.bone)}</span>` : ''}
+      <button class="x" title="Hapus model ini" aria-label="Hapus ${esc(l.file.name)}">×</button>
+    </div>`).join('');
+  const has = layers.length > 0;
+  $('save').disabled = !has; $('reset').disabled = !has; $('clear').disabled = !has;
+  $('saveOrig').disabled = !sel;
+  $('edit').hidden = !sel;
+  $('drop').classList.toggle('hide', has);
+  renderClips();
+  refreshAttachUI();
+}
+
+function renderClips(){
+  $('anim').hidden = !clips.length;
+  $('clips').innerHTML = clips.map(c =>
+    `<div class="layer clip${sel && sel.playing === c.id ? ' on' : ''}" data-id="${c.id}">
+      <span class="pl">${sel && sel.playing === c.id ? '▶' : '▷'}</span>
+      <span class="nm" title="${esc(c.name)}">${esc(c.name)}</span>${poseBadge(c.pose)}
+      <button class="x" title="Hapus animasi" aria-label="Hapus ${esc(c.name)}">×</button>
+    </div>`).join('');
+}
+
+function select(l){
+  sel = l;
+  if(l){
+    const w = l.wrapper;
+    $('px').value = r2(w.position.x); $('py').value = r2(w.position.y); $('pz').value = r2(w.position.z);
+    $('sc').value = r2(w.scale.x);
+    const dg = a => Math.round(a * 180/Math.PI);
+    $('rotX').value = dg(w.rotation.x); $('rotXV').textContent = dg(w.rotation.x) + '°';
+    $('rotY').value = dg(w.rotation.y); $('rotV').textContent = dg(w.rotation.y) + '°';
+    $('rotZ').value = dg(w.rotation.z); $('rotZV').textContent = dg(w.rotation.z) + '°';
+    $('pause').textContent = l.paused ? 'Lanjut' : 'Jeda';
+    showInfo(l);
+  }
+  renderLayers();
+}
+
+function showInfo(l){
+  let meshes = 0, tris = 0, nb = 0, mats = new Set();
+  l.obj.traverse(o => {
+    if(o.isBone) nb++;
+    if(o.isMesh){
+      meshes++;
+      const g = o.geometry;
+      tris += g.index ? g.index.count/3 : (g.attributes.position.count/3);
+      [].concat(o.material).forEach(m => mats.add(m));
+    }
+  });
+  const rows = [['Ukuran file', fmtSize(l.file.size)], ['Mesh', meshes], ['Tulang (bone)', nb], ['Pose awal', poseText(l.pose)], ...(l.attach ? [['Terpasang di', l.attach.to.file.name + ' › ' + l.attach.bone]] : []), ['Segitiga', Math.round(tris).toLocaleString('id-ID')], ['Material', mats.size]];
+  $('info').innerHTML = rows.map(([k,v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('');
+}
+
+$('layers').addEventListener('click', e => {
+  const row = e.target.closest('.layer'); if(!row) return;
+  const l = layers.find(x => x.id == row.dataset.id); if(!l) return;
+  if(e.target.classList.contains('vis')){ l.wrapper.visible = e.target.checked; return; }
+  if(e.target.classList.contains('x')){ removeLayer(l); return; }
+  select(l);
+});
+
+$('clips').addEventListener('click', e => {
+  const row = e.target.closest('.clip'); if(!row) return;
+  const c = clips.find(x => x.id == row.dataset.id); if(!c) return;
+  if(e.target.classList.contains('x')){
+    clips.splice(clips.indexOf(c), 1);
+    layers.forEach(l => { if(l.playing === c.id) resetPose(l); if(l.cache) Array.from(l.cache.keys()).forEach(k => { if(k.startsWith(c.id + '|')) l.cache.delete(k); }); });
+    renderClips(); return;
+  }
+  play(c);
+});
+
+function disposeObj(o){
+  o.traverse(n => {
+    if(n.geometry) n.geometry.dispose();
+    if(n.material) [].concat(n.material).forEach(m => { for(const k in m){ if(m[k] && m[k].isTexture) m[k].dispose(); } m.dispose(); });
+  });
+}
+function dropLayer(l){
+  layers.forEach(w => { if(!w.dead && w.attach && w.attach.to === l) detachLayer(w); });
+  l.dead = true;
+  if(l.mixer) l.mixer.stopAllAction();
+  if(l.wrapper.parent) l.wrapper.parent.remove(l.wrapper);
+  disposeObj(l.wrapper);
+}
+function removeLayer(l){
+  dropLayer(l);
+  layers.splice(layers.indexOf(l), 1);
+  select(layers.length ? layers[layers.length-1] : null);
+  say(layers.length ? 'Model dihapus.' : 'Semua model dihapus.');
+}
+$('clear').onclick = () => { layers.slice().forEach(dropLayer); layers.length = 0; select(null); say('Semua model dihapus.'); };
+
+/* ---------- Muat file ---------- */
+function applyWire(){
+  const on = $('wire').checked;
+  holder.traverse(o => { if(o.isMesh) [].concat(o.material).forEach(m => { m.wireframe = on; }); });
+}
+
+function readFile(file){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error('File tidak bisa dibaca.'));
+    r.readAsArrayBuffer(file);
+  });
+}
+
+function parseModel(ext, buf){
+  return new Promise((res, rej) => {
+    if(ext === 'fbx'){
+      try { const o = new THREE.FBXLoader().parse(buf, ''); res({obj:o, anims:o.animations || []}); } catch(e){ rej(e); }
+    } else {
+      new THREE.GLTFLoader().parse(buf, '', g => res({obj:g.scene, anims:g.animations || []}), rej);
+    }
+  });
+}
+
+async function addFile(file){
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  if(!['glb','gltf','fbx'].includes(ext)){ say(file.name + ': format tidak didukung (pakai .glb, .gltf, atau .fbx).', true); return; }
+  say('Memuat ' + file.name + '…');
+  try {
+    const buf = await readFile(file);
+    const { obj, anims } = await parseModel(ext, buf);
+    const base = file.name.replace(/\.[^.]+$/, '');
+    const pose = detectPose(obj);
+
+    if(anims.length){
+      const srcQ = new Map(), srcW = new Map();
+      obj.updateMatrixWorld(true);
+      obj.traverse(o => {
+        if(!o.name) return;
+        const k = norm(o.name);
+        srcQ.set(k, o.quaternion.clone());
+        srcW.set(k, {
+          w: o.getWorldQuaternion(new THREE.Quaternion()),
+          pw: o.parent ? o.parent.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion()
+        });
+      });
+      anims.forEach(c => clips.push({ id: ++cid, name: anims.length > 1 ? base + ' – ' + c.name : base, clip: c, srcQ, srcW, pose }));
+    }
+
+    const asModel = ext !== 'fbx' || !anims.length || $('fbxModel').checked;
+    if(!asModel){
+      disposeObj(obj);
+      renderClips();
+      say('Animasi dimuat: ' + base + ' — pose awal: ' + poseText(pose) + '. Pilih model karakter, lalu klik animasinya untuk memutar.');
+      return;
+    }
+
+    const wrapper = new THREE.Group();
+    wrapper.add(obj);
+    let note = '';
+    if(ext === 'fbx'){
+      const m = maxDim(wrapper);
+      if(m > 20){ wrapper.scale.setScalar(2 / m); note = ' Ukuran FBX terlalu besar (satuan cm), otomatis diperkecil.'; }
+    }
+    holder.add(wrapper);
+    const l = { id: ++idc, file, ext, wrapper, obj, buf, pose, snap: snapshot(obj), mixer: null, action: null, playing: null, paused: false };
+    layers.push(l);
+    applyWire();
+    if(layers.length === 1) frame();
+    select(l);
+    say('Siap: ' + file.name + ' — pose awal: ' + poseText(pose) + '.' + note + (anims.length ? ' Animasi di dalam file juga ditambahkan ke daftar.' : ''));
+  } catch(e){
+    say(file.name + ': gagal dibaca. ' + (e && e.message ? e.message : e), true);
+  }
+}
+
+async function addFiles(list){
+  for(const f of Array.from(list)) await addFile(f);
+  if(layers.length > 1) frame();
+}
+
+/* ---------- Pasang model ke tulang karakter ---------- */
+function boneList(c){
+  const a = [];
+  c.obj.traverse(o => { if(o.isBone && o.name && !a.includes(o.name)) a.push(o.name); });
+  return a;
+}
+function fillBones(preset){
+  const c = layers.find(x => x.id == $('attachTo').value);
+  if(!c){ $('attachBone').innerHTML = ''; return; }
+  const names = boneList(c);
+  const pick = preset || names.find(n => norm(n) === 'righthand') || names.find(n => norm(n) === 'lefthand') || names[0];
+  $('attachBone').innerHTML = names.map(n => `<option value="${esc(n)}"${n === pick ? ' selected' : ''}>${esc(n)}</option>`).join('');
+}
+function refreshAttachUI(){
+  if(!sel) return;
+  const cands = layers.filter(c => c !== sel && !(c.attach && c.attach.to === sel));
+  $('attachBox').hidden = !cands.length && !sel.attach;
+  const cur = sel.attach ? sel.attach.to : null;
+  $('attachTo').innerHTML = cands.map(c => `<option value="${c.id}"${c === cur ? ' selected' : ''}>${esc(c.file.name)}</option>`).join('');
+  fillBones(sel.attach ? sel.attach.bone : null);
+  $('detachBtn').disabled = !sel.attach;
+  $('attachNote').textContent = sel.attach
+    ? 'Terpasang. Atur X/Y/Z, putar, dan skala di atas sebagai offset terhadap tulang.'
+    : 'Pilih karakter dan tulang (mis. RightHand), lalu klik Pasang.';
+}
+function attachLayer(w, c, boneName){
+  let bone = null;
+  c.obj.traverse(o => { if(!bone && o.name === boneName) bone = o; });
+  if(!bone){ say('Tulang tidak ditemukan.', true); return; }
+  resetPose(c);
+  if(w.attach) detachLayer(w);
+  c.wrapper.updateMatrixWorld(true);
+  const ws = w.wrapper.getWorldScale(new THREE.Vector3()).x;
+  bone.add(w.wrapper);
+  c.wrapper.updateMatrixWorld(true);
+  const bs = bone.getWorldScale(new THREE.Vector3()).x || 1;
+  w.wrapper.position.set(0, 0, 0);
+  w.wrapper.rotation.set(0, 0, 0);
+  w.wrapper.scale.setScalar(ws / bs);   // ukuran di dunia tetap sama
+  w.attach = { to: c, bone: boneName };
+  select(w);
+  say('“' + w.file.name + '” dipasang di tulang ' + boneName + '. Atur offset lalu putar animasi untuk mengecek.');
+}
+function detachLayer(w){
+  if(!w.attach) return;
+  holder.attach(w.wrapper);   // posisi di dunia dipertahankan
+  w.attach = null;
+}
+$('attachTo').onchange = () => fillBones(null);
+$('attachBtn').onclick = () => {
+  if(!sel) return;
+  const c = layers.find(x => x.id == $('attachTo').value), b = $('attachBone').value;
+  if(!c || !b){ say('Pilih karakter dan tulang dulu.', true); return; }
+  attachLayer(sel, c, b);
+};
+$('detachBtn').onclick = () => {
+  if(!sel || !sel.attach) return;
+  resetPose(sel.attach.to);
+  detachLayer(sel);
+  select(sel);
+  say('Dilepas dari tulang.');
+};
+
+/* ---------- Atur model terpilih ---------- */
+const num = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
+['px','py','pz'].forEach(id => $(id).oninput = () => { if(sel) sel.wrapper.position.set(num('px'), num('py'), num('pz')); });
+$('sc').oninput = () => { const v = num('sc'); if(sel && v > 0) sel.wrapper.scale.setScalar(v); };
+$('rotY').oninput = e => { const v = +e.target.value; if(sel) sel.wrapper.rotation.y = v * Math.PI/180; $('rotV').textContent = v + '°'; };
+$('rotX').oninput = e => { const v = +e.target.value; if(sel) sel.wrapper.rotation.x = v * Math.PI/180; $('rotXV').textContent = v + '°'; };
+$('rotZ').oninput = e => { const v = +e.target.value; if(sel) sel.wrapper.rotation.z = v * Math.PI/180; $('rotZV').textContent = v + '°'; };
+$('norm').onclick = () => {
+  if(!sel) return;
+  if(sel.attach){ say('Lepas dari tulang dulu untuk memakai tombol ini.', true); return; }
+  const w = sel.wrapper; w.scale.setScalar(1); w.updateMatrixWorld(true);
+  const m = maxDim(w); if(m > 0) w.scale.setScalar(2 / m);
+  select(sel);
+};
+$('floor').onclick = () => {
+  if(!sel) return;
+  if(sel.attach){ say('Lepas dari tulang dulu untuk memakai tombol ini.', true); return; }
+  const w = sel.wrapper; w.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(w);
+  w.position.y -= box.min.y;
+  select(sel);
+};
+
+/* ---------- Simpan ---------- */
+function download(blob, name){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+function collectExportClips(){
+  if(!$('expAnim').checked || !clips.length) return {list:[], who:null};
+  const cands = [sel, ...layers].filter((l, i, a) => l && l.wrapper.visible && a.indexOf(l) === i);
+  for(const l of cands){
+    const used = new Set(), list = [];
+    clips.forEach(c => {
+      const r = retarget(c, l);
+      if(r.matched > 0){
+        let n = c.name, k = 2; while(used.has(n)) n = c.name + ' ' + k++;
+        used.add(n);
+        list.push(new THREE.AnimationClip(n, r.clip.duration, r.clip.tracks));
+      }
+    });
+    if(list.length) return {list, who:l};
+  }
+  return {list:[], who:null};
+}
+
+$('save').onclick = () => {
+  if(!layers.length) return;
+  if(!layers.some(l => l.wrapper.visible)){ say('Semua model tersembunyi. Tampilkan minimal satu model.', true); return; }
+  say('Mengekspor GLB…');
+  const was = $('wire').checked;
+  if(was){ $('wire').checked = false; applyWire(); }
+  const { list, who } = collectExportClips();
+  layers.forEach(resetPose);
+  $('pause').textContent = 'Jeda'; renderClips();
+  const name = layers.length === 1 ? layers[0].file.name.replace(/\.[^.]+$/, '') + '-edit.glb' : 'gabungan.glb';
+  try {
+    new THREE.GLTFExporter().parse(holder, result => {
+      download(new Blob([result], {type:'model/gltf-binary'}), name);
+      say('Tersimpan: ' + name + (list.length ? ' (+ ' + list.length + ' animasi untuk ' + who.file.name + ')' : '') );
+      if(was){ $('wire').checked = true; applyWire(); }
+    }, {binary:true, onlyVisible:true, truncateDrawRange:true, animations:list});
+  } catch(e){ say('Gagal mengekspor: ' + (e.message || e), true); }
+};
+
+$('saveOrig').onclick = () => { if(sel) download(new Blob([sel.buf]), sel.file.name); };
+
+/* ---------- Lain-lain ---------- */
+$('file').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
+$('bg').oninput = e => scene.background = new THREE.Color(e.target.value);
+$('wire').onchange = applyWire;
+$('reset').onclick = frame;
+
+['dragenter','dragover'].forEach(t => stage.addEventListener(t, e => { e.preventDefault(); stage.classList.add('over'); }));
+['dragleave','drop'].forEach(t => stage.addEventListener(t, e => { e.preventDefault(); stage.classList.remove('over'); }));
+stage.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+</script>
+</body>
+</html>
