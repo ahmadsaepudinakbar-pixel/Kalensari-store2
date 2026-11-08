@@ -40,6 +40,9 @@ input[type=number]{width:100%;background:#12171b;color:var(--text);border:1px so
 .ext.pr{color:#ff9f6b;border-color:#ff9f6b}
 .ext.pq{color:var(--mute)}
 .layer input{accent-color:var(--acc)}
+.layer .rn{flex:1;min-width:0;background:#0d1114;color:var(--text);border:1px solid var(--acc);border-radius:6px;padding:3px 6px;font:inherit;font-size:14px}
+.layer .ed{width:auto;padding:0 6px;background:transparent;border-color:transparent;color:var(--mute);font-size:14px}
+.layer .ed:hover{color:var(--acc);border-color:transparent}
 .layer .x{width:auto;padding:0 8px;line-height:1.4;background:transparent;border-color:transparent;font-size:18px;color:var(--mute)}
 .layer .x:hover{color:#ff8a80;border-color:transparent}
 .empty{font-size:13px;color:var(--mute)}
@@ -78,6 +81,8 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
     <div id="anim" hidden>
       <h2>Animasi — klik untuk memutar di model terpilih</h2>
       <div id="clips" class="list" style="margin-top:6px"></div>
+      <button id="tidy" style="margin-top:8px" title="Hapus bagian depan nama sebelum tanda ‘ – ’, mis. nama file">Rapikan nama (buang awalan nama file)</button>
+      <p class="note" style="margin:6px 0 0">Ganti nama satu animasi: klik ✎ atau klik dua kali namanya.</p>
       <div class="two" style="margin-top:8px">
         <button id="pause">Jeda</button>
         <button id="stop">Stop (pose awal)</button>
@@ -449,14 +454,27 @@ function renderLayers(){
   refreshAttachUI();
 }
 
+let editingClip = null;
 function renderClips(){
   $('anim').hidden = !clips.length;
-  $('clips').innerHTML = clips.map(c =>
-    `<div class="layer clip${sel && sel.playing === c.id ? ' on' : ''}" data-id="${c.id}">
+  $('clips').innerHTML = clips.map(c => {
+    const nameEl = editingClip === c.id
+      ? `<input class="rn" value="${esc(c.name)}" aria-label="Nama animasi" maxlength="80">`
+      : `<span class="nm" title="${esc(c.name)}">${esc(c.name)}</span>`;
+    return `<div class="layer clip${sel && sel.playing === c.id ? ' on' : ''}" data-id="${c.id}">
       <span class="pl">${sel && sel.playing === c.id ? '▶' : '▷'}</span>
-      <span class="nm" title="${esc(c.name)}">${esc(c.name)}</span>${poseBadge(c.pose)}
+      ${nameEl}${poseBadge(c.pose)}
+      <button class="ed" title="Ganti nama" aria-label="Ganti nama ${esc(c.name)}">✎</button>
       <button class="x" title="Hapus animasi" aria-label="Hapus ${esc(c.name)}">×</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+  if(editingClip !== null){ const i = $('clips').querySelector('.rn'); if(i){ i.focus(); i.select(); } }
+}
+function commitRename(v){
+  const c = clips.find(x => x.id === editingClip);
+  editingClip = null;
+  if(c){ const n = v.trim(); if(n) c.name = n; }
+  renderClips();
 }
 
 function select(l){
@@ -501,6 +519,8 @@ $('layers').addEventListener('click', e => {
 $('clips').addEventListener('click', e => {
   const row = e.target.closest('.clip'); if(!row) return;
   const c = clips.find(x => x.id == row.dataset.id); if(!c) return;
+  if(e.target.classList.contains('rn')) return;
+  if(e.target.classList.contains('ed')){ editingClip = c.id; renderClips(); return; }
   if(e.target.classList.contains('x')){
     clips.splice(clips.indexOf(c), 1);
     layers.forEach(l => { if(l.playing === c.id) resetPose(l); if(l.cache) Array.from(l.cache.keys()).forEach(k => { if(k.startsWith(c.id + '|')) l.cache.delete(k); }); });
@@ -508,6 +528,26 @@ $('clips').addEventListener('click', e => {
   }
   play(c);
 });
+
+$('clips').addEventListener('dblclick', e => {
+  const nm = e.target.closest('.nm'), row = e.target.closest('.clip');
+  if(!nm || !row) return;
+  editingClip = +row.dataset.id; renderClips();
+});
+$('clips').addEventListener('keydown', e => {
+  if(!e.target.classList.contains('rn')) return;
+  if(e.key === 'Enter'){ e.preventDefault(); commitRename(e.target.value); }
+  else if(e.key === 'Escape'){ editingClip = null; renderClips(); }
+});
+$('clips').addEventListener('focusout', e => {
+  if(editingClip !== null && e.target.classList.contains('rn')) commitRename(e.target.value);
+});
+$('tidy').onclick = () => {
+  let n = 0;
+  clips.forEach(c => { const i = c.name.lastIndexOf(' – '); if(i >= 0){ c.name = c.name.slice(i + 3); n++; } });
+  renderClips();
+  say(n ? n + ' nama animasi dirapikan.' : 'Tidak ada nama yang perlu dirapikan.');
+};
 
 function disposeObj(o){
   o.traverse(n => {
