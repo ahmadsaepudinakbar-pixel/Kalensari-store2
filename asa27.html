@@ -105,6 +105,11 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
 
     <div id="edit" hidden>
       <h2>Atur model terpilih</h2>
+      <div class="two" style="margin-top:6px">
+        <button id="gzMove" class="primary" title="Pintasan: G">Geser (G)</button>
+        <button id="gzRot" title="Pintasan: R">Putar (R)</button>
+      </div>
+      <label class="chk" style="margin-top:6px"><input id="gizmo" type="checkbox" checked> Gizmo di layar</label>
       <div class="grid" style="margin-top:6px">
         <div><label for="px">X</label><input id="px" type="number" step="any" value="0"></div>
         <div><label for="py">Y</label><input id="py" type="number" step="any" value="0"></div>
@@ -144,6 +149,11 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
           <button id="attachBtn">Pasang</button>
           <button id="detachBtn">Lepas</button>
         </div>
+        <div class="grid" style="margin-top:8px">
+          <button data-preset="right" title="Pasang ke tangan kanan karakter di atas">Tangan kanan</button>
+          <button data-preset="left" title="Pasang ke tangan kiri karakter di atas">Tangan kiri</button>
+          <button data-preset="back" title="Pasang ke tulang punggung (spine/chest) karakter di atas">Punggung</button>
+        </div>
         <p class="note" id="attachNote" style="margin:6px 0 0"></p>
       </div>
       <dl id="info" style="margin-top:10px"></dl>
@@ -161,6 +171,7 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
       </div>
       <label class="chk" style="margin-top:8px"><input id="wire" type="checkbox"> Mode kerangka (wireframe)</label>
       <label class="chk"><input id="auto" type="checkbox"> Putar kamera otomatis</label>
+      <label class="chk"><input id="skel" type="checkbox"> Tampilkan tulang (skeleton)</label>
       <button id="reset" style="margin-top:8px" disabled>Pas-kan kamera ke semua model</button>
       <button id="clear" style="margin-top:8px" disabled>Kosongkan semua</button>
     </div>
@@ -175,6 +186,7 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/inflate.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/fflate.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -221,7 +233,8 @@ addEventListener('resize', resize); resize();
 (function loop(){
   requestAnimationFrame(loop);
   const dt = clock.getDelta();
-  layers.forEach(l => l.mixer && l.mixer.update(dt));
+  const sk = $('skel').checked;
+  layers.forEach(l => { if(l.mixer) l.mixer.update(dt); if(l.skel) l.skel.visible = sk && l.wrapper.visible; });
   controls.autoRotate = $('auto').checked;
   controls.update();
   renderer.render(scene, camera);
@@ -490,6 +503,7 @@ function select(l){
     $('pause').textContent = l.paused ? 'Lanjut' : 'Jeda';
     showInfo(l);
   }
+  updateGizmo();
   renderLayers();
 }
 
@@ -511,7 +525,7 @@ function showInfo(l){
 $('layers').addEventListener('click', e => {
   const row = e.target.closest('.layer'); if(!row) return;
   const l = layers.find(x => x.id == row.dataset.id); if(!l) return;
-  if(e.target.classList.contains('vis')){ l.wrapper.visible = e.target.checked; return; }
+  if(e.target.classList.contains('vis')){ l.wrapper.visible = e.target.checked; updateGizmo(); return; }
   if(e.target.classList.contains('x')){ removeLayer(l); return; }
   select(l);
 });
@@ -558,6 +572,8 @@ function disposeObj(o){
 function dropLayer(l){
   layers.forEach(w => { if(!w.dead && w.attach && w.attach.to === l) detachLayer(w); });
   l.dead = true;
+  if(tc.object === l.wrapper) tc.detach();
+  if(l.skel){ scene.remove(l.skel); l.skel.geometry.dispose(); l.skel.material.dispose(); l.skel = null; }
   if(l.mixer) l.mixer.stopAllAction();
   if(l.wrapper.parent) l.wrapper.parent.remove(l.wrapper);
   disposeObj(l.wrapper);
@@ -638,6 +654,8 @@ async function addFile(file){
     holder.add(wrapper);
     const l = { id: ++idc, file, ext, wrapper, obj, buf, pose, snap: snapshot(obj), mixer: null, action: null, playing: null, paused: false };
     layers.push(l);
+    let hasBone = false; obj.traverse(o => { if(o.isBone) hasBone = true; });
+    if(hasBone){ l.skel = new THREE.SkeletonHelper(obj); l.skel.material.depthTest = false; l.skel.material.transparent = true; l.skel.renderOrder = 999; l.skel.visible = false; scene.add(l.skel); }
     applyWire();
     if(layers.length === 1) frame();
     select(l);
@@ -714,6 +732,54 @@ $('detachBtn').onclick = () => {
   select(sel);
   say('Dilepas dari tulang.');
 };
+
+/* ---------- Gizmo geser/putar & preset pemasangan ---------- */
+const tc = new THREE.TransformControls(camera, renderer.domElement);
+tc.setSize(0.8);
+scene.add(tc);   // di scene (bukan holder) supaya tidak ikut tersimpan ke GLB
+tc.addEventListener('dragging-changed', e => { controls.enabled = !e.value; });
+tc.addEventListener('objectChange', () => syncFields());
+function syncFields(){
+  if(!sel) return;
+  const w = sel.wrapper, dg = a => Math.round(a * 180/Math.PI);
+  $('px').value = r2(w.position.x); $('py').value = r2(w.position.y); $('pz').value = r2(w.position.z);
+  $('sc').value = r2(w.scale.x);
+  $('rotX').value = dg(w.rotation.x); $('rotXV').textContent = dg(w.rotation.x) + '°';
+  $('rotY').value = dg(w.rotation.y); $('rotV').textContent = dg(w.rotation.y) + '°';
+  $('rotZ').value = dg(w.rotation.z); $('rotZV').textContent = dg(w.rotation.z) + '°';
+}
+function updateGizmo(){
+  if(sel && $('gizmo').checked && sel.wrapper.visible) tc.attach(sel.wrapper); else tc.detach();
+}
+function setGizmoMode(m){
+  tc.setMode(m);
+  $('gzMove').classList.toggle('primary', m === 'translate');
+  $('gzRot').classList.toggle('primary', m === 'rotate');
+}
+$('gzMove').onclick = () => setGizmoMode('translate');
+$('gzRot').onclick = () => setGizmoMode('rotate');
+$('gizmo').onchange = updateGizmo;
+addEventListener('keydown', e => {
+  if(/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) || e.ctrlKey || e.metaKey || e.altKey) return;
+  if(e.key === 'g' || e.key === 'G') setGizmoMode('translate');
+  else if(e.key === 'r' || e.key === 'R') setGizmoMode('rotate');
+});
+
+const PRESETS = {
+  right: ['righthand', 'handr', 'rhand', 'handright'],
+  left:  ['lefthand', 'handl', 'lhand', 'handleft'],
+  back:  ['spine2', 'upperchest', 'chest', 'spine1', 'spine']
+};
+function presetAttach(kind){
+  if(!sel) return;
+  const c = layers.find(x => x.id == $('attachTo').value);
+  if(!c){ say('Pilih karakter dulu.', true); return; }
+  const bone = PRESETS[kind].map(k => c.snap.bones.get(k)).find(Boolean);
+  if(!bone){ say('Tulang untuk preset ini tidak ditemukan di “' + c.file.name + '”. Pilih tulang manual di daftar Tulang.', true); return; }
+  fillBones(bone);
+  attachLayer(sel, c, bone);
+}
+document.querySelectorAll('[data-preset]').forEach(b => { b.onclick = () => presetAttach(b.dataset.preset); });
 
 /* ---------- Atur model terpilih ---------- */
 const num = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
