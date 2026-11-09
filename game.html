@@ -514,9 +514,9 @@ let EMB=Array.from({length:90},()=>({x:Math.random()*WW,y:Math.random()*WH,v:.3+
 const CH={
  pocong:{n:'Ocong',spd:2.4,jump:-14,grav:.7,atk:55,rng:90,sk:[{n:'Loncat Jauh',k:'leap',cd:300,i:'',ic:'ic1'},{n:'Guling ke Arah Tujuan',k:'roll',cd:360,i:'',ic:'ic2'},{n:'Lingkaran & Lempar',k:'ring',cd:540,i:'',ic:'ic3'}]},
  kuntilanak:{n:'Kunti',spd:2.1,jump:-11,grav:.4,atk:60,rng:260,sk:[{n:'Frekuensi Suara',k:'wave',cd:420,i:'',ic:'kic1'},{n:'Nge Blink',k:'blink',cd:360,i:'',ic:'kic2'},{n:'Penjara Roh',k:'prison',cd:600,i:'',ic:'kic3'}]}};
-const ALL=[['pocong','Ocong','#e9e6df'],['kuntilanak','Kunti','#7b2cbf'],['tuyul','Tuyul','#c9a27a'],['genderuwo','Genderuwo','#5a3a2a'],['pitung','Si Pitung','#c1121f'],['erick','Erick','#e63946'],['doni','Doni','#d62828'],['timunmas','Timun Mas','#5fc23a'],['buto','Buto','#b5332a'],['lutung','Lutung Kasarung','#c8901a'],['saras','Saras','#2a7ae0'],['angling','Angling Dharma','#d4a017'],['dayang','Dayang Sumbi','#e0703a'],['nyiroro','Nyi Roro Kidul','#1a9fe8'],['x','Sundel Bolong','#555'],['x','Wewe Gombel','#8d6e4c']];
+const ALL=[['pocong','Ocong','#e9e6df'],['kuntilanak','Kunti','#7b2cbf'],['tuyul','Tuyul','#c9a27a'],['genderuwo','Genderuwo','#5a3a2a'],['pitung','Si Pitung','#c1121f'],['erick','Erick','#e63946'],['doni','Doni','#d62828'],['timunmas','Timun Mas','#5fc23a'],['buto','Buto','#b5332a'],['lutung','Lutung Kasarung','#c8901a'],['saras','Saras','#2a7ae0'],['angling','Angling Dharma','#d4a017'],['dayang','Dayang Sumbi','#e0703a'],['x','Sundel Bolong','#555'],['x','Wewe Gombel','#8d6e4c']];
 // ===== KARTU: hero gratis, skin, & koleksi pemain (dari Supabase, akun warga desa Kalensari Store) =====
-const GRATIS=['pocong','pitung','erick','doni','timunmas','buto','lutung','saras','angling','dayang','nyiroro'];   // Si Pitung sementara gratis (hapus 'pitung' dari sini kalau mau dibuka lewat kartu)   // hero yang bisa dipakai tanpa kartu
+const GRATIS=['pocong','pitung','erick','doni','timunmas','buto','lutung','saras','angling','dayang'];   // Si Pitung sementara gratis (hapus 'pitung' dari sini kalau mau dibuka lewat kartu)   // hero yang bisa dipakai tanpa kartu
 const SKINS={              // id skin = 'hero:nama' (sama dengan isian "item" saat admin membuat kartu skin)
  'kuntilanak:merah':{h:'kuntilanak',n:'Kunti Merah',f:'none'},
  'kuntilanak:gothic':{h:'kuntilanak',n:'Lunara',f:'none'},
@@ -1263,7 +1263,7 @@ function akSamakan(){try{const n=String(KOL.nama||'').trim();if(n&&n!='Pemain'){
 function kMasuk(kode){try{sessionStorage.setItem('kalensari_next','url:game.html'+(kode?'?kartu='+encodeURIComponent(kode):'')+'#kartu')}catch(e){}kSt('Membuka halaman masuk akun warga desa Kalensari Store…');setTimeout(()=>location.href='akun-pembeli.html',600)}
 function kSt(t,c){const e=$('#kSt');e.textContent=t||'';e.className='kst '+(c||'')}
 const NM3D=h=>({pocong:'Ocong',kuntilanak:'Kunti',tuyul:'Tuyul',genderuwo:'Genderuwo',pitung:'Si Pitung',erick:'Erick',doni:'Doni',timunmas:'Timun Mas',buto:'Buto',lutung:'Lutung Kasarung',saras:'Saras',angling:'Angling Dharma',dayang:'Dayang Sumbi',nyiroro:'Nyi Roro Kidul'})[h]||h;
-const HEROK=['pocong','kuntilanak','tuyul','genderuwo','pitung','erick','doni','timunmas','buto','lutung','saras','angling','dayang','nyiroro'],adaHero=h=>HEROK.includes(h);   // semua hero yang bisa dimainkan (CH hanya berisi data duel 2D lama)
+const HEROK=['pocong','kuntilanak','tuyul','genderuwo','pitung','erick','doni','timunmas','buto','lutung','saras','angling','dayang'],adaHero=h=>HEROK.includes(h);   // semua hero yang bisa dimainkan (CH hanya berisi data duel 2D lama)
 const itemNama=(j,it)=>j=='skin'?(SKINS[it]?SKINS[it].n:it):NM3D(it);
 const itemImg=(j,it)=>{const h=j=='skin'?(SKINS[it]&&SKINS[it].h):it;return adaHero(h)?`<img src="${heroImg(h,j=='skin'?it:'')}" style="filter:${j=='skin'?skinF(it):'none'} drop-shadow(0 .4cqw .6cqw #000)">`:''};
 function karRender(){const ak=$('#kAkun');
@@ -2756,14 +2756,14 @@ function lomba17() {
 // ---------- HERO (model 3D dari folder model-3d, sama dengan duel 3D) ----------
 const TINGGI = { pocong: 1.7, kuntilanak: 1.7, tuyul: 1.15, genderuwo: 2.05, pitung: 1.7, erick: 1.7, doni: 1.7, timunmas: 1.7, buto: 2.15, lutung: 1.65, saras: 1.7, angling: 1.7, dayang: 1.7, nyiroro: 1.7 };
 function urlHero(id, skin) {
-  if (id == 'kuntilanak') return skin == 'kuntilanak:merah' ? 'model-3d/skinkunti.glb' : skin == 'kuntilanak:gothic' ? 'model-3d/skinkunti-jalan.glb?v=2' : 'model-3d/skinkunti-asli.glb';
+  if (id == 'kuntilanak') return skin == 'kuntilanak:merah' ? 'model-3d/skinkunti.glb?v=2' : skin == 'kuntilanak:gothic' ? 'model-3d/skinkunti-jalan.glb?v=2' : 'model-3d/skinkunti-asli.glb?v=2';
   if (id == 'tuyul') return skin == 'tuyul:robot' ? 'model-3d/tuyul-robot.glb?v=2' : skin == 'tuyul:halloween' ? 'model-3d/tuyul-halloween.glb?v=2' : skin == 'tuyul:mecha' ? 'model-3d/tuyul-mecha.glb?v=2' : skin == 'tuyul:setan' ? 'model-3d/tuyul-setan.glb?v=2' : 'model-3d/tuyul.glb';
   if (id == 'pitung') return skin == 'pitung:pendekar' ? 'model-3d/pitung-batik.glb?v=2' : 'model-3d/pitung.glb';
   if (id == 'erick') return skin == 'erick:cepot' ? 'model-3d/erick-cepot.glb?v=1' : skin == 'erick:robot' ? 'model-3d/erick-robot.glb?v=1' : 'model-3d/erick.glb?v=14';
   if (id == 'doni') return skin == 'doni:dawala' ? 'model-3d/doni-dawala.glb?v=1' : skin == 'doni:robot' ? 'model-3d/doni-robot.glb?v=5' : 'model-3d/doni.glb?v=5';
   if (id == 'timunmas') return skin == 'timunmas:airin' ? 'model-3d/timunmas-airin.glb?v=3' : skin == 'timunmas:faniya' ? 'model-3d/timunmas-faniya.glb?v=1' : 'model-3d/timunmas.glb?v=1';
   if (id == 'nyiroro') return 'model-3d/nyi-roro.glb?v=2';
-  if (id == 'dayang') return 'model-3d/dayang.glb?v=2';
+  if (id == 'dayang') return 'model-3d/dayang.glb?v=3';
   if (id == 'angling') return 'model-3d/angling.glb?v=3';
   if (id == 'saras') return skin == 'saras:santi' ? 'model-3d/saras-santi.glb?v=1' : skin == 'saras:lina' ? 'model-3d/saras-lina.glb?v=1' : 'model-3d/saras.glb?v=1';
   if (id == 'lutung') return skin == 'lutung:fox' ? 'model-3d/lutung-fox.glb?v=2' : 'model-3d/lutung.glb?v=2';

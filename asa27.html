@@ -95,6 +95,10 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
       <input id="file" type="file" accept=".glb,.gltf,.fbx" multiple>
     </label>
     <label class="chk"><input id="fbxModel" type="checkbox"> FBX berisi animasi juga dimuat sebagai model</label>
+    <div class="two">
+      <button id="undo" disabled title="Urungkan langkah terakhir (Ctrl+Z)">↶ Urungkan</button>
+      <button id="redo" disabled title="Ulangi langkah yang diurungkan (Ctrl+Y / Ctrl+Shift+Z)">↷ Ulangi</button>
+    </div>
 
     <div>
       <h2>Model (karakter)</h2>
@@ -204,8 +208,6 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
     <label class="chk"><input id="expAnim" type="checkbox" checked> Sertakan semua animasi saat simpan</label>
     <button id="save" class="primary" disabled>Simpan sebagai GLB</button>
     <button id="saveOrig" disabled>Unduh file asli model terpilih</button>
-    <button id="saveMixamo" disabled title="ZIP berisi OBJ + MTL + tekstur PNG, siap diunggah ke mixamo.com">Ekspor untuk Mixamo (ZIP: OBJ + tekstur)</button>
-    <p class="note" style="margin:-6px 0 0">Mixamo tidak menerima GLB. Tombol ini mengekspor model yang tampil (pose awal, tanpa animasi) jadi ZIP. Pakai model dalam pose T/A, menghadap depan.</p>
 
     <div>
       <h2>Tampilan</h2>
@@ -533,7 +535,6 @@ function renderLayers(){
   const has = layers.length > 0;
   $('save').disabled = !has; $('reset').disabled = !has; $('clear').disabled = !has;
   $('saveOrig').disabled = !sel;
-  $('saveMixamo').disabled = !has;
   $('edit').hidden = !sel;
   $('drop').classList.toggle('hide', has);
   renderClips();
@@ -560,7 +561,7 @@ function renderClips(){
 function commitRename(v){
   const c = clips.find(x => x.id === editingClip);
   editingClip = null;
-  if(c){ const n = v.trim(); if(n) c.name = n; }
+  if(c){ const n = v.trim(); if(n && n !== c.name){ catat(); c.name = n; } }
   renderClips();
 }
 
@@ -600,7 +601,7 @@ function showInfo(l){
 $('layers').addEventListener('click', e => {
   const row = e.target.closest('.layer'); if(!row) return;
   const l = layers.find(x => x.id == row.dataset.id); if(!l) return;
-  if(e.target.classList.contains('vis')){ l.wrapper.visible = e.target.checked; updateGizmo(); return; }
+  if(e.target.classList.contains('vis')){ catat(); l.wrapper.visible = e.target.checked; updateGizmo(); return; }
   if(e.target.classList.contains('x')){ removeLayer(l); return; }
   select(l);
 });
@@ -611,6 +612,7 @@ $('clips').addEventListener('click', e => {
   if(e.target.classList.contains('rn')) return;
   if(e.target.classList.contains('ed')){ editingClip = c.id; renderClips(); return; }
   if(e.target.classList.contains('x')){
+    catat();
     clips.splice(clips.indexOf(c), 1);
     layers.forEach(l => { if(l.playing === c.id) resetPose(l); if(l.cache) Array.from(l.cache.keys()).forEach(k => { if(k.startsWith(c.id + '|')) l.cache.delete(k); }); });
     renderClips(); return;
@@ -632,7 +634,7 @@ $('clips').addEventListener('focusout', e => {
   if(editingClip !== null && e.target.classList.contains('rn')) commitRename(e.target.value);
 });
 $('tidy').onclick = () => {
-  let n = 0;
+  catat(); let n = 0;
   clips.forEach(c => { const i = c.name.lastIndexOf(' – '); if(i >= 0){ c.name = c.name.slice(i + 3); n++; } });
   renderClips();
   say(n ? n + ' nama animasi dirapikan.' : 'Tidak ada nama yang perlu dirapikan.');
@@ -644,22 +646,26 @@ function disposeObj(o){
     if(n.material) [].concat(n.material).forEach(m => { for(const k in m){ if(m[k] && m[k].isTexture) m[k].dispose(); } m.dispose(); });
   });
 }
-function dropLayer(l){
+function dropLayer(l){   // dilepas dari layar tapi tidak dibuang dari memori → bisa dikembalikan dengan Urungkan
   layers.forEach(w => { if(!w.dead && w.attach && w.attach.to === l) detachLayer(w); });
+  lepasLunak(l);
+}
+function lepasLunak(l){
   l.dead = true;
   if(tc.object === l.wrapper) tc.detach();
-  if(l.skel){ scene.remove(l.skel); l.skel.geometry.dispose(); l.skel.material.dispose(); l.skel = null; }
+  if(l.skel && l.skel.parent) l.skel.parent.remove(l.skel);
   if(l.mixer) l.mixer.stopAllAction();
+  l.playing = null; l.action = null; l.paused = false;
   if(l.wrapper.parent) l.wrapper.parent.remove(l.wrapper);
-  disposeObj(l.wrapper);
 }
 function removeLayer(l){
+  catat();
   dropLayer(l);
   layers.splice(layers.indexOf(l), 1);
   select(layers.length ? layers[layers.length-1] : null);
   say(layers.length ? 'Model dihapus.' : 'Semua model dihapus.');
 }
-$('clear').onclick = () => { layers.slice().forEach(dropLayer); layers.length = 0; select(null); say('Semua model dihapus.'); };
+$('clear').onclick = () => { catat(); layers.slice().forEach(dropLayer); layers.length = 0; select(null); say('Semua model dihapus.'); };
 
 /* ---------- Muat file ---------- */
 function applyWire(){
@@ -695,6 +701,7 @@ async function addFile(file){
     const { obj, anims } = await parseModel(ext, buf);
     const base = file.name.replace(/\.[^.]+$/, '');
     const pose = detectPose(obj);
+    catat();
 
     if(anims.length){
       const srcQ = new Map(), srcW = new Map();
@@ -774,6 +781,7 @@ function attachLayer(w, c, boneName){
   let bone = null;
   c.obj.traverse(o => { if(!bone && o.name === boneName) bone = o; });
   if(!bone){ say('Tulang tidak ditemukan.', true); return; }
+  catat();
   resetPose(c);
   if(w.attach) detachLayer(w);
   c.wrapper.updateMatrixWorld(true);
@@ -802,6 +810,7 @@ $('attachBtn').onclick = () => {
 };
 $('detachBtn').onclick = () => {
   if(!sel || !sel.attach) return;
+  catat();
   resetPose(sel.attach.to);
   detachLayer(sel);
   select(sel);
@@ -812,7 +821,7 @@ $('detachBtn').onclick = () => {
 const tc = new THREE.TransformControls(camera, renderer.domElement);
 tc.setSize(0.8);
 scene.add(tc);   // di scene (bukan holder) supaya tidak ikut tersimpan ke GLB
-tc.addEventListener('dragging-changed', e => { controls.enabled = !e.value; });
+tc.addEventListener('dragging-changed', e => { controls.enabled = !e.value; if(e.value) catat(); });
 tc.addEventListener('objectChange', () => syncFields());
 function syncFields(){
   if(!sel) return;
@@ -912,10 +921,10 @@ function pivotKe(mode){
 }
 $('gAlong').oninput = e => { const v = +e.target.value; $('gAlongV').textContent = v + '%'; pivotAlong(v / 100); };
 ['gx','gy','gz'].forEach(id => { $(id).oninput = () => { if(sel) setPivot(sel, new THREE.Vector3(parseFloat($('gx').value) || 0, parseFloat($('gy').value) || 0, parseFloat($('gz').value) || 0)); }; });
-$('gMid').onclick = () => pivotKe('mid');
-$('gMin').onclick = () => pivotKe('min');
-$('gMax').onclick = () => pivotKe('max');
-$('gReset').onclick = () => { if(sel) setPivot(sel, new THREE.Vector3()); };
+$('gMid').onclick = () => { catat(); pivotKe('mid'); };
+$('gMin').onclick = () => { catat(); pivotKe('min'); };
+$('gMax').onclick = () => { catat(); pivotKe('max'); };
+$('gReset').onclick = () => { catat(); if(sel) setPivot(sel, new THREE.Vector3()); };
 
 /* ---------- Atur model terpilih ---------- */
 const num = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
@@ -927,6 +936,7 @@ $('rotZ').oninput = e => { const v = +e.target.value; if(sel) sel.wrapper.rotati
 $('norm').onclick = () => {
   if(!sel) return;
   if(sel.attach){ say('Lepas dari tulang dulu untuk memakai tombol ini.', true); return; }
+  catat();
   const w = sel.wrapper; w.scale.setScalar(1); w.updateMatrixWorld(true);
   const m = maxDim(w); if(m > 0) w.scale.setScalar(2 / m);
   select(sel);
@@ -934,11 +944,78 @@ $('norm').onclick = () => {
 $('floor').onclick = () => {
   if(!sel) return;
   if(sel.attach){ say('Lepas dari tulang dulu untuk memakai tombol ini.', true); return; }
+  catat();
   const w = sel.wrapper; w.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(w);
   w.position.y -= box.min.y;
   select(sel);
 };
+
+/* ---------- Urungkan / Ulangi (Ctrl+Z · Ctrl+Y) ---------- */
+// Setiap langkah menyimpan potret keadaan: daftar model (posisi, putaran, skala, titik genggam, tampil/sembunyi, terpasang di tulang mana),
+// daftar animasi (urutan & nama), dan model terpilih. Model yang dihapus tidak dibuang dari memori supaya bisa dikembalikan.
+const UNDO = [], REDO = [], UNDO_MAKS = 60;
+let undoSibuk = false, catatTahan = 0;
+function potret(){
+  return {
+    layers: layers.map(l => ({ l, pos: l.wrapper.position.clone(), q: l.wrapper.quaternion.clone(), s: l.wrapper.scale.clone(), pivot: l.pivot.clone(), vis: l.wrapper.visible,
+      attach: l.attach ? { to: l.attach.to, bone: l.attach.bone } : null })),
+    clips: clips.map(c => ({ c, name: c.name })), sel
+  };
+}
+function samaPotret(a, b){
+  if(a.layers.length !== b.layers.length || a.clips.length !== b.clips.length) return false;
+  for(let i = 0; i < a.layers.length; i++){
+    const x = a.layers[i], y = b.layers[i];
+    if(x.l !== y.l || x.vis !== y.vis || !x.pos.equals(y.pos) || !x.q.equals(y.q) || !x.s.equals(y.s) || !x.pivot.equals(y.pivot)) return false;
+    if(!!x.attach !== !!y.attach || (x.attach && (x.attach.to !== y.attach.to || x.attach.bone !== y.attach.bone))) return false;
+  }
+  for(let i = 0; i < a.clips.length; i++) if(a.clips[i].c !== b.clips[i].c || a.clips[i].name !== b.clips[i].name) return false;
+  return true;
+}
+function catat(){   // panggil SEBELUM mengubah sesuatu
+  if(undoSibuk || catatTahan) return;
+  const p = potret(), top = UNDO[UNDO.length - 1];
+  if(top && samaPotret(top, p)) return;
+  UNDO.push(p); if(UNDO.length > UNDO_MAKS) UNDO.shift();
+  REDO.length = 0; tombolUndo();
+}
+function pulihkan(p){
+  undoSibuk = true;
+  const ada = new Set(p.layers.map(e => e.l)), dulu = new Set(layers);
+  layers.forEach(l => { if(!ada.has(l)) lepasLunak(l); });
+  layers.length = 0;
+  p.layers.forEach(e => { const l = e.l; layers.push(l); if(l.dead || !dulu.has(l)){ l.dead = false; resetPose(l); } if(l.skel && !l.skel.parent) scene.add(l.skel); });
+  p.layers.forEach(e => {   // pasang ulang ke induknya (lantai / tulang karakter) lalu kembalikan posisi, putaran, skala, titik genggam
+    const l = e.l, w = l.wrapper; let induk = holder;
+    if(e.attach){ let b = null; e.attach.to.obj.traverse(o => { if(!b && o.name === e.attach.bone) b = o; }); if(b) induk = b; }
+    if(w.parent !== induk){ if(w.parent) w.parent.remove(w); induk.add(w); }
+    l.attach = e.attach && induk !== holder ? { to: e.attach.to, bone: e.attach.bone } : null;
+    w.position.copy(e.pos); w.quaternion.copy(e.q); w.scale.copy(e.s); w.visible = e.vis;
+    l.pivot.copy(e.pivot); l.pv.position.copy(e.pivot).negate();
+  });
+  clips.length = 0; p.clips.forEach(e => { e.c.name = e.name; clips.push(e.c); });
+  layers.forEach(l => { if(l.playing && !clips.some(c => c.id === l.playing)) resetPose(l); });
+  editingClip = null;
+  applyWire();
+  select(layers.includes(p.sel) ? p.sel : (layers[layers.length - 1] || null));
+  if(layers.length && !holder.children.length) frame();
+  undoSibuk = false; tombolUndo();
+}
+function urungkan(){ if(!UNDO.length) return; REDO.push(potret()); pulihkan(UNDO.pop()); say('Diurungkan.' + (UNDO.length ? '' : ' (tidak ada lagi yang bisa diurungkan)')); }
+function ulangi(){ if(!REDO.length) return; UNDO.push(potret()); pulihkan(REDO.pop()); say('Diulangi.'); }
+function tombolUndo(){ $('undo').disabled = !UNDO.length; $('redo').disabled = !REDO.length; }
+$('undo').onclick = urungkan;
+$('redo').onclick = ulangi;
+addEventListener('keydown', e => {
+  if(!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  if(/^(INPUT|TEXTAREA)$/.test(e.target.tagName) && e.target.type !== 'range' && e.target.type !== 'checkbox') return;   // di kotak teks: undo bawaan browser
+  const k = e.key.toLowerCase();
+  if(k === 'z' && !e.shiftKey){ e.preventDefault(); urungkan(); }
+  else if(k === 'y' || (k === 'z' && e.shiftKey)){ e.preventDefault(); ulangi(); }
+});
+// kotak angka & slider: catat sekali di awal setiap kali mulai diubah
+['px','py','pz','sc','rotX','rotY','rotZ','gx','gy','gz','gAlong'].forEach(id => { const el = $(id); if(!el) return; ['pointerdown','focus','keydown'].forEach(ev => el.addEventListener(ev, e => { if(ev === 'keydown' && /^(Tab|Shift|Control|Meta|Alt)$/.test(e.key)) return; catat(); })); });
 
 /* ---------- Simpan ---------- */
 function download(blob, name){
@@ -987,122 +1064,6 @@ $('save').onclick = () => {
 };
 
 $('saveOrig').onclick = () => { if(sel) download(new Blob([sel.buf]), sel.file.name); };
-
-/* ---------- Ekspor untuk Mixamo (OBJ + MTL + tekstur -> ZIP) ---------- */
-const CRC_T = (() => { const t = new Uint32Array(256); for(let n = 0; n < 256; n++){ let c = n; for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
-function crc32(u8){ let c = 0xFFFFFFFF; for(let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
-function makeZip(files){   // ZIP tanpa kompresi (store)
-  const enc = new TextEncoder(), parts = [], cd = []; let off = 0;
-  files.forEach(f => {
-    const nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
-    const h = new DataView(new ArrayBuffer(30));
-    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true);
-    h.setUint16(12, 0x21, true); h.setUint32(14, crc, true); h.setUint32(18, sz, true); h.setUint32(22, sz, true);
-    h.setUint16(26, nm.length, true);
-    parts.push(new Uint8Array(h.buffer), nm, f.data);
-    const c = new DataView(new ArrayBuffer(46));
-    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true);
-    c.setUint16(14, 0x21, true); c.setUint32(16, crc, true); c.setUint32(20, sz, true); c.setUint32(24, sz, true);
-    c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
-    cd.push(new Uint8Array(c.buffer), nm);
-    off += 30 + nm.length + sz;
-  });
-  const cdSize = cd.reduce((a, b) => a + b.length, 0);
-  const e = new DataView(new ArrayBuffer(22));
-  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
-  e.setUint32(12, cdSize, true); e.setUint32(16, off, true);
-  return new Blob([...parts, ...cd, new Uint8Array(e.buffer)], {type: 'application/zip'});
-}
-function texToPng(tex){
-  return new Promise(res => {
-    try{
-      const im = tex.image; if(!im) return res(null);
-      const w = im.width || im.videoWidth, h = im.height || im.videoHeight; if(!w || !h) return res(null);
-      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-      cv.getContext('2d').drawImage(im, 0, 0, w, h);
-      cv.toBlob(b => b ? b.arrayBuffer().then(ab => res(new Uint8Array(ab)), () => res(null)) : res(null), 'image/png');
-    } catch(e){ res(null); }
-  });
-}
-
-$('saveMixamo').onclick = async () => {
-  if(!layers.length) return;
-  if(!layers.some(l => l.wrapper.visible)){ say('Semua model tersembunyi. Tampilkan minimal satu model.', true); return; }
-  say('Menyiapkan OBJ untuk Mixamo…');
-  try{
-    layers.forEach(resetPose);
-    $('pause').textContent = 'Jeda'; renderClips();
-    holder.updateMatrixWorld(true);
-    const safe = s => String(s || '').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '');
-    const base = safe(layers.length === 1 ? layers[0].file.name.replace(/\.[^.]+$/, '') : 'gabungan') || 'model';
-    const visible = o => { for(let p = o; p; p = p.parent){ if(!p.visible) return false; if(p === holder) break; } return true; };
-    const meshes = []; holder.traverse(o => { if(o.isMesh && o.geometry && o.geometry.attributes.position && visible(o)) meshes.push(o); });
-    if(!meshes.length){ say('Tidak ada mesh yang bisa diekspor.', true); return; }
-
-    const matInfo = new Map(), usedMat = new Set(), texFile = new Map();
-    const matName = m => {
-      if(matInfo.has(m)) return matInfo.get(m).name;
-      let n = safe(m.name) || 'mat', k = 2, b = n; while(usedMat.has(n)) n = b + '_' + k++;
-      usedMat.add(n);
-      let tex = null; if(m.map && m.map.image){ tex = m.map; if(!texFile.has(tex)) texFile.set(tex, 'tekstur_' + (texFile.size + 1) + '.png'); }
-      matInfo.set(m, {name: n, m, tex}); return n;
-    };
-
-    const out = ['# Diekspor dari Model Studio ASA27', 'mtllib ' + base + '.mtl', 'o ' + base];
-    let vOff = 1, nOff = 1, tOff = 1, tris = 0;
-    const v = new THREE.Vector3(), n = new THREE.Vector3();
-    for(const o of meshes){
-      const g = o.geometry, pos = g.attributes.position, nor = g.attributes.normal, uv = g.attributes.uv, idx = g.index;
-      const mw = o.matrixWorld, nmx = new THREE.Matrix3().getNormalMatrix(mw), flip = mw.determinant() < 0;
-      const skinned = o.isSkinnedMesh && typeof o.boneTransform === 'function';
-      const mats = Array.isArray(o.material) ? o.material : [o.material];
-      const firstTex = mats.map(m => m && m.map).find(t => t && t.image);
-      const flipV = firstTex ? !firstTex.flipY : true;   // UV glTF (flipY=false) -> konvensi OBJ
-      const L = [];
-      for(let i = 0; i < pos.count; i++){
-        if(skinned) o.boneTransform(i, v); else v.fromBufferAttribute(pos, i);
-        v.applyMatrix4(mw); L.push('v ' + v.x.toFixed(6) + ' ' + v.y.toFixed(6) + ' ' + v.z.toFixed(6));
-      }
-      if(uv) for(let i = 0; i < uv.count; i++){ const t = uv.getY(i); L.push('vt ' + uv.getX(i).toFixed(6) + ' ' + (flipV ? 1 - t : t).toFixed(6)); }
-      if(nor) for(let i = 0; i < nor.count; i++){ n.fromBufferAttribute(nor, i).applyMatrix3(nmx).normalize(); L.push('vn ' + n.x.toFixed(5) + ' ' + n.y.toFixed(5) + ' ' + n.z.toFixed(5)); }
-      const fv = i => { return uv && nor ? (vOff + i) + '/' + (tOff + i) + '/' + (nOff + i) : uv ? (vOff + i) + '/' + (tOff + i) : nor ? (vOff + i) + '//' + (nOff + i) : '' + (vOff + i); };
-      const total = idx ? idx.count : pos.count;
-      const groups = g.groups && g.groups.length ? g.groups : [{start: 0, count: total, materialIndex: 0}];
-      for(const gr of groups){
-        const m = mats[gr.materialIndex] || mats[0]; if(!m) continue;
-        L.push('usemtl ' + matName(m));
-        const end = Math.min(gr.start + gr.count, total);
-        for(let i = gr.start; i + 2 < end; i += 3){
-          let a = idx ? idx.getX(i) : i, b = idx ? idx.getX(i + 1) : i + 1, c = idx ? idx.getX(i + 2) : i + 2;
-          if(flip){ const t = b; b = c; c = t; }
-          L.push('f ' + fv(a) + ' ' + fv(b) + ' ' + fv(c)); tris++;
-        }
-      }
-      out.push(...L);
-      vOff += pos.count; if(uv) tOff += uv.count; if(nor) nOff += nor.count;
-    }
-
-    const mtl = ['# Material'];
-    matInfo.forEach(({name, m, tex}) => {
-      mtl.push('newmtl ' + name);
-      const c = m.color || {r: 1, g: 1, b: 1};
-      mtl.push('Kd ' + c.r.toFixed(4) + ' ' + c.g.toFixed(4) + ' ' + c.b.toFixed(4));
-      mtl.push('Ka 0 0 0', 'Ks 0 0 0', 'illum 1');
-      if(tex) mtl.push('map_Kd ' + texFile.get(tex));
-      mtl.push('');
-    });
-
-    const enc = new TextEncoder();
-    const files = [{name: base + '.obj', data: enc.encode(out.join('\n') + '\n')}, {name: base + '.mtl', data: enc.encode(mtl.join('\n'))}];
-    let nTex = 0, failTex = 0;
-    for(const [tex, fname] of texFile){
-      const png = await texToPng(tex);
-      if(png){ files.push({name: fname, data: png}); nTex++; } else failTex++;
-    }
-    download(makeZip(files), base + '-mixamo.zip');
-    say('Tersimpan: ' + base + '-mixamo.zip (' + tris.toLocaleString() + ' segitiga, ' + nTex + ' tekstur' + (failTex ? ', ' + failTex + ' tekstur gagal diekspor' : '') + '). Unggah ZIP ini ke mixamo.com.', failTex > 0);
-  } catch(e){ say('Gagal mengekspor untuk Mixamo: ' + (e.message || e), true); }
-};
 
 /* ---------- Pustaka animasi contoh (panel kanan) ---------- */
 var libReady = false;
@@ -1287,6 +1248,7 @@ async function libAddFiles(list, grp){
 function addLib(it){
   const ex = clips.find(c => c.libId === it.id);
   if(ex) return ex;
+  catat();
   const e = Object.assign({}, it, { libId: it.id });
   clips.push(e);
   renderClips();
@@ -1372,7 +1334,7 @@ $('libCats').addEventListener('click', e => {
 $('libQ').oninput = e => { libQ = e.target.value; renderLib(); };
 $('libAll').onclick = () => {
   const todo = libShown().filter(it => !clips.some(c => c.libId === it.id));
-  todo.forEach(addLib);
+  catat(); catatTahan++; try { todo.forEach(addLib); } finally { catatTahan--; }
   say(todo.length + ' animasi ditambahkan ke daftar Animasi di kiri.');
 };
 ['T','A','H'].forEach(g => { $('libFile' + g).onchange = e => { libAddFiles(e.target.files, g); e.target.value = ''; }; });
