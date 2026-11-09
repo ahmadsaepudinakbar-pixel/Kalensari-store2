@@ -1306,7 +1306,7 @@ function aturSimpanPosisi(id) { const e = $('#' + id), r = e.getBoundingClientRe
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
 if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U (tahan + mouse): Benang Pengikat (magic damage + Slow) · I (tahan + mouse): Pukulan Centong Kelapa (lawan dekat: Stun 1 dtk + lari lebih cepat 2 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun + Shield) · Combo: U → I → O';
-if (HERO === 'angling') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Angin (jarak jauh) · U (tahan + mouse): Hembusan Angin (mendorong lawan jauh) · I (tahan + mouse): Bola Api · O: Elang Sakti (naik elang, terbang bebas 7 dtk + lebih cepat; Bola Api cooldown 1 dtk, Hembusan lebih luas) · O lagi saat terbang: elang melesat ke target, Angling Dharma meloncat turun';
+if (HERO === 'angling') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Angin (jarak jauh) · U (tahan + mouse): Hembusan Angin (mendorong lawan jauh) · I (tahan + mouse): Bola Api · O: Elang Sakti (naik elang, terbang bebas 10 dtk + lebih cepat; Hembusan Angin & Bola Api jeda hanya 0,5 dtk, tetap diarahkan manual; Hembusan lebih luas) · O lagi saat terbang: elang melesat ke target, Angling Dharma meloncat turun';
 if (HERO === 'saras') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jurus Petir (pukul, hook, tendangan putar) · U (tahan + mouse): Kilat Bayangan (menghilang, muncul 0,5 m di depan lawan: lutut terbang + pukulan) · I (tahan + mouse): Tinju Halilintar (3 ledakan petir di jalur tinju: damage + Stun) · O: Puting Beliung Gledeg (berputar menendang 1,2 dtk sambil bergerak & menyedot lawan, ditutup Tendangan Gledeg + petir dari langit; kebal stun) · Pasif Muatan Petir: 4 serangan kena → pukulan berikutnya menyambar berantai · Combo: U → I → O';
 if (HERO === 'lutung') $('#help').textContent = 'WASD / panah: gerak (berlari 4 kaki) · J / Spasi: Cakaran (cakar, cakar, cakar silang) · U (tahan + mouse): Loncatan Lutung (mendarat di lingkaran; bisa 2x dalam 3 dtk, loncatan ke-2 salto) · I (tahan + mouse): Badai Cakar (menerjang 3 m, 5 cakaran, terakhir Stun) · O: Terkaman Kasarung (otomatis ke lawan terdekat 7 m: melompat ke atas pundak lawan, mencakar muka/kepala bertubi-tubi, lalu melompat turun dengan cakaran pamungkas; damage diterima −50% & kebal stun) · Pasif Naluri Rimba: setelah mendarat, cakaran berikutnya ×1,5 + Bleeding';
 if (HERO === 'buto') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Gebukan Raksasa (pukul, pukul, hantam tanah) · U (tahan + mouse): Seruduk Buto (lawan terdorong; menabrak pinggir arena / batu = Stun) · I: Tangkap & Banting (tekan: lawan terdekat dibanting di depan · tahan + mouse: lawan diangkat lalu DILEMPAR ke arah pilihan sampai 5,5 m — kena batu / pinggir arena = damage & Stun tambahan) · O (tahan + mouse): Lempar Batu Raksasa (area besar: Stun + Slow, batunya jadi tembok padat 4 dtk: tidak bisa dilewati siapa pun) · Pasif Kulit Buto: darah tebal, sulit didorong, darah < 30% damage −25% · Combo: O → U → I';
@@ -3660,15 +3660,15 @@ function updSaras(dt, pos, f) {
 // duduk (sit → pose menunggang elang), turun (jump_down), loncat (jump), kalah (defeat_03), kena (hit_to_body_01), jongkok (pose mendarat dari Jumping_Down.fbx — saat memanggil elang)
 // elang-sakti.glb: model elang (rig Tripo) dengan animasi buatan skrip: terbang (kepak), melayang (meluncur), diam (bertengger)
 // Serangan dasar: Bola Angin (bola angin jarak jauh) · Skill 1: Hembusan Angin (jalur angin di depan: damage + dorongan jauh; saat terbang lebih lebar & jauh)
-// Skill 2: Bola Api (bola api + ledakan kecil; saat Mode Terbang cooldown 1 detik) · Skill 3: Elang Sakti (memanggil elang & menaikinya, terbang bebas 7 detik + gerak lebih cepat;
+// Skill 2: Bola Api (bola api + ledakan kecil; saat Mode Terbang jeda 0,5 detik) · Skill 3: Elang Sakti (memanggil elang & menaikinya, terbang bebas 10 detik + gerak lebih cepat;
 // tekan Skill 3 lagi: elang melesat ke arah target sementara Angling Dharma meloncat turun — seperti ulti Yi Sun-shin)
 const AD = { cepat: 3.2, tsJalan: 1.9,   // jalan tenang & tegap layaknya raja (hero jarak jauh: tidak berlari)
   biru: 0x8fdcff, putih: 0xeaf8ff, emas: 0xffc83a,
   apiW: [0xfff4b0, 0xffb020, 0xff5a00, 0xd01800, 0x3a0a02],   // warna api: inti putih-kuning → kuning → jingga → merah bara → asap gelap
   angin: { ts: 1.6, rilis: .28, akhir: .5, rilisT: .1, akhirT: .3, jarak: 9, cepat: 16, dmg: 55, R: .75 },
   hembus: { ts: 1.4, rilis: .34, akhir: .78, rilisT: .12, akhirT: .4, jarak: 6, lebar: 1.5, jarakT: 8.5, lebarT: 2.4, dmg: 110, dorong: 8, dorongT: 12 },
-  api: { ts: 1.6, rilis: .44, akhir: .75, rilisT: .1, akhirT: .3, jarak: 10, cepat: 17, dmg: 120, R: .9, ledak: 1.6, dmgLedak: 40, cdTerbang: 1 },
-  elang: { lama: 7, panggil: .55, cepat: 6.2, sk: 4.4, eY: 1.1, eZ: -.65, naik: 1.55, goyang: .08,
+  api: { ts: 1.6, rilis: .44, akhir: .75, rilisT: .1, akhirT: .3, jarak: 10, cepat: 17, dmg: 120, R: .9, ledak: 1.6, dmgLedak: 40, cdTerbang: .5 },
+  elang: { lama: 10, jedaT: .5, panggil: .55, cepat: 6.2, sk: 4.4, eY: 1.1, eZ: -.65, naik: 1.55, goyang: .08,
     lesat: 11, lesatCepat: 22, lebar: 1.6, dmg: 200, dorong: 6, turun: 1.15, tsTurun: 1.7, pergi: 5 } };
 const AW = { terbang: 0 };   // sisa detik Mode Terbang
 const ELANG = { url: 'model-3d/elang-sakti.glb?v=2', glb: null };
@@ -3793,9 +3793,15 @@ function adLencana() { const b = document.getElementById('b3'); if (!b) return; 
 function pakaiAngling(i) {
   const pos = P.root.position, terbang = AW.terbang > 0;
   const arahi = maks => { if (K.bidik === i && K.diarahkan) P.arah = K.arahBidik; else { const m = terdekat(maks); if (m) hadapKe(m.g.position); } };
-  if (i === 0) { arahi(AD.angin.jarak + .5); P.state = 'adAngin'; if (!terbang) mainUlang('angin', .05, AD.angin.ts); P.cd[0] = CD_MAX[0]; }
-  else if (i === 1) { arahi(terbang ? AD.hembus.jarakT : AD.hembus.jarak); P.state = 'adHembus'; if (!terbang) mainUlang('hembus', .05, AD.hembus.ts); P.cd[1] = CD_MAX[1]; }
-  else if (i === 2) { arahi(AD.api.jarak + .5); P.state = 'adApi'; if (!terbang) mainUlang('api', .05, AD.api.ts); P.cd[2] = terbang ? AD.api.cdTerbang : CD_MAX[2]; }
+  if (terbang && i < 3) {   // Mode Terbang: serangan langsung keluar dari atas elang (elang tetap bisa dikemudikan)
+    const m = K.bidik === i && K.diarahkan ? null : terdekat(i === 1 ? AD.hembus.jarakT + .5 : i === 2 ? AD.api.jarak + .5 : AD.angin.jarak + .5);
+    const a = K.bidik === i && K.diarahkan ? K.arahBidik : m ? Math.atan2(m.g.position.x - pos.x, m.g.position.z - pos.z) : P.arah;
+    if (i === 0) { adLepasAngin(a, true); P.cd[0] = CD_MAX[0]; } else if (i === 1) { adLepasHembus(a, true); P.cd[1] = AD.elang.jedaT; } else { adLepasApi(a, true); P.cd[2] = AD.elang.jedaT; }
+    return;
+  }
+  if (i === 0) { arahi(AD.angin.jarak + .5); P.state = 'adAngin'; mainUlang('angin', .05, AD.angin.ts); P.cd[0] = CD_MAX[0]; }
+  else if (i === 1) { arahi(AD.hembus.jarak); P.state = 'adHembus'; mainUlang('hembus', .05, AD.hembus.ts); P.cd[1] = CD_MAX[1]; }
+  else if (i === 2) { arahi(AD.api.jarak + .5); P.state = 'adApi'; mainUlang('api', .05, AD.api.ts); P.cd[2] = CD_MAX[2]; }
   else if (i === 3) {
     if (!terbang) { P.state = 'adPanggil'; mainUlang(P.act.jongkok ? 'jongkok' : 'loncat', .1, 1.3); fx('aPanggil', pos.clone()); banner('🦅 ELANG SAKTI!', '#ffd25a'); P.cd[3] = .6; }
     else {   // tekan lagi: elang melesat ke arah target, Angling Dharma meloncat turun
@@ -3806,6 +3812,22 @@ function pakaiAngling(i) {
     }
   }
   P.t = 0; P.hit = 0; adLencana();
+}
+function adLepasAngin(a, terbang) {   // Bola Angin ke arah a
+  const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), st = tanganAngling(P); st.y = Math.max(.9, Math.min(terbang ? 2.6 : 1.5, st.y)); st.addScaledVector(d, .25); const B = AD.angin;
+  fx('aAngin', st, a, jarakTempuh(st.clone().setY(1.15), d, B.jarak, B.R), p => { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) < B.R + .35) { kena(m, B.dmg, p.clone().addScaledVector(d, -1), 1.5); return true; } } return false; });
+}
+function adLepasHembus(a, terbang) {   // Hembusan Angin ke arah a: semua lawan di jalur angin kena & terdorong jauh
+  const B = AD.hembus, pos = P.root.position, f = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), J = terbang ? B.jarakT : B.jarak, Lb = terbang ? B.lebarT : B.lebar;
+  fx('aHembus', pos.clone(), a, J, Lb); goyang = Math.max(goyang, .12); let ada = 0;
+  MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const v = m.g.position.clone().sub(pos).setY(0), sj = v.dot(f), sm = Math.abs(v.x * f.z - v.z * f.x);
+    if (sj > -.3 && sj < J + .4 && sm < Lb + .35) { kena(m, B.dmg, pos.clone().addScaledVector(f, -1), terbang ? B.dorongT : B.dorong); ada = 1; } });
+  if (ada) goyang = Math.max(goyang, .18);
+}
+function adLepasApi(a, terbang) {   // Bola Api ke arah a: kena lawan → meledak (lawan di sekitar ikut terkena & terbakar)
+  const B = AD.api, d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), st = tanganAngling(P); st.y = Math.max(.9, Math.min(terbang ? 2.6 : 1.5, st.y)); st.addScaledVector(d, .25);
+  fx('aApi', st, a, jarakTempuh(st.clone().setY(1.15), d, B.jarak, B.R), p => { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) < B.R + .35) {
+    kena(m, B.dmg, p.clone().addScaledVector(d, -1), 2); fx('aBakar', m.g.position.clone(), 2.2, () => m.g.position); MUSUH.forEach(o => { if (o !== m && !o.mati && !o.sembunyi && Math.hypot(o.g.position.x - p.x, o.g.position.z - p.z) < B.ledak) { kena(o, B.dmgLedak, p.clone(), 2); fx('aBakar', o.g.position.clone(), 1.4, () => o.g.position); } }); goyang = Math.max(goyang, .15); return true; } } return false; });
 }
 function adTurun() { AW.terbang = 0; P.state = 'adTurun'; P.t = 0; mainUlang('turun', .08, AD.elang.tsTurun); P.cd[3] = CD_MAX[3]; adLencana(); }
 function adBebas() { P.state = 'bebas'; main(AW.terbang > 0 ? 'naik' : 'diam', .2); }
@@ -3822,23 +3844,17 @@ function updAngling(dt, pos, f) {
   }
   else if (P.state === 'adAngin') {   // Bola Angin
     const B = AD.angin;
-    if (t > (terbang ? B.rilisT : B.rilis) && !P.hit) { P.hit = 1; const d = depan(), st = tanganAngling(P); st.y = Math.max(.9, Math.min(terbang ? 2.6 : 1.5, st.y)); st.addScaledVector(d, .25);
-      fx('aAngin', st, P.arah, jarakTempuh(st.clone().setY(1.15), d, B.jarak, B.R), p => { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) < B.R + .35) { kena(m, B.dmg, p.clone().addScaledVector(d, -1), 1.5); return true; } } return false; }); }
+    if (t > (terbang ? B.rilisT : B.rilis) && !P.hit) { P.hit = 1; adLepasAngin(P.arah, terbang); }
     if (t > (terbang ? B.akhirT : B.akhir)) adBebas();
   }
   else if (P.state === 'adHembus') {   // Hembusan Angin: semua lawan di jalur angin kena & terdorong jauh
-    const B = AD.hembus, J = terbang ? B.jarakT : B.jarak, Lb = terbang ? B.lebarT : B.lebar;
-    if (t > (terbang ? B.rilisT : B.rilis) && !P.hit) { P.hit = 1; fx('aHembus', pos.clone(), P.arah, J, Lb); goyang = Math.max(goyang, .12); let ada = 0;
-      MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const v = m.g.position.clone().sub(pos).setY(0), sj = v.dot(f), sm = Math.abs(v.x * f.z - v.z * f.x);
-        if (sj > -.3 && sj < J + .4 && sm < Lb + .35) { kena(m, B.dmg, pos.clone().addScaledVector(f, -1), terbang ? B.dorongT : B.dorong); ada = 1; } });
-      if (ada) goyang = Math.max(goyang, .18); }
+    const B = AD.hembus;
+    if (t > (terbang ? B.rilisT : B.rilis) && !P.hit) { P.hit = 1; adLepasHembus(P.arah, terbang); }
     if (t > (terbang ? B.akhirT : B.akhir)) adBebas();
   }
   else if (P.state === 'adApi') {   // Bola Api: kena lawan → meledak (lawan di sekitar ikut terkena)
     const B = AD.api;
-    if (t > (terbang ? B.rilisT : B.rilis) && !P.hit) { P.hit = 1; const d = depan(), st = tanganAngling(P); st.y = Math.max(.9, Math.min(terbang ? 2.6 : 1.5, st.y)); st.addScaledVector(d, .25);
-      fx('aApi', st, P.arah, jarakTempuh(st.clone().setY(1.15), d, B.jarak, B.R), p => { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) < B.R + .35) {
-        kena(m, B.dmg, p.clone().addScaledVector(d, -1), 2); fx('aBakar', m.g.position.clone(), 2.2, () => m.g.position); MUSUH.forEach(o => { if (o !== m && !o.mati && !o.sembunyi && Math.hypot(o.g.position.x - p.x, o.g.position.z - p.z) < B.ledak) { kena(o, B.dmgLedak, p.clone(), 2); fx('aBakar', o.g.position.clone(), 1.4, () => o.g.position); } }); goyang = Math.max(goyang, .15); return true; } } return false; }); }
+    if (t > (terbang ? B.rilisT : B.rilis) && !P.hit) { P.hit = 1; adLepasApi(P.arah, terbang); }
     if (t > (terbang ? B.akhirT : B.akhir)) adBebas();
   }
   else if (P.state === 'adPanggil') {   // meloncat ke punggung Elang Sakti
