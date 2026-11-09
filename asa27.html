@@ -204,6 +204,8 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
     <label class="chk"><input id="expAnim" type="checkbox" checked> Sertakan semua animasi saat simpan</label>
     <button id="save" class="primary" disabled>Simpan sebagai GLB</button>
     <button id="saveOrig" disabled>Unduh file asli model terpilih</button>
+    <button id="saveMixamo" disabled title="ZIP berisi OBJ + MTL + tekstur PNG, siap diunggah ke mixamo.com">Ekspor untuk Mixamo (ZIP: OBJ + tekstur)</button>
+    <p class="note" style="margin:-6px 0 0">Mixamo tidak menerima GLB. Tombol ini mengekspor model yang tampil (pose awal, tanpa animasi) jadi ZIP. Pakai model dalam pose T/A, menghadap depan.</p>
 
     <div>
       <h2>Tampilan</h2>
@@ -531,6 +533,7 @@ function renderLayers(){
   const has = layers.length > 0;
   $('save').disabled = !has; $('reset').disabled = !has; $('clear').disabled = !has;
   $('saveOrig').disabled = !sel;
+  $('saveMixamo').disabled = !has;
   $('edit').hidden = !sel;
   $('drop').classList.toggle('hide', has);
   renderClips();
@@ -984,6 +987,122 @@ $('save').onclick = () => {
 };
 
 $('saveOrig').onclick = () => { if(sel) download(new Blob([sel.buf]), sel.file.name); };
+
+/* ---------- Ekspor untuk Mixamo (OBJ + MTL + tekstur -> ZIP) ---------- */
+const CRC_T = (() => { const t = new Uint32Array(256); for(let n = 0; n < 256; n++){ let c = n; for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for(let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function makeZip(files){   // ZIP tanpa kompresi (store)
+  const enc = new TextEncoder(), parts = [], cd = []; let off = 0;
+  files.forEach(f => {
+    const nm = enc.encode(f.name), crc = crc32(f.data), sz = f.data.length;
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true);
+    h.setUint16(12, 0x21, true); h.setUint32(14, crc, true); h.setUint32(18, sz, true); h.setUint32(22, sz, true);
+    h.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(h.buffer), nm, f.data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true);
+    c.setUint16(14, 0x21, true); c.setUint32(16, crc, true); c.setUint32(20, sz, true); c.setUint32(24, sz, true);
+    c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    cd.push(new Uint8Array(c.buffer), nm);
+    off += 30 + nm.length + sz;
+  });
+  const cdSize = cd.reduce((a, b) => a + b.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true);
+  e.setUint32(12, cdSize, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cd, new Uint8Array(e.buffer)], {type: 'application/zip'});
+}
+function texToPng(tex){
+  return new Promise(res => {
+    try{
+      const im = tex.image; if(!im) return res(null);
+      const w = im.width || im.videoWidth, h = im.height || im.videoHeight; if(!w || !h) return res(null);
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(im, 0, 0, w, h);
+      cv.toBlob(b => b ? b.arrayBuffer().then(ab => res(new Uint8Array(ab)), () => res(null)) : res(null), 'image/png');
+    } catch(e){ res(null); }
+  });
+}
+
+$('saveMixamo').onclick = async () => {
+  if(!layers.length) return;
+  if(!layers.some(l => l.wrapper.visible)){ say('Semua model tersembunyi. Tampilkan minimal satu model.', true); return; }
+  say('Menyiapkan OBJ untuk Mixamo…');
+  try{
+    layers.forEach(resetPose);
+    $('pause').textContent = 'Jeda'; renderClips();
+    holder.updateMatrixWorld(true);
+    const safe = s => String(s || '').replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '');
+    const base = safe(layers.length === 1 ? layers[0].file.name.replace(/\.[^.]+$/, '') : 'gabungan') || 'model';
+    const visible = o => { for(let p = o; p; p = p.parent){ if(!p.visible) return false; if(p === holder) break; } return true; };
+    const meshes = []; holder.traverse(o => { if(o.isMesh && o.geometry && o.geometry.attributes.position && visible(o)) meshes.push(o); });
+    if(!meshes.length){ say('Tidak ada mesh yang bisa diekspor.', true); return; }
+
+    const matInfo = new Map(), usedMat = new Set(), texFile = new Map();
+    const matName = m => {
+      if(matInfo.has(m)) return matInfo.get(m).name;
+      let n = safe(m.name) || 'mat', k = 2, b = n; while(usedMat.has(n)) n = b + '_' + k++;
+      usedMat.add(n);
+      let tex = null; if(m.map && m.map.image){ tex = m.map; if(!texFile.has(tex)) texFile.set(tex, 'tekstur_' + (texFile.size + 1) + '.png'); }
+      matInfo.set(m, {name: n, m, tex}); return n;
+    };
+
+    const out = ['# Diekspor dari Model Studio ASA27', 'mtllib ' + base + '.mtl', 'o ' + base];
+    let vOff = 1, nOff = 1, tOff = 1, tris = 0;
+    const v = new THREE.Vector3(), n = new THREE.Vector3();
+    for(const o of meshes){
+      const g = o.geometry, pos = g.attributes.position, nor = g.attributes.normal, uv = g.attributes.uv, idx = g.index;
+      const mw = o.matrixWorld, nmx = new THREE.Matrix3().getNormalMatrix(mw), flip = mw.determinant() < 0;
+      const skinned = o.isSkinnedMesh && typeof o.boneTransform === 'function';
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      const firstTex = mats.map(m => m && m.map).find(t => t && t.image);
+      const flipV = firstTex ? !firstTex.flipY : true;   // UV glTF (flipY=false) -> konvensi OBJ
+      const L = [];
+      for(let i = 0; i < pos.count; i++){
+        if(skinned) o.boneTransform(i, v); else v.fromBufferAttribute(pos, i);
+        v.applyMatrix4(mw); L.push('v ' + v.x.toFixed(6) + ' ' + v.y.toFixed(6) + ' ' + v.z.toFixed(6));
+      }
+      if(uv) for(let i = 0; i < uv.count; i++){ const t = uv.getY(i); L.push('vt ' + uv.getX(i).toFixed(6) + ' ' + (flipV ? 1 - t : t).toFixed(6)); }
+      if(nor) for(let i = 0; i < nor.count; i++){ n.fromBufferAttribute(nor, i).applyMatrix3(nmx).normalize(); L.push('vn ' + n.x.toFixed(5) + ' ' + n.y.toFixed(5) + ' ' + n.z.toFixed(5)); }
+      const fv = i => { return uv && nor ? (vOff + i) + '/' + (tOff + i) + '/' + (nOff + i) : uv ? (vOff + i) + '/' + (tOff + i) : nor ? (vOff + i) + '//' + (nOff + i) : '' + (vOff + i); };
+      const total = idx ? idx.count : pos.count;
+      const groups = g.groups && g.groups.length ? g.groups : [{start: 0, count: total, materialIndex: 0}];
+      for(const gr of groups){
+        const m = mats[gr.materialIndex] || mats[0]; if(!m) continue;
+        L.push('usemtl ' + matName(m));
+        const end = Math.min(gr.start + gr.count, total);
+        for(let i = gr.start; i + 2 < end; i += 3){
+          let a = idx ? idx.getX(i) : i, b = idx ? idx.getX(i + 1) : i + 1, c = idx ? idx.getX(i + 2) : i + 2;
+          if(flip){ const t = b; b = c; c = t; }
+          L.push('f ' + fv(a) + ' ' + fv(b) + ' ' + fv(c)); tris++;
+        }
+      }
+      out.push(...L);
+      vOff += pos.count; if(uv) tOff += uv.count; if(nor) nOff += nor.count;
+    }
+
+    const mtl = ['# Material'];
+    matInfo.forEach(({name, m, tex}) => {
+      mtl.push('newmtl ' + name);
+      const c = m.color || {r: 1, g: 1, b: 1};
+      mtl.push('Kd ' + c.r.toFixed(4) + ' ' + c.g.toFixed(4) + ' ' + c.b.toFixed(4));
+      mtl.push('Ka 0 0 0', 'Ks 0 0 0', 'illum 1');
+      if(tex) mtl.push('map_Kd ' + texFile.get(tex));
+      mtl.push('');
+    });
+
+    const enc = new TextEncoder();
+    const files = [{name: base + '.obj', data: enc.encode(out.join('\n') + '\n')}, {name: base + '.mtl', data: enc.encode(mtl.join('\n'))}];
+    let nTex = 0, failTex = 0;
+    for(const [tex, fname] of texFile){
+      const png = await texToPng(tex);
+      if(png){ files.push({name: fname, data: png}); nTex++; } else failTex++;
+    }
+    download(makeZip(files), base + '-mixamo.zip');
+    say('Tersimpan: ' + base + '-mixamo.zip (' + tris.toLocaleString() + ' segitiga, ' + nTex + ' tekstur' + (failTex ? ', ' + failTex + ' tekstur gagal diekspor' : '') + '). Unggah ZIP ini ke mixamo.com.', failTex > 0);
+  } catch(e){ say('Gagal mengekspor untuk Mixamo: ' + (e.message || e), true); }
+};
 
 /* ---------- Pustaka animasi contoh (panel kanan) ---------- */
 var libReady = false;
