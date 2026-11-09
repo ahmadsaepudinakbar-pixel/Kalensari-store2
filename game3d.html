@@ -1307,7 +1307,7 @@ function aturSimpanPosisi(id) { const e = $('#' + id), r = e.getBoundingClientRe
   addEventListener('resize', () => setTimeout(terapTombol, 60)); terapTombol(); setTimeout(terapTombol, 600); }   // diulang setelah kelas HP (ponsel) terpasang
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
-if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U: Benang Pengikat (mengunci hero lawan terdekat — tahan + mouse untuk memilih lawan: benang mengikat 2 dtk, magic damage + Slow) · I (tahan + mouse): Pukulan Centong Kelapa (memukul kepala lawan dekat: Stun 1,2 dtk · Dayang Sumbi lebih cepat 4 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun + Shield) · Combo: U → I → O';
+if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U: Benang Pengikat (mengunci hero lawan terdekat — tahan + mouse untuk memilih lawan: benang mengikat 2 dtk, magic damage + Slow) · I (tahan + mouse): Pukulan Centong Kelapa (memukul kepala lawan dekat: Stun 1,2 dtk · Dayang Sumbi lebih cepat 3 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun + Shield) · Combo: U → I → O';
 if (HERO === 'angling') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Angin (jarak jauh) · U (tahan + mouse): Hembusan Angin (mendorong lawan jauh) · I (tahan + mouse): Bola Api · O: Elang Sakti (naik elang, terbang bebas 10 dtk + lebih cepat; Hembusan Angin & Bola Api jeda hanya 0,5 dtk, tetap diarahkan manual; Hembusan lebih luas) · O lagi saat terbang: elang melesat ke target, Angling Dharma meloncat turun';
 if (HERO === 'saras') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jurus Petir (pukul, hook, tendangan putar) · U (tahan + mouse): Kilat Bayangan (menghilang, muncul 0,5 m di depan lawan: lutut terbang + pukulan) · I (tahan + mouse): Tinju Halilintar (3 ledakan petir di jalur tinju: damage + Stun) · O: Puting Beliung Gledeg (berputar menendang 1,2 dtk sambil bergerak & menyedot lawan, ditutup Tendangan Gledeg + petir dari langit; kebal stun) · Pasif Muatan Petir: 4 serangan kena → pukulan berikutnya menyambar berantai · Combo: U → I → O';
 if (HERO === 'lutung') $('#help').textContent = 'WASD / panah: gerak (berlari 4 kaki) · J / Spasi: Cakaran (cakar, cakar, cakar silang) · U (tahan + mouse): Loncatan Lutung (mendarat di lingkaran; bisa 2x dalam 3 dtk, loncatan ke-2 salto) · I (tahan + mouse): Badai Cakar (menerjang 3 m, 5 cakaran, terakhir Stun) · O: Terkaman Kasarung (otomatis ke lawan terdekat 7 m: melompat ke atas pundak lawan, mencakar muka/kepala bertubi-tubi, lalu melompat turun dengan cakaran pamungkas; damage diterima −50% & kebal stun) · Pasif Naluri Rimba: setelah mendarat, cakaran berikutnya ×1,5 + Bleeding';
@@ -3524,8 +3524,8 @@ const SR = { cepat: 4.8, biru: 0x4ab8ff, putih: 0xd8f0ff,
     { anim: 'tendang', ts: 1.4, tH: .38, akhir: .75, dmg: 80, R: 1.9, dorong: 5 }], jeda: 1.2,
   muatanMaks: 4, rantai: { R: 4, n: 2, dmg: 60 },
   bayang: { jarak: 7.5, kosong: 6, hilang: .22, dekat: .5, ts: 1.3, lutut: .19, pukul: .38, dmgLutut: 70, dmgPukul: 50, akhir: 1.1 },
-  tinju: { ts: 1.3, tH: .44, jarak: 7, lebar: 1.4, ledak: [2, 4.2, 6.4], jedaLedak: .12, R: 1.4, dmg: 50, stun: .8, akhir: .87 },
-  ulti: { tsLoncat: 1.3, loncat: .5, putar: 1.2, tsPutar: 1.5, gerak: 3.4, tik: .3, R: 2.3, dmgTik: 35, sedot: 1.6, tsGledeg: 1.2, gledegH: .36, gledegAkhir: .95, Rg: 2.6, dmgGledeg: 150 } };
+  tinju: { ts: 1.3, tH: .44, jarak: 7, lebar: 1.4, ledak: [2, 4.2, 6.4], jedaLedak: .12, R: 1.4, dmg: [120, 100, 80], stun: .8, akhir: .87 },   // dmg per ledakan: makin dekat makin sakit
+  ulti: { tsLoncat: 1.3, loncat: .5, putar: 1.2, tsPutar: 1.5, gerak: 3.4, tik: .3, R: 2.3, dmgTik: 42, sedot: 1.6, tsGledeg: 1.2, gledegH: .36, gledegAkhir: .95, Rg: 2.6, dmgGledeg: 180 } };   // ulti diperkuat (sebelumnya 35/tik & 150)
 const SW = { combo: 0, comboT: 0, muatan: 0, hilang: 0, sasaran: null };
 function siapkanSaras(gl, m, T) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
@@ -3633,7 +3633,7 @@ function updSaras(dt, pos, f) {
     const B = SR.tinju;
     if (t > B.tH && !P.hit) { P.hit = 1; fx('sTinju', pos.clone(), P.arah, srS()); goyang = Math.max(goyang, .1); P.tinjuA = pos.clone(); P.tinjuF = f.clone(); }
     while (P.hit && P.ledak < B.ledak.length && t > B.tH + P.ledak * B.jedaLedak) { const k = P.ledak++, c = batasi(P.tinjuA.clone().addScaledVector(P.tinjuF, B.ledak[k]));
-      fx('sLedak', c, B.R, srS()); const ada = srKenaArea(c, B.R, m => { kena(m, B.dmg, c.clone().addScaledVector(P.tinjuF, -1), 3); m.pusing = Math.max(m.pusing || 0, B.stun); });
+      fx('sLedak', c, B.R, srS()); const ada = srKenaArea(c, B.R, m => { kena(m, B.dmg[k], c.clone().addScaledVector(P.tinjuF, -1), 3); m.pusing = Math.max(m.pusing || 0, B.stun); });
       if (ada) { goyang = Math.max(goyang, .14); srMuat(1); } }
     if (t > B.akhir) srBebas();
   }
@@ -3873,15 +3873,15 @@ function updAngling(dt, pos, f) {
 // ================== DAYANG SUMBI (hero ke-13: Mage / Support jarak jauh — jarum & benang emas, centong batok kelapa, anjing penjaga) ==================
 // animasi di dayang.glb (Tripo rig Mixamo + pustaka animasi Tripo, digabung skrip): diam (idle), jalan (walk — anggun, tanpa lari), sihir (cast_a_spell), pukul (chop),
 // kalah (defeat_03), kena (hit_to_body_01) · centong.glb: centong batok kelapa (posisi untuk tulang tangan kanan) · anjing-dayang.glb: anjing penjaga (rig Tripo, animasi buatan skrip: lari, diam, terkam)
-// Serangan dasar: Jarum Emas · Skill 1: Benang Pengikat (mengunci hero lawan: benang ala Angela mengikat 2 dtk, magic damage + Slow) · Skill 2: Pukulan Centong Kelapa (memukul kepala lawan dekat: damage + Stun 1,2 dtk, Dayang Sumbi lebih cepat 4 dtk)
+// Serangan dasar: Jarum Emas · Skill 1: Benang Pengikat (mengunci hero lawan: benang ala Angela mengikat 2 dtk, magic damage + Slow) · Skill 2: Pukulan Centong Kelapa (memukul kepala lawan dekat: damage + Stun 1,2 dtk, Dayang Sumbi lebih cepat 3 dtk)
 // Skill 3: Anjing Penjaga Dayang (anjing berlari ke area sasaran lalu menerkam: ledakan magic damage + Stun singkat + Shield untuk Dayang Sumbi) · Combo: Skill 1 → Skill 2 → Skill 3
 const DS = { cepat: 3.2, tsJalan: 1.9, emas: 0xffc83a, emas2: 0xfff0b0, pink: 0xff6ac8, ungu: 0xb070ff,
   jarum: { ts: 1.6, rilis: .28, akhir: .5, jarak: 9.5, cepat: 19, dmg: 55, R: .6 },
   benang: { ts: 1.4, rilis: .34, akhir: .78, jarak: 7.5, putus: 10, cepat: 14, dmg: 90, R: .9, lambat: 2 },   // mengunci hero: benang menempel ke lawan selama 'lambat' detik (putus kalau lebih jauh dari 'putus' m)
-  centong: { ts: 1.3, kenaT: .37, akhir: .62, maju: 1.1, R: 1.7, dmg: 110, stun: 1.2, lari: 4, cepatK: 1.5 },   // kenaT: centong mendarat di kepala lawan
+  centong: { ts: 1.3, kenaT: .37, akhir: .62, maju: 1.1, R: 1.7, dmg: 110, stun: 1.2, lari: 3, cepatK: 1.5 },   // kenaT: centong mendarat di kepala lawan
   anjing: { ts: 1.4, rilis: .3, akhir: .75, jarak: 8, R: 2.6, cepat: 13, dmg: 160, stun: .8, perisai: 250, lamaP: 4, sk: 1.55 } };   // sk: ukuran anjing (area ledakan R tetap)
 const DSW = { cepatT: 0, perisai: 0, perisaiT: 0, bola: null, sasaran: null, tali: null };
-const ANJING = { url: 'model-3d/anjing-dayang.glb?v=3', glb: null }, CENTONG_URL = 'model-3d/centong.glb?v=2';
+const ANJING = { url: 'model-3d/anjing-dayang.glb?v=4', glb: null }, CENTONG_URL = 'model-3d/centong.glb?v=2';
 function siapkanDayang(gl, m, T) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
   const klip = c => rapikanKlip(c.clone(), m, 0, false), sub = (n, nama, a, b) => { const c = cari(n); return c ? THREE.AnimationUtils.subclip(c, nama, Math.round(a * 24), Math.round(b * 24), 24) : null; };
