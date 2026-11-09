@@ -1470,7 +1470,7 @@ function lepasRohPemburu(mt, visual = false, dariObj = P, cb = null) {   // cb {
   bidik.rotation.x = -Math.PI / 2; bidik.position.copy(mt.g.position).setY(.05); scene.add(bidik);
   const W = kwDari(dariObj), kanan = new THREE.Vector3(Math.cos(arahD), 0, -Math.sin(arahD)), g = { mt, bidik, t: 0, fase: 'kejar', roh: [], tik: 0, kt: 0, visual, cb, W };
   for (let i = 0; i < 3; i++) {
-    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: W.lun ? T_ROH_L : T_ROH, transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); sp.position.copy(asal); sp.renderOrder = 6; scene.add(sp);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: W.lun ? T_ROH_L : T_ROH, transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); sp.position.copy(asal); sp.renderOrder = 6; sp.visible = false; scene.add(sp);   // gambar roh berwajah (kepala) disembunyikan: yang tampil hanya ekor pita + pendar di ujungnya
     const nyala = new THREE.Sprite(matCahaya(T_BULAT, W.merah, 0)); nyala.renderOrder = 5; scene.add(nyala);   // pendar merah di belakang kepala
     const v = dep.clone().multiplyScalar(3).addScaledVector(kanan, (i - 1) * 5).setY(1.5 + i * .6);
     const uk = ROH.lebar * (.85 + Math.random() * .3);
@@ -1526,7 +1526,7 @@ function updRohPemburu(dt) {
     g.roh.forEach(r => {
       const on = g.t >= r.tunda;
       r.sp.scale.set(r.uk * r.balik, r.uk * ROH_RASIO, 1);
-      r.nyala.position.copy(r.sp.position); r.nyala.scale.setScalar(r.uk * 1.3); r.nyala.material.opacity = on ? .45 * r.sp.material.opacity : 0;
+      r.nyala.position.copy(r.sp.position); r.nyala.scale.setScalar(r.uk * .7); r.nyala.material.opacity = on ? .6 * r.sp.material.opacity : 0;
       if (on) updEkor(r.ekor, r.sp.position.clone().addScaledVector(new THREE.Vector3(r.balik, 0, 0), -r.uk * .2), T, r.seed, redup * Math.min(1, r.sp.material.opacity + .2), g.W.lun);
       if (on && (r.et -= dt) <= 0) { r.et = .12; percik(r.sp.position.clone().setY(r.sp.position.y - .2), 2, g.W.merah, .8, .2); }   // bara
     });
