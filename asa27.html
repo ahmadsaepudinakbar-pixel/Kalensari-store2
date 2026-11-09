@@ -70,6 +70,8 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
 .libdet{display:flex;gap:6px;align-items:center;margin:6px 0 0}
 .libdet select{flex:1;min-width:0}
 .libdet button{width:auto;padding:5px 11px}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.three .posebox{padding:6px}.three .pbtn{padding:7px 6px;font-size:13px}.three label.btn{font-size:12px;padding:6px 4px}
 .posebox{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;background:#12171b}
 .posebox.on{border-color:var(--acc);background:#16262a}
 .posebox .pbtn{display:flex;justify-content:space-between;font-weight:600}
@@ -230,11 +232,13 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
     </div>
     <div>
       <h2>Unggah animasi ke pustaka (FBX)</h2>
-      <div class="two" style="margin-top:6px">
+      <div class="three" style="margin-top:6px">
         <div class="posebox" data-g="T"><button class="pbtn" data-g="T"><span>Pose T</span><span id="cntT">0</span></button>
           <label class="btn" for="libFileT">Unggah FBX<input id="libFileT" type="file" accept=".fbx,.glb,.gltf" multiple></label></div>
         <div class="posebox" data-g="A"><button class="pbtn" data-g="A"><span>Pose A</span><span id="cntA">0</span></button>
           <label class="btn" for="libFileA">Unggah FBX<input id="libFileA" type="file" accept=".fbx,.glb,.gltf" multiple></label></div>
+        <div class="posebox" data-g="H"><button class="pbtn" data-g="H"><span>Hewan</span><span id="cntH">0</span></button>
+          <label class="btn" for="libFileH">Unggah FBX<input id="libFileH" type="file" accept=".fbx,.glb,.gltf" multiple></label></div>
       </div>
     </div>
     <input id="libQ" type="search" placeholder="Cari animasi…" aria-label="Cari animasi">
@@ -1102,9 +1106,10 @@ LIB.forEach(it => Object.assign(it, {id: ++cid, cat: LIB_CAT[it.key], src: 'kode
   srcQ: LIB_SRC.srcQ, srcW: LIB_SRC.srcW, pose: {type:'?', deg:null},
   make: l => buildLib(it, Math.min(1.5, Math.max(0, (l.pose.deg || 0) * Math.PI / 180)))}));
 
-const CATS = ['Serang Pukul','Serang Tendang','Serang Senjata','Serang','Terbang','Lompat & Akrobat','Gerak','Diam & Santai','Terkena & Mati','Ekspresi','Lainnya'];
+const CATS = ['Serang Pukul','Serang Tendang','Serang Senjata','Serang Sihir','Serang','Terbang','Lompat & Akrobat','Gerak','Diam & Santai','Terkena & Mati','Ekspresi','Kaki 4','Kaki 2','Bersayap','Lainnya'];
 const CAT_RULES = [
   ['Terkena & Mati', /dying|death|\bdie\b|dead|hit.?react|hurt|knock|stagger|react/i],
+  ['Serang Sihir', /magic|spell|cast|mage|wizard|sorcer|witch|fireball|energy|hadouken|kamehameha|sihir|santet|ajian/i],
   ['Serang Tendang', /kick|tendang|knee|roundhouse|sweep/i],
   ['Serang Senjata', /sword|katana|blade|slash|stab|dagger|knife|chop|axe|spear|weapon|pistol|rifle|gun|shoot|golok|pedang|tombak|keris|tebas/i],
   ['Serang Pukul', /punch|jab|uppercut|hook|\bbox|boxing|elbow|pukul|tinju/i],
@@ -1115,6 +1120,10 @@ const CAT_RULES = [
   ['Diam & Santai', /idle|stand|breath|rest|sit|wait|look/i],
   ['Ekspresi', /wave|dance|cheer|taunt|laugh|talk|greet|clap|bow|point|salute/i]
 ];
+const KAT_HEWAN = ['Kaki 4', 'Kaki 2', 'Bersayap'];
+const autoCatHewan = n => /wing|bird|eagle|hawk|falcon|\bowl\b|parrot|\bcrow\b|\bbat\b|fly|flying|flap|glide|soar|dragon|elang|burung|sayap|kelelawar|\bnaga\b|garuda|terbang/i.test(n) ? 'Bersayap'
+  : /biped|two.?leg|chicken|rooster|\bhen\b|\bduck|penguin|ostrich|dino|raptor|t.?rex|kangaroo|ayam|bebek|itik|pinguin|kanguru|kaki.?2/i.test(n) ? 'Kaki 2' : 'Kaki 4';   // selain itu: hewan berkaki 4 (anjing, kucing, kuda, serigala, harimau, sapi, …)
+const namaGrp = g => g === 'H' ? 'Pose Hewan' : 'Pose ' + g;
 const autoCat = n => { for(const [c, re] of CAT_RULES) if(re.test(n)) return c; return 'Lainnya'; };
 
 let libSelId = null, libCat = 'Semua', libQ = '', libGrp = 'T';
@@ -1144,7 +1153,7 @@ async function libAddFiles(list, grp){
       });
       anims.forEach(c => {
         const nm = anims.length > 1 ? base + ' – ' + c.name : base, id = ++cid;
-        const ent = { id, key: 'f' + id, name: nm, cat: autoCat(nm), src: 'fbx', clip: c, srcQ, srcW, pose, dur: c.duration, sig, grp };
+        const ent = { id, key: 'f' + id, name: nm, cat: grp === 'H' ? autoCatHewan(nm) : autoCat(nm), src: 'fbx', clip: c, srcQ, srcW, pose, dur: c.duration, sig, grp };
         LIB.push(ent); libSave(ent);
         n++;
       });
@@ -1153,7 +1162,7 @@ async function libAddFiles(list, grp){
     } catch(err){ fail.push(f.name); }
   }
   libGrp = grp; libCat = 'Semua'; renderLib();
-  say(n + ' animasi masuk ke Pose ' + grp + ' di pustaka' + (n ? ' dan disimpan di browser' : '') + '.' + (dup ? ' ' + dup + ' file sama dilewati.' : '') + (mism ? ' ' + mism + ' file terdeteksi Pose ' + (grp === 'T' ? 'A' : 'T') + ' — kalau salah kelompok, pindahkan lewat pilihan Pose di bawah animasi.' : '') + (fail.length ? ' Gagal: ' + fail.join(', ') + '.' : '') + (n && !sel ? ' Pilih model karakter di kiri, lalu klik animasinya untuk melihat gerakannya.' : ''), !n && fail.length > 0);
+  say(n + ' animasi masuk ke ' + namaGrp(grp) + ' di pustaka' + (n ? ' dan disimpan di browser' : '') + '.' + (dup ? ' ' + dup + ' file sama dilewati.' : '') + (mism ? ' ' + mism + ' file terdeteksi Pose ' + (grp === 'T' ? 'A' : 'T') + ' — kalau salah kelompok, pindahkan lewat pilihan Pose di bawah animasi.' : '') + (fail.length ? ' Gagal: ' + fail.join(', ') + '.' : '') + (n && !sel ? ' Pilih model karakter di kiri, lalu klik animasinya untuk melihat gerakannya.' : ''), !n && fail.length > 0);
 }
 
 function addLib(it){
@@ -1175,7 +1184,7 @@ function libPreview(it){
 
 function libShown(){
   const q = libQ.trim().toLowerCase();
-  return LIB.filter(it => (it.grp === 'both' || it.grp === libGrp) && (libCat === 'Semua' || it.cat === libCat) && (!q || it.name.toLowerCase().includes(q)));
+  return LIB.filter(it => ((it.grp === 'both' && libGrp !== 'H') || it.grp === libGrp) && (libCat === 'Semua' || it.cat === libCat) && (!q || it.name.toLowerCase().includes(q)));
 }
 
 function libRow(it){
@@ -1184,15 +1193,15 @@ function libRow(it){
   return `<div class="libitem" data-id="${it.id}">
     <div class="layer lib${on ? ' on' : ''}"><span class="pl">${pl ? '▶' : '▷'}</span><span class="nm" title="${esc(it.name)}">${esc(it.name)}</span><span class="ext">${dur}</span>
       <button class="add" ${has ? 'disabled' : ''} title="${has ? 'Sudah ada di daftar animasi' : 'Tambah ke daftar animasi'}" aria-label="Tambah ${esc(it.name)}">${has ? '✓' : '+'}</button></div>
-    ${on ? `<div class="libdet"><select class="libcat" aria-label="Kategori">${CATS.map(c => `<option${c === it.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>${it.src === 'fbx' ? `<select class="libgrp" aria-label="Pose"><option value="T"${it.grp === 'T' ? ' selected' : ''}>Pose T</option><option value="A"${it.grp === 'A' ? ' selected' : ''}>Pose A</option></select>` : ''}${it.src === 'tripo' ? '' : '<button class="x" title="Hapus dari pustaka" aria-label="Hapus dari pustaka">Hapus</button>'}</div>
-    <p class="note" style="margin:4px 0 0">${it.src === 'fbx' ? 'Pose awal animasi: ' + esc(poseText(it.pose)) + '.' : it.src === 'tripo' ? 'Animasi bawaan Tripo (' + esc(it.lib) + '), selalu ada di pustaka.' : 'Contoh bawaan, dibuat dari kode.'}</p>
+    ${on ? `<div class="libdet"><select class="libcat" aria-label="Kategori">${CATS.map(c => `<option${c === it.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>${it.src === 'fbx' ? `<select class="libgrp" aria-label="Pose"><option value="T"${it.grp === 'T' ? ' selected' : ''}>Pose T</option><option value="A"${it.grp === 'A' ? ' selected' : ''}>Pose A</option><option value="H"${it.grp === 'H' ? ' selected' : ''}>Pose Hewan</option></select>` : ''}${it.src === 'tripo' ? '' : '<button class="x" title="Hapus dari pustaka" aria-label="Hapus dari pustaka">Hapus</button>'}</div>
+    <p class="note" style="margin:4px 0 0">${it.src === 'fbx' ? 'Pose awal animasi: ' + esc(poseText(it.pose)) + '.' : it.src === 'tripo' ? (it.grp === 'H' ? 'Animasi bawaan elang Angling Dharma (' + esc(it.lib) + '), selalu ada di pustaka.' : 'Animasi bawaan Tripo (' + esc(it.lib) + '), selalu ada di pustaka.') : 'Contoh bawaan, dibuat dari kode.'}</p>
     <button class="primary libadd" style="margin-top:6px" ${has ? 'disabled' : ''}>${has ? 'Sudah ada di daftar Animasi (kiri)' : 'Tambah ke daftar Animasi (kiri)'}</button>` : ''}
   </div>`;
 }
 
 function renderLib(){
-  const inG = g => LIB.filter(it => it.grp === 'both' || it.grp === g);
-  $('cntT').textContent = inG('T').length; $('cntA').textContent = inG('A').length;
+  const inG = g => LIB.filter(it => (it.grp === 'both' && g !== 'H') || it.grp === g);
+  $('cntT').textContent = inG('T').length; $('cntA').textContent = inG('A').length; $('cntH').textContent = inG('H').length;
   document.querySelectorAll('.posebox').forEach(b => b.classList.toggle('on', b.dataset.g === libGrp));
   const gl = inG(libGrp), cnt = {}; gl.forEach(it => { cnt[it.cat] = (cnt[it.cat] || 0) + 1; });
   if(libCat !== 'Semua' && !cnt[libCat]) libCat = 'Semua';
@@ -1206,7 +1215,7 @@ function renderLib(){
     if(libCat === 'Semua') html += `<div class="catHead">${esc(c)}</div>`;
     html += g.map(libRow).join('');
   });
-  $('libList').innerHTML = html || '<div class="empty">Belum ada animasi untuk Pose ' + libGrp + '. Unggah FBX lewat tombol di atas.</div>';
+  $('libList').innerHTML = html || '<div class="empty">Belum ada animasi untuk ' + namaGrp(libGrp) + '. Unggah FBX lewat tombol di atas.</div>';
   $('libAll').disabled = !shown.some(it => !clips.some(c => c.libId === it.id));
 }
 
@@ -1234,7 +1243,7 @@ $('libList').addEventListener('change', e => {
   const isG = e.target.classList.contains('libgrp');
   if(!isG && !e.target.classList.contains('libcat')) return;
   const box = e.target.closest('.libitem'), it = box && LIB.find(x => x.id == box.dataset.id);
-  if(it && isG){ it.grp = e.target.value; libSave(it); renderLib(); say('“' + it.name + '” dipindah ke Pose ' + it.grp + '.'); return; }
+  if(it && isG){ it.grp = e.target.value; if(it.grp === 'H' && !KAT_HEWAN.includes(it.cat)) it.cat = autoCatHewan(it.name); else if(it.grp !== 'H' && KAT_HEWAN.includes(it.cat)) it.cat = autoCat(it.name); libSave(it); renderLib(); say('“' + it.name + '” dipindah ke ' + namaGrp(it.grp) + '.'); return; }
   if(it){ it.cat = e.target.value; libCat = 'Semua'; libSave(it); if(it.src === 'tripo') tripoCatSimpan(it); renderLib(); }
 });
 $('libCats').addEventListener('click', e => {
@@ -1247,7 +1256,7 @@ $('libAll').onclick = () => {
   todo.forEach(addLib);
   say(todo.length + ' animasi ditambahkan ke daftar Animasi di kiri.');
 };
-['T','A'].forEach(g => { $('libFile' + g).onchange = e => { libAddFiles(e.target.files, g); e.target.value = ''; }; });
+['T','A','H'].forEach(g => { $('libFile' + g).onchange = e => { libAddFiles(e.target.files, g); e.target.value = ''; }; });
 document.querySelectorAll('.pbtn').forEach(b => { b.onclick = () => { libGrp = b.dataset.g; libCat = 'Semua'; renderLib(); }; });
 const libBox = $('lib');
 ['dragenter','dragover'].forEach(t => libBox.addEventListener(t, e => { e.preventDefault(); libBox.classList.add('over'); }));
@@ -1311,7 +1320,7 @@ const TRIPO_CAT = {
   'Serang Pukul': 'box_01 box_02 box_03',
   'Serang Tendang': 'front_kick_01 front_kick_02',
   'Serang Senjata': 'slash chop shoot fire',
-  'Serang': 'cast_a_spell',
+  'Serang Sihir': 'cast_a_spell',
   'Terkena & Mati': 'hit_to_stomach hit_to_side hit_to_body_01 hit_to_body_02 hit_to_head defeat_02 defeat_03 fall',
   'Lompat & Akrobat': 'jump jump_down flip dive climb jump_rope_01 jump_rope_02',
   'Gerak': 'walk run turn swim surf flee_01 flee_02 run_upstairs swagger',
@@ -1344,7 +1353,21 @@ async function libBawaan(){
     say(anims.length + ' animasi bawaan Tripo dimuat ke pustaka.');
   } catch(err){ say('Animasi bawaan Tripo gagal dimuat (' + (err && err.message || err) + ').', true); }
 }
-libReady = true; renderLib(); libLoad(); libBawaan();
+/* ---------- Animasi bawaan hewan: Elang Sakti (rig Tripo; animasi terbang, melayang, diam buatan skrip) ---------- */
+async function libElang(){
+  try {
+    const r = await fetch('model-3d/elang-sakti.glb?v=2');
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const { obj, anims } = await parseModel('glb', await r.arrayBuffer());
+    const pose = detectPose(obj), srcQ = new Map(), srcW = new Map(), ubah = tripoCatUbah(), NM = { terbang: 'Elang – terbang (kepak)', melayang: 'Elang – melayang', diam: 'Elang – diam (bertengger)' };
+    obj.updateMatrixWorld(true);
+    obj.traverse(o => { if(!o.name) return; const k = norm(o.name); srcQ.set(k, o.quaternion.clone()); srcW.set(k, { w: o.getWorldQuaternion(new THREE.Quaternion()), pw: o.parent ? o.parent.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion() }); });
+    anims.forEach(c => { const id = ++cid, lib = 'elang_' + c.name;
+      LIB.push({ id, key: 't' + id, lib, name: NM[c.name] || 'Elang – ' + c.name, cat: ubah[lib] || 'Bersayap', src: 'tripo', clip: c, srcQ, srcW, pose, dur: c.duration, grp: 'H' }); });
+    disposeObj(obj); renderLib();
+  } catch(_){}
+}
+libReady = true; renderLib(); libLoad(); libBawaan(); libElang();
 
 /* ---------- Lain-lain ---------- */
 $('file').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
