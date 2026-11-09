@@ -8,7 +8,7 @@
 :root{--bg:#14181c;--panel:#1d2329;--line:#2d363e;--text:#e6ebef;--mute:#8d9aa5;--acc:#4cc3b0;--accText:#07201c}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-.app{display:grid;grid-template-columns:330px 1fr;height:100%}
+.app{display:grid;grid-template-columns:330px 1fr 340px;height:100%}
 aside{background:var(--panel);border-right:1px solid var(--line);padding:18px;overflow:auto;display:flex;flex-direction:column;gap:14px}
 h1{font-size:19px;margin:0}
 h2{font-size:13px;margin:0;color:var(--mute);font-weight:600}
@@ -57,7 +57,28 @@ main{position:relative;min-width:0}
 main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
 #msg{position:absolute;left:16px;bottom:14px;right:16px;font-size:13px;color:var(--mute);pointer-events:none}
 #msg.err{color:#ff8a80}
-@media (max-width:760px){.app{grid-template-columns:1fr;grid-template-rows:auto 55vh}aside{border-right:0;border-bottom:1px solid var(--line)}}
+#lib{border-right:0;border-left:1px solid var(--line)}
+.layer .add{width:auto;min-width:32px;padding:1px 9px;font-size:19px;line-height:1.3;font-weight:700;background:var(--acc);color:var(--accText);border-color:var(--acc)}
+.layer .add:disabled{background:transparent;color:var(--acc);opacity:.7;cursor:default}
+.layer.lib{cursor:pointer}
+.layer.lib .pl{width:14px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{width:auto;padding:3px 10px;font-size:12px;border-radius:999px}
+.chip.on{background:var(--acc);color:var(--accText);border-color:var(--acc)}
+#libQ{width:100%;background:#12171b;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:7px 8px;font:inherit}
+.catHead{font-size:12px;color:var(--mute);font-weight:600;margin:8px 0 0}
+.libdet{display:flex;gap:6px;align-items:center;margin:6px 0 0}
+.libdet select{flex:1;min-width:0}
+.libdet button{width:auto;padding:5px 11px}
+.posebox{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px;background:#12171b}
+.posebox.on{border-color:var(--acc);background:#16262a}
+.posebox .pbtn{display:flex;justify-content:space-between;font-weight:600}
+.posebox label.btn{padding:6px 8px;font-size:13px}
+#lib.over{outline:2px dashed var(--acc);outline-offset:-6px}
+.layer .tx{flex:1;min-width:0}
+.layer .tx .nm{display:block}
+.layer .tx .note{display:block;margin-top:1px}
+@media (max-width:760px){.app{grid-template-columns:1fr;grid-template-rows:auto 55vh auto}aside{border-right:0;border-bottom:1px solid var(--line)}#lib{border-left:0;border-top:1px solid var(--line);border-bottom:0}}
 </style>
 </head>
 <body>
@@ -118,6 +139,25 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
       <div class="row" style="margin-top:8px">
         <label for="sc"><span>Skala</span></label>
         <input id="sc" type="number" step="any" min="0.0001" value="1">
+      </div>
+      <div style="margin-top:10px">
+        <h2>Titik genggam (pusat putar &amp; skala)</h2>
+        <div class="grid" style="margin-top:6px">
+          <div><label for="gx">X</label><input id="gx" type="number" step="any" value="0"></div>
+          <div><label for="gy">Y</label><input id="gy" type="number" step="any" value="0"></div>
+          <div><label for="gz">Z</label><input id="gz" type="number" step="any" value="0"></div>
+        </div>
+        <div class="grid" style="margin-top:6px">
+          <button id="gMid" title="Titik di tengah model">Tengah</button>
+          <button id="gMin" title="Ujung sisi − dari sumbu terpanjang model">Ujung −</button>
+          <button id="gMax" title="Ujung sisi + dari sumbu terpanjang model">Ujung +</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label for="gAlong"><span>Geser titik di sepanjang senjata</span><span id="gAlongV">–</span></label>
+          <input id="gAlong" type="range" min="0" max="100" step="1" value="100">
+        </div>
+        <button id="gReset" style="margin-top:6px">Reset titik</button>
+        <p class="note" style="margin:6px 0 0">Titik ini jadi poros putar &amp; skala, dan bagian yang menempel di tulang. Pilih Ujung − atau Ujung + yang ada di sisi gagang, lalu geser gizmo ke telapak tangan. Satuan = satuan model.</p>
       </div>
       <div class="row" style="margin-top:8px">
         <label for="rotY"><span>Putar (sumbu Y)</span><span id="rotV">0°</span></label>
@@ -182,6 +222,27 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
     <div id="drop"><div><strong>Seret file GLB / FBX ke sini</strong><br>Karakter (GLB) dan animasi (FBX) bisa sekaligus</div></div>
     <div id="msg"></div>
   </main>
+
+  <aside id="lib">
+    <div>
+      <h1>Pustaka animasi</h1>
+      <p class="sub">Pilih <b>Pose T</b> atau <b>Pose A</b>, lalu klik animasi untuk melihat gerakannya di model dulu. Kalau cocok, tekan <b>+</b> untuk menambah ke daftar Animasi di kiri.</p>
+    </div>
+    <div>
+      <h2>Unggah animasi ke pustaka (FBX)</h2>
+      <div class="two" style="margin-top:6px">
+        <div class="posebox" data-g="T"><button class="pbtn" data-g="T"><span>Pose T</span><span id="cntT">0</span></button>
+          <label class="btn" for="libFileT">Unggah FBX<input id="libFileT" type="file" accept=".fbx,.glb,.gltf" multiple></label></div>
+        <div class="posebox" data-g="A"><button class="pbtn" data-g="A"><span>Pose A</span><span id="cntA">0</span></button>
+          <label class="btn" for="libFileA">Unggah FBX<input id="libFileA" type="file" accept=".fbx,.glb,.gltf" multiple></label></div>
+      </div>
+    </div>
+    <input id="libQ" type="search" placeholder="Cari animasi…" aria-label="Cari animasi">
+    <div id="libCats" class="chips"></div>
+    <div id="libList" class="list"></div>
+    <button id="libAll">Tambah semua yang tampil</button>
+    <p class="note">Bisa pilih banyak file FBX sekaligus atau seret ke panel ini (masuk ke pose yang sedang dipilih). Kategori ditebak dari nama file; ubah lewat daftar kategori saat animasi dipilih. Animasi “kode” adalah contoh bawaan. Pilih model karakter di kiri dulu supaya gerakan bisa dilihat. Pustaka tersimpan otomatis di browser ini dan tetap ada setelah di-refresh.</p>
+  </aside>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
@@ -336,23 +397,26 @@ function retarget(entry, l){
   if(!l.cache) l.cache = new Map();
   if(l.cache.has(ck)) return l.cache.get(ck);
 
-  const bones = l.snap.bones, tracks = [], matched = new Set(), srcNodes = new Set();
+  const bones = l.snap.bones, tracks = [], matched = new Set(), srcNodes = new Set(), usedT = new Set();
+  const src = entry.make ? entry.make(l) : entry.clip;
   const splitName = n => { const i = n.lastIndexOf('.'); return [n.slice(0, i), n.slice(i+1)]; };
 
   let ratio = 1;
   const hipsName = bones.get('hips');
-  const hp = entry.clip.tracks.find(t => { const [n,p] = splitName(t.name); return p === 'position' && norm(n) === 'hips'; });
+  const hp = src.tracks.find(t => { const [n,p] = splitName(t.name); return p === 'position' && norm(n) === 'hips'; });
   if(hp && hipsName){
     const sY = hp.values[1], tY = l.snap.byName.p.get(hipsName).y;
     if(sY && tY) ratio = tY / sY;
   }
 
-  entry.clip.tracks.forEach(t => {
+  src.tracks.forEach(t => {
     const [node, prop] = splitName(t.name);
     const key = norm(node);
     if(prop === 'quaternion') srcNodes.add(key);
-    const tn = bones.get(key);
+    let tn = bones.get(key);
+    if(!tn && entry.lib) tn = aliasBone(key, bones);
     if(!tn) return;
+    if(entry.lib){ const uk = tn + '|' + prop; if(usedT.has(uk)) return; usedT.add(uk); }
     const sw = entry.srcW.get(key);
     const tw = l.snap.byName.w.get(tn), tpw = l.snap.byName.pw.get(tn);
     const useWorld = method === 'world' && sw && tw && tpw;
@@ -377,9 +441,11 @@ function retarget(entry, l){
       matched.add(tn);
     } else if(prop === 'position' && key === 'hips'){
       const out = new Float32Array(t.values.length), v = new THREE.Vector3();
+      const base = entry.rel ? l.snap.byName.p.get(tn) : null, HH = base ? (base.length() || 1) : ratio;
       for(let k = 0; k < out.length; k += 3){
-        v.set(t.values[k], t.values[k+1], t.values[k+2]).multiplyScalar(ratio);
+        v.set(t.values[k], t.values[k+1], t.values[k+2]).multiplyScalar(HH);
         if(M) v.applyQuaternion(M);
+        if(base) v.add(base);
         out[k] = v.x; out[k+1] = v.y; out[k+2] = v.z;
       }
       if(inPlace){
@@ -396,7 +462,7 @@ function retarget(entry, l){
     }
   });
 
-  const res = { clip: new THREE.AnimationClip(entry.name, entry.clip.duration, tracks), matched: matched.size, total: srcNodes.size };
+  const res = { clip: new THREE.AnimationClip(entry.name, src.duration, tracks), matched: matched.size, total: srcNodes.size };
   l.cache.set(ck, res);
   return res;
 }
@@ -426,7 +492,7 @@ function play(entry){
 
 function replayCurrent(){
   if(!sel || !sel.playing) return;
-  const c = clips.find(x => x.id === sel.playing);
+  const c = clips.find(x => x.id === sel.playing) || LIB.find(x => x.id === sel.playing);
   if(c) play(c);
 }
 $('method').onchange = replayCurrent;
@@ -482,6 +548,7 @@ function renderClips(){
     </div>`;
   }).join('');
   if(editingClip !== null){ const i = $('clips').querySelector('.rn'); if(i){ i.focus(); i.select(); } }
+  if(libReady) renderLib();
 }
 function commitRename(v){
   const c = clips.find(x => x.id === editingClip);
@@ -501,6 +568,7 @@ function select(l){
     $('rotY').value = dg(w.rotation.y); $('rotV').textContent = dg(w.rotation.y) + '°';
     $('rotZ').value = dg(w.rotation.z); $('rotZV').textContent = dg(w.rotation.z) + '°';
     $('pause').textContent = l.paused ? 'Lanjut' : 'Jeda';
+    $('gx').value = r2(l.pivot.x); $('gy').value = r2(l.pivot.y); $('gz').value = r2(l.pivot.z);
     showInfo(l);
   }
   updateGizmo();
@@ -644,15 +712,15 @@ async function addFile(file){
       return;
     }
 
-    const wrapper = new THREE.Group();
-    wrapper.add(obj);
+    const wrapper = new THREE.Group(), pv = new THREE.Group();
+    pv.add(obj); wrapper.add(pv);
     let note = '';
     if(ext === 'fbx'){
       const m = maxDim(wrapper);
       if(m > 20){ wrapper.scale.setScalar(2 / m); note = ' Ukuran FBX terlalu besar (satuan cm), otomatis diperkecil.'; }
     }
     holder.add(wrapper);
-    const l = { id: ++idc, file, ext, wrapper, obj, buf, pose, snap: snapshot(obj), mixer: null, action: null, playing: null, paused: false };
+    const l = { id: ++idc, file, ext, wrapper, pv, pivot: new THREE.Vector3(), obj, buf, pose, snap: snapshot(obj), mixer: null, action: null, playing: null, paused: false };
     layers.push(l);
     let hasBone = false; obj.traverse(o => { if(o.isBone) hasBone = true; });
     if(hasBone){ l.skel = new THREE.SkeletonHelper(obj); l.skel.material.depthTest = false; l.skel.material.transparent = true; l.skel.renderOrder = 999; l.skel.visible = false; scene.add(l.skel); }
@@ -781,6 +849,67 @@ function presetAttach(kind){
 }
 document.querySelectorAll('[data-preset]').forEach(b => { b.onclick = () => presetAttach(b.dataset.preset); });
 
+/* ---------- Titik genggam (pivot) ---------- */
+// Model digeser di dalam grup pv sebesar -P, sehingga titik P menjadi pusat putar/skala/posisi.
+// Posisi wrapper dikompensasi supaya model tidak "melompat" saat titik diubah.
+function setPivot(l, P){
+  const w = l.wrapper;
+  w.position.add(P.clone().sub(l.pivot).multiplyScalar(w.scale.x).applyQuaternion(w.quaternion));
+  l.pivot.copy(P);
+  l.pv.position.copy(P).negate();
+  if(l === sel){ syncFields(); $('gx').value = r2(P.x); $('gy').value = r2(P.y); $('gz').value = r2(P.z); }
+}
+function pivotPoints(l){   // titik-titik vertex model dalam ruang pv (sampel)
+  l.wrapper.updateMatrixWorld(true);
+  const inv = l.pv.matrixWorld.clone().invert(), pts = [], v = new THREE.Vector3();
+  l.obj.traverse(o => {
+    if(!o.isMesh || !o.geometry.attributes.position) return;
+    const pos = o.geometry.attributes.position, step = Math.max(1, Math.floor(pos.count / 4000));
+    for(let i = 0; i < pos.count; i += step){ v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv); pts.push(v.clone()); }
+  });
+  return pts;
+}
+function pivotAlong(frac){   // frac 0..1 = dari Ujung − ke Ujung + sepanjang sumbu panjang model
+  if(!sel) return;
+  const pts = pivotPoints(sel);
+  if(!pts.length){ say('Model ini tidak punya mesh untuk dihitung.', true); return; }
+  const c = new THREE.Vector3(); pts.forEach(p => c.add(p)); c.divideScalar(pts.length);
+  const a = new THREE.Vector3(1, 1, 1).normalize(), d = new THREE.Vector3();
+  for(let it = 0; it < 24; it++){   // sumbu panjang sebenarnya (PCA), benar walau model miring di dalam file
+    const n = new THREE.Vector3();
+    pts.forEach(p => { d.copy(p).sub(c); n.addScaledVector(d, d.dot(a)); });
+    if(n.lengthSq() < 1e-18) break;
+    a.copy(n.normalize());
+  }
+  let lo = Infinity, hi = -Infinity;
+  const t = pts.map(p => { const k = d.copy(p).sub(c).dot(a); if(k < lo) lo = k; if(k > hi) hi = k; return k; });
+  const target = lo + (hi - lo) * frac, tol = Math.max((hi - lo) * .04, 1e-9), acc = new THREE.Vector3();
+  let cnt = 0;
+  pts.forEach((p, i) => { if(Math.abs(t[i] - target) <= tol){ acc.add(p); cnt++; } });   // titik tengah irisan badan senjata di posisi itu
+  setPivot(sel, cnt ? acc.divideScalar(cnt) : c.clone().addScaledVector(a, target));
+}
+function pivotKe(mode){
+  if(!sel) return;
+  if(mode === 'mid'){
+    const pts = pivotPoints(sel);
+    if(!pts.length){ say('Model ini tidak punya mesh untuk dihitung.', true); return; }
+    const c = new THREE.Vector3(); pts.forEach(p => c.add(p)); setPivot(sel, c.divideScalar(pts.length));
+    $('gAlong').value = 50; $('gAlongV').textContent = '50%';
+    say('Titik genggam dipindah ke tengah model.');
+    return;
+  }
+  const v = mode === 'min' ? 0 : 100;
+  $('gAlong').value = v; $('gAlongV').textContent = v + '%';
+  pivotAlong(v / 100);
+  say('Titik genggam dipindah ke ' + (mode === 'min' ? 'ujung −' : 'ujung +') + '. Pakai slider “Geser titik di sepanjang senjata” untuk menggesernya ke arah ujung lain. Lalu geser gizmo ke telapak tangan.');
+}
+$('gAlong').oninput = e => { const v = +e.target.value; $('gAlongV').textContent = v + '%'; pivotAlong(v / 100); };
+['gx','gy','gz'].forEach(id => { $(id).oninput = () => { if(sel) setPivot(sel, new THREE.Vector3(parseFloat($('gx').value) || 0, parseFloat($('gy').value) || 0, parseFloat($('gz').value) || 0)); }; });
+$('gMid').onclick = () => pivotKe('mid');
+$('gMin').onclick = () => pivotKe('min');
+$('gMax').onclick = () => pivotKe('max');
+$('gReset').onclick = () => { if(sel) setPivot(sel, new THREE.Vector3()); };
+
 /* ---------- Atur model terpilih ---------- */
 const num = id => { const v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
 ['px','py','pz'].forEach(id => $(id).oninput = () => { if(sel) sel.wrapper.position.set(num('px'), num('py'), num('pz')); });
@@ -851,6 +980,328 @@ $('save').onclick = () => {
 };
 
 $('saveOrig').onclick = () => { if(sel) download(new Blob([sel.buf]), sel.file.name); };
+
+/* ---------- Pustaka animasi contoh (panel kanan) ---------- */
+var libReady = false;
+const TAU = Math.PI * 2, S = Math.sin, C = Math.cos;
+const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const LIB_BONES = ['Hips','Spine','Spine1','Spine2','Neck','Head',
+  'LeftShoulder','LeftArm','LeftForeArm','LeftHand','RightShoulder','RightArm','RightForeArm','RightHand',
+  'LeftUpLeg','LeftLeg','LeftFoot','LeftToeBase','RightUpLeg','RightLeg','RightFoot','RightToeBase'];
+// Sumber "virtual": semua tulang berotasi dunia identik, jadi rotasi di klip = selisih dari pose diam (cocok dengan metode Dunia).
+const LIB_SRC = (() => {
+  const srcQ = new Map(), srcW = new Map();
+  LIB_BONES.forEach(b => { const k = norm(b); srcQ.set(k, new THREE.Quaternion()); srcW.set(k, {w:new THREE.Quaternion(), pw:new THREE.Quaternion()}); });
+  return {srcQ, srcW};
+})();
+// nama tulang alternatif (selain gaya Mixamo) untuk model lain
+const ALIAS_BASE = {arm:['upperarm','arm'], forearm:['lowerarm','forearm'], hand:['hand'], shoulder:['shoulder','clavicle'],
+  upleg:['upleg','thigh','upperleg'], leg:['leg','calf','shin','lowerleg'], foot:['foot'], toebase:['toebase','toe','toes','ball'],
+  spine:['spine','spine0'], spine1:['spine1','chest'], spine2:['spine2','upperchest','chest'], hips:['hips','pelvis','root'], neck:['neck'], head:['head']};
+function aliasBone(key, bones){
+  const m = /^(left|right)(.+)$/.exec(key);
+  if(m){
+    const s = m[1], c = s[0], base = ALIAS_BASE[m[2]];
+    if(!base) return null;
+    for(const b of base) for(const k of [s + b, b + s, b + c, c + b]) if(bones.has(k)) return bones.get(k);
+    return null;
+  }
+  const base = ALIAS_BASE[key];
+  if(base) for(const b of base) if(bones.has(b)) return bones.get(b);
+  return null;
+}
+// Konvensi: karakter menghadap +Z, Y ke atas, sisi kiri karakter = +X. Sudut dalam radian.
+// Kaki: th = sudut paha (negatif = ke depan), kn = tekuk lutut. Telapak diratakan ke lantai.
+const libLeg = (P, s, th, kn, k = .8) => { P[s+'UpLeg'] = [th,0,0]; P[s+'Leg'] = [kn,0,0]; P[s+'Foot'] = [-(th + kn) * k,0,0]; };
+// Lengan: d = sudut lengan model di bawah garis datar (T=0). f = ayun ke depan, up = tinggi lengan (rad, negatif = turun), el = tekuk siku, y = putar horizontal ke depan.
+const libArm = (P, d, s, o) => {
+  const up = o.up === undefined ? -1.22 : o.up, z = up + d, L = s === 'Left';
+  P[s+'Arm'] = [-(o.f || 0), (L ? -1 : 1) * (o.y || 0), L ? z : -z];
+  if(o.el) P[s+'ForeArm'] = [-o.el,0,0];
+};
+const libDrop = (th, kn) => 1 - .5 * (C(th) + C(kn - th));   // turun badan agar kaki tetap menapak
+
+const LIB = [
+  {key:'idle', name:'Idle (napas)', dur:2.4, desc:'Berdiri santai, napas pelan', fn:(t,P,H,d) => {
+    const w = TAU * t / 2.4;
+    P.Spine = [.02*S(w),0,0]; P.Spine2 = [.015*S(w-.6),0,0]; P.Head = [.025*S(w-1.2),0,0];
+    libArm(P,d,'Left',{f:.03*S(w-.8)}); libArm(P,d,'Right',{f:.03*S(w-.8)}); H.y = .003*S(w);
+  }},
+  {key:'walk', name:'Jalan', dur:1, desc:'Jalan di tempat, 2 langkah', fn:(t,P,H,d) => {
+    const w = TAU * t;
+    P.Hips = [0,-.08*S(w),0]; P.Spine = [.04,0,0]; P.Spine1 = [0,.06*S(w),0];
+    libLeg(P,'Left',-.45*S(w),.6*Math.max(0,C(w))); libLeg(P,'Right',.45*S(w),.6*Math.max(0,-C(w)));
+    libArm(P,d,'Left',{f:-.4*S(w),el:.25}); libArm(P,d,'Right',{f:.4*S(w),el:.25}); H.y = -.012*C(2*w);
+  }},
+  {key:'run', name:'Lari', dur:.64, desc:'Lari di tempat, ayunan besar', fn:(t,P,H,d) => {
+    const w = TAU * t / .64;
+    P.Hips = [.05,-.1*S(w),0]; P.Spine = [.15,0,0]; P.Spine1 = [0,.15*S(w),0];
+    libLeg(P,'Left',-.9*S(w),1.3*Math.max(0,C(w)),.7); libLeg(P,'Right',.9*S(w),1.3*Math.max(0,-C(w)),.7);
+    libArm(P,d,'Left',{f:-.8*S(w),el:1.3}); libArm(P,d,'Right',{f:.8*S(w),el:1.3}); H.y = -.03*C(2*w);
+  }},
+  {key:'jump', name:'Lompat', dur:1.2, desc:'Jongkok, melompat, mendarat', fn:(t,P,H,d) => {
+    const k = sm(0,.3,t)*(1-sm(.3,.42,t)) + .6*sm(.76,.88,t)*(1-sm(.88,1.2,t));
+    const a = sm(.3,.42,t)*(1-sm(.76,.88,t)), u = Math.min(1, Math.max(0, (t-.36)/.46));
+    const th = k + .4*a, kn = 1.7*k + .7*a;
+    P.Spine = [.35*k,0,0]; P.Head = [-.2*k,0,0];
+    libLeg(P,'Left',-th,kn); libLeg(P,'Right',-th,kn);
+    libArm(P,d,'Left',{f:-.6*k,up:-1.22+2.5*a,el:.3*k}); libArm(P,d,'Right',{f:-.6*k,up:-1.22+2.5*a,el:.3*k});
+    H.y = -(1-a)*libDrop(th,kn) + .25*S(Math.PI*u);
+  }},
+  {key:'wave', name:'Lambai tangan', dur:2, desc:'Tangan kanan melambai', fn:(t,P,H,d) => {
+    const w = TAU * t / 2;
+    P.Spine = [0,0,.03*S(w)]; P.Head = [0,0,-.08];
+    libArm(P,d,'Left',{}); libArm(P,d,'Right',{up:1.3});
+    P.RightForeArm = [0,0,-.55*S(3*w)]; P.RightHand = [0,0,-.3*S(3*w+.8)];
+  }},
+  {key:'punch', name:'Pukul', dur:1, desc:'Pukulan lurus tangan kanan', fn:(t,P,H,d) => {
+    const wind = sm(0,.3,t)*(1-sm(.3,.42,t)), hit = sm(.3,.42,t)*(1-sm(.6,.9,t)), ar = sm(0,.2,t)*(1-sm(.7,.95,t));
+    libLeg(P,'Left',-.3,.35); libLeg(P,'Right',.2,.35); H.y = -.03;
+    P.Spine = [.1*hit,0,0]; P.Spine1 = [0,-.35*wind + .55*hit,0];
+    libArm(P,d,'Right',{up:-1.22*(1-ar), y:-.5*wind + 1.5*hit}); P.RightForeArm = [0,1.2*wind,0];
+    libArm(P,d,'Left',{up:-1.22*(1-ar) - .1*ar, y:.7*ar}); P.LeftForeArm = [0,-1.2*ar,0];
+  }},
+  {key:'dance', name:'Menari', dur:2, desc:'Goyang pinggul, tangan bergantian', fn:(t,P,H,d) => {
+    const w = TAU * t / 2, m = .5*(1 - C(4*w)), th = .35*m, kn = .7*m;
+    P.Hips = [0,.3*S(2*w),.1*S(2*w)]; P.Spine = [0,0,-.12*S(2*w)]; P.Head = [0,0,.1*S(2*w+1)];
+    libLeg(P,'Left',-th,kn); libLeg(P,'Right',-th,kn); H.y = -libDrop(th,kn);
+    libArm(P,d,'Left',{up:.9+.5*S(2*w)}); libArm(P,d,'Right',{up:.9+.5*S(2*w+Math.PI)});
+    P.LeftForeArm = [0,0,.4*S(4*w)]; P.RightForeArm = [0,0,-.4*S(4*w)];
+  }},
+  {key:'cheer', name:'Sorak', dur:1.2, desc:'Dua tangan naik, melonjak kecil', fn:(t,P,H,d) => {
+    const w = TAU * t / 1.2, m = .5*(1 - C(2*w)), th = .3*m, kn = .6*m;
+    P.Spine = [-.08,0,0]; P.Head = [-.2,0,0];
+    libLeg(P,'Left',-th,kn); libLeg(P,'Right',-th,kn); H.y = -libDrop(th,kn);
+    libArm(P,d,'Left',{up:1.2+.15*S(2*w)}); libArm(P,d,'Right',{up:1.2+.15*S(2*w)});
+  }}
+];
+
+function buildLib(it, d){
+  const fps = 30, n = Math.round(it.dur * fps) + 1;
+  const times = new Float32Array(n), data = {}, pos = new Float32Array(n * 3);
+  LIB_BONES.forEach(b => data[b] = new Float32Array(n * 4));
+  const e = new THREE.Euler(), q = new THREE.Quaternion();
+  for(let i = 0; i < n; i++){
+    const t = i / fps, P = {}, H = {y:0};
+    times[i] = t;
+    it.fn(t, P, H, d);
+    LIB_BONES.forEach(b => {
+      const a = P[b] || [0,0,0];
+      e.set(a[0], a[1], a[2], 'XYZ'); q.setFromEuler(e);
+      data[b][i*4] = q.x; data[b][i*4+1] = q.y; data[b][i*4+2] = q.z; data[b][i*4+3] = q.w;
+    });
+    pos[i*3] = H.x || 0; pos[i*3+1] = H.y || 0; pos[i*3+2] = H.z || 0;
+  }
+  const tracks = LIB_BONES.map(b => new THREE.QuaternionKeyframeTrack('mixamorig:' + b + '.quaternion', times, data[b]));
+  tracks.push(new THREE.VectorKeyframeTrack('mixamorig:Hips.position', times, pos));
+  return new THREE.AnimationClip(it.name, it.dur, tracks);
+}
+
+const LIB_CAT = {idle:'Diam & Santai', walk:'Gerak', run:'Gerak', jump:'Lompat & Akrobat', wave:'Ekspresi', dance:'Ekspresi', cheer:'Ekspresi', punch:'Serang'};
+LIB.forEach(it => Object.assign(it, {id: ++cid, cat: LIB_CAT[it.key], src: 'kode', grp: 'both', clip: null, lib: it.key, rel: true,
+  srcQ: LIB_SRC.srcQ, srcW: LIB_SRC.srcW, pose: {type:'?', deg:null},
+  make: l => buildLib(it, Math.min(1.5, Math.max(0, (l.pose.deg || 0) * Math.PI / 180)))}));
+
+const CATS = ['Serang','Lompat & Akrobat','Gerak','Diam & Santai','Terkena & Mati','Ekspresi','Lainnya'];
+const CAT_RULES = [
+  ['Terkena & Mati', /dying|death|\bdie\b|dead|hit.?react|hurt|knock|stagger|react/i],
+  ['Serang', /punch|blow|stab|kick|combo|strike|slash|attack|assassin|takedown|weapon|dagger|sword|swing|shoot|throw|block|chop|uppercut|jab|hook/i],
+  ['Lompat & Akrobat', /jump|flip|evade|kip|roll|corkscrew|fall|land|dodge|vault|climb|spin|cartwheel|somersault|hang|leap/i],
+  ['Gerak', /walk|run|sprint|strafe|turn|crouch|sneak|jog|move|step|swim|slide/i],
+  ['Diam & Santai', /idle|stand|breath|rest|sit|wait|look/i],
+  ['Ekspresi', /wave|dance|cheer|taunt|laugh|talk|greet|clap|bow|point|salute/i]
+];
+const autoCat = n => { for(const [c, re] of CAT_RULES) if(re.test(n)) return c; return 'Lainnya'; };
+
+let libSelId = null, libCat = 'Semua', libQ = '', libGrp = 'T';
+const libSeen = new Set();
+
+async function libAddFiles(list, grp){
+  grp = grp || libGrp;
+  const files = Array.from(list); let n = 0, dup = 0, mism = 0; const fail = [];
+  for(let i = 0; i < files.length; i++){
+    const f = files[i], ext = (f.name.split('.').pop() || '').toLowerCase(), sig = f.name + '|' + f.size;
+    say('Memuat ke pustaka ' + (i + 1) + '/' + files.length + ': ' + f.name + '…');
+    await new Promise(r => setTimeout(r, 20));
+    if(!['fbx','glb','gltf'].includes(ext)){ fail.push(f.name); continue; }
+    if(libSeen.has(sig)){ dup++; continue; }
+    try {
+      const { obj, anims } = await parseModel(ext, await readFile(f));
+      if(!anims.length){ disposeObj(obj); fail.push(f.name + ' (tanpa animasi)'); continue; }
+      const base = f.name.replace(/\.[^.]+$/, '').replace(/_+/g, ' ').replace(/\s+/g, ' ').trim();
+      const pose = detectPose(obj), srcQ = new Map(), srcW = new Map();
+      if((grp === 'T' && pose.type === 'A') || (grp === 'A' && pose.type === 'T')) mism++;
+      obj.updateMatrixWorld(true);
+      obj.traverse(o => {
+        if(!o.name) return;
+        const k = norm(o.name);
+        srcQ.set(k, o.quaternion.clone());
+        srcW.set(k, { w: o.getWorldQuaternion(new THREE.Quaternion()), pw: o.parent ? o.parent.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion() });
+      });
+      anims.forEach(c => {
+        const nm = anims.length > 1 ? base + ' – ' + c.name : base, id = ++cid;
+        const ent = { id, key: 'f' + id, name: nm, cat: autoCat(nm), src: 'fbx', clip: c, srcQ, srcW, pose, dur: c.duration, sig, grp };
+        LIB.push(ent); libSave(ent);
+        n++;
+      });
+      disposeObj(obj);
+      libSeen.add(sig);
+    } catch(err){ fail.push(f.name); }
+  }
+  libGrp = grp; libCat = 'Semua'; renderLib();
+  say(n + ' animasi masuk ke Pose ' + grp + ' di pustaka' + (n ? ' dan disimpan di browser' : '') + '.' + (dup ? ' ' + dup + ' file sama dilewati.' : '') + (mism ? ' ' + mism + ' file terdeteksi Pose ' + (grp === 'T' ? 'A' : 'T') + ' — kalau salah kelompok, pindahkan lewat pilihan Pose di bawah animasi.' : '') + (fail.length ? ' Gagal: ' + fail.join(', ') + '.' : '') + (n && !sel ? ' Pilih model karakter di kiri, lalu klik animasinya untuk melihat gerakannya.' : ''), !n && fail.length > 0);
+}
+
+function addLib(it){
+  const ex = clips.find(c => c.libId === it.id);
+  if(ex) return ex;
+  const e = Object.assign({}, it, { libId: it.id });
+  clips.push(e);
+  renderClips();
+  const last = $('clips').lastElementChild; if(last) last.scrollIntoView({block:'nearest'});
+  return e;
+}
+
+function libPreview(it){
+  libSelId = it.id;
+  if(!sel){ renderLib(); say('Pilih atau muat model karakter di kiri dulu supaya gerakannya bisa dilihat.', true); return; }
+  play(it);
+  renderLib();
+}
+
+function libShown(){
+  const q = libQ.trim().toLowerCase();
+  return LIB.filter(it => (it.grp === 'both' || it.grp === libGrp) && (libCat === 'Semua' || it.cat === libCat) && (!q || it.name.toLowerCase().includes(q)));
+}
+
+function libRow(it){
+  const has = clips.some(c => c.libId === it.id), on = it.id === libSelId, pl = sel && sel.playing === it.id;
+  const dur = (it.dur || 0).toFixed(1) + ' dtk';
+  return `<div class="libitem" data-id="${it.id}">
+    <div class="layer lib${on ? ' on' : ''}"><span class="pl">${pl ? '▶' : '▷'}</span><span class="nm" title="${esc(it.name)}">${esc(it.name)}</span><span class="ext">${dur}</span>
+      <button class="add" ${has ? 'disabled' : ''} title="${has ? 'Sudah ada di daftar animasi' : 'Tambah ke daftar animasi'}" aria-label="Tambah ${esc(it.name)}">${has ? '✓' : '+'}</button></div>
+    ${on ? `<div class="libdet"><select class="libcat" aria-label="Kategori">${CATS.map(c => `<option${c === it.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>${it.src === 'fbx' ? `<select class="libgrp" aria-label="Pose"><option value="T"${it.grp === 'T' ? ' selected' : ''}>Pose T</option><option value="A"${it.grp === 'A' ? ' selected' : ''}>Pose A</option></select>` : ''}<button class="x" title="Hapus dari pustaka" aria-label="Hapus dari pustaka">Hapus</button></div>
+    <p class="note" style="margin:4px 0 0">${it.src === 'fbx' ? 'Pose awal animasi: ' + esc(poseText(it.pose)) + '.' : 'Contoh bawaan, dibuat dari kode.'}</p>
+    <button class="primary libadd" style="margin-top:6px" ${has ? 'disabled' : ''}>${has ? 'Sudah ada di daftar Animasi (kiri)' : 'Tambah ke daftar Animasi (kiri)'}</button>` : ''}
+  </div>`;
+}
+
+function renderLib(){
+  const inG = g => LIB.filter(it => it.grp === 'both' || it.grp === g);
+  $('cntT').textContent = inG('T').length; $('cntA').textContent = inG('A').length;
+  document.querySelectorAll('.posebox').forEach(b => b.classList.toggle('on', b.dataset.g === libGrp));
+  const gl = inG(libGrp), cnt = {}; gl.forEach(it => { cnt[it.cat] = (cnt[it.cat] || 0) + 1; });
+  if(libCat !== 'Semua' && !cnt[libCat]) libCat = 'Semua';
+  $('libCats').innerHTML = ['Semua', ...CATS.filter(c => cnt[c])].map(c =>
+    `<button class="chip${c === libCat ? ' on' : ''}" data-cat="${esc(c)}">${esc(c)} ${c === 'Semua' ? gl.length : cnt[c]}</button>`).join('');
+  const shown = libShown();
+  let html = '';
+  CATS.forEach(c => {
+    const g = shown.filter(it => it.cat === c);
+    if(!g.length) return;
+    if(libCat === 'Semua') html += `<div class="catHead">${esc(c)}</div>`;
+    html += g.map(libRow).join('');
+  });
+  $('libList').innerHTML = html || '<div class="empty">Belum ada animasi untuk Pose ' + libGrp + '. Unggah FBX lewat tombol di atas.</div>';
+  $('libAll').disabled = !shown.some(it => !clips.some(c => c.libId === it.id));
+}
+
+$('libList').addEventListener('click', e => {
+  const box = e.target.closest('.libitem'); if(!box) return;
+  const it = LIB.find(x => x.id == box.dataset.id); if(!it) return;
+  if(e.target.closest('select')) return;
+  const btn = e.target.closest('button');
+  if(btn && (btn.classList.contains('add') || btn.classList.contains('libadd'))){
+    if(btn.disabled) return;
+    addLib(it);
+    say('“' + it.name + '” ditambahkan ke daftar Animasi di kiri.');
+    return;
+  }
+  if(btn && btn.classList.contains('x')){
+    LIB.splice(LIB.indexOf(it), 1); libDel(it);
+    if(libSelId === it.id) libSelId = null;
+    layers.forEach(l => { if(l.playing === it.id && !clips.some(c => c.id === it.id)) resetPose(l); });
+    renderLib(); renderClips();
+    return;
+  }
+  libPreview(it);
+});
+$('libList').addEventListener('change', e => {
+  const isG = e.target.classList.contains('libgrp');
+  if(!isG && !e.target.classList.contains('libcat')) return;
+  const box = e.target.closest('.libitem'), it = box && LIB.find(x => x.id == box.dataset.id);
+  if(it && isG){ it.grp = e.target.value; libSave(it); renderLib(); say('“' + it.name + '” dipindah ke Pose ' + it.grp + '.'); return; }
+  if(it){ it.cat = e.target.value; libCat = 'Semua'; libSave(it); renderLib(); }
+});
+$('libCats').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if(!b) return;
+  libCat = b.dataset.cat; renderLib();
+});
+$('libQ').oninput = e => { libQ = e.target.value; renderLib(); };
+$('libAll').onclick = () => {
+  const todo = libShown().filter(it => !clips.some(c => c.libId === it.id));
+  todo.forEach(addLib);
+  say(todo.length + ' animasi ditambahkan ke daftar Animasi di kiri.');
+};
+['T','A'].forEach(g => { $('libFile' + g).onchange = e => { libAddFiles(e.target.files, g); e.target.value = ''; }; });
+document.querySelectorAll('.pbtn').forEach(b => { b.onclick = () => { libGrp = b.dataset.g; libCat = 'Semua'; renderLib(); }; });
+const libBox = $('lib');
+['dragenter','dragover'].forEach(t => libBox.addEventListener(t, e => { e.preventDefault(); libBox.classList.add('over'); }));
+['dragleave','drop'].forEach(t => libBox.addEventListener(t, e => { e.preventDefault(); libBox.classList.remove('over'); }));
+libBox.addEventListener('drop', e => libAddFiles(e.dataTransfer.files, libGrp));
+/* ---------- Simpan pustaka di browser (IndexedDB) ---------- */
+let libDBp = null, libCtr = 0;
+function libDB(){
+  if(!libDBp) libDBp = new Promise((res, rej) => {
+    if(!window.indexedDB){ rej(new Error('penyimpanan browser tidak tersedia')); return; }
+    const r = indexedDB.open('asa27-studio', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('lib', {keyPath:'sid'});
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error || new Error('gagal membuka penyimpanan'));
+  });
+  return libDBp;
+}
+function libTx(mode, fn){
+  return libDB().then(db => new Promise((res, rej) => {
+    const tx = db.transaction('lib', mode), rq = fn(tx.objectStore('lib'));
+    tx.oncomplete = () => res(rq ? rq.result : undefined);
+    tx.onerror = tx.onabort = () => rej(tx.error || new Error('transaksi gagal'));
+  }));
+}
+function libPack(it){
+  return { sid: it.sid, ts: it.ts, sig: it.sig, grp: it.grp, name: it.name, cat: it.cat, dur: it.dur, pose: it.pose,
+    clip: { name: it.clip.name, duration: it.clip.duration, tracks: it.clip.tracks.map(t => ({ n: t.name, k: t.ValueTypeName, t: t.times, v: t.values })) },
+    srcQ: Array.from(it.srcQ, ([k, v]) => [k, v.toArray()]),
+    srcW: Array.from(it.srcW, ([k, v]) => [k, v.w.toArray(), v.pw.toArray()]) };
+}
+function libUnpack(r){
+  const T = {quaternion: THREE.QuaternionKeyframeTrack, vector: THREE.VectorKeyframeTrack, number: THREE.NumberKeyframeTrack, color: THREE.ColorKeyframeTrack};
+  const tracks = r.clip.tracks.map(t => new (T[t.k] || THREE.VectorKeyframeTrack)(t.n, t.t, t.v));
+  const id = ++cid;
+  return { id, key: 'f' + id, sid: r.sid, ts: r.ts, sig: r.sig, grp: r.grp || (r.pose && r.pose.type === 'A' ? 'A' : 'T'), name: r.name, cat: r.cat, src: 'fbx', dur: r.dur, pose: r.pose,
+    clip: new THREE.AnimationClip(r.clip.name, r.clip.duration, tracks),
+    srcQ: new Map(r.srcQ.map(([k, a]) => [k, new THREE.Quaternion().fromArray(a)])),
+    srcW: new Map(r.srcW.map(([k, a, b]) => [k, {w: new THREE.Quaternion().fromArray(a), pw: new THREE.Quaternion().fromArray(b)}])) };
+}
+function libSave(it){
+  if(it.src !== 'fbx') return;
+  if(!it.sid){ it.sid = Date.now().toString(36) + Math.random().toString(36).slice(2, 8); it.ts = Date.now() * 1000 + (libCtr++ % 1000); }
+  try { if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch(_){}
+  libTx('readwrite', st => st.put(libPack(it))).catch(err => say('Gagal menyimpan ke browser: ' + (err && err.message || err) + '. Animasi tetap bisa dipakai, tapi hilang saat refresh.', true));
+}
+function libDel(it){ if(it.sid) libTx('readwrite', st => st.delete(it.sid)).catch(() => {}); }
+async function libLoad(){
+  try {
+    const rows = await libTx('readonly', st => st.getAll());
+    if(!rows || !rows.length) return;
+    rows.sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    let n = 0;
+    rows.forEach(r => { try { const e = libUnpack(r); LIB.push(e); if(e.sig) libSeen.add(e.sig); n++; } catch(_){} });
+    renderLib();
+    say(n + ' animasi pustaka dipulihkan dari penyimpanan browser.');
+  } catch(_){}
+}
+libReady = true; renderLib(); libLoad();
 
 /* ---------- Lain-lain ---------- */
 $('file').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
