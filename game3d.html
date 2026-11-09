@@ -138,6 +138,8 @@ body.aturOn #joy,body.aturOn .sb{z-index:41;pointer-events:none;outline:2px dash
 #aturBar button{font:700 12px Arial;color:#fff;background:#1f2a4d;border:1px solid #3a4f8a;border-radius:8px;padding:7px 12px;cursor:pointer}#aturBar button.ok{background:#1f8a4c;border-color:#3fd07c}
 #batalB{position:fixed;right:26px;top:64px;width:76px;height:76px;z-index:6;border-radius:50%;border:3px dashed #ff6b6bcc;background:#3a0a0acc;color:#ffb4b4;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 12px Arial;pointer-events:none;visibility:hidden;transition:transform .1s,background .1s}
 #batalB b{font-size:26px;line-height:1}#batalB.on{visibility:visible}#batalB.siap{background:#c81e1e;color:#fff;border-style:solid;border-color:#fff;transform:scale(1.15)}body.aturOn #batalB{visibility:visible;z-index:41;outline:2px dashed #ffd166;outline-offset:4px}
+.sb .gembok{position:absolute;inset:0;display:none;align-items:center;justify-content:center;border-radius:50%;background:rgba(10,4,20,.62);font-size:26px;line-height:1;pointer-events:none;filter:drop-shadow(0 0 4px #000)}
+.sb.terkunci .gembok{display:flex}.sb.terkunci .ik,.sb.terkunci .ikg{filter:grayscale(1) brightness(.6)}
 .sb .k2{position:absolute;top:2px;right:6px;font:900 15px Arial;color:#ffd166;text-shadow:0 0 4px #000,0 1px 0 #000;pointer-events:none}
 #bAtur{font:700 11px Arial;color:#ffd166;background:#141b33;border:1px solid #ffd16688;border-radius:7px;padding:6px 9px;cursor:pointer}
 @media (orientation:landscape) and (max-height:560px){#aturBar{top:4px;padding:5px 8px;font-size:11px}#aturBar small{display:none}#aturBar input{width:100px}#aturBar button{padding:5px 9px}}
@@ -1305,7 +1307,7 @@ function aturSimpanPosisi(id) { const e = $('#' + id), r = e.getBoundingClientRe
   addEventListener('resize', () => setTimeout(terapTombol, 60)); terapTombol(); setTimeout(terapTombol, 600); }   // diulang setelah kelas HP (ponsel) terpasang
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
-if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U (tahan + mouse): Benang Pengikat (magic damage + Slow) · I (tahan + mouse): Pukulan Centong Kelapa (lawan dekat: Stun 1 dtk + lari lebih cepat 2 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun + Shield) · Combo: U → I → O';
+if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U: Benang Pengikat (mengunci hero lawan terdekat — tahan + mouse untuk memilih lawan: benang mengikat 2 dtk, magic damage + Slow) · I (tahan + mouse): Pukulan Centong Kelapa (memukul kepala lawan dekat: Stun 1,2 dtk · Dayang Sumbi lebih cepat 4 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun + Shield) · Combo: U → I → O';
 if (HERO === 'angling') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Angin (jarak jauh) · U (tahan + mouse): Hembusan Angin (mendorong lawan jauh) · I (tahan + mouse): Bola Api · O: Elang Sakti (naik elang, terbang bebas 10 dtk + lebih cepat; Hembusan Angin & Bola Api jeda hanya 0,5 dtk, tetap diarahkan manual; Hembusan lebih luas) · O lagi saat terbang: elang melesat ke target, Angling Dharma meloncat turun';
 if (HERO === 'saras') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jurus Petir (pukul, hook, tendangan putar) · U (tahan + mouse): Kilat Bayangan (menghilang, muncul 0,5 m di depan lawan: lutut terbang + pukulan) · I (tahan + mouse): Tinju Halilintar (3 ledakan petir di jalur tinju: damage + Stun) · O: Puting Beliung Gledeg (berputar menendang 1,2 dtk sambil bergerak & menyedot lawan, ditutup Tendangan Gledeg + petir dari langit; kebal stun) · Pasif Muatan Petir: 4 serangan kena → pukulan berikutnya menyambar berantai · Combo: U → I → O';
 if (HERO === 'lutung') $('#help').textContent = 'WASD / panah: gerak (berlari 4 kaki) · J / Spasi: Cakaran (cakar, cakar, cakar silang) · U (tahan + mouse): Loncatan Lutung (mendarat di lingkaran; bisa 2x dalam 3 dtk, loncatan ke-2 salto) · I (tahan + mouse): Badai Cakar (menerjang 3 m, 5 cakaran, terakhir Stun) · O: Terkaman Kasarung (otomatis ke lawan terdekat 7 m: melompat ke atas pundak lawan, mencakar muka/kepala bertubi-tubi, lalu melompat turun dengan cakaran pamungkas; damage diterima −50% & kebal stun) · Pasif Naluri Rimba: setelah mendarat, cakaran berikutnya ×1,5 + Bleeding';
@@ -1953,7 +1955,9 @@ function updPemain(dt) {
   // putar badan ke arah hadap dengan halus
   let d = P.arah - P.root.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); P.root.rotation.y += d * Math.min(1, dt * 14);
   P.mixer && P.mixer.update(dt); lompatPocong(P, dt);
-  ['bA', 'b1', 'b2', 'b3'].forEach((id, i) => { const b = $('#' + id), c = P.cd[i], v = c > 0 ? Math.ceil(c) : 0; b.querySelector('.cd').style.background = c > 0 ? `conic-gradient(#000c ${c / CD_MAX[i]}turn,#0006 0)` : ''; b.querySelector('em').textContent = c > .5 && i ? v : ''; });
+  ['bA', 'b1', 'b2', 'b3'].forEach((id, i) => { const b = $('#' + id), c = P.cd[i], v = c > 0 ? Math.ceil(c) : 0; b.querySelector('.cd').style.background = c > 0 ? `conic-gradient(#000c ${c / CD_MAX[i]}turn,#0006 0)` : ''; b.querySelector('em').textContent = c > .5 && i ? v : '';
+    const kunciS = pingsan() && !lepasStun(i) && P.state !== 'kalah' && !SELESAI;   // sedang Stun: tombol digembok (skill yang bisa lepas dari stun tetap terbuka)
+    if (b.classList.contains('terkunci') !== kunciS) { if (!b.querySelector('.gembok')) b.insertAdjacentHTML('beforeend', '<span class="gembok">🔒</span>'); b.classList.toggle('terkunci', kunciS); } });
 }
 
 // ================== TUYUL (hero ke-3: pembunuh lincah) ==================
@@ -3869,22 +3873,22 @@ function updAngling(dt, pos, f) {
 // ================== DAYANG SUMBI (hero ke-13: Mage / Support jarak jauh — jarum & benang emas, centong batok kelapa, anjing penjaga) ==================
 // animasi di dayang.glb (Tripo rig Mixamo + pustaka animasi Tripo, digabung skrip): diam (idle), jalan (walk — anggun, tanpa lari), sihir (cast_a_spell), pukul (chop),
 // kalah (defeat_03), kena (hit_to_body_01) · centong.glb: centong batok kelapa (posisi untuk tulang tangan kanan) · anjing-dayang.glb: anjing penjaga (rig Tripo, animasi buatan skrip: lari, diam, terkam)
-// Serangan dasar: Jarum Emas · Skill 1: Benang Pengikat (benang emas mengikat lawan: magic damage + Slow) · Skill 2: Pukulan Centong Kelapa (lawan dekat: damage + Stun 1 dtk, Dayang Sumbi lebih cepat 2 dtk)
+// Serangan dasar: Jarum Emas · Skill 1: Benang Pengikat (mengunci hero lawan: benang ala Angela mengikat 2 dtk, magic damage + Slow) · Skill 2: Pukulan Centong Kelapa (memukul kepala lawan dekat: damage + Stun 1,2 dtk, Dayang Sumbi lebih cepat 4 dtk)
 // Skill 3: Anjing Penjaga Dayang (anjing berlari ke area sasaran lalu menerkam: ledakan magic damage + Stun singkat + Shield untuk Dayang Sumbi) · Combo: Skill 1 → Skill 2 → Skill 3
 const DS = { cepat: 3.2, tsJalan: 1.9, emas: 0xffc83a, emas2: 0xfff0b0, pink: 0xff6ac8, ungu: 0xb070ff,
   jarum: { ts: 1.6, rilis: .28, akhir: .5, jarak: 9.5, cepat: 19, dmg: 55, R: .6 },
-  benang: { ts: 1.4, rilis: .34, akhir: .78, jarak: 7.5, cepat: 14, dmg: 90, R: .9, lambat: 2 },
-  centong: { ts: 1.8, kenaT: .53, akhir: .8, maju: 1.1, R: 1.7, dmg: 110, stun: 1, lari: 2, cepatK: 1.5 },
-  anjing: { ts: 1.4, rilis: .3, akhir: .75, jarak: 8, R: 2.6, cepat: 13, dmg: 160, stun: .8, perisai: 250, lamaP: 4, sk: 2.3 } };
-const DSW = { cepatT: 0, perisai: 0, perisaiT: 0, bola: null };
-const ANJING = { url: 'model-3d/anjing-dayang.glb?v=1', glb: null }, CENTONG_URL = 'model-3d/centong.glb?v=1';
+  benang: { ts: 1.4, rilis: .34, akhir: .78, jarak: 7.5, putus: 10, cepat: 14, dmg: 90, R: .9, lambat: 2 },   // mengunci hero: benang menempel ke lawan selama 'lambat' detik (putus kalau lebih jauh dari 'putus' m)
+  centong: { ts: 1.8, kenaT: .44, akhir: .66, maju: 1.1, R: 1.7, dmg: 110, stun: 1.2, lari: 4, cepatK: 1.5 },   // kenaT: centong mendarat di kepala lawan
+  anjing: { ts: 1.4, rilis: .3, akhir: .75, jarak: 8, R: 2.6, cepat: 13, dmg: 160, stun: .8, perisai: 250, lamaP: 4, sk: 1.55 } };   // sk: ukuran anjing (area ledakan R tetap)
+const DSW = { cepatT: 0, perisai: 0, perisaiT: 0, bola: null, sasaran: null, tali: null };
+const ANJING = { url: 'model-3d/anjing-dayang.glb?v=3', glb: null }, CENTONG_URL = 'model-3d/centong.glb?v=1';
 function siapkanDayang(gl, m, T) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
   const klip = c => rapikanKlip(c.clone(), m, 0, false), sub = (n, nama, a, b) => { const c = cari(n); return c ? THREE.AnimationUtils.subclip(c, nama, Math.round(a * 24), Math.round(b * 24), 24) : null; };
   const pasang = (k, c, satu) => { if (c) T.act[k] = satu ? sekali(T.mixer.clipAction(klip(c))) : T.mixer.clipAction(klip(c)); };
   pasang('diam', cari('diam')); pasang('jalan', cari('jalan'));
   pasang('jarum', sub('sihir', 'jarum', 1, 2), 1); pasang('benang', sub('sihir', 'benang', 2.6, 3.8), 1); pasang('panggil', sub('sihir', 'panggil', 2.8, 4), 1);
-  pasang('pukul', sub('pukul', 'pukul', 1.1, 2.5), 1); pasang('kalah', cari('kalah'), 1); pasang('kena', cari('kena'), 1);
+  pasang('pukul', sub('pukul', 'pukul', 1.1, 2.05), 1);   // berhenti saat centong menghantam setinggi kepala (tidak membungkuk sampai ke tanah) pasang('kalah', cari('kalah'), 1); pasang('kena', cari('kena'), 1);
   if (!T.act.diam) T.act.diam = T.act.jalan; T.act.lari = T.act.jalan; T.dayang = true;   // tidak ada animasi lari: selalu berjalan
   m.traverse(o => { if (o.isBone && /RightHand$/.test(o.name)) T.tanganA = o; });
   muatGLB(CENTONG_URL).then(g => { if (!T.tanganA || T.model !== m) return; const c = salinGLB(g).scene; c.traverse(o => { if (o.isMesh) o.castShadow = true; }); if (KUAL.lv === 0) gantiBahan(c, keLambert); c.visible = false; T.tanganA.add(c); T.centong = c; }).catch(() => { });
@@ -3917,6 +3921,26 @@ function dsBenang(pos, a, jarak, cb) {   // Benang Pengikat: gulungan cahaya ema
     return true; },
     akhir() { [inti, ...b].forEach(x => { scene.remove(x); x.material.dispose(); }); } });
 }
+const T_HATI = tex(128, 128, x => { x.translate(64, 70); x.shadowColor = '#ff7ad0'; x.shadowBlur = 18; x.fillStyle = '#ffd6f0'; x.beginPath(); x.moveTo(0, 34);
+  x.bezierCurveTo(-48, 4, -40, -40, 0, -16); x.bezierCurveTo(40, -40, 48, 4, 0, 34); x.fill(); x.fillStyle = '#fff'; x.beginPath(); x.ellipse(-14, -14, 7, 5, -.6, 0, Math.PI * 2); x.fill(); });
+T_HATI.wrapS = T_HATI.wrapT = THREE.ClampToEdgeWrapping; T_HATI.repeat.set(1, 1);
+function dsTali(dari, ke, lama = 2, ikutA = null, ikutB = null) {   // Benang Pengikat (ala Angela): benang cahaya pink-emas bergelombang dari tangan Dayang Sumbi ke lawan + hati mengalir
+  const A = dari.clone(), B = ke.clone().setY(1.1), N = KUAL.lv === 0 ? 10 : 18, manik = [], hati = [];
+  for (let i = 0; i < N; i++) { const sp = new THREE.Sprite(matCahaya(T_BULAT, i % 3 ? DS.pink : DS.emas, .9)); sp.scale.setScalar(.22); sp.renderOrder = 5; scene.add(sp); manik.push(sp); }
+  for (let i = 0; i < (KUAL.lv === 0 ? 2 : 4); i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_HATI, color: 0xffb0e0, transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending })); sp.scale.setScalar(.34); sp.renderOrder = 6; scene.add(sp); hati.push({ sp, u: i / 4 }); }
+  const garis = [0, 1].map(k => { const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints(new Array(24).fill(0).map(() => new THREE.Vector3())), new THREE.LineBasicMaterial({ color: k ? DS.emas2 : DS.pink, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); l.frustumCulled = false; scene.add(l); return l; });
+  const titik = (u, t, fase) => { const p = A.clone().lerp(B, u), s = Math.sin(u * Math.PI); p.y += s * .35 + Math.sin(u * 9 - t * 10 + fase) * .09 * s; p.x += Math.cos(u * 7 - t * 8 + fase) * .07 * s; p.z += Math.sin(u * 6 + t * 7 + fase) * .07 * s; return p; };
+  nyala(B.clone(), 1, DS.pink, .25);
+  TMFX.push({ t: 0, upd(e, dt) {
+    if (typeof ikutA === 'function') { const v = ikutA(); if (!v) return false; A.copy(v); } if (typeof ikutB === 'function') { const v = ikutB(); if (!v) return false; B.copy(v).setY(1.1); }
+    const tumbuh = Math.min(1, e.t / .15), pudar = e.t > lama - .25 ? Math.max(0, (lama - e.t) / .25) : 1;
+    manik.forEach((sp, i) => { const u = i / (N - 1) * tumbuh; sp.position.copy(titik(u, e.t, 0)); sp.material.opacity = .85 * pudar; sp.scale.setScalar(.18 + .08 * Math.sin(e.t * 12 + i)); });
+    garis.forEach((l, k) => { const a = l.geometry.attributes.position; for (let i = 0; i < 24; i++) { const p = titik(i / 23 * tumbuh, e.t, k * 2.2); a.setXYZ(i, p.x, p.y, p.z); } a.needsUpdate = true; l.material.opacity = .9 * pudar; });
+    hati.forEach(h => { h.u = (h.u + dt * .9) % 1; h.sp.position.copy(titik(h.u * tumbuh, e.t, 0)); h.sp.material.opacity = pudar * Math.sin(h.u * Math.PI); });
+    if (Math.random() < dt * 14) percik(titik(Math.random(), e.t, 0), 1, Math.random() < .5 ? DS.pink : DS.emas2, .4, .08);
+    return e.t < lama; },
+    akhir() { manik.forEach(sp => { scene.remove(sp); sp.material.dispose(); }); hati.forEach(h => { scene.remove(h.sp); h.sp.material.dispose(); }); garis.forEach(l => { scene.remove(l); l.geometry.dispose(); l.material.dispose(); }); } });
+}
 function dsIkat(pos, lama = 2, ikut = null) {   // lawan terikat: 3 cincin benang emas berputar di badan + lingkaran pink di lantai
   const p = pos.clone(), g = new THREE.Group(), bhn = new THREE.MeshBasicMaterial({ color: DS.emas, transparent: true, opacity: .9, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
   const cin = [0, 1, 2].map(k => { const c = new THREE.Mesh(new THREE.TorusGeometry(.5 - k * .04, .025, 6, 36), bhn); c.rotation.x = Math.PI / 2; c.position.y = .45 + k * .4; g.add(c); return c; });
@@ -3929,6 +3953,13 @@ function dsIkat(pos, lama = 2, ikut = null) {   // lawan terikat: 3 cincin benan
     if (Math.random() < dt * 12) percik(g.position.clone().setY(rnd(.3, 1.5)), 1, DS.emas, .5, .1);
     return e.t < lama; },
     akhir() { scene.remove(g); cin.forEach(c => c.geometry.dispose()); bhn.dispose(); lan.geometry.dispose(); lan.material.dispose(); } });
+}
+function dsBonk(pos, lama = 1.2, ikut = null) {   // centong menghantam kepala lawan: kilatan di kepala + bintang berputar di atas kepala selama Stun
+  const p = pos.clone(), kp = () => { if (typeof ikut === 'function') { const v = ikut(); if (v) p.set(v.x, v.y, v.z); } return p.clone().setY(1.75); };
+  const h = kp(); nyala(h, 1.3, DS.emas2, .2); percik(h, 16, DS.emas, 2.6, .12); gelombang(h.clone(), .7, .25, DS.emas); kilat(h, 35); angka(p, 'BONK!', '#ffd25a');
+  const bin = [0, 1, 2].map(() => tSinar(0xffe66a, .32));
+  TMFX.push({ t: 0, upd(e, dt) { const c = kp().add(new THREE.Vector3(0, .25, 0)); bin.forEach((b, k) => { const a = e.t * 7 + k * 2.09; b.position.set(c.x + Math.cos(a) * .38, c.y + Math.sin(e.t * 5 + k) * .05, c.z + Math.sin(a) * .38); b.material.opacity = e.t > lama - .2 ? Math.max(0, (lama - e.t) / .2) : 1; }); return e.t < lama; },
+    akhir() { bin.forEach(b => { scene.remove(b); b.material.dispose(); }); } });
 }
 function dsCentong(pos, a) {   // ayunan centong: sapuan cahaya emas di depan + bintang
   const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), c = pos.clone().addScaledVector(d, DS.centong.maju);
@@ -3970,7 +4001,14 @@ function pakaiDayang(i) {
   const pos = P.root.position;
   const arahi = maks => { if (K.bidik === i && K.diarahkan) P.arah = K.arahBidik; else { const m = terdekat(maks); if (m) hadapKe(m.g.position); } };
   if (i === 0) { arahi(DS.jarum.jarak + .5); P.state = 'dsJarum'; mainUlang('jarum', .05, DS.jarum.ts); }
-  else if (i === 1) { arahi(DS.benang.jarak + .5); P.state = 'dsBenang'; mainUlang('benang', .05, DS.benang.ts); }
+  else if (i === 1) {   // Benang Pengikat: mengunci hero lawan (tekan = lawan terdekat · dibidik = lawan terdekat ke arah bidikan); tanpa lawan dalam jangkauan tidak dipakai
+    const B = DS.benang; let m = null;
+    if (K.bidik === 1 && K.diarahkan) { const d0 = new THREE.Vector3(Math.sin(K.arahBidik), 0, Math.cos(K.arahBidik)); let bs = 1e9;
+      MUSUH.forEach(o => { if (o.mati || o.sembunyi || o.semak) return; const v = o.g.position.clone().sub(pos).setY(0), L = v.length(); if (L > B.jarak || L < .01) return; const sud = v.normalize().angleTo(d0); if (sud > .8) return; const sk = L + sud * 6; if (sk < bs) { bs = sk; m = o; } }); }
+    else m = terdekat(B.jarak);
+    if (!m) { angka(pos, 'Tidak ada lawan', '#ffb0e0'); return; }
+    hadapKe(m.g.position); DSW.sasaran = m; P.state = 'dsBenang'; mainUlang('benang', .05, B.ts);
+  }
   else if (i === 2) { arahi(DS.centong.maju + DS.centong.R + .8); P.state = 'dsCentong'; mainUlang('pukul', .05, DS.centong.ts); }
   else if (i === 3) {   // dibidik = titik lingkaran · tanpa bidik = lawan terdekat (dalam jangkauan)
     let tj;
@@ -3986,6 +4024,7 @@ function dsKenaProyektil(p, d, R, cb) { for (const m of MUSUH) { if (!m.mati && 
 function updDayang(dt, pos, f) {
   const t = P.t; updBidik();
   DSW.cepatT = Math.max(0, DSW.cepatT - dt);
+  if (DSW.tali) { const q = DSW.tali; q.t -= dt; if (q.t <= 0 || q.m.mati || P.state === 'kalah' || q.m.g.position.distanceTo(pos) > DS.benang.putus) DSW.tali = null; else lambatkan(q.m, Math.min(.3, q.t)); }   // selama terikat lawan tetap melambat
   if (DSW.perisaiT > 0) { DSW.perisaiT -= dt; if (DSW.perisaiT <= 0 || DSW.perisai <= 0) { DSW.perisaiT = 0; DSW.perisai = 0; } }
   dsBolaPerisai(DSW.perisai > 0 && P.state !== 'kalah'); if (DSW.bola && DSW.bola.visible) DSW.bola.material.opacity = .14 + .06 * Math.sin(performance.now() * .008); dsLencana();
   if (DSW.cepatT > 0 && Math.random() < dt * 14) percik(pos.clone().setY(.2), 1, 0x8fd8ff, .8, .1);
@@ -4000,16 +4039,17 @@ function updDayang(dt, pos, f) {
       fx('dsJarum', st, P.arah, jarakTempuh(st.clone().setY(1.15), d, B.jarak, B.R), p => dsKenaProyektil(p, d, B.R, m => kena(m, B.dmg, p.clone().addScaledVector(d, -1), 1))); }
     if (t > B.akhir) dsBebas();
   }
-  else if (P.state === 'dsBenang') {   // Benang Pengikat: damage + Slow, lawan tampak terikat benang emas
-    const B = DS.benang;
-    if (t > B.rilis && !P.hit) { P.hit = 1; const d = depan(), st = tanganDayang(P); st.y = Math.max(.9, Math.min(1.5, st.y)); st.addScaledVector(d, .25);
-      fx('dsBenang', st, P.arah, jarakTempuh(st.clone().setY(1.15), d, B.jarak, B.R), p => dsKenaProyektil(p, d, B.R, m => { kena(m, B.dmg, p.clone().addScaledVector(d, -1), .5); lambatkan(m, B.lambat); fx('dsIkat', m.g.position.clone(), B.lambat, () => m.g.position); goyang = Math.max(goyang, .08); })); }
+  else if (P.state === 'dsBenang') {   // Benang Pengikat: benang menempel ke hero lawan → magic damage + Slow selama benang terikat
+    const B = DS.benang, m = DSW.sasaran;
+    if (t > B.rilis && !P.hit) { P.hit = 1;
+      if (m && !m.mati) { hadapKe(m.g.position); kena(m, B.dmg, pos, .5); lambatkan(m, B.lambat); goyang = Math.max(goyang, .08);
+        DSW.tali = { m, t: B.lambat }; fx('dsTali', tanganDayang(P), m.g.position.clone(), B.lambat, () => P.state === 'kalah' ? null : tanganDayang(P), () => m.mati ? null : m.g.position); fx('dsIkat', m.g.position.clone(), B.lambat, () => m.g.position); } }
     if (t > B.akhir) dsBebas();
   }
   else if (P.state === 'dsCentong') {   // Pukulan Centong Kelapa: lawan dekat di depan → damage + Stun, lalu Dayang Sumbi lebih cepat
     const B = DS.centong;
     if (t > B.kenaT && !P.hit) { P.hit = 1; fx('dsCentong', pos.clone(), P.arah); let ada = 0;
-      kenaDepan(pos, f, B.maju, B.R, m => { kena(m, B.dmg, pos, 2.5); m.pusing = Math.max(m.pusing || 0, B.stun); ada = 1; });
+      kenaDepan(pos, f, B.maju, B.R, m => { kena(m, B.dmg, pos, 1.5); m.pusing = Math.max(m.pusing || 0, B.stun); fx('dsBonk', m.g.position.clone(), B.stun, () => m.g.position); ada = 1; });
       goyang = Math.max(goyang, ada ? .2 : .08); DSW.cepatT = B.lari; fx('dsLari', pos.clone()); }
     if (t > B.akhir) dsBebas();
   }
@@ -4568,7 +4608,7 @@ $('#phMain').onclick = () => {
 function mainLagi(ronde) {   // ronde = lanjut ronde berikutnya (skor tetap); tanpa ronde = tanding ulang dari 0
   const darahP = ronde && P.state !== 'kalah' ? Math.max(1, P.hp) : HP_MAX[HERO];   // pemenang ronde: darah tidak kembali penuh
   SELESAI = false; $('#hasil').classList.remove('on'); K.terbangT = 0; K.lesat = 0;
-  P.hp = darahP; P.ungkap = 0; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; P.tarikD = null; P.angkatD = null; ANGKAT.length = 0; BERDARAH.length = 0; TARIK.length = 0; DW.combo = 0; GW.amuk = GW.combo = GW.comboT = 0; BW.combo = BW.comboT = 0; BW.batu.length = 0; BATU_TEMBOK.length = 0; P.pegang = null; EW.k2 = EW.k2T = 0; erK2Lencana(); LW.combo = LW.comboT = LW.l2 = LW.l2T = 0; LW.pasif = false; P.mangsa = null; if (HERO === 'lutung') lkLencana(); SW.combo = SW.comboT = SW.muatan = SW.hilang = 0; AW.terbang = 0; if (HERO === 'angling') adLencana(); DSW.cepatT = DSW.perisai = DSW.perisaiT = 0; SW.sasaran = null; if (P.model) P.model.visible = true; if (HERO === 'saras') srLencana(); P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
+  P.hp = darahP; P.ungkap = 0; P.state = 'bebas'; TY.koin = 0; TY.hilang = 0; TY.sergap = false; updUIKoin(); P.cd = [0, 0, 0, 0]; P.cur = ''; P.kunci = P.pusing = 0; P.jatuh = 0; P.tarikD = null; P.angkatD = null; ANGKAT.length = 0; BERDARAH.length = 0; TARIK.length = 0; DW.combo = 0; GW.amuk = GW.combo = GW.comboT = 0; BW.combo = BW.comboT = 0; BW.batu.length = 0; BATU_TEMBOK.length = 0; P.pegang = null; EW.k2 = EW.k2T = 0; erK2Lencana(); LW.combo = LW.comboT = LW.l2 = LW.l2T = 0; LW.pasif = false; P.mangsa = null; if (HERO === 'lutung') lkLencana(); SW.combo = SW.comboT = SW.muatan = SW.hilang = 0; AW.terbang = 0; if (HERO === 'angling') adLencana(); DSW.cepatT = DSW.perisai = DSW.perisaiT = 0; DSW.tali = null; SW.sasaran = null; if (P.model) P.model.visible = true; if (HERO === 'saras') srLencana(); P.tilt.rotation.set(0, 0, 0); P.tilt.scale.set(1, 1, 1); P.tilt.position.y = 0; main('diam', .1); posisiAwal(); $('#lagi').style.display = '';
   if (HERO === 'kunti') kuntiTembus(1);
   if (BOT) BOT.reset(!ronde, !!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
   if (LAWAN === 'bot' && !ronde) { SKOR = [0, 0]; updSkorBot(); }
@@ -4622,7 +4662,7 @@ R.root.add(R.tilt);
 R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, remote: true, bar: null };
 
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
-const FXF = { bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai };
+const FXF = { bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali };
 const FX_SUDUT = { dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
 function fx(n, ...a) {
   FXF[n](...a);
