@@ -5819,7 +5819,7 @@ async function buatBotPro(o) {
 // Tim Merah (bawah, z+) vs Tim Putih (atas, z−). Jalur tengah: Rumah – Garuda – Singa – Tugu Nanas – Singa – Garuda – Rumah.
 // Tanpa turret, tanpa batas waktu. Kunci berurutan: Singa → Garuda → Rumah. Menang = rumah (tempat respawn) lawan hancur.
 // Singa & Garuda hidup: siapa pun hero lawan di dalam lingkaran jaganya dikejar & diserang. Tidak muncul lagi setelah mati.
-// Monster hutan (muncul lagi 45 dtk): yang membunuh pulih 30% HP & memilih 1 dari 3 kartu stat acak (+10% s/d +50%); satu kartu selalu stat khas monsternya:
+// Monster hutan (muncul lagi 45 dtk): yang membunuh pulih 30% HP & memilih 1 dari 3 kartu stat acak (angka sama, +5% s/d +15%); satu kartu selalu stat khas monsternya:
 //   Badak HP · Harimau Attack · Kerbau Defense · Kancil Speed · Monyet Attack Speed · Merak Cooldown.
 // Tugu Nanas: berdiri di lingkaran tanpa musuh 10 dtk (berdua 7 dtk, bertiga 5 dtk) = dikuasai (bisa direbut balik dengan cara sama); tim pemilik pulih 10% HP/dtk di lingkaran
 //   (berhenti 2 dtk setelah kena serangan). Rumah tidak memberi heal.
@@ -6073,7 +6073,7 @@ function wnMati(E) {
   const p = E.g.position.clone().setY(0), k = E.oleh;
   if (E.jenis === 'mon') {
     E.hidupT = performance.now() + WNV.mon.ulang * 1000; E.g.visible = false; percik(p, 22, 0xffe08a, 3); asap(p, 5, 0xbfae8a, 1, .7);
-    if (k && k.id != null) {   // yang membunuh: pulih 30% HP + pilih 1 dari 3 kartu stat acak (+10% s/d +50%)
+    if (k && k.id != null) {   // yang membunuh: pulih 30% HP + pilih 1 dari 3 kartu stat acak (+5% s/d +15%)
       if (k.id === TIM.me) { if (P.state !== 'kalah') { const t = Math.round(HP_MAX[HERO] * .3), n = Math.min(t, HP_MAX[HERO] - P.hp); P.hp += n; if (n > 0) angka(P.root.position, '+' + Math.round(n), '#7dff8a'); percik(P.root.position.clone().setY(.3), 14, 0x7dff8a, 2); } wnKartuMuncul(E.stat); }
       else { const o = TIM.bot.get(k.id); if (o && !o.mt.mati) o.mt.hp = Math.min(o.mt.hpMax, o.mt.hp + o.mt.hpMax * .3); const c = wnAcakKartu(E.stat).sort((a, b) => b.v - a.v)[0]; wnTambah(k.id, c.k, c.v); } }
   } else if (E.jenis === 'singa' || E.jenis === 'garuda' || E.jenis === 'rumah') {
@@ -6369,21 +6369,22 @@ function wnHud() {
   e.innerHTML = `<span class="m">🔴 ${TIM.skor[0]}</span><small>⏱ ${Math.floor(w / 60)}:${String(w % 60).padStart(2, '0')}<br>🍍 ${tg}</small><span class="wnP">${TIM.skor[1]} ⚪</span>` + (TIM.hidupT ? `<div class="hdp">Bangkit di rumah dalam ${Math.max(1, Math.ceil((TIM.hidupT - performance.now()) / 1000))}…</div>` : '');
   e.classList.remove('kanan');
 }
-// ---- kartu stat: tiap membunuh monster muncul 3 kartu acak (+10% s/d +50%), pilih satu (HP: ketuk · PC: tombol 1 / 2 / 3) ----
-// salah satu kartu selalu stat khas monsternya; tidak dipilih dalam 10 detik → otomatis kartu terbesar
+// ---- kartu stat: tiap membunuh monster muncul 3 kartu stat acak dengan angka sama (+5% s/d +15%), pilih satu (HP: ketuk · PC: tombol 1 / 2 / 3) ----
+// salah satu kartu selalu stat khas monsternya; tidak dipilih dalam 10 detik → otomatis kartu pertama
 const WN_KARTU = { buka: null, antri: [], t: 0 };
 function wnAcakKartu(st0) {
   const semua = ['hp', 'atk', 'def', 'spd', 'as', 'cd'], pil = [st0];
   while (pil.length < 3) { const k = pilihAcak(semua); if (!pil.includes(k)) pil.push(k); }
   for (let i = pil.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pil[i], pil[j]] = [pil[j], pil[i]]; }
-  return pil.map(k => ({ k, v: 10 + 5 * Math.floor(Math.random() * 9) }));
+  const v = 5 + Math.floor(Math.random() * 11);   // satu angka acak 5–15% untuk ketiga kartu
+  return pil.map(k => ({ k, v }));
 }
 function wnKartuMuncul(st0) { WN_KARTU.antri.push(wnAcakKartu(st0)); if (!WN_KARTU.buka) wnKartuBuka(); else wnKartuJudul(); }
 function wnKartuBuka() {
   const e = $('#wnKartu'), c = WN_KARTU.antri.shift(); if (!e) return;
   if (!c) { WN_KARTU.buka = null; e.classList.remove('on'); return; }
   WN_KARTU.buka = c; WN_KARTU.t = 10;
-  e.innerHTML = '<div class="wkj"></div>' + c.map((x, i) => `<button class="wk r${x.v >= 40 ? 3 : x.v >= 25 ? 2 : 1}" data-i="${i}"><i>${WN_STAT[x.k].ik}</i><span>${WN_STAT[x.k].n}</span><b>+${x.v}%</b><small>${DI_HP ? '' : i + 1}</small></button>`).join('');
+  e.innerHTML = '<div class="wkj"></div>' + c.map((x, i) => `<button class="wk r${x.v >= 13 ? 3 : x.v >= 9 ? 2 : 1}" data-i="${i}"><i>${WN_STAT[x.k].ik}</i><span>${WN_STAT[x.k].n}</span><b>+${x.v}%</b><small>${DI_HP ? '' : i + 1}</small></button>`).join('');
   e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); wnKartuJudul();
 }
 function wnKartuJudul() { const j = $('#wnKartu .wkj'); if (j) j.textContent = `🃏 Pilih 1 kartu · ${Math.max(1, Math.ceil(WN_KARTU.t))} dtk` + (WN_KARTU.antri.length ? ` · +${WN_KARTU.antri.length} lagi` : ''); }
