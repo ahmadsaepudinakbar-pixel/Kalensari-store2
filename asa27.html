@@ -1520,7 +1520,7 @@ function libRow(it){
     <div class="layer lib${on ? ' on' : ''}"><span class="pl">${pl ? '▶' : '▷'}</span><span class="nm" title="${esc(it.name)}">${esc(it.name)}</span><span class="ext">${dur}</span>
       <button class="add" ${has ? 'disabled' : ''} title="${has ? 'Sudah ada di daftar animasi' : 'Tambah ke daftar animasi'}" aria-label="Tambah ${esc(it.name)}">${has ? '✓' : '+'}</button><button class="x xr" title="${it.src === 'fbx' ? 'Hapus dari pustaka' : 'Sembunyikan animasi bawaan dari pustaka'}" aria-label="Hapus ${esc(it.name)}">×</button></div>
     ${on ? `<div class="libdet"><select class="libcat" aria-label="Kategori">${CATS.map(c => `<option${c === it.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>${it.src === 'fbx' ? `<select class="libgrp" aria-label="Pose"><option value="T"${it.grp === 'T' ? ' selected' : ''}>Pose T</option><option value="A"${it.grp === 'A' ? ' selected' : ''}>Pose A</option><option value="H"${it.grp === 'H' ? ' selected' : ''}>Pose Hewan</option></select>` : ''}${it.src === 'fbx' ? '<button class="x" title="Hapus dari pustaka" aria-label="Hapus dari pustaka">Hapus</button>' : '<button class="x" title="Sembunyikan animasi bawaan ini (bisa ditampilkan lagi)" aria-label="Sembunyikan">Sembunyikan</button>'}</div>
-    <p class="note" style="margin:4px 0 0">${it.src === 'fbx' ? 'Pose awal animasi: ' + esc(poseText(it.pose)) + '.' : it.src === 'tripo' ? (it.grp === 'H' ? 'Animasi bawaan elang Angling Dharma (' + esc(it.lib) + '), selalu ada di pustaka.' : 'Animasi bawaan Tripo (' + esc(it.lib) + '), selalu ada di pustaka.') : 'Contoh bawaan, dibuat dari kode.'}</p>
+    <p class="note" style="margin:4px 0 0">${it.src === 'fbx' ? 'Pose awal animasi: ' + esc(poseText(it.pose)) + '.' : it.src === 'tripo' ? (it.grp === 'H' ? 'Animasi bawaan elang Angling Dharma (' + esc(it.lib) + '), selalu ada di pustaka.' : 'Animasi bawaan Tripo (' + esc(it.lib) + '), selalu ada di pustaka.') : it.src === 'mixamo' ? 'Animasi Mixamo bawaan (' + esc(it.lib) + '), sudah disesuaikan ke kerangka Tripo — selalu ada di pustaka.' : 'Contoh bawaan, dibuat dari kode.'}</p>
     <button class="primary libadd" style="margin-top:6px" ${has ? 'disabled' : ''}>${has ? 'Sudah ada di daftar Animasi (kiri)' : 'Tambah ke daftar Animasi (kiri)'}</button>` : ''}
   </div>`;
 }
@@ -1576,7 +1576,7 @@ $('libList').addEventListener('change', e => {
   if(!isG && !e.target.classList.contains('libcat')) return;
   const box = e.target.closest('.libitem'), it = box && LIB.find(x => x.id == box.dataset.id);
   if(it && isG){ it.grp = e.target.value; if(it.grp === 'H' && !KAT_HEWAN.includes(it.cat)) it.cat = autoCatHewan(it.name); else if(it.grp !== 'H' && KAT_HEWAN.includes(it.cat)) it.cat = autoCat(it.name); libSave(it); renderLib(); say('“' + it.name + '” dipindah ke ' + namaGrp(it.grp) + '.'); return; }
-  if(it){ it.cat = e.target.value; libCat = 'Semua'; libSave(it); if(it.src === 'tripo') tripoCatSimpan(it); renderLib(); }
+  if(it){ it.cat = e.target.value; libCat = 'Semua'; libSave(it); if(it.src === 'tripo' || it.src === 'mixamo') tripoCatSimpan(it); renderLib(); }
 });
 $('libCats').addEventListener('click', e => {
   const b = e.target.closest('.chip'); if(!b) return;
@@ -1685,6 +1685,33 @@ async function libBawaan(){
     say(anims.length + ' animasi bawaan Tripo dimuat ke pustaka.');
   } catch(err){ say('Animasi bawaan Tripo gagal dimuat (' + (err && err.message || err) + ').', true); }
 }
+/* ---------- Animasi bawaan Mixamo (file model-3d/pustaka-animasi-mixamo.glb, hanya kerangka + 12 animasi pedang) ----------
+   FBX dari Mixamo sudah dipindahkan ke kerangka Tripo (Sangkuriang) di luar browser, jadi tidak lewat pembaca FBX
+   (FBX Mixamo dengan PreRotation kadang terbaca miring → hasil retarget meringkuk). */
+const MIXAMO_URL = 'model-3d/pustaka-animasi-mixamo.glb?v=1';
+const MIXAMO_CAT = { 'Fight Idle': 'Diam & Santai' };
+async function libMixamo(){
+  try {
+    const r = await fetch(MIXAMO_URL);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const { obj, anims } = await parseModel('glb', await r.arrayBuffer());
+    const pose = detectPose(obj), srcQ = new Map(), srcW = new Map(), ubah = tripoCatUbah();
+    obj.updateMatrixWorld(true);
+    obj.traverse(o => {
+      if(!o.name) return;
+      const k = norm(o.name);
+      srcQ.set(k, o.quaternion.clone());
+      srcW.set(k, { w: o.getWorldQuaternion(new THREE.Quaternion()), pw: o.parent ? o.parent.getWorldQuaternion(new THREE.Quaternion()) : new THREE.Quaternion() });
+    });
+    anims.forEach(c => {
+      const id = ++cid;
+      LIB.push({ id, key: 'm' + id, lib: c.name, name: c.name, cat: ubah[c.name] || MIXAMO_CAT[c.name] || 'Serang Senjata', src: 'mixamo', clip: c, srcQ, srcW, pose, dur: c.duration, grp: 'both' });
+    });
+    disposeObj(obj);
+    renderLib();
+    say(anims.length + ' animasi Mixamo bawaan dimuat ke pustaka.');
+  } catch(err){ say('Animasi Mixamo bawaan gagal dimuat (' + (err && err.message || err) + ').', true); }
+}
 /* ---------- Animasi bawaan hewan: Elang Sakti (rig Tripo; animasi terbang, melayang, diam buatan skrip) ---------- */
 async function libElang(){
   try {
@@ -1700,7 +1727,7 @@ async function libElang(){
   } catch(_){}
 }
 $('libBalik').onclick = () => { const n = SEMBUNYI.size; SEMBUNYI.clear(); simpanSembunyi(); renderLib(); say(n + ' animasi bawaan ditampilkan lagi.'); };
-libReady = true; renderLib(); libLoad(); libBawaan(); libElang();
+libReady = true; renderLib(); libLoad(); libBawaan(); libMixamo(); libElang();
 
 /* ---------- Lain-lain ---------- */
 $('file').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
