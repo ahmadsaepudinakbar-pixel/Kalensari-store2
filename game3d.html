@@ -5153,6 +5153,7 @@ function bayangKS(T) {   // Kian Santang kedua: tampilan sama persis dengan asli
   if (KUAL.lv === 0) gantiBahan(m, keLambert);
   m.scale.copy(T.model.scale); m.position.copy(T.model.position); m.rotation.copy(T.model.rotation);
   const g = new THREE.Group(), piv = new THREE.Group(); piv.add(m); g.add(piv); scene.add(g);
+  piv.position.copy(T.pivot.position);   // poros setinggi setengah badan (sama seperti hero asli) supaya tidak tenggelam
   const mixer = new THREE.AnimationMixer(m), act = {};
   Object.entries(T.act).forEach(([k, a]) => { if (!a) return; const b = mixer.clipAction(a.getClip()); b.setLoop(a.loop, a.repetitions); b.clampWhenFinished = a.clampWhenFinished; act[k] = b; });
   return { g, m, mixer, act, cur: '', umur: KSV.s3.lama, t: 0, cd: 0, combo: 0, hp: HP_MAX.kiansantang, pusing: 0, kebal: 0, semangat: 0, cd1: 0, cd2: 0 };
