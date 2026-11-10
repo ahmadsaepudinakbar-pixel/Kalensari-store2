@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Model Studio ASA27 – GLB + FBX + Animasi</title>
+<title>Model Studio ASA27 – GLB + FBX + OBJ + Animasi</title>
 <style>
 :root{--bg:#14181c;--panel:#1d2329;--line:#2d363e;--text:#e6ebef;--mute:#8d9aa5;--acc:#4cc3b0;--accText:#07201c}
 *{box-sizing:border-box}
@@ -62,6 +62,7 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
 .layer .add:disabled{background:transparent;color:var(--acc);opacity:.7;cursor:default}
 .layer.lib{cursor:pointer}
 .layer.lib .pl{width:14px}
+.layer.lib .xr{font-size:16px;padding:0 4px;margin-left:-4px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{width:auto;padding:3px 10px;font-size:12px;border-radius:999px}
 .chip.on{background:var(--acc);color:var(--accText);border-color:var(--acc)}
@@ -80,6 +81,22 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
 .layer .tx{flex:1;min-width:0}
 .layer .tx .nm{display:block}
 .layer .tx .note{display:block;margin-top:1px}
+/* penanda jenis model: karakter utama (hijau toska), item (kuning emas), kendaraan / hewan (ungu) */
+.jk-karakter{--jc:#4cc3b0;--jb:rgba(76,195,176,.09)}
+.jk-item{--jc:#f0b429;--jb:rgba(240,180,41,.09)}
+.jk-hewan{--jc:#b48cff;--jb:rgba(180,140,255,.10)}
+.layer[class*="jk-"]{border-left:4px solid var(--jc)}
+.layer.on[class*="jk-"]{border-color:var(--jc);background:var(--jb)}
+.layer .jb{font-size:11px;border:1px solid var(--jc);color:var(--jc);border-radius:4px;padding:0 5px;white-space:nowrap}
+#edit[class*="jk-"]{border:1px solid var(--jc);border-left:5px solid var(--jc);border-radius:10px;padding:10px;background:var(--jb)}
+#edit[class*="jk-"] h2{color:var(--jc)}
+.kotak{border:1px solid var(--line);border-radius:8px;padding:9px;background:rgba(0,0,0,.18)}
+.jenis{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.jenis button{padding:6px 4px;font-size:12px}
+.jenis button.on{background:var(--jc);color:#10161a;border-color:var(--jc);font-weight:700}
+.jenis button[data-j="karakter"]{--jc:#4cc3b0}.jenis button[data-j="item"]{--jc:#f0b429}.jenis button[data-j="hewan"]{--jc:#b48cff}
+.kotak .grid button{padding:8px 3px;font-size:13px;min-width:0}
+.ekspor{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 @media (max-width:760px){.app{grid-template-columns:1fr;grid-template-rows:auto 55vh auto}aside{border-right:0;border-bottom:1px solid var(--line)}#lib{border-left:0;border-top:1px solid var(--line);border-bottom:0}}
 </style>
 </head>
@@ -131,6 +148,34 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
     </div>
 
     <div id="edit" hidden>
+      <h2>Jenis model terpilih (penanda warna)</h2>
+      <div class="jenis" style="margin-top:6px">
+        <button data-j="karakter" title="Karakter utama (punya kerangka manusia)">👤 Karakter</button>
+        <button data-j="item" title="Item: senjata, aksesori, benda">🗡️ Item</button>
+        <button data-j="hewan" title="Kendaraan atau hewan">🐎 Kendaraan / Hewan</button>
+      </div>
+      <div id="attachBox" class="kotak" style="margin-top:10px" hidden>
+        <h2>Pasang ke tulang (senjata / aksesori)</h2>
+        <div class="row" style="margin-top:6px">
+          <label for="attachTo"><span>Karakter</span></label>
+          <select id="attachTo"></select>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <label for="attachBone"><span>Tulang</span></label>
+          <select id="attachBone"></select>
+        </div>
+        <div class="two" style="margin-top:8px">
+          <button id="attachBtn">Pasang</button>
+          <button id="detachBtn">Lepas</button>
+        </div>
+        <div class="grid" style="margin-top:8px">
+          <button data-preset="right" title="Pasang ke tangan kanan karakter di atas">Tangan kanan</button>
+          <button data-preset="left" title="Pasang ke tangan kiri karakter di atas">Tangan kiri</button>
+          <button data-preset="back" title="Pasang ke tulang punggung (spine/chest) karakter di atas">Punggung</button>
+        </div>
+        <p class="note" id="attachNote" style="margin:6px 0 0"></p>
+      </div>
+      <div class="kotak" style="margin-top:10px">
       <h2>Atur model terpilih</h2>
       <div class="two" style="margin-top:6px">
         <button id="gzMove" class="primary" title="Pintasan: G">Geser (G)</button>
@@ -181,32 +226,20 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
         <button id="norm">Normalkan ukuran</button>
         <button id="floor">Taruh di lantai</button>
       </div>
-      <div id="attachBox" style="margin-top:12px" hidden>
-        <h2>Pasang ke tulang (senjata / aksesori)</h2>
-        <div class="row" style="margin-top:6px">
-          <label for="attachTo"><span>Karakter</span></label>
-          <select id="attachTo"></select>
-        </div>
-        <div class="row" style="margin-top:6px">
-          <label for="attachBone"><span>Tulang</span></label>
-          <select id="attachBone"></select>
-        </div>
-        <div class="two" style="margin-top:8px">
-          <button id="attachBtn">Pasang</button>
-          <button id="detachBtn">Lepas</button>
-        </div>
-        <div class="grid" style="margin-top:8px">
-          <button data-preset="right" title="Pasang ke tangan kanan karakter di atas">Tangan kanan</button>
-          <button data-preset="left" title="Pasang ke tangan kiri karakter di atas">Tangan kiri</button>
-          <button data-preset="back" title="Pasang ke tulang punggung (spine/chest) karakter di atas">Punggung</button>
-        </div>
-        <p class="note" id="attachNote" style="margin:6px 0 0"></p>
       </div>
       <dl id="info" style="margin-top:10px"></dl>
     </div>
 
-    <label class="chk"><input id="expAnim" type="checkbox" checked> Sertakan semua animasi saat simpan</label>
-    <button id="save" class="primary" disabled>Simpan sebagai GLB</button>
+    <div>
+      <h2>Simpan / ekspor (semua model yang tampil)</h2>
+      <label class="chk" style="margin-top:6px"><input id="expAnim" type="checkbox" checked> Sertakan semua animasi (GLB)</label>
+      <div class="ekspor" style="margin-top:6px">
+        <button id="save" class="primary" disabled title="GLB: model + tulang + animasi">GLB</button>
+        <button id="saveObj" disabled title="OBJ + MTL + tekstur dalam ZIP (model diam)">OBJ</button>
+        <button id="saveFbx" disabled title="FBX biner, tekstur tertanam (model diam)">FBX</button>
+      </div>
+      <p class="note" style="margin:6px 0 0">GLB menyimpan tulang &amp; animasi. OBJ dan FBX menyimpan model dalam pose awal (pose T) beserta tekstur, tanpa tulang &amp; animasi — cocok untuk diunggah ke Mixamo atau dibuka di Blender.</p>
+    </div>
     <button id="saveOrig" disabled>Unduh file asli model terpilih</button>
 
     <div>
@@ -249,6 +282,7 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
     <div id="libCats" class="chips"></div>
     <div id="libList" class="list"></div>
     <button id="libAll">Tambah semua yang tampil</button>
+    <button id="libBalik" hidden>Tampilkan lagi animasi bawaan yang disembunyikan</button>
     <p class="note">Bisa pilih banyak file FBX sekaligus atau seret ke panel ini (masuk ke pose yang sedang dipilih). Kategori ditebak dari nama file; ubah lewat daftar kategori saat animasi dipilih. Animasi “kode” adalah contoh bawaan. Pilih model karakter di kiri dulu supaya gerakan bisa dilihat. Pustaka tersimpan otomatis di browser ini dan tetap ada setelah di-refresh.</p>
   </aside>
 </div>
@@ -521,21 +555,34 @@ $('loop').onchange = () => {
   if(sel && sel.action){ sel.action.setLoop($('loop').checked ? THREE.LoopRepeat : THREE.LoopOnce, Infinity); if($('loop').checked && sel.action.paused === false) sel.action.enabled = true; }
 };
 
+/* ---------- Jenis model (penanda warna) ---------- */
+const JENIS = { karakter: '👤 Karakter', item: '🗡️ Item', hewan: '🐎 Kendaraan/Hewan' };
+function tebakJenis(obj, nama){
+  if(/elang|macan|harimau|kuda|anjing|kucing|naga|burung|sapi|kerbau|kambing|hewan|ular|motor|mobil|kereta|perahu|kapal|sepeda|delman|tiger|horse|dog|cat|bird|eagle|dragon|car|bike|vehicle/i.test(nama)) return 'hewan';
+  const k = new Set(); let tulang = 0; obj.traverse(o => { if(o.isBone){ tulang++; k.add(norm(o.name)); } });
+  if(!tulang) return 'item';
+  const ada = (...n) => n.some(x => k.has(x));
+  return ada('hips', 'pelvis') && ada('leftarm', 'leftupperarm', 'upperarml') && ada('leftupleg', 'leftthigh', 'thighl') ? 'karakter' : 'hewan';
+}
+document.querySelectorAll('.jenis button').forEach(b => b.onclick = () => { if(!sel) return; sel.jenis = b.dataset.j; renderLayers(); });
+
 /* ---------- Daftar model & animasi ---------- */
 function renderLayers(){
   const box = $('layers');
   if(!layers.length) box.innerHTML = '<div class="empty">Belum ada model.</div>';
   else box.innerHTML = layers.map(l =>
-    `<div class="layer${l===sel?' on':''}" data-id="${l.id}">
+    `<div class="layer${l===sel?' on':''} jk-${l.jenis || 'item'}" data-id="${l.id}">
       <input type="checkbox" class="vis" title="Tampilkan / sembunyikan" ${l.wrapper.visible?'checked':''}>
       <span class="nm" title="${esc(l.file.name)}">${esc(l.file.name)}</span>
-      <span class="ext">${l.ext.toUpperCase()}</span>${poseBadge(l.pose)}${l.attach ? `<span class="ext" title="Terpasang di tulang ${esc(l.attach.bone)}">↳ ${esc(l.attach.bone)}</span>` : ''}
+      <span class="jb" title="Jenis model">${(JENIS[l.jenis] || '').split(' ')[0]}</span><span class="ext">${l.ext.toUpperCase()}</span>${poseBadge(l.pose)}${l.attach ? `<span class="ext" title="Terpasang di tulang ${esc(l.attach.bone)}">↳ ${esc(l.attach.bone)}</span>` : ''}
       <button class="x" title="Hapus model ini" aria-label="Hapus ${esc(l.file.name)}">×</button>
     </div>`).join('');
   const has = layers.length > 0;
-  $('save').disabled = !has; $('reset').disabled = !has; $('clear').disabled = !has;
+  $('save').disabled = !has; $('saveObj').disabled = !has; $('saveFbx').disabled = !has; $('reset').disabled = !has; $('clear').disabled = !has;
   $('saveOrig').disabled = !sel;
   $('edit').hidden = !sel;
+  $('edit').className = sel ? 'jk-' + (sel.jenis || 'item') : '';
+  document.querySelectorAll('.jenis button').forEach(b => b.classList.toggle('on', !!sel && b.dataset.j === sel.jenis));
   $('drop').classList.toggle('hide', has);
   renderClips();
   refreshAttachUI();
@@ -735,6 +782,7 @@ async function addFile(file){
     }
     holder.add(wrapper);
     const l = { id: ++idc, file, ext, wrapper, pv, pivot: new THREE.Vector3(), obj, buf, pose, snap: snapshot(obj), mixer: null, action: null, playing: null, paused: false };
+    l.jenis = tebakJenis(obj, file.name);
     layers.push(l);
     let hasBone = false; obj.traverse(o => { if(o.isBone) hasBone = true; });
     if(hasBone){ l.skel = new THREE.SkeletonHelper(obj); l.skel.material.depthTest = false; l.skel.material.transparent = true; l.skel.renderOrder = 999; l.skel.visible = false; scene.add(l.skel); }
@@ -769,8 +817,9 @@ function refreshAttachUI(){
   if(!sel) return;
   const cands = layers.filter(c => c !== sel && !(c.attach && c.attach.to === sel));
   $('attachBox').hidden = !cands.length && !sel.attach;
-  const cur = sel.attach ? sel.attach.to : null;
-  $('attachTo').innerHTML = cands.map(c => `<option value="${c.id}"${c === cur ? ' selected' : ''}>${esc(c.file.name)}</option>`).join('');
+  const cur = sel.attach ? sel.attach.to : null, nilai = c => (c.wrapper.visible ? 0 : 2) + (boneList(c).length ? 0 : 1);
+  cands.sort((a, b) => nilai(a) - nilai(b));
+  $('attachTo').innerHTML = cands.map(c => `<option value="${c.id}"${c === cur ? ' selected' : ''}>${(JENIS[c.jenis] || '').split(' ')[0]} ${esc(c.file.name)}${c.wrapper.visible ? '' : ' (tersembunyi)'}</option>`).join('');
   fillBones(sel.attach ? sel.attach.bone : null);
   $('detachBtn').disabled = !sel.attach;
   $('attachNote').textContent = sel.attach
@@ -1065,6 +1114,197 @@ $('save').onclick = () => {
 
 $('saveOrig').onclick = () => { if(sel) download(new Blob([sel.buf]), sel.file.name); };
 
+/* ---------- Ekspor OBJ & FBX (model diam + tekstur) ---------- */
+/* Semua model yang tampil digabung, dalam pose awal (pose T / pose bawaan file). Tulang & animasi tidak ikut
+   (untuk itu pakai GLB). Cocok untuk diunggah ke Mixamo / dibuka di Blender. */
+function kumpulMesh(){
+  layers.forEach(resetPose);
+  holder.updateMatrixWorld(true);
+  const hasil = [], vA = new THREE.Vector3(), nM = new THREE.Matrix3();
+  layers.filter(l => l.wrapper.visible).forEach(l => {
+    l.obj.traverse(o => {
+      if(!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+      let vis = true; for(let p = o; p && p !== holder; p = p.parent) if(!p.visible){ vis = false; break; }
+      if(!vis) return;
+      if(o.isSkinnedMesh && o.skeleton) o.skeleton.update();
+      const g = o.geometry, P = g.attributes.position, N = g.attributes.normal, U = g.attributes.uv, n = P.count;
+      const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), uv = new Float32Array(n * 2);
+      nM.getNormalMatrix(o.matrixWorld);
+      for(let i = 0; i < n; i++){
+        if(o.isSkinnedMesh && o.boneTransform) o.boneTransform(i, vA); else vA.fromBufferAttribute(P, i);
+        vA.applyMatrix4(o.matrixWorld); pos[i*3] = vA.x; pos[i*3+1] = vA.y; pos[i*3+2] = vA.z;
+        if(N){ vA.fromBufferAttribute(N, i).applyMatrix3(nM).normalize(); nor[i*3] = vA.x; nor[i*3+1] = vA.y; nor[i*3+2] = vA.z; } else nor[i*3+1] = 1;
+        if(U){ uv[i*2] = U.getX(i); uv[i*2+1] = U.getY(i); }
+      }
+      let idx; if(g.index) idx = Uint32Array.from(g.index.array); else { idx = new Uint32Array(n); for(let i = 0; i < n; i++) idx[i] = i; }
+      const mats = [].concat(o.material);
+      const grup = g.groups && g.groups.length && Array.isArray(o.material) ? g.groups.map(x => ({ start: x.start, count: x.count, mat: x.materialIndex || 0 })) : [{ start: 0, count: idx.length, mat: 0 }];
+      // tekstur GLB (flipY = false) diukur dari atas → OBJ/FBX diukur dari bawah: v dibalik
+      const balikV = mats.map(m => m && m.map ? m.map.flipY === false : l.ext !== 'fbx');
+      hasil.push({ nama: (o.name || l.file.name.replace(/\.[^.]+$/, '') || 'mesh').replace(/[^\w\-]+/g, '_'), pos, nor, uv, adaUV: !!U, idx, grup, mats, balikV });
+    });
+  });
+  return hasil;
+}
+async function gambarTekstur(map){   // tekstur → PNG / JPG (Uint8Array)
+  const img = map && map.image; if(!img || !img.width) return null;
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const x = c.getContext('2d'); x.drawImage(img, 0, 0);
+  let alfa = false; try { const d = x.getImageData(0, 0, c.width, c.height).data; for(let i = 3; i < d.length; i += 4 * 97) if(d[i] < 250){ alfa = true; break; } } catch(e){}
+  const tipe = alfa ? 'image/png' : 'image/jpeg';
+  const blob = await new Promise(r => c.toBlob(r, tipe, .92));
+  return { data: new Uint8Array(await blob.arrayBuffer()), ext: alfa ? 'png' : 'jpg' };
+}
+async function kumpulBahan(meshes, dasar){   // material unik + teksturnya
+  const daftar = [], peta = new Map(), tex = new Map();
+  for(const m of meshes) for(const mt of m.mats){
+    if(!mt || peta.has(mt)) continue;
+    const e = { nama: ((mt.name || 'bahan') + '_' + daftar.length).replace(/[^\w\-]+/g, '_'), warna: mt.color ? [mt.color.r, mt.color.g, mt.color.b] : [.8, .8, .8], tex: null };
+    if(mt.map){
+      if(!tex.has(mt.map)){ const t = await gambarTekstur(mt.map); tex.set(mt.map, t ? { file: dasar + '_tekstur' + tex.size + '.' + t.ext, data: t.data } : null); }
+      e.tex = tex.get(mt.map);
+    }
+    peta.set(mt, daftar.length); daftar.push(e);
+  }
+  return { daftar, peta };
+}
+const enc = new TextEncoder();
+function namaDasar(){ const v = layers.filter(l => l.wrapper.visible); return v.length === 1 ? v[0].file.name.replace(/\.[^.]+$/, '').replace(/[^\w\-]+/g, '_') : 'gabungan'; }
+function siapEkspor(){
+  if(!layers.some(l => l.wrapper.visible)){ say('Semua model tersembunyi. Tampilkan minimal satu model.', true); return false; }
+  $('pause').textContent = 'Jeda'; renderClips(); return true;
+}
+
+// ---- OBJ (+ MTL + tekstur, dibungkus ZIP) ----
+$('saveObj').onclick = async () => {
+  if(!siapEkspor()) return;
+  say('Mengekspor OBJ…');
+  try {
+    const dasar = namaDasar(), meshes = kumpulMesh(), { daftar, peta } = await kumpulBahan(meshes, dasar);
+    const o = ['# Model Studio ASA27', 'mtllib ' + dasar + '.mtl'];
+    let vo = 1;
+    meshes.forEach(m => {
+      const n = m.pos.length / 3, bv = m.balikV[0] || false; o.push('o ' + m.nama);
+      for(let i = 0; i < n; i++) o.push('v ' + m.pos[i*3].toFixed(6) + ' ' + m.pos[i*3+1].toFixed(6) + ' ' + m.pos[i*3+2].toFixed(6));
+      for(let i = 0; i < n; i++) o.push('vt ' + m.uv[i*2].toFixed(6) + ' ' + (bv ? 1 - m.uv[i*2+1] : m.uv[i*2+1]).toFixed(6));
+      for(let i = 0; i < n; i++) o.push('vn ' + m.nor[i*3].toFixed(4) + ' ' + m.nor[i*3+1].toFixed(4) + ' ' + m.nor[i*3+2].toFixed(4));
+      m.grup.forEach(gp => {
+        const d = daftar[peta.get(m.mats[gp.mat])]; o.push('usemtl ' + (d ? d.nama : 'bawaan'));
+        for(let k = gp.start; k + 2 < gp.start + gp.count && k + 2 < m.idx.length; k += 3){
+          const a = m.idx[k] + vo, b = m.idx[k+1] + vo, c = m.idx[k+2] + vo;
+          o.push('f ' + a + '/' + a + '/' + a + ' ' + b + '/' + b + '/' + b + ' ' + c + '/' + c + '/' + c);
+        }
+      });
+      vo += n;
+    });
+    const mtl = ['# Model Studio ASA27'], file = {};
+    daftar.forEach(d => { mtl.push('newmtl ' + d.nama, 'Ka 0 0 0', 'Kd ' + d.warna.map(v => v.toFixed(4)).join(' '), 'Ks 0 0 0', 'd 1', 'illum 1'); if(d.tex){ mtl.push('map_Kd ' + d.tex.file); file[d.tex.file] = d.tex.data; } mtl.push(''); });
+    file[dasar + '.obj'] = enc.encode(o.join('\n') + '\n'); file[dasar + '.mtl'] = enc.encode(mtl.join('\n'));
+    download(new Blob([fflate.zipSync(file, { level: 6 })], { type: 'application/zip' }), dasar + '-obj.zip');
+    say('Tersimpan: ' + dasar + '-obj.zip (OBJ + MTL + ' + (Object.keys(file).length - 2) + ' tekstur). Untuk Mixamo, unggah file ZIP ini langsung.');
+  } catch(e){ say('Gagal mengekspor OBJ: ' + (e.message || e), true); }
+};
+
+// ---- FBX biner 7.4 (tekstur tertanam di dalam file) ----
+function fbxTulis(nodes){
+  const T = { C: 1, Y: 2, I: 4, F: 4, D: 8, L: 8 }, A = { b: 1, i: 4, f: 4, l: 8, d: 8 };
+  const isi = v => typeof v === 'string' ? enc.encode(v) : v;
+  const panjangP = ([t, v]) => T[t] ? 1 + T[t] : (t === 'S' || t === 'R') ? 5 + isi(v).length : 13 + v.length * A[t];
+  const ukuran = nd => { nd._nm = enc.encode(nd.n); nd._pl = (nd.p || []).reduce((s, p) => s + panjangP(p), 0); nd._c = (nd.c || []).reduce((s, c) => s + ukuran(c), 0);
+    nd._null = (nd.c && nd.c.length) || !(nd.p && nd.p.length); return nd._sz = 13 + nd._nm.length + nd._pl + nd._c + (nd._null ? 13 : 0); };
+  const total = 27 + nodes.reduce((s, n) => s + ukuran(n), 0) + 13 + 16 + 4 + 32 + 4 + 120 + 16;
+  const buf = new ArrayBuffer(total), dv = new DataView(buf), u8 = new Uint8Array(buf); let o = 0;
+  const tulisB = b => { u8.set(b, o); o += b.length; };
+  tulisB(enc.encode('Kaydara FBX Binary  ')); tulisB([0, 0x1a, 0]); dv.setUint32(o, 7400, true); o += 4;
+  const tulisN = nd => {
+    const awal = o; dv.setUint32(o, awal + nd._sz, true); dv.setUint32(o + 4, (nd.p || []).length, true); dv.setUint32(o + 8, nd._pl, true); u8[o + 12] = nd._nm.length; o += 13; tulisB(nd._nm);
+    (nd.p || []).forEach(([t, v]) => { u8[o++] = t.charCodeAt(0);
+      if(t === 'C') u8[o++] = v ? 1 : 0; else if(t === 'Y'){ dv.setInt16(o, v, true); o += 2; } else if(t === 'I'){ dv.setInt32(o, v, true); o += 4; } else if(t === 'F'){ dv.setFloat32(o, v, true); o += 4; }
+      else if(t === 'D'){ dv.setFloat64(o, v, true); o += 8; } else if(t === 'L'){ dv.setBigInt64(o, BigInt(v), true); o += 8; }
+      else if(t === 'S' || t === 'R'){ const b = isi(v); dv.setUint32(o, b.length, true); o += 4; tulisB(b); }
+      else { const sz = A[t]; dv.setUint32(o, v.length, true); dv.setUint32(o + 4, 0, true); dv.setUint32(o + 8, v.length * sz, true); o += 12;
+        for(let i = 0; i < v.length; i++){ if(t === 'd') dv.setFloat64(o, v[i], true); else if(t === 'f') dv.setFloat32(o, v[i], true); else if(t === 'i') dv.setInt32(o, v[i], true); else if(t === 'l') dv.setBigInt64(o, BigInt(v[i]), true); else u8[o] = v[i] ? 1 : 0; o += sz; } } });
+    (nd.c || []).forEach(tulisN); if(nd._null) o += 13;
+  };
+  nodes.forEach(tulisN); o += 13;
+  tulisB([0xfa,0xbc,0xab,0x09,0xd0,0xc8,0xd4,0x66,0xb1,0x76,0xfb,0x83,0x1c,0xf7,0x26,0x7e]); o += 4;
+  let pad = ((o + 15) & ~15) - o; if(pad === 0) pad = 16; o += pad;
+  dv.setUint32(o, 7400, true); o += 4 + 120;
+  tulisB([0xf8,0x5a,0x8c,0x6a,0xde,0xf5,0xd9,0x7e,0xec,0xe9,0x0c,0xe3,0x75,0x8f,0x29,0x0b]);
+  return u8.slice(0, o);
+}
+const fN = (n, p = [], c = []) => ({ n, p, c });
+const fP = (nama, tipe, tipe2, flag, ...v) => fN('P', [['S', nama], ['S', tipe], ['S', tipe2], ['S', flag], ...v]);
+const fNama = (nama, kelas) => nama + '\x00\x01' + kelas;
+function fbxDokumen(meshes, daftar, peta){
+  let id = 1000000; const baru = () => ++id, obj = [], sambung = [];
+  const mid = daftar.map(() => baru()), tid = [], vid = [];
+  daftar.forEach((d, k) => {
+    obj.push(fN('Material', [['L', mid[k]], ['S', fNama(d.nama, 'Material')], ['S', '']], [fN('Version', [['I', 102]]), fN('ShadingModel', [['S', 'lambert']]), fN('MultiLayer', [['I', 0]]),
+      fN('Properties70', [], [fP('DiffuseColor', 'Color', '', 'A', ['D', d.warna[0]], ['D', d.warna[1]], ['D', d.warna[2]]), fP('Diffuse', 'Vector3D', 'Vector', '', ['D', d.warna[0]], ['D', d.warna[1]], ['D', d.warna[2]]), fP('Opacity', 'double', 'Number', '', ['D', 1])])]));
+    if(d.tex){ const t = baru(), v = baru(); tid[k] = t; vid[k] = v;
+      obj.push(fN('Video', [['L', v], ['S', fNama(d.tex.file, 'Video')], ['S', 'Clip']], [fN('Type', [['S', 'Clip']]), fN('Properties70', [], [fP('Path', 'KString', 'XRefUrl', '', ['S', d.tex.file])]),
+        fN('UseMipMap', [['I', 0]]), fN('Filename', [['S', d.tex.file]]), fN('RelativeFilename', [['S', d.tex.file]]), fN('Content', [['R', d.tex.data]])]));
+      obj.push(fN('Texture', [['L', t], ['S', fNama(d.tex.file, 'Texture')], ['S', '']], [fN('Type', [['S', 'TextureVideoClip']]), fN('Version', [['I', 202]]), fN('TextureName', [['S', fNama(d.tex.file, 'Texture')]]),
+        fN('Properties70', [], [fP('UseMaterial', 'bool', '', '', ['I', 1])]), fN('Media', [['S', fNama(d.tex.file, 'Video')]]), fN('FileName', [['S', d.tex.file]]), fN('RelativeFilename', [['S', d.tex.file]]),
+        fN('ModelUVTranslation', [['D', 0], ['D', 0]]), fN('ModelUVScaling', [['D', 1], ['D', 1]]), fN('Texture_Alpha_Source', [['S', 'None']]), fN('Cropping', [['I', 0], ['I', 0], ['I', 0], ['I', 0]])]));
+      sambung.push(fN('C', [['S', 'OP'], ['L', t], ['L', mid[k]], ['S', 'DiffuseColor']]), fN('C', [['S', 'OO'], ['L', v], ['L', t]])); }
+  });
+  meshes.forEach((m, k) => {
+    const gid = baru(), modid = baru(), n = m.pos.length / 3, sk = 100;   // satuan FBX: cm (1 satuan model = 1 m)
+    const vert = new Float64Array(n * 3); for(let i = 0; i < n * 3; i++) vert[i] = m.pos[i] * sk;
+    const nTri = m.grup.reduce((s, g) => s + Math.floor(Math.min(g.count, m.idx.length - g.start) / 3), 0);
+    const pvi = new Int32Array(nTri * 3), nor = new Float64Array(nTri * 9), uvI = new Int32Array(nTri * 3), matI = new Int32Array(nTri);
+    let t = 0; const matLokal = [], petaLokal = new Map();
+    m.grup.forEach(g => { const mt = m.mats[g.mat]; let ml = petaLokal.get(mt); if(ml === undefined){ ml = matLokal.length; petaLokal.set(mt, ml); matLokal.push(mt); }
+      for(let q = g.start; q + 2 < g.start + g.count && q + 2 < m.idx.length; q += 3, t++){
+        for(let j = 0; j < 3; j++){ const vi = m.idx[q + j]; pvi[t*3+j] = j === 2 ? ~vi : vi; uvI[t*3+j] = vi; for(let a = 0; a < 3; a++) nor[(t*3+j)*3+a] = m.nor[vi*3+a]; }
+        matI[t] = ml; } });
+    const bv = m.balikV[0] || false, uv = new Float64Array(n * 2); for(let i = 0; i < n; i++){ uv[i*2] = m.uv[i*2]; uv[i*2+1] = bv ? 1 - m.uv[i*2+1] : m.uv[i*2+1]; }
+    const le = (tipe, isi) => fN(tipe, [['I', 0]], [fN('Version', [['I', 101]]), fN('Name', [['S', tipe === 'LayerElementUV' ? 'map1' : '']]), ...isi]);
+    obj.push(fN('Geometry', [['L', gid], ['S', fNama(m.nama, 'Geometry')], ['S', 'Mesh']], [
+      fN('Vertices', [['d', vert]]), fN('PolygonVertexIndex', [['i', pvi]]), fN('GeometryVersion', [['I', 124]]),
+      le('LayerElementNormal', [fN('MappingInformationType', [['S', 'ByPolygonVertex']]), fN('ReferenceInformationType', [['S', 'Direct']]), fN('Normals', [['d', nor]])]),
+      le('LayerElementUV', [fN('MappingInformationType', [['S', 'ByPolygonVertex']]), fN('ReferenceInformationType', [['S', 'IndexToDirect']]), fN('UV', [['d', uv]]), fN('UVIndex', [['i', uvI]])]),
+      le('LayerElementMaterial', [fN('MappingInformationType', [['S', matLokal.length > 1 ? 'ByPolygon' : 'AllSame']]), fN('ReferenceInformationType', [['S', 'IndexToDirect']]), fN('Materials', [['i', matLokal.length > 1 ? matI : new Int32Array([0])]])]),
+      fN('Layer', [['I', 0]], [fN('Version', [['I', 100]]), ...['LayerElementNormal', 'LayerElementUV', 'LayerElementMaterial'].map(x => fN('LayerElement', [], [fN('Type', [['S', x]]), fN('TypedIndex', [['I', 0]])]))])]));
+    obj.push(fN('Model', [['L', modid], ['S', fNama(m.nama, 'Model')], ['S', 'Mesh']], [fN('Version', [['I', 232]]),
+      fN('Properties70', [], [fP('DefaultAttributeIndex', 'int', 'Integer', '', ['I', 0]), fP('Lcl Translation', 'Lcl Translation', '', 'A', ['D', 0], ['D', 0], ['D', 0]),
+        fP('Lcl Rotation', 'Lcl Rotation', '', 'A', ['D', 0], ['D', 0], ['D', 0]), fP('Lcl Scaling', 'Lcl Scaling', '', 'A', ['D', 1], ['D', 1], ['D', 1])]),
+      fN('Shading', [['C', true]]), fN('Culling', [['S', 'CullingOff']])]));
+    sambung.push(fN('C', [['S', 'OO'], ['L', modid], ['L', 0]]), fN('C', [['S', 'OO'], ['L', gid], ['L', modid]]));
+    matLokal.forEach(mt => { const k2 = peta.get(mt); if(k2 !== undefined) sambung.push(fN('C', [['S', 'OO'], ['L', mid[k2]], ['L', modid]])); });
+  });
+  const hitung = (tipe) => obj.filter(o => o.n === tipe).length;
+  const now = new Date(), tipeAda = ['Model', 'Geometry', 'Material', 'Texture', 'Video'].filter(hitung);
+  return [
+    fN('FBXHeaderExtension', [], [fN('FBXHeaderVersion', [['I', 1003]]), fN('FBXVersion', [['I', 7400]]), fN('EncryptionType', [['I', 0]]),
+      fN('CreationTimeStamp', [], [fN('Version', [['I', 1000]]), fN('Year', [['I', now.getFullYear()]]), fN('Month', [['I', now.getMonth() + 1]]), fN('Day', [['I', now.getDate()]]), fN('Hour', [['I', now.getHours()]]), fN('Minute', [['I', now.getMinutes()]]), fN('Second', [['I', now.getSeconds()]]), fN('Millisecond', [['I', 0]])]),
+      fN('Creator', [['S', 'Model Studio ASA27']])]),
+    fN('FileId', [['R', new Uint8Array([0x28,0xb3,0x2a,0xeb,0xb6,0x24,0xcc,0xc2,0xbf,0xc8,0xb0,0x2a,0xa9,0x2b,0xfc,0xf1])]]),
+    fN('CreationTime', [['S', '1970-01-01 10:00:00:000']]), fN('Creator', [['S', 'Model Studio ASA27']]),
+    fN('GlobalSettings', [], [fN('Version', [['I', 1000]]), fN('Properties70', [], [
+      fP('UpAxis', 'int', 'Integer', '', ['I', 1]), fP('UpAxisSign', 'int', 'Integer', '', ['I', 1]), fP('FrontAxis', 'int', 'Integer', '', ['I', 2]), fP('FrontAxisSign', 'int', 'Integer', '', ['I', 1]),
+      fP('CoordAxis', 'int', 'Integer', '', ['I', 0]), fP('CoordAxisSign', 'int', 'Integer', '', ['I', 1]), fP('OriginalUpAxis', 'int', 'Integer', '', ['I', 1]), fP('OriginalUpAxisSign', 'int', 'Integer', '', ['I', 1]),
+      fP('UnitScaleFactor', 'double', 'Number', '', ['D', 1]), fP('OriginalUnitScaleFactor', 'double', 'Number', '', ['D', 1]), fP('AmbientColor', 'ColorRGB', 'Color', '', ['D', 0], ['D', 0], ['D', 0]),
+      fP('DefaultCamera', 'KString', '', '', ['S', 'Producer Perspective']), fP('TimeMode', 'enum', '', '', ['I', 11]), fP('TimeSpanStart', 'KTime', 'Time', '', ['L', 0]), fP('TimeSpanStop', 'KTime', 'Time', '', ['L', 46186158000]), fP('CustomFrameRate', 'double', 'Number', '', ['D', 30])])]),
+    fN('Documents', [], [fN('Count', [['I', 1]]), fN('Document', [['L', 999999], ['S', ''], ['S', 'Scene']], [fN('Properties70', [], [fP('SourceObject', 'object', '', ''), fP('ActiveAnimStackName', 'KString', '', '', ['S', ''])]), fN('RootNode', [['L', 0]])])]),
+    fN('References'),
+    fN('Definitions', [], [fN('Version', [['I', 100]]), fN('Count', [['I', 1 + obj.length]]), fN('ObjectType', [['S', 'GlobalSettings']], [fN('Count', [['I', 1]])]), ...tipeAda.map(x => fN('ObjectType', [['S', x]], [fN('Count', [['I', hitung(x)]])]))]),
+    fN('Objects', [], obj), fN('Connections', [], sambung), fN('Takes', [], [fN('Current', [['S', '']])])
+  ];
+}
+$('saveFbx').onclick = async () => {
+  if(!siapEkspor()) return;
+  say('Mengekspor FBX…');
+  try {
+    const dasar = namaDasar(), meshes = kumpulMesh(), { daftar, peta } = await kumpulBahan(meshes, dasar);
+    const data = fbxTulis(fbxDokumen(meshes, daftar, peta));
+    download(new Blob([data], { type: 'application/octet-stream' }), dasar + '.fbx');
+    say('Tersimpan: ' + dasar + '.fbx (' + fmtSize(data.length) + ', tekstur tertanam). Bisa langsung diunggah ke Mixamo atau dibuka di Blender.');
+  } catch(e){ say('Gagal mengekspor FBX: ' + (e.message || e), true); }
+};
+
 /* ---------- Pustaka animasi contoh (panel kanan) ---------- */
 var libReady = false;
 const TAU = Math.PI * 2, S = Math.sin, C = Math.cos;
@@ -1263,9 +1503,14 @@ function libPreview(it){
   renderLib();
 }
 
+/* animasi bawaan (Tripo, elang, contoh kode) tidak bisa dihapus dari file → disembunyikan & diingat di browser ini */
+const SEMBUNYI = (() => { try { return new Set(JSON.parse(localStorage.getItem('asa27-lib-sembunyi') || '[]')); } catch(_){ return new Set(); } })();
+const kunciLib = it => it.src === 'fbx' ? null : it.src + ':' + it.lib;
+const tampilLib = it => !SEMBUNYI.has(kunciLib(it));
+function simpanSembunyi(){ try { localStorage.setItem('asa27-lib-sembunyi', JSON.stringify([...SEMBUNYI])); } catch(_){} }
 function libShown(){
   const q = libQ.trim().toLowerCase();
-  return LIB.filter(it => ((it.grp === 'both' && libGrp !== 'H') || it.grp === libGrp) && (libCat === 'Semua' || it.cat === libCat) && (!q || it.name.toLowerCase().includes(q)));
+  return LIB.filter(it => tampilLib(it) && ((it.grp === 'both' && libGrp !== 'H') || it.grp === libGrp) && (libCat === 'Semua' || it.cat === libCat) && (!q || it.name.toLowerCase().includes(q)));
 }
 
 function libRow(it){
@@ -1273,15 +1518,16 @@ function libRow(it){
   const dur = (it.dur || 0).toFixed(1) + ' dtk';
   return `<div class="libitem" data-id="${it.id}">
     <div class="layer lib${on ? ' on' : ''}"><span class="pl">${pl ? '▶' : '▷'}</span><span class="nm" title="${esc(it.name)}">${esc(it.name)}</span><span class="ext">${dur}</span>
-      <button class="add" ${has ? 'disabled' : ''} title="${has ? 'Sudah ada di daftar animasi' : 'Tambah ke daftar animasi'}" aria-label="Tambah ${esc(it.name)}">${has ? '✓' : '+'}</button></div>
-    ${on ? `<div class="libdet"><select class="libcat" aria-label="Kategori">${CATS.map(c => `<option${c === it.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>${it.src === 'fbx' ? `<select class="libgrp" aria-label="Pose"><option value="T"${it.grp === 'T' ? ' selected' : ''}>Pose T</option><option value="A"${it.grp === 'A' ? ' selected' : ''}>Pose A</option><option value="H"${it.grp === 'H' ? ' selected' : ''}>Pose Hewan</option></select>` : ''}${it.src === 'tripo' ? '' : '<button class="x" title="Hapus dari pustaka" aria-label="Hapus dari pustaka">Hapus</button>'}</div>
+      <button class="add" ${has ? 'disabled' : ''} title="${has ? 'Sudah ada di daftar animasi' : 'Tambah ke daftar animasi'}" aria-label="Tambah ${esc(it.name)}">${has ? '✓' : '+'}</button><button class="x xr" title="${it.src === 'fbx' ? 'Hapus dari pustaka' : 'Sembunyikan animasi bawaan dari pustaka'}" aria-label="Hapus ${esc(it.name)}">×</button></div>
+    ${on ? `<div class="libdet"><select class="libcat" aria-label="Kategori">${CATS.map(c => `<option${c === it.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>${it.src === 'fbx' ? `<select class="libgrp" aria-label="Pose"><option value="T"${it.grp === 'T' ? ' selected' : ''}>Pose T</option><option value="A"${it.grp === 'A' ? ' selected' : ''}>Pose A</option><option value="H"${it.grp === 'H' ? ' selected' : ''}>Pose Hewan</option></select>` : ''}${it.src === 'fbx' ? '<button class="x" title="Hapus dari pustaka" aria-label="Hapus dari pustaka">Hapus</button>' : '<button class="x" title="Sembunyikan animasi bawaan ini (bisa ditampilkan lagi)" aria-label="Sembunyikan">Sembunyikan</button>'}</div>
     <p class="note" style="margin:4px 0 0">${it.src === 'fbx' ? 'Pose awal animasi: ' + esc(poseText(it.pose)) + '.' : it.src === 'tripo' ? (it.grp === 'H' ? 'Animasi bawaan elang Angling Dharma (' + esc(it.lib) + '), selalu ada di pustaka.' : 'Animasi bawaan Tripo (' + esc(it.lib) + '), selalu ada di pustaka.') : 'Contoh bawaan, dibuat dari kode.'}</p>
     <button class="primary libadd" style="margin-top:6px" ${has ? 'disabled' : ''}>${has ? 'Sudah ada di daftar Animasi (kiri)' : 'Tambah ke daftar Animasi (kiri)'}</button>` : ''}
   </div>`;
 }
 
 function renderLib(){
-  const inG = g => LIB.filter(it => (it.grp === 'both' && g !== 'H') || it.grp === g);
+  const inG = g => LIB.filter(it => tampilLib(it) && ((it.grp === 'both' && g !== 'H') || it.grp === g));
+  const nS = LIB.filter(it => !tampilLib(it)).length; $('libBalik').hidden = !nS; $('libBalik').textContent = 'Tampilkan lagi animasi bawaan yang disembunyikan (' + nS + ')';
   $('cntT').textContent = inG('T').length; $('cntA').textContent = inG('A').length; $('cntH').textContent = inG('H').length;
   document.querySelectorAll('.posebox').forEach(b => b.classList.toggle('on', b.dataset.g === libGrp));
   const gl = inG(libGrp), cnt = {}; gl.forEach(it => { cnt[it.cat] = (cnt[it.cat] || 0) + 1; });
@@ -1312,7 +1558,12 @@ $('libList').addEventListener('click', e => {
     return;
   }
   if(btn && btn.classList.contains('x')){
-    LIB.splice(LIB.indexOf(it), 1); libDel(it);
+    if(it.src !== 'fbx'){   // bawaan: disembunyikan saja
+      SEMBUNYI.add(kunciLib(it)); simpanSembunyi(); if(libSelId === it.id) libSelId = null;
+      renderLib(); say('“' + it.name + '” disembunyikan dari pustaka. Tampilkan lagi lewat tombol di bawah daftar.'); return;
+    }
+    if(!confirm('Hapus “' + it.name + '” dari pustaka? File FBX-nya dihapus permanen dari browser ini.')) return;
+    LIB.splice(LIB.indexOf(it), 1); libDel(it); say('“' + it.name + '” dihapus dari pustaka.');
     if(libSelId === it.id) libSelId = null;
     layers.forEach(l => { if(l.playing === it.id && !clips.some(c => c.id === it.id)) resetPose(l); });
     renderLib(); renderClips();
@@ -1448,6 +1699,7 @@ async function libElang(){
     disposeObj(obj); renderLib();
   } catch(_){}
 }
+$('libBalik').onclick = () => { const n = SEMBUNYI.size; SEMBUNYI.clear(); simpanSembunyi(); renderLib(); say(n + ' animasi bawaan ditampilkan lagi.'); };
 libReady = true; renderLib(); libLoad(); libBawaan(); libElang();
 
 /* ---------- Lain-lain ---------- */
