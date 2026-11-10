@@ -1239,6 +1239,7 @@ function kena(mt, dmg, dari, dorong = 4, angkat = 0) {
   }
   if (mt.macanId) { if (!mt.mati) { netEvent({ k: 'hitMacan', id: mt.macanId, d: dmg }); angka(mt.g.position, dmg); } return; }
   if (mt.kembarId) { if (!mt.mati) { netEvent({ k: 'hitKembar', id: mt.kembarId, d: dmg }); angka(mt.g.position, dmg); mt.kilau = .15; } return; }   // kembaran Kian Santang lawan   // Macan Putih lawan: darahnya dihitung di layar pemanggilnya
+  if (mt.kebal > 0 && !mt.mati) { if (Math.random() < .3) angka(mt.g.position, 'KEBAL', '#ffd040'); return; }   // bot Kian Santang: Imunitas
   if (mt.amuk > 0) { dorong = 0; angkat = 0; }   // bot Genderuwo yang sedang mengamuk tidak bisa didorong
   if (mt.mati || (SELESAI && LAWAN === 'bot')) return;   // jeda antar ronde: sisa efek tidak melukai bot
   if (mt.remote) {   // lawan online: kirim damage ke HP lawan (darahnya dihitung di sana)
@@ -5372,9 +5373,9 @@ function updKianSantang(dt, pos, f) {
 // Dipakai di Lawan Bot (1 vs 1) dan Duel Tim. Bot "pro": membaca serangan lawan lalu menghindar,
 // membidik ke arah gerak lawan, memakai combo, kabur saat darah tipis, bersembunyi di semak,
 // dan mencari lawan yang menghilang di tempat terakhir terlihat.
-const BOT_HERO = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung'];
+const BOT_HERO = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timun', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyi', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang'];   // semua hero bisa jadi bot
 const BOT_SKIN = { ocong: ['', 'lompat', 'emas'], kunti: ['', 'merah', 'gothic'], tuyul: [''], genderuwo: ['', 'leak', 'calon'], pitung: ['', 'pendekar'] };
-const BOT_SRV = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo', 'pitung'];
+const BOT_SRV = ['pocong', 'kuntilanak', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timunmas', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyiroro', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang'];
 const pilihAcak = a => a[Math.floor(Math.random() * a.length)];
 // keadaan sasaran dalam bentuk yang sama: pemain (P), bot lokal, atau pemain/bot lain di Duel Tim
 const AN_AKSI = { loncat: 'loncat', guling: 'guling', jerit: 'jerit', seluncur: 'seluncur', bacok: 'colek', tembak: 'tembak', tangan: 'penjara', lompat: 'panggil', tinju: 'tinju', cakar: 'cakar', hantam: 'hantam', amuk: 'amuk', pukul1: 'pukulP', pukul2: 'pukulP', pukul3: 'pukulP', tendang: 'pukulP', tusuk: 'tusuk', bacokP: 'bacokP', ulti: 'ulti', serang2: 'ulti' };
@@ -5395,13 +5396,33 @@ const BOT_LV = [
   { n: 'Susah', ik: '😠', hindar: .88, r: [.1, .2], pikir: 1, dmg: 1, cepat: 1, cd: 1, agresi: 1 },
   { n: 'Pro Player', ik: '😈', hindar: .97, r: [.04, .09], pikir: .65, dmg: 1.15, cepat: 1.08, cd: .82, agresi: 1.3 }];
 const BOT_LV_I = Math.min(3, Math.max(0, parseInt(Q.get('lv') ?? '1', 10) || 0));   // bawaan: Sedang
+// ---- BOT UNTUK SEMUA HERO: hero selain Ocong/Kunti/Tuyul/Genderuwo/Si Pitung memakai otak bot "umum" ----
+// gerak & serangan dasar memakai animasi hero itu sendiri; skill disederhanakan per jenis:
+// dash = menerjang · area = serangan sekitar diri · target = ledakan di posisi lawan · lompat = melompat ke lawan · pel = proyektil · buff = lari cepat · kebal = kebal damage
+// angka: dmg (sebelum pengali tingkat bot), r = jari-jari, stun / lambat = detik
+const BOT_UMUM = {
+  erick: { warna: 0xff3020, dasar: ['tendang0', 'tendang1'], s: [{ t: 'dash', a: 'terbang', dmg: 120, stun: .6 }, { t: 'area', a: 'tendang1', dmg: 130, r: 2.6, stun: .8 }, { t: 'lompat', a: 'ulti', dmg: 220, r: 3, stun: 1 }], cd: [.5, 6, 7, 14], cepat: 4.4 },
+  doni: { warna: 0xff5020, dasar: ['pukul1', 'pukul2', 'tendang', 'lempar'], s: [{ t: 'pel', a: 'lempar', dmg: 110 }, { t: 'pel', a: 'tarik', dmg: 90, stun: 1.2 }, { t: 'area', a: 'pusar', dmg: 180, r: 3, stun: .5 }], cd: [.55, 6, 8, 14] },
+  timun: { jauh: 1, jarak: 7, warna: 0xf0c020, dasar: ['lempar', 'serang', 'sulur'], s: [{ t: 'target', a: 'bambu', dmg: 120, r: 1.8, stun: 1 }, { t: 'pel', a: 'sulur', dmg: 100, lambat: 2 }, { t: 'target', a: 'ulti', dmg: 200, r: 3, lambat: 2.5 }], cd: [.7, 7, 8, 15] },
+  buto: { warna: 0xd04020, dasar: ['pukul'], s: [{ t: 'dash', a: 'seruduk', dmg: 120, stun: .8 }, { t: 'area', a: 'banting', dmg: 150, r: 2.4, stun: 1.2 }, { t: 'target', a: 'ulti', dmg: 230, r: 3, stun: 1.2, lambat: 2 }], cd: [.8, 7, 9, 16], cepat: 3.8 },
+  lutung: { warna: 0xffa030, dasar: ['cakar1', 'cakar2', 'cakar3'], s: [{ t: 'lompat', a: 'loncat', dmg: 110, r: 2, stun: .5 }, { t: 'area', a: 'badai', dmg: 140, r: 2.6 }, { t: 'dash', a: 'terkam', dmg: 240, stun: 1 }], cd: [.45, 6, 7, 14], cepat: 4.6 },
+  saras: { warna: 0x40a0ff, dasar: ['pukul1', 'pukul2', 'tendang'], s: [{ t: 'dash', a: 'gledeg', dmg: 120, stun: .5 }, { t: 'area', a: 'tinju', dmg: 150, r: 2.4, stun: .8 }, { t: 'lompat', a: 'loncat', dmg: 220, r: 3, stun: 1 }], cd: [.5, 6, 7, 14], cepat: 4.4 },
+  angling: { jauh: 1, jarak: 7.5, warna: 0xffa020, dasar: ['angin'], s: [{ t: 'pel', a: 'hembus', dmg: 100, dorong: 9 }, { t: 'pel', a: 'api', dmg: 140 }, { t: 'target', a: 'turun', dmg: 220, r: 3, stun: 1 }], cd: [.6, 7, 6, 15] },
+  dayang: { jauh: 1, jarak: 7, warna: 0xff9ad0, dasar: ['jarum'], s: [{ t: 'pel', a: 'benang', dmg: 100, stun: 1.2 }, { t: 'area', a: 'pukul', dmg: 120, r: 2, stun: 1.2 }, { t: 'target', a: 'panggil', dmg: 200, r: 3, stun: .8 }], cd: [.55, 6, 8, 14] },
+  nyi: { jauh: 1, jarak: 7.5, warna: 0x30a0ff, dasar: ['serang'], s: [{ t: 'dash', a: 'lesat', dmg: 90 }, { t: 'target', a: 'pusaran', dmg: 150, r: 2.6, lambat: 2 }, { t: 'target', a: 'ulti', dmg: 230, r: 3.2, stun: 1 }], cd: [.6, 8, 9, 16] },
+  siliwangi: { warna: 0xffd040, dasar: ['tebas1', 'tebas2', 'tebas3'], s: [{ t: 'lompat', a: 'panggil', dmg: 130, r: 2.2, stun: .8 }, { t: 'dash', a: 'tebas2', dmg: 110 }, { t: 'dash', a: 'tebas3', dmg: 240, stun: .8 }], cd: [.5, 9, 8, 16], cepat: 4.4 },
+  ciung: { jauh: 1, jarak: 7, warna: 0xff6020, dasar: ['lempar'], s: [{ t: 'pel', a: 'perintah', dmg: 120, stun: 1.2 }, { t: 'dash', a: 'lincah', dmg: 60 }, { t: 'target', a: 'panggil', dmg: 220, r: 3, stun: .8 }], cd: [.7, 8, 8, 16] },
+  sangkuriang: { warna: 0xc8641a, dasar: ['pukul1', 'pukul2', 'pukul3'], s: [{ t: 'buff', a: 'lari', lama: 4 }, { t: 'area', a: 'putar', dmg: 150, r: 2.6, stun: 1.2 }, { t: 'target', a: 'panggil', dmg: 180, r: 3, stun: 1.2 }], cd: [.55, 10, 8, 16] },
+  kiansantang: { warna: 0xe0c060, dasar: ['tebas1', 'tebas2', 'tebas3'], s: [{ t: 'kebal', a: 'perisai', lama: 2 }, { t: 'buff', a: 'lari', lama: 3 }, { t: 'area', a: 'putar', dmg: 200, r: 2.8, stun: .6 }], cd: [.45, 13, 10, 20], cepat: 4.6 } };
+const BOT_PEL_BAHAN = new Map();
+function botPelBahan(c) { if (!BOT_PEL_BAHAN.has(c)) BOT_PEL_BAHAN.set(c, new THREE.SpriteMaterial({ map: T_BULAT, color: c, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); return BOT_PEL_BAHAN.get(c); }
 async function buatBotPro(o) {
   const T = { root: new THREE.Group(), tilt: new THREE.Group(), model: null, mixer: null, act: {}, cur: '', arah: o.arahAwal || 0, hero: o.hero, nama: o.nama };
   T.root.add(T.tilt); T.root.position.copy(o.posAwal); T.root.rotation.y = T.arah;
   const pos = T.root.position, ctx = o.ctx;
   const mt = { g: T.root, hp: 1000, hpMax: 1000, v: new THREE.Vector3(), y: 0, vy: 0, putar: 0, kilau: 0, mati: 0, kunci: 0, pusing: 0, bar: o.bar, bot: true, nama: o.nama };
   const B = { state: 'bebas', t: 0, hit: 0, cd: [0, 1.5, 1.5, 3], pikir: .6, lihat: null, lihatT: 99, vel: new THREE.Vector3(), prev: null, ent: null,
-    strafe: Math.random() < .5 ? 1 : -1, strafeT: 1, bahayaT: 0, reaksi: .15, hindar: true, terbangT: 0, lesat: 0, arahLesat: 0, hilang: 0, sergap: false, koin: 0,
+    strafe: Math.random() < .5 ? 1 : -1, strafeT: 1, pel: [], um: null, buffT: 0, bahayaT: 0, reaksi: .15, hindar: true, terbangT: 0, lesat: 0, arahLesat: 0, hilang: 0, sergap: false, koin: 0,
     sudahMati: false, amuk: 0, gc: 0, gcT: 0, agresi: rnd(.85, 1.2) * (BOT_LV[o.lv ?? 2].agresi), tujuan: null, awal: null, arahSkill: 0, gel: 0, kenaT: 0, combo: 0, patrol: null, patrolT: 0, jatuh: 0, bonus: false, kenaSel: false };
   const LVB = BOT_LV[o.lv ?? 2];   // bot Duel Tim tetap 'Susah' (perilaku lama)
   let hero = o.hero, CD = [.5, 4, 4, 6], CEPAT = OCONG_CEPAT;
@@ -5410,6 +5431,7 @@ async function buatBotPro(o) {
     hero = h; T.hero = h; mt.hpMax = HP_MAX[h];
     CD = h === 'pitung' ? [.35, 5, 6, 12] : h === 'genderuwo' ? [.8, 6, 7, 14] : h === 'tuyul' ? [.4, 5, 8, 12] : h === 'kunti' ? [.55, 4, 9, 6] : [.55, 4, 4, 6];
     CEPAT = h === 'pitung' ? PIT.cepat : h === 'genderuwo' ? GEND.cepat : h === 'tuyul' ? TUYUL_CEPAT : h === 'kunti' ? KUNTI_CEPAT : OCONG_CEPAT;
+    if (BOT_UMUM[h]) { CD = BOT_UMUM[h].cd.slice(); CEPAT = BOT_UMUM[h].cepat || 4.2; }
     CD = CD.map(x => x * LVB.cd); CEPAT *= LVB.cepat;   // tingkat kesulitan
     o.onHero && o.onHero(h);
   }
@@ -5421,7 +5443,8 @@ async function buatBotPro(o) {
   const sudutKe = p => Math.atan2(p.x - pos.x, p.z - pos.z);
   const jarak = p => Math.hypot(p.x - pos.x, p.z - pos.z);
   const lawan = () => B.ent ? infoEnt(B.ent) : null;
-  const animGerak = () => hero === 'pitung' ? ['lari', 1] : hero === 'kunti' && B.terbangT > 0 ? ['terbang', 1.3] : hero === 'tuyul' ? ['jalan', 1.4] : hero === 'genderuwo' ? (B.amuk > 0 ? ['lari', 1] : ['jalan', 1.15]) : ['jalan', 1.5];
+  const pilihA = l => { for (const n of l) if (n && T.act[n]) return n; return null; };
+  const animGerak = () => BOT_UMUM[hero] ? [pilihA(['lari', 'jalan', 'jalanK', 'jalanA']) || 'diam', 1] : hero === 'pitung' ? ['lari', 1] : hero === 'kunti' && B.terbangT > 0 ? ['terbang', 1.3] : hero === 'tuyul' ? ['jalan', 1.4] : hero === 'genderuwo' ? (B.amuk > 0 ? ['lari', 1] : ['jalan', 1.15]) : ['jalan', 1.5];
   function mulai(s, anim, kec = 1) { B.state = s; B.t = 0; B.hit = 0; if (anim && T.act[anim]) { if (T.cur === anim) T.cur = ''; mainObj(T, anim, .08, kec); } }
   function beres() { B.state = 'bebas'; mainObj(T, 'diam', .2); }
   function serang(dmg, dari, dorong) { B.ungkap = UNGKAP; if (B.ent) ctx.serang(B.ent, Math.round(dmg * LVB.dmg), dari, dorong); }
@@ -5547,6 +5570,45 @@ async function buatBotPro(o) {
       mulai('dasar', 'hantam', GEND.dasar.ts); B.cd[0] = CD[0]; return true; }
     return false;
   }
+  // ---------- otak bot umum (semua hero lain) ----------
+  function skillUmum(I, L) {
+    const U = BOT_UMUM[hero], S = U.s;
+    for (const i of [3, 2, 1]) { const k = S[i - 1]; if (B.cd[i] > 0 || !umumBisa(k, I, L)) continue; if (i === 3 && !I.stun && Math.random() < .3) continue; umumMulai(i, k, I); return true; }
+    if (B.cd[0] <= 0 && L < (U.jauh ? U.jarak : 1.9)) { T.arah = sudutKe(I.pos); B.um = { k: { t: 'dasar' } }; mulai('um', pilihA([U.dasar[B.gc % U.dasar.length], U.dasar[0], 'serang']) || 'diam', 1.4); B.gc++; B.cd[0] = CD[0]; return true; }
+    return false;
+  }
+  function umumBisa(k, I, L) {
+    switch (k.t) { case 'dash': return L > 1.4 && L < 5.5; case 'area': return L < (k.r || 2.5) - .3; case 'target': return L < 7.5; case 'lompat': return L > 2.4 && L < 7;
+      case 'pel': return L < 7.5; case 'buff': return L < 9 && L > 3; case 'kebal': return mt.hp / mt.hpMax < .6 && L < 4; } return false;
+  }
+  function umumMulai(i, k, I) {
+    const U = BOT_UMUM[hero]; T.arah = sudutKe(I.pos); B.cd[i] = CD[i]; B.awal = pos.clone();
+    B.um = { k, tj: k.t === 'target' || k.t === 'lompat' ? batasi(ramal(I, .45)) : null };
+    if (B.um.tj) { gelombang(B.um.tj, k.r || 2.5, .8, U.warna); lingkaranLantai(B.um.tj.clone(), k.r || 2.5, .8); }
+    mulai('um', pilihA([k.a, U.dasar[0], 'serang']) || 'diam', k.t === 'dash' ? 1.4 : 1.2);
+  }
+  function umumKena(k, dari) { const U = BOT_UMUM[hero]; serang(k.dmg || 60, dari, k.dorong || 3); if (k.stun) stun('pusing', k.stun); if (k.lambat) stun('lambat', k.lambat); const e = lawan(); if (e) percik(e.pos.clone().setY(1), 12, U.warna, 3); }
+  function umumTembak(k) {
+    const U = BOT_UMUM[hero], e = lawan(); if (!e) return; const dari = pos.clone().setY(1.2), ke = ramal(e, .25).setY(1.1), d = ke.sub(dari).normalize();
+    const sp = new THREE.Sprite(botPelBahan(U.warna)); sp.scale.setScalar(k.t === 'dasar' ? .55 : .85); sp.position.copy(dari); scene.add(sp); B.pel.push({ sp, d, s: 0, max: (U.jarak || 7) + 1.5, k });
+  }
+  function jalankanUmum(dt, I, t, f) {
+    const k = B.um.k, U = BOT_UMUM[hero], e = lawan(), r = k.r || 2.5;
+    if (k.t === 'dasar') { if (t > .25 && !B.hit) { B.hit = 1; if (U.jauh) umumTembak({ t: 'dasar', dmg: 55, dorong: 1.5 }); else if (e && !e.mati && jarak(e.pos) < 2.3) { umumKena({ dmg: 60, dorong: 2 }, pos.clone()); } } if (t > .5) beres(); }
+    else if (k.t === 'dash') { if (t < .4) { pos.addScaledVector(f, 10 * dt); batasi(pos); if (Math.random() < .7) nyala(pos.clone().setY(.9), .9, U.warna, .3); if (!B.hit && e && !e.mati && jarak(e.pos) < 1.6) { B.hit = 1; umumKena(k, pos.clone()); goy(.15); } } if (t > .6) beres(); }
+    else if (k.t === 'area') { if (t > .35 && !B.hit) { B.hit = 1; gelombang(pos.clone(), r, .5, U.warna); percik(pos.clone(), 26, U.warna, 4); if (kenaDi(pos, r)) { umumKena(k, pos.clone()); goy(.2); } } if (t > .75) beres(); }
+    else if (k.t === 'target') { const tj = B.um.tj; if (t > .55 && !B.hit) { B.hit = 1; gelombang(tj, r, .6, U.warna); percik(tj.clone(), 34, U.warna, 5); nyala(tj.clone().setY(1), 2.2, U.warna, .4); if (kenaDi(tj, r)) { umumKena(k, tj.clone()); goy(.25); } } if (t > .9) beres(); }
+    else if (k.t === 'lompat') { const tj = B.um.tj, D = .6; if (t < D) { const u = t / D; pos.lerpVectors(B.awal, tj, u); B.naik = 2.4 * 4 * u * (1 - u); } else if (!B.hit) { B.hit = 1; pos.copy(tj); gelombang(tj, r, .55, U.warna); percik(tj.clone(), 30, U.warna, 5); if (kenaDi(tj, r)) { umumKena(k, tj.clone()); goy(.25); } } if (t > D + .3) beres(); }
+    else if (k.t === 'pel') { if (t > .3 && !B.hit) { B.hit = 1; umumTembak(k); } if (t > .55) beres(); }
+    else if (k.t === 'buff') { B.buffT = k.lama; gelombang(pos.clone(), 1.4, .4, U.warna); beres(); }
+    else if (k.t === 'kebal') { mt.kebal = k.lama; gelombang(pos.clone(), 1.6, .5, 0xffd040); percik(pos.clone().setY(1), 20, 0xffd040, 3); beres(); }
+    else beres();
+  }
+  function updPelUmum(dt) {
+    for (let i = B.pel.length - 1; i >= 0; i--) { const q = B.pel[i], v = 14 * dt; q.sp.position.addScaledVector(q.d, v); q.s += v; const e = lawan();
+      if (e && !e.mati && Math.hypot(e.pos.x - q.sp.position.x, e.pos.z - q.sp.position.z) < .9) { umumKena(q.k, q.sp.position.clone().setY(0)); scene.remove(q.sp); B.pel.splice(i, 1); continue; }
+      if (q.s > q.max) { scene.remove(q.sp); B.pel.splice(i, 1); } }
+  }
   function posisi(I, L, hpR) {   // [arah gerak, arah hadap]
     const terdesak = hpR < .3 && I.hp > hpR + .2 && !I.stun;
     const ke = I.pos.clone().sub(pos).setY(0), hadap = sudutKe(I.pos);
@@ -5560,12 +5622,15 @@ async function buatBotPro(o) {
       if (B.cd[1] > 1.5 && B.cd[3] > 1.5 && B.cd[2] > 1.5 && hpR < .7) return [kite(I, 4.6), null];   // pukul lalu lari (tunggu skill siap)
       return L < 1.1 ? [null, hadap] : [ke.normalize().add(new THREE.Vector3(-ke.z, 0, ke.x).multiplyScalar(.3 * B.strafe)), null];
     }
+    if (BOT_UMUM[hero] && BOT_UMUM[hero].jauh) {   // hero jarak jauh: jaga jarak sambil menembak
+      if (terdesak || (L < 2.6 && !I.stun)) return [mundur(I), L < 9 ? hadap : null];
+      return [kite(I, BOT_UMUM[hero].jarak * .75 / B.agresi), L < 9 ? hadap : null]; }
     if (terdesak) return [mundur(I), null];
     if (L < 1.1) return [null, hadap];
     return [ke.normalize().add(new THREE.Vector3(-ke.z, 0, ke.x).multiplyScalar(L > 3 ? .35 * B.strafe : 0)), null];   // mendekat zig-zag
   }
   function otak(I, dt) {
-    let kec = CEPAT * (hero === 'kunti' && B.terbangT > 0 ? TERBANG.cepat : 1) * (hero === 'tuyul' && B.hilang > 0 ? 1.2 : 1) * (B.amuk > 0 ? GEND.amukCepat : 1);
+    let kec = CEPAT * (B.buffT > 0 ? 1.4 : 1) * (hero === 'kunti' && B.terbangT > 0 ? TERBANG.cepat : 1) * (hero === 'tuyul' && B.hilang > 0 ? 1.2 : 1) * (B.amuk > 0 ? GEND.amukCepat : 1);
     if (B.strafeT <= 0) { B.strafeT = rnd(.8, 2.2); if (Math.random() < .5) B.strafe *= -1; }
     if (!I) {   // lawan tidak terlihat (semak / menghilang)
       if (B.lihat && B.lihatT < 4) {
@@ -5587,7 +5652,7 @@ async function buatBotPro(o) {
       if (B.hindar) { const [d, h] = posisi(I, L, hpR); jalan(d, kec, dt, h); return; }   // sedang bereaksi: jangan mengunci diri dengan skill
     } else B.bahayaT = 0;
     if (B.pikir <= 0) {   // 2) pakai skill
-      const pakai = hero === 'pitung' ? skillPitung(I, L) : hero === 'kunti' ? skillKunti(I, L) : hero === 'tuyul' ? skillTuyul(I, L) : hero === 'genderuwo' ? skillGenderuwo(I, L) : skillOcong(I, L);
+      const pakai = BOT_UMUM[hero] ? skillUmum(I, L) : hero === 'pitung' ? skillPitung(I, L) : hero === 'kunti' ? skillKunti(I, L) : hero === 'tuyul' ? skillTuyul(I, L) : hero === 'genderuwo' ? skillGenderuwo(I, L) : skillOcong(I, L);
       if (pakai) { B.pikir = rnd(.12, .3) / B.agresi * LVB.pikir; return; }
     }
     const [d, h] = posisi(I, L, hpR); jalan(d, kec, dt, h);   // 3) bergerak
@@ -5616,6 +5681,7 @@ async function buatBotPro(o) {
     const pingsanB = mt.kunci > 0 || mt.pusing > 0;
     mt.kunci = Math.max(0, mt.kunci - dt); mt.pusing = Math.max(0, mt.pusing - dt); if (mt.kunci > 0) mt.v.set(0, 0, 0); mt.lambat = Math.max(0, (mt.lambat || 0) - dt);
     B.cd = B.cd.map(c => Math.max(0, c - dt)); B.t += dt; B.pikir -= dt; B.strafeT -= dt; B.combo = Math.max(0, B.combo - dt);
+    B.buffT = Math.max(0, (B.buffT || 0) - dt); mt.kebal = Math.max(0, (mt.kebal || 0) - dt); if (B.pel.length) updPelUmum(dt);
     B.terbangT = Math.max(0, B.terbangT - dt); B.hilang = Math.max(0, B.hilang - dt); B.ungkap = Math.max(0, (B.ungkap || 0) - dt); B.amuk = Math.max(0, B.amuk - dt); B.gcT = Math.max(0, B.gcT - dt); mt.amuk = B.amuk;
     T.tilt.rotation.set(0, 0, 0); T.tilt.scale.set(1, 1, 1); if (T.pivot) T.pivot.rotation.x = 0; B.naik = 0;
     let naik = hero === 'kunti' ? .3 + Math.sin(performance.now() / 380) * .09 + (B.terbangT > 0 ? .4 : 0) : 0;
@@ -5653,6 +5719,7 @@ async function buatBotPro(o) {
   }
   function jalankanSkill(dt, I) {
     const t = B.t, f = dep(T.arah);
+    if (B.state === 'um') { jalankanUmum(dt, I, t, f); return; }   // bot umum (semua hero lain)
     if (I && B.hit && ['tembak', 'penjara', 'colek', 'sundul', 'tinju'].includes(B.state) && bahaya(I)) { beres(); return; }   // serangan sudah keluar → langsung siap menghindar
     if (B.state === 'sundul') {           // ancang-ancang → menerjang → hantam
       mainObj(T, 'diam', .1);
@@ -5821,7 +5888,7 @@ async function buatBotPro(o) {
     else beres();
   }
   async function reset(gantiHero, simpanDarah) {   // simpanDarah: pemenang ronde tidak dipulihkan
-    if (gantiHero) { const h = pilihAcak(BOT_HERO); await pakaiHero(h, pilihAcak(BOT_SKIN[h])); }
+    if (gantiHero) { const h = pilihAcak(BOT_HERO); await pakaiHero(h, pilihAcak(BOT_SKIN[h] || [''])); }
     mt.hp = simpanDarah && !mt.mati ? Math.max(1, mt.hp) : mt.hpMax; mt.mati = 0; mt.kunci = mt.pusing = 0; mt.v.set(0, 0, 0); mt.y = mt.vy = 0; mt.kilau = 0;
     pos.copy(o.posAwal); Object.assign(B, { amuk: 0, gc: 0, gcT: 0, state: 'bebas', cd: [0, 1.5, 1.5, 3], pikir: .6, sudahMati: false, hilang: 0, terbangT: 0, lesat: 0, koin: 0, sergap: false, jatuh: 0, lihat: null, lihatT: 99, ent: null, prev: null, tujuan: null, combo: 0, agresi: rnd(.85, 1.2) });
     T.arah = o.arahAwal || 0; T.root.rotation.y = T.arah; T.tilt.rotation.set(0, 0, 0); setTembus(T, 1); T.cur = ''; mainObj(T, 'diam', .1); if (mt.bar) mt.bar.style.display = '';
