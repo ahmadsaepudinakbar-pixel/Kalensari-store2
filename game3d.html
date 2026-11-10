@@ -4367,7 +4367,7 @@ const SLV = { cepat: 4.4, tsLari: 1.1, emas: 0xffc84a, putih: 0xfff4d6, biru: 0x
   langkah: { jarak: 4.2, muatan: 3, jendela: 3.5, jedaAntar: .25, lama: .14 },
   // ulti: lesatan bergantian menembus target. sudut = arah titik akhir tiap lesatan (derajat, di layar), relatif terhadap arah target → posisi Prabu saat ulti dimulai
   // urutan 1–6: 1, 3, 5 = Prabu (merah) · 2, 4, 6 = Macan Putih (kuning) — tanpa Macan: hanya 1, 3, 5
-  ulti: { jarak: 7, R: 2.6, cepat: 24, jeda: .07, lebar: 1.3, dmgP: 95, dmgM: 75, muncul: .4, awal: .25, sudut: [161, -65, -31, 59, 129, -130] } };
+  ulti: { jarak: 7, R: 2.6, cepat: 42, sambung: .55, minDur: .08, lebar: 1.3, dmgP: 95, dmgM: 75, muncul: .25, awal: .08, sudut: [161, -65, -31, 59, 129, -130] } };
 const SLW = { combo: 0, comboT: 0, muatan: 3, jendela: 0, hilang: 0, macan: null, ulti: null, memanggil: null };
 const KUJANG_URL = 'model-3d/kujang-siliwangi.glb?v=1', KUJANG_POS = [.06183, .02477, .00349], KUJANG_QUAT = [-.53544, .45982, .44024, .55502], KUJANG_SK = .33;   // posisi kujang di tulang tangan kanan Prabu
 const SLV_URL = 'model-3d/siliwangi.glb?v=2', MACAN_URL = 'model-3d/macan-putih.glb?v=1', PUSTAKA_URL = 'model-3d/pustaka-animasi-tripo.glb?v=1';
@@ -4449,7 +4449,7 @@ const slTs = (T, nama, dur) => { const a = T.act[nama]; return a ? a.getClip().d
 // dipanggil tiap frame untuk SEMUA Prabu (pemain, lawan online, teman): putaran Gatsuga saat ulti
 function tiapSiliwangi(T, dt) {
   if (!T.pivot) return;
-  if (T.cur === 'gatsuga') { T.slSpin = (T.slSpin || 0) + dt * 24; T.pivot.rotation.y = T.slSpin;
+  if (T.cur === 'gatsuga') { T.slSpin = (T.slSpin || 0) + dt * 34; T.pivot.rotation.y = T.slSpin;
     if (T.root.visible && Math.random() < dt * 40) { const a = Math.random() * 6.3, p = T.root.position.clone().add(new THREE.Vector3(Math.sin(a) * .7, rnd(.3, 1.6), Math.cos(a) * .7)); nyala(p, rnd(.35, .6), Math.random() < .5 ? SLV.biru : SLV.emas, .18); } }
   else if (T.slSpin) { T.slSpin = 0; T.pivot.rotation.y = 0; }
 }
@@ -4518,7 +4518,7 @@ function updMacan(mc, dt) {
     if (mc.at > .5) { mc.anim = 'diam'; mc.at = 0; }
   }
   else if (mc.anim === 'lesat') {   // ulti: melesat lurus menembus target (roh biru)
-    const q = Math.min(1, mc.at / mc.lDur); p.lerpVectors(mc.lDari, mc.lKe, q); mc.arahT = mc.g.rotation.y = Math.atan2(mc.lKe.x - mc.lDari.x, mc.lKe.z - mc.lDari.z);
+    const q = Math.min(1, mc.at / mc.lDur); p.lerpVectors(mc.lDari, mc.lKe, 1 - (1 - q) * (1 - q)); mc.arahT = mc.g.rotation.y = Math.atan2(mc.lKe.x - mc.lDari.x, mc.lKe.z - mc.lDari.z);
     if (Math.random() < .95) nyala(p.clone().setY(rnd(.5, 1.4)), rnd(.6, 1), Math.random() < .6 ? SLV.biru : SLV.biruT, .3);
     if (q >= 1) { mc.anim = 'diam'; mc.at = 0; mc.roh = false; }
   }
@@ -4600,7 +4600,7 @@ function swCakar(id, dari, a, roh) {   // terkaman macan (roh = 1: roh biru saat
 function swPergi(id, mati) { const mc = MACAN.peta.get(id); if (mc) macanPergi(mc, mati); }
 function swLesatM(id, dari, ke, dur) {   // ulti: Macan Putih (roh biru) melesat lurus dari → ke menembus target
   const mc = MACAN.peta.get(id); if (!mc || mc.pergi > 0) return;
-  mc.g.position.copy(dari).setY(0); mc.lDari = dari.clone().setY(0); mc.lKe = ke.clone().setY(0); mc.lDur = Math.max(.1, dur); mc.anim = 'lesat'; mc.at = 0; mc.roh = true;
+  mc.g.position.copy(dari).setY(0); mc.lDari = dari.clone().setY(0); mc.lKe = ke.clone().setY(0); mc.lDur = Math.max(.06, dur); mc.anim = 'lesat'; mc.at = 0; mc.roh = true;
   gelombang(dari.clone().setY(0), 1.1, .3, SLV.biru); const d = ke.clone().sub(dari).setY(0), L = d.length(), a = Math.atan2(d.x, d.z);
   setTimeout(() => { const c = dari.clone().addScaledVector(d, .5); tebas(c, a, SLV.biru, 0, -.6, 1.25); tebas(c, a, SLV.biruT, 0, .5, 1.05); percik(c.clone().setY(1), 16, SLV.biru, 3.5, .14); kilat(c, 30); }, mc.lDur * 500);
 }
@@ -4702,29 +4702,30 @@ function updSiliwangi(dt, pos, f) {
     if (!u.sas || u.sas.mati || u.sas.sembunyi) u.sas = slSasaranBaru(u.sas ? u.sas.g.position : pos, U.jarak + 2);
     u.kenaM = u.kenaM.filter(k => { k.t -= dt; if (k.t > 0) return true; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && jarakSegmen(m.g.position, k.dari, k.ke) < U.lebar) kena(m, U.dmgM, k.dari, 1.5); }); goyang = Math.max(goyang, .1); return false; });
     const L = u.lesat;
-    if (L) {   // lesatan Prabu sedang berjalan
-      L.t += dt; const q = Math.min(1, L.t / L.dur); pos.lerpVectors(L.dari, L.ke, q); P.arah = L.a; P.root.rotation.y = L.a;
-      if (q >= L.tHit && !L.hit) { L.hit = 1; let ada = 0; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && jarakSegmen(m.g.position, L.dari, L.ke) < U.lebar) { kena(m, U.dmgP, L.dari, 1.2); ada = 1; } }); if (ada) goyang = Math.max(goyang, .14); }
-      if (q >= 1) { u.lesat = null; u.jeda = U.jeda; main('diam', .08); }
-      return;
+    if (L) {   // lesatan Prabu sedang berjalan (tidak menghalangi lesatan Macan berikutnya)
+      L.t += dt; const q = Math.min(1, L.t / L.dur), e = 1 - (1 - q) * (1 - q); pos.lerpVectors(L.dari, L.ke, e); P.arah = L.a; P.root.rotation.y = L.a;   // cepat di awal, mengerem di ujung
+      if (e >= L.tHit && !L.hit) { L.hit = 1; let ada = 0; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && jarakSegmen(m.g.position, L.dari, L.ke) < U.lebar) { kena(m, U.dmgP, L.dari, 1.2); ada = 1; } }); if (ada) { goyang = Math.max(goyang, .14); hentiSejenak = Math.max(hentiSejenak, .03); } }
+      if (q >= 1) { u.lesat = null; if (Math.random() < 1) percik(pos.clone().setY(.3), 8, SLV.biru, 2.5, .12); }
     }
     if (u.jeda > 0) { u.jeda -= dt; return; }
     // lesatan berikutnya
     let k = u.urut[u.k];
     while (k !== undefined && k % 2 === 1 && !(u.mc && !(u.mc.pergi > 0) && u.mc.hp > 0)) { u.k++; k = u.urut[u.k]; }   // Macan tumbang di tengah ulti: lesatannya dilewati
-    if (k === undefined || !u.sas) {   // selesai
-      SLW.ulti = null; P.state = 'slMuncul'; P.t = 0; fx('swMuncul', pos.clone()); mainUlang('muncul', .05, slTs(P, 'muncul', U.muncul + .2)); return;
+    if (k === undefined || !u.sas) {   // selesai (tunggu lesatan Prabu yang masih berjalan)
+      if (u.lesat || u.kenaM.length) return;
+      SLW.ulti = null; P.state = 'slMuncul'; P.t = 0; fx('swMuncul', pos.clone()); mainUlang('muncul', .05, slTs(P, 'muncul', U.muncul + .15)); return;
     }
+    if (k % 2 === 0 && u.lesat) return;   // giliran Prabu tapi lesatan sebelumnya belum selesai
     u.k++;
     const sp = u.sas.g.position.clone().setY(0), sd = u.a0 + U.sudut[k] * Math.PI / 180, ke = batasi(sp.clone().add(new THREE.Vector3(Math.cos(sd), 0, -Math.sin(sd)).multiplyScalar(U.R)));
     if (k % 2 === 0) {   // Prabu
-      const dari = pos.clone(), d = ke.clone().sub(dari), Lg = Math.max(.1, d.length()), dur = Math.max(.14, Lg / U.cepat), a = Math.atan2(d.x, d.z);
+      const dari = pos.clone(), d = ke.clone().sub(dari), Lg = Math.max(.1, d.length()), dur = Math.max(U.minDur, Lg / U.cepat), a = Math.atan2(d.x, d.z);
       const tHit = Math.min(1, Math.max(0, sp.clone().sub(dari).dot(d) / (Lg * Lg)));
-      u.lesat = { dari, ke, a, dur, t: 0, tHit, hit: 0 }; mainUlang('gatsuga', .03, slTs(P, 'gatsuga', .35)); fx('swGatsuga', dari, ke, dur);
+      u.lesat = { dari, ke, a, dur, t: 0, tHit, hit: 0 }; u.jeda = dur * U.sambung; mainUlang('gatsuga', .02, slTs(P, 'gatsuga', .22)); fx('swGatsuga', dari, ke, dur);
     } else {   // Macan Putih
-      const mc = u.mc, dari = mc.g.position.clone().setY(0), d = ke.clone().sub(dari), Lg = Math.max(.1, d.length()), dur = Math.max(.14, Lg / U.cepat);
+      const mc = u.mc, dari = mc.g.position.clone().setY(0), d = ke.clone().sub(dari), Lg = Math.max(.1, d.length()), dur = Math.max(U.minDur, Lg / U.cepat);
       const tHit = Math.min(1, Math.max(0, sp.clone().sub(dari).dot(d) / (Lg * Lg)));
-      fx('swLesatM', mc.id, dari, ke, dur); u.kenaM.push({ t: dur * tHit, dari, ke }); u.jeda = dur + U.jeda;
+      fx('swLesatM', mc.id, dari, ke, dur); u.kenaM.push({ t: dur * tHit, dari, ke }); u.jeda = dur * U.sambung;
     }
   }
   else if (P.state === 'slMuncul') { if (t > SLV.ulti.muncul) slBebas(); }
