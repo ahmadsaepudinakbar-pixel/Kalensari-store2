@@ -1324,7 +1324,7 @@ function aturSimpanPosisi(id) { const e = $('#' + id), r = e.getBoundingClientRe
   addEventListener('resize', () => setTimeout(terapTombol, 60)); terapTombol(); setTimeout(terapTombol, 600); }   // diulang setelah kelas HP (ponsel) terpasang
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
-if (HERO === 'sangkuriang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukulan Dayung (3 pukulan) · U: Langkah Gesit (lari lebih cepat 4 dtk) · I: Putaran Dayung (damage + stun 1,2 dtk) · O: Tangkuban Perahu (perahu muncul 5 dtk; dekati & tekan O lagi untuk menendangnya: damage + stun 1,2 dtk)';
+if (HERO === 'sangkuriang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukulan Dayung (3 pukulan) · U: Langkah Gesit (lari lebih cepat 4 dtk) · I: Putaran Dayung (damage + stun 1,2 dtk) · O: Tangkuban Perahu (perahu muncul 5 dtk: damage + stun 1,2 dtk, tidak bisa ditembus; dekati & tekan O lagi: perahu ditendang otomatis ke lawan terdekat, damage + stun 1,2 dtk)';
 if (HERO === 'ciung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lemparan Biji (jarak jauh) · U: Serangan Ayam Jago (damage + stun 1,2 dtk) · I: Lincah Sang Legenda (melesat + lari lebih cepat 2 dtk) · O: Phoenix Jago Sakti (hantam area depan lalu kembali)';
 if (HERO === 'siliwangi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Kujang (3 tebasan) · U (tahan + mouse): Panggilan Macan Putih (damage + Airborne, macan bertarung 10 dtk) · I: Langkah Bayangan (blink 3x, lanjutkan dalam 1,5 dtk) · O: Bayangan Raja Macan (3 serangan, 6 bila Macan Putih aktif)';
 if (HERO === 'nyi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Air (jarak jauh) · U (tahan + mouse): Jelajah Samudra (melesat + damage, lalu menjadi putri duyung 5 dtk: kebal damage & stun, tidak bisa menyerang — tekan U lagi untuk kembali) · I (tahan + mouse): Pusaran Laut Selatan (menarik lawan ke tengah + Slow 2 dtk, lalu Stun) · O (tahan + mouse): Gelombang Ombak (ombak raksasa 2 dtk: damage besar)';
@@ -4946,8 +4946,8 @@ const SKV = { cepat: 4.5, emas: 0xffc04a, jingga: 0xff8a2a, kayu: 0x8a5426, biru
   dasar: [{ anim: 'pukul1', dur: .6, tH: .33, dmg: 60, R: 1.9, dorong: 1.5, miring: -.55 }, { anim: 'pukul2', dur: .6, tH: .33, dmg: 65, R: 1.9, dorong: 1.5, miring: .6 },
     { anim: 'pukul3', dur: .7, tH: .4, dmg: 90, R: 2.1, dorong: 4, miring: -.1 }], jeda: 1.1,
   s1: { lama: 4, ms: 1.5 },
-  s2: { R: 2.7, dmg: 130, stun: 1.2, dur: .78, tH: .55 },
-  s3: { depan: 3, lama: 5, dekat: 4, jarak: 7, terbang: .7, R: 3.2, panjang: 7.4, dmgMuncul: 60, dmg: 220, stun: 1.2, tinggal: 3, cdTahap: .5 } };
+  s2: { R: 2.7, dmg: 130, stun: 1.2, dur: .78, tFx: .26, tH: .4 },   // tFx: efek putaran mulai bersamaan dengan gerak memutar
+  s3: { depan: 3, lama: 5, dekat: 4, cari: 12, jarak: 7, terbang: .7, R: 3.2, panjang: 7.4, dmgMuncul: 180, dmg: 180, stun: 1.2, tinggal: 3, cdTahap: .5 } };   // cari: jarak cari lawan terdekat untuk tendangan
 const SK = { combo: 0, comboT: 0, ms: 0, perahu: null, tendang: null };
 const SK_URL = 'model-3d/sangkuriang.glb?v=1', PERAHU_URL = 'model-3d/perahu.glb?v=1', PERAHU = { glb: null, sk: 7.4 };   // perahu.glb (Tripo): panjang ±1 di sumbu Z → dibesarkan ±7,3 m
 const SK_ANIM = { tendang: [['front_kick_02', 'front_kick_01'], 1] };
@@ -4983,7 +4983,7 @@ function perahuBaru() {
     const m = PERAHU.glb.scene.clone(true); m.scale.setScalar(PERAHU.sk); m.rotation.y = Math.PI / 2;
     m.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.material) o.material.envMapIntensity = .6; } }); if (KUAL.lv === 0) gantiBahan(m, keLambert);
     isi.add(m); const H = .433 * PERAHU.sk;
-    return { g, isi, bahan: [], yDiam: -.15, yTerbalik: H * .82, yAwal: -H - .5 };
+    return { g, isi, bahan: [], yDiam: -.15, yTerbalik: H * .82, yAwal: -H - .5, hl: .492 * PERAHU.sk, hw: .164 * PERAHU.sk };
   }
   const G = geoPerahu();   // cadangan: perahu buatan kode
   const kayu = new THREE.MeshStandardMaterial({ color: SKV.kayu, roughness: .8, side: THREE.DoubleSide }), emas = new THREE.MeshStandardMaterial({ color: SKV.emas, metalness: .6, roughness: .35, emissive: 0x3a2400 }),
@@ -4994,17 +4994,25 @@ function perahuBaru() {
   [-1, 1].forEach(s => { const u = new THREE.Mesh(G.ujung, emas); u.position.set(s * 3.55, .45, 0); u.rotation.z = -s * .9; isi.add(u); });
   const tg = new THREE.Mesh(G.tiang, kayu); tg.position.y = 1.5; isi.add(tg);
   const ly = new THREE.Mesh(G.layar, kain); ly.position.set(0, 1.9, .15); ly.rotation.y = Math.PI / 2; ly.castShadow = true; isi.add(ly);
-  return { g, isi, bahan: [kayu, emas, kain], yDiam: .9, yTerbalik: 1, yAwal: -2.6 };
+  return { g, isi, bahan: [kayu, emas, kain], yDiam: .9, yTerbalik: 1, yAwal: -2.6, hl: 3.6, hw: 1.3 };
 }
 const SK_PERAHU = new Map();
 function skPerahu(pos, a, id) {   // tahap 1: perahu besar muncul dari tanah (semua layar)
-  const pr = perahuBaru(), S = SKV.s3; pr.id = id; pr.a = a; pr.t = 0; pr.mode = 'muncul'; pr.g.position.copy(pos).setY(pr.yAwal); pr.g.rotation.y = a + Math.PI / 2;   // melintang di depan Sangkuriang
+  const pr = perahuBaru(), S = SKV.s3; pr.id = id; pr.a = a; pr.t = 0; pr.mode = 'muncul'; pr.g.position.copy(pos).setY(pr.yAwal); pr.g.rotation.y = a;   // melintang di depan Sangkuriang
   scene.add(pr.g); SK_PERAHU.set(id, pr);
   const p0 = pos.clone().setY(0); retak(p0, 3.4, 1.4, 0); gelombang(p0, 3.6, .55, SKV.emas); asap(p0, 14, COKLAT_MUDA, 2.6, 1.1); percik(pos.clone().setY(.4), 24, SKV.jingga, 4, .16); kilat(pos, 40);
   TMFX.push({ t: 0, upd(e, dt) { return updPerahu(pr, dt); }, akhir() { scene.remove(pr.g); pr.bahan.forEach(b => b.dispose()); SK_PERAHU.delete(id); } });
 }
+function dorongPerahu(pr, p, r = .45) {   // keluarkan titik p dari badan perahu (persegi panjang melintang)
+  const a = pr.g.rotation.y, Lx = Math.cos(a), Lz = -Math.sin(a), Fx = Math.sin(a), Fz = Math.cos(a), dx = p.x - pr.g.position.x, dz = p.z - pr.g.position.z;
+  const u = dx * Lx + dz * Lz, v = dx * Fx + dz * Fz, pu = pr.hl + r - Math.abs(u), pv = pr.hw + r - Math.abs(v);
+  if (pu <= 0 || pv <= 0) return;
+  if (pv < pu) { const s = (v >= 0 ? 1 : -1) * pv; p.x += Fx * s; p.z += Fz * s; } else { const s = (u >= 0 ? 1 : -1) * pu; p.x += Lx * s; p.z += Lz * s; }
+}
+function perahuPadat(pr) { return (pr.mode === 'muncul' && pr.t > .3) || pr.mode === 'ada' || pr.mode === 'terbalik'; }
 function updPerahu(pr, dt) {
   const S = SKV.s3, g = pr.g; pr.t += dt;
+  if (perahuPadat(pr)) { if (P.root && P.state !== 'kalah') dorongPerahu(pr, P.root.position); MUSUH.forEach(m => { if (!m.remote && !m.mati && m.g) dorongPerahu(pr, m.g.position); }); }
   if (pr.mode === 'muncul') { const q = Math.min(1, pr.t / .55); g.position.y = pr.yAwal + (pr.yDiam - pr.yAwal) * (1 - (1 - q) * (1 - q)); if (q < 1 && Math.random() < .5) asap(g.position.clone().setY(0).add(new THREE.Vector3(rnd(-3, 3), 0, rnd(-1.5, 1.5))), 1, COKLAT_MUDA, .8, .6);
     if (q >= 1) { pr.mode = 'ada'; pr.t = 0; } return true; }
   if (pr.mode === 'ada') { g.position.y = pr.yDiam + Math.sin(pr.t * 2) * .04; if (pr.t > S.lama) { pr.mode = 'tenggelam'; pr.t = 0; } return true; }
@@ -5020,7 +5028,7 @@ function tangkubanHantam(p, a) {   // perahu terbalik menghantam tanah: Tangkuba
   const S = SKV.s3, c = p.clone().setY(0); gelombang(c, S.panjang * .6, .6, SKV.emas); gelombang(c, S.R * 1.3, .5, SKV.jingga); retak(c, S.panjang * .55, 1.6, 0);
   asap(c, 22, COKLAT_MUDA, 3.4, 1.4); percik(c.clone().setY(.6), 40, SKV.jingga, 6, .2); percik(c.clone().setY(1), 18, SKV.emas, 4, .16); kilat(c, 70); goyang = Math.max(goyang, .35);
 }
-function skTendang(id, ke) { const pr = SK_PERAHU.get(id); if (!pr || (pr.mode !== 'ada' && pr.mode !== 'muncul')) return; pr.mode = 'terbang'; pr.t = 0; pr.dari = pr.g.position.clone(); pr.ke = ke.clone(); pr.a = Math.atan2(ke.x - pr.dari.x, ke.z - pr.dari.z); pr.g.rotation.y = pr.a + Math.PI / 2;
+function skTendang(id, ke) { const pr = SK_PERAHU.get(id); if (!pr || (pr.mode !== 'ada' && pr.mode !== 'muncul')) return; pr.mode = 'terbang'; pr.t = 0; pr.dari = pr.g.position.clone(); pr.ke = ke.clone(); pr.a = Math.atan2(ke.x - pr.dari.x, ke.z - pr.dari.z); pr.g.rotation.y = pr.a;
   percik(pr.dari.clone().setY(1), 16, SKV.emas, 3, .14); gelombang(pr.dari.clone().setY(0), 2, .35, SKV.emas); }
 function skTebas(pos, a, miring = -.5, besar = 0) {   // Pukulan Dayung: sabetan jingga keemasan
   const R = besar ? 1.6 : 1.3, g = new THREE.Group(); g.position.set(pos.x, 1.05, pos.z); g.rotation.y = a; const tl = new THREE.Group(); tl.rotation.z = miring; g.add(tl);
@@ -5031,7 +5039,7 @@ function skTebas(pos, a, miring = -.5, besar = 0) {   // Pukulan Dayung: sabetan
 function skPutar(pos) {   // Putaran Dayung: cincin cahaya berputar di sekitar
   const R = SKV.s2.R, g = new THREE.Group(); g.position.set(pos.x, .9, pos.z); scene.add(g); const cin = [];
   [[SKV.emas, 1, 1], [SKV.jingga, .8, .85]].forEach(([w, op, sk], k) => { const r = new THREE.Mesh(GEO_TEBAS, bahanG({ color: w, opacity: op, blending: THREE.AdditiveBlending })); r.rotation.x = -Math.PI / 2; r.scale.setScalar(R / 1.3 * sk); g.add(r); cin.push(r); });
-  TMFX.push({ t: 0, upd(e, dt) { const q = e.t / .45; cin.forEach((r, k) => { r.rotation.z += dt * (18 + k * 5); r.material.opacity = Math.max(0, 1 - q) * (1 - k * .2); }); return q < 1; }, akhir() { scene.remove(g); cin.forEach(r => r.material.dispose()); } });
+  TMFX.push({ t: 0, upd(e, dt) { const q = e.t / .55; cin.forEach((r, k) => { r.rotation.z += dt * (20 + k * 5); r.material.opacity = Math.max(0, 1 - q) * (1 - k * .2); }); return q < 1; }, akhir() { scene.remove(g); cin.forEach(r => r.material.dispose()); } });
   const p0 = pos.clone().setY(0); gelombang(p0, R, .4, SKV.emas); gelombang(p0, R * .7, .35, SKV.jingga); percik(pos.clone().setY(.9), 22, SKV.emas, 4, .15); kilat(pos, 35);
 }
 // ---- memakai skill ----
@@ -5046,14 +5054,15 @@ function pakaiSangkuriang(i) {
     SK.ms = SKV.s1.lama; P.cd[1] = CD_MAX[1]; fx('swBayang', pos.clone(), P.arah, .1); gelombang(pos.clone().setY(0), 1.2, .35, SKV.biru); banner('💨 LANGKAH GESIT!', '#9fdcff'); return;
   }
   else if (i === 2) {   // Putaran Dayung
-    arahi(3); P.state = 'skPutar'; mainUlang('putar', .05, skTs(P, 'putar', SKV.s2.dur)); P.cd[2] = CD_MAX[2];
+    arahi(3); P.fxPutar = 0; P.state = 'skPutar'; mainUlang('putar', .05, skTs(P, 'putar', SKV.s2.dur)); P.cd[2] = CD_MAX[2];
   }
   else if (i === 3) {   // Tangkuban Perahu
     const S = SKV.s3, pr = SK.perahu && SK_PERAHU.get(SK.perahu.id);
     if (pr && (pr.mode === 'ada' || pr.mode === 'muncul')) {   // tahap 2: tendang perahu
       const pp = pr.g.position.clone().setY(0); if (pp.distanceTo(pos) > S.dekat) { banner('🚣 Dekati perahu dulu untuk menendangnya', '#ffd27a'); return; }
       const d = pp.clone().sub(pos).setY(0); if (d.lengthSq() < .01) d.set(Math.sin(P.arah), 0, Math.cos(P.arah)); d.normalize();
-      const ke = batasi(pp.clone().addScaledVector(d, S.jarak)); P.arah = Math.atan2(d.x, d.z); P.root.rotation.y = P.arah;
+      const lw = slSasaranBaru(pp, S.cari); let ke; if (lw) { ke = batasi(lw.g.position.clone().setY(0)); const v = ke.clone().sub(pp).setY(0); if (v.lengthSq() > .01) d.copy(v.normalize()); } else ke = batasi(pp.clone().addScaledVector(d, S.jarak));   // otomatis ke lawan terdekat
+      P.arah = Math.atan2(d.x, d.z); P.root.rotation.y = P.arah;
       P.state = 'skTendang'; mainUlang('tendang', .05, skTs(P, 'tendang', .6)); SK.tendang = { id: SK.perahu.id, ke, t: 0, hit: 0, dari: pp }; SK.perahu = null; slLencanaSK();
       setTimeout(() => fx('skTendang', SK.tendang ? SK.tendang.id : 0, ke), 250);
       P.cd[3] = CD_MAX[3]; banner('🚣 TANGKUBAN PERAHU!', '#ffcf7a');
@@ -5073,7 +5082,8 @@ function updSangkuriang(dt, pos, f) {
   if (SK.ms > 0 && Math.random() < dt * 25) nyala(pos.clone().setY(rnd(.3, 1.1)), .5, SKV.biru, .22);
   // perahu tahap 1: muncul saat dayung menancap, hilang sendiri setelah 5 dtk (lalu cooldown penuh)
   if (SK.perahu) { const s = SK.perahu; s.t += dt;
-    if (!s.muncul && s.t >= .5) { s.muncul = 1; fx('skPerahu', s.c, s.a, s.id); MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && m.g.position.distanceTo(s.c) < S3.R) { kena(m, S3.dmgMuncul, s.c, 3, 3); } }); goyang = Math.max(goyang, .2); }
+    if (!s.muncul && s.t >= .5) { s.muncul = 1; fx('skPerahu', s.c, s.a, s.id); const pr = SK_PERAHU.get(s.id), L = new THREE.Vector3(Math.cos(s.a), 0, -Math.sin(s.a)), A = s.c.clone().addScaledVector(L, (pr ? pr.hl : 3.6)), B = s.c.clone().addScaledVector(L, -(pr ? pr.hl : 3.6));
+      let ada = 0; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && jarakSegmen(m.g.position, A, B) < (pr ? pr.hw : 1.3) + 1) { kena(m, S3.dmgMuncul, s.c, 2.5, 3); m.pusing = Math.max(m.pusing || 0, S3.stun); ada = 1; } }); goyang = Math.max(goyang, ada ? .28 : .2); }
     if (s.t > S3.lama + .5) { SK.perahu = null; P.cd[3] = Math.max(P.cd[3], CD_MAX[3]); slLencanaSK(); } }
   if (SK.tendang) { const k = SK.tendang; k.t += dt;   // damage saat perahu terbalik menghantam tanah
     if (!k.hit && k.t >= .25 + S3.terbang) { k.hit = 1; const c = k.ke, d = k.ke.clone().sub(k.dari).setY(0).normalize(), sam = new THREE.Vector3(d.z, 0, -d.x), A = c.clone().addScaledVector(sam, S3.panjang / 2), B = c.clone().addScaledVector(sam, -S3.panjang / 2);
@@ -5091,8 +5101,9 @@ function updSangkuriang(dt, pos, f) {
     if (t > C.dur) skBebas();
   }
   else if (P.state === 'skPutar') {
-    if (t > SKV.s2.tH && !P.hit) { P.hit = 1; fx('skPutar', pos.clone()); let ada = 0; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && m.g.position.distanceTo(pos) < SKV.s2.R) { kena(m, SKV.s2.dmg, pos, 2.5); m.pusing = Math.max(m.pusing || 0, SKV.s2.stun); ada = 1; } }); if (ada) goyang = Math.max(goyang, .15); }
-    if (t > SKV.s2.dur) skBebas();
+    if (t > SKV.s2.tFx && !P.fxPutar) { P.fxPutar = 1; fx('skPutar', pos.clone()); }   // efek bersamaan dengan gerak memutar
+    if (t > SKV.s2.tH && !P.hit) { P.hit = 1; let ada = 0; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && m.g.position.distanceTo(pos) < SKV.s2.R) { kena(m, SKV.s2.dmg, pos, 2.5); m.pusing = Math.max(m.pusing || 0, SKV.s2.stun); ada = 1; } }); if (ada) goyang = Math.max(goyang, .15); }
+    if (t > SKV.s2.dur) { P.fxPutar = 0; skBebas(); }
   }
   else if (P.state === 'skPanggil') { if (t > .95) skBebas(); }
   else if (P.state === 'skTendang') { if (t > .6) skBebas(); }
