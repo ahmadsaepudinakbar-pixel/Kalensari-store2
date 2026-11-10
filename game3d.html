@@ -1329,7 +1329,7 @@ function aturSimpanPosisi(id) { const e = $('#' + id), r = e.getBoundingClientRe
   addEventListener('resize', () => setTimeout(terapTombol, 60)); terapTombol(); setTimeout(terapTombol, 600); }   // diulang setelah kelas HP (ponsel) terpasang
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
-if (HERO === 'kiansantang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Silat (3 tebasan keris) · U: Imunitas (kebal CC 3 dtk) · I: Semangat Perang (lari & serang lebih cepat 3 dtk) · O: Duplikasi Raga (menghilang sebentar, muncul jadi 2: kembaran berdarah sendiri, bertarung & memakai skill sendiri 7 dtk)';
+if (HERO === 'kiansantang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Silat (3 tebasan keris) · U: Imunitas (kebal damage 2 dtk) · I: Semangat Perang (lari & serang lebih cepat 3 dtk) · O: Duplikasi Raga (menghilang sebentar, muncul jadi 2: kembaran berdarah sendiri, bertarung & memakai skill sendiri 5 dtk)';
 if (HERO === 'sangkuriang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukulan Dayung (3 pukulan) · U: Langkah Gesit (lari lebih cepat 4 dtk) · I: Putaran Dayung (damage + stun 1,2 dtk) · O: Tangkuban Perahu (perahu muncul 5 dtk: damage + stun 1,2 dtk, tidak bisa ditembus; dekati & tekan O lagi: perahu ditendang otomatis ke lawan terdekat, damage + stun 1,2 dtk)';
 if (HERO === 'ciung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lemparan Biji (jarak jauh) · U: Serangan Ayam Jago (damage + stun 1,2 dtk) · I: Lincah Sang Legenda (melesat + lari lebih cepat 2 dtk) · O: Phoenix Jago Sakti (hantam area depan lalu kembali)';
 if (HERO === 'siliwangi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Kujang (3 tebasan) · U (tahan + mouse): Panggilan Macan Putih (damage + Airborne, macan bertarung 10 dtk) · I: Langkah Bayangan (blink 3x, lanjutkan dalam 1,5 dtk) · O: Bayangan Raja Macan (3 serangan, 6 bila Macan Putih aktif)';
@@ -5120,16 +5120,16 @@ function updSangkuriang(dt, pos, f) {
 // ================== KIAN SANTANG (hero ke-18: Fighter / Assassin — putra Prabu Siliwangi, senjata keris) ==================
 // kiansantang.glb (Tripo, rig Mixamo, dari asa27): keris menempel di tulang tangan kanan · klip: diam (Hug), lari (Run), combo (Dual Weapon Combo),
 // perisai (Standing 1H Magic Attack), putar (Great Sword High Spin Attack), lompat (Standing Jump), kalah (Defeat 03)
-// Serangan dasar: Tebasan Silat (3 tebasan cepat, potongan Dual Weapon Combo) · Skill 1: Imunitas (kebal semua CC 3 dtk, perisai emas)
+// Serangan dasar: Tebasan Silat (3 tebasan cepat, potongan Dual Weapon Combo) · Skill 1: Imunitas (kebal damage 2 dtk, perisai emas; CC tetap kena)
 // Skill 2: Semangat Perang (kecepatan gerak & serang naik 3 dtk) · Skill 3: Duplikasi Raga (menghilang sejenak, muncul jadi 2 sosok: bayangan ungu ikut menyerang beberapa detik)
 // Kembaran punya darah sendiri (950), damage & kecepatan 100%, memakai Imunitas & Semangat Perang sendiri, bisa diserang & dibunuh lawan
 // Kembaran (seperti ulti Sun MLBB) dibuat di semua layar lewat fx('ksBayang', ...): dikendalikan bot di HP pemilik (mengejar & menebas lawan sendiri), posisi & serangannya dikirim lewat fx
 const KSV = { cepat: 4.6, emas: 0xffd060, ungu: 0xa070ff, unguT: 0x5a2aff, biru: 0x7fc8ff,
   dasar: [{ anim: 'tebas1', dur: .42, tH: .22, dmg: 55, R: 1.8, dorong: 1.2, miring: -.5 }, { anim: 'tebas2', dur: .42, tH: .22, dmg: 58, R: 1.8, dorong: 1.2, miring: .55 },
     { anim: 'tebas3', dur: .5, tH: .28, dmg: 80, R: 2, dorong: 3.5, miring: -.1 }], jeda: 1,
-  s1: { lama: 3, anim: .55 },
+  s1: { lama: 2, anim: .55 },   // Imunitas: kebal damage 2 dtk (CC tetap kena)
   s2: { lama: 3, ms: 1.4, as: 1.5 },   // as: serangan 1,5x lebih cepat
-  s3: { hilang: .45, R: 2.6, dmg: 120, lama: 7, kuat: 1, sisi: 1.3, putar: .7, ikat: 10, jedaSerang: .55, jangkau: 1.6 } };   // kuat: damage kembaran = 60% serangan asli; ikat: kembaran tidak menjauh lebih dari 10 m dari Kian Santang
+  s3: { hilang: .45, R: 2.6, dmg: 120, lama: 5, kuat: 1, sisi: 1.3, putar: .7, ikat: 10, jedaSerang: .55, jangkau: 1.6 } };   // kuat: damage kembaran = 60% serangan asli; ikat: kembaran tidak menjauh lebih dari 10 m dari Kian Santang
 const KS = { combo: 0, comboT: 0, kebal: 0, semangat: 0, bayang: 0, hilang: 0 };
 const KS_URL = 'model-3d/kiansantang.glb?v=1';
 const KS_LIST = new Set();
@@ -5181,8 +5181,7 @@ function tiapKianSantang(T, dt) {   // tiap frame untuk SEMUA Kian Santang: kemb
 }
 function aiKembaran(B, dt) {   // hanya di HP pemilik: kembaran mengejar & menebas lawan terdekat, memakai skill sendiri
   B.cd1 = Math.max(0, B.cd1 - dt); B.cd2 = Math.max(0, B.cd2 - dt); B.kebal = Math.max(0, B.kebal - dt); B.semangat = Math.max(0, B.semangat - dt);
-  if (B.kebal > 0) B.pusing = 0;
-  if (B.pusing > 0 && B.cd1 <= 0) { B.pusing = 0; B.kebal = KSV.s1.lama; B.cd1 = CD_MAX[1]; fx('ksPerisaiK', B.id, KSV.s1.lama); ksMain(B, 'perisai', ksTs(B, 'perisai', KSV.s1.anim), true); }   // terkena CC: pakai Imunitas
+  if (B.hp < HP_MAX.kiansantang * .6 && B.cd1 <= 0 && B.pusing <= 0) { B.kebal = KSV.s1.lama; B.cd1 = CD_MAX[1]; fx('ksPerisaiK', B.id, KSV.s1.lama); ksMain(B, 'perisai', ksTs(B, 'perisai', KSV.s1.anim), true); }   // darah tinggal 60%: pakai Imunitas
   if (B.pusing > 0) { B.pusing -= dt; ksMain(B, 'diam'); B.kirimT = (B.kirimT || 0) - dt; if (B.kirimT <= 0 && NET.on) { B.kirimT = .12; fx('ksGerak', B.id, B.g.position.clone(), 0, B.g.rotation.y); } return; }
   const S = KSV.s3, p = B.g.position, cepat = KSV.cepat * (B.semangat > 0 ? KSV.s2.ms : 1);
   if (B.hitT > 0) { B.hitT -= dt; if (B.hitT <= 0) { const C = KSV.dasar[B.k], f = new THREE.Vector3(Math.sin(B.g.rotation.y), 0, Math.cos(B.g.rotation.y)); kenaDepan(p, f, 1, C.R, m => kena(m, Math.round(C.dmg * S.kuat), p, C.dorong)); } }
@@ -5214,14 +5213,14 @@ function ksBayang(asal, lama, id, tim = -1) {   // fx: Kian Santang muncul lagi 
   ksKabut(B.g.position, 10); ksMain(B, 'putar', ksTs(B, 'putar', KSV.s3.putar), true);
 }
 function kembarTerima(id, d) {   // hanya di HP pemilik: darah kembaran berkurang, dikirim ke semua layar
-  const B = ksCari(id); if (!B || !B.milik || B.hp <= 0) return; B.hp = Math.max(0, B.hp - Math.round(d)); angka(B.g.position, Math.round(d), '#ffb0b0'); fx('ksHp', id, B.hp);
+  const B = ksCari(id); if (!B || !B.milik || B.hp <= 0 || B.kebal > 0) return; B.hp = Math.max(0, B.hp - Math.round(d)); angka(B.g.position, Math.round(d), '#ffb0b0'); fx('ksHp', id, B.hp);
   if (B.hp <= 0) banner('👥 Kembaran Kian Santang tumbang!', '#ff9a9a');
 }
 function ksHp(id, hp) { const B = ksCari(id); if (!B) return; B.hp = hp; if (B.mt) { B.mt.hp = hp; if (hp <= 0) B.mt.mati = 1; } }
 function ksPerisaiK(id, lama) { const B = ksCari(id); if (B) ksPerisai(B.g.position.clone(), lama, B); }
 function kembarEnt(B) {   // sasaran untuk bot (Lawan Bot)
   return B.ent || (B.ent = { root: B.g, hero: 'kiansantang', kembar: B, get an() { return B.cur === 'lari' ? 'lari' : 'diam'; }, get arah() { return B.g.rotation.y; }, fl: 0, get hp() { return B.hp; }, id: null,
-    mt: { g: B.g, hpMax: HP_MAX.kiansantang, kunci: 0, get hp() { return B.hp; }, get mati() { return B.hp <= 0 || B.umur <= 0 ? 1 : 0; }, get pusing() { return B.pusing || 0; }, set pusing(v) { if (!(B.kebal > 0)) B.pusing = v; } } });
+    mt: { g: B.g, hpMax: HP_MAX.kiansantang, kunci: 0, get hp() { return B.hp; }, get mati() { return B.hp <= 0 || B.umur <= 0 ? 1 : 0; }, get pusing() { return B.pusing || 0; }, set pusing(v) { B.pusing = v; } } });
 }
 function ksCari(id) { let b = null; KS_LIST.forEach(T => { if (T.ksBayang && T.ksBayang.id === id) b = T.ksBayang; }); return b; }
 function ksGerak(id, pos, kode, arah) { const B = ksCari(id); if (!B || B.milik) return; B.tujuan = pos.clone(); B.kode = kode; B.arahT = arah; }
@@ -5251,7 +5250,7 @@ function pakaiKianSantang(i) {
     mainUlang(C.anim, .04, ksTs(P, C.anim, P.ksDur)); P.cd[0] = CD_MAX[0] / k;
   }
   else if (i === 1) {   // Imunitas
-    KS.kebal = KSV.s1.lama; lepasCC(); P.cd[1] = CD_MAX[1]; fx('ksPerisai', pos.clone(), KSV.s1.lama); P.state = 'ksPerisai'; mainUlang('perisai', .05, ksTs(P, 'perisai', KSV.s1.anim)); banner('🛡️ IMUNITAS! Kebal CC 3 detik', '#ffe08a');
+    KS.kebal = KSV.s1.lama; P.cd[1] = CD_MAX[1]; fx('ksPerisai', pos.clone(), KSV.s1.lama); P.state = 'ksPerisai'; mainUlang('perisai', .05, ksTs(P, 'perisai', KSV.s1.anim)); banner('🛡️ IMUNITAS! Kebal damage 2 detik', '#ffe08a');
   }
   else if (i === 2) {   // Semangat Perang
     KS.semangat = KSV.s2.lama; P.cd[2] = CD_MAX[2]; fx('swBayang', pos.clone(), P.arah, .1); gelombang(pos.clone().setY(0), 1.4, .35, KSV.biru); banner('⚡ SEMANGAT PERANG!', '#9fdcff'); return;
@@ -5266,7 +5265,6 @@ function lepasCC() { P.kunci = P.pusing = 0; P.lambat = 0; P.tarikD = null; P.an
 function ksBebas() { P.state = 'bebas'; main('diam', .2); }
 function updKianSantang(dt, pos, f) {
   const t = P.t; updBidik(); KS.comboT = Math.max(0, KS.comboT - dt); KS.kebal = Math.max(0, KS.kebal - dt); KS.semangat = Math.max(0, KS.semangat - dt);
-  if (KS.kebal > 0) lepasCC();   // Imunitas: semua CC langsung hilang
   if (KS.semangat > 0 && Math.random() < dt * 22) nyala(pos.clone().setY(rnd(.3, 1.2)), .5, KSV.biru, .22);
   if (P.state !== 'ksHilang' && (KS.hilang || (P.model && !P.model.visible)) && P.state !== 'kalah') { KS.hilang = 0; if (P.model) P.model.visible = true; }
   const cepat = KSV.cepat * (KS.semangat > 0 ? KSV.s2.ms : 1);
@@ -5769,7 +5767,7 @@ function kenaPemain(dmg, dari, dorong = 3) {
   if (HERO === 'nyi' && (NW.duyung > 0 || P.state === 'nrLesat')) return;
   if (HERO === 'siliwangi' && P.state === 'slUlti') return;
   if (HERO === 'kiansantang' && P.state === 'ksHilang') return;   // Duplikasi Raga: sedang menghilang
-  if (HERO === 'kiansantang' && KS.kebal > 0) dorong = 0;   // Imunitas: tidak bisa didorong   // Bayangan Raja Macan: menghilang & menyerang, tidak bisa dilukai   // Jelajah Samudra: berenang di bawah air, kebal damage
+  if (HERO === 'kiansantang' && KS.kebal > 0) return;   // Imunitas: kebal damage   // Bayangan Raja Macan: menghilang & menyerang, tidak bisa dilukai   // Jelajah Samudra: berenang di bawah air, kebal damage
   if (HERO === 'dayang' && DSW.perisai > 0) { const s = Math.min(DSW.perisai, dmg); DSW.perisai -= s; dmg -= s; angka(P.root.position, '🛡' + s, '#ffd25a'); if (dmg <= 0) return; }   // Shield Anjing Penjaga
   if (HERO === 'erick' && P.state === 'erBlok') { eBlokFx(P.root.position.clone().addScaledVector(depan(), .5), 0); angka(P.root.position, 'BLOK', '#ffe08a'); return; }   // Mode Bertahan: serangan diblok
   P.hp = Math.max(0, P.hp - dmg);
@@ -5999,7 +5997,7 @@ function terimaData(m) {
     else if (e.k === 'hit') { const [x, z] = keNet(e.x, e.z); kenaPemain(e.d, new THREE.Vector3(x, 0, z), e.dr || 3); }
     else if (e.k === 'hitMacan') macanTerima(e.id, e.d);   // Macan Putih saya diserang lawan
     else if (e.k === 'hitKembar') kembarTerima(e.id, e.d);
-    else if (e.k === 'stunKembar') { const B = ksCari(e.id); if (B && B.milik && !(B.kebal > 0)) B.pusing = Math.max(B.pusing || 0, Math.min(2, e.d)); }
+    else if (e.k === 'stunKembar') { const B = ksCari(e.id); if (B && B.milik) B.pusing = Math.max(B.pusing || 0, Math.min(2, e.d)); }
     else if (e.k === 'kunci') P.kunci = Math.max(P.kunci || 0, Math.min(3, e.d));
     else if (e.k === 'pusing') P.pusing = Math.max(P.pusing || 0, Math.min(2, e.d));
     else if (e.k === 'lambat') P.lambat = Math.max(P.lambat || 0, Math.min(2, e.d));
@@ -6304,7 +6302,7 @@ function terimaDataTim(m) {
     if (e.k === 'fx') fxTerima(e);
     else if (e.k === 'hitMacan') macanTerima(e.id, e.d);   // Macan Putih saya diserang
     else if (e.k === 'hitKembar') kembarTerima(e.id, e.d);
-    else if (e.k === 'stunKembar') { const B = ksCari(e.id); if (B && B.milik && !(B.kebal > 0)) B.pusing = Math.max(B.pusing || 0, Math.min(2, e.d)); }
+    else if (e.k === 'stunKembar') { const B = ksCari(e.id); if (B && B.milik) B.pusing = Math.max(B.pusing || 0, Math.min(2, e.d)); }
     else if (e.k === 'hit') { const [x, z] = keNet(e.x, e.z), pos = new THREE.Vector3(x, 0, z);
       if (utkSaya) { TIM.terakhir = pelaku; kenaPemain(e.d, pos, e.dr || 3); } else if (botSaya) { botSaya.terakhir = pelaku; KENA_LUAR = true; kena(botSaya.mt, e.d, pos, e.dr || 3); KENA_LUAR = false; } }
     else if (e.k === 'kunci') { if (utkSaya) P.kunci = Math.max(P.kunci || 0, Math.min(3, e.d)); else if (botSaya) botSaya.mt.kunci = Math.min(3, e.d); }
