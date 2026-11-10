@@ -128,8 +128,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #timHud .b{color:#5ab4ff}#timHud .m{color:#ff6060}#timHud small{font:700 12px Arial;color:#b8c0d8}#timHud .hdp{flex-basis:100%;text-align:center;font:700 13px Arial;color:#ffd166}
 body:has(#timHud:not([style*="none"])) #koin{top:52px}
 #wnStat{position:fixed;left:50%;top:66px;transform:translateX(-50%);z-index:6;display:flex;gap:7px;font:700 11px Arial;color:#aab3c8;background:#0b1020b8;border-radius:10px;padding:3px 9px;pointer-events:none;white-space:nowrap}#wnStat .on{color:#9dff8a}
-#wnMini{position:fixed;right:8px;top:46px;width:84px;height:152px;border:2px solid #000a;border-radius:8px;z-index:5;pointer-events:none;opacity:.92}
-@media (orientation:landscape) and (max-height:560px){#wnMini{width:58px;height:105px;top:40px}#wnStat{top:58px;font-size:10px}}
+#wnMini{position:fixed;right:8px;top:46px;width:80px;height:172px;border:2px solid #000a;border-radius:8px;z-index:5;pointer-events:none;opacity:.92}
+@media (orientation:landscape) and (max-height:560px){#wnMini{width:54px;height:116px;top:40px}#wnStat{top:58px;font-size:10px}}
 #wnKartu{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:20;display:none;gap:8px;align-items:flex-end}#wnKartu.on{display:flex}
 #wnKartu .wkj{position:absolute;top:-22px;left:-40px;right:-40px;text-align:center;font:700 12px Arial;color:#ffd166;text-shadow:0 1px 2px #000;pointer-events:none}
 .wk{position:relative;width:86px;padding:7px 4px 6px;border-radius:12px;background:linear-gradient(#22305a,#0b1020);border:2px solid #4a5a80;color:#e8eefc;font:700 11px Arial;text-align:center;cursor:pointer;animation:wkIn .3s ease-out both;touch-action:none}
@@ -268,7 +268,7 @@ const WN = { on: MODE === 'nanas', siap: false, E: [], st: new Map(), tugu: { mi
 const NAMA_ARENA = { lapangan: 'Lapangan SD', kuil: 'Kuil Malam', sawah: 'Sawah Siang', pink: 'Taman Pink', kebun: 'Kebun Malam', nanas: 'War Nanas' };
 const UM_BENTENG = 1.8;   // jari-jari lingkaran pohon jaga (Petak Umpet)             // online: diganti arena pilihan pembuat room
 let PUSAT_Z = 0;                                                              // titik tengah arena (pemain lawan dicerminkan di sini)
-function aturArena() { PUSAT_Z = ARENA === 'lapangan' ? 1 : 0; if (ARENA === 'sawah' || ARENA === 'pink') Object.assign(BATAS, { x0: -12.8, x1: 12.8, z0: -8.8, z1: 8.8 }); if (ARENA === 'kebun') Object.assign(BATAS, { x0: -13.3, x1: 13.3, z0: -9.8, z1: 9.8 }); if (ARENA === 'nanas') Object.assign(BATAS, { x0: -20, x1: 20, z0: -37, z1: 37 }); }
+function aturArena() { PUSAT_Z = ARENA === 'lapangan' ? 1 : 0; if (ARENA === 'sawah' || ARENA === 'pink') Object.assign(BATAS, { x0: -12.8, x1: 12.8, z0: -8.8, z1: 8.8 }); if (ARENA === 'kebun') Object.assign(BATAS, { x0: -13.3, x1: 13.3, z0: -9.8, z1: 9.8 }); if (ARENA === 'nanas') Object.assign(BATAS, { x0: -20, x1: 20, z0: -44, z1: 44 }); }
 const JARAK_AWAL = () => ARENA === 'kuil' ? 6 : ARENA === 'sawah' || ARENA === 'pink' ? 5 : 4.5;   // jarak pemain dari tengah arena saat mulai
 const SKIN = HERO === 'timun' ? (['faniya', 'airin'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'erick' ? (['robot', 'cepot'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'doni' ? (['robot', 'dawala'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'buto' ? (['ijo', 'golem'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'lutung' ? (Q.get('skin') === 'fox' ? 'fox' : '') : HERO === 'saras' ? (['lina', 'santi'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'tuyul' ? (['robot', 'halloween', 'mecha', 'setan'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'ocong' ? (['lompat', 'emas'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'genderuwo' ? (['leak', 'calon'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'pitung' ? (Q.get('skin') === 'pendekar' ? 'pendekar' : '') : (['merah', 'gothic'].includes(Q.get('skin')) ? Q.get('skin') : '');   // Kunti 'gothic' = skin Kunti Gothic (berjalan kaki) · Genderuwo: 'leak' = skin Leak   // Ocong: '' Boneka / 'lompat' Pocong Lompat · Kunti: '' Kunti (utama) / 'merah' Kunti Merah
 const MODEL = HERO === 'kiansantang' ? 'model-3d/kiansantang.glb?v=1' : HERO === 'sangkuriang' ? 'model-3d/sangkuriang.glb?v=1' : HERO === 'ciung' ? 'model-3d/ciung.glb?v=1' : HERO === 'siliwangi' ? 'model-3d/siliwangi.glb?v=2' : HERO === 'nyi' ? 'model-3d/nyi-roro.glb?v=3' : HERO === 'dayang' ? 'model-3d/dayang.glb?v=3' : HERO === 'angling' ? 'model-3d/angling.glb?v=3' : HERO === 'saras' ? (SKIN === 'santi' ? 'model-3d/saras-santi.glb?v=2' : SKIN === 'lina' ? 'model-3d/saras-lina.glb?v=3' : 'model-3d/saras.glb?v=1') : HERO === 'lutung' ? (SKIN === 'fox' ? 'model-3d/lutung-fox.glb?v=2' : 'model-3d/lutung.glb?v=2') : HERO === 'buto' ? (SKIN === 'golem' ? 'model-3d/buto-golem.glb?v=1' : SKIN === 'ijo' ? 'model-3d/buto-ijo.glb?v=1' : 'model-3d/buto.glb?v=1') : HERO === 'timun' ? (SKIN === 'faniya' ? 'model-3d/timunmas-faniya.glb?v=1' : SKIN === 'airin' ? 'model-3d/timunmas-airin.glb?v=3' : 'model-3d/timunmas.glb?v=1') : HERO === 'doni' ? (SKIN === 'dawala' ? 'model-3d/doni-dawala.glb?v=1' : SKIN === 'robot' ? 'model-3d/doni-robot.glb?v=5' : 'model-3d/doni.glb?v=5') : HERO === 'erick' ? (SKIN === 'cepot' ? 'model-3d/erick-cepot.glb?v=1' : SKIN === 'robot' ? 'model-3d/erick-robot.glb?v=1' : 'model-3d/erick.glb?v=15') : HERO === 'pitung' ? (SKIN === 'pendekar' ? 'model-3d/pitung-batik.glb?v=2' : 'model-3d/pitung.glb') : HERO === 'genderuwo' ? (SKIN === 'calon' ? 'model-3d/calon-arang.glb?v=1' : SKIN === 'leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb') : HERO === 'tuyul' ? (SKIN === 'robot' ? 'model-3d/tuyul-robot.glb?v=2' : SKIN === 'halloween' ? 'model-3d/tuyul-halloween.glb?v=2' : SKIN === 'mecha' ? 'model-3d/tuyul-mecha.glb?v=2' : SKIN === 'setan' ? 'model-3d/tuyul-setan.glb?v=2' : 'model-3d/tuyul.glb') : HERO === 'kunti' ? (SKIN === 'merah' ? 'model-3d/skinkunti.glb?v=2' : SKIN === 'gothic' ? 'model-3d/skinkunti-jalan.glb?v=2' : 'model-3d/skinkunti-asli.glb?v=2') : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
@@ -5837,10 +5837,10 @@ async function buatBotPro(o) {
 //   Badak HP · Harimau Attack · Kerbau Defense · Kancil Speed · Monyet Attack Speed · Merak Cooldown.
 // Tugu Nanas: berdiri di lingkaran tanpa musuh 10 dtk (berdua 7 dtk, bertiga 5 dtk) = dikuasai (bisa direbut balik dengan cara sama); tim pemilik pulih 10% HP/dtk di lingkaran
 //   (berhenti 2 dtk setelah kena serangan). Rumah tidak memberi heal.
-// Buaya Danau (menit 4, muncul lagi 3 menit setelah dibunuh): seperti Lord — ikut tim yang membunuhnya dan mendorong ke bangunan lawan.
+// Buaya Danau (2 danau kiri & kanan, muncul menit 4, 8, 12, … makin kuat tiap kemunculan): seperti Lord — ikut tim yang membunuhnya dan mendorong ke bangunan lawan.
 // Respawn hero: 10 dtk, +2 dtk tiap menit sampai menit 10 (30 dtk), lalu +3 dtk tiap menit (tanpa batas).
 // Model sementara: Singa, Rumah, monster hutan & Buaya dibuat dari bentuk sederhana — tinggal diganti GLB kalau sudah ada.
-const WN_Z = { rumah: 33, garuda: 24, singa: 14 }, WN_TUGU_R = 4.5, WN_DANAU = new THREE.Vector3(-15, 0, 0), WN_DANAU_R = 5;
+const WN_Z = { rumah: 40, garuda: 29, singa: 13 }, WN_TUGU_R = 4.5, WN_DANAU = [new THREE.Vector3(-15.2, 0, 0), new THREE.Vector3(15.2, 0, 0)], WN_DANAU_R = 4.6;   // 2 danau: kiri & kanan
 const WN_NAMA_TIM = ['Merah', 'Putih'], WN_WARNA = [0xd8322a, 0xf2f2ee], WN_CSS = ['#ff6a5a', '#f4f4f4'];
 const WN_STAT = {
   hp: { ik: '❤️', n: 'HP', mon: 'Badak', warna: 0x8a8f96 },
@@ -5849,17 +5849,19 @@ const WN_STAT = {
   spd: { ik: '👟', n: 'Speed', mon: 'Kancil', warna: 0xc49a5a },
   as: { ik: '⚡', n: 'Attack Speed', mon: 'Monyet', warna: 0x7a4e2a },
   cd: { ik: '⏳', n: 'Cooldown', mon: 'Merak', warna: 0x2a7ad8 } };
-// monster hutan: [x, z, stat] — separuh Merah (z+), separuh Putih dicerminkan titik (−x, −z)
-const WN_KEMAH = [[-13, 8, 'spd'], [-14, 19, 'hp'], [-11, 29, 'cd'], [13, 8, 'as'], [14, 19, 'atk'], [11, 29, 'def']];
+// monster hutan: [x, z, stat] — separuh Merah (z+), separuh Putih dicerminkan titik (−x, −z) · 10 kemah per separuh
+const WN_KEMAH = [[-13, 9, 'spd'], [-14, 22, 'hp'], [-11, 36, 'cd'], [13, 9, 'as'], [14, 22, 'atk'], [11, 36, 'def'],
+  [-18, 15, 'atk'], [18, 15, 'hp'], [-17.5, 29, 'as'], [17.5, 29, 'spd']];   // 10 kemah tiap separuh map (20 monster)
 // angka keseimbangan (gampang diubah)
 const WNV = {
-  singa: { hp: 6000, R: 7, dmg: 140, jeda: 1.4, jangkau: 2.1, kec: 3.6 },
-  garuda: { hp: 9000, R: 8.5, dmg: 170, jeda: 1.6, padat: 1.9 },
+  singa: { hp: 6000, R: 6.5, dmg: 140, jeda: 1.4, jangkau: 2.1, kec: 3.6 },
+  garuda: { hp: 9000, R: 7.5, dmg: 170, jeda: 1.6, padat: 1.9 },
   rumah: { hp: 8000, padat: 3.3 },
   tugu: { lama: 10, heal: .1, jedaHeal: 2, padat: 1.3 },   // heal 10% HP / detik
   mon: { hp: 650, dmg: 38, jeda: 1.2, kec: 3.2, leash: 8, ulang: 45, naikPerMenit: .06 },
-  buaya: { hp: 5000, dmg: 150, jeda: 1.6, kec: 2.6, leash: 9, muncul: 240, ulang: 180, naikPerMenit: .05 },
-  buayaT: { hp: 3500, dmg: 120, dmgB: 260, jeda: 1.6, kec: 2.5 },
+  // Buaya: muncul tiap 4 menit (menit 4, 8, 12, …) di kedua danau; level naik tiap kemunculan: lv1 lemah, lalu makin kuat
+  buaya: { hp: 2200, dmg: 70, jeda: 1.6, kec: 2.6, leash: 9, selang: 240, naikHp: .6, naikDmg: .4, naikPerMenit: 0 },
+  buayaT: { hp: 1600, dmg: 70, dmgB: 160, jeda: 1.6, kec: 2.5 },
   respawn: [10, 2, 45] };   // [awal, tambah per menit, maks] detik
 // stat hasil kartu (dalam persen, ditumpuk): HP & Attack +p% · Defense: damage diterima ×100/(100+p) · Speed +p% (maks +80%)
 // Attack Speed: jeda serangan dasar ×100/(100+p) · Cooldown: jeda skill ×100/(100+p) (keduanya paling cepat 35%)
@@ -5897,7 +5899,7 @@ function buatArenaNanas() {
   const T_TANAH = tex(128, 128, (x, w, h) => { x.fillStyle = '#b8955e'; x.fillRect(0, 0, w, h); for (let i = 0; i < 260; i++) { x.fillStyle = Math.random() < .5 ? 'rgba(130,100,60,.4)' : 'rgba(220,195,150,.4)'; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, rnd(1, 3), 0, 7); x.fill(); } }, 3, 3);
   bidang(150, 170, new THREE.MeshLambertMaterial({ map: T_RUMPUT }), 0, -.03, 0);
   const mBatu = new THREE.MeshLambertMaterial({ map: T_BATU }), mTanah = new THREE.MeshLambertMaterial({ map: T_TANAH });
-  bidang(7, 74, mBatu, 0, .005, 0);                                   // jalur tengah
+  bidang(7, 88, mBatu, 0, .005, 0);                                   // jalur tengah
   const T_ALUN = T_BATU.clone(); T_ALUN.repeat.set(5, 5); T_ALUN.needsUpdate = true; const mAlun = new THREE.MeshLambertMaterial({ map: T_ALUN });
   lingkar(6.6, mAlun, 0, .01, 0);                                   // alun-alun Tugu Nanas
   [-1, 1].forEach(s => { lingkar(7.5, mAlun, 0, .01, s * WN_Z.rumah); lingkar(4, mAlun, 0, .012, s * WN_Z.garuda); });   // halaman rumah & garuda
@@ -5906,36 +5908,37 @@ function buatArenaNanas() {
   WN_KEMAH.forEach(([x, z]) => { [1, -1].forEach(s => { setapak(s * Math.sign(x) * 3.5, s * z, s * x, s * z); lingkar(2.6, mTanah, s * x, .006, s * z, 18); }); });
   // danau buaya
   const mAir = new THREE.MeshLambertMaterial({ color: 0x3a9ad0, transparent: true, opacity: .88 });
-  lingkar(WN_DANAU_R + .7, mTanah, WN_DANAU.x, .003, WN_DANAU.z, 28); lingkar(WN_DANAU_R, mAir, WN_DANAU.x, .03, WN_DANAU.z, 32);
-  setapak(-3.5, 0, WN_DANAU.x + WN_DANAU_R, 0);
   const mBatuK = new THREE.MeshLambertMaterial({ color: 0x8f8a82, flatShading: true }), mDaunT = new THREE.MeshLambertMaterial({ color: 0x3f9a3a }), mBunga = new THREE.MeshLambertMaterial({ color: 0xff8ab8 });
-  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + rnd(-.1, .1), r = WN_DANAU_R + rnd(.2, .7); if (Math.abs(Math.cos(a) - 1) < .15) continue;
-    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.35, .7), 0), mBatuK); b.position.set(WN_DANAU.x + Math.cos(a) * r, .15, WN_DANAU.z + Math.sin(a) * r); b.scale.y = .6; b.castShadow = true; scene.add(b); }
-  for (let i = 0; i < 7; i++) { const a = rnd(0, 6.3), r = rnd(1, WN_DANAU_R - .8), x = WN_DANAU.x + Math.cos(a) * r, z = WN_DANAU.z + Math.sin(a) * r; cyl(.45, .45, .03, mDaunT, x, .06, z, scene, 10); if (i % 2) cyl(.12, .06, .14, mBunga, x, .12, z, scene, 6); }
+  WN_DANAU.forEach(D => { const arah = -Math.sign(D.x);   // sisi danau yang menghadap jalur tengah dibiarkan terbuka
+    lingkar(WN_DANAU_R + .7, mTanah, D.x, .003, D.z, 28); lingkar(WN_DANAU_R, mAir, D.x, .03, D.z, 32);
+    setapak(arah * -3.5, 0, D.x + arah * WN_DANAU_R, 0);
+    for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + rnd(-.1, .1), r = WN_DANAU_R + rnd(.2, .7); if (Math.abs(Math.cos(a) - arah) < .15) continue;
+      const b = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.35, .7), 0), mBatuK); b.position.set(D.x + Math.cos(a) * r, .15, D.z + Math.sin(a) * r); b.scale.y = .6; b.castShadow = true; scene.add(b); }
+    for (let i = 0; i < 7; i++) { const a = rnd(0, 6.3), r = rnd(1, WN_DANAU_R - .8), x = D.x + Math.cos(a) * r, z = D.z + Math.sin(a) * r; cyl(.45, .45, .03, mDaunT, x, .06, z, scene, 10); if (i % 2) cyl(.12, .06, .14, mBunga, x, .12, z, scene, 6); } });
   // pohon hutan
   const mBtg = new THREE.MeshLambertMaterial({ color: 0x5a3e26 });
   const pohon = (x, z, s) => { cyl(.18 * s, .26 * s, 2 * s, mBtg, x, s, z, scene, 6); for (let k = 0; k < 3; k++) { const d = new THREE.Mesh(new THREE.IcosahedronGeometry((1.1 - k * .22) * s, 0), M.daun[(k + Math.round(x)) & 1 ? 1 : 0 + (k === 2 ? 2 : 0)] || M.daun[0]); d.position.set(x + rnd(-.2, .2) * s, (2 + k * .75) * s, z + rnd(-.2, .2) * s); d.castShadow = true; scene.add(d); } };
   const bebas = (x, z) => {   // jangan menanam pohon di jalur, kemah, danau, bangunan
     if (Math.abs(x) < 5.5) return false; if (Math.hypot(x, z) < 8) return false;
-    if (Math.hypot(x - WN_DANAU.x, z - WN_DANAU.z) < WN_DANAU_R + 2) return false;
+    if (WN_DANAU.some(D => Math.hypot(x - D.x, z - D.z) < WN_DANAU_R + 2)) return false;
     for (const [kx, kz] of WN_KEMAH) if (Math.hypot(x - kx, z - kz) < 4.5 || Math.hypot(x + kx, z + kz) < 4.5) return false;
-    if (Math.abs(z) < 2.2 && x < 0) return false;   // jalan ke danau
+    if (Math.abs(z) < 2.2) return false;   // jalan ke danau
     for (const [kx, kz] of WN_KEMAH) { const sx = Math.sign(kx) * 3.5; for (const s of [1, -1]) { const ax = s * sx, az = s * kz, bx = s * kx, t = Math.max(0, Math.min(1, (x - ax) / (bx - ax || 1))); if (Math.hypot(x - (ax + (bx - ax) * t), z - az) < 1.8) return false; } }
     return true; };
-  let n = 0; for (let i = 0; i < 400 && n < 46; i++) { const x = rnd(-19, 19), z = rnd(-35, 35); if (!bebas(x, z)) continue; pohon(x, z, rnd(.8, 1.15)); pohon(-x, -z, rnd(.8, 1.15)); n += 2; }
-  for (let z = -40; z <= 40; z += 3.2) [-23, 23].forEach(x => pohon(x + rnd(-1, 1), z + rnd(-.8, .8), rnd(1, 1.4)));   // pagar pohon kiri-kanan
-  for (let x = -22; x <= 22; x += 3.2) [-40.5, 40.5].forEach(z => pohon(x + rnd(-.8, .8), z + rnd(-.8, .8), rnd(1, 1.4)));
+  let n = 0; for (let i = 0; i < 500 && n < 56; i++) { const x = rnd(-19, 19), z = rnd(-42, 42); if (!bebas(x, z)) continue; pohon(x, z, rnd(.8, 1.15)); pohon(-x, -z, rnd(.8, 1.15)); n += 2; }
+  for (let z = -47; z <= 47; z += 3.2) [-23, 23].forEach(x => pohon(x + rnd(-1, 1), z + rnd(-.8, .8), rnd(1, 1.4)));   // pagar pohon kiri-kanan
+  for (let x = -22; x <= 22; x += 3.2) [-47.5, 47.5].forEach(z => pohon(x + rnd(-.8, .8), z + rnd(-.8, .8), rnd(1, 1.4)));
   // pagar batu rendah di tepi area main
   const mPagar = new THREE.MeshLambertMaterial({ color: 0x9a9286, flatShading: true });
-  [-20.8, 20.8].forEach(x => { for (let z = -37; z <= 37; z += 1.6) { const b = box(1, rnd(.5, .8), 1.5, mPagar, x, .3, z); b.rotation.y = rnd(-.1, .1); } });
-  [-37.8, 37.8].forEach(z => { for (let x = -20; x <= 20; x += 1.6) { const b = box(1.5, rnd(.5, .8), 1, mPagar, x, .3, z); b.rotation.y = rnd(-.1, .1); } });
+  [-20.8, 20.8].forEach(x => { for (let z = -44; z <= 44; z += 1.6) { const b = box(1, rnd(.5, .8), 1.5, mPagar, x, .3, z); b.rotation.y = rnd(-.1, .1); } });
+  [-44.8, 44.8].forEach(z => { for (let x = -20; x <= 20; x += 1.6) { const b = box(1.5, rnd(.5, .8), 1, mPagar, x, .3, z); b.rotation.y = rnd(-.1, .1); } });
   // gunung Tangkuban Perahu di kejauhan (atas) & bukit (bawah)
   const mGunung = [0x5f8f8a, 0x6f9f98].map(c => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
   const tp = new THREE.Mesh(new THREE.CylinderGeometry(14, 40, 22, 9), mGunung[0]); tp.scale.x = 2.2; tp.position.set(-10, 8, -95); scene.add(tp);
   [[45, -80, 18, 22], [-55, -70, 16, 18], [60, 70, 20, 20], [-50, 80, 22, 24]].forEach(([x, z, r, h], i) => { const g = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), mGunung[i % 2]); g.position.set(x, h / 2 - 2, z); scene.add(g); });
   // semak tempat sembunyi (berpasangan, cermin titik)
   const mSemak = [0x3f8a2a, 0x4f9a32, 0x5fae3a].map(c => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
-  [[-6.5, 5], [6.8, 10.5], [-8.5, 16], [-17, 12], [8, 22], [-17, 26], [9.5, 1.8], [17, 3]].forEach(([x0, z0]) => [1, -1].forEach(s => {
+  [[-6.5, 5], [7, 10.5], [-9, 13.5], [8, 22], [-7, 22], [8.6, 1.8], [7, -3], [-8, 33]].forEach(([x0, z0]) => [1, -1].forEach(s => {
     const x = x0 * s, z = z0 * s, mats = mSemak.map(m => m.clone()); SEMAK.push({ x, z, r: 1.6, mats });
     for (let i = 0; i < 7; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.55, .85), 0), mats[i % 3]); const b = rnd(0, 6.3), q = rnd(0, 1.1); m.position.set(x + Math.cos(b) * q, rnd(.35, .8), z + Math.sin(b) * q); m.castShadow = true; scene.add(m); }
   }));
@@ -6102,8 +6105,8 @@ function wnMati(E) {
     wnMusuhSemua();
     if (E.jenis === 'rumah') timAkhir(1 - E.tm);
   } else if (E.jenis === 'buaya') {
-    E.g.visible = false; WN.buayaT = wnWaktu() + WNV.buaya.ulang; percik(p, 50, 0x9fdc6a, 5); asap(p, 10, 0x5a7a3a, 1.6, 1);
-    if (k && k.tm >= 0) { wnBuayaTeman(k.tm, p); banner(`🐊 Buaya Danau ikut Tim ${WN_NAMA_TIM[k.tm]}!` + (k.tm === 0 ? ' Ia mendorong ke bangunan lawan' : ' Hati-hati!'), k.tm === 0 ? '#9dff8a' : '#ff7a7a'); }
+    E.g.visible = false; E.munculT = (Math.floor(wnWaktu() / WNV.buaya.selang) + 1) * WNV.buaya.selang; percik(p, 50, 0x9fdc6a, 5); asap(p, 10, 0x5a7a3a, 1.6, 1);   // muncul lagi di jadwal 4 menit berikutnya
+    if (k && k.tm >= 0) { wnBuayaTeman(k.tm, p, E.lv, E.idx); banner(`🐊 Buaya Danau ikut Tim ${WN_NAMA_TIM[k.tm]}!` + (k.tm === 0 ? ' Ia mendorong ke bangunan lawan' : ' Hati-hati!'), k.tm === 0 ? '#9dff8a' : '#ff7a7a'); }
   } else if (E.jenis === 'buayaT') {
     E.g.visible = false; percik(p, 40, 0x9fdc6a, 5); asap(p, 10, 0x5a7a3a, 1.6, 1); banner('🐊 Buaya ' + (E.tm === 0 ? 'kita' : 'lawan') + ' tumbang', E.tm === 0 ? '#ff7a7a' : '#7ad0ff');
   }
@@ -6163,18 +6166,20 @@ async function wnBuat() {
       E.hpDasar = E.hpMax; E.g.rotation.y = Math.atan2(-E.home.x, -E.home.z); E.arahAsal = E.g.rotation.y; });
   }
   // Buaya Danau (netral) & Buaya teman (satu objek dipakai ulang)
-  WN.buaya = wnEnt({ jenis: 'buaya', tm: -1, x: WN_DANAU.x, z: WN_DANAU.z, hp: WNV.buaya.hp, nama: '🐊 Buaya Danau', M: wnModelBuaya(), barY: 2.4, besar: 1, ...WNV.buaya, hp: WNV.buaya.hp });
-  WN.buaya.hpDasar = WNV.buaya.hp; WN.buaya.mati = true; WN.buaya.mt.mati = 1; WN.buaya.g.visible = false; WN.buaya.g.rotation.y = Math.PI / 2; WN.buayaT = WNV.buaya.muncul;
-  WN.bt = wnEnt({ jenis: 'buayaT', tm: 0, x: 0, z: 0, hp: WNV.buayaT.hp, nama: '🐊 Buaya', M: wnModelBuaya(), barY: 2.4, besar: 1, ...WNV.buayaT, hp: WNV.buayaT.hp });
-  WN.bt.mati = true; WN.bt.mt.mati = 1; WN.bt.g.visible = false;
-  WN.btCincin = new THREE.Mesh(new THREE.RingGeometry(1.6, 1.9, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .7, depthWrite: false, side: THREE.DoubleSide })); WN.btCincin.rotation.x = -Math.PI / 2; WN.btCincin.position.y = .05; WN.bt.g.add(WN.btCincin);
-  const mahkota = new THREE.Mesh(new THREE.CylinderGeometry(.35, .3, .3, 6, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd040, side: THREE.DoubleSide })); mahkota.position.set(0, 1.25, 1.9); WN.bt.g.add(mahkota);
+  WN.buayas = WN_DANAU.map((D, i) => { const B = wnEnt({ jenis: 'buaya', tm: -1, x: D.x, z: D.z, hp: WNV.buaya.hp, nama: '🐊 Buaya Danau', M: wnModelBuaya(), barY: 2.4, besar: 1, ...WNV.buaya, hp: WNV.buaya.hp });
+    B.idx = i; B.lv = 0; B.mati = true; B.mt.mati = 1; B.g.visible = false; B.g.rotation.y = D.x < 0 ? Math.PI / 2 : -Math.PI / 2; B.arahAsal = B.g.rotation.y; B.munculT = WNV.buaya.selang; return B; });
+  WN.bts = [0, 1].map(() => { const T = wnEnt({ jenis: 'buayaT', tm: 0, x: 0, z: 0, hp: WNV.buayaT.hp, nama: '🐊 Buaya', M: wnModelBuaya(), barY: 2.4, besar: 1, ...WNV.buayaT, hp: WNV.buayaT.hp });
+    T.mati = true; T.mt.mati = 1; T.g.visible = false;
+    T.cincinT = new THREE.Mesh(new THREE.RingGeometry(1.6, 1.9, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .7, depthWrite: false, side: THREE.DoubleSide })); T.cincinT.rotation.x = -Math.PI / 2; T.cincinT.position.y = .05; T.g.add(T.cincinT);
+    const mahkota = new THREE.Mesh(new THREE.CylinderGeometry(.35, .3, .3, 6, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd040, side: THREE.DoubleSide })); mahkota.position.set(0, 1.25, 1.9); T.g.add(mahkota); return T; });
   wnMusuhSemua();
   if (KUAL.lv === 0) terapBahan();   // kualitas Rendah: bahan model baru ikut diringankan
 }
-function wnBuayaTeman(tm, p) {
-  const E = WN.bt; E.tm = tm; E.mati = false; E.mt.mati = 0; E.hp = E.hpMax; E.mt.hp = E.hp; E.g.visible = true; E.g.position.copy(p); E.sas = null; E.cdA = 1; E.oleh = null;
-  E.nama = '🐊 Buaya ' + WN_NAMA_TIM[tm]; E.mt.bar.querySelector('.nm').textContent = E.nama; wnWarnaBar(E); WN.btCincin.material.color.setHex(WN_WARNA[tm]); wnMusuh(E);
+function wnBuayaTeman(tm, p, lv = 1, idx = 0) {   // buaya ikut tim tm; makin tinggi levelnya makin kuat
+  const E = WN.bts[idx].mati ? WN.bts[idx] : WN.bts[1 - idx], V2 = WNV.buayaT, a = lv - 1; E.tm = tm; E.lv = lv;
+  E.hpMax = Math.round(V2.hp * (1 + WNV.buaya.naikHp * a)); E.mt.hpMax = E.hpMax; E.dmg = Math.round(V2.dmg * (1 + WNV.buaya.naikDmg * a)); E.dmgB = Math.round(V2.dmgB * (1 + WNV.buaya.naikDmg * a));
+  E.mati = false; E.mt.mati = 0; E.hp = E.hpMax; E.mt.hp = E.hp; E.g.visible = true; E.g.position.copy(p); E.sas = null; E.cdA = 1; E.oleh = null; E.runtuh = undefined;
+  E.nama = '🐊 Buaya ' + WN_NAMA_TIM[tm] + ' Lv' + lv; E.mt.bar.querySelector('.nm').textContent = E.nama; wnWarnaBar(E); E.cincinT.material.color.setHex(WN_WARNA[tm]); wnMusuh(E);
   gelombang(p, 3, .7, WN_WARNA[tm]); percik(p, 30, 0xffd040, 4);
 }
 
@@ -6204,7 +6209,7 @@ function wnAiMon(E, dt) {   // monster hutan & Buaya Danau: diam di kemah, memba
 function wnCariDiLingkaran(E) {   // hero lawan (dan buaya lawan) terdekat di dalam lingkaran jaga
   let tg = null, bd = 1e9; const p = E.g.position;
   WN.U.forEach(u => { if (u.tm === E.tm || !u.hidup || u.pos.distanceTo(E.home) > E.R) return; const d = u.pos.distanceTo(p); if (d < bd) { bd = d; tg = u.obj; } });
-  const b = WN.bt; if (!b.mati && b.tm !== E.tm && b.g.position.distanceTo(E.home) < E.R + 1.5) { const d = b.g.position.distanceTo(p) + 2; if (d < bd) tg = b; }
+  WN.bts.forEach(b => { if (!b.mati && b.tm !== E.tm && b.g.position.distanceTo(E.home) < E.R + 1.5) { const d = b.g.position.distanceTo(p) + 2; if (d < bd) { bd = d; tg = b; } } });
   return tg;
 }
 function wnAiSinga(E, dt) {
@@ -6263,8 +6268,8 @@ function wnAnim(E, dt) {   // gerak sederhana: kaki melangkah, badan bergoyang, 
   if (R.ekor) R.ekor.rotation.y = Math.sin(E.fase * .6) * .35;
   if (R.rahang) R.rahang.rotation.x = E.serangT > 0 ? .5 * Math.sin(E.serangT / .4 * Math.PI) : 0;
   if (R.b) { R.b.position.y = E.jalan ? Math.abs(Math.sin(E.fase)) * .06 : Math.sin(E.fase) * .015; R.b.position.z = E.serangT > 0 ? Math.sin(E.serangT / .45 * Math.PI) * .35 : 0; }
-  if (E.kilau > 0) { E.kilau -= dt; const s = 1 + E.kilau * .4; if (R.b) R.b.scale.setScalar((E.jenis === 'singa' ? 1.35 : E.jenis.startsWith('buaya') ? 1.35 : 1) * s); }
-  else if (R.b && E.kilau !== -1) { E.kilau = -1; R.b.scale.setScalar(E.jenis === 'singa' || E.jenis.startsWith('buaya') ? 1.35 : 1); }
+  if (E.kilau > 0) { E.kilau -= dt; const s = 1 + E.kilau * .4; if (R.b) R.b.scale.setScalar((E.skalaB || (E.jenis === 'singa' || E.jenis.startsWith('buaya') ? 1.35 : 1)) * s); }
+  else if (R.b && E.kilau !== -1) { E.kilau = -1; R.b.scale.setScalar(E.skalaB || (E.jenis === 'singa' || E.jenis.startsWith('buaya') ? 1.35 : 1)); }
 }
 
 // ---------- Tugu Nanas ----------
@@ -6323,17 +6328,18 @@ function wnSasaran(o) {
   // 1) hero lawan yang dekat & terlihat (jangan mengejar masuk lingkaran penjaga lawan, kecuali sedang mendorong)
   let musuh = null, bd = hpR < .3 ? 3.2 : 8.5;
   WN.U.forEach(u => { if (u.tm !== mu || !u.hidup) return; const d = u.pos.distanceTo(pos); if (d < bd && hidupDanTampak(u.obj, pos)) { bd = d; musuh = u.obj; } });
-  const dorong = (!WN.bt.mati && WN.bt.tm === tm) || (mnt >= 4 && wnKuatTim(tm) >= 150) || mnt >= 9;
+  const dorong = WN.bts.some(b => !b.mati && b.tm === tm) || (mnt >= 4 && wnKuatTim(tm) >= 150) || mnt >= 9;
   if (musuh && (!wnPenjagaDi(wnPos(musuh), mu) || dorong)) return musuh;
   // buaya lawan di dekat
-  if (!WN.bt.mati && WN.bt.tm === mu && WN.bt.g.position.distanceTo(pos) < 9) return WN.bt;
+  const bl = WN.bts.find(b => !b.mati && b.tm === mu && b.g.position.distanceTo(pos) < 9); if (bl) return bl;
   // 2) darah tinggal sedikit: pulih di tugu milik sendiri
   if (hpR < .4 && WN.tugu.milik === tm) return wnTitik(o);
   if (hpR < .25) return wnTitik(o);
   // 3) rebut tugu (setelah ±1,5 menit farming)
   if (WN.tugu.milik !== tm && mnt >= 1.5 && (o.id % 3 !== 0 || mnt >= 3)) return wnTitik(o);
   // 4) Buaya Danau
-  if (!WN.buaya.mati && hpR > .55 && (o.id % 2 === 0 || WN.buaya.g.position.distanceTo(pos) < 12)) return WN.buaya;
+  { let bb = null, bd2 = 1e9; WN.buayas.forEach(B => { if (B.mati) return; const d = B.g.position.distanceTo(pos) + (B.lv > 1 && hpR < .8 ? 10 : 0); if (d < bd2) { bd2 = d; bb = B; } });
+    if (bb && hpR > .55 && (o.id % 2 === 0 || bd2 < 12)) return bb; }
   // 5) dorong bangunan lawan
   const S = wnBerikut(mu); if (S && dorong && hpR > .5) return wnProksi(o, S);
   // 6) farming monster hutan
@@ -6353,9 +6359,13 @@ function wnUpd(dt) {
     if (!pv) WN.prev.set(u.id, u.pos.clone()); else pv.copy(u.pos); });
   // munculnya Buaya Danau
   const w = wnWaktu();
-  if (WN.buaya.mati && w >= WN.buayaT) { const B = WN.buaya, k = 1 + B.naikPerMenit * Math.floor(w / 60);
-    B.hpMax = Math.round(B.hpDasar * k); B.mt.hpMax = B.hpMax; B.hp = B.hpMax; B.mt.hp = B.hp; B.mati = false; B.mt.mati = 0; B.g.visible = true; B.g.position.copy(B.home); B.sas = null; B.oleh = null; wnMusuh(B);
-    gelombang(B.home, 4, .9, 0x6ac0ff); percik(B.home.clone().setY(.5), 40, 0x9fd8ff, 5); banner('🐊 Buaya Danau muncul! Kalahkan untuk dijadikan teman', '#9fd8ff'); WN.buayaT = 1e9; }
+  WN.buayas.forEach(B => { if (!B.mati || w < B.munculT) return;   // level = kemunculan ke berapa (menit 4 = lv1, menit 8 = lv2, …)
+    const lv = Math.max(1, Math.floor(w / WNV.buaya.selang)), a = lv - 1; B.lv = lv; B.munculT = 1e9;
+    B.hpMax = Math.round(WNV.buaya.hp * (1 + WNV.buaya.naikHp * a)); B.mt.hpMax = B.hpMax; B.hp = B.hpMax; B.mt.hp = B.hp; B.dmg = Math.round(WNV.buaya.dmg * (1 + WNV.buaya.naikDmg * a));
+    B.nama = '🐊 Buaya Danau Lv' + lv; B.mt.bar.querySelector('.nm').textContent = B.nama; B.skalaB = 1.35 * (1 + .08 * Math.min(6, a)); B.M.b.scale.setScalar(B.skalaB); B.kilau = 0;
+    B.mati = false; B.mt.mati = 0; B.g.visible = true; B.g.position.copy(B.home); B.g.rotation.y = B.arahAsal; B.sas = null; B.oleh = null; wnMusuh(B);
+    gelombang(B.home, 4, .9, 0x6ac0ff); percik(B.home.clone().setY(.5), 40, 0x9fd8ff, 5);
+    if (performance.now() - (WN.bannerBuaya || 0) > 3000) { WN.bannerBuaya = performance.now(); banner(`🐊 Buaya Danau Lv${lv} muncul${lv === 1 ? ' (masih lemah)' : ' — makin kuat!'} Kalahkan untuk dijadikan teman`, '#9fd8ff'); } });
   // makhluk & bangunan
   WN.E.forEach(E => {
     if (E.mati) {
@@ -6471,9 +6481,9 @@ function wnStatHud() {
   e.innerHTML = `<span class="on kda">🗡️ ${sk.k}/${sk.d}/${sk.a}</span>` + ['hp', 'atk', 'def', 'spd', 'as', 'cd'].map(k => { const v = wnPersen(id, k); return `<span class="${v ? 'on' : ''}" title="${WN_STAT[k].n}">${WN_STAT[k].ik}${k === 'cd' ? '−' : '+'}${v}%</span>`; }).join('');
 }
 function wnPeta() {   // peta kecil (atas = markas Putih)
-  const c = $('#wnMini'); if (!c) return; const x = c.getContext('2d'), W = c.width, H = c.height, sx = v => (v + 21) / 42 * W, sz = v => (v + 38) / 76 * H;
+  const c = $('#wnMini'); if (!c) return; const x = c.getContext('2d'), W = c.width, H = c.height, sx = v => (v + 21) / 42 * W, sz = v => (v + 45) / 90 * H;
   x.fillStyle = '#3f7a2c'; x.fillRect(0, 0, W, H); x.fillStyle = '#b89a6a'; x.fillRect(sx(-3.5), 0, sx(3.5) - sx(-3.5), H);
-  x.fillStyle = '#3a9ad0'; x.beginPath(); x.arc(sx(WN_DANAU.x), sz(WN_DANAU.z), WN_DANAU_R / 42 * W, 0, 7); x.fill();
+  x.fillStyle = '#3a9ad0'; WN_DANAU.forEach(D => { x.beginPath(); x.arc(sx(D.x), sz(D.z), WN_DANAU_R / 42 * W, 0, 7); x.fill(); });
   const T = WN.tugu; x.strokeStyle = T.milik < 0 ? '#ffd04a' : WN_CSS[T.milik]; x.lineWidth = 2; x.beginPath(); x.arc(sx(0), sz(0), WN_TUGU_R / 42 * W, 0, 7); x.stroke();
   x.fillStyle = '#ffd04a'; x.beginPath(); x.arc(sx(0), sz(0), 2.5, 0, 7); x.fill();
   WN.E.forEach(E => { if (E.mati) return; const px = sx(E.g.position.x), pz = sz(E.g.position.z);
@@ -6500,7 +6510,7 @@ async function wnMulai() {
   lm.querySelectorAll('button').forEach(b => b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); wnGantiLihat(+b.dataset.a); });
   const skB = document.createElement('button'); skB.id = 'wnSkorB'; skB.textContent = '📊'; skB.title = 'Statistik (PC: Tab)'; document.body.appendChild(skB); skB.onclick = () => wnSkorBuka(!$('#wnSkorO').classList.contains('on'));
   const skO = document.createElement('div'); skO.id = 'wnSkorO'; document.body.appendChild(skO); skO.onpointerdown = e => { e.preventDefault(); wnSkorBuka(false); };
-  const mini = document.createElement('canvas'); mini.id = 'wnMini'; mini.width = 84; mini.height = 152; document.body.appendChild(mini);
+  const mini = document.createElement('canvas'); mini.id = 'wnMini'; mini.width = 80; mini.height = 172; document.body.appendChild(mini);
   $('#help').textContent = 'War Nanas 3 vs 3 · Kalahkan monster hutan untuk menambah stat · Kuasai Tugu Nanas (berdiri 10 dtk) untuk pulih · Hancurkan Singa → Garuda → Rumah lawan';
   banner('🍍 War Nanas! Farming monster hutan dulu, lalu rebut Tugu Nanas', '#ffd166');
   banner('🔒 Urutan: Singa → Garuda → Rumah lawan', '#ffd166');
