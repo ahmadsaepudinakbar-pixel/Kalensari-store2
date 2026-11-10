@@ -180,7 +180,7 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
 <canvas id="c"></canvas>
 <div id="top" class="ui">
  <div id="ttl"><b>KALENSARI 3D</b><br><small><span id="nmhero">Ocong</span> <span id="nmlawan"></span> · <a id="back" href="game.html">☰ Menu</a></small><div id="fps"></div></div>
- <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"><button id="bAtur" title="Atur posisi & ukuran joystick dan tombol skill">🎮 Tombol</button></div>
+ <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"><button id="bAtur" title="Atur posisi & ukuran joystick dan tombol skill">🎮 Tombol</button><button id="bKam" title="Kamera Bawaan (tetap seperti MLBB) atau Custom (bisa diputar & di-zoom seperti Roblox)">🎥 Bawaan</button></div>
 </div>
 <div id="joy" class="ui"><div id="knob"></div></div>
 <div id="batalB"><b>✖</b>Batal</div>
@@ -1289,7 +1289,7 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     const geser = e => { const r = b.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), L = Math.hypot(dx, dy);
       { const z = $('#batalB').getBoundingClientRect(), siap = K.bidik === i && e.clientX > z.left - 12 && e.clientX < z.right + 12 && e.clientY > z.top - 12 && e.clientY < z.bottom + 12;   // jari di atas zona Batal
         if (siap !== !!K.batalSiap) { K.batalSiap = siap; $('#batalB').classList.toggle('siap', siap); if (siap && navigator.vibrate) try { navigator.vibrate(15); } catch (x) {} } }
-      if (L > 14 && K.bidik === i) { K.arahBidik = Math.atan2(dx, dy); K.diarahkan = true; K.jarakBidik = Math.min(1, Math.max(.3, L / 70)); }   // kamera tidak berputar: kanan layar = +x, bawah layar = +z
+      if (L > 14 && K.bidik === i) { K.arahBidik = Math.atan2(dx, dy) + (kamCustom() ? KAM.yaw : 0); K.diarahkan = true; K.jarakBidik = Math.min(1, Math.max(.3, L / 70)); }   // kamera tidak berputar: kanan layar = +x, bawah layar = +z
       const k = Math.min(1, L / 60); ik.style.transform = L > 4 ? `translate(${dx / (L || 1) * k * 22}px,${dy / (L || 1) * k * 22}px)` : ''; };
     b.onpointerdown = e => { e.preventDefault(); b.setPointerCapture(e.pointerId); mulaiBidik(i); if (K.bidik === i) tampilBatal(true); geser(e); };
     b.onpointermove = e => { if (K.bidik === i) geser(e); };
@@ -1361,6 +1361,7 @@ function arahGerak() {
   if (pingsan()) return [0, 0];
   let x = inp.x, z = inp.z; const k = inp.k;
   if (k.a || k.arrowleft) x -= 1; if (k.d || k.arrowright) x += 1; if (k.w || k.arrowup) z -= 1; if (k.s || k.arrowdown) z += 1;
+  if (kamCustom() && (x || z)) { const c = Math.cos(KAM.yaw), s = Math.sin(KAM.yaw), x0 = x; x = x0 * c + z * s; z = -x0 * s + z * c; }   // kamera Roblox: arah joystick mengikuti arah kamera
   const n = Math.hypot(x, z), lb = (P.lambat || 0) > 0 ? TM.lambatK : 1;   // terkena Slow (Timun Mas): gerak melambat
   return n > .15 ? [x / Math.max(1, n) * lb, z / Math.max(1, n) * lb] : [0, 0];
 }
@@ -4390,7 +4391,48 @@ function updNyi(dt, pos, f) {
 
 // ================== KAMERA ==================
 const camPos = new THREE.Vector3(), camLihat = new THREE.Vector3();
+
+// ---- PILIHAN KAMERA (tombol 🎥 di panel kanan atas, tersimpan di HP): Bawaan = kamera tetap seperti biasa · Custom = seperti Roblox ----
+// Custom: geser layar kosong untuk memutar kamera, cubit / roda mouse untuk zoom (War Nanas memakai Custom kalau belum pernah dipilih)
+// HP: seret jari di area layar yang bukan joystick & tombol · PC: seret mouse (kiri/kanan) di layar · roda mouse = zoom
+// arah joystick, WASD & arah bidik skill ikut berputar sesuai arah kamera
+const KAM = { on: MODE === 'nanas', yaw: 0, pitch: .5, jarak: 10, min: 5, maks: 18, jari: new Map(), cubit: 0 };
+try { const k = JSON.parse(localStorage.getItem('kgKamRoblox') || 'null'); if (k) { KAM.pitch = Math.min(1.25, Math.max(.12, +k.p || .5)); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, +k.j || 10)); } } catch (e) { }
+try { const m = localStorage.getItem('kgKamMode'); if (m === 'custom' || m === 'bawaan') KAM.on = m === 'custom'; } catch (e) { }
+const kamCustom = () => KAM.on && !UMP.on && !TIM.tonton;   // Petak Umpet & wasit tetap memakai kamera bawaan
+function tandaKam() { const b = $('#bKam'); if (b) { b.textContent = KAM.on ? '🎥 Custom' : '🎥 Bawaan'; b.classList.toggle('on', KAM.on); } }
+$('#bKam').onclick = () => { KAM.on = !KAM.on; try { localStorage.setItem('kgKamMode', KAM.on ? 'custom' : 'bawaan'); } catch (e) { } KAM.jari.clear(); KAM.cubit = 0; tandaKam();
+  banner(KAM.on ? '🎥 Kamera Custom: geser layar untuk memutar, cubit / roda mouse untuk zoom' : '🎥 Kamera Bawaan', '#ffd166'); };
+tandaKam();
+function simpanKam() { try { localStorage.setItem('kgKamRoblox', JSON.stringify({ p: KAM.pitch, j: KAM.jarak })); } catch (e) { } }
+function updKameraRoblox(dt) {
+  const tg = P.root.position.clone().setY(1.5);
+  camLihat.lerp(tg, Math.min(1, dt * 10));
+  const cp = Math.cos(KAM.pitch), h = KAM.jarak * cp;
+  camPos.set(camLihat.x + Math.sin(KAM.yaw) * h, camLihat.y + KAM.jarak * Math.sin(KAM.pitch), camLihat.z + Math.cos(KAM.yaw) * h);
+  if (camPos.y < .6) camPos.y = .6;
+  if (goyang > 0) { goyang -= dt; camPos.x += rnd(-1, 1) * goyang * .4; camPos.y += rnd(-1, 1) * goyang * .4; }
+  camera.position.copy(camPos); camera.lookAt(camLihat);
+}
+{
+  canvas.style.touchAction = 'none';
+  canvas.addEventListener('pointerdown', e => { if (ATUR.on || !kamCustom()) return; KAM.jari.set(e.pointerId, [e.clientX, e.clientY]); try { canvas.setPointerCapture(e.pointerId); } catch (x) { } if (KAM.jari.size === 2) { const [a, b] = [...KAM.jari.values()]; KAM.cubit = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+  canvas.addEventListener('pointermove', e => {
+    const p = KAM.jari.get(e.pointerId); if (!p) return;
+    if (KAM.jari.size >= 2) {   // dua jari: cubit = zoom
+      KAM.jari.set(e.pointerId, [e.clientX, e.clientY]); const [a, b] = [...KAM.jari.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      if (KAM.cubit > 0) KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, KAM.jarak * KAM.cubit / Math.max(20, d))); KAM.cubit = d; return; }
+    const dx = e.clientX - p[0], dy = e.clientY - p[1]; KAM.jari.set(e.pointerId, [e.clientX, e.clientY]);
+    const k = 1 / Math.max(320, Math.min(innerWidth, innerHeight)) * 3.2;
+    KAM.yaw -= dx * k; KAM.pitch = Math.min(1.25, Math.max(.12, KAM.pitch + dy * k * .8));
+  });
+  const lepas = e => { if (!KAM.jari.has(e.pointerId)) return; KAM.jari.delete(e.pointerId); if (KAM.jari.size < 2) KAM.cubit = 0; simpanKam(); };
+  canvas.addEventListener('pointerup', lepas); canvas.addEventListener('pointercancel', lepas);
+  canvas.addEventListener('contextmenu', e => { if (kamCustom()) e.preventDefault(); });
+  canvas.addEventListener('wheel', e => { if (!kamCustom()) return; e.preventDefault(); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, KAM.jarak * (e.deltaY > 0 ? 1.1 : .9))); simpanKam(); }, { passive: false });
+}
 function updKamera(dt) {
+  if (kamCustom()) return updKameraRoblox(dt);
   const tg = P.root.position.clone().setY(.8), off = innerWidth < innerHeight ? CAM_OFF.clone().multiplyScalar(1.25) : CAM_OFF;
   camLihat.lerp(tg, Math.min(1, dt * 6)); camPos.copy(camLihat).add(off);
   if (goyang > 0) { goyang -= dt; camPos.x += rnd(-1, 1) * goyang * .6; camPos.y += rnd(-1, 1) * goyang * .6; }
@@ -6686,7 +6728,7 @@ function tampilkanMenu() {
 // Lobi: pilih tim, siap, pembuat room mengatur arena / target kill / bot. Pertandingan: tiap HP menjalankan hero-nya sendiri,
 // server meneruskan keadaan semua pemain ke semua (pesan 'st'/'in' + w = id pengirim). Bot dijalankan HP pembuat room.
 // Koordinat dikirim dalam sudut pandang Tim Biru; pemain Tim Merah mencerminkan dunia, jadi semua orang melihat timnya di bawah layar.
-const TIM = { on: MODE === 'timbuat' || MODE === 'timgabung', me: 0, hostId: 0, host: false, pl: [], a: 1, kw: 10, state: 'lobby', saya: null,
+const TIM = { on: MODE === 'timbuat' || MODE === 'timgabung' || MODE === 'nanas', me: 0, hostId: 0, host: false, pl: [], a: 1, kw: 10, state: 'lobby', saya: null,
   skor: [0, 0], obj: new Map(), bot: new Map(), main: false, sisa: 300, DUR: 300, terakhir: null, hidupT: 0, sudahMain: false, kode: '', lobiTunda: null, akhir: false };
 const IKON_AR = ['🏫', '⛩️', '🌾', '💗', '🌳'], TIM_KW = [3, 5, 10, 15, 20], NAMA_TIM = ['TIM BIRU', 'TIM MERAH'], IKON_H = { pocong: '👻', kuntilanak: '🩸', tuyul: '👶', genderuwo: '👹', pitung: '🥋', erick: '🔥', doni: '⛓️', timunmas: '🥒', buto: '👺', lutung: '🐒', saras: '⚡', angling: '🦅', dayang: '🌸', nyiroro: '🧜‍♀️', siliwangi: '🐯', ciung: '🐓', sangkuriang: '🛶', kiansantang: '🗡️' };
 const escH = x => String(x == null ? '' : x).replace(/[<>&"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]));
