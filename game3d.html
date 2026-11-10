@@ -1039,7 +1039,7 @@ function updEfek(dt) {
 // ================== BONEKA (PEMAIN) ==================
 const P = { root: new THREE.Group(), tilt: new THREE.Group(), model: null, mixer: null, act: {}, cur: '', arah: 0, cd: [0, 0, 0, 0], state: 'bebas', t: 0, hp: HP_MAX[HERO] };
 P.root.add(P.tilt); scene.add(P.root); P.root.position.set(0, 0, 4);
-const CD_MAX = HERO === 'siliwangi' ? [.5, 14, 9, 20] : HERO === 'nyi' ? [.6, 10, 9, 16] : HERO === 'dayang' ? [.55, 6, 8, 14] : HERO === 'angling' ? [.6, 7, 6, 15] : HERO === 'saras' ? [.4, 7, 8, 15] : HERO === 'lutung' ? [.45, 7, 8, 14] : HERO === 'buto' ? [.7, 7, 8, 14] : HERO === 'timun' ? [.6, 6, 7, 13] : HERO === 'doni' ? [.27, 5, 8, 12] : HERO === 'erick' ? [.5, 5, 8, 14] : HERO === 'pitung' ? [.3, 5, 6, 12] : HERO === 'genderuwo' ? [.75, 6, 7, 14] : HERO === 'tuyul' ? [.4, 5, 8, 12] : HERO === 'kunti' ? [.5, 4, 9, 6] : [.5, 4, 4, 6];   // Kunti: skill 2 (Mode Terbang) jeda 9 dtk   // jeda: serangan, skill 1, 2, 3 (detik)
+const CD_MAX = HERO === 'siliwangi' ? [.5, 14, 10, 20] : HERO === 'nyi' ? [.6, 10, 9, 16] : HERO === 'dayang' ? [.55, 6, 8, 14] : HERO === 'angling' ? [.6, 7, 6, 15] : HERO === 'saras' ? [.4, 7, 8, 15] : HERO === 'lutung' ? [.45, 7, 8, 14] : HERO === 'buto' ? [.7, 7, 8, 14] : HERO === 'timun' ? [.6, 6, 7, 13] : HERO === 'doni' ? [.27, 5, 8, 12] : HERO === 'erick' ? [.5, 5, 8, 14] : HERO === 'pitung' ? [.3, 5, 6, 12] : HERO === 'genderuwo' ? [.75, 6, 7, 14] : HERO === 'tuyul' ? [.4, 5, 8, 12] : HERO === 'kunti' ? [.5, 4, 9, 6] : [.5, 4, 4, 6];   // Kunti: skill 2 (Mode Terbang) jeda 9 dtk   // jeda: serangan, skill 1, 2, 3 (detik)
 
 // rapikan animasi Mixamo: badan tidak berputar menyamping & tidak bergeser sendiri
 function rapikanKlip(clip, model, tRef, putar) {
@@ -1316,7 +1316,7 @@ function aturSimpanPosisi(id) { const e = $('#' + id), r = e.getBoundingClientRe
   addEventListener('resize', () => setTimeout(terapTombol, 60)); terapTombol(); setTimeout(terapTombol, 600); }   // diulang setelah kelas HP (ponsel) terpasang
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
-if (HERO === 'siliwangi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Kujang (3 tebasan) · U (tahan + mouse): Panggilan Macan Putih (damage + Airborne, macan bertarung 10 dtk) · I: Langkah Bayangan (blink 3x, jeda 3,5 dtk) · O: Bayangan Raja Macan (3 serangan, 6 bila Macan Putih aktif)';
+if (HERO === 'siliwangi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Kujang (3 tebasan) · U (tahan + mouse): Panggilan Macan Putih (damage + Airborne, macan bertarung 10 dtk) · I: Langkah Bayangan (blink 3x, lanjutkan dalam 1,5 dtk) · O: Bayangan Raja Macan (3 serangan, 6 bila Macan Putih aktif)';
 if (HERO === 'nyi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Air (jarak jauh) · U (tahan + mouse): Jelajah Samudra (melesat + damage, lalu menjadi putri duyung 5 dtk: kebal damage & stun, tidak bisa menyerang — tekan U lagi untuk kembali) · I (tahan + mouse): Pusaran Laut Selatan (menarik lawan ke tengah + Slow 2 dtk, lalu Stun) · O (tahan + mouse): Gelombang Ombak (ombak raksasa 2 dtk: damage besar)';
 if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U: Benang Pengikat (mengunci hero lawan terdekat — tahan + mouse untuk memilih lawan: benang mengikat 2 dtk, magic damage + Slow) · I (tahan + mouse): Pukulan Centong Kelapa (memukul kepala lawan dekat: Stun 1,2 dtk · Dayang Sumbi lebih cepat 3 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun + Shield) · Combo: U → I → O';
 if (HERO === 'angling') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Angin (jarak jauh) · U (tahan + mouse): Hembusan Angin (mendorong lawan jauh) · I (tahan + mouse): Bola Api · O: Elang Sakti (naik elang, terbang bebas 10 dtk + lebih cepat; Hembusan Angin & Bola Api jeda hanya 0,5 dtk, tetap diarahkan manual; Hembusan lebih luas) · O lagi saat terbang: elang melesat ke target, Angling Dharma meloncat turun';
@@ -3557,7 +3557,7 @@ const SR = { cepat: 4.8, biru: 0x4ab8ff, putih: 0xd8f0ff,
     { anim: 'tendang', ts: 1.4, tH: .38, akhir: .75, dmg: 80, R: 1.9, dorong: 5 }], jeda: 1.2,
   muatanMaks: 4, rantai: { R: 4, n: 2, dmg: 60 },
   bayang: { jarak: 7.5, kosong: 6, hilang: .22, dekat: .5, ts: 1.3, lutut: .19, pukul: .38, dmgLutut: 70, dmgPukul: 50, akhir: 1.1 },
-  tinju: { ts: 1.3, tH: .44, jarak: 7, lebar: 1.4, ledak: [2, 4.2, 6.4], jedaLedak: .12, R: 1.4, dmg: [120, 100, 80], stun: .8, akhir: .87 },   // dmg per ledakan: makin dekat makin sakit
+  tinju: { ts: 1.3, tH: .44, jarak: 7, lebar: 1.4, ledak: [2, 4.2, 6.4], jedaLedak: .12, R: 1.4, dmg: [200, 150, 100], stun: .8, akhir: .87 },   // dmg per ledakan: makin dekat makin sakit
   ulti: { tsLoncat: 1.3, loncat: .5, putar: 1.2, tsPutar: 1.5, gerak: 3.4, tik: .3, R: 2.3, dmgTik: 42, sedot: 1.6, tsGledeg: 1.2, gledegH: .36, gledegAkhir: .95, Rg: 2.6, dmgGledeg: 180 } };   // ulti diperkuat (sebelumnya 35/tik & 150)
 const SW = { combo: 0, comboT: 0, muatan: 0, hilang: 0, sasaran: null };
 function siapkanSaras(gl, m, T) {
@@ -4358,13 +4358,13 @@ function updKamera(dt) {
 // (metode "world" seperti asa27: q_t = inv(R_induk_t)·R_induk_s · q_s · inv(R_s)·R_t) — kalau pustaka gagal dimuat, Prabu tetap memakai klip cadangan
 // macan-putih.glb: Macan Putih (rig Tripo, tanpa animasi) — lari, terkam, raung & diam digerakkan kode (ayunan tulang kaki, punggung, kepala, ekor)
 // Serangan dasar: Tebasan Kujang (3 tebasan) · Skill 1: Panggilan Macan Putih (macan turun dari langit ke area target: damage + Airborne, lalu bertarung 10 detik)
-// Skill 2: Langkah Bayangan (blink cepat tanpa damage, 3 kali; kalau tidak dipakai lagi dalam 3,5 detik → cooldown)
+// Skill 2: Langkah Bayangan (blink cepat tanpa damage, 3 kali; kalau tidak dipakai lagi dalam 1,5 detik → cooldown 10 detik)
 // Skill 3: Bayangan Raja Macan (menghilang & menyerang target beruntun sambil berputar seperti Gatsuga: 3 serangan, 6 serangan bila Macan Putih aktif — Prabu & Macan bergantian)
 const SLV = { cepat: 4.4, tsLari: 1.1, emas: 0xffc84a, putih: 0xfff4d6, biru: 0x8fd0ff, biruT: 0x3a7cff, ungu: 0x9a6aff,
   dasar: [{ anim: 'tebas1', dur: .5, tH: .24, dmg: 55, R: 1.7, maju: 1, dorong: 1.5, miring: -.55 }, { anim: 'tebas2', dur: .48, tH: .22, dmg: 60, R: 1.7, maju: 1, dorong: 1.5, miring: .6 },
     { anim: 'tebas3', dur: .62, tH: .32, dmg: 85, R: 1.95, maju: 1.1, dorong: 4.5, miring: -.1 }], jeda: 1.1,
   macan: { hp: 350, jarak: 7, R: 2.3, panggil: .55, dmg: 120, angkat: 5, stun: .8, lama: 10, cepat: 6.4, jangkau: 2.1, cakar: 45, jedaCakar: 1.1, ikat: 9, sk: 1.9 },
-  langkah: { jarak: 4.2, muatan: 3, jendela: 3.5, jedaAntar: .25, lama: .14 },
+  langkah: { jarak: 4.2, muatan: 3, jendela: 1.5, jedaAntar: .25, lama: .14 },   // jendela: tidak dipakai lagi dalam 1,5 dtk → cooldown penuh
   // ulti: lesatan bergantian menembus target. sudut = arah titik akhir tiap lesatan (derajat, di layar), relatif terhadap arah target → posisi Prabu saat ulti dimulai
   // urutan 1–6: 1, 3, 5 = Prabu (merah) · 2, 4, 6 = Macan Putih (kuning) — tanpa Macan: hanya 1, 3, 5
   ulti: { jarak: 7, R: 2.6, cepat: 42, sambung: .55, minDur: .08, lebar: 1.3, dmgP: 95, dmgM: 75, muncul: .25, awal: .08, sudut: [161, -65, -31, 59, 129, -130] } };
