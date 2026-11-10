@@ -127,6 +127,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #timHud{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;background:#0b1020d8;border:1px solid #ffffff22;border-radius:12px;padding:5px 14px;font:900 20px Arial;color:#fff;pointer-events:none;flex-wrap:wrap;justify-content:center}
 #timHud .b{color:#5ab4ff}#timHud .m{color:#ff6060}#timHud small{font:700 12px Arial;color:#b8c0d8}#timHud .hdp{flex-basis:100%;text-align:center;font:700 13px Arial;color:#ffd166}
 body:has(#timHud:not([style*="none"])) #koin{top:52px}
+#wnStat{position:fixed;left:50%;top:66px;transform:translateX(-50%);z-index:6;display:flex;gap:7px;font:700 11px Arial;color:#aab3c8;background:#0b1020b8;border-radius:10px;padding:3px 9px;pointer-events:none;white-space:nowrap}#wnStat .on{color:#9dff8a}
+#wnMini{position:fixed;right:8px;top:46px;width:84px;height:152px;border:2px solid #000a;border-radius:8px;z-index:5;pointer-events:none;opacity:.92}
+@media (orientation:landscape) and (max-height:560px){#wnMini{width:58px;height:105px;top:40px}#wnStat{top:58px;font-size:10px}}
+#timHud .wnP{color:#f4f4f4}.hp.netral i{background:#f0c040}.hp.wnb{width:120px;margin-left:-60px;height:11px}.hp.kunci{opacity:.75}.hp.kunci::after{content:'🔒';position:absolute;left:-17px;top:-5px;font-size:12px}
 #tbans{position:fixed;left:10px;top:82px;max-width:230px;z-index:6;display:flex;flex-direction:column;align-items:flex-start;gap:4px;pointer-events:none}
 .tban{font:700 14px Arial;color:#fff;background:#000a;border-radius:8px;padding:4px 12px;text-shadow:0 1px 0 #000;transition:opacity .5s}.tban.hilang{opacity:0}
 /* Atur Tombol: pemain menggeser & mengubah ukuran joystick dan tombol skill (tersimpan di perangkat) */
@@ -235,15 +239,17 @@ const Q = new URLSearchParams(location.search);
 const MAIN = Q.get('main') === '1';                                           // tanpa ini → tampilkan menu
 const HERO = ['kunti', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timun', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyi', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang'].includes(Q.get('hero')) ? Q.get('hero') : 'ocong';   // Nyi Roro Kidul ('nyi') tampil lagi di menu · Prabu Siliwangi ('siliwangi'): hero ke-15
 const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul', genderuwo: 'Genderuwo', pitung: 'Si Pitung', erick: 'Erick', doni: 'Doni', timun: 'Timun Mas', buto: 'Buto', lutung: 'Lutung Kasarung', saras: 'Saras', angling: 'Angling Dharma', dayang: 'Dayang Sumbi', nyi: 'Nyi Roro Kidul', siliwangi: 'Prabu Siliwangi', ciung: 'Ciung Wanara', sangkuriang: 'Sangkuriang', kiansantang: 'Kian Santang' }, HP_MAX = { ocong: 1000, kunti: 1000, tuyul: 850, genderuwo: 1200, pitung: 1000, erick: 1000, doni: 1000, timun: 950, buto: 1350, lutung: 800, saras: 950, angling: 900, dayang: 900, nyi: 900, siliwangi: 1000, ciung: 900, sangkuriang: 1050, kiansantang: 950 };
-const MODE = ['latihan', 'bot', 'acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(Q.get('mode')) ? Q.get('mode') : 'latihan';
+const MODE = ['latihan', 'bot', 'nanas', 'acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(Q.get('mode')) ? Q.get('mode') : 'latihan';
 const ONLINE = ['acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(MODE);
-const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'bot' : 'boneka';
+const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'bot' : MODE === 'nanas' ? 'nanas' : 'boneka';
 const NAMA = (Q.get('nama') || 'Pemain').slice(0, 16), KODE = (Q.get('kode') || '').replace(/\D/g, '').slice(0, 4);
-let ARENA = ['lapangan', 'sawah', 'pink', 'kebun'].includes(Q.get('arena')) ? Q.get('arena') : 'kuil';
-const NAMA_ARENA = { lapangan: 'Lapangan SD', kuil: 'Kuil Malam', sawah: 'Sawah Siang', pink: 'Taman Pink', kebun: 'Kebun Malam' };
+let ARENA = MODE === 'nanas' ? 'nanas' : ['lapangan', 'sawah', 'pink', 'kebun'].includes(Q.get('arena')) ? Q.get('arena') : 'kuil';
+// War Nanas (MOBA 3 vs 3): keadaan permainan — isi & aturannya ada di bagian WAR NANAS
+const WN = { on: MODE === 'nanas', siap: false, E: [], st: new Map(), tugu: { milik: -1, prog: 0, tim: -1, st: '' }, t0: 0, kenaT: new Map(), prev: new Map(), U: [], hudT: 0, padat: [], singa: [], garuda: [], rumah: [], buayaT: 1e9 };
+const NAMA_ARENA = { lapangan: 'Lapangan SD', kuil: 'Kuil Malam', sawah: 'Sawah Siang', pink: 'Taman Pink', kebun: 'Kebun Malam', nanas: 'War Nanas' };
 const UM_BENTENG = 1.8;   // jari-jari lingkaran pohon jaga (Petak Umpet)             // online: diganti arena pilihan pembuat room
 let PUSAT_Z = 0;                                                              // titik tengah arena (pemain lawan dicerminkan di sini)
-function aturArena() { PUSAT_Z = ARENA === 'lapangan' ? 1 : 0; if (ARENA === 'sawah' || ARENA === 'pink') Object.assign(BATAS, { x0: -12.8, x1: 12.8, z0: -8.8, z1: 8.8 }); if (ARENA === 'kebun') Object.assign(BATAS, { x0: -13.3, x1: 13.3, z0: -9.8, z1: 9.8 }); }
+function aturArena() { PUSAT_Z = ARENA === 'lapangan' ? 1 : 0; if (ARENA === 'sawah' || ARENA === 'pink') Object.assign(BATAS, { x0: -12.8, x1: 12.8, z0: -8.8, z1: 8.8 }); if (ARENA === 'kebun') Object.assign(BATAS, { x0: -13.3, x1: 13.3, z0: -9.8, z1: 9.8 }); if (ARENA === 'nanas') Object.assign(BATAS, { x0: -20, x1: 20, z0: -37, z1: 37 }); }
 const JARAK_AWAL = () => ARENA === 'kuil' ? 6 : ARENA === 'sawah' || ARENA === 'pink' ? 5 : 4.5;   // jarak pemain dari tengah arena saat mulai
 const SKIN = HERO === 'timun' ? (['faniya', 'airin'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'erick' ? (['robot', 'cepot'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'doni' ? (['robot', 'dawala'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'buto' ? (['ijo', 'golem'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'lutung' ? (Q.get('skin') === 'fox' ? 'fox' : '') : HERO === 'saras' ? (['lina', 'santi'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'tuyul' ? (['robot', 'halloween', 'mecha', 'setan'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'ocong' ? (['lompat', 'emas'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'genderuwo' ? (['leak', 'calon'].includes(Q.get('skin')) ? Q.get('skin') : '') : HERO === 'pitung' ? (Q.get('skin') === 'pendekar' ? 'pendekar' : '') : (['merah', 'gothic'].includes(Q.get('skin')) ? Q.get('skin') : '');   // Kunti 'gothic' = skin Kunti Gothic (berjalan kaki) · Genderuwo: 'leak' = skin Leak   // Ocong: '' Boneka / 'lompat' Pocong Lompat · Kunti: '' Kunti (utama) / 'merah' Kunti Merah
 const MODEL = HERO === 'kiansantang' ? 'model-3d/kiansantang.glb?v=1' : HERO === 'sangkuriang' ? 'model-3d/sangkuriang.glb?v=1' : HERO === 'ciung' ? 'model-3d/ciung.glb?v=1' : HERO === 'siliwangi' ? 'model-3d/siliwangi.glb?v=2' : HERO === 'nyi' ? 'model-3d/nyi-roro.glb?v=3' : HERO === 'dayang' ? 'model-3d/dayang.glb?v=3' : HERO === 'angling' ? 'model-3d/angling.glb?v=3' : HERO === 'saras' ? (SKIN === 'santi' ? 'model-3d/saras-santi.glb?v=2' : SKIN === 'lina' ? 'model-3d/saras-lina.glb?v=3' : 'model-3d/saras.glb?v=1') : HERO === 'lutung' ? (SKIN === 'fox' ? 'model-3d/lutung-fox.glb?v=2' : 'model-3d/lutung.glb?v=2') : HERO === 'buto' ? (SKIN === 'golem' ? 'model-3d/buto-golem.glb?v=1' : SKIN === 'ijo' ? 'model-3d/buto-ijo.glb?v=1' : 'model-3d/buto.glb?v=1') : HERO === 'timun' ? (SKIN === 'faniya' ? 'model-3d/timunmas-faniya.glb?v=1' : SKIN === 'airin' ? 'model-3d/timunmas-airin.glb?v=3' : 'model-3d/timunmas.glb?v=1') : HERO === 'doni' ? (SKIN === 'dawala' ? 'model-3d/doni-dawala.glb?v=1' : SKIN === 'robot' ? 'model-3d/doni-robot.glb?v=5' : 'model-3d/doni.glb?v=5') : HERO === 'erick' ? (SKIN === 'cepot' ? 'model-3d/erick-cepot.glb?v=1' : SKIN === 'robot' ? 'model-3d/erick-robot.glb?v=1' : 'model-3d/erick.glb?v=15') : HERO === 'pitung' ? (SKIN === 'pendekar' ? 'model-3d/pitung-batik.glb?v=2' : 'model-3d/pitung.glb') : HERO === 'genderuwo' ? (SKIN === 'calon' ? 'model-3d/calon-arang.glb?v=1' : SKIN === 'leak' ? 'model-3d/leak.glb' : 'model-3d/genderuwo.glb') : HERO === 'tuyul' ? (SKIN === 'robot' ? 'model-3d/tuyul-robot.glb?v=2' : SKIN === 'halloween' ? 'model-3d/tuyul-halloween.glb?v=2' : SKIN === 'mecha' ? 'model-3d/tuyul-mecha.glb?v=2' : SKIN === 'setan' ? 'model-3d/tuyul-setan.glb?v=2' : 'model-3d/tuyul.glb') : HERO === 'kunti' ? (SKIN === 'merah' ? 'model-3d/skinkunti.glb?v=2' : SKIN === 'gothic' ? 'model-3d/skinkunti-jalan.glb?v=2' : 'model-3d/skinkunti-asli.glb?v=2') : SKIN ? 'model-3d/skinocong-lompat.glb' : 'model-3d/skinocong.glb';   // model bertulang + animasi
@@ -263,6 +269,7 @@ const BATAS = { x0: -13.5, x1: 13.5, z0: -8.5, z1: 10.5 };  // area bisa dilewat
 aturArena();
 const BATU_TEMBOK = [];   // batu Lempar Batu Raksasa yang tertancap: padat seperti tembok (tidak bisa ditembus siapa pun)
 function batasi(v) {   // tahan posisi di dalam arena
+  if (WN.on && WN.padat.length) wnPadat(v, .4);   // War Nanas: bangunan padat
   for (const b of BATU_TEMBOK) { const dx = v.x - b.x, dz = v.z - b.z, L = Math.hypot(dx, dz); if (L < b.R) { if (L < 1e-3) { v.x = b.x + b.R; } else { v.x = b.x + dx / L * b.R; v.z = b.z + dz / L * b.R; } } }
   if (ARENA === 'kuil') { const L = Math.hypot(v.x, v.z); if (L > KUIL_R) { v.x *= KUIL_R / L; v.z *= KUIL_R / L; } }
   else { v.x = Math.min(BATAS.x1, Math.max(BATAS.x0, v.x)); v.z = Math.min(BATAS.z1, Math.max(BATAS.z0, v.z)); }
@@ -740,7 +747,7 @@ function updKunang(t) {
 
 // ================== ARENA: LAPANGAN SD KALENSARI ==================
 let ARENA_DIBUAT = false;
-function buatArena() { if (ARENA_DIBUAT) return; ARENA_DIBUAT = true; const awal = new Set(scene.children); if (ARENA === 'kuil') buatArenaKuil(); else if (ARENA === 'sawah') buatArenaSawah(); else if (ARENA === 'pink') buatArenaPink(); else if (ARENA === 'kebun') buatArenaKebun(); else buatArenaLapangan(); gabungStatis(awal); }
+function buatArena() { if (ARENA_DIBUAT) return; ARENA_DIBUAT = true; const awal = new Set(scene.children); if (ARENA === 'kuil') buatArenaKuil(); else if (ARENA === 'sawah') buatArenaSawah(); else if (ARENA === 'pink') buatArenaPink(); else if (ARENA === 'kebun') buatArenaKebun(); else if (ARENA === 'nanas') buatArenaNanas(); else buatArenaLapangan(); gabungStatis(awal); }
 function gabungStatis(kecuali) {
   scene.updateMatrixWorld(true);
   const grup = new Map(), buang = [];
@@ -910,7 +917,7 @@ function setKual(lv) {
   LAMPU.forEach((l, i) => l.visible = i < (DI_HP ? [0, 2, 4] : [0, 3, 6])[lv]);   // HP: lampu api lebih sedikit
   KILAT.forEach(k => k.l.visible = lv > 0);   // Rendah: tanpa lampu kilat (2 lampu titik = berat untuk semua bahan)
   terapBahan(); terapTerang(); if (BARA.p) BARA.p.geometry.setDrawRange(0, lv === 0 ? 50 : BARA.n);
-  KUAL.bloom = lv === 2 && ARENA !== 'pink' && ARENA !== 'sawah';   // arena terang: tanpa efek glow (kalau dipakai, warna jadi putih silau)
+  KUAL.bloom = lv === 2 && ARENA !== 'pink' && ARENA !== 'sawah' && ARENA !== 'nanas';   // arena terang: tanpa efek glow (kalau dipakai, warna jadi putih silau)
   scene.traverse(o => { if (o.material) { (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); } });
   resize();
 }
@@ -1201,6 +1208,11 @@ function buatMusuh(x, z) {
 }
 function kena(mt, dmg, dari, dorong = 4, angkat = 0) {
   if (!KENA_LUAR && !BOT_VS_BOT && !mt.mati) P.ungkap = UNGKAP;   // saya menyerang: kalau sedang di semak, jadi terlihat sebentar
+  if (WN.on) {   // War Nanas: stat Attack pemain, sasaran bangunan/monster, stat Defense bot
+    if (!BOT_VS_BOT && !KENA_LUAR) dmg = Math.round(dmg * wnF(TIM.me, 'atk'));
+    if (mt.wn) { if (!mt.mati) wnKena(mt.wn, dmg, P); return; }
+    if (mt.obj && mt.obj.tm != null && !mt.mati) { dmg = Math.round(dmg * wnF(mt.obj.id, 'def')); WN.kenaT.set(mt.obj.id, performance.now()); if (!BOT_VS_BOT && !KENA_LUAR) mt.obj.terakhir = TIM.me; }
+  }
   if (mt.macanId) { if (!mt.mati) { netEvent({ k: 'hitMacan', id: mt.macanId, d: dmg }); angka(mt.g.position, dmg); } return; }
   if (mt.kembarId) { if (!mt.mati) { netEvent({ k: 'hitKembar', id: mt.kembarId, d: dmg }); angka(mt.g.position, dmg); mt.kilau = .15; } return; }   // kembaran Kian Santang lawan   // Macan Putih lawan: darahnya dihitung di layar pemanggilnya
   if (mt.amuk > 0) { dorong = 0; angkat = 0; }   // bot Genderuwo yang sedang mengamuk tidak bisa didorong
@@ -1217,7 +1229,7 @@ function kena(mt, dmg, dari, dorong = 4, angkat = 0) {
 }
 function updMusuh(dt) {
   MUSUH.forEach(mt => {
-    if (mt.bot || mt.remote) return;   // bot Ocong & lawan online punya aturan gerak sendiri
+    if (mt.bot || mt.remote || mt.wn) return;   // bot Ocong & lawan online punya aturan gerak sendiri
     const p = mt.g.position;
     if (mt.kunci > 0) { mt.kunci -= dt; mt.v.set(0, 0, 0); }   // terkunci Roh Pemburu (skill 3 Kunti): tidak bisa bergerak
     p.addScaledVector(mt.v, dt); mt.v.multiplyScalar(Math.pow(.02, dt));
@@ -1235,7 +1247,7 @@ function angka(pos, v, warna) { const d = document.createElement('div'); d.class
 const V = new THREE.Vector3();
 function layar(p) { V.copy(p).project(camera); return [(V.x * .5 + .5) * innerWidth, (-V.y * .5 + .5) * innerHeight, V.z < 1]; }
 function updLabel(dt) {
-  MUSUH.forEach(mt => { const [x, y, ok] = layar(V.copy(mt.g.position).setY(mt.g.position.y + 2.45)); mt.bar.style.display = ok && !mt.mati && !mt.sembunyi && !mt.semak ? '' : 'none'; mt.bar.style.left = x + 'px'; mt.bar.style.top = y + 'px'; mt.bar.firstChild.style.width = mt.hp / (mt.hpMax || 1000) * 100 + '%'; });
+  MUSUH.forEach(mt => { if (mt.wn) return; const [x, y, ok] = layar(V.copy(mt.g.position).setY(mt.g.position.y + 2.45)); mt.bar.style.display = ok && !mt.mati && !mt.sembunyi && !mt.semak ? '' : 'none'; mt.bar.style.left = x + 'px'; mt.bar.style.top = y + 'px'; mt.bar.firstChild.style.width = mt.hp / (mt.hpMax || 1000) * 100 + '%'; });
   for (let i = ANGKA.length - 1; i >= 0; i--) { const a = ANGKA[i]; a.t += dt; a.p.y += dt * 1.2; const [x, y] = layar(a.p); a.d.style.left = x + 'px'; a.d.style.top = y + 'px'; a.d.style.opacity = Math.max(0, 1 - a.t / .9); if (a.t > .9) { a.d.remove(); ANGKA.splice(i, 1); } }
 }
 
@@ -5754,11 +5766,592 @@ async function buatBotPro(o) {
   return api;
 }
 
+// ================== WAR NANAS (MOBA 3 vs 3 · Main Solo bersama & melawan bot) ==================
+// Tim Merah (bawah, z+) vs Tim Putih (atas, z−). Jalur tengah: Rumah – Garuda – Singa – Tugu Nanas – Singa – Garuda – Rumah.
+// Tanpa turret, tanpa batas waktu. Kunci berurutan: Singa → Garuda → Rumah. Menang = rumah (tempat respawn) lawan hancur.
+// Singa & Garuda hidup: siapa pun hero lawan di dalam lingkaran jaganya dikejar & diserang. Tidak muncul lagi setelah mati.
+// Monster hutan (muncul lagi 45 dtk) menambah stat yang membunuhnya: Badak HP · Harimau Attack · Kerbau Defense · Kancil Speed · Monyet Attack Speed · Merak Cooldown.
+// Tugu Nanas: berdiri 10 dtk di lingkaran tanpa musuh = dikuasai (bisa direbut balik dengan cara sama); tim pemilik pulih 4% HP/dtk di lingkaran
+//   (berhenti 2 dtk setelah kena serangan). Rumah tidak memberi heal.
+// Buaya Danau (menit 4, muncul lagi 3 menit setelah dibunuh): seperti Lord — ikut tim yang membunuhnya dan mendorong ke bangunan lawan.
+// Respawn hero: 10 dtk + 2 dtk tiap menit (maks 45 dtk).
+// Model sementara: Singa, Rumah, monster hutan & Buaya dibuat dari bentuk sederhana — tinggal diganti GLB kalau sudah ada.
+const WN_Z = { rumah: 33, garuda: 24, singa: 14 }, WN_TUGU_R = 4.5, WN_DANAU = new THREE.Vector3(-15, 0, 0), WN_DANAU_R = 5;
+const WN_NAMA_TIM = ['Merah', 'Putih'], WN_WARNA = [0xd8322a, 0xf2f2ee], WN_CSS = ['#ff6a5a', '#f4f4f4'];
+const WN_STAT = {
+  hp: { ik: '❤️', n: 'HP', mon: 'Badak', warna: 0x8a8f96 },
+  atk: { ik: '⚔️', n: 'Attack', mon: 'Harimau', warna: 0xe8892a },
+  def: { ik: '🛡️', n: 'Defense', mon: 'Kerbau', warna: 0x45464e },
+  spd: { ik: '👟', n: 'Speed', mon: 'Kancil', warna: 0xc49a5a },
+  as: { ik: '⚡', n: 'Attack Speed', mon: 'Monyet', warna: 0x7a4e2a },
+  cd: { ik: '⏳', n: 'Cooldown', mon: 'Merak', warna: 0x2a7ad8 } };
+// monster hutan: [x, z, stat] — separuh Merah (z+), separuh Putih dicerminkan titik (−x, −z)
+const WN_KEMAH = [[-13, 8, 'spd'], [-14, 19, 'hp'], [-11, 29, 'cd'], [13, 8, 'as'], [14, 19, 'atk'], [11, 29, 'def']];
+// angka keseimbangan (gampang diubah)
+const WNV = {
+  singa: { hp: 6000, R: 7, dmg: 140, jeda: 1.4, jangkau: 2.1, kec: 3.6 },
+  garuda: { hp: 9000, R: 8.5, dmg: 170, jeda: 1.6, padat: 1.9 },
+  rumah: { hp: 8000, padat: 3.3 },
+  tugu: { lama: 10, heal: .04, jedaHeal: 2, padat: 1.3 },
+  mon: { hp: 650, dmg: 38, jeda: 1.2, kec: 3.2, leash: 8, ulang: 45, naikPerMenit: .06 },
+  buaya: { hp: 5000, dmg: 150, jeda: 1.6, kec: 2.6, leash: 9, muncul: 240, ulang: 180, naikPerMenit: .05 },
+  buayaT: { hp: 3500, dmg: 120, dmgB: 260, jeda: 1.6, kec: 2.5 },
+  respawn: [10, 2, 45] };   // [awal, tambah per menit, maks] detik
+function wnF(id, k) {   // pengali stat dari hasil farming
+  const s = WN.st.get(id), n = s ? s[k] || 0 : 0;
+  return k === 'hp' ? 1 + .05 * n : k === 'atk' ? 1 + .04 * n : k === 'def' ? Math.max(.45, Math.pow(.97, n)) : k === 'spd' ? 1 + Math.min(.5, .025 * n) : k === 'as' ? Math.max(.5, 1 / (1 + .04 * n)) : Math.max(.5, Math.pow(.97, n));
+}
+function wnPersen(id, k) { const f = wnF(id, k); return Math.round((k === 'def' || k === 'cd' ? 1 - f : k === 'as' ? 1 / f - 1 : f - 1) * 100); }
+const wnWaktu = () => WN.t0 ? (performance.now() - WN.t0) / 1000 : 0;
+function wnJedaHidup() { const R = WNV.respawn; return Math.min(R[2], R[0] + R[1] * Math.floor(wnWaktu() / 60)); }
+
+// ---------- arena ----------
+function buatArenaNanas() {
+  scene.background = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, '#3f8fe0'); g.addColorStop(.6, '#9fd2f6'); g.addColorStop(1, '#e8f6ff'); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+  scene.fog = new THREE.Fog(0xcfe8f5, 42, 100);
+  scene.environmentIntensity = .55; renderer.toneMappingExposure = 1.1;
+  hemi.color.setHex(0xeaf6ff); hemi.groundColor.setHex(0x5f7f34); hemi.intensity = 1.2;
+  sun.color.setHex(0xfff1d6); sun.intensity = 2.2;
+  const bidang = (w, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.PlaneGeometry(w, d), m); o.rotation.x = -Math.PI / 2; o.position.set(x, y, z); o.receiveShadow = true; scene.add(o); return o; };
+  const lingkar = (r, m, x, y, z, seg = 40) => { const o = new THREE.Mesh(new THREE.CircleGeometry(r, seg), m); o.rotation.x = -Math.PI / 2; o.position.set(x, y, z); o.receiveShadow = true; scene.add(o); return o; };
+  const T_RUMPUT = tex(256, 256, (x, w, h) => {
+    x.fillStyle = '#6fae3e'; x.fillRect(0, 0, w, h);
+    for (let i = 0; i < 1600; i++) { x.fillStyle = Math.random() < .5 ? 'rgba(50,110,30,.35)' : 'rgba(160,215,100,.35)'; x.fillRect(Math.random() * w, Math.random() * h, 1.5, rnd(3, 7)); }
+    for (let i = 0; i < 12; i++) { x.fillStyle = ['#fff7d0', '#ffe35a', '#ff9ac0'][i % 3]; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, 2, 0, 7); x.fill(); }
+  }, 22, 26);
+  const T_BATU = tex(256, 256, (x, w, h) => {   // jalan batu alam
+    x.fillStyle = '#8a7a62'; x.fillRect(0, 0, w, h);
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 6; c++) { const ox = (r % 2) * 22; x.fillStyle = `hsl(${30 + Math.random() * 12},${16 + Math.random() * 10}%,${56 + Math.random() * 14}%)`;
+      x.beginPath(); x.roundRect(c * 44 + ox + 2, r * 32 + 2, 40, 28, 7); x.fill(); }
+  }, 2, 20);
+  const T_TANAH = tex(128, 128, (x, w, h) => { x.fillStyle = '#b8955e'; x.fillRect(0, 0, w, h); for (let i = 0; i < 260; i++) { x.fillStyle = Math.random() < .5 ? 'rgba(130,100,60,.4)' : 'rgba(220,195,150,.4)'; x.beginPath(); x.arc(Math.random() * w, Math.random() * h, rnd(1, 3), 0, 7); x.fill(); } }, 3, 3);
+  bidang(150, 170, new THREE.MeshLambertMaterial({ map: T_RUMPUT }), 0, -.03, 0);
+  const mBatu = new THREE.MeshLambertMaterial({ map: T_BATU }), mTanah = new THREE.MeshLambertMaterial({ map: T_TANAH });
+  bidang(7, 74, mBatu, 0, .005, 0);                                   // jalur tengah
+  const T_ALUN = T_BATU.clone(); T_ALUN.repeat.set(5, 5); T_ALUN.needsUpdate = true; const mAlun = new THREE.MeshLambertMaterial({ map: T_ALUN });
+  lingkar(6.6, mAlun, 0, .01, 0);                                   // alun-alun Tugu Nanas
+  [-1, 1].forEach(s => { lingkar(7.5, mAlun, 0, .01, s * WN_Z.rumah); lingkar(4, mAlun, 0, .012, s * WN_Z.garuda); });   // halaman rumah & garuda
+  // jalan setapak tanah ke kemah monster
+  const setapak = (x0, z0, x1, z1) => { const L = Math.hypot(x1 - x0, z1 - z0), o = bidang(1.8, L, mTanah, (x0 + x1) / 2, .004, (z0 + z1) / 2); o.rotation.z = Math.atan2(x1 - x0, z1 - z0); };
+  WN_KEMAH.forEach(([x, z]) => { [1, -1].forEach(s => { setapak(s * Math.sign(x) * 3.5, s * z, s * x, s * z); lingkar(2.6, mTanah, s * x, .006, s * z, 18); }); });
+  // danau buaya
+  const mAir = new THREE.MeshLambertMaterial({ color: 0x3a9ad0, transparent: true, opacity: .88 });
+  lingkar(WN_DANAU_R + .7, mTanah, WN_DANAU.x, .003, WN_DANAU.z, 28); lingkar(WN_DANAU_R, mAir, WN_DANAU.x, .03, WN_DANAU.z, 32);
+  setapak(-3.5, 0, WN_DANAU.x + WN_DANAU_R, 0);
+  const mBatuK = new THREE.MeshLambertMaterial({ color: 0x8f8a82, flatShading: true }), mDaunT = new THREE.MeshLambertMaterial({ color: 0x3f9a3a }), mBunga = new THREE.MeshLambertMaterial({ color: 0xff8ab8 });
+  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + rnd(-.1, .1), r = WN_DANAU_R + rnd(.2, .7); if (Math.abs(Math.cos(a) - 1) < .15) continue;
+    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.35, .7), 0), mBatuK); b.position.set(WN_DANAU.x + Math.cos(a) * r, .15, WN_DANAU.z + Math.sin(a) * r); b.scale.y = .6; b.castShadow = true; scene.add(b); }
+  for (let i = 0; i < 7; i++) { const a = rnd(0, 6.3), r = rnd(1, WN_DANAU_R - .8), x = WN_DANAU.x + Math.cos(a) * r, z = WN_DANAU.z + Math.sin(a) * r; cyl(.45, .45, .03, mDaunT, x, .06, z, scene, 10); if (i % 2) cyl(.12, .06, .14, mBunga, x, .12, z, scene, 6); }
+  // pohon hutan
+  const mBtg = new THREE.MeshLambertMaterial({ color: 0x5a3e26 });
+  const pohon = (x, z, s) => { cyl(.18 * s, .26 * s, 2 * s, mBtg, x, s, z, scene, 6); for (let k = 0; k < 3; k++) { const d = new THREE.Mesh(new THREE.IcosahedronGeometry((1.1 - k * .22) * s, 0), M.daun[(k + Math.round(x)) & 1 ? 1 : 0 + (k === 2 ? 2 : 0)] || M.daun[0]); d.position.set(x + rnd(-.2, .2) * s, (2 + k * .75) * s, z + rnd(-.2, .2) * s); d.castShadow = true; scene.add(d); } };
+  const bebas = (x, z) => {   // jangan menanam pohon di jalur, kemah, danau, bangunan
+    if (Math.abs(x) < 5.5) return false; if (Math.hypot(x, z) < 8) return false;
+    if (Math.hypot(x - WN_DANAU.x, z - WN_DANAU.z) < WN_DANAU_R + 2) return false;
+    for (const [kx, kz] of WN_KEMAH) if (Math.hypot(x - kx, z - kz) < 4.5 || Math.hypot(x + kx, z + kz) < 4.5) return false;
+    if (Math.abs(z) < 2.2 && x < 0) return false;   // jalan ke danau
+    for (const [kx, kz] of WN_KEMAH) { const sx = Math.sign(kx) * 3.5; for (const s of [1, -1]) { const ax = s * sx, az = s * kz, bx = s * kx, t = Math.max(0, Math.min(1, (x - ax) / (bx - ax || 1))); if (Math.hypot(x - (ax + (bx - ax) * t), z - az) < 1.8) return false; } }
+    return true; };
+  let n = 0; for (let i = 0; i < 400 && n < 46; i++) { const x = rnd(-19, 19), z = rnd(-35, 35); if (!bebas(x, z)) continue; pohon(x, z, rnd(.8, 1.15)); pohon(-x, -z, rnd(.8, 1.15)); n += 2; }
+  for (let z = -40; z <= 40; z += 3.2) [-23, 23].forEach(x => pohon(x + rnd(-1, 1), z + rnd(-.8, .8), rnd(1, 1.4)));   // pagar pohon kiri-kanan
+  for (let x = -22; x <= 22; x += 3.2) [-40.5, 40.5].forEach(z => pohon(x + rnd(-.8, .8), z + rnd(-.8, .8), rnd(1, 1.4)));
+  // pagar batu rendah di tepi area main
+  const mPagar = new THREE.MeshLambertMaterial({ color: 0x9a9286, flatShading: true });
+  [-20.8, 20.8].forEach(x => { for (let z = -37; z <= 37; z += 1.6) { const b = box(1, rnd(.5, .8), 1.5, mPagar, x, .3, z); b.rotation.y = rnd(-.1, .1); } });
+  [-37.8, 37.8].forEach(z => { for (let x = -20; x <= 20; x += 1.6) { const b = box(1.5, rnd(.5, .8), 1, mPagar, x, .3, z); b.rotation.y = rnd(-.1, .1); } });
+  // gunung Tangkuban Perahu di kejauhan (atas) & bukit (bawah)
+  const mGunung = [0x5f8f8a, 0x6f9f98].map(c => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
+  const tp = new THREE.Mesh(new THREE.CylinderGeometry(14, 40, 22, 9), mGunung[0]); tp.scale.x = 2.2; tp.position.set(-10, 8, -95); scene.add(tp);
+  [[45, -80, 18, 22], [-55, -70, 16, 18], [60, 70, 20, 20], [-50, 80, 22, 24]].forEach(([x, z, r, h], i) => { const g = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), mGunung[i % 2]); g.position.set(x, h / 2 - 2, z); scene.add(g); });
+  // semak tempat sembunyi (berpasangan, cermin titik)
+  const mSemak = [0x3f8a2a, 0x4f9a32, 0x5fae3a].map(c => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
+  [[-6.5, 5], [6.8, 10.5], [-8.5, 16], [-17, 12], [8, 22], [-17, 26], [9.5, 1.8], [17, 3]].forEach(([x0, z0]) => [1, -1].forEach(s => {
+    const x = x0 * s, z = z0 * s, mats = mSemak.map(m => m.clone()); SEMAK.push({ x, z, r: 1.6, mats });
+    for (let i = 0; i < 7; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.55, .85), 0), mats[i % 3]); const b = rnd(0, 6.3), q = rnd(0, 1.1); m.position.set(x + Math.cos(b) * q, rnd(.35, .8), z + Math.sin(b) * q); m.castShadow = true; scene.add(m); }
+  }));
+}
+
+// ---------- model sementara (bentuk sederhana) ----------
+const WN_BAHAN = new Map();
+function wnB(c, flat = true) { const k = c + (flat ? 'f' : ''); if (!WN_BAHAN.has(k)) WN_BAHAN.set(k, new THREE.MeshLambertMaterial({ color: c, flatShading: flat })); return WN_BAHAN.get(k); }
+function wnKaki(par, x, y, z, r, h, m) {   // kaki berporos di pangkal (ayun = rotation.x)
+  const p = new THREE.Group(); p.position.set(x, y, z); par.add(p); const k = cyl(r, r * .8, h, m, 0, -h / 2, 0, p, 6); k.castShadow = true; return p;
+}
+function wnModelHewan(stat) {
+  const g = new THREE.Group(), b = new THREE.Group(); g.add(b); const W = WN_STAT[stat].warna, mW = wnB(W), mT = wnB(0x2a2018), mP = wnB(0xf2ead8);
+  const R = { g, b, kaki: [], ekor: null, kepala: null, tinggi: 1.5 };
+  const kaki4 = (lw, ll, y, h, r) => [[-lw, ll], [lw, ll], [-lw, -ll], [lw, -ll]].forEach(([x, z]) => R.kaki.push(wnKaki(b, x, y, z, r, h, mW)));
+  const badan = (w, h, l, y) => { const o = new THREE.Mesh(new THREE.SphereGeometry(.5, 10, 7), mW); o.scale.set(w, h, l); o.position.y = y; o.castShadow = true; b.add(o); return o; };
+  const kepala = (r, y, z, m = mW) => { const o = new THREE.Mesh(new THREE.SphereGeometry(r, 9, 7), m); o.position.set(0, y, z); o.castShadow = true; b.add(o); R.kepala = o;
+    [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.SphereGeometry(r * .14, 6, 4), wnB(0x111111)); e.position.set(s * r * .45, y + r * .25, z + r * .82); b.add(e); }); return o; };
+  if (stat === 'hp') {   // Badak
+    kaki4(.38, .52, .55, .55, .16); badan(1.15, .9, 1.7, .95); kepala(.42, 1, 1.05);
+    const c = new THREE.Mesh(new THREE.ConeGeometry(.13, .5, 6), mP); c.position.set(0, 1.25, 1.42); c.rotation.x = .5; b.add(c);
+    const c2 = new THREE.Mesh(new THREE.ConeGeometry(.08, .25, 6), mP); c2.position.set(0, 1.35, 1.2); c2.rotation.x = .4; b.add(c2); R.tinggi = 1.7;
+  } else if (stat === 'atk') {   // Harimau
+    kaki4(.25, .48, .55, .55, .11); badan(.72, .62, 1.45, .88); kepala(.32, 1.05, .9);
+    for (let i = 0; i < 4; i++) { const s = box(.74, .06, .08, mT, 0, 1.02, -.4 + i * .26, b); s.castShadow = false; }
+    [-1, 1].forEach(s => { const t = new THREE.Mesh(new THREE.ConeGeometry(.08, .14, 4), mW); t.position.set(s * .2, 1.36, .88); b.add(t); });
+    const e = new THREE.Group(); e.position.set(0, .95, -.72); b.add(e); const ek = cyl(.05, .04, .8, mW, 0, 0, -.4, e, 5); ek.rotation.x = Math.PI / 2 - .5; R.ekor = e; R.tinggi = 1.5;
+  } else if (stat === 'def') {   // Kerbau
+    kaki4(.36, .5, .55, .55, .15); badan(1.05, .88, 1.6, .95); kepala(.38, 1.02, .98);
+    [-1, 1].forEach(s => { const h = new THREE.Mesh(new THREE.ConeGeometry(.09, .75, 6), mP); h.position.set(s * .45, 1.3, .95); h.rotation.z = -s * 1.15; h.rotation.x = -.3; b.add(h); }); R.tinggi = 1.7;
+  } else if (stat === 'spd') {   // Kancil
+    kaki4(.14, .3, .62, .62, .045); badan(.42, .44, .82, .86); kepala(.17, 1.12, .48);
+    const l = cyl(.06, .08, .35, mW, 0, 1, .38, b, 5); l.rotation.x = .6;
+    [-1, 1].forEach(s => { const t = new THREE.Mesh(new THREE.ConeGeometry(.04, .14, 4), mW); t.position.set(s * .08, 1.27, .45); b.add(t); }); R.tinggi = 1.4;
+  } else if (stat === 'as') {   // Monyet (berdiri dua kaki)
+    R.kaki.push(wnKaki(b, -.14, .5, 0, .07, .5, mW), wnKaki(b, .14, .5, 0, .07, .5, mW));
+    badan(.55, .7, .45, .82); kepala(.24, 1.3, .05, wnB(0xc8a078));
+    const muka = new THREE.Mesh(new THREE.SphereGeometry(.15, 8, 6), wnB(0xd8b090)); muka.position.set(0, 1.26, .17); muka.scale.z = .5; b.add(muka);
+    R.lengan = [-1, 1].map(s => wnKaki(b, s * .32, 1.05, 0, .055, .7, mW));
+    const e = new THREE.Group(); e.position.set(0, .7, -.2); b.add(e); const ek = cyl(.035, .03, .9, mW, 0, .3, -.3, e, 5); ek.rotation.x = -.8; R.ekor = e; R.tinggi = 1.6;
+  } else {   // Merak
+    R.kaki.push(wnKaki(b, -.1, .5, 0, .03, .5, wnB(0x9a8a60)), wnKaki(b, .1, .5, 0, .03, .5, wnB(0x9a8a60)));
+    badan(.45, .5, .62, .75); const lh = cyl(.06, .09, .55, mW, 0, 1.12, .2, b, 6); lh.rotation.x = .25; kepala(.12, 1.42, .28);
+    const p = new THREE.Mesh(new THREE.ConeGeometry(.04, .12, 4), wnB(0x2a7ad8)); p.position.set(0, 1.58, .27); b.add(p);
+    const e = new THREE.Group(); e.position.set(0, .8, -.3); b.add(e); R.ekor = e;
+    for (let i = 0; i < 9; i++) { const a = (i / 8 - .5) * 2.4, f = new THREE.Mesh(new THREE.ConeGeometry(.16, 1.3, 4), wnB(i % 2 ? 0x1f9a6a : 0x1f6fc8)); f.position.set(Math.sin(a) * .62, Math.cos(a) * .62, -.1); f.rotation.z = -a; f.scale.z = .3; e.add(f);
+      const m = new THREE.Mesh(new THREE.SphereGeometry(.07, 6, 4), wnB(0xffd040)); m.position.set(Math.sin(a) * 1.15, Math.cos(a) * 1.15, -.08); e.add(m); }
+    e.rotation.x = -.35; R.tinggi = 1.9;
+  }
+  b.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return R;
+}
+function wnModelSinga(tm) {
+  const g = new THREE.Group(), b = new THREE.Group(); g.add(b); b.scale.setScalar(1.35);
+  const mBulu = wnB(tm ? 0xeeeae0 : 0xc8261c), mKulit = wnB(tm ? 0xf6f0e2 : 0xd8402a), mEmas = wnB(0xe8b23a), mPerut = wnB(0xf2e6d2), mBaju = wnB(tm ? 0xf8f8f4 : 0xb81c16);
+  const R = { g, b, kaki: [], lengan: [], tinggi: 3.7 };
+  [-1, 1].forEach(s => { const k = wnKaki(b, s * .24, 1.02, 0, .15, 1, mKulit); R.kaki.push(k); const sp = box(.36, .3, .44, mEmas, 0, -.22, .02, k); sp.castShadow = true;
+    const ck = new THREE.Mesh(new THREE.BoxGeometry(.3, .14, .36), mPerut); ck.position.set(0, -.97, .08); k.add(ck); });
+  const rok = new THREE.Mesh(new THREE.CylinderGeometry(.42, .6, .6, 8, 1, true), mBaju); rok.position.y = 1.05; b.add(rok);
+  box(.84, .95, .5, mKulit, 0, 1.62, 0, b); box(.5, .55, .1, mPerut, 0, 1.6, .26, b); box(.9, .14, .56, mEmas, 0, 1.2, 0, b);
+  const dada = box(.7, .3, .12, mEmas, 0, 1.92, .26, b); dada.rotation.x = -.1; const pm = new THREE.Mesh(new THREE.OctahedronGeometry(.08), wnB(0xd01020)); pm.position.set(0, 1.92, .34); b.add(pm);
+  [-1, 1].forEach(s => { const bh = box(.42, .22, .5, mEmas, s * .55, 2.1, 0, b); bh.rotation.z = -s * .35;
+    const l = wnKaki(b, s * .58, 2.02, 0, .13, .95, mKulit); R.lengan.push(l); const gl = box(.3, .32, .3, mEmas, 0, -.55, 0, l); gl.castShadow = true;
+    const cak = new THREE.Mesh(new THREE.ConeGeometry(.06, .2, 4), mPerut); cak.position.set(0, -1.02, .08); cak.rotation.x = Math.PI; l.add(cak); });
+  const kp = new THREE.Group(); kp.position.y = 2.42; b.add(kp); R.kepala = kp;
+  const surai = new THREE.Mesh(new THREE.IcosahedronGeometry(.62, 1), mBulu); surai.position.z = -.06; surai.scale.set(1, 1.05, .8); kp.add(surai);
+  const muka = new THREE.Mesh(new THREE.SphereGeometry(.36, 10, 8), mKulit); muka.position.set(0, -.02, .2); kp.add(muka);
+  const mulut = box(.3, .18, .26, mPerut, 0, -.14, .44, kp); mulut.castShadow = false;
+  [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.SphereGeometry(.05, 6, 4), wnB(0xffcc20)); e.position.set(s * .14, .07, .5); kp.add(e); const t = new THREE.Mesh(new THREE.ConeGeometry(.08, .16, 4), mKulit); t.position.set(s * .3, .32, .1); kp.add(t); });
+  const mh = new THREE.Mesh(new THREE.ConeGeometry(.28, .3, 5), mEmas); mh.position.set(0, .48, .08); kp.add(mh);
+  const ek = new THREE.Group(); ek.position.set(0, 1.15, -.28); b.add(ek); const ec = cyl(.06, .05, 1, mKulit, 0, -.1, -.45, ek, 5); ec.rotation.x = 1.1;
+  const eu = new THREE.Mesh(new THREE.IcosahedronGeometry(.17, 0), mBulu); eu.position.set(0, -.3, -.9); ek.add(eu); R.ekor = ek;
+  b.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return R;
+}
+function wnModelRumah(tm) {   // rumah panggung Sunda (tempat respawn)
+  const g = new THREE.Group(), b = new THREE.Group(); g.add(b);
+  const mKayu = wnB(0xa8642a, false), mKayuG = wnB(0x7a4420, false), mBilik = wnB(0xd9a85a, false), mAtap = wnB(0x6a3e22), mBatu = wnB(0x9a948a), mEmas = wnB(0xe0b030), mLampu = new THREE.MeshBasicMaterial({ color: 0xffd27a });
+  [[-2.6, -1.9], [2.6, -1.9], [-2.6, 1.9], [2.6, 1.9], [0, -1.9], [0, 1.9]].forEach(([x, z]) => { box(.6, .45, .6, mBatu, x, .22, z, b); cyl(.14, .14, 1.1, mKayuG, x, .95, z, b, 6); });
+  box(6.2, .28, 4.6, mKayu, 0, 1.35, 0, b);                                      // lantai panggung
+  box(5, 2.3, 3.4, mBilik, 0, 2.62, -.2, b);                                     // dinding bilik
+  box(1.3, 1.9, .12, mKayuG, 0, 2.42, 1.52, b); box(.06, 1.9, .14, mEmas, 0, 2.42, 1.56, b);   // pintu
+  [-1.6, 1.6].forEach(x => { box(.9, .8, .1, mKayuG, x, 2.75, 1.52, b); const l = new THREE.Mesh(new THREE.SphereGeometry(.16, 8, 6), mLampu); l.position.set(x * .55, 3.2, 1.75); b.add(l); });
+  for (let x = -2.9; x <= 2.95; x += .5) { if (Math.abs(x) < .8) continue; box(.07, .7, .07, mKayu, x, 1.85, 2.2, b); }   // pagar beranda
+  box(2.3, .08, .08, mKayu, -1.85, 2.2, 2.2, b); box(2.3, .08, .08, mKayu, 1.85, 2.2, 2.2, b);
+  for (let i = 0; i < 4; i++) box(1.3, .12, .4, mKayu, 0, .3 + i * .3, 3 - i * .32, b);   // tangga
+  [-2.8, 2.8].forEach(x => cyl(.12, .12, 2.6, mKayu, x, 2.75, 2.15, b, 6));
+  const atap = new THREE.Mesh(new THREE.ConeGeometry(4.3, 2.6, 4, 1), mAtap); atap.rotation.y = Math.PI / 4; atap.scale.set(1.38, 1, .98); atap.position.y = 5.05; b.add(atap);
+  box(4.2, .16, .16, mEmas, 0, 6.32, 0, b); [-1, 1].forEach(s => { const u = new THREE.Mesh(new THREE.TorusGeometry(.22, .06, 5, 8, Math.PI), mEmas); u.position.set(s * 2.1, 6.5, 0); b.add(u); });
+  const tiang = cyl(.05, .05, 3, mKayuG, 2.9, 7, -1.4, b, 5); tiang.castShadow = false;
+  const bd = new THREE.Mesh(new THREE.PlaneGeometry(1.4, .85), new THREE.MeshLambertMaterial({ color: WN_WARNA[tm], side: THREE.DoubleSide })); bd.position.set(2.2, 8, -1.4); b.add(bd); g.userData.bendera = bd;
+  b.traverse(o => { if (o.isMesh && o.material !== mLampu) o.castShadow = o.receiveShadow = true; });
+  return { g, b, tinggi: 7 };
+}
+function wnModelBuaya() {
+  const g = new THREE.Group(), b = new THREE.Group(); g.add(b); b.scale.setScalar(1.35);
+  const mH = wnB(0x4f6a2a), mP = wnB(0xc8c08a), mG = wnB(0x3a5020);
+  const R = { g, b, kaki: [], tinggi: 1.6 };
+  const bd = new THREE.Mesh(new THREE.SphereGeometry(.5, 12, 8), mH); bd.scale.set(1.5, .7, 3); bd.position.y = .45; b.add(bd);
+  for (let i = 0; i < 6; i++) [-1, 1].forEach(s => { const sc = box(.12, .1, .2, mG, s * .22, .72, -.9 + i * .34, b); sc.castShadow = false; });
+  const kp = new THREE.Group(); kp.position.set(0, .45, 1.35); b.add(kp); R.kepala = kp;
+  box(.62, .3, 1.1, mH, 0, .05, .5, kp); const rh = box(.56, .12, 1.0, mP, 0, -.16, .52, kp); R.rahang = rh;
+  [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.SphereGeometry(.08, 6, 4), wnB(0xffd020)); e.position.set(s * .2, .25, .2); kp.add(e); });
+  [[-.55, .7], [.55, .7], [-.55, -.7], [.55, -.7]].forEach(([x, z]) => { const k = wnKaki(b, x, .4, z, .1, .4, mH); k.rotation.z = x > 0 ? -.6 : .6; R.kaki.push(k); });
+  const ek = new THREE.Group(); ek.position.set(0, .4, -1.45); b.add(ek); R.ekor = ek;
+  const e1 = new THREE.Mesh(new THREE.ConeGeometry(.36, 2.2, 7), mH); e1.rotation.x = -Math.PI / 2; e1.position.z = -1.05; e1.scale.x = 1.3; ek.add(e1);
+  b.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return R;
+}
+
+// ---------- entitas (bangunan, penjaga, monster, buaya) ----------
+function wnEnt(o) {   // o: { jenis, tm (-1 netral), x, z, hp, nama, M (model), barY, besar, padat, R (jari-jari jaga) }
+  const E = Object.assign({ id: 'wn' + WN.E.length, mati: false, kenaT: -1e9, cdA: 0, sas: null, oleh: null, lokal: true, fase: 0, serangT: 0, jalan: 0, kilau: 0 }, o);
+  E.g = E.M.g; E.home = new THREE.Vector3(o.x, 0, o.z); E.root = E.g; E.wnE = E; E.hpMax = E.hp; E.g.position.copy(E.home); scene.add(E.g);
+  const bar = document.createElement('div'); bar.innerHTML = '<i></i><span class="nm"></span>'; bar.querySelector('.nm').textContent = E.nama; $('#bars').appendChild(bar); bar.style.display = 'none';
+  E.mt = { g: E.g, hp: E.hp, hpMax: E.hp, v: new THREE.Vector3(), y: 0, vy: 0, kilau: 0, mati: 0, kunci: 0, pusing: 0, lambat: 0, putar: 0, bar, wn: E, nama: E.nama };
+  E.pro = { info: () => ({ pos: E.g.position, hero: 'ocong', aksi: 'bebas', arah: E.g.rotation.y, tujuan: null, stun: false, hp: E.hp / E.hpMax, vis: E.mt, id: E.id, mati: E.mati }) };
+  wnWarnaBar(E); WN.E.push(E); return E;
+}
+function wnWarnaBar(E) { E.mt.bar.className = 'hp ' + (E.tm === 0 ? 'kawan' : 'lawan') + (E.tm < 0 ? ' netral' : '') + (E.besar ? ' wnb' : ''); }
+const wnTerkunci = E => (E.jenis === 'garuda' && !WN.singa[E.tm].mati) || (E.jenis === 'rumah' && !WN.garuda[E.tm].mati);
+function wnMusuh(E) {   // daftar sasaran serangan pemain: lawan & netral yang masih hidup dan tidak terkunci
+  const i = MUSUH.indexOf(E.mt), harus = !E.mati && E.tm !== 0 && !wnTerkunci(E) && E.g.visible;
+  if (harus && i < 0) MUSUH.push(E.mt); else if (!harus && i >= 0) MUSUH.splice(i, 1);
+}
+const wnMusuhSemua = () => WN.E.forEach(wnMusuh);
+const wnPos = t => t === P ? P.root.position : t.root ? t.root.position : t.g.position;
+const wnHidup = t => !t ? false : t === P ? P.state !== 'kalah' : t.wnE ? !t.wnE.mati : !t.mt.mati;
+const wnTimOf = t => t === P ? 0 : t.wnE ? t.wnE.tm : t.tm;
+const wnIdOf = t => t === P ? TIM.me : t.id;
+function wnPukul(t, dmg, dari, dorong = 2) {   // monster / penjaga / buaya mengenai hero atau buaya
+  if (!t || !wnHidup(t)) return;
+  if (t === P) { TIM.terakhir = null; kenaPemain(dmg, dari, dorong); }
+  else if (t.wnE) wnKena(t.wnE, dmg, null);
+  else { t.terakhir = null; BOT_VS_BOT = true; kena(t.mt, dmg, dari, dorong); BOT_VS_BOT = false; }
+}
+function wnKena(E, dmg, oleh) {   // oleh: P / bot (Duel Tim) / null
+  if (E.mati || SELESAI) return;
+  if (wnTerkunci(E)) { if (performance.now() - (E.kunciT || 0) > 900) { E.kunciT = performance.now(); angka(E.g.position.clone().setY(E.M.tinggi - 2), '🔒 kalahkan ' + (E.jenis === 'garuda' ? 'Singa' : 'Garuda') + ' dulu', '#ffd166'); } return; }
+  dmg = Math.max(1, Math.round(dmg));
+  E.hp = Math.max(0, E.hp - dmg); E.mt.hp = E.hp; E.kenaT = performance.now(); E.kilau = .15;
+  angka(E.g.position.clone().setY(E.M.tinggi - 2.2), dmg, E.tm === 0 ? '#ff9a9a' : undefined);
+  if (oleh === P || (oleh && oleh.B)) {
+    E.oleh = { id: wnIdOf(oleh), tm: wnTimOf(oleh) };
+    if ((E.jenis === 'mon' || E.jenis === 'buaya') && !E.sas) E.sas = oleh;
+  }
+  if (E.hp <= 0) wnMati(E);
+}
+function wnMati(E) {
+  E.mati = true; E.mt.mati = 1; E.hp = 0; E.mt.hp = 0; E.mt.bar.style.display = 'none'; E.sas = null; wnMusuh(E);
+  const p = E.g.position.clone().setY(0), k = E.oleh;
+  if (E.jenis === 'mon') {
+    E.hidupT = performance.now() + WNV.mon.ulang * 1000; E.g.visible = false; percik(p, 22, 0xffe08a, 3); asap(p, 5, 0xbfae8a, 1, .7);
+    if (k && k.id != null) { wnTambah(k.id, E.stat); const S = WN_STAT[E.stat]; if (k.id === TIM.me) { banner(`${S.ik} +${S.n} (${S.mon}) · ${S.n} ${E.stat === 'cd' || E.stat === 'def' ? '' : '+'}${wnPersen(TIM.me, E.stat)}%`, '#9dff8a'); angka(p.clone().setY(.5), S.ik + ' +' + S.n, '#9dff8a'); } }
+  } else if (E.jenis === 'singa' || E.jenis === 'garuda' || E.jenis === 'rumah') {
+    E.runtuh = 0; gelombang(p, 5, .8, 0xffc040); percik(p, 60, 0xffc040, 7); asap(p, 16, 0x8a7a6a, 2.2, 1.3); goyang = Math.max(goyang, .35);
+    WN.padat = WN.padat.filter(q => q.E !== E);
+    const kawan = E.tm === 0;
+    banner(`${E.jenis === 'rumah' ? '🏠' : E.jenis === 'garuda' ? '🦅' : '🦁'} ${E.nama} hancur!` + (E.jenis === 'rumah' ? '' : kawan ? ' Pertahanan kita terbuka ⚠️' : ' 🎉'), kawan ? '#ff7a7a' : '#ffd166');
+    wnMusuhSemua();
+    if (E.jenis === 'rumah') timAkhir(1 - E.tm);
+  } else if (E.jenis === 'buaya') {
+    E.g.visible = false; WN.buayaT = wnWaktu() + WNV.buaya.ulang; percik(p, 50, 0x9fdc6a, 5); asap(p, 10, 0x5a7a3a, 1.6, 1);
+    if (k && k.tm >= 0) { wnBuayaTeman(k.tm, p); banner(`🐊 Buaya Danau ikut Tim ${WN_NAMA_TIM[k.tm]}!` + (k.tm === 0 ? ' Ia mendorong ke bangunan lawan' : ' Hati-hati!'), k.tm === 0 ? '#9dff8a' : '#ff7a7a'); }
+  } else if (E.jenis === 'buayaT') {
+    E.g.visible = false; percik(p, 40, 0x9fdc6a, 5); asap(p, 10, 0x5a7a3a, 1.6, 1); banner('🐊 Buaya ' + (E.tm === 0 ? 'kita' : 'lawan') + ' tumbang', E.tm === 0 ? '#ff7a7a' : '#7ad0ff');
+  }
+}
+function wnTambah(id, k) {   // tambah satu tingkat stat (hasil farming)
+  if (!WN.st.has(id)) WN.st.set(id, { hp: 0, atk: 0, def: 0, spd: 0, as: 0, cd: 0 });
+  WN.st.get(id)[k]++;
+  if (id === TIM.me) {
+    if (k === 'hp') { const baru = Math.round(WN.hpDasar[HERO] * wnF(id, 'hp')); if (P.state !== 'kalah') P.hp += baru - HP_MAX[HERO]; HP_MAX[HERO] = baru; }
+    if (k === 'cd' || k === 'as') for (let i = 0; i < 4; i++) CD_MAX[i] = WN.cdDasar[i] * (i === 0 ? wnF(id, 'as') : wnF(id, 'cd'));
+    wnStatHud();
+  } else { const o = TIM.bot.get(id); if (o && k === 'hp') { const baru = Math.round(WN.hpDasar[o.hero] * wnF(id, 'hp')); if (!o.mt.mati) o.mt.hp += baru - o.mt.hpMax; o.mt.hpMax = baru; } }
+}
+function wnBerikut(tm) { return !WN.singa[tm].mati ? WN.singa[tm] : !WN.garuda[tm].mati ? WN.garuda[tm] : WN.rumah[tm]; }   // bangunan tim tm yang bisa diserang sekarang
+function wnPadat(v, r = 0) {   // bangunan padat: tidak bisa ditembus
+  for (const q of WN.padat) { const dx = v.x - q.x, dz = v.z - q.z, L = Math.hypot(dx, dz), R = q.R + r; if (L < R) { if (L < 1e-3) v.z = q.z + Math.sign(q.z || 1) * R; else { v.x = q.x + dx / L * R; v.z = q.z + dz / L * R; } } }
+}
+
+// ---------- membuat semua bangunan & makhluk ----------
+async function wnBuat() {
+  WN.hpDasar = Object.assign({}, HP_MAX); WN.cdDasar = CD_MAX.slice();
+  const muat = u => muatGLB(u).then(g => salinGLB(g).scene).catch(() => null);
+  const [gP, gM, tg, rmh] = await Promise.all([muat('model-3d/garuda.glb?v=1'), muat('model-3d/garuda-merah.glb?v=1'), muat('model-3d/tugu-nanas.glb?v=1'), muat('model-3d/rumah.glb?v=1')]);
+  WN.padat = [];
+  // Tugu Nanas
+  const tugu = new THREE.Group(); if (tg) { tg.scale.setScalar(5.6); tg.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } }); tugu.add(tg); }
+  else { cyl(2.4, 2.8, .6, wnB(0x9a948a), 0, .3, 0, tugu, 10); const n = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), wnB(0xf0b020)); n.scale.y = 1.4; n.position.y = 2; tugu.add(n); }
+  scene.add(tugu); WN.tuguG = tugu; WN.padat.push({ x: 0, z: 0, R: WNV.tugu.padat });
+  const cincin = (r1, r2, c, o = .55) => { const m = new THREE.Mesh(new THREE.RingGeometry(r1, r2, 64), new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, depthWrite: false, side: THREE.DoubleSide })); m.rotation.x = -Math.PI / 2; m.position.y = .06; scene.add(m); return m; };
+  WN.tuguCincin = cincin(WN_TUGU_R - .22, WN_TUGU_R, 0xffd04a, .7);
+  WN.tuguProg = new THREE.Mesh(new THREE.RingGeometry(WN_TUGU_R + .05, WN_TUGU_R + .38, 64, 1, Math.PI / 2, .001), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .9, depthWrite: false, side: THREE.DoubleSide }));
+  WN.tuguProg.rotation.x = -Math.PI / 2; WN.tuguProg.position.y = .07; scene.add(WN.tuguProg);
+  WN.singa = []; WN.garuda = []; WN.rumah = [];
+  for (const tm of [0, 1]) {
+    const s = tm ? -1 : 1, hadap = tm ? 0 : Math.PI, nm = WN_NAMA_TIM[tm];
+    // Rumah
+    let RR; if (rmh) { RR = { g: new THREE.Group(), tinggi: 7 }; const m = tm ? rmh : rmh.clone(); m.scale.setScalar(7); m.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; }); RR.g.add(m);   // rumah panggung (GLB) + bendera tim
+      const tiang = cyl(.06, .06, 3.2, wnB(0x7a4420), 3.3, 1.6, -1.6, RR.g, 5); tiang.castShadow = false; const bd = new THREE.Mesh(new THREE.PlaneGeometry(1.4, .85), new THREE.MeshLambertMaterial({ color: WN_WARNA[tm], side: THREE.DoubleSide })); bd.position.set(2.6, 2.75, -1.6); RR.g.add(bd); RR.g.userData.bendera = bd; }
+    else RR = wnModelRumah(tm);
+    RR.g.rotation.y = hadap;
+    WN.rumah[tm] = wnEnt({ jenis: 'rumah', tm, x: 0, z: s * WN_Z.rumah, hp: WNV.rumah.hp, nama: 'Rumah ' + nm, M: RR, barY: 8, besar: 1, padat: WNV.rumah.padat });
+    WN.padat.push({ x: 0, z: s * WN_Z.rumah, R: WNV.rumah.padat, E: WN.rumah[tm] });
+    // Garuda (patung di atas batu)
+    const GG = { g: new THREE.Group(), tinggi: 6 }; box(3, .7, 2.2, wnB(0x9a948a), 0, .35, 0, GG.g); box(2.6, .2, 1.8, wnB(0xc8b070), 0, .8, 0, GG.g);
+    const gm = (tm ? gP : gM); if (gm) { gm.scale.setScalar(5.4); gm.position.y = .9; gm.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } }); GG.g.add(gm); }
+    else { const c = new THREE.Mesh(new THREE.ConeGeometry(1.2, 4, 6), wnB(WN_WARNA[tm])); c.position.y = 2.9; GG.g.add(c); }
+    GG.g.rotation.y = hadap; GG.model = gm;
+    WN.garuda[tm] = wnEnt({ jenis: 'garuda', tm, x: 0, z: s * WN_Z.garuda, hp: WNV.garuda.hp, nama: 'Garuda ' + nm, M: GG, barY: 6.4, besar: 1, padat: WNV.garuda.padat, ...WNV.garuda });
+    WN.padat.push({ x: 0, z: s * WN_Z.garuda, R: WNV.garuda.padat, E: WN.garuda[tm] });
+    // Singa
+    const SS = wnModelSinga(tm); SS.g.rotation.y = hadap;
+    WN.singa[tm] = wnEnt({ jenis: 'singa', tm, x: 0, z: s * WN_Z.singa, hp: WNV.singa.hp, nama: 'Singa ' + nm, M: SS, barY: 4.2, besar: 1, ...WNV.singa, hp: WNV.singa.hp });
+    // lingkaran jaga
+    [WN.singa[tm], WN.garuda[tm]].forEach(E => { E.cincin = cincin(E.R - .12, E.R, WN_WARNA[tm], tm ? .3 : .35); E.cincin.position.set(E.home.x, .05, E.home.z); });
+    // monster hutan
+    WN_KEMAH.forEach(([x, z, st]) => { const M2 = wnModelHewan(st); const E = wnEnt({ jenis: 'mon', tm: -1, x: s * x, z: s * z, hp: WNV.mon.hp * (st === 'hp' || st === 'def' ? 1.25 : st === 'spd' ? .8 : 1), nama: WN_STAT[st].mon, M: M2, barY: M2.tinggi + .2, stat: st, ...WNV.mon, hp: WNV.mon.hp * (st === 'hp' || st === 'def' ? 1.25 : st === 'spd' ? .8 : 1) });
+      E.hpDasar = E.hpMax; E.g.rotation.y = Math.atan2(-E.home.x, -E.home.z); E.arahAsal = E.g.rotation.y; });
+  }
+  // Buaya Danau (netral) & Buaya teman (satu objek dipakai ulang)
+  WN.buaya = wnEnt({ jenis: 'buaya', tm: -1, x: WN_DANAU.x, z: WN_DANAU.z, hp: WNV.buaya.hp, nama: '🐊 Buaya Danau', M: wnModelBuaya(), barY: 2.4, besar: 1, ...WNV.buaya, hp: WNV.buaya.hp });
+  WN.buaya.hpDasar = WNV.buaya.hp; WN.buaya.mati = true; WN.buaya.mt.mati = 1; WN.buaya.g.visible = false; WN.buaya.g.rotation.y = Math.PI / 2; WN.buayaT = WNV.buaya.muncul;
+  WN.bt = wnEnt({ jenis: 'buayaT', tm: 0, x: 0, z: 0, hp: WNV.buayaT.hp, nama: '🐊 Buaya', M: wnModelBuaya(), barY: 2.4, besar: 1, ...WNV.buayaT, hp: WNV.buayaT.hp });
+  WN.bt.mati = true; WN.bt.mt.mati = 1; WN.bt.g.visible = false;
+  WN.btCincin = new THREE.Mesh(new THREE.RingGeometry(1.6, 1.9, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .7, depthWrite: false, side: THREE.DoubleSide })); WN.btCincin.rotation.x = -Math.PI / 2; WN.btCincin.position.y = .05; WN.bt.g.add(WN.btCincin);
+  const mahkota = new THREE.Mesh(new THREE.CylinderGeometry(.35, .3, .3, 6, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd040, side: THREE.DoubleSide })); mahkota.position.set(0, 1.25, 1.9); WN.bt.g.add(mahkota);
+  wnMusuhSemua();
+  if (KUAL.lv === 0) terapBahan();   // kualitas Rendah: bahan model baru ikut diringankan
+}
+function wnBuayaTeman(tm, p) {
+  const E = WN.bt; E.tm = tm; E.mati = false; E.mt.mati = 0; E.hp = E.hpMax; E.mt.hp = E.hp; E.g.visible = true; E.g.position.copy(p); E.sas = null; E.cdA = 1; E.oleh = null;
+  E.nama = '🐊 Buaya ' + WN_NAMA_TIM[tm]; E.mt.bar.querySelector('.nm').textContent = E.nama; wnWarnaBar(E); WN.btCincin.material.color.setHex(WN_WARNA[tm]); wnMusuh(E);
+  gelombang(p, 3, .7, WN_WARNA[tm]); percik(p, 30, 0xffd040, 4);
+}
+
+// ---------- otak makhluk ----------
+function wnGerak(E, ke, kec, dt) {
+  const p = E.g.position, dx = ke.x - p.x, dz = ke.z - p.z, L = Math.hypot(dx, dz); if (L < .05) return;
+  const s = Math.min(L, kec * dt * (E.mt.lambat > 0 ? .6 : 1)); p.x += dx / L * s; p.z += dz / L * s; wnHadap(E, Math.atan2(dx, dz), dt); E.jalan = 1;
+}
+function wnHadap(E, a, dt) { let d = a - E.g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); E.g.rotation.y += d * Math.min(1, dt * 10); }
+function wnStun(E, dt) { const m = E.mt; m.pusing = Math.max(0, m.pusing - dt); m.kunci = Math.max(0, m.kunci - dt); m.lambat = Math.max(0, (m.lambat || 0) - dt); return m.pusing > 0 || m.kunci > 0; }
+function wnAiMon(E, dt) {   // monster hutan & Buaya Danau: diam di kemah, membalas yang menyerang, kembali kalau terlalu jauh
+  const p = E.g.position; E.jalan = 0; if (wnStun(E, dt)) return;
+  let tg = E.sas; if (tg && (!wnHidup(tg) || wnPos(tg).distanceTo(E.home) > E.leash)) { tg = E.sas = null; }
+  if (tg) {
+    const sp = wnPos(tg), L = Math.hypot(sp.x - p.x, sp.z - p.z), jg = E.jenis === 'buaya' ? 2.4 : 1.5;
+    if (L > jg) wnGerak(E, sp, E.kec, dt); else wnHadap(E, Math.atan2(sp.x - p.x, sp.z - p.z), dt);
+    if (L <= jg + .2 && E.cdA <= 0) {
+      E.cdA = E.jeda; E.serangT = .4; const d = Math.round(E.dmg * (1 + E.naikPerMenit * Math.floor(wnWaktu() / 60)));
+      if (E.jenis === 'buaya') { const c = p.clone().lerp(sp, .7).setY(0); WN.U.forEach(u => { if (u.hidup && u.pos.distanceTo(c) < 2.4) wnPukul(u.obj, d, p, 3); }); gelombang(c, 2.4, .45, 0x9fdc6a); percik(c, 14, 0xc8e0a0, 3); }
+      else { wnPukul(tg, d, p, 1.5); percik(sp.clone().setY(.4), 6, 0xffe0a0, 2); }
+    }
+  } else {
+    if (p.distanceTo(E.home) > .3) wnGerak(E, E.home, E.kec * 1.5, dt); else if (E.arahAsal !== undefined) wnHadap(E, E.arahAsal, dt);
+    if (performance.now() - E.kenaT > 2500 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * .25 * dt); E.mt.hp = E.hp; }
+  }
+}
+function wnCariDiLingkaran(E) {   // hero lawan (dan buaya lawan) terdekat di dalam lingkaran jaga
+  let tg = null, bd = 1e9; const p = E.g.position;
+  WN.U.forEach(u => { if (u.tm === E.tm || !u.hidup || u.pos.distanceTo(E.home) > E.R) return; const d = u.pos.distanceTo(p); if (d < bd) { bd = d; tg = u.obj; } });
+  const b = WN.bt; if (!b.mati && b.tm !== E.tm && b.g.position.distanceTo(E.home) < E.R + 1.5) { const d = b.g.position.distanceTo(p) + 2; if (d < bd) tg = b; }
+  return tg;
+}
+function wnAiSinga(E, dt) {
+  const p = E.g.position; E.jalan = 0; if (wnStun(E, dt)) return;
+  let tg = E.sas; const sah = t => t && wnHidup(t) && wnTimOf(t) !== E.tm && wnPos(t).distanceTo(E.home) < E.R + (t.wnE ? 1.5 : .6);
+  if (!sah(tg) || Math.random() < dt * .8) tg = E.sas = wnCariDiLingkaran(E);
+  if (tg) {
+    const sp = wnPos(tg), L = Math.hypot(sp.x - p.x, sp.z - p.z), jg = E.jangkau + (tg.wnE ? 1 : 0);
+    if (L > jg) { const ke = sp.clone(); const d = ke.clone().sub(E.home); if (d.length() > E.R) ke.copy(E.home).addScaledVector(d.normalize(), E.R); wnGerak(E, ke, E.kec, dt); }
+    else wnHadap(E, Math.atan2(sp.x - p.x, sp.z - p.z), dt);
+    if (L <= jg + .3 && E.cdA <= 0) { E.cdA = E.jeda; E.serangT = .45; setTimeout(() => { if (E.mati || !wnHidup(tg)) return; const q = wnPos(tg); if (Math.hypot(q.x - p.x, q.z - p.z) < jg + 1) { wnPukul(tg, E.dmg, p, 4); gelombang(q.clone().setY(0), 1.4, .35, 0xffc040); percik(q.clone().setY(.6), 12, WN_WARNA[E.tm], 3); goyang = tg === P ? Math.max(goyang, .15) : goyang; } }, 220); }
+  } else {
+    if (p.distanceTo(E.home) > .3) wnGerak(E, E.home, E.kec, dt); else wnHadap(E, E.tm ? 0 : Math.PI, dt);
+    if (performance.now() - E.kenaT > 5000 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * .02 * dt); E.mt.hp = E.hp; }
+  }
+}
+const WN_BOLA = [];
+let WN_MBOLA = null;
+function wnAiGaruda(E, dt) {
+  if (wnStun(E, dt)) return;
+  let tg = E.sas; if (!tg || !wnHidup(tg) || wnPos(tg).distanceTo(E.home) > E.R + 1 || Math.random() < dt) tg = E.sas = wnCariDiLingkaran(E);
+  if (tg && E.cdA <= 0) {
+    E.cdA = E.jeda; E.serangT = .4;
+    if (!WN_MBOLA) WN_MBOLA = [0, 1].map(t => new THREE.SpriteMaterial({ map: T_BULAT, color: t ? 0xfff4d8 : 0xff7a20, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+    const sp = new THREE.Sprite(WN_MBOLA[E.tm]); sp.scale.setScalar(1.1); sp.position.copy(E.home).setY(4.8); scene.add(sp);
+    WN_BOLA.push({ sp, t: tg, dmg: E.dmg, tm: E.tm, umur: 0 }); nyala(sp.position.clone(), 1.6, E.tm ? 0xffffff : 0xff6a20, .3);
+  } else if (!tg && performance.now() - E.kenaT > 5000 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * .02 * dt); E.mt.hp = E.hp; }
+}
+function wnUpdBola(dt) {
+  for (let i = WN_BOLA.length - 1; i >= 0; i--) {
+    const b = WN_BOLA[i]; b.umur += dt; const p = b.sp.position;
+    if (!wnHidup(b.t) || b.umur > 3) { scene.remove(b.sp); WN_BOLA.splice(i, 1); continue; }
+    const q = wnPos(b.t).clone().setY(1), d = q.clone().sub(p), L = d.length();
+    if (L < .5) { wnPukul(b.t, b.dmg, p.clone().setY(0), 3); gelombang(q.clone().setY(0), 1.5, .4, b.tm ? 0xffffff : 0xff6a20); percik(q, 14, b.tm ? 0xffffff : 0xff8a30, 3.5); scene.remove(b.sp); WN_BOLA.splice(i, 1); continue; }
+    p.addScaledVector(d.divideScalar(L), Math.min(L, 15 * dt)); if (Math.random() < .6) nyala(p.clone(), .7, b.tm ? 0xfff0d0 : 0xff5a10, .25);
+  }
+}
+function wnAiBuayaT(E, dt) {   // Buaya teman: maju ke bangunan lawan berikutnya, menggigit hero lawan yang mendekat
+  const p = E.g.position, mu = 1 - E.tm; E.jalan = 0; if (wnStun(E, dt)) return;
+  let tg = null, bd = 4.2; WN.U.forEach(u => { if (u.tm === mu && u.hidup) { const d = u.pos.distanceTo(p); if (d < bd) { bd = d; tg = u.obj; } } });
+  const S = wnBerikut(mu); if (!tg) tg = S; if (!tg || !wnHidup(tg)) return;
+  const sp = wnPos(tg), jg = tg.wnE ? (tg.padat || 0) + 1.9 : 2.2, L = Math.hypot(sp.x - p.x, sp.z - p.z);
+  if (L > jg) { // jalan lurus di jalur tengah (lewat samping tugu)
+    const ke = sp.clone(), arah = Math.sign(sp.z - p.z) || 1;
+    if (Math.abs(p.x) > 2.8) ke.set(0, 0, p.z + arah * 2);
+    else if (Math.abs(p.z) < 3.5 && Math.abs(sp.z) > 3.5) ke.set(2.7, 0, p.z + arah * 2.5);   // memutar di samping Tugu Nanas
+    wnGerak(E, ke, E.kec, dt); }
+  else wnHadap(E, Math.atan2(sp.x - p.x, sp.z - p.z), dt);
+  if (L <= jg + .3 && E.cdA <= 0) { E.cdA = E.jeda; E.serangT = .4; if (tg.wnE) wnKena(tg.wnE, E.dmgB, null); else wnPukul(tg, E.dmg, p, 3); gelombang(sp.clone().setY(0), 1.6, .4, 0x9fdc6a); percik(sp.clone().setY(.6), 12, 0xc8e0a0, 3); }
+}
+function wnAnim(E, dt) {   // gerak sederhana: kaki melangkah, badan bergoyang, serangan menerjang
+  const R = E.M; E.fase += dt * (E.jalan ? 9 : 2);
+  const ay = E.jalan ? Math.sin(E.fase) * .6 : 0;
+  if (R.kaki) R.kaki.forEach((k, i) => { k.rotation.x = (i % 2 ? -ay : ay) * (i > 1 ? -1 : 1); });
+  if (R.lengan) R.lengan.forEach((l, i) => { l.rotation.x = E.serangT > 0 ? -2.2 * Math.sin(Math.min(1, (.45 - E.serangT) / .45) * Math.PI) : (i ? ay : -ay) * .6; });
+  if (R.ekor) R.ekor.rotation.y = Math.sin(E.fase * .6) * .35;
+  if (R.rahang) R.rahang.rotation.x = E.serangT > 0 ? .5 * Math.sin(E.serangT / .4 * Math.PI) : 0;
+  if (R.b) { R.b.position.y = E.jalan ? Math.abs(Math.sin(E.fase)) * .06 : Math.sin(E.fase) * .015; R.b.position.z = E.serangT > 0 ? Math.sin(E.serangT / .45 * Math.PI) * .35 : 0; }
+  if (E.kilau > 0) { E.kilau -= dt; const s = 1 + E.kilau * .4; if (R.b) R.b.scale.setScalar((E.jenis === 'singa' ? 1.35 : E.jenis.startsWith('buaya') ? 1.35 : 1) * s); }
+  else if (R.b && E.kilau !== -1) { E.kilau = -1; R.b.scale.setScalar(E.jenis === 'singa' || E.jenis.startsWith('buaya') ? 1.35 : 1); }
+}
+
+// ---------- Tugu Nanas ----------
+function wnUpdTugu(dt) {
+  const T = WN.tugu, n = [0, 0], dlm = [];
+  WN.U.forEach(u => { if (u.hidup && Math.hypot(u.pos.x, u.pos.z) < WN_TUGU_R) { n[u.tm]++; dlm.push(u); } });
+  let st = '';
+  if (n[0] && n[1]) st = 'rebut';
+  else { const t = n[0] ? 0 : n[1] ? 1 : -1;
+    if (t >= 0 && t !== T.milik) { if (T.tim !== t) { T.tim = t; T.prog = 0; } T.prog += dt; st = 'rebut' + t;
+      if (T.prog >= WNV.tugu.lama) { T.milik = t; T.prog = 0; T.tim = -1; gelombang(new THREE.Vector3(), WN_TUGU_R + 1, .9, WN_WARNA[t]); percik(new THREE.Vector3(0, 2, 0), 60, t ? 0xffffff : 0xff5a3a, 6);
+        banner(`🍍 Tugu Nanas dikuasai Tim ${WN_NAMA_TIM[t]}!` + (t === 0 ? ' Berdiri di lingkaran untuk pulih' : ''), t === 0 ? '#9dff8a' : '#ff7a7a'); } }
+    else T.prog = Math.max(0, T.prog - dt * 1.5); }
+  T.st = st;
+  // pemulihan HP tim pemilik
+  if (T.milik >= 0) { const now = performance.now(); dlm.forEach(u => { if (u.tm !== T.milik) return; const kt = WN.kenaT.get(u.id) || 0; if (now - kt < WNV.tugu.jedaHeal * 1000) return;
+    const tambah = u.max * WNV.tugu.heal * dt;
+    if (u.obj === P) { if (P.hp < HP_MAX[HERO]) { P.hp = Math.min(HP_MAX[HERO], P.hp + tambah); WN.healAk = (WN.healAk || 0) + tambah; if (WN.healAk > 60) { angka(P.root.position, '+' + Math.round(WN.healAk), '#7dff8a'); WN.healAk = 0; } if (Math.random() < dt * 6) percik(P.root.position.clone().setY(.2), 2, 0x7dff8a, 1.2, .14); } }
+    else if (u.obj.mt.hp < u.obj.mt.hpMax) u.obj.mt.hp = Math.min(u.obj.mt.hpMax, u.obj.mt.hp + tambah); }); }
+  // tampilan
+  WN.tuguCincin.material.color.setHex(T.milik < 0 ? 0xffd04a : WN_WARNA[T.milik]);
+  const pr = T.prog / WNV.tugu.lama, kunci = Math.round(pr * 60);
+  if (kunci !== WN.progK) { WN.progK = kunci; WN.tuguProg.geometry.dispose(); WN.tuguProg.geometry = new THREE.RingGeometry(WN_TUGU_R + .05, WN_TUGU_R + .38, 64, 1, Math.PI / 2, Math.max(.001, pr * Math.PI * 2)); }
+  WN.tuguProg.material.color.setHex(T.tim === 1 ? 0xffffff : 0xff4a3a); WN.tuguProg.visible = pr > 0;
+  if (WN.tuguG && T.milik >= 0 && Math.random() < dt * 3) nyala(new THREE.Vector3(rnd(-1, 1), rnd(1.5, 4), rnd(-1, 1)), .8, T.milik ? 0xffffff : 0xff6a4a, .5);
+}
+
+// ---------- bot: memilih sasaran (hero lawan · monster · tugu · buaya · bangunan) ----------
+function wnTitik(o) {   // titik berdiri di lingkaran tugu (tiap bot punya tempat sendiri)
+  if (!o.wnT) { const a = o.id * 2.1, p = new THREE.Vector3(Math.sin(a) * 2.7, 0, Math.cos(a) * 2.7);
+    o.wnT = { titik: true, root: { position: p }, mt: { mati: 0, g: { position: p } }, pro: { info: () => ({ pos: p, hero: 'ocong', aksi: 'bebas', arah: 0, tujuan: null, stun: false, hp: 0, vis: o.wnT.mt, id: -1, mati: false }) } }; }
+  return o.wnT;
+}
+function wnProksi(o, E) {   // bangunan padat: bot mendekat ke sisi bangunan yang menghadapnya
+  if (!E.padat) return E;
+  if (!o.wnP) { const p = new THREE.Vector3(); o.wnP = { root: { position: p }, pro: { info: () => ({ pos: p, hero: 'ocong', aksi: 'bebas', arah: 0, tujuan: null, stun: false, hp: o.wnP.wnE.hp / o.wnP.wnE.hpMax, vis: o.wnP.wnE.mt, id: o.wnP.wnE.id, mati: o.wnP.wnE.mati }) } }; }
+  const P2 = o.wnP; P2.wnE = E; P2.mt = E.mt; P2.padat = E.padat;
+  const d = o.root.position.clone().sub(E.home).setY(0); if (d.lengthSq() < 1e-4) d.set(0, 0, 1); P2.root.position.copy(E.home).addScaledVector(d.normalize(), E.padat + .55);
+  return P2;
+}
+function wnPenjagaDi(p, tm) { for (const E of [WN.singa[tm], WN.garuda[tm]]) if (!E.mati && p.distanceTo(E.home) < E.R + .5) return E; return null; }
+function wnKuatTim(tm) { let s = 0, n = 0; WN.U.forEach(u => { if (u.tm !== tm) return; n++; const st = WN.st.get(u.id); if (st) for (const k in st) s += st[k]; }); return n ? s / n : 0; }
+function wnMonster(o) {
+  let best = null, bd = 1e9; const pos = o.root.position, sisi = o.tm ? -1 : 1;
+  WN.E.forEach(E => { if (E.jenis !== 'mon' || E.mati) return; let d = E.g.position.distanceTo(pos); if (Math.sign(E.home.z) !== sisi) d += 14;
+    for (const b of TIM.bot.values()) if (b !== o && b.tm === o.tm && b.wnMon === E) d += 9;
+    if (E.sas && E.sas !== o && wnTimOf(E.sas) !== o.tm) d += 6;
+    if (d < bd) { bd = d; best = E; } });
+  o.wnMon = best; return best;
+}
+function wnSasaran(o) {
+  const pos = o.root.position, tm = o.tm, mu = 1 - tm, hpR = o.mt.hp / o.mt.hpMax, mnt = wnWaktu() / 60;
+  // 1) hero lawan yang dekat & terlihat (jangan mengejar masuk lingkaran penjaga lawan, kecuali sedang mendorong)
+  let musuh = null, bd = hpR < .3 ? 3.2 : 8.5;
+  WN.U.forEach(u => { if (u.tm !== mu || !u.hidup) return; const d = u.pos.distanceTo(pos); if (d < bd && hidupDanTampak(u.obj, pos)) { bd = d; musuh = u.obj; } });
+  const dorong = (!WN.bt.mati && WN.bt.tm === tm) || (mnt >= 4 && wnKuatTim(tm) >= 5) || mnt >= 9;
+  if (musuh && (!wnPenjagaDi(wnPos(musuh), mu) || dorong)) return musuh;
+  // buaya lawan di dekat
+  if (!WN.bt.mati && WN.bt.tm === mu && WN.bt.g.position.distanceTo(pos) < 9) return WN.bt;
+  // 2) darah tinggal sedikit: pulih di tugu milik sendiri
+  if (hpR < .4 && WN.tugu.milik === tm) return wnTitik(o);
+  if (hpR < .25) return wnTitik(o);
+  // 3) rebut tugu (setelah ±1,5 menit farming)
+  if (WN.tugu.milik !== tm && mnt >= 1.5 && (o.id % 3 !== 0 || mnt >= 3)) return wnTitik(o);
+  // 4) Buaya Danau
+  if (!WN.buaya.mati && hpR > .55 && (o.id % 2 === 0 || WN.buaya.g.position.distanceTo(pos) < 12)) return WN.buaya;
+  // 5) dorong bangunan lawan
+  const S = wnBerikut(mu); if (S && dorong && hpR > .5) return wnProksi(o, S);
+  // 6) farming monster hutan
+  return wnMonster(o) || wnTitik(o);
+}
+
+// ---------- tiap frame ----------
+function wnUpd(dt) {
+  if (!WN.siap || !TIM.main) return;
+  // daftar hero (pemain + bot)
+  const U = WN.U; U.length = 0;
+  U.push({ obj: P, tm: 0, pos: P.root.position, hidup: P.state !== 'kalah', id: TIM.me, max: HP_MAX[HERO] });
+  TIM.bot.forEach(o => U.push({ obj: o, tm: o.tm, pos: o.root.position, hidup: !o.mt.mati, id: o.id, max: o.mt.hpMax }));
+  // stat Speed: tambahan langkah (berlaku untuk semua cara bergerak hero)
+  U.forEach(u => { const pv = WN.prev.get(u.id); if (pv && u.hidup) { const f = wnF(u.id, 'spd') - 1, dx = u.pos.x - pv.x, dz = u.pos.z - pv.z, L = Math.hypot(dx, dz);
+      if (f > 0 && L > 1e-4 && L < .5) { u.pos.x += dx * f; u.pos.z += dz * f; batasi(u.pos); } }
+    if (!pv) WN.prev.set(u.id, u.pos.clone()); else pv.copy(u.pos); });
+  // munculnya Buaya Danau
+  const w = wnWaktu();
+  if (WN.buaya.mati && w >= WN.buayaT) { const B = WN.buaya, k = 1 + B.naikPerMenit * Math.floor(w / 60);
+    B.hpMax = Math.round(B.hpDasar * k); B.mt.hpMax = B.hpMax; B.hp = B.hpMax; B.mt.hp = B.hp; B.mati = false; B.mt.mati = 0; B.g.visible = true; B.g.position.copy(B.home); B.sas = null; B.oleh = null; wnMusuh(B);
+    gelombang(B.home, 4, .9, 0x6ac0ff); percik(B.home.clone().setY(.5), 40, 0x9fd8ff, 5); banner('🐊 Buaya Danau muncul! Kalahkan untuk dijadikan teman', '#9fd8ff'); WN.buayaT = 1e9; }
+  // makhluk & bangunan
+  WN.E.forEach(E => {
+    if (E.mati) {
+      if (E.jenis === 'mon' && performance.now() > E.hidupT) { const k = 1 + E.naikPerMenit * Math.floor(w / 60); E.hpMax = Math.round(E.hpDasar * k); E.mt.hpMax = E.hpMax; E.hp = E.hpMax; E.mt.hp = E.hp;
+        E.mati = false; E.mt.mati = 0; E.g.visible = true; E.g.position.copy(E.home); E.g.rotation.y = E.arahAsal; E.sas = null; E.oleh = null; wnMusuh(E); percik(E.home.clone().setY(.3), 16, 0x9fff8a, 2.5); }
+      if (E.runtuh !== undefined && E.g.visible) { E.runtuh += dt; E.g.position.y = -E.runtuh * E.runtuh * 1.2; E.g.rotation.z = Math.sin(E.runtuh * 9) * .03; if (Math.random() < .3) asap(E.home.clone(), 2, 0x8a7a6a, 1.6, 1); if (E.runtuh > 2.4) { E.g.visible = false; if (E.cincin) E.cincin.visible = false; } }
+      return;
+    }
+    E.cdA = Math.max(0, E.cdA - dt); E.serangT = Math.max(0, E.serangT - dt);
+    if (E.jenis === 'mon' || E.jenis === 'buaya') wnAiMon(E, dt); else if (E.jenis === 'singa') wnAiSinga(E, dt); else if (E.jenis === 'garuda') wnAiGaruda(E, dt); else if (E.jenis === 'buayaT') wnAiBuayaT(E, dt);
+    // bangunan tidak bergeser (tarikan / angkatan skill), makhluk tetap di tanah
+    if (E.jenis === 'rumah' || E.jenis === 'garuda') E.g.position.copy(E.home); else { E.g.position.y = 0; E.mt.v.set(0, 0, 0); wnPadat(E.g.position, .5); batasi(E.g.position); }
+    if (E.cincin) { E.cincin.material.opacity = (E.sas ? .7 : .32) + (E.sas ? Math.sin(performance.now() / 120) * .15 : 0); }
+    if (E.jenis === 'mon' || E.jenis === 'singa' || E.jenis.startsWith('buaya')) wnAnim(E, dt);
+    if (E.jenis === 'rumah') { const bd = E.g.userData.bendera; if (bd) bd.rotation.y = Math.sin(performance.now() / 300) * .25; }
+  });
+  wnUpdBola(dt); wnUpdTugu(dt);
+  // bar darah semua bangunan & makhluk (monster hanya kalau dekat atau baru diserang)
+  WN.E.forEach(E => { const b = E.mt.bar; if (E.mati || !E.g.visible) { if (b.style.display !== 'none') b.style.display = 'none'; return; }
+    const dekat = E.g.position.distanceTo(P.root.position) < (E.besar ? 30 : 16) || performance.now() - E.kenaT < 3000;
+    const [x, y, ok] = layar(V.copy(E.g.position).setY(E.barY)); const tampil = ok && dekat; b.style.display = tampil ? '' : 'none'; if (!tampil) return;
+    b.style.left = x + 'px'; b.style.top = y + 'px'; b.firstChild.style.width = E.hp / E.hpMax * 100 + '%'; b.classList.toggle('kunci', wnTerkunci(E)); });
+  // bayangan matahari mengikuti pemain (map panjang)
+  sun.target.position.set(P.root.position.x, 0, P.root.position.z); sun.position.set(P.root.position.x + 12, 26, P.root.position.z + 14);
+  WN.hudT -= dt; if (WN.hudT <= 0) { WN.hudT = .25; updHudTim(); wnPeta(); }
+}
+function wnHud() {
+  const e = $('#timHud'); if (!e) return; const w = Math.floor(wnWaktu()), T = WN.tugu;
+  const tg = T.st === 'rebut' ? '⚔️ diperebutkan' : T.st && T.st.startsWith('rebut') ? `${T.tim ? '⚪' : '🔴'} merebut ${Math.ceil(WNV.tugu.lama - T.prog)}…` : T.milik < 0 ? 'belum dikuasai' : `milik ${T.milik ? '⚪ Putih' : '🔴 Merah'}`;
+  e.innerHTML = `<span class="m">🔴 ${TIM.skor[0]}</span><small>⏱ ${Math.floor(w / 60)}:${String(w % 60).padStart(2, '0')}<br>🍍 ${tg}</small><span class="wnP">${TIM.skor[1]} ⚪</span>` + (TIM.hidupT ? `<div class="hdp">Bangkit di rumah dalam ${Math.max(1, Math.ceil((TIM.hidupT - performance.now()) / 1000))}…</div>` : '');
+  e.classList.remove('kanan');
+}
+function wnStatHud() {
+  const e = $('#wnStat'); if (!e) return; const id = TIM.me;
+  e.innerHTML = ['hp', 'atk', 'def', 'spd', 'as', 'cd'].map(k => { const v = wnPersen(id, k); return `<span class="${v ? 'on' : ''}" title="${WN_STAT[k].n} (${WN_STAT[k].mon})">${WN_STAT[k].ik}${k === 'cd' ? '−' : '+'}${v}%</span>`; }).join('');
+}
+function wnPeta() {   // peta kecil (atas = markas Putih)
+  const c = $('#wnMini'); if (!c) return; const x = c.getContext('2d'), W = c.width, H = c.height, sx = v => (v + 21) / 42 * W, sz = v => (v + 38) / 76 * H;
+  x.fillStyle = '#3f7a2c'; x.fillRect(0, 0, W, H); x.fillStyle = '#b89a6a'; x.fillRect(sx(-3.5), 0, sx(3.5) - sx(-3.5), H);
+  x.fillStyle = '#3a9ad0'; x.beginPath(); x.arc(sx(WN_DANAU.x), sz(WN_DANAU.z), WN_DANAU_R / 42 * W, 0, 7); x.fill();
+  const T = WN.tugu; x.strokeStyle = T.milik < 0 ? '#ffd04a' : WN_CSS[T.milik]; x.lineWidth = 2; x.beginPath(); x.arc(sx(0), sz(0), WN_TUGU_R / 42 * W, 0, 7); x.stroke();
+  x.fillStyle = '#ffd04a'; x.beginPath(); x.arc(sx(0), sz(0), 2.5, 0, 7); x.fill();
+  WN.E.forEach(E => { if (E.mati) return; const px = sx(E.g.position.x), pz = sz(E.g.position.z);
+    if (E.jenis === 'mon') { x.fillStyle = '#ffe08a'; x.fillRect(px - 1.5, pz - 1.5, 3, 3); }
+    else if (E.jenis === 'buaya' || E.jenis === 'buayaT') { x.fillStyle = E.jenis === 'buaya' ? '#7adc5a' : WN_CSS[E.tm]; x.beginPath(); x.arc(px, pz, 3.5, 0, 7); x.fill(); x.strokeStyle = '#1a3a10'; x.lineWidth = 1; x.stroke(); }
+    else { const s = E.jenis === 'rumah' ? 9 : 6; x.fillStyle = WN_CSS[E.tm]; x.fillRect(px - s / 2, pz - s / 2, s, s); x.strokeStyle = '#000a'; x.lineWidth = 1; x.strokeRect(px - s / 2, pz - s / 2, s, s); } });
+  WN.U.forEach(u => { if (!u.hidup || u.obj === P) return; if (u.tm !== 0 && !hidupDanTampak(u.obj, P.root.position)) return;
+    x.fillStyle = u.tm ? '#ffffff' : '#ff5a4a'; x.beginPath(); x.arc(sx(u.pos.x), sz(u.pos.z), 3, 0, 7); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 1; x.stroke(); });
+  x.fillStyle = '#ffe14a'; x.beginPath(); x.arc(sx(P.root.position.x), sz(P.root.position.z), 4, 0, 7); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 1.5; x.stroke();
+}
+async function wnMulai() {
+  NAMA_TIM[0] = 'TIM MERAH'; NAMA_TIM[1] = 'TIM PUTIH';
+  const pl = [{ i: 1, tm: 0, n: NAMA, h: HERO_SRV[HERO] || 'pocong' }], dipakai = new Set();
+  for (let k = 0; k < 5; k++) { let h = pilihAcak(BOT_SRV); for (let c = 0; c < 6 && dipakai.has(h + (k < 2 ? 0 : 1)); c++) h = pilihAcak(BOT_SRV); dipakai.add(h + (k < 2 ? 0 : 1));
+    pl.push({ i: 2 + k, tm: k < 2 ? 0 : 1, n: '🤖 ' + (NAMA_HERO[HERO_3D[h]] || h), h, bot: 1 }); }
+  $('#load b').textContent = 'Menyiapkan War Nanas…';
+  try { await wnBuat(); } catch (e) { console.error(e); }
+  await timMulai({ pl, me: 1, host: 1, kw: 1e9, code: '', a: 0, dur: 1e9 });
+  WN.t0 = performance.now(); WN.siap = true; TIM.terakhir = null;
+  const hud = document.createElement('div'); hud.id = 'wnStat'; hud.className = 'ui'; document.body.appendChild(hud); wnStatHud();
+  const mini = document.createElement('canvas'); mini.id = 'wnMini'; mini.width = 84; mini.height = 152; document.body.appendChild(mini);
+  $('#help').textContent = 'War Nanas 3 vs 3 · Kalahkan monster hutan untuk menambah stat · Kuasai Tugu Nanas (berdiri 10 dtk) untuk pulih · Hancurkan Singa → Garuda → Rumah lawan';
+  banner('🍍 War Nanas! Farming monster hutan dulu, lalu rebut Tugu Nanas', '#ffd166');
+  banner('🔒 Urutan: Singa → Garuda → Rumah lawan', '#ffd166');
+}
+
 // ================== DUEL LAWAN BOT (1 VS 1) ==================
 let BOT = null, SELESAI = false;
 const barPemain = document.createElement('div'); barPemain.className = 'hp me'; barPemain.innerHTML = '<i></i>'; barPemain.style.display = 'none'; $('#bars').appendChild(barPemain);
 function kenaPemain(dmg, dari, dorong = 3) {
   if (P.state === 'kalah' || SELESAI) return;
+  if (WN.on) { dmg = Math.round(dmg * wnF(TIM.me, 'def')); WN.kenaT.set(TIM.me, performance.now()); }   // War Nanas: stat Defense
   if (HERO === 'genderuwo' && GW.amuk > 0) dorong = 0;   // Amukan Genderuwo: tidak bisa didorong
   if (HERO === 'buto') { dorong *= BT.dorongK; if (P.hp < HP_MAX.buto * BT.rendah) dmg = Math.round(dmg * (1 - BT.kurang)); }   // Pasif Kulit Buto
   if (HERO === 'saras' && P.state === 'srHilang') return;   // Kilat Bayangan: sedang menghilang, tidak bisa dilukai
@@ -5834,7 +6427,7 @@ function mainLagi(ronde) {   // ronde = lanjut ronde berikutnya (skor tetap); ta
   if (BOT) BOT.reset(!ronde, !!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
   if (LAWAN === 'bot' && !ronde) { SKOR = [0, 0]; updSkorBot(); }
 }
-$('#lagi').onclick = () => { if (TIM.on) { if (LOBI) { keLobiMB(); return; } timKeLobi(); return; } if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
+$('#lagi').onclick = () => { if (WN.on) { location.reload(); return; } if (TIM.on) { if (LOBI) { keLobiMB(); return; } timKeLobi(); return; } if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
 $('#keMenu').onclick = () => { keluarRoom(); location.href = 'game.html'; };
 function posisiAwal() { if (TIM.on && TIM.saya) { const [x, z] = spawnTim(TIM.saya); P.root.position.set(x, 0, z); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); return; }
   P.root.position.set(0, 0, PUSAT_Z + JARAK_AWAL()); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); }
@@ -6157,7 +6750,7 @@ async function buatBotTim(p) {
   const kawan = p.tm === TIM.saya.tm, o = { id: p.i, tm: p.tm, bot: true, lokal: true, nama: p.n, kawan, sas: null, terakhir: null, hidupT: 0, hero: HERO_3D[p.h] || 'ocong' };
   const bar = barTim(o, kawan);
   const [x, z] = spawnTim(p);
-  const B = await buatBotPro({ hero: o.hero, skin: '', nama: p.n, bar, posAwal: new THREE.Vector3(x, 0, z), arahAwal: kawan ? Math.PI : 0, id: p.i,
+  const B = await buatBotPro({ hero: o.hero, skin: '', nama: p.n, bar, lv: WN.on ? BOT_LV_I : undefined, posAwal: new THREE.Vector3(x, 0, z), arahAwal: kawan ? Math.PI : 0, id: p.i,
     ctx: { kawan, sasaran: () => o.sas, serang: (t, d, dari, dr) => timBotSerangKe(o, t, d, dari, dr), stun: stunEnt, mati: () => timBotMati(o),
       kirim: e => netEvent(Object.assign(e, { oleh: p.i })) } });
   o.B = B; o.pro = B; o.root = B.root; o.mt = B.mt; B.mt.id = p.i; B.mt.obj = o; B.mt.nama = p.n;
@@ -6167,6 +6760,7 @@ async function buatBotTim(p) {
 }
 function spawnTim(p) {   // posisi awal (koordinat lokal): tim saya di bawah, lawan di atas
   if (UMP.on) return umpetSpawn(p);
+  if (WN.on) { const ag = TIM.pl.filter(x => x.tm === p.tm), k = Math.max(0, ag.findIndex(x => x.i === p.i)); return [[0, -2.6, 2.6][k % 3], (p.tm ? -1 : 1) * (WN_Z.rumah - 4.7)]; }   // War Nanas: bangkit di depan rumah sendiri
   const anggota = TIM.pl.filter(x => x.tm === p.tm), k = Math.max(0, anggota.findIndex(x => x.i === p.i)), cx = [0, -2.6, 2.6][k % 3];
   const cz = p.tm === 0 ? PUSAT_Z + JARAK_AWAL() : PUSAT_Z - JARAK_AWAL();
   return keNet(cx, cz);
@@ -6185,6 +6779,7 @@ function hidupDanTampak(t, dari) {
   return t.hp > 0 && !(t.fl & 2) && !(t.fl & 8) && (terlihatDari(t.root.position, dari) || (t.fl & 128));
 }
 function pilihSasaran(o) {
+  if (WN.on) return wnSasaran(o);
   const pos = o.root.position; let best = null, bd = 1e9;
   const coba = t => { if (!t || t === o || !hidupDanTampak(t, pos)) return; const d = t.root.position.distanceTo(pos); if (d < bd) { bd = d; best = t; } };
   if (TIM.saya.tm !== o.tm) coba(P);
@@ -6195,13 +6790,14 @@ function pilihSasaran(o) {
 function timBotSerang(o, d, dari, dr) { timBotSerangKe(o, o.sas, d, dari, dr); }
 function timBotSerangKe(o, t, d, dari, dr) {   // bot (di HP pembuat room) mengenai sasarannya
   if (!t) return;
+  if (WN.on) { d = Math.round(d * wnF(o.id, 'atk')); if (t.titik) return; if (t.wnE) { wnKena(t.wnE, d, o); return; } }
   if (t === P) { TIM.terakhir = o.id; kenaPemain(d, dari, dr); }
   else if (t.lokal) { t.terakhir = o.id; BOT_VS_BOT = true; kena(t.mt, d, dari, dr); BOT_VS_BOT = false; }
   else { const [x, z] = keNet(dari.x, dari.z); netEvent({ k: 'hit', ke: t.id, d, x: r2(x), z: r2(z), dr, oleh: o.id }); angka(t.root.position, d); t.mt.kilau = .18; }
 }
 function timBotMati(o) {
   const oleh = o.terakhir; netEvent({ k: 'mati', id: o.id, oleh }); timTerimaMati(o.id, oleh);
-  o.hidupT = performance.now() + 4000;
+  o.hidupT = performance.now() + (WN.on ? wnJedaHidup() * 1000 : 4000);
 }
 function musuhTerdekatDari(o) {   // dipakai efek gerombolan Tuyul milik pemain lain
   const tim = o.tm, pos = o.root.position; let best = null, bd = 14;
@@ -6247,8 +6843,8 @@ function timAkhir(menang) {   // menang = 0/1, -1 = seri
     const satu = menang >= 0 && TIM.pl.filter(p => p.tm === menang).length === 1 ? TIM.pl.find(p => p.tm === menang) : null;   // duel 1 lawan 1: tampilkan nama pemenang
     const judul = menang < 0 ? 'SERI' : (satu ? (satu.i === TIM.me ? 'KAMU' : (satu.bot ? '🤖 ' : '') + satu.n) : NAMA_TIM[menang]) + ' MENANG!';
     t.textContent = judul; t.className = TIM.tonton || menang < 0 ? 'info' : menang === saya ? 'menang' : 'kalah';
-    $('#hasilS').textContent = TIM.tonton ? '👁️ Kamu menonton sebagai wasit · skor ' + TIM.skor[0] + ' – ' + TIM.skor[1] : '';
-    $('#lagi').textContent = 'Kembali ke Lobi'; $('#lagi').style.display = ''; $('#pilihH').style.display = 'none'; $('#hasil').classList.add('on');
+    $('#hasilS').textContent = TIM.tonton ? '👁️ Kamu menonton sebagai wasit · skor ' + TIM.skor[0] + ' – ' + TIM.skor[1] : WN.on ? '🏠 Rumah lawan hancur · kill ' + TIM.skor[0] + ' – ' + TIM.skor[1] + ' · ' + Math.floor(wnWaktu() / 60) + ' menit' : '';
+    $('#lagi').textContent = WN.on ? '🔁 Main Lagi' : 'Kembali ke Lobi'; $('#lagi').style.display = ''; $('#pilihH').style.display = 'none'; $('#hasil').classList.add('on');
     if (LOBI) setTimeout(() => { if ($('#hasil').classList.contains('on')) keLobiMB(); }, 10000);   // Main Bareng: otomatis kembali ke lobi
   }, 900);
 }
@@ -6259,6 +6855,7 @@ function timKeLobi() {   // tombol "Kembali ke Lobi"
 }
 function updHudTim() {
   if (UMP.on) return umpetHud();
+  if (WN.on) return wnHud();
   const e = $('#timHud'); if (!e) return; const mm = Math.max(0, Math.ceil(TIM.sisa)), s = TIM.saya ? TIM.saya.tm : 0;
   e.innerHTML = `<span class="b">🔵 ${TIM.skor[0]}</span><small>${Math.floor(mm / 60)}:${String(mm % 60).padStart(2, '0')} · target ${TIM.kw}</small><span class="m">${TIM.skor[1]} 🔴</span>` + (TIM.hidupT ? `<div class="hdp">Bangkit dalam ${Math.max(1, Math.ceil((TIM.hidupT - performance.now()) / 1000))}…</div>` : '');
   e.classList.toggle('kanan', s === 1);
@@ -6366,14 +6963,14 @@ function updTim(dt, nyata) {
     if (TIM.sisa <= 0 && TIM.host) timAkhir(TIM.skor[0] === TIM.skor[1] ? -1 : TIM.skor[0] > TIM.skor[1] ? 0 : 1);
     if (TIM.hidupT && performance.now() > TIM.hidupT) { TIM.hidupT = 0; mainLagi(); TIM.terakhir = null; }
   }
-  if (TIM.tonton) wasitKamera(); else { NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaanTim(); } }
+  if (TIM.tonton) wasitKamera(); else if (WN.on) NET.antre.length = 0; else { NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaanTim(); } }
   TIM.hudT = (TIM.hudT || 0) - nyata; if (TIM.hudT <= 0) { TIM.hudT = .25; updHudTim(); }
 }
 // pemain kalah di Duel Tim: bangkit lagi 4 detik kemudian
 function timSayaKalah() {
   P.state = 'kalah'; K.bidik = false; if (P.act.kalah) { P.cur = ''; main('kalah', .1); } else main('diam', .2); if (HERO === 'kunti') kuntiTembus(.4);
   const oleh = TIM.terakhir; netEvent({ k: 'mati', id: TIM.me, oleh }); kirimKeadaanTim(); timTerimaMati(TIM.me, oleh);
-  TIM.hidupT = performance.now() + 4000;
+  TIM.hidupT = performance.now() + (WN.on ? wnJedaHidup() * 1000 : 4000);
 }
 
 // ================== PETAK UMPET HANTU (versi klasik) ==================
@@ -6537,7 +7134,7 @@ async function mulai() {
   }
   buatArena(); siapkanApi(); setKual(lv);
   if (LAWAN === 'boneka') [[-4, -1.5], [4, -.5], [0, -4]].forEach(p => buatMusuh(p[0], PUSAT_Z + p[1]));
-  try { await MODEL_SIAP; if (LAWAN === 'bot') { await siapkanBot(); updSkorBot(); } }
+  try { await MODEL_SIAP; if (WN.on) { await wnMulai(); return; } if (LAWAN === 'bot') { await siapkanBot(); updSkorBot(); } }
   catch (e) { $('#load b').textContent = 'Model tidak bisa dimuat'; $('#lmsg').textContent = 'Pastikan file ' + MODEL + ' sudah diunggah satu folder dengan halaman ini.'; return; }
   posisiAwal();
   $('#load').classList.add('off');
@@ -6569,7 +7166,7 @@ function mulaiLoop() {
     if (ATUR.on && !NET.on) dt = 0;   // sedang Atur Tombol (main sendiri): permainan berhenti sebentar
     updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
-    updTarik(dt); updAngkat(dt); updBerdarah(dt); updTandaD(dt); updDnFx(dt); updTmFx(dt);   // Doni: tarikan rantai, Bleeding, rantai & gir
+    updTarik(dt); updAngkat(dt); updBerdarah(dt); updTandaD(dt); updDnFx(dt); updTmFx(dt); if (WN.on) wnUpd(dt);   // Doni: tarikan rantai, Bleeding, rantai & gir
     if (NET.on && !TIM.on) { updLawan(dt); NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaan(); } }
     updPeluru(dt); updRohPemburu(dt); updGelKipas(dt);
     setTembus(P, UMP.on && UMP.tangkap ? .45 : HERO === 'kunti' && P.state === 'kalah' ? .4 : TY.hilang > 0 ? .3 : HERO === 'siliwangi' && P.state === 'slLangkah' ? .35 : 1); updSemak(dt); updGerombolan(dt); updKoin(dt);   // di dalam semak: semaknya yang tembus pandang
