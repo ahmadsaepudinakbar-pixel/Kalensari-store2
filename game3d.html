@@ -269,7 +269,7 @@ const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'bot' : MODE === 'nanas' ? 'n
 const NAMA = (Q.get('nama') || 'Pemain').slice(0, 16), KODE = (Q.get('kode') || '').replace(/\D/g, '').slice(0, 4);
 let ARENA = MODE === 'nanas' ? 'nanas' : ['lapangan', 'sawah', 'pink', 'kebun'].includes(Q.get('arena')) ? Q.get('arena') : 'kuil';
 // War Nanas (MOBA 3 vs 3): keadaan permainan — isi & aturannya ada di bagian WAR NANAS
-const WN = { on: MODE === 'nanas', siap: false, E: [], st: new Map(), tugu: { milik: -1, prog: 0, tim: -1, st: '' }, t0: 0, kenaT: new Map(), prev: new Map(), U: [], hudT: 0, sk: new Map(), log: new Map(), padat: [], singa: [], garuda: [], rumah: [], buayaT: 1e9 };
+const WN = { on: MODE === 'nanas', siap: false, E: [], st: new Map(), tugu: { milik: -1, prog: 0, tim: -1, st: '', hadiahT: [-1e9, -1e9] }, t0: 0, kenaT: new Map(), prev: new Map(), U: [], hudT: 0, sk: new Map(), log: new Map(), padat: [], singa: [], garuda: [], rumah: [], buayaT: 1e9 };
 const NAMA_ARENA = { lapangan: 'Lapangan SD', kuil: 'Kuil Malam', sawah: 'Sawah Siang', pink: 'Taman Pink', kebun: 'Kebun Malam', nanas: 'War Nanas' };
 const UM_BENTENG = 1.8;   // jari-jari lingkaran pohon jaga (Petak Umpet)             // online: diganti arena pilihan pembuat room
 let PUSAT_Z = 0;                                                              // titik tengah arena (pemain lawan dicerminkan di sini)
@@ -6041,7 +6041,7 @@ const WNV = {
   singa: { hp: 6000, pulih: .005, R: 6.5, dmg: 140, jeda: 1.4, jangkau: 2.1, kec: 3.6 },
   garuda: { hp: 9000, pulih: .005, R: 7.5, dmg: 170, jeda: 1.6, padat: 1.9 },
   rumah: { hp: 8000, padat: 3.3 },
-  tugu: { lama: 10, heal: .1, jedaHeal: 2, padat: 1.3 },   // heal 10% HP / detik
+  tugu: { lama: 10, heal: .1, jedaHeal: 2, padat: 1.3, hadiahHp: .3, hadiahCd: 90 },   // heal 10% HP / detik · hadiah merebut: pulih 30% HP + kartu emas (jeda 90 dtk per tim)
   mon: { hp: 650, dmg: 38, jeda: 1.2, kec: 3.2, leash: 8, ulang: 45, naikPerMenit: .06 },
   // Buaya: muncul tiap 4 menit (menit 4, 8, 12, …) di kedua danau; level naik tiap kemunculan: lv1 lemah, lalu makin kuat
   buaya: { hp: 2200, dmg: 70, jeda: 1.6, kec: 2.6, leash: 9, selang: 240, naikHp: .6, naikDmg: .4, naikPerMenit: 0 },
@@ -6461,6 +6461,18 @@ function wnAnim(E, dt) {   // gerak sederhana: kaki melangkah, badan bergoyang, 
 }
 
 // ---------- Tugu Nanas ----------
+// hadiah merebut tugu: hanya hero tim perebut yang BERADA DI DALAM lingkaran tugu saat direbut — pulih 30% HP + 1 kartu emas (di luar lingkaran: tidak dapat) · jeda 90 dtk per tim (merebut lagi sebelum itu: tugu tetap dikuasai, tanpa hadiah)
+function wnHadiahTugu(t, dlm) {
+  const T = WN.tugu, now = performance.now(), sisa = WNV.tugu.hadiahCd - (now - T.hadiahT[t]) / 1000;
+  if (sisa > 0) { if (dlm.some(u => u.obj === P)) banner(`🍍 Hadiah tugu masih jeda ${Math.ceil(sisa)} dtk`, '#ffd27a'); return; }
+  T.hadiahT[t] = now;
+  dlm.forEach(u => { if (!u.hidup || u.tm !== t) return;
+    if (u.obj === P) { if (P.state === 'kalah') return; const n = Math.min(Math.round(HP_MAX[HERO] * WNV.tugu.hadiahHp), HP_MAX[HERO] - P.hp); P.hp += n; const sk = WN.sk.get(u.id); if (sk) sk.heal += n;
+      if (n > 0) angka(P.root.position, '+' + n, '#7dff8a'); percik(P.root.position.clone().setY(.3), 14, 0x7dff8a, 2.5); wnKartuMuncul(null, true); }
+    else { const o = TIM.bot.get(u.id); if (!o || o.mt.mati) return; const n = Math.min(o.mt.hpMax * WNV.tugu.hadiahHp, o.mt.hpMax - o.mt.hp); o.mt.hp += n; const sk = WN.sk.get(u.id); if (sk) sk.heal += n;
+      const c = wnAcakKartu(null, true)[0]; wnTambah(u.id, c.k, c.v); } });
+  if (dlm.some(u => u.obj === P)) setTimeout(() => banner('🌟 Tugu direbut! Pulih 30% HP + Kartu Emas', '#ffd040'), 900);
+}
 // kecepatan merebut tugu: 1 hero = 10 dtk · 2 hero = 7 dtk (−30%) · 3 hero = 5 dtk (−50%)
 const WN_TUGU_KEC = [0, 1, 1 / .7, 1 / .5];
 function wnUpdTugu(dt) {
@@ -6471,7 +6483,7 @@ function wnUpdTugu(dt) {
   else { const t = n[0] ? 0 : n[1] ? 1 : -1;
     if (t >= 0 && t !== T.milik) { if (T.tim !== t) { T.tim = t; T.prog = 0; } T.kec = WN_TUGU_KEC[Math.min(3, n[t])]; T.prog += dt * T.kec; st = 'rebut' + t;
       if (T.prog >= WNV.tugu.lama) { T.milik = t; T.prog = 0; T.tim = -1; dlm.forEach(u => { const sk = WN.sk.get(u.id); if (sk && u.tm === t) sk.tugu++; }); gelombang(new THREE.Vector3(), WN_TUGU_R + 1, .9, WN_WARNA[t]); percik(new THREE.Vector3(0, 2, 0), 60, t ? 0xffffff : 0xff5a3a, 6);
-        banner(`🍍 Tugu Nanas dikuasai Tim ${WN_NAMA_TIM[t]}!` + (t === 0 ? ' Berdiri di lingkaran untuk pulih' : ''), t === 0 ? '#9dff8a' : '#ff7a7a'); } }
+        banner(`🍍 Tugu Nanas dikuasai Tim ${WN_NAMA_TIM[t]}!` + (t === 0 ? ' Berdiri di lingkaran untuk pulih' : ''), t === 0 ? '#9dff8a' : '#ff7a7a'); wnHadiahTugu(t, dlm); } }
     else T.prog = Math.max(0, T.prog - dt * 1.5); }
   T.st = st;
   // pemulihan HP tim pemilik
