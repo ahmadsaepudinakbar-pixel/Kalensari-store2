@@ -192,6 +192,11 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
           <button data-preset="waist" title="Pasang ke tulang pinggang/pinggul (Hips) karakter di atas — untuk rok, sabuk, kain">Pinggang</button>
         </div>
         <p class="note" id="attachNote" style="margin:6px 0 0"></p>
+        <div class="two" style="margin-top:8px">
+          <button id="ikatKaki" title="Rok / kain yang terpasang di pinggang dibuat ikut tulang paha & betis (bagian atas tetap ikut pinggul) supaya kaki tidak menembus">🦵 Ikat ke kaki</button>
+          <button id="lepasIkat" title="Kembalikan jadi item kaku yang terpasang di tulang">Lepas ikatan</button>
+        </div>
+        <p class="note" id="ikatNote" style="margin:6px 0 0">Untuk rok / kain: pasang dulu ke <b>Pinggang</b>, atur posisinya, lalu klik 🦵 Ikat ke kaki.</p>
       </div>
       <div class="kotak" style="margin-top:10px">
       <h2>Atur model terpilih</h2>
@@ -780,6 +785,7 @@ function disposeObj(o){
   });
 }
 function dropLayer(l){   // dilepas dari layar tapi tidak dibuang dari memori → bisa dikembalikan dengan Urungkan
+  if(l.ikatKaki) lepasIkatKaki(l, true);   // rok / kain terikat ikut dilepas dari karakter
   layers.forEach(w => { if(!w.dead && w.attach && w.attach.to === l) detachLayer(w); });
   lepasLunak(l);
 }
@@ -908,6 +914,8 @@ function refreshAttachUI(){
   $('attachTo').innerHTML = cands.map(c => `<option value="${c.id}"${c === cur ? ' selected' : ''}>${(JENIS[c.jenis] || '').split(' ')[0]} ${esc(c.file.name)}${c.wrapper.visible ? '' : ' (tersembunyi)'}</option>`).join('');
   fillBones(sel.attach ? sel.attach.bone : null);
   $('detachBtn').disabled = !sel.attach;
+  $('ikatKaki').disabled = !sel.attach || !!sel.ikatKaki; $('lepasIkat').disabled = !sel.ikatKaki;
+  $('ikatNote').innerHTML = sel.ikatKaki ? '✅ Terikat ke kaki (ikut pinggul, paha & betis). Untuk mengubah posisi: Lepas ikatan → atur → Ikat lagi.' : 'Untuk rok / kain: pasang dulu ke <b>Pinggang</b>, atur posisinya, lalu klik 🦵 Ikat ke kaki.';
   $('attachNote').textContent = sel.attach
     ? 'Terpasang. Atur X/Y/Z, putar, dan skala di atas sebagai offset terhadap tulang.'
     : 'Pilih karakter dan tulang (mis. RightHand), lalu klik Pasang.';
@@ -931,7 +939,70 @@ function attachLayer(w, c, boneName){
   select(w);
   say('“' + w.file.name + '” dipasang di tulang ' + boneName + '. Atur offset lalu putar animasi untuk mengecek.');
 }
+/* ---------- Ikat rok / kain ke kaki: item kaku di pinggang → mesh berkulit yang ikut tulang pinggul, paha & betis ---------- */
+// bagian atas ikut pinggul, makin ke bawah makin ikut paha, di bawah lutut ikut betis; kain yang jauh mengembang tetap sebagian ikut pinggul;
+// bagian tengah dibagi halus ke kaki kiri & kanan (kain melar, tidak sobek). Bobot sama dengan hasil uji rok Nyi Roro Kidul.
+const IKAT = { a0: -.15, a1: .5, kmax: 1, r0: .07, rw: .4, rf: .85, l0: .4, l1: 1, lm: 1, sw: .06 };
+function ikatKeKaki(w, diam){
+  if(!w || !w.attach){ if(!diam) say('Pasang item ke tulang Pinggang dulu.', true); return false; }
+  const c = w.attach.to; let badan = null;
+  c.obj.traverse(o => { if(!badan && o.isSkinnedMesh && o.skeleton && o.skeleton.bones.some(b => norm(b.name) === 'hips')) badan = o; });
+  if(!badan){ if(!diam) say('Karakter tidak punya mesh bertulang (skinned).', true); return false; }
+  const sk = badan.skeleton, cari = k => sk.bones.findIndex(b => norm(b.name) === k);
+  const ix = { H: cari('hips'), LU: cari('leftupleg'), RU: cari('rightupleg'), LL: cari('leftleg'), RL: cari('rightleg'), LF: cari('leftfoot'), RF: cari('rightfoot') };
+  if(Object.values(ix).some(i => i < 0)){ if(!diam) say('Tulang kaki (Hips, UpLeg, Leg, Foot kiri-kanan) tidak lengkap di karakter ini.', true); return false; }
+  if(!diam) catat();
+  resetPose(c); c.wrapper.updateMatrixWorld(true);
+  // posisi sendi saat pose ikat (ruang dunia ikat)
+  const jp = k => new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().copy(sk.boneInverses[ix[k]]).invert());
+  const H = jp('H'), LU = jp('LU'), RU = jp('RU'), LL = jp('LL'), RL = jp('RL'), LF = jp('LF'), RF = jp('RF');
+  const skala = Math.max(1e-6, ((LU.y + RU.y) / 2 - (LF.y + RF.y) / 2) / .41), arahKiri = Math.sign(LU.x - RU.x) || 1, xTengah = (LU.x + RU.x) / 2;
+  const ss = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const sumbu = (A, B, C, y) => { const atas = y > B.y, P = atas ? A : B, Q = atas ? B : C, t = Math.min(1, Math.max(0, (P.y - y) / ((P.y - Q.y) || 1e-6))); return [P.x + (Q.x - P.x) * t, P.z + (Q.z - P.z) * t]; };
+  // matriks: dunia sekarang → ruang lokal ikat mesh berkulit (memakai bindMatrix badan)
+  const R = new THREE.Matrix4().multiplyMatrices(sk.bones[ix.H].matrixWorld, sk.boneInverses[ix.H]);
+  const keLokal = new THREE.Matrix4().copy(badan.matrixWorld).multiply(badan.bindMatrixInverse).multiply(R).multiply(badan.bindMatrix).invert();
+  const keIkat = new THREE.Matrix4().copy(badan.bindMatrix);   // lokal → dunia ikat (untuk menghitung bobot)
+  w.wrapper.updateMatrixWorld(true);
+  const hasil = [];
+  w.obj.traverse(o => {
+    if(!o.isMesh || o.isSkinnedMesh) return;
+    const geo = o.geometry.clone(); geo.applyMatrix4(new THREE.Matrix4().multiplyMatrices(keLokal, o.matrixWorld));
+    const pos = geo.attributes.position, n = pos.count, si = new Uint16Array(n * 4), sw = new Float32Array(n * 4), v = new THREE.Vector3();
+    for(let i = 0; i < n; i++){
+      v.fromBufferAttribute(pos, i).applyMatrix4(keIkat);
+      const d = ((LU.y + RU.y) / 2 - v.y) / (((LU.y + RU.y) / 2 - (LL.y + RL.y) / 2) || 1e-6);
+      let legW = ss(IKAT.a0, IKAT.a1, d) * IKAT.kmax;
+      const [lx, lz] = sumbu(LU, LL, LF, v.y), [rx, rz] = sumbu(RU, RL, RF, v.y), rmin = Math.min(Math.hypot(v.x - lx, v.z - lz), Math.hypot(v.x - rx, v.z - rz));
+      legW *= Math.min(1, Math.max(IKAT.rf, 1 - (rmin - IKAT.r0 * skala) / (IKAT.rw * skala)));
+      const kiri = .5 + .5 * Math.tanh((v.x - xTengah) * arahKiri / (IKAT.sw * skala)), bawah = ss(IKAT.l0, IKAT.l1, d) * IKAT.lm;
+      const bb = [[ix.H, 1 - legW], [ix.LU, legW * (1 - bawah) * kiri], [ix.RU, legW * (1 - bawah) * (1 - kiri)], [ix.LL, legW * bawah * kiri], [ix.RL, legW * bawah * (1 - kiri)]].sort((a, b) => b[1] - a[1]).slice(0, 4);
+      const tot = bb.reduce((s, x) => s + x[1], 0) || 1; bb.forEach(([j, wt], k) => { si[i * 4 + k] = j; sw[i * 4 + k] = wt / tot; });
+    }
+    geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
+    const mat = [].concat(o.material).map(m => { const k = m.clone(); k.skinning = true; return k; });
+    const m = new THREE.SkinnedMesh(geo, Array.isArray(o.material) ? mat : mat[0]);
+    m.name = (w.file.name.replace(/\.[^.]+$/, '') || 'kain') + '_terikat'; m.castShadow = o.castShadow; m.receiveShadow = o.receiveShadow; m.frustumCulled = false;
+    m.position.copy(badan.position); m.quaternion.copy(badan.quaternion); m.scale.copy(badan.scale); badan.parent.add(m);
+    m.bind(new THREE.Skeleton(sk.bones, sk.boneInverses.map(x => x.clone())), badan.bindMatrix);
+    hasil.push(m);
+  });
+  if(!hasil.length){ if(!diam) say('Item ini tidak punya mesh.', true); return false; }
+  w.ikatKaki = { mesh: hasil, to: c }; w.wrapper.visible = false;   // item kaku disembunyikan; yang tampil & ikut diekspor: versi terikat
+  c.snap = snapshot(c.obj); applyWire(); select(w);
+  if(!diam) say('“' + w.file.name + '” terikat ke kaki: atas ikut pinggul, bawah ikut paha & betis. Putar animasi jalan untuk mengecek. Ekspor GLB menyertakan versi terikat ini.');
+  return true;
+}
+function lepasIkatKaki(w, diam){
+  if(!w || !w.ikatKaki) return;
+  w.ikatKaki.mesh.forEach(m => { if(m.parent) m.parent.remove(m); m.geometry.dispose(); [].concat(m.material).forEach(x => x.dispose()); });
+  const c = w.ikatKaki.to; w.ikatKaki = null; w.wrapper.visible = true; if(c) c.snap = snapshot(c.obj);
+  if(!diam){ select(w); say('Ikatan dilepas: “' + w.file.name + '” kembali jadi item kaku di tulang. Atur posisinya lalu klik 🦵 Ikat ke kaki lagi.'); }
+}
+$('ikatKaki').onclick = () => ikatKeKaki(sel);
+$('lepasIkat').onclick = () => lepasIkatKaki(sel);
 function detachLayer(w){
+  if(w.ikatKaki) lepasIkatKaki(w, true);
   if(!w.attach) return;
   holder.attach(w.wrapper);   // posisi di dunia dipertahankan
   w.attach = null;
@@ -1185,7 +1256,8 @@ async function simpanProyek(){
     const u8 = new Uint8Array(l.buf); bufs.push(u8);
     isi.layers.push({ nama: l.file.name, ext: l.ext, off, len: u8.byteLength, jenis: l.jenis, vis: l.wrapper.visible,
       pos: v3(l.wrapper.position), q: q4(l.wrapper.quaternion), s: v3(l.wrapper.scale), pivot: v3(l.pivot),
-      attach: l.attach ? { ke: layers.indexOf(l.attach.to), tulang: l.attach.bone } : null });
+      attach: l.attach ? { ke: layers.indexOf(l.attach.to), tulang: l.attach.bone } : null, ikatKaki: !!l.ikatKaki });
+    if(l.ikatKaki) isi.layers[isi.layers.length - 1].vis = true;   // item terikat disimpan sebagai item biasa + tanda ikat (diikat ulang saat dibuka)
     off += u8.byteLength;
   });
   clips.forEach(c => { const d = klipEntriKeData(c); if(d.clip || d.dasar !== undefined) isi.clips.push(d); });
@@ -1209,8 +1281,8 @@ async function bukaProyek(file){
         const f = new File([new Uint8Array(buf, dasar + L.off, L.len)], L.nama), sebelum = layers.length;
         await addFile(f); baru.push(layers.length > sebelum ? layers[layers.length - 1] : null);
       }
-      clips.length = 0;   // animasi bawaan file model diganti daftar animasi dari proyek (urutan, nama & potongan sama seperti saat disimpan)
-      isi.clips.forEach(d => { try { const e = dataKeKlipEntri(d); if(e) clips.push(e); } catch(_){} });
+      if(Array.isArray(isi.clips)){   // animasi bawaan file model diganti daftar animasi dari proyek (urutan, nama & potongan sama seperti saat disimpan)
+        clips.length = 0; isi.clips.forEach(d => { try { const e = dataKeKlipEntri(d); if(e) clips.push(e); } catch(_){} }); }   // proyek tanpa daftar animasi: animasi dari file model tetap dipakai
       isi.layers.forEach((L, i) => {   // pasang ke tulang lalu kembalikan posisi, putaran, skala, titik genggam
         const l = baru[i]; if(!l) return; const w = l.wrapper; let induk = holder;
         if(L.attach && baru[L.attach.ke]){ let b = null; baru[L.attach.ke].obj.traverse(o => { if(!b && o.name === L.attach.tulang) b = o; }); if(b){ induk = b; l.attach = { to: baru[L.attach.ke], bone: L.attach.tulang }; } }
@@ -1219,6 +1291,7 @@ async function bukaProyek(file){
         l.pivot.fromArray(L.pivot); l.pv.position.copy(l.pivot).negate(); if(L.jenis) l.jenis = L.jenis;
       });
     } finally { catatTahan--; }
+    isi.layers.forEach((L, i) => { if(L.ikatKaki && baru[i]) ikatKeKaki(baru[i], true); });   // ikat ulang rok / kain ke kaki
     applyWire(); frame(); select(layers[isi.terpilih] || layers[layers.length - 1] || null); renderClips();
     say('Proyek “' + file.name + '” dibuka: ' + layers.length + ' model, ' + clips.length + ' animasi. Item di tulang bisa langsung diatur lagi, lalu simpan proyek / ekspor GLB.');
   } catch(e){ say('Gagal membuka proyek: ' + (e && e.message || e), true); }
