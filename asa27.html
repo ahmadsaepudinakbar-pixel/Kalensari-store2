@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Model Studio ASA27 – GLB + FBX + OBJ + Animasi</title>
 <style>
+.namaModal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.namaKotak{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;width:min(420px,100%);display:flex;flex-direction:column;gap:10px;color:var(--text);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.namaKotak b{font-size:15px}.namaKotak label{font-size:12px;color:var(--mute)}
+.namaBaris{display:flex;align-items:center;gap:6px}.namaBaris input{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;font-size:14px}
+.namaBaris input:focus{outline:none;border-color:var(--acc)}.namaExt{color:var(--mute);font-size:13px}
+.namaTombol{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}.namaTombol button{padding:8px 16px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);cursor:pointer}
+.namaTombol .primary{background:var(--acc);color:var(--accText);border-color:var(--acc);font-weight:600}
 :root{--bg:#14181c;--panel:#1d2329;--line:#2d363e;--text:#e6ebef;--mute:#8d9aa5;--acc:#4cc3b0;--accText:#07201c}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -1263,7 +1270,7 @@ async function simpanProyek(){
   clips.forEach(c => { const d = klipEntriKeData(c); if(d.clip || d.dasar !== undefined) isi.clips.push(d); });
   const js = new TextEncoder().encode(JSON.stringify(isi)), kepala = new Uint8Array(12);
   kepala.set(new TextEncoder().encode(PRJ_MAGIC)); new DataView(kepala.buffer).setUint32(8, js.byteLength, true);
-  const nama = (layers.find(l => l.jenis === 'karakter') || layers[0]).file.name.replace(/\.[^.]+$/, '');
+  const nama = await mintaNama('Simpan proyek', (layers.find(l => l.jenis === 'karakter') || layers[0]).file.name.replace(/\.[^.]+$/, ''), '.asa27'); if(!nama){ say('Simpan proyek dibatalkan.'); return; }
   download(new Blob([kepala, js, ...bufs], { type: 'application/octet-stream' }), nama + '.asa27');
   say('Proyek disimpan: ' + nama + '.asa27 — ' + layers.length + ' model, ' + isi.clips.length + ' animasi. Buka lagi dengan “📂 Buka proyek”.');
 }
@@ -1293,6 +1300,7 @@ async function bukaProyek(file){
     } finally { catatTahan--; }
     isi.layers.forEach((L, i) => { if(L.ikatKaki && baru[i]) ikatKeKaki(baru[i], true); });   // ikat ulang rok / kain ke kaki
     applyWire(); frame(); select(layers[isi.terpilih] || layers[layers.length - 1] || null); renderClips();
+    namaTerakhir = bersihNama(file.name);
     say('Proyek “' + file.name + '” dibuka: ' + layers.length + ' model, ' + clips.length + ' animasi. Item di tulang bisa langsung diatur lagi, lalu simpan proyek / ekspor GLB.');
   } catch(e){ say('Gagal membuka proyek: ' + (e && e.message || e), true); }
 }
@@ -1300,6 +1308,23 @@ $('proSimpan').onclick = () => simpanProyek();
 $('proBuka').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if(f) bukaProyek(f); };
 
 /* ---------- Simpan ---------- */
+// minta nama file dulu sebelum mengunduh (GLB / OBJ / FBX / proyek). Nama terakhir diingat untuk simpanan berikutnya.
+let namaTerakhir = '';
+function bersihNama(n){ return String(n || '').trim().replace(/\.(glb|gltf|obj|fbx|zip|asa27)$/i, '').replace(/[\\/:*?"<>|]+/g, '_').replace(/\s+/g, ' ').slice(0, 80); }
+function mintaNama(judul, saran, ext){
+  return new Promise(selesai => {
+    const lt = document.createElement('div'); lt.className = 'namaModal';
+    lt.innerHTML = '<div class="namaKotak"><b></b><label>Nama file</label><div class="namaBaris"><input type="text" spellcheck="false"><span class="namaExt"></span></div><div class="namaTombol"><button class="batal">Batal</button><button class="ok primary">Simpan</button></div></div>';
+    lt.querySelector('b').textContent = judul; lt.querySelector('.namaExt').textContent = ext;
+    const inp = lt.querySelector('input'); inp.value = bersihNama(namaTerakhir || saran) || 'model';
+    const tutup = v => { lt.remove(); document.removeEventListener('keydown', kunci, true); selesai(v); };
+    const ok = () => { const n = bersihNama(inp.value); if(!n){ inp.focus(); return; } namaTerakhir = n; tutup(n); };
+    const kunci = e => { if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); tutup(null); } else if(e.key === 'Enter'){ e.preventDefault(); e.stopPropagation(); ok(); } else e.stopPropagation(); };
+    lt.querySelector('.ok').onclick = ok; lt.querySelector('.batal').onclick = () => tutup(null);
+    lt.onclick = e => { if(e.target === lt) tutup(null); };
+    document.addEventListener('keydown', kunci, true); document.body.appendChild(lt); inp.focus(); inp.select();
+  });
+}
 function download(blob, name){
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1326,16 +1351,17 @@ function collectExportClips(){
   return {list:[], who:null};
 }
 
-$('save').onclick = () => {
+$('save').onclick = async () => {
   if(!layers.length) return;
   if(!layers.some(l => l.wrapper.visible)){ say('Semua model tersembunyi. Tampilkan minimal satu model.', true); return; }
+  const nm = await mintaNama('Unduh GLB', layers.length === 1 ? layers[0].file.name.replace(/\.[^.]+$/, '') + '-edit' : 'gabungan', '.glb'); if(!nm){ say('Unduh GLB dibatalkan.'); return; }
   say('Mengekspor GLB…');
   const was = $('wire').checked;
   if(was){ $('wire').checked = false; applyWire(); }
   const { list, who } = collectExportClips();
   layers.forEach(resetPose);
   $('pause').textContent = 'Jeda'; renderClips();
-  const name = layers.length === 1 ? layers[0].file.name.replace(/\.[^.]+$/, '') + '-edit.glb' : 'gabungan.glb';
+  const name = nm + '.glb';
   try {
     new THREE.GLTFExporter().parse(holder, result => {
       download(new Blob([result], {type:'model/gltf-binary'}), name);
@@ -1411,9 +1437,10 @@ function siapEkspor(){
 // ---- OBJ (+ MTL + tekstur, dibungkus ZIP) ----
 $('saveObj').onclick = async () => {
   if(!siapEkspor()) return;
+  const nmO = await mintaNama('Unduh OBJ (ZIP)', namaDasar(), '-obj.zip'); if(!nmO){ say('Unduh OBJ dibatalkan.'); return; }
   say('Mengekspor OBJ…');
   try {
-    const dasar = namaDasar(), meshes = kumpulMesh(), { daftar, peta } = await kumpulBahan(meshes, dasar);
+    const dasar = nmO.replace(/\s+/g, '_'), meshes = kumpulMesh(), { daftar, peta } = await kumpulBahan(meshes, dasar);
     const o = ['# Model Studio ASA27', 'mtllib ' + dasar + '.mtl'];
     let vo = 1;
     meshes.forEach(m => {
@@ -1529,9 +1556,10 @@ function fbxDokumen(meshes, daftar, peta){
 }
 $('saveFbx').onclick = async () => {
   if(!siapEkspor()) return;
+  const nmF = await mintaNama('Unduh FBX', namaDasar(), '.fbx'); if(!nmF){ say('Unduh FBX dibatalkan.'); return; }
   say('Mengekspor FBX…');
   try {
-    const dasar = namaDasar(), meshes = kumpulMesh(), { daftar, peta } = await kumpulBahan(meshes, dasar);
+    const dasar = nmF, meshes = kumpulMesh(), { daftar, peta } = await kumpulBahan(meshes, dasar);
     const data = fbxTulis(fbxDokumen(meshes, daftar, peta));
     download(new Blob([data], { type: 'application/octet-stream' }), dasar + '.fbx');
     say('Tersimpan: ' + dasar + '.fbx (' + fmtSize(data.length) + ', tekstur tertanam). Bisa langsung diunggah ke Mixamo atau dibuka di Blender.');
