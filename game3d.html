@@ -5974,6 +5974,8 @@ async function buatBotPro(o) {
       B.patrolT -= dt; if (!B.patrol || jarak(B.patrol) < 1 || B.patrolT <= 0) { B.patrol = titikAcak(); B.patrolT = 5; }
       jalan(B.patrol.clone().sub(pos), kec * .75, dt); return;
     }
+    if (B.ent && B.ent.titik) {   // War Nanas: titik di lingkaran tugu hanya tempat berdiri (rebut/pulih), bukan musuh → jangan dipukul / di-skill
+      const d = I.pos.clone().sub(pos); if (d.setY(0).length() > .45) jalan(d, CEPAT * (B.buffT > 0 ? 1.4 : 1), dt); else jalan(null, 0, dt, T.arah); return; }
     const L = jarak(I.pos), hpR = mt.hp / mt.hpMax;
     const esc = bahaya(I);   // 1) hindari serangan lawan (dengan waktu reaksi manusiawi)
     if (esc) {
