@@ -5460,6 +5460,54 @@ const BOT_UMUM = {
   ciung: { jauh: 1, jarak: 7, warna: 0xff6020, dasar: ['lempar'], s: [{ t: 'pel', a: 'perintah', dmg: 120, stun: 1.2 }, { t: 'dash', a: 'lincah', dmg: 60 }, { t: 'target', a: 'panggil', dmg: 220, r: 3, stun: .8 }], cd: [.7, 8, 8, 16] },
   sangkuriang: { warna: 0xc8641a, dasar: ['pukul1', 'pukul2', 'pukul3'], s: [{ t: 'buff', a: 'lari', lama: 4 }, { t: 'area', a: 'putar', dmg: 150, r: 2.6, stun: 1.2 }, { t: 'target', a: 'panggil', dmg: 180, r: 3, stun: 1.2 }], cd: [.55, 10, 8, 16] },
   kiansantang: { warna: 0xe0c060, dasar: ['tebas1', 'tebas2', 'tebas3'], s: [{ t: 'kebal', a: 'perisai', lama: 2 }, { t: 'buff', a: 'lari', lama: 3 }, { t: 'area', a: 'putar', dmg: 200, r: 2.8, stun: .6 }], cd: [.45, 13, 10, 20], cepat: 4.6 } };
+// ---- efek ASLI hero untuk bot umum (batu Buto, perahu Sangkuriang, bambu Timun Mas, anjing Dayang, ombak Nyi Roro, dst) ----
+// hanya tampilan: damage, stun & jangkauan tetap dihitung otak bot umum di atas. Hero tanpa entri (mis. Erick) tetap memakai efek umum.
+// d = serangan dasar · s[0..2] = skill 1..3 · mulai(c): saat skill dimulai · kena(c): saat damage (dash: hanya bila kena) · lepas(c): proyektil dilepas
+// (return false = efek asli tidak tampil → bola cahaya umum tetap terlihat) · kenaPel(c): proyektil mengenai lawan · jadwal: [[detik, fungsi]] · tH / akhir: waktu damage / selesai
+const BOT_FX = (() => {
+  const v1 = (c, y = 1.15) => c.pos.clone().setY(y), dpn = (c, k) => c.pos.clone().addScaledVector(c.f, k), ID = () => Math.floor(Math.random() * 1e9);
+  const tebas = n => [n % 2 ? .5 : -.5, n % 3 === 2 ? 1 : 0], jrk = c => Math.hypot(c.tj.x - c.pos.x, c.tj.z - c.pos.z);
+  const dnw = T => T.skin === 'robot' ? 1 : T.skin === 'dawala' ? 2 : 0, lkw = T => T.skin === 'fox' ? 1 : 0;
+  return {
+    sangkuriang: { d: { kena: c => c.vf('skTebas', c.pos, c.a, ...tebas(c.n)) },
+      s: [null, { kena: c => c.vf('skPutar', c.pos) }, { kena: c => c.vf('skPerahu', c.tj.clone(), c.a, ID()) }] },   // Tangkuban Perahu: perahu besar muncul dari tanah
+    buto: { d: { kena: c => c.vf('gPukul', dpn(c, 1.3), 1, btU(c.T)) },
+      s: [{ kena: c => c.vf('gPukul', c.ep, 1.3, btU(c.T)) }, { kena: c => c.vf('gHantam', dpn(c, .6), c.k.r, btU(c.T)) },
+        { ts: BT.batu.ts, tH: BT.batu.rilis + BT.batu.terbang, akhir: BT.batu.akhir, noTanda: 1, kena: () => { },   // Lempar Batu Raksasa: cabut batu → lempar → menghantam area
+          jadwal: [[BT.batu.cabut, c => c.vf('gPukul', dpn(c, .7), 1.4, btU(c.T))], [BT.batu.rilis, c => c.vf('bBatu', tanganButo(c.T), c.bidik(BT.batu.terbang), BT.batu.terbang, c.k.r, BT.batu.lama, btU(c.T))]] }] },
+    timun: { d: { lepas: c => c.vf('tBiji', tanganTimun(c.T), c.a, c.L, c.cb) },
+      s: [{ noTanda: 1, mulai: c => { c.vf('tTanda', c.tj.clone(), c.k.r, .6); c.vf('tJarum', tanganTimun(c.T), c.tj.clone(), .45); }, kena: c => c.vf('tBambu', c.tj.clone(), c.k.r) },
+        { lepas: c => c.vf('tSulur', tanganTimun(c.T), c.a, c.L, 1.6, 2) },
+        { noTanda: 1, mulai: c => c.vf('tTanda', c.tj.clone(), c.k.r, .6), kena: c => c.vf('tLumpur', c.tj.clone(), c.k.r, 2.5) }] },
+    doni: { d: { kena: c => c.vf('dPukul', dpn(c, 1), c.n % 4 === 2 ? 1.6 : 1, dnw(c.T)) },
+      s: [{ lepas: c => c.vf('dGir', tanganDoni(c.T), c.a, c.L, c.cb, dnw(c.T)) }, { lepas: c => c.vf('dTarik', tanganDoni(c.T), c.ep, c.ep, dnw(c.T)) },
+        { kena: c => c.vf('dPusar', c.pos, c.a, 1, c.k.r, 4, dnw(c.T)) }] },
+    lutung: { d: { kena: c => c.vf('lCakar', c.pos, c.a, c.n % 2 ? .7 : -.7, 1, 0, lkw(c.T)) },
+      s: [{ kena: c => c.vf('lMendarat', c.tj.clone(), c.k.r, lkw(c.T)) }, { kena: c => c.vf('lPamungkas', c.pos, c.a, lkw(c.T)) },
+        { kena: c => { c.vf('lCabik', c.ep.clone().setY(1.5), lkw(c.T)); c.vf('lCakar', c.pos, c.a, .7, 1.3, 1, lkw(c.T)); } }] },
+    saras: { d: { kena: c => c.vf('sPukul', dpn(c, 1), 1, srS(c.T)) },
+      s: [{ mulai: c => c.vf('sKilat', c.pos, srS(c.T)), kena: c => c.vf('sKilat', c.ep, srS(c.T)) },
+        { kena: c => { c.vf('sTinju', c.pos, c.a, srS(c.T)); c.vf('sLedak', c.pos, c.k.r, srS(c.T)); } },
+        { kena: c => c.vf('sLangit', c.tj.clone(), c.k.r, srS(c.T)) }] },
+    angling: { d: { lepas: c => c.vf('aAngin', v1(c), c.a, c.L, c.cb) },
+      s: [{ lepas: c => c.vf('aHembus', c.pos, c.a, 6, 1.5) }, { lepas: c => c.vf('aApi', v1(c), c.a, c.L, c.cb) },
+        { mulai: c => { c.vf('aPanggil', c.pos); c.vf('aLesat', c.pos, c.a, jrk(c) + 1, null); } }] },
+    dayang: { d: { lepas: c => c.vf('dsJarum', v1(c, 1.2), c.a, c.L, c.cb) },
+      s: [{ lepas: c => c.vf('dsBenang', v1(c, 1.2), c.a, c.L, c.cb), kenaPel: c => FXF.dsIkat(c.ep, c.k.stun || 1, c.ikutE) },
+        { kena: c => { c.vf('dsCentong', c.pos, c.a); if (c.ada) FXF.dsBonk(c.ep, c.k.stun || 1, c.ikutE); } },
+        { noTanda: 1, tH: c => jrk(c) / DS.anjing.cepat + .5, akhir: c => jrk(c) / DS.anjing.cepat + .7, mulai: c => c.vf('dsAnjing', c.pos, c.tj.clone(), null), kena: () => { } }] },   // anjing berlari ke area lalu meledak
+    nyi: { d: { lepas: c => c.vf('nrBola', v1(c, 1.2), c.a, c.L, c.cb) },
+      s: [{ mulai: c => c.vf('nrLesat', c.pos, c.a, 4) }, { kena: c => c.vf('nrPusaran', c.tj.clone(), c.k.r, 1) },
+        { tH: c => .9 * Math.max(.2, jrk(c) - 1) / (jrk(c) + .5), akhir: c => 1.1, mulai: c => c.vf('nrOmbak', c.pos, c.a, jrk(c) + 1.5, 2.3, .9), kena: c => c.vf('nrCipratan', c.tj.clone(), 1.2) }] },
+    siliwangi: { d: { kena: c => c.vf('swTebas', c.pos, c.a, ...tebas(c.n)) },
+      s: [{ kena: c => c.vf('swMuncul', c.tj.clone()) }, { mulai: c => c.vf('swBayang', c.pos, c.a, 4) }, { mulai: c => c.vf('swGatsuga', c.pos, dpn(c, 4), .4) }] },
+    ciung: { d: { lepas: c => c.vf('cwBiji', v1(c, 1.3), c.ep.clone().setY(1)) },
+      s: [{ lepas: c => { if (!c.T.ayam) return false; c.vf('cwPatuk', c.pos, c.ep); } }, { mulai: c => c.vf('swBayang', c.pos, c.a, 4) },
+        { tH: CWV.s3.ubah + CWV.s3.maju, akhir: CWV.s3.ubah + CWV.s3.maju + .25, mulai: c => c.vf('cwPhoenix', c.pos, c.pos, c.tj.clone()),
+          kena: c => { if (!c.T.ayam) c.vf('gelombang', c.tj.clone(), c.k.r, .6, CWV.merah); } }] },
+    kiansantang: { d: { kena: c => c.vf('ksTebas', c.pos, c.a, ...tebas(c.n), 0) },
+      s: [{ kena: c => FXF.ksPerisai(c.pos, c.k.lama || 2, { g: c.T.root }) }, null, { kena: c => { c.vf('ksHilang', c.pos); c.vf('ksTebas', c.pos, c.a, 0, 1, 0); } }] } };
+})();
 const BOT_PEL_BAHAN = new Map();
 function botPelBahan(c) { if (!BOT_PEL_BAHAN.has(c)) BOT_PEL_BAHAN.set(c, new THREE.SpriteMaterial({ map: T_BULAT, color: c, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); return BOT_PEL_BAHAN.get(c); }
 async function buatBotPro(o) {
@@ -5621,39 +5669,56 @@ async function buatBotPro(o) {
   function skillUmum(I, L) {
     const U = BOT_UMUM[hero], S = U.s;
     for (const i of [3, 2, 1]) { const k = S[i - 1]; if (B.cd[i] > 0 || !umumBisa(k, I, L)) continue; if (i === 3 && !I.stun && Math.random() < .3) continue; umumMulai(i, k, I); return true; }
-    if (B.cd[0] <= 0 && L < (U.jauh ? U.jarak : 1.9)) { T.arah = sudutKe(I.pos); B.um = { k: { t: 'dasar' } }; mulai('um', pilihA([U.dasar[B.gc % U.dasar.length], U.dasar[0], 'serang']) || 'diam', 1.4); B.gc++; B.cd[0] = CD[0]; return true; }
+    if (B.cd[0] <= 0 && L < (U.jauh ? U.jarak : 1.9)) { T.arah = sudutKe(I.pos); B.um = { k: { t: 'dasar' }, i: 0, j: 0 }; mulai('um', pilihA([U.dasar[B.gc % U.dasar.length], U.dasar[0], 'serang']) || 'diam', 1.4); B.gc++; B.cd[0] = CD[0]; return true; }
     return false;
   }
   function umumBisa(k, I, L) {
     switch (k.t) { case 'dash': return L > 1.4 && L < 5.5; case 'area': return L < (k.r || 2.5) - .3; case 'target': return L < 7.5; case 'lompat': return L > 2.4 && L < 7;
       case 'pel': return L < 7.5; case 'buff': return L < 9 && L > 3; case 'kebal': return mt.hp / mt.hpMax < .6 && L < 4; } return false;
   }
+  // efek asli hero untuk bot (BOT_FX): vf = tampilkan efek (di Main Bareng ikut dikirim ke HP lain seperti efek pemain)
+  const vf = (n, ...a) => { if (!FXF[n]) return; if (ctx.kirim && NET.on) fx(n, ...a); else FXF[n](...a); };
+  function umumV() { const V = BOT_FX[hero]; if (!V || !B.um) return null; return (B.um.i ? V.s && V.s[B.um.i - 1] : V.d) || null; }
+  function umumC(x) {
+    const e = lawan(), f = dep(T.arah);
+    return Object.assign({ T, vf, pos: pos.clone(), a: T.arah, f, tj: B.um && B.um.tj, k: (B.um && B.um.k) || {}, n: B.gc, ep: e ? e.pos.clone().setY(0) : pos.clone().addScaledVector(f, 2.5),
+      L: e ? Math.max(2, Math.min(9, jarak(e.pos) + .5)) : 7, cb: p => { const s = lawan(); return !!s && !s.mati && Math.hypot(s.pos.x - p.x, s.pos.z - p.z) < .9; },
+      ikutE: () => { const s = lawan(); return s && !s.mati ? s.pos : null; },
+      bidik: s => { const I = lawan(); if (I && !I.mati && B.um) B.um.tj = batasi(ramal(I, s)); return B.um.tj.clone(); } }, x);
+  }
+  const umumW = (V, n, d) => !V || V[n] == null ? d : typeof V[n] === 'function' ? V[n](umumC()) : V[n];
   function umumMulai(i, k, I) {
     const U = BOT_UMUM[hero]; T.arah = sudutKe(I.pos); B.cd[i] = CD[i]; B.awal = pos.clone();
-    B.um = { k, tj: k.t === 'target' || k.t === 'lompat' ? batasi(ramal(I, .45)) : null };
-    if (B.um.tj) { gelombang(B.um.tj, k.r || 2.5, .8, U.warna); lingkaranLantai(B.um.tj.clone(), k.r || 2.5, .8); }
-    mulai('um', pilihA([k.a, U.dasar[0], 'serang']) || 'diam', k.t === 'dash' ? 1.4 : 1.2);
+    B.um = { k, i, j: 0, tj: k.t === 'target' || k.t === 'lompat' ? batasi(ramal(I, .45)) : null };
+    const V = umumV();
+    if (B.um.tj && !(V && V.noTanda)) { gelombang(B.um.tj, k.r || 2.5, .8, U.warna); lingkaranLantai(B.um.tj.clone(), k.r || 2.5, .8); }
+    mulai('um', pilihA([k.a, U.dasar[0], 'serang']) || 'diam', (V && V.ts) || (k.t === 'dash' ? 1.4 : 1.2));
+    if (V) { B.um.tH = umumW(V, 'tH', null); B.um.akhir = umumW(V, 'akhir', null); try { if (V.mulai) V.mulai(umumC()); } catch (e) { console.warn('[Bot efek]', hero, e); } }
   }
   function umumKena(k, dari) { const U = BOT_UMUM[hero]; serang(k.dmg || 60, dari, k.dorong || 3); if (k.stun) stun('pusing', k.stun); if (k.lambat) stun('lambat', k.lambat); const e = lawan(); if (e) percik(e.pos.clone().setY(1), 12, U.warna, 3); }
   function umumTembak(k) {
     const U = BOT_UMUM[hero], e = lawan(); if (!e) return; const dari = pos.clone().setY(1.2), ke = ramal(e, .25).setY(1.1), d = ke.sub(dari).normalize();
-    const sp = new THREE.Sprite(botPelBahan(U.warna)); sp.scale.setScalar(k.t === 'dasar' ? .55 : .85); sp.position.copy(dari); scene.add(sp); B.pel.push({ sp, d, s: 0, max: (U.jarak || 7) + 1.5, k });
+    const sp = new THREE.Sprite(botPelBahan(U.warna)); sp.scale.setScalar(k.t === 'dasar' ? .55 : .85); sp.position.copy(dari); scene.add(sp);
+    const V = umumV(); if (V && V.lepas) { let ok; try { ok = V.lepas(umumC({ a: Math.atan2(d.x, d.z) })); } catch (x) { console.warn('[Bot efek]', hero, x); ok = false; } if (ok !== false) sp.visible = false; }   // efek asli tampil: bola cahaya umum disembunyikan (tetap dipakai menghitung kena)
+    B.pel.push({ sp, d, s: 0, max: (U.jarak || 7) + 1.5, k, V });
   }
+  function umumFx(n, x) { const V = umumV(); if (!V || !V[n]) return false; try { V[n](umumC(x)); } catch (e) { console.warn('[Bot efek]', hero, e); return false; } return true; }
   function jalankanUmum(dt, I, t, f) {
-    const k = B.um.k, U = BOT_UMUM[hero], e = lawan(), r = k.r || 2.5;
-    if (k.t === 'dasar') { if (t > .25 && !B.hit) { B.hit = 1; if (U.jauh) umumTembak({ t: 'dasar', dmg: 55, dorong: 1.5 }); else if (e && !e.mati && jarak(e.pos) < 2.3) { umumKena({ dmg: 60, dorong: 2 }, pos.clone()); } } if (t > .5) beres(); }
-    else if (k.t === 'dash') { if (t < .4) { pos.addScaledVector(f, 10 * dt); batasi(pos); if (Math.random() < .7) nyala(pos.clone().setY(.9), .9, U.warna, .3); if (!B.hit && e && !e.mati && jarak(e.pos) < 1.6) { B.hit = 1; umumKena(k, pos.clone()); goy(.15); } } if (t > .6) beres(); }
-    else if (k.t === 'area') { if (t > .35 && !B.hit) { B.hit = 1; gelombang(pos.clone(), r, .5, U.warna); percik(pos.clone(), 26, U.warna, 4); if (kenaDi(pos, r)) { umumKena(k, pos.clone()); goy(.2); } } if (t > .75) beres(); }
-    else if (k.t === 'target') { const tj = B.um.tj; if (t > .55 && !B.hit) { B.hit = 1; gelombang(tj, r, .6, U.warna); percik(tj.clone(), 34, U.warna, 5); nyala(tj.clone().setY(1), 2.2, U.warna, .4); if (kenaDi(tj, r)) { umumKena(k, tj.clone()); goy(.25); } } if (t > .9) beres(); }
-    else if (k.t === 'lompat') { const tj = B.um.tj, D = .6; if (t < D) { const u = t / D; pos.lerpVectors(B.awal, tj, u); B.naik = 2.4 * 4 * u * (1 - u); } else if (!B.hit) { B.hit = 1; pos.copy(tj); gelombang(tj, r, .55, U.warna); percik(tj.clone(), 30, U.warna, 5); if (kenaDi(tj, r)) { umumKena(k, tj.clone()); goy(.25); } } if (t > D + .3) beres(); }
+    const k = B.um.k, U = BOT_UMUM[hero], e = lawan(), r = k.r || 2.5, V = umumV();
+    if (V && V.jadwal) while (B.um.j < V.jadwal.length && t >= V.jadwal[B.um.j][0]) { const fn = V.jadwal[B.um.j++][1]; try { fn(umumC()); } catch (x) { console.warn('[Bot efek]', hero, x); } }   // tahapan efek (mis. Buto: cabut batu → lempar)
+    if (k.t === 'dasar') { if (t > .25 && !B.hit) { B.hit = 1; if (U.jauh) umumTembak({ t: 'dasar', dmg: 55, dorong: 1.5 }); else { umumFx('kena'); if (e && !e.mati && jarak(e.pos) < 2.3) { umumKena({ dmg: 60, dorong: 2 }, pos.clone()); } } } if (t > .5) beres(); }
+    else if (k.t === 'dash') { if (t < .4) { pos.addScaledVector(f, 10 * dt); batasi(pos); if (Math.random() < .7) nyala(pos.clone().setY(.9), .9, U.warna, .3); if (!B.hit && e && !e.mati && jarak(e.pos) < 1.6) { B.hit = 1; umumFx('kena'); umumKena(k, pos.clone()); goy(.15); } } if (t > .6) beres(); }
+    else if (k.t === 'area') { if (t > .35 && !B.hit) { B.hit = 1; const ada = kenaDi(pos, r); if (!umumFx('kena', { ada })) { gelombang(pos.clone(), r, .5, U.warna); percik(pos.clone(), 26, U.warna, 4); } if (ada) { umumKena(k, pos.clone()); goy(.2); } } if (t > .75) beres(); }
+    else if (k.t === 'target') { const tj = B.um.tj, tH = B.um.tH ?? .55; if (t > tH && !B.hit) { B.hit = 1; const ada = kenaDi(tj, r); if (!umumFx('kena', { ada })) { gelombang(tj, r, .6, U.warna); percik(tj.clone(), 34, U.warna, 5); nyala(tj.clone().setY(1), 2.2, U.warna, .4); } if (ada) { umumKena(k, tj.clone()); goy(.25); } } if (t > Math.max(B.um.akhir ?? .9, tH + .1)) beres(); }
+    else if (k.t === 'lompat') { const tj = B.um.tj, D = .6; if (t < D) { const u = t / D; pos.lerpVectors(B.awal, tj, u); B.naik = 2.4 * 4 * u * (1 - u); } else if (!B.hit) { B.hit = 1; pos.copy(tj); const ada = kenaDi(tj, r); if (!umumFx('kena', { ada })) { gelombang(tj, r, .55, U.warna); percik(tj.clone(), 30, U.warna, 5); } if (ada) { umumKena(k, tj.clone()); goy(.25); } } if (t > D + .3) beres(); }
     else if (k.t === 'pel') { if (t > .3 && !B.hit) { B.hit = 1; umumTembak(k); } if (t > .55) beres(); }
-    else if (k.t === 'buff') { B.buffT = k.lama; gelombang(pos.clone(), 1.4, .4, U.warna); beres(); }
-    else if (k.t === 'kebal') { mt.kebal = k.lama; gelombang(pos.clone(), 1.6, .5, 0xffd040); percik(pos.clone().setY(1), 20, 0xffd040, 3); beres(); }
+    else if (k.t === 'buff') { B.buffT = k.lama; gelombang(pos.clone(), 1.4, .4, U.warna); umumFx('kena'); beres(); }
+    else if (k.t === 'kebal') { mt.kebal = k.lama; if (!umumFx('kena')) { gelombang(pos.clone(), 1.6, .5, 0xffd040); percik(pos.clone().setY(1), 20, 0xffd040, 3); } beres(); }
     else beres();
   }
   function updPelUmum(dt) {
     for (let i = B.pel.length - 1; i >= 0; i--) { const q = B.pel[i], v = 14 * dt; q.sp.position.addScaledVector(q.d, v); q.s += v; const e = lawan();
-      if (e && !e.mati && Math.hypot(e.pos.x - q.sp.position.x, e.pos.z - q.sp.position.z) < .9) { umumKena(q.k, q.sp.position.clone().setY(0)); scene.remove(q.sp); B.pel.splice(i, 1); continue; }
+      if (e && !e.mati && Math.hypot(e.pos.x - q.sp.position.x, e.pos.z - q.sp.position.z) < .9) { umumKena(q.k, q.sp.position.clone().setY(0)); if (q.V && q.V.kenaPel) { try { q.V.kenaPel(umumC({ k: q.k })); } catch (x) { console.warn('[Bot efek]', hero, x); } } scene.remove(q.sp); B.pel.splice(i, 1); continue; }
       if (q.s > q.max) { scene.remove(q.sp); B.pel.splice(i, 1); } }
   }
   function posisi(I, L, hpR) {   // [arah gerak, arah hadap]
