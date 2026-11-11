@@ -1416,7 +1416,7 @@ if (HERO === 'kiansantang') $('#help').textContent = 'WASD / panah: gerak · J /
 if (HERO === 'sangkuriang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukulan Dayung (3 pukulan) · U: Langkah Gesit (lari lebih cepat 4 dtk) · I: Putaran Dayung (damage + stun 1,2 dtk) · O: Tangkuban Perahu (perahu muncul 5 dtk: damage + stun 1,2 dtk, tidak bisa ditembus; dekati & tekan O lagi: perahu ditendang otomatis ke lawan terdekat, damage + stun 1,2 dtk)';
 if (HERO === 'ciung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lemparan Biji (jarak jauh) · U: Serangan Ayam Jago (damage + stun 1,2 dtk) · I: Lincah Sang Legenda (melesat + lari lebih cepat 2 dtk) · O: Phoenix Jago Sakti (hantam area depan lalu kembali)';
 if (HERO === 'siliwangi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Kujang (3 tebasan) · U (tahan + mouse): Panggilan Macan Putih (damage + Airborne, macan bertarung 10 dtk) · I: Langkah Bayangan (blink 3x, lanjutkan dalam 1,5 dtk) · O: Bayangan Raja Macan (3 serangan, 6 bila Macan Putih aktif)';
-if (HERO === 'nyi') $('#help').textContent = 'Pasif Anak Samudra: di air (Pusaran, Laut Hiu Selatan, danau War Nanas) skill 1 tanpa cooldown · WASD / panah: gerak · J / Spasi: Bola Air (jarak jauh) · U (tahan + mouse): Jelajah Samudra (melesat + damage, lalu menjadi putri duyung 5 dtk: kebal damage & stun, tidak bisa menyerang — tekan U lagi untuk kembali) · I (tahan + mouse): Pusaran Laut Selatan (menarik lawan ke tengah + Slow 2 dtk, lalu Stun) · O: Laut Hiu Selatan (area laut luas 10 dtk di sekitar Nyi: tiap hero / monster musuh di dalamnya diterkam hiu air sendiri — damage + Slow, maks. 3 terkaman per target)';
+if (HERO === 'nyi') $('#help').textContent = 'Pasif Anak Samudra: di air (Pusaran & Laut Hiu Selatan milik Nyi mana pun — termasuk Nyi musuh —, danau War Nanas) skill 1 tanpa cooldown · WASD / panah: gerak · J / Spasi: Bola Air (jarak jauh) · U (tahan + mouse): Jelajah Samudra (melesat + damage, lalu menjadi putri duyung 5 dtk: kebal damage & stun, tidak bisa menyerang — tekan U lagi untuk kembali) · I (tahan + mouse): Pusaran Laut Selatan (menarik lawan ke tengah + Slow 2 dtk, lalu Stun) · O: Laut Hiu Selatan (area laut luas 10 dtk di sekitar Nyi: tiap hero / monster musuh di dalamnya diterkam hiu air sendiri — damage + Slow, maks. 3 terkaman per target)';
 if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U: Benang Pengikat (mengunci hero lawan terdekat — tahan + mouse untuk memilih lawan: benang mengikat 2 dtk, magic damage + Slow) · I (tahan + mouse): Pukulan Centong Kelapa (memukul kepala lawan dekat: Stun 1,2 dtk · Dayang Sumbi lebih cepat 3 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun + Shield) · Combo: U → I → O';
 if (HERO === 'angling') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Angin (jarak jauh) · U (tahan + mouse): Hembusan Angin (mendorong lawan jauh) · I (tahan + mouse): Bola Api · O: Elang Sakti (naik elang, terbang bebas 10 dtk + lebih cepat; Hembusan Angin & Bola Api jeda hanya 0,5 dtk, tetap diarahkan manual; Hembusan lebih luas) · O lagi saat terbang: elang melesat ke target, Angling Dharma meloncat turun';
 if (HERO === 'saras') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jurus Petir (pukul, hook, tendangan putar) · U (tahan + mouse): Kilat Bayangan (menghilang, muncul 0,5 m di depan lawan: lutut terbang + pukulan) · I (tahan + mouse): Tinju Halilintar (3 ledakan petir di jalur tinju: damage + Stun) · O: Puting Beliung Gledeg (berputar menendang 1,2 dtk sambil bergerak & menyedot lawan, ditutup Tendangan Gledeg + petir dari langit; kebal stun) · Pasif Muatan Petir: 4 serangan kena → pukulan berikutnya menyambar berantai · Combo: U → I → O';
@@ -4491,7 +4491,8 @@ function nrLesat(pos, a, jarak) {   // jejak air saat melesat: semburan ombak ke
     return e.t < NR.lesat.lama + .1; }, akhir() { } });
 }
 const NR_BIRU = { tua: 0x0646b8, laut: 0x0a70f0, terang: 0x1f8cff, muda: 0x3fb8ff };   // palet biru air (sama dengan hiu air skill 1)
-function nrPusaran(c, R, lama) {   // Pusaran Laut Selatan: pusaran air berputar di lantai + dinding cipratan, diakhiri ledakan air (Stun) — warna biru pekat seperti hiu air
+function nrPusaran(c, R, lama) {
+  airNyiDaftar(c, R, lama);   // Pusaran Laut Selatan: pusaran air berputar di lantai + dinding cipratan, diakhiri ledakan air (Stun) — warna biru pekat seperti hiu air
   const q = c.clone().setY(0), g = new THREE.Group(); g.position.copy(q); scene.add(g);
   const bhn = (w, op, map) => new THREE.MeshBasicMaterial({ map, color: w, transparent: true, opacity: op, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, blending: THREE.NormalBlending });
   const dasar = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: T_RIAK, color: NR_BIRU.tua, transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); dasar.position.y = .04; g.add(dasar);
@@ -4510,6 +4511,7 @@ function nrPusaran(c, R, lama) {   // Pusaran Laut Selatan: pusaran air berputar
 }
 // ---- Laut Hiu Selatan: area laut biru (riak berputar, tepi bergelombang, sirip hiu berkeliling) ----
 function nrLaut(c, R, lama) {
+  airNyiDaftar(c, R, lama);
   const q = c.clone().setY(0), g = new THREE.Group(); g.position.copy(q); scene.add(g);
   const bhn = (w, op, map) => new THREE.MeshBasicMaterial({ map, color: w, transparent: true, opacity: op, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
   const dasar = new THREE.Mesh(new THREE.CircleGeometry(1, 64).rotateX(-Math.PI / 2), bhn(NR_BIRU.tua, 0)); dasar.position.y = .03;
@@ -4597,8 +4599,11 @@ function nrKembali() {   // putri duyung → kembali jadi manusia (ditekan lagi 
   NW.duyung = 0; P.cd[1] = CD_MAX[1]; fx('nrCipratan', P.root.position.clone(), 1); P.state = 'bebas'; P.cur = ''; main('diam', .1); nrLencana();
 }
 // PASIF Anak Samudra: selama berada di air, skill 1 (Jelajah Samudra) tanpa cooldown — bisa dipakai terus
-// air = area Pusaran (skill 2) & Laut Hiu Selatan (ulti) milik Nyi, atau danau War Nanas
+// air = area Pusaran (skill 2) & Laut Hiu Selatan (ulti) milik Nyi mana pun (termasuk Nyi musuh), atau danau War Nanas
+const AIR_NYI = [];   // semua air buatan Nyi Roro Kidul mana pun (sendiri, tim, MUSUH, bot) → ikut memicu pasif
+function airNyiDaftar(c, R, lama) { const t = performance.now(); for (let i = AIR_NYI.length - 1; i >= 0; i--) if (AIR_NYI[i].akhir < t) AIR_NYI.splice(i, 1); AIR_NYI.push({ x: c.x, z: c.z, R, akhir: t + lama * 1000 }); }
 function nrDiAir(p) {
+  { const t = performance.now(); for (const A of AIR_NYI) if (A.akhir > t && Math.hypot(p.x - A.x, p.z - A.z) < A.R) return true; }
   const L = NW.laut; if (L && L.t < NR.laut.lama && Math.hypot(p.x - L.c.x, p.z - L.c.z) < NR.laut.R) return true;
   const Q = NW.pusar; if (Q && Q.c && Math.hypot(p.x - Q.c.x, p.z - Q.c.z) < NR.pusar.R) return true;
   if (WN.on) for (const D of WN_DANAU) if (Math.hypot(p.x - D.x, p.z - D.z) < WN_DANAU_R) return true;
@@ -6013,7 +6018,7 @@ async function buatBotPro(o) {
       const I0 = infoEnt(B.ent); if (I0 && !I0.mati) { mt.kunci = mt.pusing = 0; B.state = 'bebas'; T.arah = sudutKe(I0.pos); mulai('serbu', 'tinju', 1.6); B.fase = 0; B.cd[1] = CD[1]; fx('gLepas', pos.clone()); } }
     const pingsanB = mt.kunci > 0 || mt.pusing > 0;
     mt.kunci = Math.max(0, mt.kunci - dt); mt.pusing = Math.max(0, mt.pusing - dt); if (mt.kunci > 0) mt.v.set(0, 0, 0); mt.lambat = Math.max(0, (mt.lambat || 0) - dt);
-    B.cd = B.cd.map(c => Math.max(0, c - dt)); B.t += dt; B.pikir -= dt; B.strafeT -= dt; B.combo = Math.max(0, B.combo - dt);
+    B.cd = B.cd.map(c => Math.max(0, c - dt)); if (hero === 'nyi' && !mt.mati && nrDiAir(pos)) B.cd[1] = 0;   // pasif Anak Samudra (bot) B.t += dt; B.pikir -= dt; B.strafeT -= dt; B.combo = Math.max(0, B.combo - dt);
     B.buffT = Math.max(0, (B.buffT || 0) - dt); mt.kebal = Math.max(0, (mt.kebal || 0) - dt); if (B.pel.length) updPelUmum(dt);
     B.terbangT = Math.max(0, B.terbangT - dt); B.hilang = Math.max(0, B.hilang - dt); B.ungkap = Math.max(0, (B.ungkap || 0) - dt); B.amuk = Math.max(0, B.amuk - dt); B.gcT = Math.max(0, B.gcT - dt); mt.amuk = B.amuk;
     T.tilt.rotation.set(0, 0, 0); T.tilt.scale.set(1, 1, 1); if (T.pivot) T.pivot.rotation.x = 0; B.naik = 0;
