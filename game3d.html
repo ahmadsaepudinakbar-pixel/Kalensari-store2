@@ -6413,7 +6413,7 @@ function wnModelHewan(stat) {
 }
 // Singa penjaga (Tripo + animasi Mixamo, kapak bermata dua di tangan kanan): Tim Merah = singa merah, Tim Putih = singa putih
 // klip: diam (lihat sekeliling) · diam2 · siaga (kapak 2 tangan, lawan di lingkaran) · tahan (bertahan, HP < 40%) · lari · serang1 · serang2 · putar (sapuan 360°, kena semua lawan dekat)
-const SINGA_URL = ['model-3d/singa-merah.glb?v=2', 'model-3d/singa-putih.glb?v=2'], SINGA_SK = 3.4;
+const SINGA_URL = ['model-3d/singa-merah.glb?v=2', 'model-3d/singa-putih.glb?v=3'], SINGA_SK = 3.4;
 const SINGA_KLIP = { serang1: { kena: .5, lama: 1.05 }, serang2: { kena: .62, lama: 1.05 }, putar: { kena: .9, lama: 2.5, area: 1, jeda: 2.6 } };
 const BUAYA_URL = 'model-3d/buaya.glb?v=1', BUAYA_SK = 3;   // Buaya Danau / Buaya tim: manusia-buaya berzirah (Tripo + animasi Mixamo: diam, siaga, lari, serang1, serang2, putar)
 function wnPilihKlip(E, putar = true) { E.nSerang = (E.nSerang || 0) + 1; return putar && E.nSerang % 3 === 0 && E.M.act.putar ? 'putar' : E.nSerang % 3 === 1 ? 'serang1' : 'serang2'; }
@@ -6532,6 +6532,8 @@ function wnPukul(t, dmg, dari, dorong = 2) {   // monster / penjaga / buaya meng
 function wnKena(E, dmg, oleh) {   // oleh: P / bot (Duel Tim) / null
   if (E.mati || SELESAI) return;
   if (wnTerkunci(E)) { if (oleh === P) { WN.fokus = E; WN.fokusT = performance.now(); } if (performance.now() - (E.kunciT || 0) > 900) { E.kunciT = performance.now(); angka(E.g.position.clone().setY(E.M.tinggi - 2), '🔒 kalahkan ' + (E.jenis === 'garuda' ? 'Sisingaan' : 'Garuda') + ' dulu', '#ffd166'); } return; }
+  if ((E.jenis === 'singa' || E.jenis === 'garuda') && oleh && (oleh === P || oleh.B) && wnPos(oleh).distanceTo(E.home) > E.R + .8) {   // penjaga hanya bisa dilukai hero yang masuk ke lingkaran jaganya (tembakan dari luar garis: kebal)
+    if (oleh === P && performance.now() - (E.luarT || 0) > 900) { E.luarT = performance.now(); angka(E.g.position.clone().setY(E.M.tinggi - 1.5), '🛡️ masuk ke lingkaran dulu', '#9fd8ff'); } return; }
   dmg = Math.max(1, Math.round(dmg));
   if (oleh === P && E.besar) { WN.fokus = E; WN.fokusT = performance.now(); }
   if (oleh === P || (oleh && oleh.B)) { const sk = WN.sk.get(wnIdOf(oleh)); if (sk) { if (E.jenis === 'singa' || E.jenis === 'garuda' || E.jenis === 'rumah') sk.db += Math.min(dmg, E.hp); else if (E.jenis === 'buayaT') sk.dh += Math.min(dmg, E.hp); } }
