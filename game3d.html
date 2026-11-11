@@ -4269,31 +4269,56 @@ function pasangDuyung(T, m, sk, d, anims) {   // putri duyung (mode berenang Jel
   const mx = new THREE.AnimationMixer(d), a = n => { const c = anims.find(x => x.name === 'duyung_' + n); return c ? mx.clipAction(c) : null; };
   T.nyiD = { g: wadah, putar, kolam, hiu, mx, renang: a('renang'), diam: a('diam'), cur: null, t: 0 };
 }
-// ---- siluet hiu dari air (dilihat dari atas: badan, sirip dada, ekor bercabang; sirip punggung muncul dari permukaan) — moncong ke depan (+z) ----
-const HIU_GEO = (() => {
-  const kanan = [[0, 2.05], [.2, 1.8], [.36, 1.35], [.46, .8], [.5, .45], [.72, .3], [1.18, -.12], [1.12, -.22], [.52, .02], [.44, -.35], [.32, -.9], [.18, -1.4], [.11, -1.68], [.42, -2.05], [.86, -2.42], [.7, -2.42], [.3, -2.12], [0, -1.86]];
-  const T2 = kanan.concat(kanan.slice(1, -1).reverse().map(([x, z]) => [-x, z])), sh = new THREE.Shape();
-  T2.forEach(([x, z], i) => i ? sh.lineTo(x, z) : sh.moveTo(x, z)); sh.closePath();
-  const badan = new THREE.ShapeGeometry(sh, 6).rotateX(Math.PI / 2);                     // bidang XY → lantai (y → z)
-  const sp = new THREE.Shape(); [[.5, 0], [.32, .3], [.12, .6], [-.08, .82], [-.14, .78], [-.18, .5], [-.3, .2], [-.42, 0]].forEach(([z, y], i) => i ? sp.lineTo(-z, y) : sp.moveTo(-z, y)); sp.closePath();
-  const sirip = new THREE.ShapeGeometry(sp, 4).rotateY(Math.PI / 2);                       // sirip punggung tegak, sejajar arah renang
-  return { badan, sirip, garis: new THREE.BufferGeometry().setFromPoints(T2.concat([T2[0]]).map(([x, z]) => new THREE.Vector3(x, 0, z))) };
+// ---- hiu air 3D yang membungkus putri duyung (tepi bercahaya seperti air, ekor mengibas) — moncong ke depan (+z) ----
+const HIU3D = (() => {
+  const L = 3.4, NZ = 30, NR = 18, pos = [], idx = [];
+  const jari = u => u < .62 ? .05 + .45 * Math.pow(Math.sin(u / .62 * Math.PI / 2), 1.35) : .5 * Math.pow(Math.max(0, Math.cos((u - .62) / .38 * Math.PI / 2)), .75);   // u: 0 ekor → 1 moncong
+  for (let i = 0; i <= NZ; i++) { const u = i / NZ, r = jari(u), z = (u - .5) * L;
+    for (let j = 0; j < NR; j++) { const a = j / NR * Math.PI * 2, y = Math.sin(a) * r * 1.08; pos.push(Math.cos(a) * r, y < 0 ? y * .82 : y, z); } }
+  for (let i = 0; i < NZ; i++) for (let j = 0; j < NR; j++) { const a = i * NR + j, b = i * NR + (j + 1) % NR; idx.push(a, a + NR, b, b, a + NR, b + NR); }
+  const badan = new THREE.BufferGeometry(); badan.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); badan.setIndex(idx); badan.computeVertexNormals();
+  const bentuk = (titik, fn) => { const sh = new THREE.Shape(); titik.forEach(([x, y], i) => i ? sh.lineTo(x, y) : sh.moveTo(x, y)); sh.closePath(); const g = new THREE.ShapeGeometry(sh, 3); fn(g); return g; };
+  const zU = u => (u - .5) * L;
+  const punggung = bentuk([[.55, 0], [.35, .3], [.1, .62], [-.12, .78], [-.16, .7], [-.2, .42], [-.3, .15], [-.4, 0]].map(([z, y]) => [-z, y]), g => g.rotateY(Math.PI / 2).translate(0, .5, zU(.55)));   // sirip punggung
+  const dadaKa = bentuk([[0, .32], [.95, -.28], [.82, -.36], [0, -.05]], g => g.rotateX(Math.PI / 2).rotateZ(-.45).translate(.36, -.18, zU(.62)));   // sirip dada kanan (miring ke bawah)
+  const dadaKi = dadaKa.clone().scale(-1, 1, 1);
+  const ekor = bentuk([[.05, 0], [.55, .95], [.7, .92], [.3, .1], [.6, -.62], [.48, -.66], [0, -.06]].map(([z, y]) => [z, y]), g => g.rotateY(Math.PI / 2).translate(0, .02, zU(.02)));   // ekor bercabang (tegak)
+  const sirip = new THREE.BufferGeometry(); { const gs = [punggung, dadaKa, dadaKi, ekor], P = [], I = []; let o = 0;
+    gs.forEach(g => { const p = g.attributes.position.array, ix = g.index.array; for (const v of p) P.push(v); for (const k of ix) I.push(k + o); o += p.length / 3; });
+    sirip.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); sirip.setIndex(I); sirip.computeVertexNormals(); }
+  return { badan, sirip, L };
 })();
+const HIU_VS = `uniform float t; uniform float amp; varying vec3 vN; varying vec3 vV; varying float vZ;
+void main() { vec3 p = position; float k = clamp((0.55 - p.z / 1.7) / 1.5, 0.0, 1.0); p.x += sin(p.z * 2.2 - t * 9.0) * amp * k * k;   // ekor mengibas
+  vec4 mv = modelViewMatrix * vec4(p, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); vZ = p.z; gl_Position = projectionMatrix * mv; }`;
+const HIU_FS = `uniform vec3 c1; uniform vec3 c2; uniform float op; uniform float t; uniform float rata; varying vec3 vN; varying vec3 vV; varying float vZ;
+void main() { float rim = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.6); rim = mix(rim, 0.55, rata);
+  float arus = 0.5 + 0.5 * sin(vZ * 7.0 + t * 14.0);   // garis air mengalir dari moncong ke ekor
+  gl_FragColor = vec4(mix(c2, c1, rim) + arus * 0.1, op * (0.16 + 0.84 * rim) * (0.85 + 0.15 * arus));
+  #include <colorspace_fragment>
+}`;
 function hiuAir() {
-  const g = new THREE.Group(), bhn = (w, op) => new THREE.MeshBasicMaterial({ color: w, transparent: true, opacity: op, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
-  const busa = new THREE.Mesh(HIU_GEO.badan, bhn(0xe8fbff, .32)); busa.scale.set(1.08, 1, 1.05); busa.position.y = .035;   // tepi busa putih
-  const badan = new THREE.Mesh(HIU_GEO.badan, bhn(0x1b8fd6, .42)); badan.position.y = .045;                                 // badan hiu dari air
-  const garis = new THREE.Line(HIU_GEO.garis, new THREE.LineBasicMaterial({ color: 0xc8f6ff, transparent: true, opacity: .85, depthWrite: false, toneMapped: false })); garis.position.y = .055;
-  const sirip = new THREE.Mesh(HIU_GEO.sirip, bhn(0x2b6f9e, .9)); sirip.position.set(0, .03, .05);
-  [busa, badan, garis, sirip].forEach(o => { o.renderOrder = 3; g.add(o); }); g.scale.setScalar(TINGGI / 1.7 * .82);
-  return { g, busa, badan, garis, sirip };
+  const u = { t: { value: Math.random() * 9 }, amp: { value: .1 }, op: { value: .6 }, c1: { value: new THREE.Color(0xbff4ff) }, c2: { value: new THREE.Color(0x1a86e0) }, rata: { value: 0 } };
+  const mat = (side, rata) => new THREE.ShaderMaterial({ uniforms: { t: { value: 0 }, amp: { value: .1 }, op: { value: .6 }, c1: u.c1, c2: u.c2, rata: { value: rata } }, vertexShader: HIU_VS, fragmentShader: HIU_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side });
+  const g = new THREE.Group(), badan = new THREE.Mesh(HIU3D.badan, mat(THREE.FrontSide, 0)), dalam = new THREE.Mesh(HIU3D.badan, mat(THREE.BackSide, .6)), sirip = new THREE.Mesh(HIU3D.sirip, mat(THREE.DoubleSide, .7));
+  const mata = new THREE.MeshBasicMaterial({ color: 0x06213a }), gigi = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .85 });
+  const zM = .35 * HIU3D.L; [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.SphereGeometry(.045, 8, 6), mata); e.position.set(s * .27, .13, zM); g.add(e); });
+  const gg = new THREE.ConeGeometry(.03, .1, 4); for (let k = 0; k < 10; k++) { const a = (k / 9 - .5) * 2.2, t_ = new THREE.Mesh(gg, gigi); t_.position.set(Math.sin(a) * .2, -.1, zM + .12 + Math.cos(a) * .12); t_.rotation.x = Math.PI; g.add(t_); }   // gigi di rahang
+  [dalam, badan, sirip].forEach((o, k) => { o.renderOrder = 4 + k; o.frustumCulled = false; g.add(o); });
+  g.position.set(0, .52, .25); g.scale.setScalar(TINGGI / 1.7);
+  return { g, u, badan, dalam, sirip, terjang: 0, du: false };
 }
-function gerakHiu(D, dt, renang) {   // ekor mengibas, sirip punggung naik-turun & memercik
-  const H = D.hiu; if (!H) return; const t = D.t, k = renang ? 1 : .45;
-  H.g.rotation.y = Math.sin(t * (renang ? 7 : 3)) * .07 * k; H.sirip.position.y = .03 + Math.sin(t * 5) * .03 * k; H.sirip.rotation.z = Math.sin(t * 7) * .06 * k;
-  H.badan.material.opacity = .36 + .08 * Math.sin(t * 4); H.busa.material.opacity = .24 + .1 * Math.sin(t * 4 + 1); H.garis.material.opacity = .6 + .3 * Math.sin(t * 6);
-  if (Math.random() < dt * (renang ? 16 : 4)) { const p = H.sirip.getWorldPosition(new THREE.Vector3()); p.y = .25; percik(p, 1, Math.random() < .5 ? 0xffffff : 0x9fe8ff, renang ? 1.8 : .9, .1); }
+function gerakHiu(D, dt, renang) {   // tiap frame selama mode putri duyung
+  const H = D.hiu; if (!H) return;
+  if (!H.du) { H.du = true; H.terjang = 1; }   // baru berubah jadi duyung: hiu muncul menerjang (besar & terang)
+  H.terjang = Math.max(0, H.terjang - dt * 1.6); const j = H.terjang, k = renang ? 1 : .45;
+  H.u.t.value += dt * (renang ? 1 : .6); H.u.amp.value = (renang ? .13 : .06) + j * .1; H.u.op.value = .55 + j * .4 + .05 * Math.sin(D.t * 4);
+  H.badan.material.uniforms.op.value = H.u.op.value; H.sirip.material.uniforms.op.value = H.u.op.value * .9; H.dalam.material.uniforms.op.value = .22 + j * .2;
+  [H.badan, H.dalam, H.sirip].forEach(m => { m.material.uniforms.t.value = H.u.t.value; m.material.uniforms.amp.value = H.u.amp.value; });
+  H.g.scale.setScalar(TINGGI / 1.7 * (1 + j * .3)); H.g.position.y = .52 + Math.sin(D.t * 3) * .03 * k;
+  if (Math.random() < dt * (renang ? 18 : 5) + j * .5) { const p = H.g.localToWorld(new THREE.Vector3(rnd(-.4, .4), rnd(.2, .8), rnd(-1.6, 1.4))); percik(p, 1, Math.random() < .5 ? 0xffffff : 0x9fe8ff, renang ? 1.8 : .9, .1); }   // percikan air di badan hiu
 }
+function hiuSelesai(D) { if (D && D.hiu) D.hiu.du = false; }
 // nyi-roro.glb (v6): Nyi Roro Kidul bertulang (rambut & kain lengan ikut berayun) + rok + tongkat · putri duyung terpisah di nyi-duyung.glb · patung pose tidak dipakai lagi (file lama tetap didukung)
 function lepasNyi(m) { const X = {}; ['diam', 'pusaran', 'ulti'].forEach(k => { const o = m.getObjectByName('patung_' + k); if (o) { o.parent.remove(o); X[k] = o; } });
   const d = m.getObjectByName('duyung'); if (d) { d.parent.remove(d); X.duyung = d; } return X; }
@@ -4314,7 +4339,7 @@ function tampilNyi(T, dt) {
   if (!T.model) return; const c = T.cur, pk = NYI_PATUNG[c], du = NYI_RENANG.has(c) && !!T.nyiD;
   let ada = false; if (T.nyiP) for (const k in T.nyiP) { const v = k === pk; if (T.nyiP[k].visible !== v) T.nyiP[k].visible = v; if (v) ada = true; }
   if (T.nyiP && T.nyiP.diam && pk === 'diam') { const b = 1 + .012 * Math.sin(performance.now() * .0025); T.nyiP.diam.scale.set(T.model.scale.x, T.model.scale.x * b, T.model.scale.x); }   // napas halus saat diam
-  const D = T.nyiD; if (D) { if (D.g.visible !== du) D.g.visible = du;
+  const D = T.nyiD; if (D) { if (D.g.visible !== du) { D.g.visible = du; if (!du) hiuSelesai(D); }
     if (du) { const n = c === 'renang' ? 'renang' : 'diam'; if (D.cur !== n) { const a = D[n], l = D[D.cur]; if (a) a.reset().fadeIn(.2).play(); if (l && l !== a) l.fadeOut(.2); D.cur = n; }
       D.mx.update(dt); D.t += dt; D.kolam.rotation.y += dt * .8; D.kolam.material.opacity = .55 + .1 * Math.sin(D.t * 5); D.putar.position.y = .42 + .04 * Math.sin(D.t * 6); gerakHiu(D, dt, c === 'renang');
       if (Math.random() < dt * (c === 'renang' ? 22 : 6)) { const p = T.root.position.clone(); p.x += rnd(-.7, .7); p.z += rnd(-.7, .7); p.y = .15; percik(p, 1, Math.random() < .5 ? NR.air2 : NR.air, 1.2, .1); } } }
