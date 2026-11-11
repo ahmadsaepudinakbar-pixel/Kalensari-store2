@@ -5980,7 +5980,12 @@ async function buatBotPro(o) {
       jalan(B.patrol.clone().sub(pos), kec * .75, dt); return;
     }
     if (B.ent && B.ent.titik) {   // War Nanas: titik di lingkaran tugu hanya tempat berdiri (rebut/pulih), bukan musuh → jangan dipukul / di-skill
-      const d = I.pos.clone().sub(pos); if (d.setY(0).length() > .45) jalan(d, CEPAT * (B.buffT > 0 ? 1.4 : 1), dt); else jalan(null, 0, dt, T.arah); return; }
+      const m = ctx.musuhDekat && ctx.musuhDekat(6.5);   // ada hero lawan dekat → lawan dia (sambil tetap di sekitar tugu)
+      if (m) { B.ent = m; B.prev = null; B.vel.set(0, 0, 0); I = infoEnt(m); }
+      else {
+        B.geserT = (B.geserT || 0) - dt; if (B.geserT <= 0 || !B.geser) { B.geserT = rnd(1.4, 3.2); B.geser = new THREE.Vector3(rnd(-1, 1), 0, rnd(-1, 1)); }   // bergeser sedikit, tidak mematung
+        const d = I.pos.clone().add(B.geser).sub(pos); if (d.setY(0).length() > .35) jalan(d, CEPAT * (B.buffT > 0 ? 1.4 : 1) * .6, dt); else jalan(null, 0, dt, T.arah); return; }
+    }
     const L = jarak(I.pos), hpR = mt.hp / mt.hpMax;
     const esc = bahaya(I);   // 1) hindari serangan lawan (dengan waktu reaksi manusiawi)
     if (esc) {
@@ -6525,7 +6530,7 @@ function wnPukul(t, dmg, dari, dorong = 2) {   // monster / penjaga / buaya meng
 }
 function wnKena(E, dmg, oleh) {   // oleh: P / bot (Duel Tim) / null
   if (E.mati || SELESAI) return;
-  if (wnTerkunci(E)) { if (oleh === P) { WN.fokus = E; WN.fokusT = performance.now(); } if (performance.now() - (E.kunciT || 0) > 900) { E.kunciT = performance.now(); angka(E.g.position.clone().setY(E.M.tinggi - 2), '🔒 kalahkan ' + (E.jenis === 'garuda' ? 'Singa' : 'Garuda') + ' dulu', '#ffd166'); } return; }
+  if (wnTerkunci(E)) { if (oleh === P) { WN.fokus = E; WN.fokusT = performance.now(); } if (performance.now() - (E.kunciT || 0) > 900) { E.kunciT = performance.now(); angka(E.g.position.clone().setY(E.M.tinggi - 2), '🔒 kalahkan ' + (E.jenis === 'garuda' ? 'Sisingaan' : 'Garuda') + ' dulu', '#ffd166'); } return; }
   dmg = Math.max(1, Math.round(dmg));
   if (oleh === P && E.besar) { WN.fokus = E; WN.fokusT = performance.now(); }
   if (oleh === P || (oleh && oleh.B)) { const sk = WN.sk.get(wnIdOf(oleh)); if (sk) { if (E.jenis === 'singa' || E.jenis === 'garuda' || E.jenis === 'rumah') sk.db += Math.min(dmg, E.hp); else if (E.jenis === 'buayaT') sk.dh += Math.min(dmg, E.hp); } }
@@ -6611,7 +6616,7 @@ async function wnBuat() {
     WN.padat.push({ x: 0, z: s * WN_Z.garuda, R: WNV.garuda.padat, E: WN.garuda[tm] });
     // Singa
     const SS = wnModelSinga(tm, tm ? sgP : sgM); SS.g.rotation.y = hadap;
-    WN.singa[tm] = wnEnt({ jenis: 'singa', tm, x: 0, z: s * WN_Z.singa, hp: WNV.singa.hp, nama: 'Singa ' + nm, M: SS, barY: 4.2, besar: 1, ...WNV.singa, hp: WNV.singa.hp, ...(SS.mix ? { skalaB: SINGA_SK } : {}) });
+    WN.singa[tm] = wnEnt({ jenis: 'singa', tm, x: 0, z: s * WN_Z.singa, hp: WNV.singa.hp, nama: 'Sisingaan ' + nm, M: SS, barY: 4.2, besar: 1, ...WNV.singa, hp: WNV.singa.hp, ...(SS.mix ? { skalaB: SINGA_SK } : {}) });
     // lingkaran jaga
     [WN.singa[tm], WN.garuda[tm]].forEach(E => { E.cincin = cincin(E.R - .12, E.R, WN_WARNA[tm], tm ? .3 : .35); E.cincin.position.set(E.home.x, .05, E.home.z); });
     // monster hutan
@@ -6905,7 +6910,7 @@ function wnFokusHud() {
   e.style.display = ''; const kunci = wnTerkunci(E), t = `${E.nama}|${Math.ceil(E.hp)}|${kunci}`;
   if (e._t === t) return; e._t = t;
   e.className = 'ui ' + (E.tm === 0 ? 'kawan' : E.tm < 0 ? 'netral' : 'lawan') + (kunci ? ' kunci' : '');
-  e.innerHTML = `<div class="fn">${kunci ? '🔒 ' : ''}${escH(E.nama)}${kunci ? ` <small>kalahkan ${E.jenis === 'garuda' ? 'Singa' : 'Garuda'} dulu</small>` : ''}</div><div class="fb"><i style="width:${E.hp / E.hpMax * 100}%"></i><span>${Math.ceil(E.hp).toLocaleString('id-ID')} / ${E.hpMax.toLocaleString('id-ID')}</span></div>`;
+  e.innerHTML = `<div class="fn">${kunci ? '🔒 ' : ''}${escH(E.nama)}${kunci ? ` <small>kalahkan ${E.jenis === 'garuda' ? 'Sisingaan' : 'Garuda'} dulu</small>` : ''}</div><div class="fb"><i style="width:${E.hp / E.hpMax * 100}%"></i><span>${Math.ceil(E.hp).toLocaleString('id-ID')} / ${E.hpMax.toLocaleString('id-ID')}</span></div>`;
 }
 function wnHud() {
   const e = $('#timHud'); if (!e) return; const w = Math.floor(wnWaktu()), T = WN.tugu;
@@ -7012,9 +7017,9 @@ async function wnMulai() {
   const skB = document.createElement('button'); skB.id = 'wnSkorB'; skB.textContent = '📊'; skB.title = 'Statistik (PC: Tab)'; document.body.appendChild(skB); skB.onclick = () => wnSkorBuka(!$('#wnSkorO').classList.contains('on'));
   const skO = document.createElement('div'); skO.id = 'wnSkorO'; document.body.appendChild(skO); skO.onpointerdown = e => { e.preventDefault(); wnSkorBuka(false); };
   const mini = document.createElement('canvas'); mini.id = 'wnMini'; mini.width = 80; mini.height = 172; document.body.appendChild(mini);
-  $('#help').textContent = 'War Nanas 3 vs 3 · Kalahkan monster hutan untuk menambah stat · Kuasai Tugu Nanas (berdiri 10 dtk) untuk pulih · Hancurkan Singa → Garuda → Rumah lawan';
+  $('#help').textContent = 'War Nanas 3 vs 3 · Kalahkan monster hutan untuk menambah stat · Kuasai Tugu Nanas (berdiri 10 dtk) untuk pulih · Hancurkan Sisingaan → Garuda → Rumah lawan';
   banner('🍍 War Nanas! Farming monster hutan dulu, lalu rebut Tugu Nanas', '#ffd166');
-  banner('🔒 Urutan: Singa → Garuda → Rumah lawan', '#ffd166');
+  banner('🔒 Urutan: Sisingaan → Garuda → Rumah lawan', '#ffd166');
 }
 
 // ================== DUEL LAWAN BOT (1 VS 1) ==================
@@ -7445,7 +7450,9 @@ async function buatBotTim(p) {
   const bar = barTim(o, kawan);
   const [x, z] = spawnTim(p);
   const B = await buatBotPro({ hero: o.hero, skin: '', nama: p.n, bar, lv: WN.on ? BOT_LV_I : undefined, posAwal: new THREE.Vector3(x, 0, z), arahAwal: kawan ? Math.PI : 0, id: p.i,
-    ctx: { kawan, sasaran: () => o.sas, serang: (t, d, dari, dr) => timBotSerangKe(o, t, d, dari, dr), stun: stunEnt, mati: () => timBotMati(o),
+    ctx: { kawan, sasaran: () => o.sas,
+      musuhDekat: r => { if (!WN.on) return null; const ps = o.root.position; let b = null, bd = r;   // hero lawan terdekat (untuk bot yang sedang berdiri di tugu)
+        WN.U.forEach(u => { if (u.tm === o.tm || !u.hidup) return; const d = u.pos.distanceTo(ps); if (d < bd && (u.obj !== P || hidupDanTampak(P, ps))) { bd = d; b = u.obj; } }); return b; }, serang: (t, d, dari, dr) => timBotSerangKe(o, t, d, dari, dr), stun: stunEnt, mati: () => timBotMati(o),
       kirim: e => netEvent(Object.assign(e, { oleh: p.i })) } });
   o.B = B; o.pro = B; o.root = B.root; o.mt = B.mt; B.mt.id = p.i; B.mt.obj = o; B.mt.nama = p.n;
   TIM.bot.set(p.i, o);
