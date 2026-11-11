@@ -6038,8 +6038,8 @@ const WN_KEMAH = [[-13, 9, 'spd'], [-14, 22, 'hp'], [-11, 36, 'cd'], [13, 9, 'as
   [-18, 15, 'atk'], [18, 15, 'hp'], [-17.5, 29, 'as'], [17.5, 29, 'spd']];   // 10 kemah tiap separuh map (20 monster)
 // angka keseimbangan (gampang diubah)
 const WNV = {
-  singa: { hp: 6000, R: 6.5, dmg: 140, jeda: 1.4, jangkau: 2.1, kec: 3.6 },
-  garuda: { hp: 9000, R: 7.5, dmg: 170, jeda: 1.6, padat: 1.9 },
+  singa: { hp: 6000, pulih: .005, R: 6.5, dmg: 140, jeda: 1.4, jangkau: 2.1, kec: 3.6 },
+  garuda: { hp: 9000, pulih: .005, R: 7.5, dmg: 170, jeda: 1.6, padat: 1.9 },
   rumah: { hp: 8000, padat: 3.3 },
   tugu: { lama: 10, heal: .1, jedaHeal: 2, padat: 1.3 },   // heal 10% HP / detik
   mon: { hp: 650, dmg: 38, jeda: 1.2, kec: 3.2, leash: 8, ulang: 45, naikPerMenit: .06 },
@@ -6411,7 +6411,7 @@ function wnAiSinga(E, dt) {
     if (L <= jg + .3 && E.cdA <= 0) { E.cdA = E.jeda; E.serangT = .45; setTimeout(() => { if (E.mati || !wnHidup(tg)) return; const q = wnPos(tg); if (Math.hypot(q.x - p.x, q.z - p.z) < jg + 1) { wnPukul(tg, E.dmg, p, 4); gelombang(q.clone().setY(0), 1.4, .35, 0xffc040); percik(q.clone().setY(.6), 12, WN_WARNA[E.tm], 3); goyang = tg === P ? Math.max(goyang, .15) : goyang; } }, 220); }
   } else {
     if (p.distanceTo(E.home) > .3) wnGerak(E, E.home, E.kec, dt); else wnHadap(E, E.tm ? 0 : Math.PI, dt);
-    if (performance.now() - E.kenaT > 5000 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * .02 * dt); E.mt.hp = E.hp; }
+    if (performance.now() - E.kenaT > 5000 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * WNV.singa.pulih * dt); E.mt.hp = E.hp; }   // pulih pelan (0,5% HP/dtk) setelah 5 dtk tidak diserang
   }
 }
 const WN_BOLA = [];
@@ -6424,7 +6424,7 @@ function wnAiGaruda(E, dt) {
     if (!WN_MBOLA) WN_MBOLA = [0, 1].map(t => new THREE.SpriteMaterial({ map: T_BULAT, color: t ? 0xfff4d8 : 0xff7a20, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
     const sp = new THREE.Sprite(WN_MBOLA[E.tm]); sp.scale.setScalar(1.1); sp.position.copy(E.home).setY(4.8); scene.add(sp);
     WN_BOLA.push({ sp, t: tg, dmg: E.dmg, tm: E.tm, umur: 0 }); nyala(sp.position.clone(), 1.6, E.tm ? 0xffffff : 0xff6a20, .3);
-  } else if (!tg && performance.now() - E.kenaT > 5000 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * .02 * dt); E.mt.hp = E.hp; }
+  } else if (!tg && performance.now() - E.kenaT > 5000 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * WNV.garuda.pulih * dt); E.mt.hp = E.hp; }   // pulih pelan (0,5% HP/dtk)
 }
 function wnUpdBola(dt) {
   for (let i = WN_BOLA.length - 1; i >= 0; i--) {
