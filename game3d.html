@@ -6312,10 +6312,14 @@ function buatArenaNanas() {
   const setapak = (x0, z0, x1, z1) => { const L = Math.hypot(x1 - x0, z1 - z0), o = bidang(1.8, L, mTanah, (x0 + x1) / 2, .004, (z0 + z1) / 2); o.rotation.z = Math.atan2(x1 - x0, z1 - z0); };
   WN_KEMAH.forEach(([x, z]) => { [1, -1].forEach(s => { setapak(s * Math.sign(x) * 3.5, s * z, s * x, s * z); lingkar(2.6, mTanah, s * x, .006, s * z, 18); }); });
   // danau buaya
-  const mAir = new THREE.MeshLambertMaterial({ color: 0x3a9ad0, transparent: true, opacity: .88 });
+  const mAir = new THREE.MeshBasicMaterial({ color: 0x0858d0, toneMapped: false });   // air danau: biru laut seperti air Nyi Roro Kidul
+  const bhnAir = (w, op, map) => new THREE.MeshBasicMaterial({ map, color: w, transparent: true, opacity: op, depthWrite: false, toneMapped: false });
+  WN.riak = [];
   const mBatuK = new THREE.MeshLambertMaterial({ color: 0x8f8a82, flatShading: true }), mDaunT = new THREE.MeshLambertMaterial({ color: 0x3f9a3a }), mBunga = new THREE.MeshLambertMaterial({ color: 0xff8ab8 });
   WN_DANAU.forEach(D => { const arah = -Math.sign(D.x);   // sisi danau yang menghadap jalur tengah dibiarkan terbuka
     lingkar(WN_DANAU_R + .7, mTanah, D.x, .003, D.z, 28); lingkar(WN_DANAU_R, mAir, D.x, .03, D.z, 32);
+    [0, 1].forEach(k => { const m = new THREE.Mesh(new THREE.CircleGeometry(WN_DANAU_R * (k ? .75 : .98), 48).rotateX(-Math.PI / 2), bhnAir(k ? NR_BIRU.muda : NR_BIRU.terang, k ? .3 : .45, T_RIAK)); m.position.set(D.x, .036 + k * .004, D.z); m.renderOrder = 1; scene.add(m); WN.riak.push({ m, v: k ? -.4 : .25, op: k ? .3 : .45, k }); });   // riak berputar
+    { const m = new THREE.Mesh(new THREE.RingGeometry(WN_DANAU_R * .93, WN_DANAU_R, 64).rotateX(-Math.PI / 2), bhnAir(NR_BIRU.muda, .6)); m.position.set(D.x, .044, D.z); m.renderOrder = 1; scene.add(m); WN.riak.push({ m, v: 0, op: .6, k: 2, tepi: 1 }); }
     setapak(arah * -3.5, 0, D.x + arah * WN_DANAU_R, 0);
     for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + rnd(-.1, .1), r = WN_DANAU_R + rnd(.2, .7); if (Math.abs(Math.cos(a) - arah) < .15) continue;
       const b = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.35, .7), 0), mBatuK); b.position.set(D.x + Math.cos(a) * r, .15, D.z + Math.sin(a) * r); b.scale.y = .6; b.castShadow = true; scene.add(b); }
@@ -6773,6 +6777,7 @@ function wnSasaran(o) {
 
 // ---------- tiap frame ----------
 function wnUpd(dt) {
+  if (WN.riak) { const tt = performance.now() / 1000; WN.riak.forEach(R => { R.m.rotation.y += dt * R.v; R.m.material.opacity = R.op * (R.tepi ? .75 + .25 * Math.sin(tt * 4) : .85 + .15 * Math.sin(tt * 2 + R.k)); }); }
   if (!WN.siap || !TIM.main) return;
   // daftar hero (pemain + bot)
   const U = WN.U; U.length = 0;
@@ -6921,7 +6926,7 @@ function wnStatHud() {
 function wnPeta() {   // peta kecil (atas = markas Putih)
   const c = $('#wnMini'); if (!c) return; const x = c.getContext('2d'), W = c.width, H = c.height, sx = v => (v + 21) / 42 * W, sz = v => (v + 45) / 90 * H;
   x.fillStyle = '#3f7a2c'; x.fillRect(0, 0, W, H); x.fillStyle = '#b89a6a'; x.fillRect(sx(-3.5), 0, sx(3.5) - sx(-3.5), H);
-  x.fillStyle = '#3a9ad0'; WN_DANAU.forEach(D => { x.beginPath(); x.arc(sx(D.x), sz(D.z), WN_DANAU_R / 42 * W, 0, 7); x.fill(); });
+  x.fillStyle = '#0a70f0'; WN_DANAU.forEach(D => { x.beginPath(); x.arc(sx(D.x), sz(D.z), WN_DANAU_R / 42 * W, 0, 7); x.fill(); });
   const T = WN.tugu; x.strokeStyle = T.milik < 0 ? '#ffd04a' : WN_CSS[T.milik]; x.lineWidth = 2; x.beginPath(); x.arc(sx(0), sz(0), WN_TUGU_R / 42 * W, 0, 7); x.stroke();
   x.fillStyle = '#ffd04a'; x.beginPath(); x.arc(sx(0), sz(0), 2.5, 0, 7); x.fill();
   WN.E.forEach(E => { if (E.mati) return; const px = sx(E.g.position.x), pz = sz(E.g.position.z);
@@ -7091,14 +7096,45 @@ R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunc
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
 const FXF = { bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga };
 const FX_SUDUT = { ksTebas: [1], ksGerak: [3], ksSerang: [2], skPerahu: [1], skTebas: [1], swMacan: [2], swCakar: [2], swTebas: [1], swBayang: [1], nrBola: [1], nrLesat: [1], nrOmbak: [1], dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
+// ---- efek skill MUSUH diberi warna kemerahan + garis merah di tepi area, agar beda dengan efek sendiri / tim ----
+const MERAH_MUSUH = new THREE.Color(0xff2020), MERAH_KADAR = .45;
+let MUSUH_KUMPUL = null, FX_OLEH = null;
+{ const tambah = THREE.Object3D.prototype.add; scene.add = function (...o) { if (MUSUH_KUMPUL) MUSUH_KUMPUL.push(...o); return tambah.apply(this, o); }; }
+function sbgMusuh(musuh, f) {   // jalankan f; semua benda yang ditaruh ke scene selama itu = efek musuh
+  if (!musuh) return f();
+  const lama = MUSUH_KUMPUL, l = MUSUH_KUMPUL = [];
+  try { return f(); } finally { MUSUH_KUMPUL = lama; if (lama) lama.push(...l); else if (l.length) tandaiMusuh(l); }
+}
+function tandaiMusuh(daftar) {
+  let besar = null, rb = 0; const simpan = new THREE.Color();
+  daftar.forEach(o => o.traverse(m => {
+    if (m.userData.musuh) return; m.userData.musuh = 1;
+    const mt = m.material;
+    if (mt && !Array.isArray(mt) && mt.color && !mt.isShaderMaterial) {   // diwarnai saat digambar saja (bahan boleh dipakai bersama)
+      const b0 = m.onBeforeRender, a0 = m.onAfterRender;
+      m.onBeforeRender = function (r, sc, c, g, bh, gr) { if (bh && bh.color) { simpan.copy(bh.color); this.userData.wAsli = simpan.getHex(); bh.color.lerp(MERAH_MUSUH, MERAH_KADAR); } b0.call(this, r, sc, c, g, bh, gr); };
+      m.onAfterRender = function (r, sc, c, g, bh, gr) { if (bh && bh.color && this.userData.wAsli != null) bh.color.setHex(this.userData.wAsli); a0.call(this, r, sc, c, g, bh, gr); };
+    }
+    const gp = m.geometry && m.geometry.parameters, tipe = m.geometry && m.geometry.type;
+    if (gp && (tipe === 'CircleGeometry' || tipe === 'RingGeometry')) { const R = gp.outerRadius || gp.radius || 0; if (R > rb) { rb = R; besar = m; } }
+  }));
+  if (!besar) return;   // area terbesar (lantai) diberi garis merah di tepinya
+  const gm = besar.geometry; gm.computeBoundingBox(); const bb = gm.boundingBox, datar = bb.max.y - bb.min.y < bb.max.z - bb.min.z;
+  const rg = new THREE.RingGeometry(rb * .955, rb * 1.02, 64); if (!datar) rg.rotateX(-Math.PI / 2);   // ikut bidang geometri induk
+  const bm = besar.material, ring = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: .9, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
+  ring.position.y = datar ? 0 : .012; ring.renderOrder = (besar.renderOrder || 0) + 5; ring.userData.musuh = 1;
+  ring.onBeforeRender = () => { const op = bm && !Array.isArray(bm) ? (bm.transparent ? bm.opacity : 1) : 1; ring.material.opacity = Math.min(1, op * 1.6) * (.75 + .25 * Math.sin(performance.now() / 120)); ring.visible = besar.visible; };
+  besar.add(ring);
+  const lepas = () => { if (!besar.parent) { rg.dispose(); ring.material.dispose(); return; } setTimeout(lepas, 1000); }; setTimeout(lepas, 1000);
+}
 function fx(n, ...a) {
   FXF[n](...a);
   if (!NET.on) return;
-  NET.antre.push({ k: 'fx', n, a: a.map((v, i) => v && v.isVector3 ? (() => { const [x, z] = keNet(v.x, v.z); return { v: [r2(x), r2(v.y), r2(z)] }; })() : (FX_SUDUT[n] || []).includes(i) ? r2(sudutNet(v)) : v) });
+  NET.antre.push({ k: 'fx', n, ...(FX_OLEH != null ? { oleh: FX_OLEH } : {}), a: a.map((v, i) => v && v.isVector3 ? (() => { const [x, z] = keNet(v.x, v.z); return { v: [r2(x), r2(v.y), r2(z)] }; })() : (FX_SUDUT[n] || []).includes(i) ? r2(sudutNet(v)) : v) });
 }
-function fxTerima(e) {
+function fxTerima(e, musuh) {
   const f = FXF[e.n]; if (!f || !Array.isArray(e.a)) return;
-  f(...e.a.map((v, i) => v && v.v ? (() => { const [x, z] = keNet(v.v[0], v.v[2]); return new THREE.Vector3(x, v.v[1], z); })() : (FX_SUDUT[e.n] || []).includes(i) ? sudutNet(v) : v));
+  sbgMusuh(musuh, () => f(...e.a.map((v, i) => v && v.v ? (() => { const [x, z] = keNet(v.v[0], v.v[2]); return new THREE.Vector3(x, v.v[1], z); })() : (FX_SUDUT[e.n] || []).includes(i) ? sudutNet(v) : v)));
 }
 // sasaran "diri sendiri" untuk efek yang dikirim lawan (Bola Roh, Roh Pemburu)
 const DIRI = { g: P.root, get mati() { return P.state === 'kalah'; } };
@@ -7196,7 +7232,7 @@ function terimaData(m) {
     if (!R.ada) { R.ada = true; R.root.position.copy(R.tujuan); R.root.rotation.y = R.arah; }
   }
   (m.e || []).forEach(e => {
-    if (e.k === 'fx') fxTerima(e);
+    if (e.k === 'fx') fxTerima(e, true);
     else if (e.k === 'hit') { const [x, z] = keNet(e.x, e.z); kenaPemain(e.d, new THREE.Vector3(x, 0, z), e.dr || 3); }
     else if (e.k === 'hitMacan') macanTerima(e.id, e.d);   // Macan Putih saya diserang lawan
     else if (e.k === 'hitKembar') kembarTerima(e.id, e.d);
@@ -7509,7 +7545,7 @@ function terimaDataTim(m) {
   (m.e || []).forEach(e => {
     const ke = e.ke, utkSaya = ke === TIM.me, botSaya = TIM.host ? TIM.bot.get(ke) : null, pelaku = e.oleh != null ? e.oleh : m.w;
     const srcObj = objek(e.oleh != null ? e.oleh : m.w) || dari;
-    if (e.k === 'fx') fxTerima(e);
+    if (e.k === 'fx') fxTerima(e, !!(srcObj && !srcObj.kawan) && pelaku !== TIM.me);
     else if (e.k === 'hitMacan') macanTerima(e.id, e.d);   // Macan Putih saya diserang
     else if (e.k === 'hitKembar') kembarTerima(e.id, e.d);
     else if (e.k === 'stunKembar') { const B = ksCari(e.id); if (B && B.milik) B.pusing = Math.max(B.pusing || 0, Math.min(2, e.d)); }
@@ -7569,7 +7605,7 @@ function updTim(dt, nyata) {
     if (o.mt.mati) { if (o.hidupT && performance.now() > o.hidupT && !TIM.akhir) { o.hidupT = 0; o.B.reset(); } }
     else { o.sasT = (o.sasT || 0) - dt; const s = o.sas, habis = !s || (s === P ? P.state === 'kalah' : s.mt && s.mt.mati);
       if (habis || o.sasT <= 0 || KUAL.lv > 0) { o.sasT = .15; o.sas = pilihSasaran(o); } }
-    o.B.upd(dt); if (o.kawan) barKawan(o.mt);
+    FX_OLEH = o.id; sbgMusuh(!o.kawan, () => o.B.upd(dt)); FX_OLEH = null; if (o.kawan) barKawan(o.mt);
   });
   if (!TIM.akhir && !UMP.on) {
     TIM.sisa = TIM.DUR - (performance.now() - TIM.mulaiT) / 1000;   // jam dinding: tetap tepat walau HP lambat
@@ -7777,7 +7813,7 @@ function mulaiLoop() {
     fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v3 · lutung-v4 · saras-v3 · angling-v1 · dayang-v1 · nyi-v1 · siliwangi-v1 · ciung-v1 · sangkuriang-v1 · kiansantang-v1 · lina-v3 · tuyulbot-v1 · tuyulhalo-v1 · tuyulmecha-v1 · tuyulsetan-v1 · tuyultangan-v2 · golem-v2 · santi-v1 · roberick-v1 · lunara-v3'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     if (ATUR.on && !NET.on) dt = 0;   // sedang Atur Tombol (main sendiri): permainan berhenti sebentar
-    updPemain(dt); updMusuh(dt); if (BOT) BOT.upd(dt);
+    updPemain(dt); updMusuh(dt); if (BOT) sbgMusuh(true, () => BOT.upd(dt));
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
     updTarik(dt); updAngkat(dt); updBerdarah(dt); updTandaD(dt); updDnFx(dt); updTmFx(dt); if (WN.on) wnUpd(dt);   // Doni: tarikan rantai, Bleeding, rantai & gir
     if (NET.on && !TIM.on) { updLawan(dt); NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaan(); } }
