@@ -47,6 +47,8 @@ input[type=number]{width:100%;background:#12171b;color:var(--text);border:1px so
 .layer .x:hover{color:#ff8a80;border-color:transparent}
 .empty{font-size:13px;color:var(--mute)}
 .note{font-size:12px;color:var(--mute)}
+.potong{margin-top:10px;padding:10px;border:1px solid #2f6b5e;border-radius:10px;background:rgba(80,200,170,.06)}
+.potong .ph{font-size:13px;margin-bottom:6px}.potong .ph #ptDur{opacity:.7;font-size:12px}
 dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px}
 dt{color:var(--mute)}dd{margin:0;text-align:right;word-break:break-all}
 main{position:relative;min-width:0}
@@ -127,6 +129,21 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
       <div id="clips" class="list" style="margin-top:6px"></div>
       <button id="tidy" style="margin-top:8px" title="Hapus bagian depan nama sebelum tanda ‘ – ’, mis. nama file">Rapikan nama (buang awalan nama file)</button>
       <p class="note" style="margin:6px 0 0">Ganti nama satu animasi: klik ✎ atau klik dua kali namanya.</p>
+      <div id="potong" class="potong" hidden>
+        <div class="ph">✂️ Potong klip: <b id="ptNama">–</b> <span id="ptDur"></span></div>
+        <div class="row"><label for="ptA"><span>Mulai</span><span id="ptAV">0.00 dtk</span></label><input id="ptA" type="range" min="0" max="1" step="0.01" value="0"></div>
+        <div class="row"><label for="ptB"><span>Selesai</span><span id="ptBV">1.00 dtk</span></label><input id="ptB" type="range" min="0" max="1" step="0.01" value="1"></div>
+        <div class="three" style="margin-top:6px">
+          <button id="ptSetA" title="Jadikan waktu animasi yang sedang diputar sebagai titik mulai">⏱ Mulai = sekarang</button>
+          <button id="ptSetB" title="Jadikan waktu animasi yang sedang diputar sebagai titik selesai">⏱ Selesai = sekarang</button>
+          <button id="ptLihat" title="Putar hanya bagian yang dipilih">▶ Pratinjau</button>
+        </div>
+        <div class="two" style="margin-top:6px">
+          <button id="ptBaru" title="Bagian terpilih disimpan sebagai animasi baru (aslinya tetap ada)">✂️ Simpan jadi klip baru</button>
+          <button id="ptGanti" title="Klip ini diganti dengan bagian yang dipilih saja">Ganti klip ini</button>
+        </div>
+        <p class="note" style="margin:6px 0 0">Waktu sekarang: <b id="ptNow">–</b>. Tips: klik Jeda di detik yang pas, lalu tekan ⏱. Klip potongan ikut tersimpan saat menyimpan GLB.</p>
+      </div>
       <div class="two" style="margin-top:8px">
         <button id="pause">Jeda</button>
         <button id="stop">Stop (pose awal)</button>
@@ -663,9 +680,11 @@ $('clips').addEventListener('click', e => {
     catat();
     clips.splice(clips.indexOf(c), 1);
     layers.forEach(l => { if(l.playing === c.id) resetPose(l); if(l.cache) Array.from(l.cache.keys()).forEach(k => { if(k.startsWith(c.id + '|')) l.cache.delete(k); }); });
+    if(ptKlip === c){ ptKlip = null; $('potong').hidden = true; }
     renderClips(); return;
   }
-  play(c);
+  if(sel) sel.ptOff = 0;
+  play(c); bukaPotong(c);
 });
 
 $('clips').addEventListener('dblclick', e => {
@@ -681,6 +700,60 @@ $('clips').addEventListener('keydown', e => {
 $('clips').addEventListener('focusout', e => {
   if(editingClip !== null && e.target.classList.contains('rn')) commitRename(e.target.value);
 });
+/* ---------- Potong klip: ambil detik yang dibutuhkan saja ---------- */
+let ptKlip = null;
+const klipSumber = c => c ? (c.clip || (c.make && sel ? c.make(sel) : null)) : null;
+function potongKlip(src, a, b){   // ambil bagian a..b detik; kunci di batas dihitung dengan interpolasi supaya pose tepat
+  const tracks = src.tracks.map(t => {
+    const I = t.createInterpolant(), n = t.getValueSize(), times = [0], vals = Array.from(I.evaluate(a));
+    for(let i = 0; i < t.times.length; i++){ const x = t.times[i]; if(x > a + 1e-4 && x < b - 1e-4){ times.push(x - a); for(let k = 0; k < n; k++) vals.push(t.values[i * n + k]); } }
+    times.push(b - a); vals.push(...Array.from(I.evaluate(b)));
+    const T = new t.constructor(t.name, times, vals); if(t.getInterpolation) T.setInterpolation(t.getInterpolation()); return T;
+  });
+  return new THREE.AnimationClip(src.name, b - a, tracks);
+}
+function entriPotong(c, a, b, nama){
+  const e = Object.assign({}, c, { id: ++cid, name: nama });
+  delete e.libId;
+  if(c.clip) e.clip = potongKlip(c.clip, a, b);
+  if(c.make){ const mk = c.make; e.make = l => potongKlip(mk(l), a, b); }
+  return e;
+}
+const ptF = x => (+x).toFixed(2) + ' dtk';
+function ptBaca(){ let a = +$('ptA').value, b = +$('ptB').value; if(b - a < .05){ if(document.activeElement === $('ptA')) a = Math.max(0, b - .05); else b = Math.min(+$('ptB').max, a + .05); $('ptA').value = a; $('ptB').value = b; }
+  $('ptAV').textContent = ptF(a); $('ptBV').textContent = ptF(b); return [a, b]; }
+function bukaPotong(c){
+  const k = klipSumber(c); ptKlip = k ? c : null; $('potong').hidden = !k; if(!k) return;
+  const d = Math.max(.05, k.duration);
+  $('ptNama').textContent = c.name; $('ptDur').textContent = '(panjang ' + d.toFixed(2) + ' dtk)';
+  ['ptA', 'ptB'].forEach(id => { $(id).max = d.toFixed(2); $(id).step = d > 20 ? .05 : .01; });
+  $('ptA').value = 0; $('ptB').value = d.toFixed(2); ptBaca();
+}
+$('ptA').oninput = $('ptB').oninput = () => ptBaca();
+const ptSekarang = () => sel && sel.action ? sel.action.time + (sel.ptOff || 0) : null;
+$('ptSetA').onclick = () => { const t = ptSekarang(); if(t === null){ say('Putar animasinya dulu, lalu Jeda di detik yang pas.', true); return; } $('ptA').value = Math.min(t, +$('ptB').value - .05).toFixed(2); ptBaca(); };
+$('ptSetB').onclick = () => { const t = ptSekarang(); if(t === null){ say('Putar animasinya dulu, lalu Jeda di detik yang pas.', true); return; } $('ptB').value = Math.max(t, +$('ptA').value + .05).toFixed(2); ptBaca(); };
+$('ptLihat').onclick = () => {
+  if(!ptKlip || !sel){ say('Pilih model karakter dan klik animasi yang mau dipotong.', true); return; }
+  const [a, b] = ptBaca(), e = entriPotong(ptKlip, a, b, ptKlip.name + ' (pratinjau)');
+  play(e); sel.ptOff = a; sel.playing = ptKlip.id; renderClips();
+};
+$('ptBaru').onclick = () => {
+  if(!ptKlip) return; const [a, b] = ptBaca(); catat();
+  const e = entriPotong(ptKlip, a, b, ptKlip.name + ' ' + a.toFixed(1) + '-' + b.toFixed(1));
+  clips.splice(clips.indexOf(ptKlip) + 1, 0, e); renderClips();
+  if(sel){ sel.ptOff = 0; play(e); } bukaPotong(e);
+  say('Klip baru “' + e.name + '” dibuat (' + (b - a).toFixed(2) + ' dtk). Ganti namanya dengan ✎ bila perlu.');
+};
+$('ptGanti').onclick = () => {
+  if(!ptKlip) return; const [a, b] = ptBaca(), c = ptKlip, n = entriPotong(c, a, b, c.name); catat();
+  if(c.clip) c.clip = n.clip; if(c.make) c.make = n.make; delete c.libId;
+  layers.forEach(l => { if(l.cache) Array.from(l.cache.keys()).forEach(k => { if(k.startsWith(c.id + '|')) l.cache.delete(k); }); });
+  if(sel){ sel.ptOff = 0; play(c); } bukaPotong(c);
+  say('“' + c.name + '” sekarang hanya detik ' + a.toFixed(2) + '–' + b.toFixed(2) + ' (' + (b - a).toFixed(2) + ' dtk). Bisa dibatalkan dengan Urungkan.');
+};
+setInterval(() => { if($('potong').hidden) return; const t = ptSekarang(); $('ptNow').textContent = t === null ? '–' : ptF(t); }, 100);
+
 $('tidy').onclick = () => {
   catat(); let n = 0;
   clips.forEach(c => { const i = c.name.lastIndexOf(' – '); if(i >= 0){ c.name = c.name.slice(i + 3); n++; } });
