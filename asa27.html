@@ -259,6 +259,14 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
       <p class="note" style="margin:6px 0 0">GLB menyimpan tulang &amp; animasi. OBJ dan FBX menyimpan model dalam pose awal (pose T) beserta tekstur, tanpa tulang &amp; animasi — cocok untuk diunggah ke Mixamo atau dibuka di Blender.</p>
     </div>
     <button id="saveOrig" disabled>Unduh file asli model terpilih</button>
+    <div>
+      <h2>Proyek (bisa dibuka & diedit lagi)</h2>
+      <div class="two" style="margin-top:6px">
+        <button id="proSimpan" disabled title="Simpan semua model, posisi, item yang terpasang di tulang (rok, tongkat, dll.) dan daftar animasi ke satu file .asa27">💾 Simpan proyek</button>
+        <label class="btn" for="proBuka" title="Buka file proyek .asa27 untuk melanjutkan / mengubah posisi item">📂 Buka proyek<input id="proBuka" type="file" accept=".asa27" hidden></label>
+      </div>
+      <p class="note" style="margin:6px 0 0">File proyek menyimpan file model asli, posisi / putaran / skala, titik genggam, item yang terpasang di tulang beserta offsetnya, dan semua animasi di daftar (termasuk yang sudah dipotong / diganti nama).</p>
+    </div>
 
     <div>
       <h2>Tampilan</h2>
@@ -294,6 +302,10 @@ main.over #drop{opacity:1;border-color:var(--acc);color:var(--text)}
           <label class="btn" for="libFileA">Unggah FBX<input id="libFileA" type="file" accept=".fbx,.glb,.gltf" multiple></label></div>
         <div class="posebox" data-g="H"><button class="pbtn" data-g="H"><span>Hewan</span><span id="cntH">0</span></button>
           <label class="btn" for="libFileH">Unggah FBX<input id="libFileH" type="file" accept=".fbx,.glb,.gltf" multiple></label></div>
+      </div>
+      <div class="two" style="margin-top:6px">
+        <button id="libBackup" title="Unduh semua animasi yang kamu unggah ke pustaka (+ kategori & yang disembunyikan) jadi satu file">💾 Backup pustaka</button>
+        <label class="btn" for="libRestore" title="Pulihkan animasi dari file backup (yang sudah ada tidak digandakan)">📥 Pulihkan backup<input id="libRestore" type="file" accept=".json,.asa27lib" hidden></label>
       </div>
     </div>
     <input id="libQ" type="search" placeholder="Cari animasi…" aria-label="Cari animasi">
@@ -597,7 +609,7 @@ function renderLayers(){
     </div>`).join('');
   const has = layers.length > 0;
   $('save').disabled = !has; $('saveObj').disabled = !has; $('saveFbx').disabled = !has; $('reset').disabled = !has; $('clear').disabled = !has;
-  $('saveOrig').disabled = !sel;
+  $('saveOrig').disabled = !sel; $('proSimpan').disabled = !has;
   $('edit').hidden = !sel;
   $('edit').className = sel ? 'jk-' + (sel.jenis || 'item') : '';
   document.querySelectorAll('.jenis button').forEach(b => b.classList.toggle('on', !!sel && b.dataset.j === sel.jenis));
@@ -716,7 +728,7 @@ function entriPotong(c, a, b, nama){
   const e = Object.assign({}, c, { id: ++cid, name: nama });
   delete e.libId;
   if(c.clip) e.clip = potongKlip(c.clip, a, b);
-  if(c.make){ const mk = c.make; e.make = l => potongKlip(mk(l), a, b); }
+  if(c.make){ const mk = c.make; e.make = l => potongKlip(mk(l), a, b); e.rentang = (c.rentang || []).concat([[a, b]]); e.dasarId = c.dasarId ?? c.id; }
   return e;
 }
 const ptF = x => (+x).toFixed(2) + ' dtk';
@@ -747,7 +759,7 @@ $('ptBaru').onclick = () => {
 };
 $('ptGanti').onclick = () => {
   if(!ptKlip) return; const [a, b] = ptBaca(), c = ptKlip, n = entriPotong(c, a, b, c.name); catat();
-  if(c.clip) c.clip = n.clip; if(c.make) c.make = n.make; delete c.libId;
+  if(c.clip) c.clip = n.clip; if(c.make){ c.make = n.make; c.rentang = n.rentang; c.dasarId = n.dasarId; } delete c.libId;
   layers.forEach(l => { if(l.cache) Array.from(l.cache.keys()).forEach(k => { if(k.startsWith(c.id + '|')) l.cache.delete(k); }); });
   if(sel){ sel.ptOff = 0; play(c); } bukaPotong(c);
   say('“' + c.name + '” sekarang hanya detik ' + a.toFixed(2) + '–' + b.toFixed(2) + ' (' + (b - a).toFixed(2) + ' dtk). Bisa dibatalkan dengan Urungkan.');
@@ -1140,6 +1152,79 @@ addEventListener('keydown', e => {
 });
 // kotak angka & slider: catat sekali di awal setiap kali mulai diubah
 ['px','py','pz','sc','rotX','rotY','rotZ','gx','gy','gz','gAlong'].forEach(id => { const el = $(id); if(!el) return; ['pointerdown','focus','keydown'].forEach(ev => el.addEventListener(ev, e => { if(ev === 'keydown' && /^(Tab|Shift|Control|Meta|Alt)$/.test(e.key)) return; catat(); })); });
+
+/* ---------- Proyek .asa27: simpan & buka lagi (model asli + posisi + item di tulang + animasi) ---------- */
+// format: "ASA27PRJ" · u32 panjang JSON · JSON · isi file model berurutan (posisi & panjang dicatat di JSON)
+const PRJ_MAGIC = 'ASA27PRJ';
+const v3 = v => [v.x, v.y, v.z], q4 = q => [q.x, q.y, q.z, q.w];
+function klipKeData(clip){ return { name: clip.name, duration: clip.duration, tracks: clip.tracks.map(t => ({ n: t.name, k: t.ValueTypeName, t: Array.from(t.times), v: Array.from(t.values), i: t.getInterpolation ? t.getInterpolation() : undefined })) }; }
+function dataKeKlip(d){
+  const T = {quaternion: THREE.QuaternionKeyframeTrack, vector: THREE.VectorKeyframeTrack, number: THREE.NumberKeyframeTrack, color: THREE.ColorKeyframeTrack, bool: THREE.BooleanKeyframeTrack, string: THREE.StringKeyframeTrack};
+  return new THREE.AnimationClip(d.name, d.duration, d.tracks.map(t => { const k = new (T[t.k] || THREE.VectorKeyframeTrack)(t.n, t.t, t.v); if(t.i !== undefined && k.setInterpolation) k.setInterpolation(t.i); return k; }));
+}
+function klipEntriKeData(c){
+  const d = { name: c.name, pose: c.pose || null, cat: c.cat, src: c.src };
+  if(c.clip){ d.clip = klipKeData(c.clip); if(c.srcQ) d.srcQ = Array.from(c.srcQ, ([k, v]) => [k, v.toArray()]); if(c.srcW) d.srcW = Array.from(c.srcW, ([k, v]) => [k, v.w.toArray(), v.pw.toArray()]); if(c.lib) d.lib = c.lib; }
+  else if(c.make){ d.dasar = c.dasarId ?? c.id; d.libKode = c.lib; d.rentang = c.rentang || []; }   // animasi bawaan (dibuat lewat kode): cukup nomornya + rentang potong
+  return d;
+}
+function dataKeKlipEntri(d){
+  if(d.clip) return { id: ++cid, name: d.name, pose: d.pose || { type: '?' }, cat: d.cat, src: d.src, lib: d.lib, clip: dataKeKlip(d.clip),
+    srcQ: new Map((d.srcQ || []).map(([k, a]) => [k, new THREE.Quaternion().fromArray(a)])),
+    srcW: new Map((d.srcW || []).map(([k, a, b]) => [k, { w: new THREE.Quaternion().fromArray(a), pw: new THREE.Quaternion().fromArray(b) }])) };
+  const dasar = LIB.find(x => x.make && d.libKode && x.lib === d.libKode) || LIB.find(x => x.id === d.dasar && x.make); if(!dasar) return null;
+  let e = Object.assign({}, dasar, { id: ++cid, name: d.name, dasarId: dasar.id, rentang: [] }); delete e.libId;
+  (d.rentang || []).forEach(([a, b]) => { const mk = e.make; e = Object.assign({}, e, { make: l => potongKlip(mk(l), a, b), rentang: e.rentang.concat([[a, b]]) }); });
+  return e;
+}
+async function simpanProyek(){
+  if(!layers.length){ say('Belum ada model untuk disimpan.', true); return; }
+  const bufs = [], isi = { app: 'asa27', versi: 1, waktu: new Date().toISOString(), terpilih: layers.indexOf(sel), layers: [], clips: [] };
+  let off = 0;
+  layers.forEach(l => {
+    const u8 = new Uint8Array(l.buf); bufs.push(u8);
+    isi.layers.push({ nama: l.file.name, ext: l.ext, off, len: u8.byteLength, jenis: l.jenis, vis: l.wrapper.visible,
+      pos: v3(l.wrapper.position), q: q4(l.wrapper.quaternion), s: v3(l.wrapper.scale), pivot: v3(l.pivot),
+      attach: l.attach ? { ke: layers.indexOf(l.attach.to), tulang: l.attach.bone } : null });
+    off += u8.byteLength;
+  });
+  clips.forEach(c => { const d = klipEntriKeData(c); if(d.clip || d.dasar !== undefined) isi.clips.push(d); });
+  const js = new TextEncoder().encode(JSON.stringify(isi)), kepala = new Uint8Array(12);
+  kepala.set(new TextEncoder().encode(PRJ_MAGIC)); new DataView(kepala.buffer).setUint32(8, js.byteLength, true);
+  const nama = (layers.find(l => l.jenis === 'karakter') || layers[0]).file.name.replace(/\.[^.]+$/, '');
+  download(new Blob([kepala, js, ...bufs], { type: 'application/octet-stream' }), nama + '.asa27');
+  say('Proyek disimpan: ' + nama + '.asa27 — ' + layers.length + ' model, ' + isi.clips.length + ' animasi. Buka lagi dengan “📂 Buka proyek”.');
+}
+async function bukaProyek(file){
+  try {
+    const buf = await readFile(file), dv = new DataView(buf);
+    if(new TextDecoder().decode(new Uint8Array(buf, 0, 8)) !== PRJ_MAGIC) throw new Error('bukan file proyek asa27');
+    const jl = dv.getUint32(8, true), isi = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 12, jl))), dasar = 12 + jl;
+    if(layers.length && !confirm('Buka proyek akan mengganti model & animasi yang sedang terbuka. Lanjutkan?')) return;
+    catat(); catatTahan++;
+    try {
+      layers.slice().forEach(l => removeLayer(l)); clips.length = 0;
+      const baru = [];
+      for(const L of isi.layers){
+        const f = new File([new Uint8Array(buf, dasar + L.off, L.len)], L.nama), sebelum = layers.length;
+        await addFile(f); baru.push(layers.length > sebelum ? layers[layers.length - 1] : null);
+      }
+      clips.length = 0;   // animasi bawaan file model diganti daftar animasi dari proyek (urutan, nama & potongan sama seperti saat disimpan)
+      isi.clips.forEach(d => { try { const e = dataKeKlipEntri(d); if(e) clips.push(e); } catch(_){} });
+      isi.layers.forEach((L, i) => {   // pasang ke tulang lalu kembalikan posisi, putaran, skala, titik genggam
+        const l = baru[i]; if(!l) return; const w = l.wrapper; let induk = holder;
+        if(L.attach && baru[L.attach.ke]){ let b = null; baru[L.attach.ke].obj.traverse(o => { if(!b && o.name === L.attach.tulang) b = o; }); if(b){ induk = b; l.attach = { to: baru[L.attach.ke], bone: L.attach.tulang }; } }
+        if(w.parent !== induk){ if(w.parent) w.parent.remove(w); induk.add(w); }
+        w.position.fromArray(L.pos); w.quaternion.fromArray(L.q); w.scale.fromArray(L.s); w.visible = L.vis !== false;
+        l.pivot.fromArray(L.pivot); l.pv.position.copy(l.pivot).negate(); if(L.jenis) l.jenis = L.jenis;
+      });
+    } finally { catatTahan--; }
+    applyWire(); frame(); select(layers[isi.terpilih] || layers[layers.length - 1] || null); renderClips();
+    say('Proyek “' + file.name + '” dibuka: ' + layers.length + ' model, ' + clips.length + ' animasi. Item di tulang bisa langsung diatur lagi, lalu simpan proyek / ekspor GLB.');
+  } catch(e){ say('Gagal membuka proyek: ' + (e && e.message || e), true); }
+}
+$('proSimpan').onclick = () => simpanProyek();
+$('proBuka').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if(f) bukaProyek(f); };
 
 /* ---------- Simpan ---------- */
 function download(blob, name){
@@ -1710,6 +1795,40 @@ function libSave(it){
   libTx('readwrite', st => st.put(libPack(it))).catch(err => say('Gagal menyimpan ke browser: ' + (err && err.message || err) + '. Animasi tetap bisa dipakai, tapi hilang saat refresh.', true));
 }
 function libDel(it){ if(it.sid) libTx('readwrite', st => st.delete(it.sid)).catch(() => {}); }
+// ---- backup & pulihkan pustaka (animasi unggahan yang tersimpan di browser + kategori + yang disembunyikan) ----
+async function backupPustaka(){
+  try {
+    const rows = await libTx('readonly', st => st.getAll()) || [];
+    if(!rows.length){ say('Belum ada animasi unggahan di pustaka untuk di-backup.', true); return; }
+    const isi = { app: 'asa27-pustaka', versi: 1, waktu: new Date().toISOString(),
+      rows: rows.map(r => Object.assign({}, r, { clip: Object.assign({}, r.clip, { tracks: r.clip.tracks.map(t => ({ n: t.n, k: t.k, t: Array.from(t.t), v: Array.from(t.v) })) }) })),
+      setelan: { sembunyi: localStorage.getItem('asa27-lib-sembunyi'), kategori: localStorage.getItem('asa27-tripo-cat') } };
+    download(new Blob([JSON.stringify(isi)], { type: 'application/json' }), 'pustaka-asa27-' + new Date().toISOString().slice(0, 10) + '.asa27lib');
+    say('Backup pustaka diunduh: ' + rows.length + ' animasi.');
+  } catch(e){ say('Gagal membuat backup: ' + (e && e.message || e), true); }
+}
+async function pulihkanPustaka(file){
+  try {
+    const isi = JSON.parse(await file.text());
+    if(isi.app !== 'asa27-pustaka' || !Array.isArray(isi.rows)) throw new Error('bukan file backup pustaka asa27');
+    let n = 0, lewat = 0;
+    for(const r0 of isi.rows){
+      if(LIB.some(e => e.sid && e.sid === r0.sid) || (r0.sig && libSeen.has(r0.sig))){ lewat++; continue; }
+      const r = Object.assign({}, r0, { clip: Object.assign({}, r0.clip, { tracks: r0.clip.tracks.map(t => ({ n: t.n, k: t.k, t: Float32Array.from(t.t), v: Float32Array.from(t.v) })) }) });
+      await libTx('readwrite', st => st.put(r));
+      const e = libUnpack(r); LIB.push(e); if(e.sig) libSeen.add(e.sig); n++;
+    }
+    try {
+      const st = isi.setelan || {};
+      if(st.sembunyi){ JSON.parse(st.sembunyi).forEach(k => SEMBUNYI.add(k)); simpanSembunyi(); }
+      if(st.kategori){ const m = Object.assign(tripoCatUbah(), JSON.parse(st.kategori)); localStorage.setItem('asa27-tripo-cat', JSON.stringify(m)); }
+    } catch(_){}
+    renderLib();
+    say('Backup dipulihkan: ' + n + ' animasi ditambahkan' + (lewat ? ', ' + lewat + ' sudah ada (dilewati)' : '') + '.');
+  } catch(e){ say('Gagal memulihkan backup: ' + (e && e.message || e), true); }
+}
+$('libBackup').onclick = () => backupPustaka();
+$('libRestore').onchange = e => { const f = e.target.files[0]; e.target.value = ''; if(f) pulihkanPustaka(f); };
 async function libLoad(){
   try {
     const rows = await libTx('readonly', st => st.getAll());
