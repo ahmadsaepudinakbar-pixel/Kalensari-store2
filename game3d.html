@@ -7096,7 +7096,7 @@ R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunc
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
 const FXF = { bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga };
 const FX_SUDUT = { ksTebas: [1], ksGerak: [3], ksSerang: [2], skPerahu: [1], skTebas: [1], swMacan: [2], swCakar: [2], swTebas: [1], swBayang: [1], nrBola: [1], nrLesat: [1], nrOmbak: [1], dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
-// ---- efek skill MUSUH diberi warna kemerahan + garis merah di tepi area, agar beda dengan efek sendiri / tim ----
+// ---- efek skill MUSUH diberi warna kemerahan, agar beda dengan efek sendiri / tim ----
 const MERAH_MUSUH = new THREE.Color(0xff2020), MERAH_KADAR = .45;
 let MUSUH_KUMPUL = null, FX_OLEH = null;
 { const tambah = THREE.Object3D.prototype.add; scene.add = function (...o) { if (MUSUH_KUMPUL) MUSUH_KUMPUL.push(...o); return tambah.apply(this, o); }; }
@@ -7106,7 +7106,7 @@ function sbgMusuh(musuh, f) {   // jalankan f; semua benda yang ditaruh ke scene
   try { return f(); } finally { MUSUH_KUMPUL = lama; if (lama) lama.push(...l); else if (l.length) tandaiMusuh(l); }
 }
 function tandaiMusuh(daftar) {
-  let besar = null, rb = 0; const simpan = new THREE.Color();
+  const simpan = new THREE.Color();
   daftar.forEach(o => o.traverse(m => {
     if (m.userData.musuh) return; m.userData.musuh = 1;
     const mt = m.material;
@@ -7115,17 +7115,7 @@ function tandaiMusuh(daftar) {
       m.onBeforeRender = function (r, sc, c, g, bh, gr) { if (bh && bh.color) { simpan.copy(bh.color); this.userData.wAsli = simpan.getHex(); bh.color.lerp(MERAH_MUSUH, MERAH_KADAR); } b0.call(this, r, sc, c, g, bh, gr); };
       m.onAfterRender = function (r, sc, c, g, bh, gr) { if (bh && bh.color && this.userData.wAsli != null) bh.color.setHex(this.userData.wAsli); a0.call(this, r, sc, c, g, bh, gr); };
     }
-    const gp = m.geometry && m.geometry.parameters, tipe = m.geometry && m.geometry.type;
-    if (gp && (tipe === 'CircleGeometry' || tipe === 'RingGeometry')) { const R = gp.outerRadius || gp.radius || 0; if (R > rb) { rb = R; besar = m; } }
   }));
-  if (!besar) return;   // area terbesar (lantai) diberi garis merah di tepinya
-  const gm = besar.geometry; gm.computeBoundingBox(); const bb = gm.boundingBox, datar = bb.max.y - bb.min.y < bb.max.z - bb.min.z;
-  const rg = new THREE.RingGeometry(rb * .955, rb * 1.02, 64); if (!datar) rg.rotateX(-Math.PI / 2);   // ikut bidang geometri induk
-  const bm = besar.material, ring = new THREE.Mesh(rg, new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: .9, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
-  ring.position.y = datar ? 0 : .012; ring.renderOrder = (besar.renderOrder || 0) + 5; ring.userData.musuh = 1;
-  ring.onBeforeRender = () => { const op = bm && !Array.isArray(bm) ? (bm.transparent ? bm.opacity : 1) : 1; ring.material.opacity = Math.min(1, op * 1.6) * (.75 + .25 * Math.sin(performance.now() / 120)); ring.visible = besar.visible; };
-  besar.add(ring);
-  const lepas = () => { if (!besar.parent) { rg.dispose(); ring.material.dispose(); return; } setTimeout(lepas, 1000); }; setTimeout(lepas, 1000);
 }
 function fx(n, ...a) {
   FXF[n](...a);
