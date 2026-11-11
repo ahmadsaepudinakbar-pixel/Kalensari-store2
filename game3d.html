@@ -4262,7 +4262,7 @@ function pasangDuyung(T, m, sk, d, anims) {   // putri duyung (mode berenang Jel
   if (T.nyiD && T.nyiD.g.parent) T.nyiD.g.parent.remove(T.nyiD.g);
   const wadah = new THREE.Group(), putar = new THREE.Group();   // wadah di lantai · putar: badan tengkurap (kepala ke depan), poros di pinggul
   d.scale.setScalar(sk); d.position.set(0, -.5 * sk, 0); d.visible = true; putar.add(d); putar.rotation.x = 1.3; putar.position.y = .42; wadah.add(putar);
-  const kolam = new THREE.Mesh(new THREE.CircleGeometry(1.15, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: T_RIAK, color: 0x5ad8ff, transparent: true, opacity: .62, depthWrite: false, toneMapped: false }));
+  const kolam = new THREE.Mesh(new THREE.CircleGeometry(1.15, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: T_RIAK, color: 0x1f8cff, transparent: true, opacity: .62, depthWrite: false, toneMapped: false }));
   kolam.position.y = .05; kolam.renderOrder = 2; wadah.add(kolam); kolam.scale.setScalar(.75);
   const hiu = hiuAir(); wadah.add(hiu.g);   // efek berenang: air membentuk siluet hiu (badan + sirip punggung)
   wadah.position.y = m.position.y; wadah.visible = false; m.parent.add(wadah);
@@ -4294,24 +4294,24 @@ void main() { vec3 p = position; float k = clamp((0.55 - p.z / 1.7) / 1.5, 0.0, 
 const HIU_FS = `uniform vec3 c1; uniform vec3 c2; uniform float op; uniform float t; uniform float rata; varying vec3 vN; varying vec3 vV; varying float vZ;
 void main() { float rim = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.6); rim = mix(rim, 0.55, rata);
   float arus = 0.5 + 0.5 * sin(vZ * 7.0 + t * 14.0);   // garis air mengalir dari moncong ke ekor
-  gl_FragColor = vec4(mix(c2, c1, rim) + arus * 0.1, op * (0.16 + 0.84 * rim) * (0.85 + 0.15 * arus));
+  gl_FragColor = vec4(mix(c2, c1, rim) + vec3(0.0, 0.06, 0.12) * arus, op * (0.28 + 0.72 * rim) * (0.85 + 0.15 * arus));
   #include <colorspace_fragment>
 }`;
 function hiuAir() {
-  const u = { t: { value: Math.random() * 9 }, amp: { value: .1 }, op: { value: .6 }, c1: { value: new THREE.Color(0xbff4ff) }, c2: { value: new THREE.Color(0x1a86e0) }, rata: { value: 0 } };
-  const mat = (side, rata) => new THREE.ShaderMaterial({ uniforms: { t: { value: 0 }, amp: { value: .1 }, op: { value: .6 }, c1: u.c1, c2: u.c2, rata: { value: rata } }, vertexShader: HIU_VS, fragmentShader: HIU_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side });
+  const u = { t: { value: Math.random() * 9 }, amp: { value: .1 }, op: { value: .6 }, c1: { value: new THREE.Color(0x3fb8ff) }, c2: { value: new THREE.Color(0x0646b8) }, rata: { value: 0 } };
+  const mat = (side, rata) => new THREE.ShaderMaterial({ uniforms: { t: { value: 0 }, amp: { value: .1 }, op: { value: .6 }, c1: u.c1, c2: u.c2, rata: { value: rata } }, vertexShader: HIU_VS, fragmentShader: HIU_FS, transparent: true, depthWrite: false, blending: THREE.NormalBlending, side });
   const g = new THREE.Group(), badan = new THREE.Mesh(HIU3D.badan, mat(THREE.FrontSide, 0)), dalam = new THREE.Mesh(HIU3D.badan, mat(THREE.BackSide, .6)), sirip = new THREE.Mesh(HIU3D.sirip, mat(THREE.DoubleSide, .7));
   // mata, mulut & gigi: biru air menyala
-  const nyalaB = (w, op = 1) => new THREE.MeshBasicMaterial({ color: w, transparent: true, opacity: op, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
-  const mata = nyalaB(0xa8f6ff), gigi = nyalaB(0x8eeeff, .95), mulutM = nyalaB(0x3fd2ff, .95), pendar = new THREE.SpriteMaterial({ map: T_BULAT, color: 0x38c8ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  const nyalaB = (w, op = 1) => new THREE.MeshBasicMaterial({ color: w, transparent: true, opacity: op, depthWrite: false, toneMapped: false });
+  const mata = nyalaB(0x0a9cff), gigi = nyalaB(0x2fb4ff, .95), mulutM = nyalaB(0x0a8cff, .95), pendar = new THREE.SpriteMaterial({ map: T_BULAT, color: 0x0a7cff, transparent: true, opacity: .9, depthWrite: false, toneMapped: false });
   const zM = .35 * HIU3D.L, sinar = [];
   [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), mata); e.position.set(s * .27, .13, zM); g.add(e); const sp = new THREE.Sprite(pendar); sp.position.copy(e.position); sp.scale.setScalar(.42); g.add(sp); sinar.push(sp); });
   const mulut = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-.25, -.02, zM - .1], [-.17, -.1, zM + .12], [0, -.14, zM + .3], [.17, -.1, zM + .12], [.25, -.02, zM - .1]].map(v => new THREE.Vector3(...v))), 24, .028, 6), mulutM); g.add(mulut);   // garis mulut menyala
   const gg = new THREE.ConeGeometry(.03, .11, 4); for (let k = 0; k < 10; k++) { const a = (k / 9 - .5) * 2.2, t_ = new THREE.Mesh(gg, gigi); t_.position.set(Math.sin(a) * .2, -.1, zM + .12 + Math.cos(a) * .14); t_.rotation.x = Math.PI; g.add(t_); }   // gigi di rahang
   const spM = new THREE.Sprite(pendar.clone()); spM.position.set(0, -.08, zM + .15); spM.scale.set(.7, .45, 1); g.add(spM); sinar.push(spM);
   // cahaya biru air: pendar besar di sekeliling hiu + cahaya di lantai
-  const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_BULAT, color: 0x1f9fff, transparent: true, opacity: .45, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); aura.scale.set(3.4, 2.2, 1); aura.renderOrder = 3; g.add(aura);
-  const lantai = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: T_BULAT, color: 0x2bb8ff, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_BULAT, color: 0x0a62e8, transparent: true, opacity: .3, depthWrite: false, toneMapped: false })); aura.scale.set(3.4, 2.2, 1); aura.renderOrder = 3; g.add(aura);
+  const lantai = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: T_BULAT, color: 0x0a70f0, transparent: true, opacity: .5, depthWrite: false, toneMapped: false }));
   lantai.scale.set(2.6, 1, 5); lantai.position.y = -.47; lantai.renderOrder = 2; g.add(lantai);
   [dalam, badan, sirip].forEach((o, k) => { o.renderOrder = 4 + k; o.frustumCulled = false; g.add(o); });
   g.position.set(0, .52, .25); g.scale.setScalar(TINGGI / 1.7);
@@ -4326,9 +4326,9 @@ function gerakHiu(D, dt, renang) {   // tiap frame selama mode putri duyung
   [H.badan, H.dalam, H.sirip].forEach(m => { m.material.uniforms.t.value = H.u.t.value; m.material.uniforms.amp.value = H.u.amp.value; });
   H.g.scale.setScalar(TINGGI / 1.7 * (1 + j * .3)); H.g.position.y = .52 + Math.sin(D.t * 3) * .03 * k;
   const den = .5 + .5 * Math.sin(D.t * 6);   // mata & mulut berdenyut, cahaya air makin terang saat menerjang
-  H.sinar.forEach((sp, i) => { sp.material.opacity = .75 + .25 * den + j * .3; }); H.mata.opacity = .85 + .15 * den; H.mulutM.opacity = .8 + .2 * den;
-  H.aura.material.opacity = .32 + .1 * Math.sin(D.t * 3) + j * .45; H.aura.scale.set(3.4 * (1 + j * .25), 2.2 * (1 + j * .25), 1);
-  H.lantai.material.opacity = .45 + .12 * Math.sin(D.t * 4) + j * .4;
+  H.sinar.forEach(sp => { sp.material.opacity = Math.min(1, .6 + .3 * den + j * .3); }); H.mata.opacity = .85 + .15 * den; H.mulutM.opacity = .8 + .2 * den;
+  H.aura.material.opacity = Math.min(.7, .22 + .08 * Math.sin(D.t * 3) + j * .35); H.aura.scale.set(3.4 * (1 + j * .25), 2.2 * (1 + j * .25), 1);
+  H.lantai.material.opacity = Math.min(.8, .42 + .1 * Math.sin(D.t * 4) + j * .3);
   H.lantai.position.y = (.06 - H.g.position.y) / H.g.scale.x;   // cahaya lantai tetap menempel di tanah walau hiu membesar / naik-turun
   if (Math.random() < dt * (renang ? 18 : 5) + j * .5) { const p = H.g.localToWorld(new THREE.Vector3(rnd(-.4, .4), rnd(.2, .8), rnd(-1.6, 1.4))); percik(p, 1, Math.random() < .5 ? 0xffffff : 0x9fe8ff, renang ? 1.8 : .9, .1); }   // percikan air di badan hiu
 }
