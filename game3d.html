@@ -6405,7 +6405,20 @@ function wnModelHewan(stat) {
   b.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return R;
 }
-function wnModelSinga(tm) {
+// Singa penjaga (Tripo + animasi Mixamo, kapak bermata dua di tangan kanan): Tim Merah = singa merah, Tim Putih = singa putih
+// klip: diam (lihat sekeliling) · diam2 · siaga (kapak 2 tangan, lawan di lingkaran) · tahan (bertahan, HP < 40%) · lari · serang1 · serang2 · putar (sapuan 360°, kena semua lawan dekat)
+const SINGA_URL = ['model-3d/singa-merah.glb?v=2', 'model-3d/singa-putih.glb?v=2'], SINGA_SK = 3.4;
+const SINGA_KLIP = { serang1: { kena: .5, lama: 1.05 }, serang2: { kena: .62, lama: 1.05 }, putar: { kena: .9, lama: 2.5, area: 1, jeda: 2.6 } };
+function wnModelSinga(tm, gl) {
+  if (gl) {
+    const g = new THREE.Group(), b = new THREE.Group(); g.add(b); b.scale.setScalar(SINGA_SK); b.add(gl.scene);
+    gl.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+    const mix = new THREE.AnimationMixer(gl.scene), act = {};
+    gl.animations.forEach(c => { act[c.name.split(/\s+[–—-]\s+/).pop().trim()] = mix.clipAction(c); });
+    ['serang1', 'serang2', 'putar'].forEach(n => { if (act[n]) { act[n].setLoop(THREE.LoopOnce, 1); act[n].clampWhenFinished = true; } });
+    const R = { g, b, mix, act, cur: '', tinggi: 3.6, diamT: 0 };
+    wnMainSinga(R, 'diam', 0); return R;
+  }
   const g = new THREE.Group(), b = new THREE.Group(); g.add(b); b.scale.setScalar(1.35);
   const mBulu = wnB(tm ? 0xeeeae0 : 0xc8261c), mKulit = wnB(tm ? 0xf6f0e2 : 0xd8402a), mEmas = wnB(0xe8b23a), mPerut = wnB(0xf2e6d2), mBaju = wnB(tm ? 0xf8f8f4 : 0xb81c16);
   const R = { g, b, kaki: [], lengan: [], tinggi: 3.7 };
@@ -6427,6 +6440,22 @@ function wnModelSinga(tm) {
   const eu = new THREE.Mesh(new THREE.IcosahedronGeometry(.17, 0), mBulu); eu.position.set(0, -.3, -.9); ek.add(eu); R.ekor = ek;
   b.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return R;
+}
+function wnMainSinga(R, n, fade = .2, ulang = false) {
+  const a = R.act[n]; if (!a || (R.cur === n && !ulang)) return;
+  const lama = R.act[R.cur]; a.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).play();
+  if (lama && lama !== a && fade > 0) lama.crossFadeTo(a, fade, false); else if (lama && lama !== a) lama.stop();
+  R.cur = n;
+}
+function wnAnimSinga(E, dt) {
+  const R = E.M;
+  if (E.serangT > 0 && E.klip) { if (R.cur !== E.klip || E.klipBaru) { E.klipBaru = 0; wnMainSinga(R, E.klip, .12, true); } }
+  else if (E.jalan) { wnMainSinga(R, 'lari', .2); const a = R.act.lari; if (a) a.setEffectiveTimeScale(Math.max(.7, E.kec / 5)); }
+  else if (E.sas && !E.mt.pusing && !E.mt.kunci) wnMainSinga(R, E.hp / E.hpMax < .4 && R.act.tahan ? 'tahan' : 'siaga', .25);
+  else { R.diamT -= dt; if (R.cur !== 'diam' && R.cur !== 'diam2' || R.diamT <= 0) { const n = R.cur === 'diam' && R.diamT <= 0 && R.act.diam2 ? 'diam2' : 'diam'; R.diamT = n === 'diam' ? 11.2 : 3.8; wnMainSinga(R, n, .35); } }
+  R.mix.update(E.mt.pusing > 0 || E.mt.kunci > 0 ? 0 : dt);   // terkena stun: gerakan membeku
+  if (E.kilau > 0) { E.kilau -= dt; R.b.scale.setScalar(SINGA_SK * (1 + E.kilau * .4)); }
+  else if (E.kilau !== -1) { E.kilau = -1; R.b.scale.setScalar(SINGA_SK); }
 }
 function wnModelRumah(tm) {   // rumah panggung Sunda (tempat respawn)
   const g = new THREE.Group(), b = new THREE.Group(); g.add(b);
@@ -6544,7 +6573,8 @@ function wnPadat(v, r = 0) {   // bangunan padat: tidak bisa ditembus
 async function wnBuat() {
   WN.hpDasar = Object.assign({}, HP_MAX); WN.cdDasar = CD_MAX.slice();
   const muat = u => muatGLB(u).then(g => salinGLB(g).scene).catch(() => null);
-  const [gP, gM, tg, rmh] = await Promise.all([muat('model-3d/garuda.glb?v=1'), muat('model-3d/garuda-merah.glb?v=1'), muat('model-3d/tugu-nanas.glb?v=1'), muat('model-3d/rumah.glb?v=1')]);
+  const muatA = u => muatGLB(u).then(g => salinGLB(g)).catch(() => null);   // dengan animasi
+  const [gP, gM, tg, rmh, sgM, sgP] = await Promise.all([muat('model-3d/garuda.glb?v=1'), muat('model-3d/garuda-merah.glb?v=1'), muat('model-3d/tugu-nanas.glb?v=1'), muat('model-3d/rumah.glb?v=1'), muatA(SINGA_URL[0]), muatA(SINGA_URL[1])]);
   WN.padat = [];
   // Tugu Nanas
   const tugu = new THREE.Group(); if (tg) { tg.scale.setScalar(5.6); tg.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } }); tugu.add(tg); }
@@ -6575,8 +6605,8 @@ async function wnBuat() {
     WN.garuda[tm] = wnEnt({ jenis: 'garuda', tm, x: 0, z: s * WN_Z.garuda, hp: WNV.garuda.hp, nama: 'Garuda ' + nm, M: GG, barY: 6.4, besar: 1, padat: WNV.garuda.padat, ...WNV.garuda });
     WN.padat.push({ x: 0, z: s * WN_Z.garuda, R: WNV.garuda.padat, E: WN.garuda[tm] });
     // Singa
-    const SS = wnModelSinga(tm); SS.g.rotation.y = hadap;
-    WN.singa[tm] = wnEnt({ jenis: 'singa', tm, x: 0, z: s * WN_Z.singa, hp: WNV.singa.hp, nama: 'Singa ' + nm, M: SS, barY: 4.2, besar: 1, ...WNV.singa, hp: WNV.singa.hp });
+    const SS = wnModelSinga(tm, tm ? sgP : sgM); SS.g.rotation.y = hadap;
+    WN.singa[tm] = wnEnt({ jenis: 'singa', tm, x: 0, z: s * WN_Z.singa, hp: WNV.singa.hp, nama: 'Singa ' + nm, M: SS, barY: 4.2, besar: 1, ...WNV.singa, hp: WNV.singa.hp, ...(SS.mix ? { skalaB: SINGA_SK } : {}) });
     // lingkaran jaga
     [WN.singa[tm], WN.garuda[tm]].forEach(E => { E.cincin = cincin(E.R - .12, E.R, WN_WARNA[tm], tm ? .3 : .35); E.cincin.position.set(E.home.x, .05, E.home.z); });
     // monster hutan
@@ -6636,9 +6666,18 @@ function wnAiSinga(E, dt) {
   if (!sah(tg) || Math.random() < dt * .8) tg = E.sas = wnCariDiLingkaran(E);
   if (tg) {
     const sp = wnPos(tg), L = Math.hypot(sp.x - p.x, sp.z - p.z), jg = E.jangkau + (tg.wnE ? 1 : 0);
-    if (L > jg) { const ke = sp.clone(); const d = ke.clone().sub(E.home); if (d.length() > E.R) ke.copy(E.home).addScaledVector(d.normalize(), E.R); wnGerak(E, ke, E.kec, dt); }
+    if (L > jg && !(E.M.mix && E.serangT > 0)) {   // model GLB: berdiri selama mengayun kapak
+      const ke = sp.clone(); const d = ke.clone().sub(E.home); if (d.length() > E.R) ke.copy(E.home).addScaledVector(d.normalize(), E.R); wnGerak(E, ke, E.kec, dt); }
     else wnHadap(E, Math.atan2(sp.x - p.x, sp.z - p.z), dt);
-    if (L <= jg + .3 && E.cdA <= 0) { E.cdA = E.jeda; E.serangT = .45; setTimeout(() => { if (E.mati || !wnHidup(tg)) return; const q = wnPos(tg); if (Math.hypot(q.x - p.x, q.z - p.z) < jg + 1) { wnPukul(tg, E.dmg, p, 4); gelombang(q.clone().setY(0), 1.4, .35, 0xffc040); percik(q.clone().setY(.6), 12, WN_WARNA[E.tm], 3); goyang = tg === P ? Math.max(goyang, .15) : goyang; } }, 220); }
+    if (L <= jg + .3 && E.cdA <= 0) {
+      const glb = !!E.M.mix, n = glb ? ((E.nSerang = (E.nSerang || 0) + 1) % 3 === 0 && E.M.act.putar ? 'putar' : E.nSerang % 3 === 1 ? 'serang1' : 'serang2') : '', K = SINGA_KLIP[n];
+      E.cdA = K && K.jeda || E.jeda; E.serangT = K ? K.lama : .45; E.klip = n; E.klipBaru = 1;
+      const kena = q => { wnPukul(q.t, E.dmg, p, 4); gelombang(q.q.clone().setY(0), 1.4, .35, 0xffc040); percik(q.q.clone().setY(.6), 12, WN_WARNA[E.tm], 3); goyang = q.t === P ? Math.max(goyang, .15) : goyang; };
+      setTimeout(() => { if (E.mati) return;
+        if (K && K.area) {   // sapuan 360°: semua hero lawan di sekitar singa
+          gelombang(p.clone().setY(.05), jg + 1, .45, 0xffc040); gelombang(p.clone().setY(.05), jg + .4, .35, WN_WARNA[E.tm]); percik(p.clone().setY(.8), 30, 0xffd27a, 5);
+          WN.U.forEach(u => { if (u.tm === E.tm || !u.hidup) return; if (Math.hypot(u.pos.x - p.x, u.pos.z - p.z) < jg + 1) kena({ t: u.obj, q: u.pos }); }); return; }
+        if (!wnHidup(tg)) return; const q = wnPos(tg); if (Math.hypot(q.x - p.x, q.z - p.z) < jg + 1) kena({ t: tg, q }); }, (K ? K.kena : .22) * 1000); }
   } else {
     if (p.distanceTo(E.home) > .3) wnGerak(E, E.home, E.kec, dt); else wnHadap(E, E.tm ? 0 : Math.PI, dt);
     if (performance.now() - E.kenaT > 5000 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * WNV.singa.pulih * dt); E.mt.hp = E.hp; }   // pulih pelan (0,5% HP/dtk) setelah 5 dtk tidak diserang
@@ -6679,6 +6718,7 @@ function wnAiBuayaT(E, dt) {   // Buaya teman: maju ke bangunan lawan berikutnya
   if (L <= jg + .3 && E.cdA <= 0) { E.cdA = E.jeda; E.serangT = .4; if (tg.wnE) wnKena(tg.wnE, E.dmgB, null); else wnPukul(tg, E.dmg, p, 3); gelombang(sp.clone().setY(0), 1.6, .4, 0x9fdc6a); percik(sp.clone().setY(.6), 12, 0xc8e0a0, 3); }
 }
 function wnAnim(E, dt) {   // gerak sederhana: kaki melangkah, badan bergoyang, serangan menerjang
+  if (E.M.mix) { wnAnimSinga(E, dt); return; }
   const R = E.M; E.fase += dt * (E.jalan ? 9 : 2);
   const ay = E.jalan ? Math.sin(E.fase) * .6 : 0;
   if (R.kaki) R.kaki.forEach((k, i) => { k.rotation.x = (i % 2 ? -ay : ay) * (i > 1 ? -1 : 1); });
