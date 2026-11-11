@@ -1416,7 +1416,7 @@ if (HERO === 'kiansantang') $('#help').textContent = 'WASD / panah: gerak · J /
 if (HERO === 'sangkuriang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukulan Dayung (3 pukulan) · U: Langkah Gesit (lari lebih cepat 4 dtk) · I: Putaran Dayung (damage + stun 1,2 dtk) · O: Tangkuban Perahu (perahu muncul 5 dtk: damage + stun 1,2 dtk, tidak bisa ditembus; dekati & tekan O lagi: perahu ditendang otomatis ke lawan terdekat, damage + stun 1,2 dtk)';
 if (HERO === 'ciung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lemparan Biji (jarak jauh) · U: Serangan Ayam Jago (damage + stun 1,2 dtk) · I: Lincah Sang Legenda (melesat + lari lebih cepat 2 dtk) · O: Phoenix Jago Sakti (hantam area depan lalu kembali)';
 if (HERO === 'siliwangi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Kujang (3 tebasan) · U (tahan + mouse): Panggilan Macan Putih (damage + Airborne, macan bertarung 10 dtk) · I: Langkah Bayangan (blink 3x, lanjutkan dalam 1,5 dtk) · O: Bayangan Raja Macan (3 serangan, 6 bila Macan Putih aktif)';
-if (HERO === 'nyi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Air (jarak jauh) · U (tahan + mouse): Jelajah Samudra (melesat + damage, lalu menjadi putri duyung 5 dtk: kebal damage & stun, tidak bisa menyerang — tekan U lagi untuk kembali) · I (tahan + mouse): Pusaran Laut Selatan (menarik lawan ke tengah + Slow 2 dtk, lalu Stun) · O (tahan + mouse): Gelombang Ombak (ombak raksasa 2 dtk: damage besar)';
+if (HERO === 'nyi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Air (jarak jauh) · U (tahan + mouse): Jelajah Samudra (melesat + damage, lalu menjadi putri duyung 5 dtk: kebal damage & stun, tidak bisa menyerang — tekan U lagi untuk kembali) · I (tahan + mouse): Pusaran Laut Selatan (menarik lawan ke tengah + Slow 2 dtk, lalu Stun) · O: Laut Hiu Selatan (area laut luas 10 dtk di sekitar Nyi: tiap hero / monster musuh di dalamnya diterkam hiu air sendiri — damage + Slow, maks. 3 terkaman per target)';
 if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U: Benang Pengikat (mengunci hero lawan terdekat — tahan + mouse untuk memilih lawan: benang mengikat 2 dtk, magic damage + Slow) · I (tahan + mouse): Pukulan Centong Kelapa (memukul kepala lawan dekat: Stun 1,2 dtk · Dayang Sumbi lebih cepat 3 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun + Shield) · Combo: U → I → O';
 if (HERO === 'angling') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Angin (jarak jauh) · U (tahan + mouse): Hembusan Angin (mendorong lawan jauh) · I (tahan + mouse): Bola Api · O: Elang Sakti (naik elang, terbang bebas 10 dtk + lebih cepat; Hembusan Angin & Bola Api jeda hanya 0,5 dtk, tetap diarahkan manual; Hembusan lebih luas) · O lagi saat terbang: elang melesat ke target, Angling Dharma meloncat turun';
 if (HERO === 'saras') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jurus Petir (pukul, hook, tendangan putar) · U (tahan + mouse): Kilat Bayangan (menghilang, muncul 0,5 m di depan lawan: lutut terbang + pukulan) · I (tahan + mouse): Tinju Halilintar (3 ledakan petir di jalur tinju: damage + Stun) · O: Puting Beliung Gledeg (berputar menendang 1,2 dtk sambil bergerak & menyedot lawan, ditutup Tendangan Gledeg + petir dari langit; kebal stun) · Pasif Muatan Petir: 4 serangan kena → pukulan berikutnya menyambar berantai · Combo: U → I → O';
@@ -1892,11 +1892,11 @@ function updBidik() {
     else { PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, (K.bidik === 2 ? SLV.langkah.jarak : SLV.ulti.jarak) / TERBANG.lesat); }
     return;
   }
-  if (HERO === 'nyi') {   // skill 1: panah arah melesat · skill 2: lingkaran pusaran · skill 3: jalur ombak
+  if (HERO === 'nyi') {   // skill 1: panah arah melesat · skill 2: lingkaran pusaran · skill 3: lingkaran area laut di sekitar Nyi
     const on = !!K.bidik && P.state === 'bebas' && !(NW.duyung > 0), lg = on && K.bidik === 2; LINGKAR.visible = LINGKAR.garis.visible = lg; PANAH.visible = on && K.bidik === 1; LANE.visible = on && K.bidik === 3; if (!on) return;
     if (lg) { const t = tujuanLompat(NR.pusar.jarak), p = P.root.position; LINGKAR.position.set(t.x, 0, t.z); LINGKAR.scale.setScalar(NR.pusar.R / 2); const L = Math.hypot(t.x - p.x, t.z - p.z);
       LINGKAR.garis.position.set((t.x + p.x) / 2, .05, (t.z + p.z) / 2); LINGKAR.garis.scale.y = Math.max(.01, L); LINGKAR.garis.rotation.z = Math.atan2(t.x - p.x, t.z - p.z); LINGKAR.garis.rotation.order = 'XYZ'; }
-    else if (K.bidik === 3) { LANE.position.x = P.root.position.x; LANE.position.z = P.root.position.z; LANE.rotation.y = K.arahBidik; LANE.scale.set(NR.ombak.lebar * 2, 1, NR.ombak.jarak); }
+    else if (K.bidik === 3) { LANE.visible = false; LINGKAR.visible = true; LINGKAR.garis.visible = false; LINGKAR.position.set(P.root.position.x, 0, P.root.position.z); LINGKAR.scale.setScalar(NR.laut.R / 2); }   // area Laut Hiu Selatan
     else { PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, NR.lesat.jarak / TERBANG.lesat); }
     return;
   }
@@ -4218,14 +4218,17 @@ function updDayang(dt, pos, f) {
 // patung pose (tanpa tulang, ditampilkan menggantikan model bertulang): patung_diam (diam), patung_pusaran (Bola Air & Pusaran), patung_ulti (Gelombang Ombak)
 // duyung: putri duyung (rig Tripo, animasi renang buatan skrip) — tampil selama Jelajah Samudra · semuanya di dalam satu nyi-roro.glb
 // Serangan dasar: Bola Air · Skill 1: Jelajah Samudra (melesat + damage → menjadi putri duyung 5 dtk: kebal damage & stun, tidak bisa menyerang; tekan lagi untuk kembali)
-// Skill 2: Pusaran Laut Selatan (pusaran 2 dtk: menarik lawan ke tengah + Slow, lalu Stun) · Skill 3: Gelombang Ombak (ombak raksasa 2 dtk ke arah yang ditentukan: damage besar)
+// Skill 2: Pusaran Laut Selatan (pusaran 2 dtk: menarik lawan ke tengah + Slow, lalu Stun) · Skill 3: Laut Hiu Selatan (area laut 10 dtk, 1 hiu air per musuh di dalamnya: damage + Slow, maks. 3 terkaman per target)
 const NR = { cepat: 3.2, tsJalan: 2, air: 0x3ad6ff, air2: 0xb8f6ff, laut: 0x1a7fd8, busa: 0xeafcff,
   ts: { serang: 1.6, pusaran: 1.2, ulti: 1, lesat: 3.2 },   // kecepatan putar animasi (subklip dari Magic Attack 01 / 05 & Jump)
   bola: { rilis: .26, akhir: .5, jarak: 9, cepat: 17, dmg: 60, R: .55 },   // rilis: saat ujung tongkat terdorong ke depan (dorongan 1 animasi sihir)
   lesat: { lama: .36, jarak: 6, lebar: 1.2, dmg: 120, duyung: 5, cepatD: 4.4, jedaKembali: .4 },   // duyung: lama mode putri duyung (detik)
   pusar: { rilis: .42, akhir: 1, jarak: 8, R: 2.7, lama: 2, tik: .5, dmgTik: 25, dmgAkhir: 90, stun: 1.2 },
-  ombak: { rilis: .6, akhir: 1.4, jarak: 10, lebar: 2.3, lama: 2, dmg: 320, dorong: 7, lambat: 1.2 } };
-const NW = { duyung: 0, pusar: null, ombak: null, diamT: 0 };
+  ombak: { rilis: .6, akhir: 1.4, jarak: 10, lebar: 2.3, lama: 2, dmg: 320, dorong: 7, lambat: 1.2 },   // (lama, tidak dipakai lagi)
+  // Ulti baru — Laut Hiu Selatan: area laut luas 10 dtk di sekitar Nyi; tiap gelombang, 1 hiu air keluar untuk tiap hero / monster musuh di dalam area (damage + Slow)
+  // maks: terkaman per target per ulti · hiuMaks: hiu paling banyak dalam satu gelombang (yang paling dekat ke pusat didahulukan — menjaga HP tetap ringan)
+  laut: { rilis: .6, akhir: 1.4, R: 6.5, lama: 10, dmg: 150, lambat: 1.6, maks: 3, hiuMaks: 6, jeda: 1.4, terkam: .55 } };
+const NW = { duyung: 0, pusar: null, ombak: null, laut: null, diamT: 0 };
 const NYI_PATUNG = {}, NYI_RENANG = new Set(['renang', 'renangDiam']);
 function siapkanNyi(gl, m, T) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
@@ -4254,7 +4257,7 @@ function siapkanNyi(gl, m, T) {
   const X = m.userData.nyiLepas || {}, sk = m.scale.x; m.userData.nyiLepas = null;
   ['diam', 'pusaran', 'ulti'].forEach(k => { const u = X[k]; if (!u) return; u.scale.setScalar(sk); u.position.set(0, m.position.y, 0); u.visible = false; m.parent.add(u); T.nyiP[k] = u; });
   if (X.duyung) { pasangDuyung(T, m, sk, X.duyung, gl.animations); return; }   // file lama: duyung masih di dalam nyi-roro.glb
-  muatGLB(NYI_DUYUNG_URL).then(gd => { if (T.model !== m || !m.parent) return; const c = salinGLB(gd); if (KUAL.lv === 0) gantiBahan(c.scene, keLambert); pasangDuyung(T, m, sk, c.scene, c.animations); })
+  Promise.all([muatGLB(NYI_DUYUNG_URL), muatHiu()]).then(([gd]) => { if (T.model !== m || !m.parent) return; const c = salinGLB(gd); if (KUAL.lv === 0) gantiBahan(c.scene, keLambert); pasangDuyung(T, m, sk, c.scene, c.animations); })
     .catch(e => console.warn('[Nyi] model putri duyung gagal dimuat', e));   // putri duyung: file terpisah (nyi-duyung.glb), dimuat di latar belakang
 }
 const NYI_DUYUNG_URL = 'model-3d/nyi-duyung.glb?v=2';
@@ -4297,40 +4300,80 @@ void main() { float rim = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.6)
   gl_FragColor = vec4(mix(c2, c1, rim) + vec3(0.0, 0.06, 0.12) * arus, op * (0.28 + 0.72 * rim) * (0.85 + 0.15 * arus));
   #include <colorspace_fragment>
 }`;
+// model hiu bertulang (Tripo, hiu-air.glb): dipakai untuk hiu skill 1 & terkaman ulti — tampil sebagai air bercahaya (shader sama); kalau belum termuat: hiu buatan kode
+const HIU_URL = 'model-3d/hiu-air.glb?v=1', HIU_M = { glb: null, p: null };
+function muatHiu() { return HIU_M.p || (HIU_M.p = muatGLB(HIU_URL).then(g => { HIU_M.glb = g; }).catch(e => { console.warn('[Nyi] model hiu gagal dimuat — pakai hiu buatan kode', e); })); }
+const HIU_VS_KULIT = `#include <common>
+#include <skinning_pars_vertex>
+varying vec3 vN; varying vec3 vV; varying float vZ;
+void main() {
+  #include <beginnormal_vertex>
+  #include <skinbase_vertex>
+  #include <skinnormal_vertex>
+  #include <defaultnormal_vertex>
+  #include <begin_vertex>
+  #include <skinning_vertex>
+  #include <project_vertex>
+  vN = normalize(transformedNormal); vV = normalize(-mvPosition.xyz); vZ = position.x * 3.4;
+}`;
+const _hq = new THREE.Quaternion(), _hq2 = new THREE.Quaternion(), _hv = new THREE.Vector3(), _hv2 = new THREE.Vector3();
 function hiuAir() {
-  const u = { t: { value: Math.random() * 9 }, amp: { value: .1 }, op: { value: .6 }, c1: { value: new THREE.Color(0x3fb8ff) }, c2: { value: new THREE.Color(0x0646b8) }, rata: { value: 0 } };
-  const mat = (side, rata) => new THREE.ShaderMaterial({ uniforms: { t: { value: 0 }, amp: { value: .1 }, op: { value: .6 }, c1: u.c1, c2: u.c2, rata: { value: rata } }, vertexShader: HIU_VS, fragmentShader: HIU_FS, transparent: true, depthWrite: false, blending: THREE.NormalBlending, side });
-  const g = new THREE.Group(), badan = new THREE.Mesh(HIU3D.badan, mat(THREE.FrontSide, 0)), dalam = new THREE.Mesh(HIU3D.badan, mat(THREE.BackSide, .6)), sirip = new THREE.Mesh(HIU3D.sirip, mat(THREE.DoubleSide, .7));
-  // mata, mulut & gigi: biru air menyala
+  const u = { t: { value: Math.random() * 9 }, amp: { value: .1 }, op: { value: .6 }, c1: { value: new THREE.Color(0x3fb8ff) }, c2: { value: new THREE.Color(0x0646b8) } };
+  const mat = (side, rata, vs = HIU_VS) => new THREE.ShaderMaterial({ uniforms: { t: { value: 0 }, amp: { value: .1 }, op: { value: .6 }, c1: u.c1, c2: u.c2, rata: { value: rata } }, vertexShader: vs, fragmentShader: HIU_FS, transparent: true, depthWrite: false, blending: THREE.NormalBlending, side });
+  const g = new THREE.Group(), mats = [], buang = o => { o.userData.buang = 1; return o; };
   const nyalaB = (w, op = 1) => new THREE.MeshBasicMaterial({ color: w, transparent: true, opacity: op, depthWrite: false, toneMapped: false });
   const mata = nyalaB(0x0a9cff), gigi = nyalaB(0x2fb4ff, .95), mulutM = nyalaB(0x0a8cff, .95), pendar = new THREE.SpriteMaterial({ map: T_BULAT, color: 0x0a7cff, transparent: true, opacity: .9, depthWrite: false, toneMapped: false });
-  const zM = .35 * HIU3D.L, sinar = [];
-  [-1, 1].forEach(s => { const e = new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), mata); e.position.set(s * .27, .13, zM); g.add(e); const sp = new THREE.Sprite(pendar); sp.position.copy(e.position); sp.scale.setScalar(.42); g.add(sp); sinar.push(sp); });
-  const mulut = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-.25, -.02, zM - .1], [-.17, -.1, zM + .12], [0, -.14, zM + .3], [.17, -.1, zM + .12], [.25, -.02, zM - .1]].map(v => new THREE.Vector3(...v))), 24, .028, 6), mulutM); g.add(mulut);   // garis mulut menyala
-  const gg = new THREE.ConeGeometry(.03, .11, 4); for (let k = 0; k < 10; k++) { const a = (k / 9 - .5) * 2.2, t_ = new THREE.Mesh(gg, gigi); t_.position.set(Math.sin(a) * .2, -.1, zM + .12 + Math.cos(a) * .14); t_.rotation.x = Math.PI; g.add(t_); }   // gigi di rahang
-  const spM = new THREE.Sprite(pendar.clone()); spM.position.set(0, -.08, zM + .15); spM.scale.set(.7, .45, 1); g.add(spM); sinar.push(spM);
+  const sinar = []; let model = null;
+  if (HIU_M.glb) {   // ---- model hiu Tripo ----
+    const sc = cloneSkel(HIU_M.glb.scene), cari = n => sc.getObjectByName('tripo' + n) || sc.getObjectByName('tripo::' + n) || sc.getObjectByName(n);
+    const mK = mat(THREE.FrontSide, 0, HIU_VS_KULIT); mats.push({ m: mK, k: 1 });
+    sc.traverse(o => { if (o.isMesh) { o.material = mK; o.frustumCulled = false; o.castShadow = o.receiveShadow = false; o.renderOrder = 5; } });
+    sc.updateMatrixWorld(true);
+    const kepala = cari('Head_1') || sc, sk = kepala.getWorldScale(new THREE.Vector3()).x || 1, ukur = 1 / (3.4 * sk);   // ukuran dunia → ukuran di ruang tulang kepala
+    const pasangKepala = (o, x, y, z, s) => { o.position.copy(kepala.worldToLocal(new THREE.Vector3(x, y, z))); o.scale.multiplyScalar(s * ukur); kepala.add(o); };
+    [-1, 1].forEach(s => { const e = buang(new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), mata)); pasangKepala(e, .39, .235, s * .076, .05); const sp = new THREE.Sprite(pendar); pasangKepala(sp, .39, .235, s * .08, .42); sinar.push(sp); });   // mata menyala
+    const spM = new THREE.Sprite(pendar.clone()); pasangKepala(spM, .44, .165, 0, .75); sinar.push(spM);   // cahaya di dalam mulut yang menganga
+    const bungkus = new THREE.Group(); bungkus.rotation.y = -Math.PI / 2; bungkus.scale.setScalar(3.4); bungkus.position.y = -.19 * 3.4; bungkus.add(sc); g.add(bungkus);   // moncong (+x model) → depan (+z)
+    const simpan = b => { if (b) b.userData.q0 = b.quaternion.clone(); return b; };
+    model = { sc, ekor: ['Spine_2', 'Spine_3', 'Tail_0', 'Tail_1', 'Tail_2', 'Tail_3'].map(cari).filter(Boolean).map(simpan), leher: simpan(cari('Head_0')) };
+  } else {   // ---- hiu buatan kode (cadangan) ----
+    const badan = new THREE.Mesh(HIU3D.badan, mat(THREE.FrontSide, 0)), dalam = new THREE.Mesh(HIU3D.badan, mat(THREE.BackSide, .6)), sirip = new THREE.Mesh(HIU3D.sirip, mat(THREE.DoubleSide, .7));
+    mats.push({ m: badan.material, k: 1 }, { m: dalam.material, k: .4 }, { m: sirip.material, k: .9 });
+    [dalam, badan, sirip].forEach((o, k) => { o.renderOrder = 4 + k; o.frustumCulled = false; g.add(o); });
+    const zM = .35 * HIU3D.L;
+    [-1, 1].forEach(s => { const e = buang(new THREE.Mesh(new THREE.SphereGeometry(.05, 10, 8), mata)); e.position.set(s * .27, .13, zM); g.add(e); const sp = new THREE.Sprite(pendar); sp.position.copy(e.position); sp.scale.setScalar(.42); g.add(sp); sinar.push(sp); });
+    g.add(buang(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([[-.25, -.02, zM - .1], [-.17, -.1, zM + .12], [0, -.14, zM + .3], [.17, -.1, zM + .12], [.25, -.02, zM - .1]].map(v => new THREE.Vector3(...v))), 24, .028, 6), mulutM)));
+    const gg = new THREE.ConeGeometry(.03, .11, 4); for (let k = 0; k < 10; k++) { const a = (k / 9 - .5) * 2.2, t_ = buang(new THREE.Mesh(gg, gigi)); t_.position.set(Math.sin(a) * .2, -.1, zM + .12 + Math.cos(a) * .14); t_.rotation.x = Math.PI; g.add(t_); }
+    const spM = new THREE.Sprite(pendar.clone()); spM.position.set(0, -.08, zM + .15); spM.scale.set(.7, .45, 1); g.add(spM); sinar.push(spM);
+  }
   // cahaya biru air: pendar besar di sekeliling hiu + cahaya di lantai
   const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_BULAT, color: 0x0a62e8, transparent: true, opacity: .3, depthWrite: false, toneMapped: false })); aura.scale.set(3.4, 2.2, 1); aura.renderOrder = 3; g.add(aura);
-  const lantai = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: T_BULAT, color: 0x0a70f0, transparent: true, opacity: .5, depthWrite: false, toneMapped: false }));
+  const lantai = buang(new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: T_BULAT, color: 0x0a70f0, transparent: true, opacity: .5, depthWrite: false, toneMapped: false })));
   lantai.scale.set(2.6, 1, 5); lantai.position.y = -.47; lantai.renderOrder = 2; g.add(lantai);
-  [dalam, badan, sirip].forEach((o, k) => { o.renderOrder = 4 + k; o.frustumCulled = false; g.add(o); });
   g.position.set(0, .52, .25); g.scale.setScalar(TINGGI / 1.7);
-  return { g, u, badan, dalam, sirip, sinar, aura, lantai, mata, mulutM, gigi, terjang: 0, du: false };
+  const H = { g, u, mats, model, sinar, aura, lantai, mata, mulutM, gigi, terjang: 0, du: false };
+  H.atur = (op, t, amp, gigit = 0) => {   // transparansi, waktu, kibasan ekor, sentakan kepala (menggigit)
+    mats.forEach(({ m, k }) => { m.uniforms.op.value = op * k; m.uniforms.t.value = t; m.uniforms.amp.value = amp; });
+    if (!model) return;
+    model.sc.getWorldQuaternion(_hq); const atas = _hv.set(0, 1, 0).applyQuaternion(_hq), samping = _hv2.set(0, 0, 1).applyQuaternion(_hq);
+    model.ekor.forEach((b, i) => { b.quaternion.copy(b.userData.q0); b.parent.getWorldQuaternion(_hq2).invert();
+      b.quaternion.premultiply(_hq.setFromAxisAngle(atas.clone().applyQuaternion(_hq2).normalize(), Math.sin(t * 9 - i * .9) * amp * (1.6 + .7 * i))); b.updateMatrixWorld(true); });   // ekor meliuk
+    const L = model.leher; if (L) { L.quaternion.copy(L.userData.q0); L.parent.getWorldQuaternion(_hq2).invert(); L.quaternion.premultiply(_hq.setFromAxisAngle(samping.clone().applyQuaternion(_hq2).normalize(), -.35 * gigit)); }
+  };
+  return H;
 }
 function gerakHiu(D, dt, renang) {   // tiap frame selama mode putri duyung
   const H = D.hiu; if (!H) return;
   if (!H.du) { H.du = true; H.terjang = 1; }   // baru berubah jadi duyung: hiu muncul menerjang (besar & terang)
   H.terjang = Math.max(0, H.terjang - dt * 1.6); const j = H.terjang, k = renang ? 1 : .45;
-  H.u.t.value += dt * (renang ? 1 : .6); H.u.amp.value = (renang ? .13 : .06) + j * .1; H.u.op.value = .55 + j * .4 + .05 * Math.sin(D.t * 4);
-  H.badan.material.uniforms.op.value = H.u.op.value; H.sirip.material.uniforms.op.value = H.u.op.value * .9; H.dalam.material.uniforms.op.value = .22 + j * .2;
-  [H.badan, H.dalam, H.sirip].forEach(m => { m.material.uniforms.t.value = H.u.t.value; m.material.uniforms.amp.value = H.u.amp.value; });
+  H.u.t.value += dt * (renang ? 1 : .6); H.atur(.55 + j * .4 + .05 * Math.sin(D.t * 4), H.u.t.value, (renang ? .13 : .06) + j * .1);
   H.g.scale.setScalar(TINGGI / 1.7 * (1 + j * .3)); H.g.position.y = .52 + Math.sin(D.t * 3) * .03 * k;
   const den = .5 + .5 * Math.sin(D.t * 6);   // mata & mulut berdenyut, cahaya air makin terang saat menerjang
   H.sinar.forEach(sp => { sp.material.opacity = Math.min(1, .6 + .3 * den + j * .3); }); H.mata.opacity = .85 + .15 * den; H.mulutM.opacity = .8 + .2 * den;
   H.aura.material.opacity = Math.min(.7, .22 + .08 * Math.sin(D.t * 3) + j * .35); H.aura.scale.set(3.4 * (1 + j * .25), 2.2 * (1 + j * .25), 1);
   H.lantai.material.opacity = Math.min(.8, .42 + .1 * Math.sin(D.t * 4) + j * .3);
   H.lantai.position.y = (.06 - H.g.position.y) / H.g.scale.x;   // cahaya lantai tetap menempel di tanah walau hiu membesar / naik-turun
-  if (Math.random() < dt * (renang ? 18 : 5) + j * .5) { const p = H.g.localToWorld(new THREE.Vector3(rnd(-.4, .4), rnd(.2, .8), rnd(-1.6, 1.4))); percik(p, 1, Math.random() < .5 ? 0xffffff : 0x9fe8ff, renang ? 1.8 : .9, .1); }   // percikan air di badan hiu
+  if (Math.random() < dt * (renang ? 18 : 5) + j * .5) { const p = H.g.localToWorld(new THREE.Vector3(rnd(-.4, .4), rnd(.2, .8), rnd(-1.6, 1.4))); percik(p, 1, Math.random() < .5 ? NR_BIRU.muda : NR_BIRU.terang, renang ? 1.8 : .9, .1); }   // percikan air di badan hiu
 }
 function hiuSelesai(D) { if (D && D.hiu) D.hiu.du = false; }
 // nyi-roro.glb (v6): Nyi Roro Kidul bertulang (rambut & kain lengan ikut berayun) + rok + tongkat · putri duyung terpisah di nyi-duyung.glb · patung pose tidak dipakai lagi (file lama tetap didukung)
@@ -4447,22 +4490,61 @@ function nrLesat(pos, a, jarak) {   // jejak air saat melesat: semburan ombak ke
     if (u < 1) { for (let k = 0; k < (KUAL.lv === 0 ? 1 : 3); k++) percik(p.clone().addScaledVector(s, rnd(-.6, .6)).setY(.2), 1, Math.random() < .5 ? NR.air : NR.busa, 2.2, .12); if (Math.random() < dt * 20) gelombang(p.clone().setY(.05), .7, .35, NR.air); }
     return e.t < NR.lesat.lama + .1; }, akhir() { } });
 }
-function nrPusaran(c, R, lama) {   // Pusaran Laut Selatan: pusaran air berputar di lantai + dinding cipratan, diakhiri ledakan air (Stun)
+const NR_BIRU = { tua: 0x0646b8, laut: 0x0a70f0, terang: 0x1f8cff, muda: 0x3fb8ff };   // palet biru air (sama dengan hiu air skill 1)
+function nrPusaran(c, R, lama) {   // Pusaran Laut Selatan: pusaran air berputar di lantai + dinding cipratan, diakhiri ledakan air (Stun) — warna biru pekat seperti hiu air
   const q = c.clone().setY(0), g = new THREE.Group(); g.position.copy(q); scene.add(g);
-  const bhn = (w, op, map) => new THREE.MeshBasicMaterial({ map, color: w, transparent: true, opacity: op, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending });
-  const dasar = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: T_RIAK, color: 0x2a8fe0, transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); dasar.position.y = .04; g.add(dasar);
-  const sp = [0, 1].map(k => { const m = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), bhn(k ? NR.busa : NR.air, 0, T_PUSAR)); m.position.y = .06 + k * .02; m.renderOrder = 3 + k; g.add(m); return m; });
-  const dinding = new THREE.Mesh(new THREE.CylinderGeometry(1, .82, 1, 40, 1, true), bhn(NR.air, 0, T_OMBAK)); dinding.position.y = .35; g.add(dinding);
-  [dasar, ...sp, dinding].forEach(x => x.renderOrder = 3); nyala(q.clone().setY(.8), 1.6, NR.air, .25); gelombang(q.clone().setY(.05), R, .45, NR.air);
+  const bhn = (w, op, map) => new THREE.MeshBasicMaterial({ map, color: w, transparent: true, opacity: op, depthWrite: false, toneMapped: false, side: THREE.DoubleSide, blending: THREE.NormalBlending });
+  const dasar = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: T_RIAK, color: NR_BIRU.tua, transparent: true, opacity: 0, depthWrite: false, toneMapped: false })); dasar.position.y = .04; g.add(dasar);
+  const sp = [0, 1].map(k => { const m = new THREE.Mesh(new THREE.CircleGeometry(1, 48).rotateX(-Math.PI / 2), bhn(k ? NR_BIRU.muda : NR_BIRU.terang, 0, T_PUSAR)); m.position.y = .06 + k * .02; m.renderOrder = 3 + k; g.add(m); return m; });
+  const dinding = new THREE.Mesh(new THREE.CylinderGeometry(1, .82, 1, 40, 1, true), bhn(NR_BIRU.laut, 0, T_OMBAK)); dinding.position.y = .35; g.add(dinding);
+  [dasar, ...sp, dinding].forEach(x => x.renderOrder = 3); nyala(q.clone().setY(.8), 1.6, NR_BIRU.terang, .25); gelombang(q.clone().setY(.05), R, .45, NR_BIRU.terang);
   TMFX.push({ t: 0, upd(e, dt) {
     const tumbuh = Math.min(1, e.t / .3), pudar = e.t > lama ? Math.max(0, 1 - (e.t - lama) / .35) : 1, r = R * (.4 + .6 * tumbuh);
-    dasar.scale.setScalar(r); dasar.material.opacity = .7 * pudar; sp.forEach((m, k) => { m.scale.setScalar(r * (k ? .8 : 1)); m.rotation.y -= dt * (k ? 7 : 4.5); m.material.opacity = (k ? .65 : .85) * pudar; });
-    dinding.scale.set(r, .5 + .35 * Math.sin(e.t * 9), r); dinding.rotation.y -= dt * 3; dinding.material.opacity = .32 * pudar;
-    if (e.t < lama && Math.random() < dt * (KUAL.lv === 0 ? 10 : 26)) { const a = Math.random() * Math.PI * 2, rr = rnd(.3, 1) * r; percik(q.clone().add(new THREE.Vector3(Math.cos(a) * rr, .25, Math.sin(a) * rr)), 1, Math.random() < .6 ? NR.air2 : NR.busa, 1.6, .11); }
-    if (!e.ledak && e.t >= lama) { e.ledak = 1; nyala(q.clone().setY(1), 2.6, NR.air, .35); gelombang(q.clone().setY(.05), R * 1.15, .5, NR.air); gelombang(q.clone().setY(.05), R * .7, .4, NR.busa);
-      percik(q.clone().setY(.6), KUAL.lv === 0 ? 16 : 36, NR.air2, 5, .15); percik(q.clone().setY(.6), KUAL.lv === 0 ? 8 : 18, NR.busa, 4, .12); kilat(q, 50); }
+    dasar.scale.setScalar(r); dasar.material.opacity = .75 * pudar; sp.forEach((m, k) => { m.scale.setScalar(r * (k ? .8 : 1)); m.rotation.y -= dt * (k ? 7 : 4.5); m.material.opacity = (k ? .55 : .8) * pudar; });
+    dinding.scale.set(r, .5 + .35 * Math.sin(e.t * 9), r); dinding.rotation.y -= dt * 3; dinding.material.opacity = .38 * pudar;
+    if (e.t < lama && Math.random() < dt * (KUAL.lv === 0 ? 10 : 26)) { const a = Math.random() * Math.PI * 2, rr = rnd(.3, 1) * r; percik(q.clone().add(new THREE.Vector3(Math.cos(a) * rr, .25, Math.sin(a) * rr)), 1, Math.random() < .6 ? NR_BIRU.muda : NR_BIRU.terang, 1.6, .11); }
+    if (!e.ledak && e.t >= lama) { e.ledak = 1; nyala(q.clone().setY(1), 2.6, NR_BIRU.terang, .35); gelombang(q.clone().setY(.05), R * 1.15, .5, NR_BIRU.laut); gelombang(q.clone().setY(.05), R * .7, .4, NR_BIRU.muda);
+      percik(q.clone().setY(.6), KUAL.lv === 0 ? 16 : 36, NR_BIRU.muda, 5, .15); percik(q.clone().setY(.6), KUAL.lv === 0 ? 8 : 18, NR_BIRU.terang, 4, .12); kilat(q, 50); }
     return pudar > 0; },
     akhir() { scene.remove(g); [dasar, ...sp, dinding].forEach(x => { x.geometry.dispose(); x.material.dispose(); }); } });
+}
+// ---- Laut Hiu Selatan: area laut biru (riak berputar, tepi bergelombang, sirip hiu berkeliling) ----
+function nrLaut(c, R, lama) {
+  const q = c.clone().setY(0), g = new THREE.Group(); g.position.copy(q); scene.add(g);
+  const bhn = (w, op, map) => new THREE.MeshBasicMaterial({ map, color: w, transparent: true, opacity: op, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
+  const dasar = new THREE.Mesh(new THREE.CircleGeometry(1, 64).rotateX(-Math.PI / 2), bhn(NR_BIRU.tua, 0)); dasar.position.y = .03;
+  const riak = [0, 1].map(k => { const m = new THREE.Mesh(new THREE.CircleGeometry(1, 64).rotateX(-Math.PI / 2), bhn(k ? NR_BIRU.muda : NR_BIRU.terang, 0, T_RIAK)); m.position.y = .045 + k * .01; return m; });
+  const tepi = new THREE.Mesh(new THREE.RingGeometry(.94, 1, 72).rotateX(-Math.PI / 2), bhn(NR_BIRU.muda, 0)); tepi.position.y = .06;
+  const dinding = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 64, 1, true), bhn(NR_BIRU.laut, 0, T_OMBAK)); dinding.position.y = .25;
+  [dasar, ...riak, tepi, dinding].forEach((x, k) => { x.renderOrder = 2 + k; g.add(x); });
+  const sirip = [0, 1, 2].map(k => { const m = new THREE.Mesh(HIU3D.sirip, bhn(NR_BIRU.terang, 0)); m.scale.setScalar(.55); g.add(m); return { m, a: k * 2.1, r: .45 + .2 * k, v: (k % 2 ? -1 : 1) * (.5 + .15 * k) }; });   // sirip hiu berenang berkeliling
+  gelombang(q.clone().setY(.05), R, .6, NR_BIRU.terang); nyala(q.clone().setY(.8), 2.4, NR_BIRU.terang, .35); kilat(q, 40);
+  TMFX.push({ t: 0, upd(e, dt) {
+    const tumbuh = Math.min(1, e.t / .45), pudar = e.t > lama ? Math.max(0, 1 - (e.t - lama) / .6) : 1, r = R * (.25 + .75 * (1 - (1 - tumbuh) * (1 - tumbuh)));
+    dasar.scale.setScalar(r); dasar.material.opacity = .42 * pudar;
+    riak.forEach((m, k) => { m.scale.setScalar(r * (k ? .7 : 1)); m.rotation.y += dt * (k ? -.5 : .3); m.material.opacity = (k ? .35 : .5) * pudar * (.85 + .15 * Math.sin(e.t * 2 + k)); });
+    tepi.scale.setScalar(r); tepi.material.opacity = (.6 + .25 * Math.sin(e.t * 5)) * pudar;
+    dinding.scale.set(r, .35 + .15 * Math.sin(e.t * 4), r); dinding.rotation.y += dt * .8; dinding.material.opacity = .3 * pudar;
+    sirip.forEach(S => { S.a += dt * S.v * 1.6; const rr = r * S.r; S.m.position.set(Math.cos(S.a) * rr, -.3 + .03 * Math.sin(e.t * 6 + S.a), Math.sin(S.a) * rr); S.m.rotation.y = -S.a + (S.v > 0 ? 0 : Math.PI); S.m.material.opacity = .85 * pudar;
+      if (Math.random() < dt * 5 * pudar) percik(g.localToWorld(S.m.position.clone().setY(.2)), 1, NR_BIRU.muda, .8, .09); });
+    if (pudar > 0 && Math.random() < dt * (KUAL.lv === 0 ? 8 : 20)) { const a = Math.random() * Math.PI * 2, rr = r * (.92 + Math.random() * .1); percik(q.clone().add(new THREE.Vector3(Math.cos(a) * rr, .2, Math.sin(a) * rr)), 1, Math.random() < .5 ? NR_BIRU.muda : NR_BIRU.terang, 1.4, .1); }   // ombak kecil di tepi
+    return pudar > 0; },
+    akhir() { scene.remove(g); [dasar, ...riak, tepi, dinding].forEach(x => { x.geometry.dispose(); x.material.dispose(); }); sirip.forEach(S => S.m.material.dispose()); } });
+}
+// ---- hiu air 3D melompat dari air menerkam sasaran (efek sama dengan hiu skill 1), lalu menyelam kembali ----
+function nrTerkam(dari, ke, lama = .55) {
+  const H = hiuAir(), g = H.g, a0 = dari.clone().setY(0), b0 = ke.clone().setY(0), d = b0.clone().sub(a0), L = Math.max(.5, d.length()); d.normalize();
+  const b1 = b0.clone().addScaledVector(d, 2.2), ya = Math.atan2(d.x, d.z); g.scale.setScalar(.9); g.rotation.order = 'YXZ'; g.rotation.y = ya; g.position.copy(a0).setY(-1); scene.add(g);
+  gelombang(a0.clone().setY(.05), 1.4, .4, NR_BIRU.terang); percik(a0.clone().setY(.3), KUAL.lv === 0 ? 10 : 22, NR_BIRU.muda, 3.5, .14);
+  const set = (op, amp, tt, gigit = 0) => { H.atur(op, tt, amp, gigit); H.sinar.forEach(sp => sp.material.opacity = Math.min(1, op + .2)); H.mata.opacity = Math.min(1, op + .2); H.mulutM.opacity = Math.min(1, op + .2); H.aura.material.opacity = op * .45; H.lantai.visible = false; };
+  TMFX.push({ t: 0, upd(e, dt) {
+    const t = e.t, T2 = lama + .5;
+    if (t < lama) { const u = t / lama; g.position.lerpVectors(a0, b0, u); g.position.y = -.6 + 2.4 * Math.sin(u * Math.PI * .5); g.rotation.x = -.7 * (1 - u) + .15 * u; set(Math.min(.95, .3 + u * 1.2), .18, t * 2, u > .7 ? -(u - .7) / .3 : 0); }   // melompat dari air ke sasaran, mulut menganga lebar menjelang gigitan
+    else if (!e.gigit) { e.gigit = 1; nyala(b0.clone().setY(1.1), 1.8, NR_BIRU.terang, .25); gelombang(b0.clone().setY(.05), 1.6, .45, NR_BIRU.muda); percik(b0.clone().setY(1), KUAL.lv === 0 ? 12 : 26, NR_BIRU.muda, 4.5, .14); kilat(b0, 45); }   // gigitan!
+    if (t >= lama) { const u = Math.min(1, (t - lama) / .5); g.position.lerpVectors(b0, b1, u); g.position.y = 1.8 * (1 - u) - 1.4 * u * u; g.rotation.x = .2 + .9 * u; set(.95 * (1 - u), .12, t * 2, Math.max(0, 1 - u * 4));   // kepala menyentak (menggigit) lalu menyelam kembali
+      if (!e.selam && u > .6) { e.selam = 1; percik(b1.clone().setY(.3), KUAL.lv === 0 ? 8 : 18, NR_BIRU.terang, 3, .12); gelombang(b1.clone().setY(.05), 1.2, .35, NR_BIRU.terang); } }
+    return t < T2; },
+    akhir() { scene.remove(g); g.traverse(o => { if (o.material) o.material.dispose(); if (o.geometry && o.userData.buang) o.geometry.dispose(); }); } });   // geometri model GLB dipakai bersama: tidak dibuang
 }
 const NR_GEO_OMBAK = (() => {   // dinding ombak melengkung: bagian atas menggulung ke depan
   const gm = new THREE.PlaneGeometry(1, 1, 16, 12), a = gm.attributes.position;
@@ -4498,7 +4580,7 @@ function pakaiNyi(i) {
     tj.y = 0; const d = tj.clone().sub(pos).setY(0); if (d.length() > NR.pusar.jarak) tj = pos.clone().addScaledVector(d.normalize(), NR.pusar.jarak).setY(0);
     P.tujuanT = batasi(tj); P.state = 'nrPusaran'; mainUlang('pusaran', .05, NR.ts.pusaran);
   }
-  else if (i === 3) { arahi(NR.ombak.jarak); P.state = 'nrUlti'; mainUlang('ulti', .05, NR.ts.ulti); banner('🌊 GELOMBANG OMBAK!', '#8fe8ff'); goyang = Math.max(goyang, .12); }
+  else if (i === 3) { P.state = 'nrUlti'; mainUlang('ulti', .05, NR.ts.ulti); banner('🦈 LAUT HIU SELATAN!', '#5fc4ff'); goyang = Math.max(goyang, .12); }
   P.cd[i] = i === 1 ? NR.lesat.lama + NR.lesat.jedaKembali : CD_MAX[i]; P.t = 0; P.hit = 0;
 }
 function nrBebas() { P.state = 'bebas'; NW.diamT = 0; main(NW.duyung > 0 ? 'renangDiam' : 'diam', .2); }
@@ -4529,7 +4611,24 @@ function updNyi(dt, pos, f) {
         if (!Q.tarik.has(m)) { Q.tarik.add(m); tarikMusuh(m, Q.c.clone(), Math.max(.3, B.lama - Q.t - .1)); } }); } }
     else { NW.pusar = null; let ada = 0; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && Math.hypot(m.g.position.x - Q.c.x, m.g.position.z - Q.c.z) < B.R + .5) { kena(m, B.dmgAkhir, Q.c.clone().add(new THREE.Vector3(0, 0, .01)), 1.5); m.pusing = Math.max(m.pusing || 0, B.stun); ada = 1; } });
       goyang = Math.max(goyang, ada ? .22 : .1); } }
-  // Gelombang Ombak: lawan yang dilewati ombak kena damage besar sekali & terseret ke depan
+  // Laut Hiu Selatan: selama 10 dtk, hero musuh di dalam area diterkam hiu (maks. 3 terkaman per ulti, berjeda) — damage + Slow
+  const LT = NW.laut; if (LT) { LT.t += dt; LT.jedaT -= dt; const B = NR.laut;
+    if (SELESAI) NW.laut = null;
+    else {
+      if (LT.jedaT <= 0 && LT.t < B.lama) {   // satu gelombang: 1 hiu untuk tiap hero / monster musuh di area (maks. 3 terkaman per target)
+        const sas = []; MUSUH.forEach(m => { if (m.mati || m.sembunyi || !m.g) return; if (m.wn && (m.wn.jenis === 'rumah' || m.wn.jenis === 'tugu')) return;   // bangunan tidak diterkam
+          if ((LT.hitung.get(m) || 0) >= B.maks) return; const d = Math.hypot(m.g.position.x - LT.c.x, m.g.position.z - LT.c.z); if (d < B.R) sas.push([d, m]); });
+        sas.sort((a, b) => a[0] - b[0]).slice(0, B.hiuMaks).forEach(([, m], k) => {
+          LT.hitung.set(m, (LT.hitung.get(m) || 0) + 1);
+          const ke = m.g.position.clone().setY(0), arah = ke.clone().sub(LT.c); if (arah.lengthSq() < .01) arah.set(Math.sin(P.arah + k * 2), 0, Math.cos(P.arah + k * 2)); arah.normalize();
+          const dari = ke.clone().addScaledVector(arah, -3.2); dari.x = Math.max(LT.c.x - B.R, Math.min(LT.c.x + B.R, dari.x)); dari.z = Math.max(LT.c.z - B.R, Math.min(LT.c.z + B.R, dari.z));
+          fx('nrTerkam', dari, ke, B.terkam); LT.serang.push({ m, t: 0 }); });
+        if (sas.length) LT.jedaT = B.jeda; }
+      LT.serang = LT.serang.filter(S => { S.t += dt; if (S.t < B.terkam) return true;
+        if (!S.m.mati && Math.hypot(S.m.g.position.x - LT.c.x, S.m.g.position.z - LT.c.z) < B.R + 1.5) { kena(S.m, B.dmg, S.m.g.position.clone().add(new THREE.Vector3(.01, 0, .01)), 1.5, 1); lambatkan(S.m, B.lambat); goyang = Math.max(goyang, .18); }
+        return false; });
+      if (!LT.serang.length && LT.t > B.lama) NW.laut = null; } }   // selesai setelah 10 dtk
+  // Gelombang Ombak (lama): lawan yang dilewati ombak kena damage besar sekali & terseret ke depan
   const O = NW.ombak; if (O) { O.t += dt; const B = NR.ombak, u = Math.min(1, O.t / B.lama), maju = 1 + (B.jarak - 1) * u;
     if (SELESAI) NW.ombak = null;
     else { MUSUH.forEach(m => { if (m.mati || m.sembunyi || O.kena.has(m)) return; const v = m.g.position.clone().sub(O.p).setY(0), sj = v.dot(O.f), sm = Math.abs(v.x * O.f.z - v.z * O.f.x);
@@ -4557,8 +4656,8 @@ function updNyi(dt, pos, f) {
     if (t > B.akhir) nrBebas();
   }
   else if (P.state === 'nrUlti') {
-    const B = NR.ombak;
-    if (t > B.rilis && !P.hit) { P.hit = 1; fx('nrOmbak', pos.clone(), P.arah, B.jarak, B.lebar, B.lama); NW.ombak = { p: pos.clone().setY(0), f: f.clone(), t: 0, kena: new Set() }; goyang = Math.max(goyang, .25); }
+    const B = NR.laut;
+    if (t > B.rilis && !P.hit) { P.hit = 1; const c = pos.clone().setY(0); fx('nrLaut', c, B.R, B.lama); NW.laut = { c, t: 0, hitung: new Map(), jedaT: .4, serang: [] }; goyang = Math.max(goyang, .25); }
     if (t > B.akhir) nrBebas();
   }
 }
@@ -5558,7 +5657,7 @@ const BOT_UMUM = {
   saras: { warna: 0x40a0ff, dasar: ['pukul1', 'pukul2', 'tendang'], s: [{ t: 'dash', a: 'gledeg', dmg: 120, stun: .5 }, { t: 'area', a: 'tinju', dmg: 150, r: 2.4, stun: .8 }, { t: 'lompat', a: 'loncat', dmg: 220, r: 3, stun: 1 }], cd: [.5, 6, 7, 14], cepat: 4.4 },
   angling: { jauh: 1, jarak: 7.5, cepat: AD.cepat, warna: 0xffa020, dasar: ['angin'], s: [{ t: 'pel', a: 'hembus', dmg: 100, dorong: 9 }, { t: 'pel', a: 'api', dmg: 140 }, { t: 'target', a: 'turun', dmg: 220, r: 3, stun: 1 }], cd: [.6, 7, 6, 15] },
   dayang: { jauh: 1, jarak: 7, cepat: DS.cepat, warna: 0xff9ad0, dasar: ['jarum'], s: [{ t: 'pel', a: 'benang', dmg: 100, stun: 1.2 }, { t: 'area', a: 'pukul', dmg: 120, r: 2, stun: 1.2 }, { t: 'target', a: 'panggil', dmg: 200, r: 3, stun: .8 }], cd: [.55, 6, 8, 14] },
-  nyi: { jauh: 1, jarak: 7.5, cepat: NR.cepat, warna: 0x30a0ff, dasar: ['serang'], s: [{ t: 'dash', a: 'renang', dmg: 90 }, { t: 'target', a: 'pusaran', dmg: 150, r: 2.6, lambat: 2 }, { t: 'target', a: 'ulti', dmg: 230, r: 3.2, stun: 1 }], cd: [.6, 8, 9, 16] },
+  nyi: { jauh: 1, jarak: 7.5, cepat: NR.cepat, warna: 0x30a0ff, dasar: ['serang'], s: [{ t: 'dash', a: 'renang', dmg: 90 }, { t: 'target', a: 'pusaran', dmg: 150, r: 2.6, lambat: 2 }, { t: 'target', a: 'ulti', dmg: 200, r: 2.4, lambat: 1.6 }], cd: [.6, 8, 9, 16] },
   siliwangi: { warna: 0xffd040, dasar: ['tebas1', 'tebas2', 'tebas3'], s: [{ t: 'lompat', a: 'panggil', dmg: 130, r: 2.2, stun: .8 }, { t: 'dash', a: 'tebas2', dmg: 110 }, { t: 'dash', a: 'tebas3', dmg: 240, stun: .8 }], cd: [.5, 9, 8, 16], cepat: 4.4 },
   ciung: { jauh: 1, jarak: 7, warna: 0xff6020, dasar: ['lempar'], s: [{ t: 'pel', a: 'perintah', dmg: 120, stun: 1.2 }, { t: 'dash', a: 'lincah', dmg: 60 }, { t: 'target', a: 'panggil', dmg: 220, r: 3, stun: .8 }], cd: [.7, 8, 8, 16] },
   sangkuriang: { warna: 0xc8641a, dasar: ['pukul1', 'pukul2', 'pukul3'], s: [{ t: 'buff', a: 'lari', lama: 4 }, { t: 'area', a: 'putar', dmg: 150, r: 2.6, stun: 1.2 }, { t: 'target', a: 'panggil', dmg: 180, r: 3, stun: 1.2 }], cd: [.55, 10, 8, 16] },
@@ -5601,7 +5700,9 @@ const BOT_FX = (() => {
         { noTanda: 1, tH: c => jrk(c) / DS.anjing.cepat + .5, akhir: c => jrk(c) / DS.anjing.cepat + .7, mulai: c => c.vf('dsAnjing', c.pos, c.tj.clone(), null), kena: () => { } }] },   // anjing berlari ke area lalu meledak
     nyi: { d: { lepas: c => c.vf('nrBola', v1(c, 1.2), c.a, c.L, c.cb) },
       s: [{ mulai: c => { c.vf('nrCipratan', c.pos, .9); c.vf('nrLesat', c.pos, c.a, 4); } }, { kena: c => c.vf('nrPusaran', c.tj.clone(), c.k.r, 1) },
-        { tH: c => .9 * Math.max(.2, jrk(c) - 1) / (jrk(c) + .5), akhir: c => 1.1, mulai: c => c.vf('nrOmbak', c.pos, c.a, jrk(c) + 1.5, 2.3, .9), kena: c => c.vf('nrCipratan', c.tj.clone(), 1.2) }] },
+        { noTanda: 1, tH: NR.laut.rilis + NR.laut.terkam, akhir: NR.laut.rilis + NR.laut.terkam + .3, kena: () => { },   // ulti bot: area laut + 1 terkaman hiu ke lawan
+          mulai: c => c.vf('nrLaut', c.pos.clone().setY(0), NR.laut.R, NR.laut.lama),
+          jadwal: [[NR.laut.rilis, c => { const ke = c.bidik(NR.laut.terkam), d = ke.clone().sub(c.pos).setY(0); if (d.lengthSq() < .01) d.copy(c.f); d.normalize(); c.vf('nrTerkam', ke.clone().addScaledVector(d, -3.2), ke, NR.laut.terkam); }]] }] },
     siliwangi: { d: { kena: c => c.vf('swTebas', c.pos, c.a, ...tebas(c.n)) },
       s: [{ kena: c => c.vf('swMuncul', c.tj.clone()) }, { mulai: c => c.vf('swBayang', c.pos, c.a, 4) }, { mulai: c => c.vf('swGatsuga', c.pos, dpn(c, 4), .4) }] },
     ciung: { d: { lepas: c => c.vf('cwBiji', v1(c, 1.3), c.ep.clone().setY(1)) },
@@ -6973,7 +7074,7 @@ R.root.add(R.tilt);
 R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, remote: true, bar: null };
 
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
-const FXF = { bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga };
+const FXF = { bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga };
 const FX_SUDUT = { ksTebas: [1], ksGerak: [3], ksSerang: [2], skPerahu: [1], skTebas: [1], swMacan: [2], swCakar: [2], swTebas: [1], swBayang: [1], nrBola: [1], nrLesat: [1], nrOmbak: [1], dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
 function fx(n, ...a) {
   FXF[n](...a);
