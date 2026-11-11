@@ -1416,7 +1416,7 @@ if (HERO === 'kiansantang') $('#help').textContent = 'WASD / panah: gerak · J /
 if (HERO === 'sangkuriang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukulan Dayung (3 pukulan) · U: Langkah Gesit (lari lebih cepat 4 dtk) · I: Putaran Dayung (damage + stun 1,2 dtk) · O: Tangkuban Perahu (perahu muncul 5 dtk: damage + stun 1,2 dtk, tidak bisa ditembus; dekati & tekan O lagi: perahu ditendang otomatis ke lawan terdekat, damage + stun 1,2 dtk)';
 if (HERO === 'ciung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lemparan Biji (jarak jauh) · U: Serangan Ayam Jago (damage + stun 1,2 dtk) · I: Lincah Sang Legenda (melesat + lari lebih cepat 2 dtk) · O: Phoenix Jago Sakti (hantam area depan lalu kembali)';
 if (HERO === 'siliwangi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Kujang (3 tebasan) · U (tahan + mouse): Panggilan Macan Putih (damage + Airborne, macan bertarung 10 dtk) · I: Langkah Bayangan (blink 3x, lanjutkan dalam 1,5 dtk) · O: Bayangan Raja Macan (3 serangan, 6 bila Macan Putih aktif)';
-if (HERO === 'nyi') $('#help').textContent = 'Pasif Anak Samudra: di air (Pusaran, Laut Hiu Selatan, danau War Nanas) skill 1 aktif otomatis · WASD / panah: gerak · J / Spasi: Bola Air (jarak jauh) · U (tahan + mouse): Jelajah Samudra (melesat + damage, lalu menjadi putri duyung 5 dtk: kebal damage & stun, tidak bisa menyerang — tekan U lagi untuk kembali) · I (tahan + mouse): Pusaran Laut Selatan (menarik lawan ke tengah + Slow 2 dtk, lalu Stun) · O: Laut Hiu Selatan (area laut luas 10 dtk di sekitar Nyi: tiap hero / monster musuh di dalamnya diterkam hiu air sendiri — damage + Slow, maks. 3 terkaman per target)';
+if (HERO === 'nyi') $('#help').textContent = 'Pasif Anak Samudra: di air (Pusaran, Laut Hiu Selatan, danau War Nanas) skill 1 tanpa cooldown · WASD / panah: gerak · J / Spasi: Bola Air (jarak jauh) · U (tahan + mouse): Jelajah Samudra (melesat + damage, lalu menjadi putri duyung 5 dtk: kebal damage & stun, tidak bisa menyerang — tekan U lagi untuk kembali) · I (tahan + mouse): Pusaran Laut Selatan (menarik lawan ke tengah + Slow 2 dtk, lalu Stun) · O: Laut Hiu Selatan (area laut luas 10 dtk di sekitar Nyi: tiap hero / monster musuh di dalamnya diterkam hiu air sendiri — damage + Slow, maks. 3 terkaman per target)';
 if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U: Benang Pengikat (mengunci hero lawan terdekat — tahan + mouse untuk memilih lawan: benang mengikat 2 dtk, magic damage + Slow) · I (tahan + mouse): Pukulan Centong Kelapa (memukul kepala lawan dekat: Stun 1,2 dtk · Dayang Sumbi lebih cepat 3 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun + Shield) · Combo: U → I → O';
 if (HERO === 'angling') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Angin (jarak jauh) · U (tahan + mouse): Hembusan Angin (mendorong lawan jauh) · I (tahan + mouse): Bola Api · O: Elang Sakti (naik elang, terbang bebas 10 dtk + lebih cepat; Hembusan Angin & Bola Api jeda hanya 0,5 dtk, tetap diarahkan manual; Hembusan lebih luas) · O lagi saat terbang: elang melesat ke target, Angling Dharma meloncat turun';
 if (HERO === 'saras') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jurus Petir (pukul, hook, tendangan putar) · U (tahan + mouse): Kilat Bayangan (menghilang, muncul 0,5 m di depan lawan: lutut terbang + pukulan) · I (tahan + mouse): Tinju Halilintar (3 ledakan petir di jalur tinju: damage + Stun) · O: Puting Beliung Gledeg (berputar menendang 1,2 dtk sambil bergerak & menyedot lawan, ditutup Tendangan Gledeg + petir dari langit; kebal stun) · Pasif Muatan Petir: 4 serangan kena → pukulan berikutnya menyambar berantai · Combo: U → I → O';
@@ -4596,7 +4596,7 @@ function nrDiam(dt) {   // dua animasi diam bergantian: Diam 1 (Standing relax) 
 function nrKembali() {   // putri duyung → kembali jadi manusia (ditekan lagi atau waktu habis)
   NW.duyung = 0; P.cd[1] = CD_MAX[1]; fx('nrCipratan', P.root.position.clone(), 1); P.state = 'bebas'; P.cur = ''; main('diam', .1); nrLencana();
 }
-// PASIF Anak Samudra: berada di air → skill 1 (putri duyung) aktif otomatis tanpa melesat, bila skill 1 sedang siap (durasi & cooldown seperti biasa)
+// PASIF Anak Samudra: selama berada di air, skill 1 (Jelajah Samudra) tanpa cooldown — bisa dipakai terus
 // air = area Pusaran (skill 2) & Laut Hiu Selatan (ulti) milik Nyi, atau danau War Nanas
 function nrDiAir(p) {
   const L = NW.laut; if (L && L.t < NR.laut.lama && Math.hypot(p.x - L.c.x, p.z - L.c.z) < NR.laut.R) return true;
@@ -4606,9 +4606,9 @@ function nrDiAir(p) {
 }
 function updNyi(dt, pos, f) {
   const t = P.t; updBidik();
-  if (!(NW.duyung > 0) && P.state === 'bebas' && P.cd[1] <= 0 && !SELESAI && !pingsan() && nrDiAir(pos)) {
-    NW.duyung = NR.lesat.duyung; P.cd[1] = NR.lesat.jedaKembali; P.cur = ''; main('renangDiam', .1); fx('nrCipratan', pos.clone(), .9); nrLencana();
-    banner('🧜‍♀️ Pasif Anak Samudra: di air berubah jadi putri duyung', '#5fc4ff'); }
+  const diAir = !SELESAI && nrDiAir(pos);
+  if (diAir && !(NW.duyung > 0) && P.state !== 'nrLesat' && P.cd[1] > 0) P.cd[1] = 0;   // di air: cooldown skill 1 langsung habis (saat masih jadi duyung, jeda tombol "kembali" tetap berlaku)
+  if (diAir !== !!NW.diAir) { NW.diAir = diAir; if (diAir) banner('🧜‍♀️ Pasif Anak Samudra: di air skill 1 tanpa cooldown', '#5fc4ff'); }
   if (NW.duyung > 0) {   // kebal damage & stun selama berenang
     P.kunci = P.pusing = 0; P.lambat = 0; P.tarikD = null; P.angkatD = null;
     if (P.state === 'kalah' || SELESAI) { NW.duyung = 0; nrLencana(); }
