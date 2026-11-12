@@ -6297,6 +6297,7 @@ function wnJedaHidup() {   // menit ke-0: 10 dtk, +2 dtk tiap menit sampai menit
 }
 
 // ---------- arena ----------
+const WN_POHON = ['pohon-1', 'pohon-2', 'pohon-mangga', 'pohon-seri', 'pohon-rambutan'].map(n => `model-3d/${n}.glb?v=1`), WN_POHON_TINGGI = 4.4;   // tinggi pohon (m) pada skala 1
 function buatArenaNanas() {
   scene.background = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
     g.addColorStop(0, '#3f8fe0'); g.addColorStop(.6, '#9fd2f6'); g.addColorStop(1, '#e8f6ff'); x.fillStyle = g; x.fillRect(0, 0, 4, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
@@ -6339,9 +6340,11 @@ function buatArenaNanas() {
     for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + rnd(-.1, .1), r = WN_DANAU_R + rnd(.2, .7); if (Math.abs(Math.cos(a) - arah) < .15) continue;
       const b = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.35, .7), 0), mBatuK); b.position.set(D.x + Math.cos(a) * r, .15, D.z + Math.sin(a) * r); b.scale.y = .6; b.castShadow = true; scene.add(b); }
     for (let i = 0; i < 7; i++) { const a = rnd(0, 6.3), r = rnd(1, WN_DANAU_R - .8), x = D.x + Math.cos(a) * r, z = D.z + Math.sin(a) * r; cyl(.45, .45, .03, mDaunT, x, .06, z, scene, 10); if (i % 2) cyl(.12, .06, .14, mBunga, x, .12, z, scene, 6); } });
-  // pohon hutan
-  const mBtg = new THREE.MeshLambertMaterial({ color: 0x5a3e26 });
-  const pohon = (x, z, s) => { cyl(.18 * s, .26 * s, 2 * s, mBtg, x, s, z, scene, 6); for (let k = 0; k < 3; k++) { const d = new THREE.Mesh(new THREE.IcosahedronGeometry((1.1 - k * .22) * s, 0), M.daun[(k + Math.round(x)) & 1 ? 1 : 0 + (k === 2 ? 2 : 0)] || M.daun[0]); d.position.set(x + rnd(-.2, .2) * s, (2 + k * .75) * s, z + rnd(-.2, .2) * s); d.castShadow = true; scene.add(d); } };
+  // pohon hutan: model GLB Tripo (kelapa, pohon 2, mangga, seri, rambutan) digambar dengan InstancedMesh = 1 draw call per jenis
+  // grafis Rendah: pohon lebih sedikit & tanpa bayangan · kalau GLB gagal dimuat, dipakai pohon kotak lama
+  const mBtg = new THREE.MeshLambertMaterial({ color: 0x5a3e26 }), rendah = KUAL.lv === 0, TANAM = [];
+  const pohonKotak = (x, z, s) => { cyl(.18 * s, .26 * s, 2 * s, mBtg, x, s, z, scene, 6); for (let k = 0; k < 3; k++) { const d = new THREE.Mesh(new THREE.IcosahedronGeometry((1.1 - k * .22) * s, 0), M.daun[(k + Math.round(x)) & 1 ? 1 : 0 + (k === 2 ? 2 : 0)] || M.daun[0]); d.position.set(x + rnd(-.2, .2) * s, (2 + k * .75) * s, z + rnd(-.2, .2) * s); d.castShadow = true; scene.add(d); } };
+  const pohon = (x, z, s, tepi = 0) => TANAM.push({ x, z, s, tepi, j: Math.floor(Math.random() * WN_POHON.length) });
   const bebas = (x, z) => {   // jangan menanam pohon di jalur, kemah, danau, bangunan
     if (Math.abs(x) < 5.5) return false; if (Math.hypot(x, z) < 8) return false;
     if (WN_DANAU.some(D => Math.hypot(x - D.x, z - D.z) < WN_DANAU_R + 2)) return false;
@@ -6349,9 +6352,22 @@ function buatArenaNanas() {
     if (Math.abs(z) < 2.2) return false;   // jalan ke danau
     for (const [kx, kz] of WN_KEMAH) { const sx = Math.sign(kx) * 3.5; for (const s of [1, -1]) { const ax = s * sx, az = s * kz, bx = s * kx, t = Math.max(0, Math.min(1, (x - ax) / (bx - ax || 1))); if (Math.hypot(x - (ax + (bx - ax) * t), z - az) < 1.8) return false; } }
     return true; };
-  let n = 0; for (let i = 0; i < 500 && n < 56; i++) { const x = rnd(-19, 19), z = rnd(-42, 42); if (!bebas(x, z)) continue; pohon(x, z, rnd(.8, 1.15)); pohon(-x, -z, rnd(.8, 1.15)); n += 2; }
-  for (let z = -47; z <= 47; z += 3.2) [-23, 23].forEach(x => pohon(x + rnd(-1, 1), z + rnd(-.8, .8), rnd(1, 1.4)));   // pagar pohon kiri-kanan
-  for (let x = -22; x <= 22; x += 3.2) [-47.5, 47.5].forEach(z => pohon(x + rnd(-.8, .8), z + rnd(-.8, .8), rnd(1, 1.4)));
+  const nDalam = rendah ? 32 : 56, jarakTepi = rendah ? 6.4 : 4;
+  let n = 0; for (let i = 0; i < 500 && n < nDalam; i++) { const x = rnd(-19, 19), z = rnd(-42, 42); if (!bebas(x, z)) continue; pohon(x, z, rnd(.8, 1.15)); pohon(-x, -z, rnd(.8, 1.15)); n += 2; }
+  for (let z = -47; z <= 47; z += jarakTepi) [-23, 23].forEach(x => pohon(x + rnd(-1, 1), z + rnd(-.8, .8), rnd(1, 1.4), 1));   // pagar pohon kiri-kanan
+  for (let x = -22; x <= 22; x += jarakTepi) [-47.5, 47.5].forEach(z => pohon(x + rnd(-.8, .8), z + rnd(-.8, .8), rnd(1, 1.4), 1));
+  Promise.all(WN_POHON.map(u => muatGLB(u).catch(() => null))).then(gls => {
+    const J = gls.map(g => { if (!g) return null; let me = null; g.scene.updateMatrixWorld(true); g.scene.traverse(o => { if (!me && o.isMesh) me = o; }); if (!me) return null;
+      const geo = me.geometry.clone().applyMatrix4(me.matrixWorld); geo.computeBoundingBox();
+      return { geo, mat: new THREE.MeshLambertMaterial({ map: me.material.map || null, color: me.material.map ? 0xffffff : 0x4f8a32 }), h: Math.max(.1, geo.boundingBox.max.y), L: [] }; });
+    const ada = J.filter(Boolean);
+    if (!ada.length) { TANAM.forEach(p => pohonKotak(p.x, p.z, p.s)); return; }   // cadangan
+    TANAM.forEach(p => (J[p.j] || ada[p.j % ada.length]).L.push(p));
+    const o = new THREE.Object3D();
+    ada.forEach(T => { if (!T.L.length) return; const im = new THREE.InstancedMesh(T.geo, T.mat, T.L.length);
+      T.L.forEach((p, i) => { o.position.set(p.x, 0, p.z); o.rotation.set(0, rnd(0, 6.28), 0); o.scale.setScalar(WN_POHON_TINGGI * p.s / T.h); o.updateMatrix(); im.setMatrixAt(i, o.matrix); });
+      im.instanceMatrix.needsUpdate = true; im.castShadow = !rendah; im.receiveShadow = false; im.frustumCulled = false; scene.add(im); });
+  });
   // pagar batu rendah di tepi area main
   const mPagar = new THREE.MeshLambertMaterial({ color: 0x9a9286, flatShading: true });
   [-20.8, 20.8].forEach(x => { for (let z = -44; z <= 44; z += 1.6) { const b = box(1, rnd(.5, .8), 1.5, mPagar, x, .3, z); b.rotation.y = rnd(-.1, .1); } });
