@@ -6419,7 +6419,7 @@ function wnModelHewan(stat) {
 // klip: diam (lihat sekeliling) · diam2 · siaga (kapak 2 tangan, lawan di lingkaran) · tahan (bertahan, HP < 40%) · lari · serang1 · serang2 · putar (sapuan 360°, kena semua lawan dekat)
 const SINGA_URL = ['model-3d/singa-merah.glb?v=2', 'model-3d/singa-putih.glb?v=3'], SINGA_SK = 3.4;
 const SINGA_KLIP = { serang1: { kena: .5, lama: 1.05 }, serang2: { kena: .62, lama: 1.05 }, putar: { kena: .9, lama: 2.5, area: 1, jeda: 2.6 } };
-const BUAYA_URL = 'model-3d/buaya.glb?v=3', BUAYA_SK = 3;
+const BUAYA_URL = 'model-3d/buaya.glb?v=3', BUAYA_BIRU_URL = 'model-3d/buaya-biru.glb?v=1', BUAYA_SK = 3;   // danau kanan: buaya hijau · danau kiri: buaya biru (rig, ekor & animasi sama persis)
 // serangan khas buaya (animasi sendiri, beda dengan Sisingaan): sambar gigit · sabet ekor · ekor putar (area 360°) · terkam lompat (melompat ke sasaran yang agak jauh)
 const BUAYA_KLIP = { sambar_gigit: { kena: .45, lama: 1.1 }, sabet_ekor: { kena: .58, lama: 1.25 }, ekor_putar: { kena: .85, lama: 1.7, area: 1, jeda: 2.6 }, terkam_lompat: { kena: .8, lama: 1.5, lompat: [.32, .8], jeda: 2.2 },
   pedang1: { kena: [.7, 1.07, 1.73], f: .5, lama: 2.34 }, pedang2: { kena: [.93], f: 1.1, lama: 2.5, area: 1 },   // dua pedang: kombo 3 tebasan · tebasan berputar (area)
@@ -6619,7 +6619,8 @@ async function wnBuat() {
   WN.hpDasar = Object.assign({}, HP_MAX); WN.cdDasar = CD_MAX.slice();
   const muat = u => muatGLB(u).then(g => salinGLB(g).scene).catch(() => null);
   const muatA = u => muatGLB(u).then(g => salinGLB(g)).catch(() => null);   // dengan animasi
-  const [gP, gM, tg, rmh, sgM, sgP, bRaw] = await Promise.all([muatA('model-3d/garuda.glb?v=3'), muatA('model-3d/garuda-merah.glb?v=7'), muat('model-3d/tugu-nanas.glb?v=1'), muat('model-3d/rumah.glb?v=1'), muatA(SINGA_URL[0]), muatA(SINGA_URL[1]), muatGLB(BUAYA_URL).catch(() => null)]);
+  const [gP, gM, tg, rmh, sgM, sgP, bRaw, bBiru] = await Promise.all([muatA('model-3d/garuda.glb?v=3'), muatA('model-3d/garuda-merah.glb?v=7'), muat('model-3d/tugu-nanas.glb?v=1'), muat('model-3d/rumah.glb?v=1'), muatA(SINGA_URL[0]), muatA(SINGA_URL[1]), muatGLB(BUAYA_URL).catch(() => null), muatGLB(BUAYA_BIRU_URL).catch(() => null)]);
+  const bGLB = i => (i === 0 && bBiru) ? bBiru : bRaw;   // WN_DANAU[0] = kiri (x −15,2) → biru · WN_DANAU[1] = kanan → hijau
   WN.padat = [];
   // Tugu Nanas
   const tugu = new THREE.Group(); if (tg) { tg.scale.setScalar(5.6); tg.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } }); tugu.add(tg); }
@@ -6667,9 +6668,9 @@ async function wnBuat() {
       E.hpDasar = E.hpMax; E.g.rotation.y = Math.atan2(-E.home.x, -E.home.z); E.arahAsal = E.g.rotation.y; });
   }
   // Buaya Danau (netral) & Buaya teman (satu objek dipakai ulang)
-  WN.buayas = WN_DANAU.map((D, i) => { const B = wnEnt({ jenis: 'buaya', tm: -1, x: D.x, z: D.z, hp: WNV.buaya.hp, nama: '🐊 Buaya Danau', M: wnModelBuaya(bRaw && salinGLB(bRaw)), barY: bRaw ? 3.7 : 2.4, besar: 1, ...WNV.buaya, hp: WNV.buaya.hp });
+  WN.buayas = WN_DANAU.map((D, i) => { const B = wnEnt({ jenis: 'buaya', tm: -1, x: D.x, z: D.z, hp: WNV.buaya.hp, nama: '🐊 Buaya Danau', M: wnModelBuaya(bGLB(i) && salinGLB(bGLB(i))), barY: bRaw ? 3.7 : 2.4, besar: 1, ...WNV.buaya, hp: WNV.buaya.hp });
     B.idx = i; B.lv = 0; B.mati = true; B.mt.mati = 1; B.g.visible = false; B.g.rotation.y = D.x < 0 ? Math.PI / 2 : -Math.PI / 2; B.arahAsal = B.g.rotation.y; B.munculT = WNV.buaya.selang; return B; });
-  WN.bts = [0, 1].map(() => { const T = wnEnt({ jenis: 'buayaT', tm: 0, x: 0, z: 0, hp: WNV.buayaT.hp, nama: '🐊 Buaya', M: wnModelBuaya(bRaw && salinGLB(bRaw)), barY: bRaw ? 3.7 : 2.4, besar: 1, ...WNV.buayaT, hp: WNV.buayaT.hp });
+  WN.bts = [0, 1].map((_, i) => { const T = wnEnt({ jenis: 'buayaT', tm: 0, x: 0, z: 0, hp: WNV.buayaT.hp, nama: '🐊 Buaya', M: wnModelBuaya(bGLB(i) && salinGLB(bGLB(i))), barY: bRaw ? 3.7 : 2.4, besar: 1, ...WNV.buayaT, hp: WNV.buayaT.hp });
     T.mati = true; T.mt.mati = 1; T.g.visible = false;
     T.cincinT = new THREE.Mesh(new THREE.RingGeometry(1.6, 1.9, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .7, depthWrite: false, side: THREE.DoubleSide })); T.cincinT.rotation.x = -Math.PI / 2; T.cincinT.position.y = .05; T.g.add(T.cincinT);
     const mahkota = new THREE.Mesh(new THREE.CylinderGeometry(.35, .3, .3, 6, 1, true), new THREE.MeshBasicMaterial({ color: 0xffd040, side: THREE.DoubleSide })); if (T.M.mix) mahkota.position.set(0, BUAYA_SK * 1.06, BUAYA_SK * .22); else mahkota.position.set(0, 1.25, 1.9); T.g.add(mahkota); return T; });
