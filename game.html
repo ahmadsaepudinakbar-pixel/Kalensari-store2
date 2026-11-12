@@ -2766,7 +2766,7 @@ function urlHero(id, skin) {
   if (id == 'kiansantang') return 'model-3d/kiansantang.glb?v=1';
   if (id == 'sangkuriang') return 'model-3d/sangkuriang.glb?v=1';
   if (id == 'ciung') return 'model-3d/ciung.glb?v=1';
-  if (id == 'siliwangi') return 'model-3d/siliwangi.glb?v=2';
+  if (id == 'siliwangi') return 'model-3d/siliwangi.glb?v=3';
   if (id == 'nyiroro') return 'model-3d/nyi-roro.glb?v=3';
   if (id == 'dayang') return 'model-3d/dayang.glb?v=3';
   if (id == 'angling') return 'model-3d/angling.glb?v=3';
@@ -2788,7 +2788,7 @@ const CACHE = {};
 function muatModel(url) {
   return CACHE[url] || (CACHE[url] = new Promise((res, rej) => new GLTFLoader().load(url, gl => {
     const cari = l => { for (const n of l) { const c = gl.animations.find(a => a.name.toLowerCase().includes(n)); if (c) return c; } return null; };
-    const diam = cari(['idle', 'diamKaki', 'diam', 'melayang', 'pocong']) || gl.animations[0] || null, jalan = cari(['hop', 'jalanKaki', 'lari', 'jalan', 'run']) || diam;
+    const diam = cari(['idle', 'diamKaki', 'diam', 'melayang', 'pocong']) || gl.animations[0] || null, jalan = (/siliwangi/.test(url) && gl.animations.find(a => a.name === 'jalan')) || cari(['hop', 'jalanKaki', 'lari', 'jalan', 'run']) || diam;   // Prabu: 'jalan' 0,8 dtk
     gl.klipDiam = diam && rapikan(diam.clone(), gl.scene); gl.klipJalan = jalan && rapikan(jalan.clone(), gl.scene);
     gl.scene.updateMatrixWorld(true); gl.kotak = new THREE.Box3().setFromObject(gl.scene); res(gl);
   }, undefined, rej)));
