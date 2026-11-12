@@ -154,7 +154,9 @@ body:has(#timHud:not([style*="none"])) #koin{top:52px}
 .wnT tr.kp th{font-size:11px;color:#aab3c8;background:#18213a}.wnT tr.kp.m th:first-child{color:#ff7a6a}.wnT tr.kp.p th:first-child{color:#fff}.wnT tr.aku td{background:#ffd16622;color:#ffe9a8}.wnT td.kda{color:#ffd166}
 .wnT .mvp{font-style:normal;font-size:10px;background:#ffb703;color:#201400;border-radius:6px;padding:1px 5px;margin-left:3px}.wnT .mvp.p{background:#c8d0e0}
 #hasil.wn{gap:10px}#hasil.wn #hasilT{font-size:40px}
-@media (orientation:landscape) and (max-height:560px){.wnT{font-size:10px}.wnT th,.wnT td{padding:3px 5px}#hasil.wn #hasilT{font-size:28px}#wnSkorB{right:72px;top:40px;width:30px;height:30px;font-size:15px}}.hp.netral i{background:#f0c040}.hp.wnb{width:120px;margin-left:-60px;height:11px}.hp.kunci{opacity:.75}.hp.kunci::after{content:'🔒';position:absolute;left:-17px;top:-5px;font-size:12px}
+@media (orientation:landscape) and (max-height:560px){.wnT{font-size:10px}.wnT th,.wnT td{padding:3px 5px}#hasil.wn #hasilT{font-size:28px}#wnSkorB{right:72px;top:40px;width:30px;height:30px;font-size:15px}}.hp.netral i{background:#f0c040}
+/* makhluk panggilan (Macan Putih Prabu Siliwangi, kembaran Kian Santang): ungu = milik sendiri/teman, merah muda = milik lawan — beda dari hero lawan (merah) & monster hutan (kuning) */
+.hp.panggil{border:1px solid #d9b8ff99;border-radius:3px}.hp.panggil i{background:#a65cff;border-radius:3px}.hp.lawan.panggil{border-color:#ffa6dc99}.hp.lawan.panggil i{background:#ff4fb4}.hp.wnb{width:120px;margin-left:-60px;height:11px}.hp.kunci{opacity:.75}.hp.kunci::after{content:'🔒';position:absolute;left:-17px;top:-5px;font-size:12px}
 #tbans{position:fixed;left:10px;top:82px;max-width:230px;z-index:6;display:flex;flex-direction:column;align-items:flex-start;gap:4px;pointer-events:none}
 .tban{font:700 14px Arial;color:#fff;background:#000a;border-radius:8px;padding:4px 12px;text-shadow:0 1px 0 #000;transition:opacity .5s}.tban.hilang{opacity:0}
 /* Atur Tombol: pemain menggeser & mengubah ukuran joystick dan tombol skill (tersimpan di perangkat) */
@@ -4964,7 +4966,7 @@ function swMacan(pos, id, a, tim = -1) {   // Panggilan Macan Putih: pilar cahay
   const md = macanModel(), g = new THREE.Group(); g.position.set(p.x, 8, p.z); g.rotation.y = a; if (md) g.add(md.m); scene.add(g);
   const milik = SLW.memanggil === id, musuh = !milik && !(TIM.on && TIM.saya && tim === TIM.saya.tm);
   const mc = { id, g, m: md && md.m, tulang: md ? md.tulang : {}, bahan: md ? md.bahan : [], anim: 'turun', at: 0, umur: M.lama + M.panggil, arahT: a, fase: 0, pergi: 0, milik, tujuan: null, hp: M.hp };
-  const bar = document.createElement('div'); bar.className = 'hp' + (musuh ? ' lawan' : ''); bar.innerHTML = '<i></i>'; bar.style.display = 'none'; $('#bars').appendChild(bar);
+  const bar = document.createElement('div'); bar.className = 'hp panggil' + (musuh ? ' lawan' : ''); bar.innerHTML = '<i></i>'; bar.style.display = 'none'; $('#bars').appendChild(bar);
   if (musuh) { mc.mt = { g, hp: M.hp, hpMax: M.hp, remote: true, macanId: id, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, bar, nama: 'Macan Putih' }; MUSUH.push(mc.mt); }   // lawan bisa menyerang macan ini
   else mc.bar = bar;
   const lama = MACAN.peta.get(id); if (lama) macanPergi(lama, 0);
@@ -5557,7 +5559,7 @@ function aiKembaran(B, dt) {   // hanya di HP pemilik: kembaran mengejar & meneb
 function ksBayang(asal, lama, id, tim = -1) {   // fx: Kian Santang muncul lagi jadi 2 (kembaran di sampingnya)
   const T = ksPemilik(asal); if (!T || !T.ksGL) return; if (T.ksBayang) buangBayangKS(T.ksBayang);
   const B = bayangKS(T); B.umur = lama; B.id = id; B.milik = T === P; T.ksBayang = B; const a = T.root.rotation.y;
-  const musuh = !B.milik && !(TIM.on && TIM.saya && tim === TIM.saya.tm), bar = document.createElement('div'); bar.className = 'hp' + (musuh ? ' lawan' : ''); bar.innerHTML = '<i></i>'; bar.style.display = 'none'; $('#bars').appendChild(bar);
+  const musuh = !B.milik && !(TIM.on && TIM.saya && tim === TIM.saya.tm), bar = document.createElement('div'); bar.className = 'hp panggil' + (musuh ? ' lawan' : ''); bar.innerHTML = '<i></i>'; bar.style.display = 'none'; $('#bars').appendChild(bar);
   if (musuh) { B.mt = { g: B.g, hp: B.hp, hpMax: HP_MAX.kiansantang, remote: true, kembarId: id, bukanHero: true, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, bar, nama: 'Kembaran Kian Santang' }; MUSUH.push(B.mt); }
   else B.bar = bar;
   B.g.position.copy(T.root.position).add(new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)).multiplyScalar(KSV.s3.sisi)); B.g.rotation.y = a; B.arahT = a;
@@ -6272,17 +6274,16 @@ const WN_STAT = {
 // monster hutan: [x, z, stat] — separuh Merah (z+), separuh Putih dicerminkan titik (−x, −z) · 10 kemah per separuh
 const WN_KEMAH = [[-13, 9, 'spd'], [-14, 22, 'hp'], [-11, 36, 'cd'], [13, 9, 'as'], [14, 22, 'atk'], [11, 36, 'def'],
   [-18, 15, 'atk'], [18, 15, 'hp'], [-17.5, 29, 'as'], [17.5, 29, 'spd']];   // 10 kemah tiap separuh map (20 monster)
-// monster hutan GLB (Tripo, kerangka Tripo) — animasi diambil dari pustaka animasi Tripo (asa27), di-retarget saat dimuat · gagal dimuat → monster kotak lama
+// monster hutan GLB (Tripo, kerangka Tripo) — animasi SUDAH di dalam GLB: diam, siaga, lari, serang (cakaran), serang2 (hantaman 2 tangan) · gagal dimuat → monster kotak lama
 const WN_MON_GLB = { tikus: 'Tikus', babi: 'Babi Hutan', 'burung-bangkai': 'Burung Bangkai', monyet: 'Monyet', srigala: 'Serigala', gurita: 'Gurita', hiena: 'Hiena', bangbung: 'Bangbung' };
 const WN_MON_KEMAH = ['tikus', 'babi', 'burung-bangkai', 'monyet', 'srigala', 'gurita', 'hiena', 'bangbung', 'monyet', 'tikus'];   // monster tiap kemah (urutan WN_KEMAH) · sisi lawan = cermin, monster sama
-const WN_MON_URL = k => `model-3d/monster-${k}.glb?v=1`, WN_MON_TINGGI = 1.85;   // tinggi monster (m) ≈ hero
-const WN_MON_ANIM = { diam: [['idle', 'standing_relax']], siaga: [['idle', 'standing_relax']], lari: [['run']], serang: [['box_01', 'slash', 'box_02']], serang2: [['box_02', 'chop', 'front_kick_01']] };
+const WN_MON_URL = k => `model-3d/monster-${k}.glb?v=2`, WN_MON_TINGGI = 1.85;   // tinggi monster (m) ≈ hero
 function wnModelMon(mg) {   // monster hutan GLB + mixer (dipakai wnAnimSinga: diam / siaga / lari / serang)
   const c = salinGLB(mg.gl), g = new THREE.Group(), b = new THREE.Group(); g.add(b); b.add(c.scene);
   const bb = new THREE.Box3().setFromObject(c.scene), sk = WN_MON_TINGGI / Math.max(.1, bb.max.y - bb.min.y); b.scale.setScalar(sk);
   c.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
   const mix = new THREE.AnimationMixer(c.scene), act = {};
-  for (const [k, clip] of Object.entries(mg.K)) { const a = mix.clipAction(clip); if (k === 'serang' || k === 'serang2') { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; } act[k] = a; }
+  c.animations.forEach(clip => { const k = clip.name, a = mix.clipAction(clip); if (k === 'serang' || k === 'serang2') { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; } act[k] = a; });
   const R = { g, b, mix, act, cur: '', tinggi: WN_MON_TINGGI, diamT: 0, skala: sk };
   wnMainSinga(R, 'diam', 0); return R;
 }
@@ -6663,8 +6664,8 @@ async function wnBuat() {
   const muatA = u => muatGLB(u).then(g => salinGLB(g)).catch(() => null);   // dengan animasi
   const [gP, gM, tg, rmh, sgM, sgP, bRaw, bBiru] = await Promise.all([muatA('model-3d/garuda.glb?v=3'), muatA('model-3d/garuda-merah.glb?v=7'), muat('model-3d/tugu-nanas.glb?v=1'), muat('model-3d/rumah.glb?v=1'), muatA(SINGA_URL[0]), muatA(SINGA_URL[1]), muatGLB(BUAYA_URL).catch(() => null), muatGLB(BUAYA_BIRU_URL).catch(() => null)]);
   const bGLB = i => (i === 0 && bBiru) ? bBiru : bRaw;
-  const monGL = {}; await Promise.all(Object.keys(WN_MON_GLB).map(k => Promise.all([muatGLB(WN_MON_URL(k)), klipPustaka(WN_MON_URL(k), WN_MON_ANIM)])
-    .then(([gl, K]) => { if (K && K.diam) monGL[k] = { gl, K }; }).catch(e => console.warn('[monster] gagal', k, e))));   // WN_DANAU[0] = kiri (x −15,2) → biru · WN_DANAU[1] = kanan → hijau
+  const monGL = {}; await Promise.all(Object.keys(WN_MON_GLB).map(k => muatGLB(WN_MON_URL(k))
+    .then(gl => { if (gl.animations.some(c => c.name === 'diam')) monGL[k] = { gl }; }).catch(e => console.warn('[monster] gagal', k, e))));   // WN_DANAU[0] = kiri (x −15,2) → biru · WN_DANAU[1] = kanan → hijau
   WN.padat = [];
   // Tugu Nanas
   const tugu = new THREE.Group(); if (tg) { tg.scale.setScalar(5.6); tg.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } }); tugu.add(tg); }
