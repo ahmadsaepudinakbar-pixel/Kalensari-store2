@@ -1,5 +1,6 @@
 /* Kalensari Store - pendaftaran PWA + tombol "Pasang Aplikasi" */
 (function(){
+  if (/KalensariGameApp/.test(navigator.userAgent)) return;   // di dalam APK Android Studio: tanpa service worker & tombol pasang
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function(){
       navigator.serviceWorker.register("sw.js").catch(function(e){ console.warn("SW gagal:", e); });
