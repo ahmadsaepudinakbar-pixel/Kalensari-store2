@@ -6297,6 +6297,7 @@ function wnJedaHidup() {   // menit ke-0: 10 dtk, +2 dtk tiap menit sampai menit
 }
 
 // ---------- arena ----------
+const WN_SEMAK = ['semak-1', 'semak-2', 'semak-3', 'semak-4'].map(n => `model-3d/${n}.glb?v=1`), WN_SEMAK_LEBAR = 3.6, WN_SEMAK_TINGGI = 2.1;   // semak: lebar ±3,6 m (lingkaran sembunyi r 1,6), cukup tinggi menutupi hero
 const WN_POHON = ['pohon-1', 'pohon-2', 'pohon-mangga', 'pohon-seri', 'pohon-rambutan'].map(n => `model-3d/${n}.glb?v=1`), WN_POHON_TINGGI = 4.4;   // tinggi pohon (m) pada skala 1
 function buatArenaNanas() {
   scene.background = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 256);
@@ -6376,12 +6377,23 @@ function buatArenaNanas() {
   const mGunung = [0x5f8f8a, 0x6f9f98].map(c => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
   const tp = new THREE.Mesh(new THREE.CylinderGeometry(14, 40, 22, 9), mGunung[0]); tp.scale.x = 2.2; tp.position.set(-10, 8, -95); scene.add(tp);
   [[45, -80, 18, 22], [-55, -70, 16, 18], [60, 70, 20, 20], [-50, 80, 22, 24]].forEach(([x, z, r, h], i) => { const g = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), mGunung[i % 2]); g.position.set(x, h / 2 - 2, z); scene.add(g); });
-  // semak tempat sembunyi (berpasangan, cermin titik)
+  // semak tempat sembunyi (berpasangan, cermin titik): model GLB Tripo (ilalang, bambu, keladi, kencana ungu)
+  // tiap semak 1 mesh dengan bahan sendiri → tetap bisa dibuat tembus saat pemain bersembunyi di dalamnya · cadangan: semak kotak lama
   const mSemak = [0x3f8a2a, 0x4f9a32, 0x5fae3a].map(c => new THREE.MeshLambertMaterial({ color: c, flatShading: true }));
-  [[-6.5, 5], [7, 10.5], [-9, 13.5], [8, 22], [-7, 22], [8.6, 1.8], [7, -3], [-8, 33]].forEach(([x0, z0]) => [1, -1].forEach(s => {
-    const x = x0 * s, z = z0 * s, mats = mSemak.map(m => m.clone()); SEMAK.push({ x, z, r: 1.6, mats });
-    for (let i = 0; i < 7; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.55, .85), 0), mats[i % 3]); const b = rnd(0, 6.3), q = rnd(0, 1.1); m.position.set(x + Math.cos(b) * q, rnd(.35, .8), z + Math.sin(b) * q); m.castShadow = true; scene.add(m); }
-  }));
+  const SEMAK_WN = [];
+  [[-6.5, 5], [7, 10.5], [-9, 13.5], [8, 22], [-7, 22], [8.6, 1.8], [7, -3], [-8, 33]].forEach(([x0, z0], k) => { const jenis = k % WN_SEMAK.length, putar = rnd(0, 6.28); [1, -1].forEach(s => {
+    const x = x0 * s, z = z0 * s, S = { x, z, r: 1.6, mats: [] }; SEMAK.push(S); SEMAK_WN.push({ S, jenis, putar: putar + (s < 0 ? Math.PI : 0) });   // pasangan cermin: semak yang sama
+  }); });
+  const semakKotak = S => { S.mats = mSemak.map(m => m.clone()); for (let i = 0; i < 7; i++) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(rnd(.55, .85), 0), S.mats[i % 3]); const b = rnd(0, 6.3), q = rnd(0, 1.1); m.position.set(S.x + Math.cos(b) * q, rnd(.35, .8), S.z + Math.sin(b) * q); m.castShadow = true; scene.add(m); } };
+  Promise.all(WN_SEMAK.map(u => muatGLB(u).catch(() => null))).then(gls => {
+    const J = gls.map(g => { if (!g) return null; let me = null; g.scene.updateMatrixWorld(true); g.scene.traverse(o => { if (!me && o.isMesh) me = o; }); if (!me) return null;
+      const geo = me.geometry.clone().applyMatrix4(me.matrixWorld); geo.computeBoundingBox(); const bb = geo.boundingBox;
+      return { geo, map: me.material.map || null, w: Math.max(.1, bb.max.x - bb.min.x, bb.max.z - bb.min.z), h: Math.max(.1, bb.max.y) }; });
+    SEMAK_WN.forEach(({ S, jenis, putar }) => { const T = J[jenis] || J.find(Boolean); if (!T) { semakKotak(S); return; }
+      const mat = new THREE.MeshLambertMaterial({ map: T.map, color: T.map ? 0xffffff : 0x4f9a32 }); S.mats = [mat];
+      const m = new THREE.Mesh(T.geo, mat), sx = WN_SEMAK_LEBAR / T.w; m.scale.set(sx, WN_SEMAK_TINGGI / T.h, sx); m.position.set(S.x, 0, S.z); m.rotation.y = putar;
+      m.castShadow = KUAL.lv !== 0; scene.add(m); });
+  });
 }
 
 // ---------- model sementara (bentuk sederhana) ----------
