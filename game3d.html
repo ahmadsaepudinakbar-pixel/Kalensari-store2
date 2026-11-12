@@ -6619,7 +6619,7 @@ async function wnBuat() {
   WN.hpDasar = Object.assign({}, HP_MAX); WN.cdDasar = CD_MAX.slice();
   const muat = u => muatGLB(u).then(g => salinGLB(g).scene).catch(() => null);
   const muatA = u => muatGLB(u).then(g => salinGLB(g)).catch(() => null);   // dengan animasi
-  const [gP, gM, tg, rmh, sgM, sgP, bRaw] = await Promise.all([muatA('model-3d/garuda.glb?v=1'), muatA('model-3d/garuda-merah.glb?v=2'), muat('model-3d/tugu-nanas.glb?v=1'), muat('model-3d/rumah.glb?v=1'), muatA(SINGA_URL[0]), muatA(SINGA_URL[1]), muatGLB(BUAYA_URL).catch(() => null)]);
+  const [gP, gM, tg, rmh, sgM, sgP, bRaw] = await Promise.all([muatA('model-3d/garuda.glb?v=3'), muatA('model-3d/garuda-merah.glb?v=7'), muat('model-3d/tugu-nanas.glb?v=1'), muat('model-3d/rumah.glb?v=1'), muatA(SINGA_URL[0]), muatA(SINGA_URL[1]), muatGLB(BUAYA_URL).catch(() => null)]);
   WN.padat = [];
   // Tugu Nanas
   const tugu = new THREE.Group(); if (tg) { tg.scale.setScalar(5.6); tg.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } }); tugu.add(tg); }
@@ -6645,7 +6645,14 @@ async function wnBuat() {
     // Garuda (patung di atas batu)
     const GG = { g: new THREE.Group(), tinggi: 6 }; box(3, .7, 2.2, wnB(0x9a948a), 0, .35, 0, GG.g); box(2.6, .2, 1.8, wnB(0xc8b070), 0, .8, 0, GG.g);
     const glG = tm ? gP : gM, gm = glG && glG.scene; if (gm) { gm.scale.setScalar(5.4); gm.position.y = .9; gm.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } }); GG.g.add(gm);
-      if (glG.animations && glG.animations.length) { GG.gMix = new THREE.AnimationMixer(gm); GG.gAct = GG.gMix.clipAction(glG.animations[0]); GG.gAct.play(); } }   // garuda bertulang (garuda-merah.glb v2): sayap mengepak terus
+      if (glG.animations && glG.animations.length) {   // garuda bertulang (garuda-merah.glb v6 / garuda.glb v2): 'terbang' (ulang) & 'ulti'
+        const mx = new THREE.AnimationMixer(gm), A = {}, cari = n => glG.animations.find(c => c.name === n);
+        A.terbang = mx.clipAction(cari('terbang') || glG.animations[0]);
+        const cu = cari('ulti'); if (cu) { A.ulti = mx.clipAction(cu); A.ulti.setLoop(THREE.LoopOnce, 1); A.ulti.clampWhenFinished = true; }
+        mx.addEventListener('finished', e => { if (e.action === A.ulti) { if (GG.tempur) wnGarudaMain(GG, 'terbang', .25); else wnGarudaPatung(GG); } });
+        GG.gMix = mx; GG.gAct = A; GG.gCur = ''; GG.y0 = gm.position.y; GG.naik = 0;   // awalnya PATUNG (pose diam, tanpa animasi)
+        GG.aura = wnAuraGaruda(gm, tm ? 0xf4f8ff : 0xff2a10);   // aura menutupi tubuh: merah (Garuda Merah) / putih (Garuda Putih)
+      } }
     else { const c = new THREE.Mesh(new THREE.ConeGeometry(1.2, 4, 6), wnB(WN_WARNA[tm])); c.position.y = 2.9; GG.g.add(c); }
     GG.g.rotation.y = hadap; GG.model = gm;
     WN.garuda[tm] = wnEnt({ jenis: 'garuda', tm, x: 0, z: s * WN_Z.garuda, hp: WNV.garuda.hp, nama: 'Garuda ' + nm, M: GG, barY: 6.4, besar: 1, padat: WNV.garuda.padat, ...WNV.garuda }); WN.garuda[tm].hadap0 = hadap;
@@ -6749,12 +6756,48 @@ function wnAiSinga(E, dt) {
 const WN_BOLA = [];
 let WN_MBOLA = null;
 // ---------- Ulti Garuda: SEMBURAN API — tiap 7 dtk selama bertarung, api luas berbentuk kipas ke arah musuh ----------
-const GARUDA_ULTI = { jeda: 7, lepas: 3, R: 11, sudut: .7, lama: 1.5, kena: [.45, .9, 1.35], f: .9, mulutY: 4.7, maju: 1.3, bakar: 1.2 };
+const GARUDA_ULTI = { jeda: 7, lepas: 3, R: 11, sudut: .7, mulai: .45, lama: 1.75, kena: [.7, 1.15, 1.6], f: .9, mulutY: 4.7, maju: 1.3, bakar: 1.2, tembak: .37 };
+// mulai: api keluar setelah Garuda menarik napas (animasi 'ulti') · tembak: bola serangan biasa dilepas saat paruh mematuk (animasi 'serang')
+function wnGarudaMain(GM, nama, fade = .15) {   // putar animasi garuda: terbang / ulti
+  const A = GM.gAct; if (!A || !A[nama]) return; const lama = A[GM.gCur], baru = A[nama];
+  if (lama && lama !== baru) lama.fadeOut(fade); baru.reset().setEffectiveWeight(1).fadeIn(fade).play(); GM.gCur = nama;
+}
+function wnGarudaPatung(GM) {   // kembali menjadi patung: animasi memudar ke pose diam asli
+  const A = GM.gAct; if (!A) return; const lama = A[GM.gCur]; if (lama) lama.fadeOut(.6); GM.gCur = ''; GM.patungT = .7;
+}
+function wnAuraGaruda(gm, warna) {   // kulit aura: salinan tubuh (ikut tulang & gerakan) sedikit menggembung, menyala aditif
+  const g = { mesh: [], warna, kuat: 0, tk: 0 };
+  const mat = new THREE.MeshBasicMaterial({ color: warna, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  mat.onBeforeCompile = sh => { sh.uniforms.tebal = { value: .016 }; sh.vertexShader = 'uniform float tebal;\n' + sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = vec3( position ) + normal * tebal;'); };
+  const isi = []; gm.traverse(o => { if (o.isSkinnedMesh && o.geometry.attributes.normal) isi.push(o); });
+  isi.forEach(o => { const a = new THREE.SkinnedMesh(o.geometry, mat); a.bind(o.skeleton, o.bindMatrix); a.position.copy(o.position); a.quaternion.copy(o.quaternion); a.scale.copy(o.scale);
+    a.frustumCulled = false; a.renderOrder = 3; a.visible = false; o.parent.add(a); g.mesh.push(a); });
+  g.mat = mat; return g;
+}
+function wnGarudaMode(E, dt) {   // diam = patung · bertarung = terbang + aura menyala
+  const GM = E.M; if (!GM.gAct) return;
+  const tempur = !!(E.ultiT || E.sembur); GM.tempur = tempur;
+  if (tempur && !GM.gCur) wnGarudaMain(GM, 'terbang', .35);          // bangun dari patung
+  if (!tempur && GM.gCur === 'terbang') wnGarudaPatung(GM);            // musuh pergi: kembali jadi patung
+  const sibuk = GM.gCur || GM.patungT > 0; if (GM.patungT > 0) GM.patungT -= dt;
+  if (sibuk) GM.gMix.update(dt);                                          // patung: mixer tidak dijalankan (hemat HP)
+  GM.naik += ((tempur ? .45 : 0) - GM.naik) * Math.min(1, dt * 3); GM.model.position.y = GM.y0 + GM.naik;   // terangkat melayang saat bertarung
+  const au = GM.aura; if (!au) return;
+  au.kuat += ((tempur ? 1 : 0) - au.kuat) * Math.min(1, dt * 4);
+  const on = au.kuat > .02; au.mesh.forEach(m => m.visible = on);
+  if (!on) return;
+  const now = performance.now() / 1000; au.mat.opacity = au.kuat * (.26 + Math.sin(now * 7) * .07 + (E.sembur ? .12 : 0));
+  au.tk -= dt; if (au.tk <= 0 && au.kuat > .5) { au.tk = KUAL.lv === 0 ? .12 : .06;   // percikan aura naik dari tubuh
+    const p = E.home.clone(); p.x += rnd(-1.3, 1.3); p.z += rnd(-.9, .9); p.y = GM.y0 + GM.naik + rnd(.6, 4.2);
+    const sp = tSinar(au.warna, rnd(.35, .7)), v = rnd(1.4, 2.6), u = rnd(.6, 1);
+    TMFX.push({ t: 0, upd(e, dt2) { const q = e.t / u; if (q >= 1) return false; sp.position.copy(p); p.y += v * dt2; sp.material.opacity = (q < .2 ? q / .2 : 1 - (q - .2) / .8) * .8; sp.scale.setScalar(sp.scale.x * (1 - dt2 * .6)); return true; },
+      akhir() { scene.remove(sp); sp.material.dispose(); } }); }
+}
 // jeda: ulti tiap 7 dtk · lepas: 3 dtk tanpa musuh = keluar mode tempur (hitungan diulang) · R: jangkauan api (m) · sudut: setengah lebar kipas (rad, ±40°)
 // lama: lama semburan (dtk) · kena: waktu tiap gelombang damage · f: damage tiap gelombang = f × damage serangan biasa Garuda (3 × 153 = 459)
 function wnAiGaruda(E, dt) {
-  const GM = E.M; if (GM.gMix) { if (GM.gAct) GM.gAct.timeScale = E.sembur ? 1.8 : 1; GM.gMix.update(dt); }   // kepakan sayap (lebih cepat saat menyembur)
-  if (wnStun(E, dt)) { if (E.sembur) wnSemburSelesai(E); return; }
+  const GM = E.M; wnGarudaMode(E, dt);   // patung saat diam · terbang + aura saat bertarung
+  if (wnStun(E, dt)) { if (E.sembur) { wnSemburSelesai(E); wnGarudaMain(GM, 'terbang', .2); } return; }
   if (E.sembur) { wnUpdSembur(E, dt); return; }   // sedang menyemburkan api: tidak menembak bola
   let tg = E.sas; if (!tg || !wnHidup(tg) || wnPos(tg).distanceTo(E.home) > E.R + 1 || Math.random() < dt) tg = E.sas = wnCariDiLingkaran(E);
   const now = performance.now();
@@ -6765,14 +6808,16 @@ function wnAiGaruda(E, dt) {
   if (tg && E.cdA <= 0) {
     E.cdA = E.jeda; E.serangT = .4;
     if (!WN_MBOLA) WN_MBOLA = [0, 1].map(t => new THREE.SpriteMaterial({ map: T_BULAT, color: t ? 0xfff4d8 : 0xff7a20, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
-    const sp = new THREE.Sprite(WN_MBOLA[E.tm]); sp.scale.setScalar(1.1); sp.position.copy(E.home).setY(4.8); scene.add(sp);
-    WN_BOLA.push({ sp, t: tg, dmg: E.dmg, tm: E.tm, umur: 0 }); nyala(sp.position.clone(), 1.6, E.tm ? 0xffffff : 0xff6a20, .3);
+    const lepas = () => { if (E.mati || E.sembur || !wnHidup(tg)) return;
+      const sp = new THREE.Sprite(WN_MBOLA[E.tm]); sp.scale.setScalar(1.1); sp.position.copy(E.home).setY(4.8); scene.add(sp);
+      WN_BOLA.push({ sp, t: tg, dmg: E.dmg, tm: E.tm, umur: 0 }); nyala(sp.position.clone(), 1.6, E.tm ? 0xffffff : 0xff6a20, .3); };
+    lepas();   // serangan biasa: tetap dalam animasi terbang
   } else if (!tg && performance.now() - E.kenaT > 5000 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * WNV.garuda.pulih * dt); E.mt.hp = E.hp; }   // pulih pelan (0,5% HP/dtk)
 }
 function wnGarudaSembur(E, tg) {
   const U = GARUDA_ULTI, q = wnPos(tg), a = Math.atan2(q.x - E.home.x, q.z - E.home.z);
   E.ultiT = performance.now() + U.jeda * 1000; E.cdA = Math.max(E.cdA, U.lama + .4);
-  E.sembur = { a, t: 0, i: 0, tk: 0 }; E.sembur.lantai = wnKipasApi(E.home, a, U.R, U.sudut, U.lama + .35);
+  E.sembur = { a, t: 0, i: 0, tk: 0 }; E.sembur.lantai = wnKipasApi(E.home, a, U.R, U.sudut, U.lama + .35); wnGarudaMain(E.M, 'ulti', .15);
   if (E.mt.bar && E.mt.bar.style.display !== 'none') angka(E.home.clone().setY(E.M.tinggi + .8), '🔥 SEMBURAN API GARUDA', '#ffb347');
   nyala(E.home.clone().setY(U.mulutY), 2.6, AD.apiW[1], .35); kilat(E.home, 45);
 }
@@ -6781,14 +6826,14 @@ function wnUpdSembur(E, dt) {
   wnHadap(E, S.a, dt);
   const d = new THREE.Vector3(Math.sin(S.a), 0, Math.cos(S.a)), mulut = E.home.clone().addScaledVector(d, U.maju).setY(U.mulutY);
   S.tk -= dt;
-  if (S.t > .12 && S.t < U.lama && S.tk <= 0) { S.tk = rendah ? .05 : .025;   // lidah api menyembur dari paruh, melebar seperti kipas & turun ke tanah
+  if (S.t > U.mulai && S.t < U.lama && S.tk <= 0) { S.tk = rendah ? .05 : .025;   // lidah api menyembur dari paruh, melebar seperti kipas & turun ke tanah
     for (let k = 0; k < (rendah ? 2 : 4); k++) { const b = S.a + rnd(-1, 1) * U.sudut * .92, v = new THREE.Vector3(Math.sin(b), 0, Math.cos(b)).multiplyScalar(rnd(17, 23)); v.y = rnd(-9, -6.5);
       apiLidah(mulut.clone(), rnd(.9, 1.8), rnd(.45, .6), v); }
     if (Math.random() < .35) nyala(mulut.clone(), 1.5, W[1], .15);
     if (!rendah && Math.random() < .25) { const b = S.a + rnd(-1, 1) * U.sudut, r = rnd(3, U.R); apiLidah(new THREE.Vector3(E.home.x + Math.sin(b) * r, .1, E.home.z + Math.cos(b) * r), rnd(.6, 1.1), .5); }   // api menjilat di tanah
   }
   while (S.i < U.kena.length && S.t >= U.kena[S.i]) { S.i++; wnSemburKena(E, S.a); }
-  if (S.t >= U.lama + .2) wnSemburSelesai(E);
+  if (S.t >= U.lama + .3) wnSemburSelesai(E);
 }
 function wnSemburKena(E, a) {   // semua hero lawan (dan buaya lawan) di dalam kipas api terkena damage & terbakar
   const U = GARUDA_ULTI, c = E.home, dmg = Math.round(E.dmg * U.f);
