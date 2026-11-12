@@ -6542,6 +6542,17 @@ function wnAnimSinga(E, dt) {
   if (E.kilau > 0) { E.kilau -= dt; R.b.scale.setScalar(sk * (1 + E.kilau * .4)); }
   else if (E.kilau !== -1) { E.kilau = -1; R.b.scale.setScalar(sk); }
 }
+function wnPapanNama(m, g, teks) {   // papan kayu kecil bertuliskan nama, ditempel di dinding belakang rumah (sisi −Z model, menghadap ke luar)
+  const c = document.createElement('canvas'), x = c.getContext('2d'); x.font = 'bold 44px sans-serif';
+  c.width = Math.ceil(x.measureText(teks).width) + 48; c.height = 72;   // lebar papan menyesuaikan panjang tulisan
+  x.fillStyle = '#6b3f1d'; x.beginPath(); x.roundRect(3, 3, c.width - 6, c.height - 6, 12); x.fill(); x.strokeStyle = '#e0b15a'; x.lineWidth = 4; x.stroke();
+  x.fillStyle = '#fff1cf'; x.font = 'bold 44px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(teks, c.width / 2, c.height / 2 + 2);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  const papan = new THREE.Mesh(new THREE.PlaneGeometry(.2 * c.width / c.height, .2), new THREE.MeshLambertMaterial({ map: t }));
+  m.updateMatrixWorld(true); const y = 2.3, rc = new THREE.Raycaster(new THREE.Vector3(0, y, -40), new THREE.Vector3(0, 0, 1));   // cari permukaan dinding belakang
+  const hit = rc.intersectObject(m, true)[0]; let z = hit ? hit.point.z : new THREE.Box3().setFromObject(m).min.z;
+  papan.position.set(0, y, z - .03); papan.rotation.y = Math.PI; g.add(papan); return papan;
+}
 function wnModelRumah(tm) {   // rumah panggung Sunda (tempat respawn)
   const g = new THREE.Group(), b = new THREE.Group(); g.add(b);
   const mKayu = wnB(0xa8642a, false), mKayuG = wnB(0x7a4420, false), mBilik = wnB(0xd9a85a, false), mAtap = wnB(0x6a3e22), mBatu = wnB(0x9a948a), mEmas = wnB(0xe0b030), mLampu = new THREE.MeshBasicMaterial({ color: 0xffd27a });
@@ -6683,6 +6694,7 @@ async function wnBuat() {
     const s = tm ? -1 : 1, hadap = tm ? 0 : Math.PI, nm = WN_NAMA_TIM[tm];
     // Rumah
     let RR; if (rmh) { RR = { g: new THREE.Group(), tinggi: 7 }; const m = tm ? rmh : rmh.clone(); m.scale.setScalar(7); m.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; }); RR.g.add(m);   // rumah panggung (GLB) + bendera tim
+      wnPapanNama(m, RR.g, 'erick-kepuh-legonkulon');   // papan nama kecil di dinding belakang rumah (Merah & Putih)
       const tiang = cyl(.06, .06, 3.2, wnB(0x7a4420), 3.3, 1.6, -1.6, RR.g, 5); tiang.castShadow = false; const bd = new THREE.Mesh(new THREE.PlaneGeometry(1.4, .85), new THREE.MeshLambertMaterial({ color: WN_WARNA[tm], side: THREE.DoubleSide })); bd.position.set(2.6, 2.75, -1.6); RR.g.add(bd); RR.g.userData.bendera = bd; }
     else RR = wnModelRumah(tm);
     RR.g.rotation.y = hadap;
