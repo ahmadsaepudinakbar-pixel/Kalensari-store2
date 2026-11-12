@@ -6272,6 +6272,20 @@ const WN_STAT = {
 // monster hutan: [x, z, stat] — separuh Merah (z+), separuh Putih dicerminkan titik (−x, −z) · 10 kemah per separuh
 const WN_KEMAH = [[-13, 9, 'spd'], [-14, 22, 'hp'], [-11, 36, 'cd'], [13, 9, 'as'], [14, 22, 'atk'], [11, 36, 'def'],
   [-18, 15, 'atk'], [18, 15, 'hp'], [-17.5, 29, 'as'], [17.5, 29, 'spd']];   // 10 kemah tiap separuh map (20 monster)
+// monster hutan GLB (Tripo, kerangka Tripo) — animasi diambil dari pustaka animasi Tripo (asa27), di-retarget saat dimuat · gagal dimuat → monster kotak lama
+const WN_MON_GLB = { tikus: 'Tikus', babi: 'Babi Hutan', 'burung-bangkai': 'Burung Bangkai', monyet: 'Monyet', srigala: 'Serigala', gurita: 'Gurita', hiena: 'Hiena', bangbung: 'Bangbung' };
+const WN_MON_KEMAH = ['tikus', 'babi', 'burung-bangkai', 'monyet', 'srigala', 'gurita', 'hiena', 'bangbung', 'monyet', 'tikus'];   // monster tiap kemah (urutan WN_KEMAH) · sisi lawan = cermin, monster sama
+const WN_MON_URL = k => `model-3d/monster-${k}.glb?v=1`, WN_MON_TINGGI = 1.85;   // tinggi monster (m) ≈ hero
+const WN_MON_ANIM = { diam: [['idle', 'standing_relax']], siaga: [['idle', 'standing_relax']], lari: [['run']], serang: [['box_01', 'slash', 'box_02']], serang2: [['box_02', 'chop', 'front_kick_01']] };
+function wnModelMon(mg) {   // monster hutan GLB + mixer (dipakai wnAnimSinga: diam / siaga / lari / serang)
+  const c = salinGLB(mg.gl), g = new THREE.Group(), b = new THREE.Group(); g.add(b); b.add(c.scene);
+  const bb = new THREE.Box3().setFromObject(c.scene), sk = WN_MON_TINGGI / Math.max(.1, bb.max.y - bb.min.y); b.scale.setScalar(sk);
+  c.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+  const mix = new THREE.AnimationMixer(c.scene), act = {};
+  for (const [k, clip] of Object.entries(mg.K)) { const a = mix.clipAction(clip); if (k === 'serang' || k === 'serang2') { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; } act[k] = a; }
+  const R = { g, b, mix, act, cur: '', tinggi: WN_MON_TINGGI, diamT: 0, skala: sk };
+  wnMainSinga(R, 'diam', 0); return R;
+}
 // angka keseimbangan (gampang diubah)
 const WNV = {
   singa: { hp: 6000, pulih: .005, R: 6.5, dmg: 140, jeda: 1.4, jangkau: 2.1, kec: 3.6 },
@@ -6648,7 +6662,9 @@ async function wnBuat() {
   const muat = u => muatGLB(u).then(g => salinGLB(g).scene).catch(() => null);
   const muatA = u => muatGLB(u).then(g => salinGLB(g)).catch(() => null);   // dengan animasi
   const [gP, gM, tg, rmh, sgM, sgP, bRaw, bBiru] = await Promise.all([muatA('model-3d/garuda.glb?v=3'), muatA('model-3d/garuda-merah.glb?v=7'), muat('model-3d/tugu-nanas.glb?v=1'), muat('model-3d/rumah.glb?v=1'), muatA(SINGA_URL[0]), muatA(SINGA_URL[1]), muatGLB(BUAYA_URL).catch(() => null), muatGLB(BUAYA_BIRU_URL).catch(() => null)]);
-  const bGLB = i => (i === 0 && bBiru) ? bBiru : bRaw;   // WN_DANAU[0] = kiri (x −15,2) → biru · WN_DANAU[1] = kanan → hijau
+  const bGLB = i => (i === 0 && bBiru) ? bBiru : bRaw;
+  const monGL = {}; await Promise.all(Object.keys(WN_MON_GLB).map(k => Promise.all([muatGLB(WN_MON_URL(k)), klipPustaka(WN_MON_URL(k), WN_MON_ANIM)])
+    .then(([gl, K]) => { if (K && K.diam) monGL[k] = { gl, K }; }).catch(e => console.warn('[monster] gagal', k, e))));   // WN_DANAU[0] = kiri (x −15,2) → biru · WN_DANAU[1] = kanan → hijau
   WN.padat = [];
   // Tugu Nanas
   const tugu = new THREE.Group(); if (tg) { tg.scale.setScalar(5.6); tg.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } }); tugu.add(tg); }
@@ -6692,7 +6708,7 @@ async function wnBuat() {
     // lingkaran jaga
     [WN.singa[tm], WN.garuda[tm]].forEach(E => { E.cincin = cincin(E.R - .12, E.R, WN_WARNA[tm], tm ? .3 : .35); E.cincin.position.set(E.home.x, .05, E.home.z); });
     // monster hutan
-    WN_KEMAH.forEach(([x, z, st]) => { const M2 = wnModelHewan(st); const E = wnEnt({ jenis: 'mon', tm: -1, x: s * x, z: s * z, hp: WNV.mon.hp * (st === 'hp' || st === 'def' ? 1.25 : st === 'spd' ? .8 : 1), nama: WN_STAT[st].mon, M: M2, barY: M2.tinggi + .2, stat: st, ...WNV.mon, hp: WNV.mon.hp * (st === 'hp' || st === 'def' ? 1.25 : st === 'spd' ? .8 : 1) });
+    WN_KEMAH.forEach(([x, z, st], ki) => { const mk = WN_MON_KEMAH[ki], mg = monGL[mk], M2 = mg ? wnModelMon(mg) : wnModelHewan(st); const E = wnEnt({ jenis: 'mon', tm: -1, x: s * x, z: s * z, hp: WNV.mon.hp * (st === 'hp' || st === 'def' ? 1.25 : st === 'spd' ? .8 : 1), nama: mg ? WN_MON_GLB[mk] : WN_STAT[st].mon, M: M2, barY: M2.tinggi + .2, stat: st, ...WNV.mon, hp: WNV.mon.hp * (st === 'hp' || st === 'def' ? 1.25 : st === 'spd' ? .8 : 1) });
       E.hpDasar = E.hpMax; E.g.rotation.y = Math.atan2(-E.home.x, -E.home.z); E.arahAsal = E.g.rotation.y; });
   }
   // Buaya Danau (netral) & Buaya teman (satu objek dipakai ulang)
@@ -6745,7 +6761,9 @@ function wnAiMon(E, dt) {   // monster hutan & Buaya Danau: diam di kemah, memba
         const pukul = (K2, i) => { if (E.mati) return; const q = wnHidup(tg) ? wnPos(tg) : sp, c = K && K.area ? p.clone().setY(0) : p.clone().lerp(q, .7).setY(0), r = K && K.area ? 3.2 : 2.4, dd = Math.round(d * (K && K.f || 1));   // area: sapuan 360° di sekeliling buaya
           WN.U.forEach(u => { if (u.hidup && u.pos.distanceTo(c) < r) wnPukul(u.obj, dd, p, 3); }); gelombang(c, r, .45, 0x9fdc6a); percik(c, 14, 0xc8e0a0, 3); };
         if (croc) wnBuayaJadwal(E, pukul); else if (K) setTimeout(pukul, K.kena * 1000); else pukul(); }
-      else { wnPukul(tg, d, p, 1.5); percik(sp.clone().setY(.4), 6, 0xffe0a0, 2); }
+      else { const pk = () => { if (E.mati || !wnHidup(tg)) return; wnPukul(tg, d, p, 1.5); percik(wnPos(tg).clone().setY(.4), 6, 0xffe0a0, 2); };
+        if (E.M.mix && E.M.act.serang) { E.klip = E.M.act.serang2 && Math.random() < .4 ? 'serang2' : 'serang'; E.klipBaru = 1; E.serangT = .75; setTimeout(pk, 320); }   // monster GLB: pukulan kena di tengah animasi
+        else pk(); }
     }
   } else {
     if (E.jenis === 'buaya') wnBuayaTempur(E, false);
