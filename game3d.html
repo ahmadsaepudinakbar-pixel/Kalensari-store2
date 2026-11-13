@@ -5693,7 +5693,7 @@ function updKianSantang(dt, pos, f) {
 // Skill 2 Gerak Silat: langkah silat (kebal damage sesaat). Kalau kapak sedang di luar: melesat ke kapak, menangkapnya + tebasan area (stun) dan jeda Kapak Naga berkurang 50%
 // Skill 3 Amukan Naga Emas: 6 dtk kapak emas — tiap serangan dasar melepas gelombang naga, lari lebih cepat; ditutup (tekan lagi / waktu habis) hantaman naga emas: lawan di area terlempar ke atas
 const WRV = { cepat: 4.6, emas: 0xffc83a, emasT: 0xffe9a0, perak: 0xdfe7f2, jingga: 0xff8a1a, tsLari: 1.6, tsAmuk: 1.1,
-  naga: { tebal: 1, aura: 3.6, gel: 3, hantam: 4.5, op: .95, cy: .33, ekor: 56 },   // naga kepala (kepala ke +X, panjang 1, tinggi 0,66) · ekor: panjang ekor cahaya (titik)
+  naga: { tebal: 1, aura: 3.6, gel: 3, hantam: 4.5, op: .95, cy: .33, ekor: 56, tukik: .15 },   // tukik: lama naga menukik dari langit sampai menyentuh tanah (detik)   // naga kepala (kepala ke +X, panjang 1, tinggi 0,66) · ekor: panjang ekor cahaya (titik)
   nw1: 0xffe03c, nw2: 0xfff2a0,   // warna efek naga = warna kepala naga (kuning emas lemon & kuning pucat)   // op: naga setengah transparan   // ukuran naga emas (m) · tebal: badan naga dipertebal
   dasar: [{ anim: 'tebas1', dur: .5, tH: .25, dmg: 55, R: 1.9, dorong: 1.4, miring: -.5 }, { anim: 'tebas2', dur: .5, tH: .27, dmg: 58, R: 1.9, dorong: 1.4, miring: .55 },
     { anim: 'tebas3', dur: .62, tH: .3, dmg: 80, R: 2.1, dorong: 3.5, miring: -.1 }], jeda: 1.1,
@@ -5864,15 +5864,15 @@ function wrNaga(pos, a, panjang) {   // gelombang naga emas dari ayunan kapak sa
       if (Math.random() < .9) nyala(g.position.clone(), naga ? 1 : .6, Math.random() < .5 ? WRV.nw1 : WRV.nw2, .3); return q < 1; },
     akhir() { scene.remove(g); if (naga) naga.userData.buang(); else kepala.material.dispose(); } });
 }
-function wrNagaTukik(pos, tiba) {   // naga emas menukik dari langit: kepala menyentuh tanah TEPAT saat Wiro menghantam tanah (tiba detik), lalu terus masuk ke dalam tanah
+function wrNagaTukik(pos, tiba) {   // naga emas menukik secepat kilat: muncul sesaat sebelum hantaman, kepala menyentuh tanah TEPAT saat Wiro menghantam tanah (tiba detik), lalu langsung amblas ke dalam tanah
   const naga = nagaWiro(WRV.naga.hantam); if (!naga) return;
-  const c = pos.clone(); c.y = 0; const H = WRV.naga.hantam / 2, y0 = H + 6, y1 = -H - 1.5, v = 2 * (y0 - H) / tiba;   // jatuh makin cepat; kecepatan saat menyentuh tanah dipertahankan
-  naga.userData.isi.rotation.z = -Math.PI / 2; naga.position.copy(c).setY(y0); scene.add(naga);   // kepala ke bawah
-  TMFX.push({ t: 0, upd(e, dt) { const t = e.t; if (naga.userData.mix) naga.userData.mix.update(dt);
-      naga.position.y = t < tiba ? y0 - (y0 - H) * (t / tiba) * (t / tiba) : Math.max(y1, H - v * (t - tiba)); naga.rotation.y = t * 3;
-      if (t > tiba && Math.random() < .7) { asap(c, 1, COKLAT_MUDA, 1.6, .7); percik(c.clone().setY(.3), 3, WRV.nw1, 3, .14); }   // tanah terbongkar selama naga masuk
+  const c = pos.clone(); c.y = 0; const H = WRV.naga.hantam / 2, jatuh = WRV.naga.tukik, mulai = Math.max(0, tiba - jatuh), y0 = H + 5, y1 = -H - 1.5, v = 2 * (y0 - H) / Math.min(jatuh, tiba);   // jatuh makin cepat; kecepatan saat menyentuh tanah dipertahankan
+  naga.userData.isi.rotation.z = -Math.PI / 2; naga.position.copy(c).setY(y0); naga.visible = false; scene.add(naga);   // kepala ke bawah
+  TMFX.push({ t: 0, upd(e, dt) { if (naga.userData.mix) naga.userData.mix.update(dt); const t = e.t - mulai, d = tiba - mulai; if (t < 0) return true; naga.visible = true;
+      naga.position.y = t < d ? y0 - (y0 - H) * (t / d) * (t / d) : Math.max(y1, H - v * (t - d)); naga.rotation.y = t * 3;
+      if (t > d && Math.random() < .8) { asap(c, 1, COKLAT_MUDA, 1.6, .7); percik(c.clone().setY(.3), 3, WRV.nw1, 3, .14); }   // tanah terbongkar selama naga masuk
       const masuk = naga.position.y <= y1; if (masuk) e.habis = (e.habis || 0) + dt;
-      naga.userData.redup(t < .06 ? t / .06 : masuk ? Math.max(0, 1 - e.habis / .3) : 1); return !masuk || e.habis < .3; },
+      naga.userData.redup(masuk ? Math.max(0, 1 - e.habis / .3) : 1); return !masuk || e.habis < .3; },
     akhir() { scene.remove(naga); naga.userData.buang(); } });
 }
 function wrHantam(pos, R) {   // saat tangan Wiro menghantam tanah: tanah pecah (naga sudah menukik sejak awal gerakan lewat wrNagaTukik)
