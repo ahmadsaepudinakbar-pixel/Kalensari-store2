@@ -5693,7 +5693,7 @@ function updKianSantang(dt, pos, f) {
 // Skill 2 Gerak Silat: langkah silat (kebal damage sesaat). Kalau kapak sedang di luar: melesat ke kapak, menangkapnya + tebasan area (stun) dan jeda Kapak Naga berkurang 50%
 // Skill 3 Amukan Naga Emas: 6 dtk kapak emas — tiap serangan dasar melepas gelombang naga, lari lebih cepat; ditutup (tekan lagi / waktu habis) hantaman naga emas: lawan di area terlempar ke atas
 const WRV = { cepat: 4.6, emas: 0xffc83a, emasT: 0xffe9a0, perak: 0xdfe7f2, jingga: 0xff8a1a, tsLari: 1.6, tsAmuk: 1.1,
-  naga: { tebal: 1, aura: 3.6, gel: 3, hantam: 4.5, op: .95, cy: .33, ekor: 56, tukik: .15 },   // tukik: lama naga menukik dari langit sampai menyentuh tanah (detik)   // naga kepala (kepala ke +X, panjang 1, tinggi 0,66) · ekor: panjang ekor cahaya (titik)
+  naga: { tebal: 1, aura: 3.1, gel: 2.6, hantam: 3.8, op: .95, cy: .33, ekor: 56, tukik: .1, putar: .7 },   // putar: lama naga memutari Wiro saat ulti dimulai (detik)   // tukik: lama naga menukik dari langit sampai menyentuh tanah (detik)   // naga kepala (kepala ke +X, panjang 1, tinggi 0,66) · ekor: panjang ekor cahaya (titik)
   nw1: 0xffe03c, nw2: 0xfff2a0,   // warna efek naga = warna kepala naga (kuning emas lemon & kuning pucat)   // op: naga setengah transparan   // ukuran naga emas (m) · tebal: badan naga dipertebal
   dasar: [{ anim: 'tebas1', dur: .5, tH: .25, dmg: 55, R: 1.9, dorong: 1.4, miring: -.5 }, { anim: 'tebas2', dur: .5, tH: .27, dmg: 58, R: 1.9, dorong: 1.4, miring: .55 },
     { anim: 'tebas3', dur: .62, tH: .3, dmg: 80, R: 2.1, dorong: 3.5, miring: -.1 }], jeda: 1.1,
@@ -5845,7 +5845,7 @@ function wrAmuk(pos, lama) {   // Amukan Naga Emas: naga emas melilit naik di se
   const naga = nagaWiro(WRV.naga.aura), ulir = new THREE.Group(); ulir.position.copy(p); scene.add(ulir); const bola = [];
   if (naga) ulir.add(naga);
   else for (let i = 0; i < 16; i++) { const s = new THREE.Sprite(botPelBahan(i % 3 ? WRV.nw1 : WRV.nw2)); s.scale.setScalar(.5 - i * .02); ulir.add(s); bola.push(s); }
-  const L = 1.15, sudut = u => u * 6.5;
+  const L = WRV.naga.putar, sudut = u => u * 6.5;
   TMFX.push({ t: 0, upd(e, dt) { const q = e.t / L; if (T && T.root) ulir.position.copy(T.root.position).setY(0); if (naga && naga.userData.mix) naga.userData.mix.update(dt);
       if (naga) { const u0 = Math.min(1, q), u = u0 * u0 * (3 - 2 * u0), r = 3 - u * .8, s0 = sudut(u), x = Math.cos(s0) * r, z = Math.sin(s0) * r;
         naga.position.set(x, 1.4 + u * 4.2, z); naga.rotation.set(0, Math.atan2(-Math.cos(s0), -Math.sin(s0)), 0); naga.userData.isi.rotation.z = .35;   // terbang melingkar (kepala searah gerak) sambil naik
