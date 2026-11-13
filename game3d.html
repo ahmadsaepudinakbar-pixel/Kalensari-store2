@@ -7057,6 +7057,12 @@ function wnTitik(o) {   // titik berdiri di lingkaran tugu (tiap bot punya tempa
     o.wnT = { titik: true, root: { position: p }, mt: { mati: 0, g: { position: p } }, pro: { info: () => ({ pos: p, hero: 'ocong', aksi: 'bebas', arah: 0, tujuan: null, stun: false, hp: 0, vis: o.wnT.mt, id: -1, mati: false }) } }; }
   return o.wnT;
 }
+// dorongan bersama (menit ≥ 9): kejar hero lawan dalam 13 m dari bot / 14 m dari bangunan sasaran · mundur ke tugu kalau HP < 30%
+const WNS = { mulai: 9, mundur: .3, kejar: 13, area: 14 };
+function wnKumpul(o, p) {   // titik kumpul sebelum mendorong bersama
+  if (!o.wnK) { const v = new THREE.Vector3(); o.wnK = { titik: true, root: { position: v }, mt: { mati: 0, g: { position: v } }, pro: { info: () => ({ pos: v, hero: 'ocong', aksi: 'bebas', arah: 0, tujuan: null, stun: false, hp: 0, vis: o.wnK.mt, id: -1, mati: false }) } }; }
+  o.wnK.root.position.copy(p); return o.wnK;
+}
 function wnProksi(o, E) {   // bangunan padat: bot mendekat ke sisi bangunan yang menghadapnya
   if (!E.padat) return E;
   if (!o.wnP) { const p = new THREE.Vector3(); o.wnP = { root: { position: p }, pro: { info: () => ({ pos: p, hero: 'ocong', aksi: 'bebas', arah: 0, tujuan: null, stun: false, hp: o.wnP.wnE.hp / o.wnP.wnE.hpMax, vis: o.wnP.wnE.mt, id: o.wnP.wnE.id, mati: o.wnP.wnE.mati }) } }; }
@@ -7076,6 +7082,22 @@ function wnMonster(o) {
 }
 function wnSasaran(o) {
   const pos = o.root.position, tm = o.tm, mu = 1 - tm, hpR = o.mt.hp / o.mt.hpMax, mnt = wnWaktu() / 60;
+  // 0) mulai menit ke-9: bot satu tim MENDORONG BERSAMA ke bangunan lawan berikutnya (Sisingaan → Garuda → Rumah)
+  { const S = wnBerikut(mu);
+    if (mnt >= WNS.mulai && S && hpR > WNS.mundur) {
+      const sp = S.home, sisi = tm ? -1 : 1;
+      // D) hero lawan di dekat bot ATAU di area bangunan yang sedang didorong (termasuk yang diam di rumahnya) tetap dikejar
+      let h = null, hd = 1e9;
+      WN.U.forEach(u => { if (u.tm !== mu || !u.hidup) return; const d1 = u.pos.distanceTo(pos), d2 = u.pos.distanceTo(sp);
+        if ((d1 < WNS.kejar || d2 < WNS.area) && hidupDanTampak(u.obj, pos) && d1 < hd) { hd = d1; h = u.obj; } });
+      if (h) return h;
+      // A) kumpul dulu di depan bangunan sasaran sampai minimal 2 bot (atau semua yang masih hidup) siap, baru menyerang bersama
+      const tim = [...TIM.bot.values()].filter(b => b.tm === tm && !b.mt.mati), jR = (S.R || S.padat || 4) + 2;
+      const kp = sp.clone().add(new THREE.Vector3(((o.id % 3) - 1) * 2.2, 0, sisi * (jR + 3)));
+      const siap = tim.filter(b => b.root.position.distanceTo(kp) < 8 || b.root.position.distanceTo(sp) < jR + 1).length;
+      if (siap < Math.min(2, tim.length)) return wnKumpul(o, kp);
+      return wnProksi(o, S);
+    } }
   // 1) hero lawan yang dekat & terlihat (jangan mengejar masuk lingkaran penjaga lawan, kecuali sedang mendorong)
   let musuh = null, bd = hpR < .3 ? 3.2 : 8.5;
   WN.U.forEach(u => { if (u.tm !== mu || !u.hidup) return; const d = u.pos.distanceTo(pos); if (d < bd && hidupDanTampak(u.obj, pos)) { bd = d; musuh = u.obj; } });
