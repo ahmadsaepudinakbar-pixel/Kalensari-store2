@@ -206,7 +206,7 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
 <canvas id="c"></canvas>
 <div id="top" class="ui">
  <div id="ttl"><b>KALENSARI 3D</b><br><small><span id="nmhero">Ocong</span> <span id="nmlawan"></span> · <a id="back" href="game.html">☰ Menu</a></small><div id="fps"></div></div>
- <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><button id="cekBtn" title="Cek performa">📊</button><button id="rekBtn" title="Hasil tes performa">📋</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"><button id="bAtur" title="Atur posisi & ukuran joystick dan tombol skill">🎮 Tombol</button><button id="bKam" title="Kamera Bawaan (tetap seperti MLBB) atau Custom (bisa diputar & di-zoom seperti Roblox)">🎥 Bawaan</button></div>
+ <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><button id="cekBtn" title="Cek performa">📊</button><button id="rekBtn" title="Hasil tes performa">📋</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"><button id="bAtur" title="Atur posisi & ukuran joystick dan tombol skill">🎮 Tombol</button><button id="bKam" title="Kamera Bawaan (tetap seperti MLBB) atau Custom (bisa diputar & di-zoom seperti Roblox)">🎥 Bawaan</button><button id="bKamKunci" title="Kunci / buka sudut kamera Custom" style="display:none">🔓</button></div>
 </div>
 <div id="joy" class="ui"><div id="knob"></div></div>
 <div id="batalB"><b>✖</b>Batal</div>
@@ -4719,15 +4719,20 @@ const camPos = new THREE.Vector3(), camLihat = new THREE.Vector3();
 // Custom: geser layar kosong untuk memutar kamera, cubit / roda mouse untuk zoom (War Nanas memakai Custom kalau belum pernah dipilih)
 // HP: seret jari di area layar yang bukan joystick & tombol · PC: seret mouse (kiri/kanan) di layar · roda mouse = zoom
 // arah joystick, WASD & arah bidik skill ikut berputar sesuai arah kamera
-const KAM = { on: MODE === 'nanas', yaw: 0, pitch: .5, jarak: 10, min: 5, maks: 18, jari: new Map(), cubit: 0 };
-try { const k = JSON.parse(localStorage.getItem('kgKamRoblox') || 'null'); if (k) { KAM.pitch = Math.min(1.25, Math.max(.12, +k.p || .5)); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, +k.j || 10)); } } catch (e) { }
+const KAM = { on: MODE === 'nanas', yaw: 0, pitch: .5, jarak: 10, min: 5, maks: 18, jari: new Map(), cubit: 0, kunci: false };
+// 🔒 kunci sudut: kamera Custom tidak bisa diputar / di-zoom (sudut, tinggi & jarak tersimpan di HP sampai dibuka lagi)
+try { const k = JSON.parse(localStorage.getItem('kgKamRoblox') || 'null'); if (k) { KAM.pitch = Math.min(1.25, Math.max(.12, +k.p || .5)); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, +k.j || 10)); KAM.kunci = !!k.k; if (KAM.kunci && isFinite(+k.y)) KAM.yaw = +k.y; } } catch (e) { }
 try { const m = localStorage.getItem('kgKamMode'); if (m === 'custom' || m === 'bawaan') KAM.on = m === 'custom'; } catch (e) { }
 const kamCustom = () => KAM.on && !UMP.on && !TIM.tonton;   // Petak Umpet & wasit tetap memakai kamera bawaan
-function tandaKam() { const b = $('#bKam'); if (b) { b.textContent = KAM.on ? '🎥 Custom' : '🎥 Bawaan'; b.classList.toggle('on', KAM.on); } }
+function tandaKam() { const b = $('#bKam'); if (b) { b.textContent = KAM.on ? '🎥 Custom' : '🎥 Bawaan'; b.classList.toggle('on', KAM.on); }
+  const g = $('#bKamKunci'); if (g) { g.style.display = KAM.on ? '' : 'none'; g.textContent = KAM.kunci ? '🔒' : '🔓'; g.classList.toggle('on', KAM.kunci); g.title = KAM.kunci ? 'Sudut kamera terkunci — ketuk untuk membuka' : 'Kunci sudut kamera seperti sekarang'; } }
+{ const g = $('#bKamKunci'); if (g) { g.onpointerdown = e => e.stopPropagation();
+  g.onclick = () => { KAM.kunci = !KAM.kunci; KAM.jari.clear(); KAM.cubit = 0; simpanKam(); tandaKam();
+    banner(KAM.kunci ? '🔒 Sudut kamera dikunci (tidak bisa diputar / di-zoom)' : '🔓 Kamera dibuka: geser layar untuk memutar, cubit untuk zoom', '#ffd166'); }; } }
 $('#bKam').onclick = () => { KAM.on = !KAM.on; try { localStorage.setItem('kgKamMode', KAM.on ? 'custom' : 'bawaan'); } catch (e) { } KAM.jari.clear(); KAM.cubit = 0; tandaKam();
-  banner(KAM.on ? '🎥 Kamera Custom: geser layar untuk memutar, cubit / roda mouse untuk zoom' : '🎥 Kamera Bawaan', '#ffd166'); };
+  banner(KAM.on ? (KAM.kunci ? '🎥 Kamera Custom (🔒 terkunci — ketuk gembok untuk membuka)' : '🎥 Kamera Custom: geser layar untuk memutar, cubit / roda mouse untuk zoom · 🔓 ketuk gembok untuk mengunci') : '🎥 Kamera Bawaan', '#ffd166'); };
 tandaKam();
-function simpanKam() { try { localStorage.setItem('kgKamRoblox', JSON.stringify({ p: KAM.pitch, j: KAM.jarak })); } catch (e) { } }
+function simpanKam() { try { localStorage.setItem('kgKamRoblox', JSON.stringify({ p: KAM.pitch, j: KAM.jarak, y: KAM.yaw, k: KAM.kunci ? 1 : 0 })); } catch (e) { } }
 function updKameraRoblox(dt) {
   const tg = kamSasaran().clone().setY(1.5);
   camLihat.lerp(tg, Math.min(1, dt * 10));
@@ -4739,7 +4744,7 @@ function updKameraRoblox(dt) {
 }
 {
   canvas.style.touchAction = 'none';
-  canvas.addEventListener('pointerdown', e => { if (ATUR.on || !kamCustom()) return; KAM.jari.set(e.pointerId, [e.clientX, e.clientY]); try { canvas.setPointerCapture(e.pointerId); } catch (x) { } if (KAM.jari.size === 2) { const [a, b] = [...KAM.jari.values()]; KAM.cubit = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
+  canvas.addEventListener('pointerdown', e => { if (ATUR.on || !kamCustom() || KAM.kunci) return; KAM.jari.set(e.pointerId, [e.clientX, e.clientY]); try { canvas.setPointerCapture(e.pointerId); } catch (x) { } if (KAM.jari.size === 2) { const [a, b] = [...KAM.jari.values()]; KAM.cubit = Math.hypot(a[0] - b[0], a[1] - b[1]); } });
   canvas.addEventListener('pointermove', e => {
     const p = KAM.jari.get(e.pointerId); if (!p) return;
     if (KAM.jari.size >= 2) {   // dua jari: cubit = zoom
@@ -4752,7 +4757,7 @@ function updKameraRoblox(dt) {
   const lepas = e => { if (!KAM.jari.has(e.pointerId)) return; KAM.jari.delete(e.pointerId); if (KAM.jari.size < 2) KAM.cubit = 0; simpanKam(); };
   canvas.addEventListener('pointerup', lepas); canvas.addEventListener('pointercancel', lepas);
   canvas.addEventListener('contextmenu', e => { if (kamCustom()) e.preventDefault(); });
-  canvas.addEventListener('wheel', e => { if (!kamCustom()) return; e.preventDefault(); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, KAM.jarak * (e.deltaY > 0 ? 1.1 : .9))); simpanKam(); }, { passive: false });
+  canvas.addEventListener('wheel', e => { if (!kamCustom()) return; e.preventDefault(); if (KAM.kunci) return; KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, KAM.jarak * (e.deltaY > 0 ? 1.1 : .9))); simpanKam(); }, { passive: false });
 }
 // kamera mengikuti pemain · War Nanas: saat menunggu bangkit, kamera melihat teman (bisa diganti ◀ ▶)
 function kamSasaran() { if (WN.on && WN.lihat && P.state === 'kalah' && !WN.lihat.mt.mati) return WN.lihat.root.position; return P.root.position; }
