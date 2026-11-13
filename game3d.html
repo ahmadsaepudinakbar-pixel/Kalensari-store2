@@ -34,8 +34,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #bA{right:22px;bottom:22px;width:104px;height:104px}
 #b1{right:136px;bottom:16px;width:70px;height:70px}#b2{right:128px;bottom:98px;width:70px;height:70px}#b3{right:46px;bottom:136px;width:76px;height:76px;border-color:#ffb703}
 #bars{position:fixed;inset:0;pointer-events:none;z-index:4}
-.hp{position:absolute;width:64px;height:7px;margin-left:-32px;background:#000b;border-radius:3px;overflow:hidden}.hp i{display:block;height:100%;background:#e8392f}.hp.me i{background:#3fd14b}
-.dn{position:absolute;font:900 20px Arial;color:#ffd166;text-shadow:0 0 4px #000,0 2px 0 #000;transform:translate(-50%,-50%);white-space:nowrap}
+.hp{position:absolute;left:0;top:0;will-change:transform;width:64px;height:7px;margin-left:-32px;background:#000b;border-radius:3px;overflow:hidden}.hp i{display:block;height:100%;background:#e8392f}.hp.me i{background:#3fd14b}
+.dn{position:absolute;left:0;top:0;will-change:transform;font:900 20px Arial;color:#ffd166;text-shadow:0 0 4px #000,0 2px 0 #000;transform:translate(-50%,-50%);white-space:nowrap}
 #load{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(#141b33,#03050b);font:600 15px Arial;text-align:center;padding:20px}
 #load .bar{width:min(70vw,340px);height:10px;border-radius:6px;background:#101a33;border:2px solid #2c3f73;overflow:hidden}#load .bar u{display:block;height:100%;width:0;background:linear-gradient(90deg,#c1121f,#ffb703)}
 #load small{color:#9aa3b8;max-width:420px}#load.off{display:none}
@@ -206,7 +206,7 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
 <canvas id="c"></canvas>
 <div id="top" class="ui">
  <div id="ttl"><b>KALENSARI 3D</b><br><small><span id="nmhero">Ocong</span> <span id="nmlawan"></span> · <a id="back" href="game.html">☰ Menu</a></small><div id="fps"></div></div>
- <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><button id="cekBtn" title="Cek performa">📊</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"><button id="bAtur" title="Atur posisi & ukuran joystick dan tombol skill">🎮 Tombol</button><button id="bKam" title="Kamera Bawaan (tetap seperti MLBB) atau Custom (bisa diputar & di-zoom seperti Roblox)">🎥 Bawaan</button></div>
+ <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><button id="cekBtn" title="Cek performa">📊</button><button id="rekBtn" title="Hasil tes performa">📋</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"><button id="bAtur" title="Atur posisi & ukuran joystick dan tombol skill">🎮 Tombol</button><button id="bKam" title="Kamera Bawaan (tetap seperti MLBB) atau Custom (bisa diputar & di-zoom seperti Roblox)">🎥 Bawaan</button></div>
 </div>
 <div id="joy" class="ui"><div id="knob"></div></div>
 <div id="batalB"><b>✖</b>Batal</div>
@@ -1324,10 +1324,16 @@ const KILAU = new THREE.MeshBasicMaterial({ color: 0xff4040 });
 const ANGKA = [];
 function angka(pos, v, warna) { const d = document.createElement('div'); d.className = 'dn'; d.textContent = (typeof v === 'number' ? '-' : '') + v; if (warna) d.style.color = warna; if (v >= 150) d.style.fontSize = '26px'; $('#bars').appendChild(d); ANGKA.push({ d, p: pos.clone().add(new THREE.Vector3(rnd(-.3, .3), 2.2, 0)), t: 0 }); }
 const V = new THREE.Vector3();
-function layar(p) { V.copy(p).project(camera); return [(V.x * .5 + .5) * innerWidth, (-V.y * .5 + .5) * innerHeight, V.z < 1]; }
+// ukuran layar disimpan sekali (membaca innerWidth/innerHeight setelah memindahkan bar memaksa browser menghitung ulang tata letak — ini yang bikin berat di HP)
+let LYR_W = innerWidth, LYR_H = innerHeight; addEventListener('resize', () => { LYR_W = innerWidth; LYR_H = innerHeight; });
+function layar(p) { V.copy(p).project(camera); return [(V.x * .5 + .5) * LYR_W, (-V.y * .5 + .5) * LYR_H, V.z < 1]; }
+// bar / nama / angka melayang: hanya ditulis kalau berubah, dan dipindah lewat transform (tidak memicu hitung ulang tata letak)
+function setTampil(el, on) { const v = on ? '' : 'none'; if (el._d !== v) { el._d = v; el.style.display = v; } }
+function taruh(el, x, y, ext = '') { x = Math.round(x); y = Math.round(y); if (el._x === x && el._y === y) return; el._x = x; el._y = y; el.style.transform = `translate3d(${x}px,${y}px,0)${ext}`; }
+function lebarBar(el, f) { const p = Math.round(Math.max(0, Math.min(1, f)) * 200) / 2; if (el._w !== p) { el._w = p; el.style.width = p + '%'; } }
 function updLabel(dt) {
-  MUSUH.forEach(mt => { if (mt.wn) return; const [x, y, ok] = layar(V.copy(mt.g.position).setY(mt.g.position.y + 2.45)); mt.bar.style.display = ok && !mt.mati && !mt.sembunyi && !mt.semak ? '' : 'none'; mt.bar.style.left = x + 'px'; mt.bar.style.top = y + 'px'; mt.bar.firstChild.style.width = mt.hp / (mt.hpMax || 1000) * 100 + '%'; });
-  for (let i = ANGKA.length - 1; i >= 0; i--) { const a = ANGKA[i]; a.t += dt; a.p.y += dt * 1.2; const [x, y] = layar(a.p); a.d.style.left = x + 'px'; a.d.style.top = y + 'px'; a.d.style.opacity = Math.max(0, 1 - a.t / .9); if (a.t > .9) { a.d.remove(); ANGKA.splice(i, 1); } }
+  MUSUH.forEach(mt => { if (mt.wn) return; const [x, y, ok] = layar(V.copy(mt.g.position).setY(mt.g.position.y + 2.45)); const on = ok && !mt.mati && !mt.sembunyi && !mt.semak; setTampil(mt.bar, on); if (!on) return; taruh(mt.bar, x, y); lebarBar(mt.bar.firstChild, mt.hp / (mt.hpMax || 1000)); });
+  for (let i = ANGKA.length - 1; i >= 0; i--) { const a = ANGKA[i]; a.t += dt; a.p.y += dt * 1.2; const [x, y] = layar(a.p); taruh(a.d, x, y, ' translate(-50%,-50%)'); a.d.style.opacity = Math.max(0, 1 - a.t / .9).toFixed(2); if (a.t > .9) { a.d.remove(); ANGKA.splice(i, 1); } }
 }
 
 // ================== KONTROL ==================
@@ -4734,7 +4740,7 @@ function updKameraRoblox(dt) {
 function kamSasaran() { if (WN.on && WN.lihat && P.state === 'kalah' && !WN.lihat.mt.mati) return WN.lihat.root.position; return P.root.position; }
 function updKamera(dt) {
   if (kamCustom()) return updKameraRoblox(dt);
-  const tg = kamSasaran().clone().setY(.8), off = innerWidth < innerHeight ? CAM_OFF.clone().multiplyScalar(1.25) : CAM_OFF;
+  const tg = kamSasaran().clone().setY(.8), off = LYR_W < LYR_H ? CAM_OFF.clone().multiplyScalar(1.25) : CAM_OFF;
   camLihat.lerp(tg, Math.min(1, dt * 6)); camPos.copy(camLihat).add(off);
   if (goyang > 0) { goyang -= dt; camPos.x += rnd(-1, 1) * goyang * .6; camPos.y += rnd(-1, 1) * goyang * .6; }
   camera.position.copy(camPos); camera.lookAt(camLihat);
@@ -4896,7 +4902,7 @@ function gerakMacan(mc, ke, v, dt) {   // lari ke titik ke
 }
 function updMacan(mc, dt) {
   const M = SLV.macan, p = mc.g.position; mc.at += dt; mc.umur -= dt;
-  if (mc.bar) { const [x, y, ok] = layar(V.copy(p).setY(p.y + 2.1)); mc.bar.style.display = ok && !(mc.pergi > 0) ? '' : 'none'; mc.bar.style.left = x + 'px'; mc.bar.style.top = y + 'px'; mc.bar.firstChild.style.width = Math.max(0, mc.hp) / M.hp * 100 + '%'; }
+  if (mc.bar) { const [x, y, ok] = layar(V.copy(p).setY(p.y + 2.1)); setTampil(mc.bar, ok && !(mc.pergi > 0)); taruh(mc.bar, x, y); lebarBar(mc.bar.firstChild, Math.max(0, mc.hp) / M.hp); }
   if (mc.kilau > 0) { mc.kilau -= dt; macanRoh(mc, mc.kilau > 0 ? 'merah' : !!mc.roh); }
   if (mc.pergi > 0) { mc.pergi -= dt; const a = Math.max(0, mc.pergi / .6); setTembus(mc, a); if (mc.matiT) { mc.g.rotation.z = Math.min(1.4, (1 - a) * 2.5); } else p.y += dt * 1.5; if (Math.random() < .5) percik(p.clone().setY(rnd(.4, 1.5)), 1, SLV.emas, 1, .14); poseMacan(mc, dt); return mc.pergi > 0; }
   if (mc.umur <= 0 || (mc.milik && P.state === 'kalah')) { if (mc.milik) fx('swPergi', mc.id, 0); else macanPergi(mc, 0); return true; }
@@ -5526,7 +5532,7 @@ function tiapKianSantang(T, dt) {   // tiap frame untuk SEMUA Kian Santang: kemb
   const B = T.ksBayang; if (!B) return;
   B.t += dt; B.umur -= dt; B.cd = Math.max(0, B.cd - dt);
   if (B.umur <= 0 || B.hp <= 0 || (B.milik && P.state === 'kalah')) { ksKabut(B.g.position, 10); buangBayangKS(B); T.ksBayang = null; return; }
-  if (B.bar) { const [x, y, ok] = layar(V.copy(B.g.position).setY(B.g.position.y + 2.2)); B.bar.style.display = ok && B.g.visible ? '' : 'none'; B.bar.style.left = x + 'px'; B.bar.style.top = y + 'px'; B.bar.firstChild.style.width = Math.max(0, B.hp) / HP_MAX.kiansantang * 100 + '%'; }
+  if (B.bar) { const [x, y, ok] = layar(V.copy(B.g.position).setY(B.g.position.y + 2.2)); setTampil(B.bar, ok && B.g.visible); taruh(B.bar, x, y); lebarBar(B.bar.firstChild, Math.max(0, B.hp) / HP_MAX.kiansantang); }
   if (B.mt && B.mt.pusing > 0) { netEvent({ k: 'stunKembar', id: B.id, d: B.mt.pusing }); B.mt.pusing = 0; }   // lawan men-stun kembaran: dikirim ke pemiliknya
   const p = B.g.position, S = KSV.s3;
   if (B.milik) aiKembaran(B, dt);
@@ -7069,7 +7075,7 @@ function wnUpd(dt) {
     B.mati = false; B.mt.mati = 0; B.g.visible = true; B.g.position.copy(B.home); B.g.rotation.y = B.arahAsal; B.sas = null; B.oleh = null; wnMusuh(B);
     gelombang(B.home, 4, .9, 0x6ac0ff); percik(B.home.clone().setY(.5), 40, 0x9fd8ff, 5);
     if (performance.now() - (WN.bannerBuaya || 0) > 3000) { WN.bannerBuaya = performance.now(); banner(`🐊 Buaya Danau Lv${lv} muncul${lv === 1 ? ' (masih lemah)' : ' — makin kuat!'} Kalahkan untuk dijadikan teman`, '#9fd8ff'); } });
-  let _q = CEK.on ? performance.now() : 0;
+  let _q = performance.now();
   // makhluk & bangunan
   WN.E.forEach(E => {
     if (E.mati) {
@@ -7086,21 +7092,23 @@ function wnUpd(dt) {
     if (E.jenis === 'mon' || E.jenis === 'singa' || E.jenis.startsWith('buaya')) wnAnim(E, dt);
     if (E.jenis === 'rumah') { const bd = E.g.userData.bendera; if (bd) bd.rotation.y = Math.sin(performance.now() / 300) * .25; }
   });
-  if (CEK.on) _q = cekS('WN: AI & gerak monster/singa/garuda', _q);
+  _q = cekS('WN: AI & gerak monster/singa/garuda', _q);
   wnUpdBola(dt); wnUpdTugu(dt); wnKartuUpd(dt);
-  if (CEK.on) _q = cekS('WN: bola, tugu, kartu', _q);
+  _q = cekS('WN: bola, tugu, kartu', _q);
   // bar darah semua bangunan & makhluk (monster hanya kalau dekat atau baru diserang)
-  WN.E.forEach(E => { const b = E.mt.bar; if (E.mati || !E.g.visible) { if (b.style.display !== 'none') b.style.display = 'none'; return; }
-    const dekat = E.g.position.distanceTo(P.root.position) < (E.besar ? 30 : 16) || performance.now() - E.kenaT < 3000;
-    const [x, y, ok] = layar(V.copy(E.g.position).setY(E.barY)); const tampil = ok && dekat; b.style.display = tampil ? '' : 'none'; if (!tampil) return;
-    b.style.left = x + 'px'; b.style.top = Math.max(48, y) + 'px'; b.firstChild.style.width = E.hp / E.hpMax * 100 + '%'; b.classList.toggle('kunci', wnTerkunci(E));
+  const kini = performance.now();
+  WN.E.forEach(E => { const b = E.mt.bar; if (E.mati || !E.g.visible) { setTampil(b, false); return; }
+    const dekat = E.g.position.distanceTo(P.root.position) < (E.besar ? 30 : 16) || kini - E.kenaT < 3000;
+    if (!dekat) { setTampil(b, false); return; }
+    const [x, y, ok] = layar(V.copy(E.g.position).setY(E.barY)); setTampil(b, ok); if (!ok) return;
+    taruh(b, x, Math.max(48, y)); lebarBar(b.firstChild, E.hp / E.hpMax); const kc = wnTerkunci(E); if (b._k !== kc) { b._k = kc; b.classList.toggle('kunci', kc); }
     if (E.besar) { const t = E.nama + ' · ' + Math.ceil(E.hp).toLocaleString('id-ID'); if (b._t !== t) { b._t = t; b.lastChild.textContent = t; } } });
-  if (CEK.on) _q = cekS('WN: bar darah monster/bangunan', _q);
+  _q = cekS('WN: bar darah monster/bangunan', _q);
   wnFokusHud();
   // bayangan matahari mengikuti pemain (map panjang)
   { const c = kamSasaran(); sun.target.position.set(c.x, 0, c.z); sun.position.set(c.x + 12, 26, c.z + 14); }
   wnLayarMati();
-  if (CEK.on) _q = cekS('WN: layar mati, fokus', _q);
+  _q = cekS('WN: layar mati, fokus', _q);
   WN.hudT -= dt; if (WN.hudT <= 0) { WN.hudT = .25; updHudTim(); wnPeta(); WN.skT = (WN.skT || 0) + 1; if (WN.skT % 4 === 0) { wnStatHud(); if ($('#wnSkorO').classList.contains('on')) wnSkorBuka(true); } }
 }
 // ---- layar menunggu bangkit: agak gelap + hitung mundur besar, sambil melihat teman ----
@@ -7327,7 +7335,7 @@ function posisiAwal() { if (TIM.on && TIM.saya) { const [x, z] = spawnTim(TIM.sa
 function updBarPemain() {
   if (TIM.tonton) { barPemain.style.display = 'none'; return; }
   if (!BOT && !NET.on) return; const [x, y, ok] = layar(V.copy(P.root.position).setY(P.root.position.y + 2.35)); barPemain.classList.toggle('stun', pingsan());
-  barPemain.style.display = ok ? '' : 'none'; barPemain.style.left = x + 'px'; barPemain.style.top = y + 'px'; barPemain.firstChild.style.width = P.hp / HP_MAX[HERO] * 100 + '%';
+  setTampil(barPemain, ok); taruh(barPemain, x, y); lebarBar(barPemain.firstChild, P.hp / HP_MAX[HERO]);
 }
 async function siapkanBot() {
   const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i><span class="nm"></span>'; $('#bars').appendChild(bar);
@@ -7865,8 +7873,8 @@ function updObjTim(o, dt) {
   if (o.mt.kilau > 0) o.mt.kilau -= dt;
 }
 function barKawan(mt) {   // bar darah kawan (lawan diurus updLabel lewat MUSUH)
-  const [x, y, ok] = layar(V.copy(mt.g.position).setY(mt.g.position.y + 2.45)); mt.bar.style.display = ok && !mt.mati && mt.g.visible ? '' : 'none';
-  mt.bar.style.left = x + 'px'; mt.bar.style.top = y + 'px'; mt.bar.firstChild.style.width = mt.hp / (mt.hpMax || 1000) * 100 + '%';
+  const [x, y, ok] = layar(V.copy(mt.g.position).setY(mt.g.position.y + 2.45)); setTampil(mt.bar, ok && !mt.mati && mt.g.visible);
+  taruh(mt.bar, x, y); lebarBar(mt.bar.firstChild, mt.hp / (mt.hpMax || 1000));
 }
 function updTim(dt, nyata) {
   if (!TIM.main) return;
@@ -7996,7 +8004,7 @@ function umpetGelap(el) {   // layar penjaga: gelap saat menghitung, lalu hanya 
   g.style.display = 'flex';
   if (UMP.fase === 'hitung') { const n = Math.max(1, Math.ceil(UMP.HITUNG - el)); g.style.background = '#000'; if (UMP.angka !== n) { UMP.angka = n; g.innerHTML = '<b>' + n + '</b><small>Tutup mata… teman-teman sedang bersembunyi</small>'; } return; }
   if (UMP.angka !== 0) { UMP.angka = 0; g.innerHTML = ''; }
-  const [x, y] = layar(V.copy(P.root.position).setY(1)), r = Math.min(innerWidth, innerHeight) * (UMP.intip > 0 ? .62 : .42);
+  const [x, y] = layar(V.copy(P.root.position).setY(1)), r = Math.min(LYR_W, LYR_H) * (UMP.intip > 0 ? .62 : .42);
   g.style.background = `radial-gradient(circle at ${Math.round(x)}px ${Math.round(y)}px, rgba(0,0,12,0) ${Math.round(r * .5)}px, rgba(0,0,12,.94) ${Math.round(r)}px)`;
 }
 function umpetHud() {
@@ -8076,7 +8084,7 @@ function panaskan() {   // siapkan semua shader sebelum main → tidak tersendat
   sem.forEach(o => { o.visible = false; });
 }
 // 📊 Cek performa: rincian waktu per frame (hitungan game vs gambar) + beban grafis — untuk mencari bagian yang berat di HP
-const CEK = { on: false, n: 0, upd: 0, ren: 0, gap: 0, t: 0, el: null, seg: [0, 0, 0, 0, 0, 0], fr: [0, 0, 0, 0, 0, 0], buruk: null, bT: 0 };
+const CEK = { on: false, ukur: true, n: 0, upd: 0, ren: 0, gap: 0, t: 0, el: null, seg: [0, 0, 0, 0, 0, 0], fr: [0, 0, 0, 0, 0, 0], buruk: null, bT: 0 };
 const CEK_NAMA = ['pemain & musuh/bot', 'bot Duel Tim', 'War Nanas (monster, singa, garuda, tugu)', 'skill, peluru, semak', 'efek, kamera, nama/bar HP', 'menggambar (three.js + GPU)'];
 const CEK_SUB = {};   // rincian: nama fungsi → ms (dijumlah per detik)
 function cekS(nm, s) { const t = performance.now(); CEK_SUB[nm] = (CEK_SUB[nm] || 0) + t - s; return t; }
@@ -8087,36 +8095,107 @@ function cekTampil() {
   CEK.el.style.display = CEK.on ? '' : 'none';
 }
 { const b = $('#cekBtn'); if (b) { b.onpointerdown = e => e.stopPropagation(); b.onclick = () => { CEK.on = !CEK.on; try { localStorage.setItem('kgCek', CEK.on ? '1' : '0'); } catch (e) { } b.classList.toggle('on', CEK.on); cekTampil(); }; b.classList.toggle('on', CEK.on); } }
+// ---- 📋 perekam otomatis: angka tertinggi tiap bagian dicatat (diganti kalau ada yang lebih tinggi) sampai pertandingan selesai ----
+// disimpan di HP (localStorage) tiap 2 detik → tetap ada walau aplikasi ditutup; pertandingan berikutnya memindahkan hasil lama ke "sebelumnya"
+const REK = { d: null, simpanT: 0 };
+function rekBaru() {
+  try { const l = localStorage.getItem('kgRekor'); if (l) localStorage.setItem('kgRekorLalu', l); } catch (e) { }
+  const mode = WN.on ? 'War Nanas' : TIM.on ? 'Duel Tim' : NET.on ? 'Main Bareng 1v1' : LAWAN === 'bot' ? 'Lawan Bot' : 'Latihan';
+  REK.d = { mulai: new Date().toLocaleString('id-ID'), mode, arena: typeof NAMA_ARENA !== 'undefined' ? NAMA_ARENA[ARENA] : ARENA, hero: NAMA_HERO[HERO] || HERO,
+    hp: (navigator.userAgent.match(/Android [^;)]+;\s*([^;)]+)/) || [])[1] || navigator.platform, ram: navigator.deviceMemory || '?', cpu: navigator.hardwareConcurrency || '?',
+    detik: 0, frame: 0, fpsMin: 999, fpsMinKonteks: '', maks: {}, seg: {}, sub: {}, terberat: null, sendat100: 0, sendat250: 0, sendat500: 0, kual: {} };
+}
+function rekMaks(o, k, v) { if (!(o[k] >= v)) o[k] = v; }
+function rekFrame(tot, i, v) {   // dipanggil tiap frame (murah)
+  const d = REK.d; if (!d) return; d.frame++;
+  if (d.detik < 3) return;   // 3 detik pertama = pemanasan (memuat), tidak dihitung
+  if (tot > 100) d.sendat100++; if (tot > 250) d.sendat250++; if (tot > 500) d.sendat500++;
+  if (!d.terberat || tot > d.terberat.ms) d.terberat = { ms: Math.round(tot), bagian: CEK_NAMA[i], bagianMs: Math.round(v), detik: d.detik };
+}
+function rekDetik(fps, hit, gbr, sisa, segRata, subRata, inf, mem) {   // dipanggil tiap ±1 detik
+  const d = REK.d; if (!d) return; d.detik++;
+  d.kual[['Rendah', 'Sedang', 'Tinggi'][KUAL.lv]] = (d.kual[['Rendah', 'Sedang', 'Tinggi'][KUAL.lv]] || 0) + 1;
+  if (d.detik <= 3 || sisa > 500) return;   // pemanasan / aplikasi sempat ditinggal
+  if (fps < d.fpsMin) { d.fpsMin = fps; d.fpsMinKonteks = Object.entries(subRata).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ${v.toFixed(1)} ms`).join(' · ') + ` (detik ke-${d.detik})`; }
+  d.fpsJml = (d.fpsJml || 0) + fps; d.fpsN = (d.fpsN || 0) + 1;
+  rekMaks(d.maks, 'hitung game (ms/frame)', +hit.toFixed(1)); rekMaks(d.maks, 'menggambar (ms/frame)', +gbr.toFixed(1)); rekMaks(d.maks, 'sisa / browser (ms/frame)', +sisa.toFixed(1));
+  rekMaks(d.maks, 'draw call', inf.render.calls); rekMaks(d.maks, 'segitiga (ribu)', Math.round(inf.render.triangles / 1000));
+  rekMaks(d.maks, 'tekstur', inf.memory.textures); rekMaks(d.maks, 'geometri', inf.memory.geometries); if (mem) rekMaks(d.maks, 'RAM JS (MB)', Math.round(mem.usedJSHeapSize / 1048576));
+  if (CEK.kulit !== undefined) { rekMaks(d.maks, 'karakter beranimasi', CEK.kulit); rekMaks(d.maks, 'objek di layar', CEK.objek); }
+  segRata.forEach((v, i) => rekMaks(d.seg, CEK_NAMA[i], +v.toFixed(1)));
+  for (const k in subRata) rekMaks(d.sub, k, +subRata[k].toFixed(1));
+  const t = performance.now(); if (t - REK.simpanT > 2000) { REK.simpanT = t; try { localStorage.setItem('kgRekor', JSON.stringify(d)); } catch (e) { } }
+}
+function rekTeks(d, judul) {
+  if (!d) return judul + ': belum ada data.';
+  const urut = o => Object.entries(o).sort((a, b) => b[1] - a[1]);
+  const fpsR = d.fpsN ? (d.fpsJml / d.fpsN).toFixed(1) : '-';
+  return `== ${judul} ==\n${d.mulai} · ${d.mode} · ${d.arena} · ${d.hero}\nHP: ${d.hp} · RAM ±${d.ram} GB · inti CPU ${d.cpu}\n`
+    + `lama main: ${d.detik} detik · grafis: ${Object.entries(d.kual).map(([k, v]) => k + ' ' + v + ' dtk').join(', ')}\n\n`
+    + `FPS rata-rata ${fpsR} · FPS terendah ${d.fpsMin === 999 ? '-' : d.fpsMin}\n  saat FPS terendah: ${d.fpsMinKonteks || '-'}\n`
+    + `frame terberat: ${d.terberat ? `${d.terberat.ms} ms ← ${d.terberat.bagian} ${d.terberat.bagianMs} ms (detik ke-${d.terberat.detik})` : '-'}\n`
+    + `tersendat: >100 ms ${d.sendat100}x · >250 ms ${d.sendat250}x · >500 ms ${d.sendat500}x\n\n`
+    + `PUNCAK (rata-rata 1 detik terberat):\n${Object.entries(d.maks).map(([k, v]) => `  ${k}: ${v}`).join('\n')}\n\n`
+    + `BAGIAN (puncak ms/frame):\n${urut(d.seg).map(([k, v]) => `  ${k}: ${v}`).join('\n')}\n\n`
+    + `RINCIAN FUNGSI (puncak ms/frame):\n${urut(d.sub).slice(0, 12).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`;
+}
+function rekBuka() {
+  let lalu = null; try { lalu = JSON.parse(localStorage.getItem('kgRekorLalu') || 'null'); } catch (e) { }
+  const teks = rekTeks(REK.d, 'HASIL TES PERFORMA (pertandingan ini)') + '\n\n' + rekTeks(lalu, 'pertandingan sebelumnya');
+  let o = $('#rekPanel');
+  if (!o) {
+    o = document.createElement('div'); o.id = 'rekPanel';
+    o.style.cssText = 'position:fixed;inset:0;z-index:200;background:#000d;display:flex;flex-direction:column;align-items:center;padding:10px;gap:8px';
+    o.innerHTML = '<pre style="flex:1;overflow:auto;margin:0;width:min(760px,100%);background:#0b1020;border:1px solid #2c3f73;border-radius:10px;padding:10px;color:#cfe8c8;font:600 12px/1.45 monospace;white-space:pre-wrap"></pre>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button data-a="salin">📋 Salin teks</button><button data-a="unduh">⬇️ Unduh .txt</button><button data-a="hapus">🗑️ Mulai catat ulang</button><button data-a="tutup">✖ Tutup</button></div>';
+    o.querySelectorAll('button').forEach(b => { b.style.cssText = 'font:700 14px Arial;color:#fff;background:#228b4e;border:0;border-radius:10px;padding:10px 16px'; if (b.dataset.a === 'tutup') b.style.background = '#2a3042'; });
+    ['pointerdown', 'touchstart', 'keydown'].forEach(ev => o.addEventListener(ev, e => e.stopPropagation()));
+    o.onclick = async e => { const a = e.target.dataset && e.target.dataset.a; if (!a) return; const t = o.querySelector('pre').textContent;
+      if (a === 'tutup') o.remove();
+      else if (a === 'salin') { let ok = false; try { await navigator.clipboard.writeText(t); ok = true; } catch (er) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { ok = document.execCommand('copy'); } catch (e2) { } ta.remove(); }
+        e.target.textContent = ok ? '✅ Tersalin — tempel di WhatsApp' : '⚠️ Gagal salin, screenshot saja'; }
+      else if (a === 'unduh') { const u = URL.createObjectURL(new Blob([t], { type: 'text/plain' })), l = document.createElement('a'); l.href = u; l.download = 'hasil-tes-kalensari-' + Date.now() + '.txt'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000);
+        if (/KalensariGameApp/.test(navigator.userAgent)) e.target.textContent = '⬇️ Di aplikasi pakai "Salin teks"'; }
+      else if (a === 'hapus') { try { localStorage.removeItem('kgRekor'); localStorage.removeItem('kgRekorLalu'); } catch (er) { } rekBaru(); REK.d.detik = 0; o.querySelector('pre').textContent = 'Catatan dikosongkan. Main lagi, lalu buka 📋 lagi.'; } };
+    document.body.appendChild(o);
+  }
+  o.querySelector('pre').textContent = teks;
+}
+{ const b = $('#rekBtn'); if (b) { b.onpointerdown = e => e.stopPropagation(); b.onclick = rekBuka; } }
 function cekLapor(dtNyata) {
   CEK.n++; CEK.t += dtNyata; if (CEK.t < 1) return;
   const n = CEK.n, inf = renderer.info, mem = performance.memory;
-  CEK.hit = (CEK.hit || 0) + 1; if (CEK.hit % 5 === 1) { CEK.kulit = 0; CEK.objek = 0; scene.traverse(o => { CEK.objek++; if (o.isSkinnedMesh && o.visible) CEK.kulit++; }); }
-  const kulit = CEK.kulit, objek = CEK.objek;
-  const rinci = Object.entries(CEK_SUB).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => `  ${k}: ${(v / n).toFixed(1)}`).join('\n'); for (const k in CEK_SUB) delete CEK_SUB[k];
-  CEK.bT += CEK.t; if (CEK.bT > 6) { CEK.bT = 0; CEK.buruk = null; }   // frame terburuk: dihitung ulang tiap ±6 detik
-  const urut = CEK.seg.map((v, i) => [v / n, i]).sort((a, b) => b[0] - a[0]).slice(0, 3).map(([v, i]) => `  ${CEK_NAMA[i]}: ${v.toFixed(1)} ms`).join('\n');
-  const bk = CEK.buruk ? `\nframe terberat ${CEK.buruk.tot.toFixed(0)} ms ← ${CEK_NAMA[CEK.buruk.i]} ${CEK.buruk.v.toFixed(0)} ms` : '';
-  CEK.seg = [0, 0, 0, 0, 0, 0];
-  CEK.el.textContent = `${Math.round(n / CEK.t)} fps · ${['Rendah', 'Sedang', 'Tinggi'][KUAL.lv]} · resolusi ${renderer.getPixelRatio().toFixed(2)}x\n`
-    + `hitung game ${(CEK.upd / n).toFixed(1)} ms · gambar ${(CEK.ren / n).toFixed(1)} ms · sisa ${(CEK.gap / n).toFixed(1)} ms\n`
-    + `draw call ${inf.render.calls} · segitiga ${Math.round(inf.render.triangles / 1000)} rb · karakter ${kulit} · objek ${objek}\n`
-    + `tekstur ${inf.memory.textures} · geometri ${inf.memory.geometries}` + (mem ? ` · RAM JS ${Math.round(mem.usedJSHeapSize / 1048576)} MB` : '')
-    + `\nterberat (rata-rata per frame):\n${urut}${bk} · tersendat >100ms: ${CEK.sendat || 0}x\nrincian (ms per frame):\n${rinci}`;
-  CEK.n = 0; CEK.t = 0; CEK.upd = 0; CEK.ren = 0; CEK.gap = 0;
+  CEK.hit = (CEK.hit || 0) + 1; if (CEK.hit % 10 === 1) { CEK.kulit = 0; CEK.objek = 0; scene.traverse(o => { CEK.objek++; if (o.isSkinnedMesh && o.visible) CEK.kulit++; }); }
+  const kulit = CEK.kulit, objek = CEK.objek, fps = Math.round(n / CEK.t), hit = CEK.upd / n, gbr = CEK.ren / n, sisa = CEK.gap / n;
+  const subRata = {}; for (const k in CEK_SUB) { subRata[k] = CEK_SUB[k] / n; delete CEK_SUB[k]; }
+  const segRata = CEK.seg.map(v => v / n);
+  rekDetik(fps, hit, gbr, sisa, segRata, subRata, inf, mem);
+  CEK.bT += CEK.t; if (CEK.bT > 6) { CEK.bT = 0; CEK.buruk = null; }   // frame terburuk di panel: dihitung ulang tiap ±6 detik
+  if (CEK.on && CEK.el) {
+    const rinci = Object.entries(subRata).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => `  ${k}: ${v.toFixed(1)}`).join('\n');
+    const urut = segRata.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]).slice(0, 3).map(([v, i]) => `  ${CEK_NAMA[i]}: ${v.toFixed(1)} ms`).join('\n');
+    const bk = CEK.buruk ? `\nframe terberat ${CEK.buruk.tot.toFixed(0)} ms ← ${CEK_NAMA[CEK.buruk.i]} ${CEK.buruk.v.toFixed(0)} ms` : '';
+    CEK.el.textContent = `${fps} fps · ${['Rendah', 'Sedang', 'Tinggi'][KUAL.lv]} · resolusi ${renderer.getPixelRatio().toFixed(2)}x · 📋 merekam\n`
+      + `hitung game ${hit.toFixed(1)} ms · gambar ${gbr.toFixed(1)} ms · sisa ${sisa.toFixed(1)} ms\n`
+      + `draw call ${inf.render.calls} · segitiga ${Math.round(inf.render.triangles / 1000)} rb · karakter ${kulit} · objek ${objek}\n`
+      + `tekstur ${inf.memory.textures} · geometri ${inf.memory.geometries}` + (mem ? ` · RAM JS ${Math.round(mem.usedJSHeapSize / 1048576)} MB` : '')
+      + `\nterberat (rata-rata per frame):\n${urut}${bk} · tersendat >100ms: ${CEK.sendat || 0}x\nrincian (ms per frame):\n${rinci}`;
+  }
+  CEK.seg = [0, 0, 0, 0, 0, 0]; CEK.n = 0; CEK.t = 0; CEK.upd = 0; CEK.ren = 0; CEK.gap = 0;
 }
 function mulaiLoop() {
-  if (LOOP) return; LOOP = true; panaskan(); cekTampil();
+  if (LOOP) return; LOOP = true; panaskan(); cekTampil(); rekBaru();
   let cekAkhir = 0;
   let last = performance.now(), fN = 0, fT = 0, t0 = 0;
   renderer.setAnimationLoop(now => {
     const kunci = batasFps(); if (kunci && now - last < 1000 / kunci - 4) return;   // lewati frame (kunci 30 fps)
     const nyata = Math.min(.1, (now - last) / 1000);
-    const c0 = performance.now(); if (CEK.on && cekAkhir) CEK.gap += c0 - cekAkhir;
+    const c0 = performance.now(); if (cekAkhir) CEK.gap += c0 - cekAkhir;
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
     fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v3 · lutung-v4 · saras-v3 · angling-v1 · dayang-v1 · nyi-v1 · siliwangi-v1 · ciung-v1 · sangkuriang-v1 · kiansantang-v1 · lina-v3 · tuyulbot-v1 · tuyulhalo-v1 · tuyulmecha-v1 · tuyulsetan-v1 · tuyultangan-v2 · golem-v2 · santi-v1 · roberick-v1 · lunara-v3'; fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     if (ATUR.on && !NET.on) dt = 0;   // sedang Atur Tombol (main sendiri): permainan berhenti sebentar
-    const ck = CEK.on; let sg = c0;
+    const ck = true; let sg = c0;
     updPemain(dt); updMusuh(dt); if (BOT) sbgMusuh(true, () => BOT.upd(dt));
     if (ck) sg = cekSeg(0, sg);
     if (TIM.on) { updTim(dt, nyata); umpetUpd(dt); }
@@ -8132,8 +8211,8 @@ function mulaiLoop() {
     else { updEfek(dt); updApi(t0, dt); updKamera(dt); updLabel(dt); updBarPemain(); kualitasOtomatis(nyata); }
     const c1 = performance.now();
     if (KUAL.bloom && composer) composer.render(); else renderer.render(scene, camera);
-    if (CEK.on) { const c2 = cekSeg(5, c1); CEK.upd += c1 - c0; CEK.ren += c2 - c1; cekAkhir = c2;
-      const tot = c2 - c0; if (tot > 100) CEK.sendat = (CEK.sendat || 0) + 1; if (!CEK.buruk || tot > CEK.buruk.tot) { let i = 0; CEK.fr.forEach((v, k) => { if (v > CEK.fr[i]) i = k; }); CEK.buruk = { tot, i, v: CEK.fr[i] }; }
+    { const c2 = cekSeg(5, c1); CEK.upd += c1 - c0; CEK.ren += c2 - c1; cekAkhir = c2;
+      const tot = c2 - c0; if (tot > 100) CEK.sendat = (CEK.sendat || 0) + 1; let i = 0; CEK.fr.forEach((v, k) => { if (v > CEK.fr[i]) i = k; }); rekFrame(tot, i, CEK.fr[i]); if (!CEK.buruk || tot > CEK.buruk.tot) CEK.buruk = { tot, i, v: CEK.fr[i] };
       cekLapor(nyata); }
   });
 }
