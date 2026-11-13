@@ -977,7 +977,7 @@ function terapTerang() {
 }
 function terapResolusi() {   // HP: minimal 1 piksel per titik layar (dulu Rendah 0,7 dan bisa turun ke 0,45 → gambar pecah)
   const lv = KUAL.lv, dasar = lv === 0 ? 1.2 : lv === 1 ? (DI_HP ? 1.3 : 1.5) : 2;
-  renderer.setPixelRatio(Math.max(.85, Math.min(devicePixelRatio, dasar * (KUAL.skala || 1))));
+  renderer.setPixelRatio(Math.max(.85, Math.min(devicePixelRatio, dasar) * (KUAL.skala || 1)));
 }
 // HP kentang (RAM ≤ 4 GB) & grafis Rendah di HP: dikunci 30 fps — stabil terasa lebih mulus daripada naik-turun,
 // HP tidak cepat panas, dan tenaga grafis yang tersisa dipakai untuk resolusi yang lebih tajam
@@ -1186,12 +1186,10 @@ function diLayar(g) {
 }
 function animasi(T, dt) {
   if (!T.mixer) return;
-  if (KUAL.lv > 0) { if (T.model) T.model.matrixWorldAutoUpdate = true; T.mixer.update(dt); return; }
+  if (KUAL.lv > 0) { T.mixer.update(dt); return; }
   T.mdt = (T.mdt || 0) + dt;
-  const tampak = T.root.visible && diLayar(T.root), banyak = TIM.on && TIM.obj.size + TIM.bot.size >= 3, jeda = !tampak ? .14 : banyak ? .05 : .033;
-  let gerak = false; if (T.mdt >= jeda) { T.mixer.update(T.mdt); T.mdt = 0; gerak = true; }
-  // karakter di luar layar: ±65 tulangnya tidak dihitung ulang tiap frame (hanya saat animasinya maju, ±7x/detik)
-  if (T.model) T.model.matrixWorldAutoUpdate = tampak || gerak;
+  const banyak = TIM.on && TIM.obj.size + TIM.bot.size >= 3, jeda = !T.root.visible || !diLayar(T.root) ? .14 : banyak ? .05 : .033;
+  if (T.mdt >= jeda) { T.mixer.update(T.mdt); T.mdt = 0; }
 }
 function muatModelHero(hero, T, onProg, skin = '') {
   const emas = skin === 'emas'; if (emas) skin = 'lompat';   // T = P (pemain) atau R (lawan online); skin 'lompat' = Pocong Lompat
@@ -8133,8 +8131,8 @@ function kualitasOtomatis(dt) {   // fps < 26 selama ±4 detik → turunkan kual
   const fps = OTO.n / OTO.t; OTO.t = 0; OTO.n = 0;
   const kunci = batasFps();
   if (fps < (kunci ? 24 : DI_HP ? 30 : 26) && KUAL.lv > 0) { setKual(KUAL.lv - 1); OTO.jeda = 3; const t = $('#fps'); if (t) t.textContent = 'Kualitas diturunkan otomatis (' + Math.round(fps) + ' fps)'; }
-  else if (!kunci && KUAL.lv === 0 && fps < 28 && (KUAL.skala || 1) > .85) { KUAL.skala = Math.max(.85, (KUAL.skala || 1) - .075); terapResolusi(); resize(); OTO.jeda = 8; OTO.naik = 0; }   // masih patah-patah: kecilkan resolusi sedikit (tidak sampai pecah)
-  else if (!kunci && KUAL.lv === 0 && fps > 50 && (KUAL.skala || 1) < 1 && ++OTO.naik >= 3) { OTO.naik = 0; KUAL.skala = Math.min(1, KUAL.skala + .1); terapResolusi(); resize(); OTO.jeda = 8; }
+  else if (KUAL.lv === 0 && fps < (kunci ? 22 : 28) && (KUAL.skala || 1) > .85) { KUAL.skala = Math.max(.85, (KUAL.skala || 1) - .075); terapResolusi(); resize(); OTO.jeda = 8; OTO.naik = 0; }   // masih patah-patah: kecilkan resolusi sedikit (tidak sampai pecah)
+  else if (KUAL.lv === 0 && fps > (kunci ? 28.5 : 50) && (KUAL.skala || 1) < 1 && ++OTO.naik >= 3) { OTO.naik = 0; KUAL.skala = Math.min(1, KUAL.skala + .1); terapResolusi(); resize(); OTO.jeda = 8; }
 }
 function panaskan() {   // siapkan semua shader sebelum main → tidak tersendat saat skill / efek pertama kali muncul
   const sem = []; scene.traverse(o => { if (o.name === 'gendKepal' && !o.visible) { o.visible = true; sem.push(o); } });   // badan kepal ikut disiapkan
@@ -8176,7 +8174,6 @@ function rekDetik(fps, hit, gbr, sisa, segRata, subRata, inf, mem) {   // dipang
   if (d.detik <= 3 || sisa > 500) return;   // pemanasan / aplikasi sempat ditinggal
   if (fps < d.fpsMin) { d.fpsMin = fps; d.fpsMinKonteks = Object.entries(subRata).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ${v.toFixed(1)} ms`).join(' · ') + ` (detik ke-${d.detik})`; }
   d.fpsJml = (d.fpsJml || 0) + fps; d.fpsN = (d.fpsN || 0) + 1;
-  rekMaks(d.maks, 'resolusi tertinggi (x)', +renderer.getPixelRatio().toFixed(2)); d.resJml = (d.resJml || 0) + renderer.getPixelRatio(); d.resN = (d.resN || 0) + 1;
   rekMaks(d.maks, 'hitung game (ms/frame)', +hit.toFixed(1)); rekMaks(d.maks, 'menggambar (ms/frame)', +gbr.toFixed(1)); rekMaks(d.maks, 'sisa / browser (ms/frame)', +sisa.toFixed(1));
   rekMaks(d.maks, 'draw call', inf.render.calls); rekMaks(d.maks, 'segitiga (ribu)', Math.round(inf.render.triangles / 1000));
   rekMaks(d.maks, 'tekstur', inf.memory.textures); rekMaks(d.maks, 'geometri', inf.memory.geometries); if (mem) rekMaks(d.maks, 'RAM JS (MB)', Math.round(mem.usedJSHeapSize / 1048576));
@@ -8192,7 +8189,7 @@ function rekTeks(d, judul) {
   const fpsR = d.fpsN ? (d.fpsJml / d.fpsN).toFixed(1) : '-';
   return `== ${judul} ==\n${d.mulai} · ${d.mode} · ${d.arena} · ${d.hero}\nHP: ${d.hp} · RAM ±${d.ram} GB · inti CPU ${d.cpu}\n`
     + `lama main: ${d.detik} detik · grafis: ${Object.entries(d.kual).map(([k, v]) => k + ' ' + v + ' dtk').join(', ')}\n\n`
-    + `FPS rata-rata ${fpsR} · FPS terendah ${d.fpsMin === 999 ? '-' : d.fpsMin} · resolusi rata-rata ${d.resN ? (d.resJml / d.resN).toFixed(2) + 'x' : '-'}\n  saat FPS terendah: ${d.fpsMinKonteks || '-'}\n`
+    + `FPS rata-rata ${fpsR} · FPS terendah ${d.fpsMin === 999 ? '-' : d.fpsMin}\n  saat FPS terendah: ${d.fpsMinKonteks || '-'}\n`
     + `frame terberat: ${d.terberat ? `${d.terberat.ms} ms ← ${d.terberat.bagian} ${d.terberat.bagianMs} ms (detik ke-${d.terberat.detik})` : '-'}\n`
     + `tersendat: >100 ms ${d.sendat100}x · >250 ms ${d.sendat250}x · >500 ms ${d.sendat500}x\n\n`
     + `PUNCAK (rata-rata 1 detik terberat):\n${Object.entries(d.maks).map(([k, v]) => `  ${k}: ${v}`).join('\n')}\n\n`
@@ -8223,18 +8220,6 @@ function rekBuka() {
   o.querySelector('pre').textContent = teks;
 }
 { const b = $('#rekBtn'); if (b) { b.onpointerdown = e => e.stopPropagation(); b.onclick = rekBuka; } }
-// ---- resolusi adaptif (HP, grafis Rendah, kunci 30 fps): tajam sebisa mungkin, tapi tetap lancar ----
-// tiap detik: kerja = hitung game + gambar (ms per frame). Longgar (≤ 19 ms & tetap ±30 fps) 4 detik → resolusi naik sedikit (maks 1,25x dari dasar)
-// mepet (> 30 ms atau fps < 24) 2 detik → turun (min 0,85x). Ganti resolusi paling cepat tiap 6 detik (tiap ganti = layar disusun ulang).
-const RA = { naik: 0, turun: 0, jeda: 4 };
-function resolusiAdaptif(fps, kerja) {
-  if (!(KUAL.lv === 0 && batasFps())) return;
-  if (RA.jeda > 0) { RA.jeda--; return; }
-  const sk = KUAL.skala || 1;
-  if (kerja > 30 || fps < 24) { RA.turun++; RA.naik = 0; } else if (kerja <= 19 && fps >= 28.5) { RA.naik++; RA.turun = 0; } else { RA.naik = 0; RA.turun = 0; }
-  if (RA.turun >= 2 && sk > .85) { KUAL.skala = Math.max(.85, sk - .1); terapResolusi(); resize(); RA.turun = 0; RA.jeda = 6; }
-  else if (RA.naik >= 4 && sk < 1.25) { KUAL.skala = Math.min(1.25, sk + .05); terapResolusi(); resize(); RA.naik = 0; RA.jeda = 6; }
-}
 function cekLapor(dtNyata) {
   CEK.n++; CEK.t += dtNyata; if (CEK.t < 1) return;
   const n = CEK.n, inf = renderer.info, mem = performance.memory;
@@ -8249,7 +8234,6 @@ function cekLapor(dtNyata) {
   const subRata = {}; for (const k in CEK_SUB) { subRata[k] = CEK_SUB[k] / n; delete CEK_SUB[k]; }
   const segRata = CEK.seg.map(v => v / n);
   rekDetik(fps, hit, gbr, sisa, segRata, subRata, inf, mem);
-  resolusiAdaptif(fps, hit + gbr);
   CEK.bT += CEK.t; if (CEK.bT > 6) { CEK.bT = 0; CEK.buruk = null; }   // frame terburuk di panel: dihitung ulang tiap ±6 detik
   if (CEK.on && CEK.el) {
     const rinci = Object.entries(subRata).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => `  ${k}: ${v.toFixed(1)}`).join('\n');
