@@ -546,6 +546,17 @@ function retarget(entry, l){
     }
   });
 
+  // FBX Mixamo sering tanpa tulang kelingking → kelingking tetap lurus (pose T) saat jari lain mengepal.
+  // Isi dari gerak jari manis: q_kelingking = diam_kelingking · inv(diam_manis) · q_manis
+  ['Left', 'Right'].forEach(sisi => [1, 2, 3].forEach(k => {
+    const tp = bones.get(norm(sisi + 'HandPinky' + k)), tr = bones.get(norm(sisi + 'HandRing' + k));
+    if (!tp || !tr || matched.has(tp)) return;
+    const rt = tracks.find(t => t.name === tr + '.quaternion'); if (!rt) return;
+    const qp = l.snap.byName.q.get(tp), qr = l.snap.byName.q.get(tr); if (!qp || !qr) return;
+    const M = qp.clone().multiply(qr.clone().invert()), out = new Float32Array(rt.values.length), tmp = new THREE.Quaternion();
+    for(let i = 0; i < out.length; i += 4){ tmp.fromArray(rt.values, i).premultiply(M).toArray(out, i); }
+    tracks.push(new THREE.QuaternionKeyframeTrack(tp + '.quaternion', rt.times.slice(), out)); matched.add(tp);
+  }));
   const res = { clip: new THREE.AnimationClip(entry.name, src.duration, tracks), matched: matched.size, total: srcNodes.size };
   l.cache.set(ck, res);
   return res;
