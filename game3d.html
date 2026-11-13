@@ -5912,6 +5912,11 @@ function pakaiWiro(i) {
   }
   P.t = 0; P.hit = 0;
 }
+function wrGembok() {   // logo gembok di tombol ulti selama Kapak Naga masih dilempar
+  const b = document.getElementById('b3'); if (!b || HERO !== 'wiro') return; const on = wrKapakLuar();
+  let e = b.querySelector('.wrKunci'); if (!e) { e = document.createElement('span'); e.className = 'wrKunci'; e.textContent = '🔒'; e.style.cssText = 'position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:30px;background:rgba(0,0,0,.45);border-radius:50%;pointer-events:none;z-index:3;text-shadow:0 0 6px #000'; b.appendChild(e); }
+  const v = on ? 'flex' : 'none'; if (e.style.display !== v) e.style.display = v;
+}
 function wrKapakLuar() { const k = WR.kapak && WR_KAPAK.get(WR.kapak.id); return !!(k && k.fase !== 'selesai'); }
 function wrMulaiHantam() { WR.amuk = 0; WR.tutup = 0; P.state = 'wrHantam'; P.t = 0; P.hit = 0; const m = terdekat(4); if (m) hadapKe(m.g.position); P.root.rotation.y = P.arah; mainUlang('hantam', .05, wrTs(P, 'hantam', WRV.s3.dur)); fx('wrNagaTukik', P.root.position.clone().addScaledVector(depan(), .8), WRV.s3.tH); P.cd[3] = CD_MAX[3]; wrLencana(); }   // naga menukik, tiba bersamaan dengan hantaman
 function wrLencana() {
@@ -5923,6 +5928,7 @@ function wrBebas() { P.state = 'bebas'; main('diam', .2); }
 function updWiro(dt, pos, f) {
   const t = P.t, S1 = WRV.s1, S3 = WRV.s3; updBidik(); WR.comboT = Math.max(0, WR.comboT - dt); WR.kebal = Math.max(0, WR.kebal - dt);
   if (WR.amuk > 0) { WR.amuk = Math.max(0, WR.amuk - dt); if (WR.amuk <= 0) { WR.tutup = 1; wrLencana(); } }
+  wrGembok();
   if (WR.tutup && P.state === 'bebas' && !wrKapakLuar()) wrMulaiHantam();   // hantaman penutup menunggu kapak kembali ke tangan
   // Kapak Naga: damage dihitung di HP pemilik dari posisi kapak (efeknya sama di semua layar)
   if (WR.kapak) { const k = WR_KAPAK.get(WR.kapak.id);
