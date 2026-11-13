@@ -79,7 +79,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #phHero,#phSkin{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
 #ph #phHero button,#ph #phSkin button{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:96px;font:700 13px Arial;color:#e8e2f0;background:#1a1426;border:1px solid #3a2d52;border-radius:12px;padding:8px 10px}
 #ph #phHero button i{font-style:normal;font-size:28px}#ph #phSkin button{min-width:0;flex-direction:row;padding:7px 12px}
-#ph #phHero button small{font:500 11px Arial;color:#9aa3b8}
+#ph #phHero button small{font:500 11px Arial;color:#9aa3b8}#phHero button small.peran{color:#ffd166;font-weight:700}
 #ph #phHero button.on,#ph #phSkin button.on{background:#3a0f1c;border-color:#e8392f;box-shadow:0 0 12px #e8392f55}
 #ph #phHero button.kunci,#ph #phSkin button.kunci{opacity:.45}
 /* Pilih Hero: kartu hero rapi & seragam (nama hero tidak ikut gaya judul besar #hasil b) */
@@ -268,6 +268,12 @@ THREE.Material.prototype.dispose = function () { };
 const Q = new URLSearchParams(location.search);
 const MAIN = Q.get('main') === '1';                                           // tanpa ini → tampilkan menu
 const HERO = ['kunti', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timun', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyi', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang'].includes(Q.get('hero')) ? Q.get('hero') : 'ocong';   // Nyi Roro Kidul ('nyi') tampil lagi di menu · Prabu Siliwangi ('siliwangi'): hero ke-15
+// ---- role hero (3 role khas Kalensari) · nama & ikon cukup diganti di sini ----
+const PERAN = { pengawal: { n: 'Pengawal', ik: '🛡️', isi: 'tank / support' }, dekat: { n: 'Jarak Dekat', ik: '⚔️', isi: 'fighter / assassin' }, jauh: { n: 'Jarak Jauh', ik: '🏹', isi: 'marksman / mage' } };
+const PERAN_HERO = { buto: 'pengawal', genderuwo: 'pengawal', sangkuriang: 'pengawal',
+  ocong: 'dekat', doni: 'dekat', erick: 'dekat', pitung: 'dekat', lutung: 'dekat', siliwangi: 'dekat', kiansantang: 'dekat', tuyul: 'dekat', saras: 'dekat',
+  kunti: 'jauh', nyi: 'jauh', timun: 'jauh', angling: 'jauh', ciung: 'jauh', dayang: 'jauh' };
+const labelPeran = h => { const p = PERAN[PERAN_HERO[h]]; return p ? p.ik + ' ' + p.n : ''; };
 const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul', genderuwo: 'Genderuwo', pitung: 'Si Pitung', erick: 'Erick', doni: 'Doni', timun: 'Timun Mas', buto: 'Buto', lutung: 'Lutung Kasarung', saras: 'Saras', angling: 'Angling Dharma', dayang: 'Dayang Sumbi', nyi: 'Nyi Roro Kidul', siliwangi: 'Prabu Siliwangi', ciung: 'Ciung Wanara', sangkuriang: 'Sangkuriang', kiansantang: 'Kian Santang' }, HP_MAX = { ocong: 1000, kunti: 1000, tuyul: 850, genderuwo: 1200, pitung: 1000, erick: 1000, doni: 1000, timun: 950, buto: 1350, lutung: 800, saras: 950, angling: 900, dayang: 900, nyi: 900, siliwangi: 1000, ciung: 900, sangkuriang: 1050, kiansantang: 950 };
 const MODE = ['latihan', 'bot', 'nanas', 'acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(Q.get('mode')) ? Q.get('mode') : 'latihan';
 const ONLINE = ['acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(MODE);
@@ -1435,7 +1441,7 @@ if (HERO === 'sangkuriang') $('#help').textContent = 'WASD / panah: gerak · J /
 if (HERO === 'ciung') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lemparan Biji (jarak jauh) · U: Serangan Ayam Jago (damage + stun 1,2 dtk) · I: Lincah Sang Legenda (melesat + lari lebih cepat 2 dtk) · O: Phoenix Jago Sakti (hantam area depan lalu kembali)';
 if (HERO === 'siliwangi') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Kujang (3 tebasan) · U (tahan + mouse): Panggilan Macan Putih (damage + Airborne, macan bertarung 10 dtk) · I: Langkah Bayangan (blink 3x, lanjutkan dalam 1,5 dtk) · O: Bayangan Raja Macan (3 serangan, 6 bila Macan Putih aktif)';
 if (HERO === 'nyi') $('#help').textContent = 'Pasif Anak Samudra: di air (Pusaran & Laut Hiu Selatan milik Nyi mana pun — termasuk Nyi musuh —, danau War Nanas) skill 1 tanpa cooldown · WASD / panah: gerak · J / Spasi: Bola Air (jarak jauh) · U (tahan + mouse): Jelajah Samudra (melesat + damage, lalu menjadi putri duyung 5 dtk: kebal damage & stun, tidak bisa menyerang — tekan U lagi untuk kembali) · I (tahan + mouse): Pusaran Laut Selatan (menarik lawan ke tengah + Slow 2 dtk, lalu Stun) · O: Laut Hiu Selatan (area laut luas 10 dtk di sekitar Nyi: tiap hero / monster musuh di dalamnya diterkam hiu air sendiri — damage + Slow, maks. 3 terkaman per target)';
-if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U: Benang Pengikat (mengunci hero lawan terdekat — tahan + mouse untuk memilih lawan: benang mengikat 2 dtk, magic damage + Slow) · I (tahan + mouse): Pukulan Centong Kelapa (memukul kepala lawan dekat: Stun 1,2 dtk · Dayang Sumbi lebih cepat 3 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun + Shield) · Combo: U → I → O';
+if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U: Benang Pengikat (mengunci hero lawan terdekat — tahan + mouse untuk memilih lawan: Stun 0,8 dtk lalu Slow, magic damage; serangan dasar Dayang 1,5x lebih cepat 3 dtk) · I (tahan + mouse): Pukulan Centong Kelapa (memukul kepala lawan dekat: Stun 1,2 dtk · Dayang Sumbi lebih cepat 3 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun area 1,2 dtk + Shield) · Combo: U → I → O';
 if (HERO === 'angling') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Angin (jarak jauh) · U (tahan + mouse): Hembusan Angin (mendorong lawan jauh) · I (tahan + mouse): Bola Api · O: Elang Sakti (naik elang, terbang bebas 10 dtk + lebih cepat; Hembusan Angin & Bola Api jeda hanya 0,5 dtk, tetap diarahkan manual; Hembusan lebih luas) · O lagi saat terbang: elang melesat ke target, Angling Dharma meloncat turun';
 if (HERO === 'saras') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jurus Petir (pukul, hook, tendangan putar) · U (tahan + mouse): Kilat Bayangan (menghilang, muncul 0,5 m di depan lawan: lutut terbang + pukulan) · I (tahan + mouse): Tinju Halilintar (3 ledakan petir di jalur tinju: damage + Stun) · O: Puting Beliung Gledeg (berputar menendang 1,2 dtk sambil bergerak & menyedot lawan, ditutup Tendangan Gledeg + petir dari langit; kebal stun) · Pasif Muatan Petir: 4 serangan kena → pukulan berikutnya menyambar berantai · Combo: U → I → O';
 if (HERO === 'lutung') $('#help').textContent = 'WASD / panah: gerak (berlari 4 kaki) · J / Spasi: Cakaran (cakar, cakar, cakar silang) · U (tahan + mouse): Loncatan Lutung (mendarat di lingkaran; bisa 2x dalam 3 dtk, loncatan ke-2 salto) · I (tahan + mouse): Badai Cakar (menerjang 3 m, 5 cakaran, terakhir Stun) · O: Terkaman Kasarung (otomatis ke lawan terdekat 7 m: melompat ke atas pundak lawan, mencakar muka/kepala bertubi-tubi, lalu melompat turun dengan cakaran pamungkas; damage diterima −50% & kebal stun) · Pasif Naluri Rimba: setelah mendarat, cakaran berikutnya ×1,5 + Bleeding';
@@ -2100,7 +2106,7 @@ function updPemain(dt) {
     else if (!P.hit) { P.hit = 1; pos.copy(P.tujuan);
       fx('lingkaranLantai', pos.clone(), 1.6, .6, 4); fx('nyala', pos.clone().setY(.8), 2, 0xff4a20, .35); fx('gelombang', pos, 2.8, .6); fx('gelombang', pos, 1.8, .45, 0xffa040);
       fx('percik', pos, 40, 0xff5020, 5, .2); fx('percik', pos, 16, 0x332222, 4, .26); fx('kilat', pos, 45); goyang = .25;
-      MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < 2) { kena(m, 170, pos, 6, 3.5); m.pusing = 1.2; } }); }
+      MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < 2) { kena(m, 220, pos, 6, 3.5); m.pusing = 1.2; } }); }   // Loncat Jauh: 220 (sebelumnya 170)
     else { const c = Math.max(0, 1 - (t - NA - TB) / .2); P.tilt.scale.set(1 + .15 * c, 1 - .22 * c, 1 + .15 * c); main('diam', .2); }
     if (t > NA + TB + .3) P.state = 'bebas';
   } else if (P.state === 'guling') {          // berguling cepat ke depan, kena berkali-kali
@@ -2114,7 +2120,7 @@ function updPemain(dt) {
     const t = P.t; main('diam', .1);
     if (t < .35) { P.tilt.rotation.y = (t / .35) * Math.PI * 2; P.tilt.position.y = Math.sin(t / .35 * Math.PI) * .5; }
     if (t > .45 && !P.hit) { P.hit = 1; fx('gelombang', pos, 4.6, .6, 0xff3a10); fx('gelombang', pos, 3.2, .5, 0xffb060); fx('percik', pos, 50, 0xff4020, 6, .2); fx('kilat', pos, 55); goyang = .3;
-      MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < 2.7) kena(m, 190, pos, 8, 6); }); }
+      MUSUH.forEach(m => { if (!m.mati && m.g.position.distanceTo(pos) < 2.7) kena(m, 200, pos, 8, 6); }); }   // Lingkaran Kutukan (ulti): 200 (sebelumnya 190)
     if (t > 1.1) P.state = 'bebas';
   } else if (P.state === 'kalah' && P.prosedural) { P.jatuh = (P.jatuh || 0) + dt; P.tilt.rotation.x = -Math.min(1.45, P.jatuh * 5); }   // jatuh terlentang
   batasi(pos);
@@ -4038,17 +4044,17 @@ function updAngling(dt, pos, f) {
   }
 }
 
-// ================== DAYANG SUMBI (hero ke-13: Mage / Support jarak jauh — jarum & benang emas, centong batok kelapa, anjing penjaga) ==================
+// ================== DAYANG SUMBI (hero ke-13: Marksman jarak jauh (role Jarak Jauh) — jarum & benang emas, centong batok kelapa, anjing penjaga) ==================
 // animasi di dayang.glb (Tripo rig Mixamo + pustaka animasi Tripo, digabung skrip): diam (idle), jalan (walk — anggun, tanpa lari), sihir (cast_a_spell), pukul (chop),
 // kalah (defeat_03), kena (hit_to_body_01) · centong.glb: centong batok kelapa (posisi untuk tulang tangan kanan) · anjing-dayang.glb: anjing penjaga (rig Tripo, animasi buatan skrip: lari, diam, terkam)
 // Serangan dasar: Jarum Emas · Skill 1: Benang Pengikat (mengunci hero lawan: benang ala Angela mengikat 2 dtk, magic damage + Slow) · Skill 2: Pukulan Centong Kelapa (memukul kepala lawan dekat: damage + Stun 1,2 dtk, Dayang Sumbi lebih cepat 3 dtk)
 // Skill 3: Anjing Penjaga Dayang (anjing berlari ke area sasaran lalu menerkam: ledakan magic damage + Stun singkat + Shield untuk Dayang Sumbi) · Combo: Skill 1 → Skill 2 → Skill 3
 const DS = { cepat: 3.2, tsJalan: 1.9, emas: 0xffc83a, emas2: 0xfff0b0, pink: 0xff6ac8, ungu: 0xb070ff,
   jarum: { ts: 1.6, rilis: .28, akhir: .5, jarak: 9.5, cepat: 19, dmg: 55, R: .6 },
-  benang: { ts: 1.4, rilis: .34, akhir: .78, jarak: 7.5, putus: 10, cepat: 14, dmg: 90, R: .9, lambat: 2 },   // mengunci hero: benang menempel ke lawan selama 'lambat' detik (putus kalau lebih jauh dari 'putus' m)
+  benang: { ts: 1.4, rilis: .34, akhir: .78, jarak: 7.5, putus: 10, cepat: 14, dmg: 90, R: .9, stun: .8, lambat: 2, as: 1.5, lamaAs: 3 },   // stun .8 dtk lalu Slow; Dayang: serangan dasar 1,5x lebih cepat selama 3 dtk   // mengunci hero: benang menempel ke lawan selama 'lambat' detik (putus kalau lebih jauh dari 'putus' m)
   centong: { ts: 1.3, kenaT: .37, akhir: .62, maju: 1.1, R: 1.7, dmg: 110, stun: 1.2, lari: 3, cepatK: 1.5 },   // kenaT: centong mendarat di kepala lawan
-  anjing: { ts: 1.4, rilis: .3, akhir: .75, jarak: 8, R: 2.6, cepat: 13, dmg: 160, stun: .8, perisai: 250, lamaP: 4, sk: 1.55 } };   // sk: ukuran anjing (area ledakan R tetap)
-const DSW = { cepatT: 0, perisai: 0, perisaiT: 0, bola: null, sasaran: null, tali: null };
+  anjing: { ts: 1.4, rilis: .3, akhir: .75, jarak: 8, R: 2.6, cepat: 13, dmg: 160, stun: 1.2, perisai: 250, lamaP: 4, sk: 1.55 } };   // sk: ukuran anjing (area ledakan R tetap)
+const DSW = { cepatT: 0, asT: 0, perisai: 0, perisaiT: 0, bola: null, sasaran: null, tali: null };
 const ANJING = { url: 'model-3d/anjing-dayang.glb?v=5', glb: null }, CENTONG_URL = 'model-3d/centong.glb?v=3';
 function siapkanDayang(gl, m, T) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
@@ -4169,7 +4175,7 @@ function dsLencana() { const b = document.getElementById('b3'); if (!b) return; 
 function pakaiDayang(i) {
   const pos = P.root.position;
   const arahi = maks => { if (K.bidik === i && K.diarahkan) P.arah = K.arahBidik; else { const m = terdekat(maks); if (m) hadapKe(m.g.position); } };
-  if (i === 0) { arahi(DS.jarum.jarak + .5); P.state = 'dsJarum'; mainUlang('jarum', .05, DS.jarum.ts); }
+  if (i === 0) { arahi(DS.jarum.jarak + .5); P.dsK = DSW.asT > 0 ? DS.benang.as : 1; P.state = 'dsJarum'; mainUlang('jarum', .05, DS.jarum.ts * P.dsK); }
   else if (i === 1) {   // Benang Pengikat: mengunci hero lawan (tekan = lawan terdekat · dibidik = lawan terdekat ke arah bidikan); tanpa lawan dalam jangkauan tidak dipakai
     const B = DS.benang; let m = null;
     if (K.bidik === 1 && K.diarahkan) { const d0 = new THREE.Vector3(Math.sin(K.arahBidik), 0, Math.cos(K.arahBidik)); let bs = 1e9;
@@ -4192,7 +4198,8 @@ function dsBebas() { P.state = 'bebas'; main('diam', .2); }
 function dsKenaProyektil(p, d, R, cb) { for (const m of MUSUH) { if (!m.mati && !m.sembunyi && Math.hypot(m.g.position.x - p.x, m.g.position.z - p.z) < R + .35) { cb(m); return true; } } return false; }
 function updDayang(dt, pos, f) {
   const t = P.t; updBidik();
-  DSW.cepatT = Math.max(0, DSW.cepatT - dt);
+  DSW.cepatT = Math.max(0, DSW.cepatT - dt); DSW.asT = Math.max(0, DSW.asT - dt);
+  if (DSW.asT > 0 && Math.random() < dt * 10) nyala(pos.clone().setY(rnd(.6, 1.4)), .35, DS.emas, .2);   // aura emas: serangan cepat
   if (DSW.tali) { const q = DSW.tali; q.t -= dt; if (q.t <= 0 || q.m.mati || P.state === 'kalah' || q.m.g.position.distanceTo(pos) > DS.benang.putus) DSW.tali = null; else lambatkan(q.m, Math.min(.3, q.t)); }   // selama terikat lawan tetap melambat
   if (DSW.perisaiT > 0) { DSW.perisaiT -= dt; if (DSW.perisaiT <= 0 || DSW.perisai <= 0) { DSW.perisaiT = 0; DSW.perisai = 0; } }
   dsBolaPerisai(DSW.perisai > 0 && P.state !== 'kalah'); if (DSW.bola && DSW.bola.visible) DSW.bola.material.opacity = .14 + .06 * Math.sin(performance.now() * .008); dsLencana();
@@ -4203,16 +4210,17 @@ function updDayang(dt, pos, f) {
     else { main('diam', .25); if (K.bidik) P.arah = K.arahBidik; }
   }
   else if (P.state === 'dsJarum') {   // Jarum Emas
-    const B = DS.jarum;
-    if (t > B.rilis && !P.hit) { P.hit = 1; const d = depan(), st = tanganDayang(P); st.y = Math.max(.9, Math.min(1.5, st.y)); st.addScaledVector(d, .25);
+    const B = DS.jarum, kA = P.dsK || 1;
+    if (t > B.rilis / kA && !P.hit) { P.hit = 1; const d = depan(), st = tanganDayang(P); st.y = Math.max(.9, Math.min(1.5, st.y)); st.addScaledVector(d, .25);
       fx('dsJarum', st, P.arah, jarakTempuh(st.clone().setY(1.15), d, B.jarak, B.R), p => dsKenaProyektil(p, d, B.R, m => kena(m, B.dmg, p.clone().addScaledVector(d, -1), 1))); }
-    if (t > B.akhir) dsBebas();
+    if (t > B.akhir / kA) dsBebas();
   }
   else if (P.state === 'dsBenang') {   // Benang Pengikat: benang menempel ke hero lawan → magic damage + Slow selama benang terikat
     const B = DS.benang, m = DSW.sasaran;
     if (t > B.rilis && !P.hit) { P.hit = 1;
-      if (m && !m.mati) { hadapKe(m.g.position); kena(m, B.dmg, pos, .5); lambatkan(m, B.lambat); goyang = Math.max(goyang, .08);
-        DSW.tali = { m, t: B.lambat }; fx('dsTali', tanganDayang(P), m.g.position.clone(), B.lambat, () => P.state === 'kalah' ? null : tanganDayang(P), () => m.mati ? null : m.g.position); fx('dsIkat', m.g.position.clone(), B.lambat, () => m.g.position); } }
+      if (m && !m.mati) { hadapKe(m.g.position); kena(m, B.dmg, pos, .5); m.pusing = Math.max(m.pusing || 0, B.stun); lambatkan(m, B.stun + B.lambat); goyang = Math.max(goyang, .08);
+        DSW.asT = B.lamaAs; angka(pos, '⚡ serang cepat', '#ffd56a');
+        DSW.tali = { m, t: B.stun + B.lambat }; fx('dsTali', tanganDayang(P), m.g.position.clone(), B.stun + B.lambat, () => P.state === 'kalah' ? null : tanganDayang(P), () => m.mati ? null : m.g.position); fx('dsIkat', m.g.position.clone(), B.stun + B.lambat, () => m.g.position); } }
     if (t > B.akhir) dsBebas();
   }
   else if (P.state === 'dsCentong') {   // Pukulan Centong Kelapa: lawan dekat di depan → damage + Stun, lalu Dayang Sumbi lebih cepat
@@ -5696,7 +5704,7 @@ const BOT_UMUM = {
   lutung: { warna: 0xffa030, dasar: ['cakar1', 'cakar2', 'cakar3'], s: [{ t: 'lompat', a: 'loncat', dmg: 110, r: 2, stun: .5 }, { t: 'area', a: 'badai', dmg: 140, r: 2.6 }, { t: 'dash', a: 'terkam', dmg: 240, stun: 1 }], cd: [.45, 6, 7, 14], cepat: 4.6 },
   saras: { warna: 0x40a0ff, dasar: ['pukul1', 'pukul2', 'tendang'], s: [{ t: 'dash', a: 'gledeg', dmg: 120, stun: .5 }, { t: 'area', a: 'tinju', dmg: 150, r: 2.4, stun: .8 }, { t: 'lompat', a: 'loncat', dmg: 220, r: 3, stun: 1 }], cd: [.5, 6, 7, 14], cepat: 4.4 },
   angling: { jauh: 1, jarak: 7.5, cepat: AD.cepat, warna: 0xffa020, dasar: ['angin'], s: [{ t: 'pel', a: 'hembus', dmg: 100, dorong: 9 }, { t: 'pel', a: 'api', dmg: 140 }, { t: 'target', a: 'turun', dmg: 220, r: 3, stun: 1 }], cd: [.6, 7, 6, 15] },
-  dayang: { jauh: 1, jarak: 7, cepat: DS.cepat, warna: 0xff9ad0, dasar: ['jarum'], s: [{ t: 'pel', a: 'benang', dmg: 100, stun: 1.2 }, { t: 'area', a: 'pukul', dmg: 120, r: 2, stun: 1.2 }, { t: 'target', a: 'panggil', dmg: 200, r: 3, stun: .8 }], cd: [.55, 6, 8, 14] },
+  dayang: { jauh: 1, jarak: 7, cepat: DS.cepat, warna: 0xff9ad0, dasar: ['jarum'], s: [{ t: 'pel', a: 'benang', dmg: 100, stun: .8, lambat: 2 }, { t: 'area', a: 'pukul', dmg: 120, r: 2, stun: 1.2 }, { t: 'target', a: 'panggil', dmg: 200, r: 3, stun: 1.2 }], cd: [.55, 6, 8, 14] },
   nyi: { jauh: 1, jarak: 7.5, cepat: NR.cepat, warna: 0x30a0ff, dasar: ['serang'], s: [{ t: 'dash', a: 'renang', dmg: 90 }, { t: 'target', a: 'pusaran', dmg: 150, r: 2.6, lambat: 2 }, { t: 'target', a: 'ulti', dmg: 200, r: 2.4, lambat: 1.6 }], cd: [.6, 8, 9, 16] },
   siliwangi: { warna: 0xffd040, dasar: ['tebas1', 'tebas2', 'tebas3'], s: [{ t: 'lompat', a: 'panggil', dmg: 130, r: 2.2, stun: .8 }, { t: 'dash', a: 'tebas2', dmg: 110 }, { t: 'dash', a: 'tebas3', dmg: 240, stun: .8 }], cd: [.5, 9, 8, 16], cepat: 4.4 },
   ciung: { jauh: 1, jarak: 7, warna: 0xff6020, dasar: ['lempar'], s: [{ t: 'pel', a: 'perintah', dmg: 120, stun: 1.2 }, { t: 'dash', a: 'lincah', dmg: 60 }, { t: 'target', a: 'panggil', dmg: 220, r: 3, stun: .8 }], cd: [.7, 8, 8, 16] },
@@ -6105,7 +6113,7 @@ async function buatBotPro(o) {
         nyala(pos.clone().setY(3.2 * 4 * u * (1 - u) + .9), 1.1, 0xff3a14, .45); }
       else if (!B.hit) { B.hit = 1; pos.copy(B.tujuan);
         fx('nyala', pos.clone().setY(.8), 2, 0xff4a20, .35); fx('gelombang', pos.clone(), 2.8, .6); fx('gelombang', pos.clone(), 1.8, .45, 0xffa040); fx('percik', pos.clone(), 40, 0xff5020, 5, .2); fx('kilat', pos.clone(), 45);
-        if (kenaDi(pos, 2)) { serang(170, pos.clone(), 6); stun('pusing', 1.2); goy(.25); } }
+        if (kenaDi(pos, 2)) { serang(220, pos.clone(), 6); stun('pusing', 1.2); goy(.25); } }
       else { const c = Math.max(0, 1 - (t - NA - TB) / .2); T.tilt.scale.set(1 + .15 * c, 1 - .22 * c, 1 + .15 * c); mainObj(T, 'diam', .2); }
       if (t > NA + TB + .3) { B.tujuan = null; beres(); }
     }
@@ -6120,7 +6128,7 @@ async function buatBotPro(o) {
       mainObj(T, 'diam', .1);
       if (t < .5) { T.tilt.rotation.y = (t / .5) * Math.PI * 2; B.naik = Math.sin(t / .5 * Math.PI) * .5; }
       if (t > .55 && !B.hit) { B.hit = 1; fx('gelombang', pos.clone(), 4.6, .6, 0xff3a10); fx('gelombang', pos.clone(), 3.2, .5, 0xffb060); fx('percik', pos.clone(), 50, 0xff4020, 6, .2); fx('kilat', pos.clone(), 55);
-        if (kenaDi(pos, 2.7)) { serang(190, pos.clone(), 8); goy(.3); } }
+        if (kenaDi(pos, 2.7)) { serang(200, pos.clone(), 8); goy(.3); } }
       if (t > 1.2) beres();
     }
     else if (B.state === 'tembak') {      // Kunti: bola roh
@@ -6645,6 +6653,7 @@ function wnKena(E, dmg, oleh) {   // oleh: P / bot (Duel Tim) / null
   angka(E.g.position.clone().setY(E.M.tinggi - 2.2), dmg, E.tm === 0 ? '#ff9a9a' : undefined);
   if (oleh === P || (oleh && oleh.B)) {
     E.oleh = { id: wnIdOf(oleh), tm: wnTimOf(oleh) };
+    if (E.jenis === 'mon') (E.bantu || (E.bantu = new Map())).set(E.oleh.id, performance.now());   // untuk pasif Pengawal (bantu farming)
     if ((E.jenis === 'mon' || E.jenis === 'buaya') && !E.sas) E.sas = oleh;
   }
   if (E.hp <= 0) wnMati(E);
@@ -6657,7 +6666,10 @@ function wnMati(E) {
     if (k && k.id != null && WN.sk.get(k.id)) WN.sk.get(k.id).mon++;
     if (k && k.id != null) {   // yang membunuh: pulih 20% HP + pilih 1 dari 3 kartu stat acak (+5% s/d +15%)
       if (k.id === TIM.me) { if (P.state !== 'kalah') { const t = Math.round(HP_MAX[HERO] * .2), n = Math.min(t, HP_MAX[HERO] - P.hp); P.hp += n; WN.sk.get(TIM.me).heal += n; if (n > 0) angka(P.root.position, '+' + Math.round(n), '#7dff8a'); percik(P.root.position.clone().setY(.3), 14, 0x7dff8a, 2); } wnKartuMuncul(E.stat); }
-      else { const o = TIM.bot.get(k.id); if (o && !o.mt.mati) o.mt.hp = Math.min(o.mt.hpMax, o.mt.hp + o.mt.hpMax * .2); const c = wnAcakKartu(E.stat)[0]; wnTambah(k.id, c.k, c.v); } }
+      else { const o = TIM.bot.get(k.id); if (o && !o.mt.mati) o.mt.hp = Math.min(o.mt.hpMax, o.mt.hp + o.mt.hpMax * .2); const c = wnAcakKartu(E.stat)[0]; wnTambah(k.id, c.k, c.v); }
+      // pasif Pengawal: ikut memukul monster yang dibunuh teman (≤ 8 dtk terakhir) → 3 kartu +5% (selalu ada Defense & Speed)
+      if (E.bantu) { const now = performance.now(); E.bantu.forEach((t, id) => { if (id !== k.id && now - t < 8000 && timOf(id) === k.tm && wnPeran(id) === 'pengawal') wnPasifPengawal(id, 5, 'bantu farming'); }); } }
+    E.bantu = null;
   } else if (E.jenis === 'singa' || E.jenis === 'garuda' || E.jenis === 'rumah') {
     E.runtuh = 0; gelombang(p, 5, .8, 0xffc040); percik(p, 60, 0xffc040, 7); asap(p, 16, 0x8a7a6a, 2.2, 1.3); goyang = Math.max(goyang, .35);
     WN.padat = WN.padat.filter(q => q.E !== E);
@@ -7156,6 +7168,17 @@ function wnAcakKartu(st0, emas) {   // emas = kartu dari membunuh hero lawan (+1
   const v = emas ? 10 + Math.floor(Math.random() * 11) : 5 + Math.floor(Math.random() * 11);   // satu angka acak untuk ketiga kartu: biasa 5–15%, emas 10–20%
   return pil.map(k => ({ k, v, emas: !!emas }));
 }
+// ---- pasif Pengawal (War Nanas): bantu farming → 3 kartu +5% · assist kill hero lawan → 3 kartu +10% · selalu ada kartu Defense & Speed ----
+function wnPeran(id) { const h = id === TIM.me ? HERO : (TIM.bot.get(id) || {}).hero; return PERAN_HERO[h] || ''; }
+function wnPasifPengawal(id, v, sebab) {
+  const pil = ['def', 'spd', pilihAcak(['hp', 'atk', 'as', 'cd'])];
+  for (let i = pil.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pil[i], pil[j]] = [pil[j], pil[i]]; }
+  if (id === TIM.me) {
+    const c = pil.map(k => ({ k, v, emas: v >= 10 })); c.judul = `🛡️ Pasif Pengawal (${sebab}) · Pilih 1`;
+    WN_KARTU.antri.push(c); if (!WN_KARTU.buka) wnKartuBuka(); else wnKartuJudul();
+    angka(P.root.position, '🛡️ +' + v + '%', '#9fd8ff');
+  } else { const k = Math.random() < .5 ? 'def' : 'spd'; wnTambah(id, k, v); }   // bot Pengawal: pilih Defense / Speed
+}
 function wnKartuMuncul(st0, emas) { WN_KARTU.antri.push(wnAcakKartu(st0, emas)); if (!WN_KARTU.buka) wnKartuBuka(); else wnKartuJudul(); }
 function wnKartuBuka() {
   const e = $('#wnKartu'), c = WN_KARTU.antri.shift(); if (!e) return;
@@ -7164,7 +7187,7 @@ function wnKartuBuka() {
   e.innerHTML = '<div class="wkj"></div>' + c.map((x, i) => `<button class="wk ${x.emas ? 'emas' : 'r' + (x.v >= 13 ? 3 : x.v >= 9 ? 2 : 1)}" data-i="${i}"><i>${WN_STAT[x.k].ik}</i><span>${WN_STAT[x.k].n}</span><b>+${x.v}%</b><small>${DI_HP ? '' : i + 1}</small></button>`).join('');
   e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); wnKartuJudul();
 }
-function wnKartuJudul() { const j = $('#wnKartu .wkj'); if (j) j.textContent = `${WN_KARTU.buka && WN_KARTU.buka[0].emas ? '🌟 Kartu Emas! Pilih 1' : '🃏 Pilih 1 kartu'} · ${Math.max(1, Math.ceil(WN_KARTU.t))} dtk` + (WN_KARTU.antri.length ? ` · +${WN_KARTU.antri.length} lagi` : ''); }
+function wnKartuJudul() { const j = $('#wnKartu .wkj'); if (j) j.textContent = `${WN_KARTU.buka && WN_KARTU.buka.judul ? WN_KARTU.buka.judul : WN_KARTU.buka && WN_KARTU.buka[0].emas ? '🌟 Kartu Emas! Pilih 1' : '🃏 Pilih 1 kartu'} · ${Math.max(1, Math.ceil(WN_KARTU.t))} dtk` + (WN_KARTU.antri.length ? ` · +${WN_KARTU.antri.length} lagi` : ''); }
 function wnKartuPilih(i) {
   const c = WN_KARTU.buka; if (!c || !c[i]) return; const x = c[i], S = WN_STAT[x.k];
   wnTambah(TIM.me, x.k, x.v); banner(`${S.ik} ${S.n} +${x.v}% (total ${x.k === 'cd' ? '−' : '+'}${wnPersen(TIM.me, x.k)}%)`, '#9dff8a'); angka(P.root.position, S.ik + ' +' + x.v + '%', '#9dff8a');
@@ -7190,7 +7213,7 @@ function wnCatatMati(id, oleh) {   // kembalikan pembunuh (hero lawan terakhir y
   let pembunuh = oleh != null && timOf(oleh) !== tm && timOf(oleh) >= 0 ? oleh : lawanBaru.length ? lawanBaru[0][0] : null;
   if (pembunuh != null) {
     const kp = WN.sk.get(pembunuh); if (kp) kp.k++;
-    lawanBaru.forEach(([a]) => { if (a !== pembunuh) { const s = WN.sk.get(a); if (s) s.a++; } });
+    lawanBaru.forEach(([a]) => { if (a !== pembunuh) { const s = WN.sk.get(a); if (s) s.a++; if (wnPeran(a) === 'pengawal') wnPasifPengawal(a, 10, 'assist kill'); } });
     if (pembunuh === TIM.me) { wnKartuMuncul(null, true); banner('🌟 Kill! Pilih Kartu Emas (+10% s/d +20%)', '#ffd040'); }
     else if (TIM.bot.get(pembunuh)) { const c = wnAcakKartu(null, true)[0]; wnTambah(pembunuh, c.k, c.v); }
     if (lawanBaru.some(([a]) => a === TIM.me) && pembunuh !== TIM.me) banner('🤝 Assist!', '#9fd8ff');
@@ -7248,6 +7271,7 @@ async function wnMulai() {
   $('#help').textContent = 'War Nanas 3 vs 3 · Kalahkan monster hutan untuk menambah stat · Kuasai Tugu Nanas (berdiri 10 dtk) untuk pulih · Hancurkan Sisingaan → Garuda → Rumah lawan';
   banner('🍍 War Nanas! Farming monster hutan dulu, lalu rebut Tugu Nanas', '#ffd166');
   banner('🔒 Urutan: Sisingaan → Garuda → Rumah lawan', '#ffd166');
+  { const p = PERAN[PERAN_HERO[HERO]]; if (p) banner(`${p.ik} Role kamu: ${p.n} (${p.isi})` + (PERAN_HERO[HERO] === 'pengawal' ? ' · pasif: dapat kartu saat bantu farming & assist' : ''), '#9fd8ff'); }
 }
 
 // ================== DUEL LAWAN BOT (1 VS 1) ==================
@@ -7306,7 +7330,7 @@ const FOTO_HERO = { ocong: 'ocong-lompat', kunti: 'kunti', tuyul: 'tuyul', gende
   FOTO_SKIN = { 'ocong:lompat': 'ocong-lompat', 'ocong:boneka': 'ocong-boneka', 'ocong:emas': 'ocong-pink', 'kunti:merah': 'kunti-merah', 'kunti:gothic': 'kunti-gothic', 'genderuwo:leak': 'leak', 'genderuwo:calon': 'calon-arang', 'pitung:pendekar': 'pendekar', 'doni:robot': 'doni-robot', 'doni:dawala': 'doni-dawala', 'doni:manchung': 'doni-manchung', 'erick:robot': 'erick-robot', 'erick:cepot': 'erick-cepot', 'lutung:fox': 'lutung-fox', 'saras:lina': 'saras-lina', 'saras:santi': 'saras-santi', 'tuyul:robot': 'tuyul-robot', 'tuyul:halloween': 'tuyul-halloween', 'tuyul:mecha': 'tuyul-mecha', 'tuyul:setan': 'tuyul-setan', 'buto:golem': 'buto-golem', 'buto:ijo': 'buto-ijo', 'timun:airin': 'timunmas-airin' };
 const fotoMuka = (h, k) => 'gambar-game/potret-3d/' + (FOTO_SKIN[h + ':' + k] || FOTO_HERO[h]) + '-kepala.webp';   // foto muka hero / skin (dipakai di layar Pilih Hero)
 function gambarPilihHero() {
-  $('#phHero').innerHTML = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timun', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyi', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang'].map(h => { const ok = PUNYA.includes(h); return `<button data-h="${h}" class="${PH.hero === h ? 'on' : ''} ${ok ? '' : 'kunci'}"><span class="fm"><img src="${fotoMuka(h, PH.hero === h ? PH.skin : '')}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${IKON_HERO[h]}'))"></span><b>${NAMA_HERO[h]}</b><small>${ok ? DESK_HERO[h] : '🔒 butuh kartu'}</small></button>`; }).join('');
+  $('#phHero').innerHTML = ['ocong', 'kunti', 'tuyul', 'genderuwo', 'pitung', 'erick', 'doni', 'timun', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyi', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang'].map(h => { const ok = PUNYA.includes(h); return `<button data-h="${h}" class="${PH.hero === h ? 'on' : ''} ${ok ? '' : 'kunci'}"><span class="fm"><img src="${fotoMuka(h, PH.hero === h ? PH.skin : '')}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('${IKON_HERO[h]}'))"></span><b>${NAMA_HERO[h]}</b><small class="peran">${labelPeran(h)}</small><small>${ok ? DESK_HERO[h] : '🔒 butuh kartu'}</small></button>`; }).join('');
   $('#phSkin').innerHTML = PIL_SKIN[PH.hero].length > 1 ? PIL_SKIN[PH.hero].map(([k, n]) => { const ok = SKIN_PUNYA.has(PH.hero + ':' + k); return `<button data-k="${k}" class="${PH.skin === k ? 'on' : ''} ${ok ? '' : 'kunci'}"><img class="fs" src="${fotoMuka(PH.hero, k)}" alt="" onerror="this.remove()">${ok ? '' : '🔒 '}${n.replace(/^\S+\s/, '')}</button>`; }).join('') : '';
   document.querySelectorAll('#phHero button').forEach(b => b.onclick = () => { const h = b.dataset.h;
     if (!PUNYA.includes(h)) { $('#phInfo').textContent = '🔒 ' + NAMA_HERO[h] + ' terkunci — klaim kartunya di Koleksi Kartu'; return; }

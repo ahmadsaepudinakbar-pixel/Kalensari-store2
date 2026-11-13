@@ -550,6 +550,8 @@ Object.entries(SKINS).forEach(([id,v])=>{if(!v.spr)return;const ld=n=>{const i=n
 const fxOf=s=>{const S=spOf(s);return S&&S.fx&&spOk(S.fx['dasar-ledakan'])?S:null};
 const spOk=im=>!!(im&&im.complete&&im.naturalWidth),spOf=s=>{const S=s&&SKSP[s];return S&&spOk(S.d[0])?S:null};
 let KOL={login:false,hero:[],skin:[],kartu:[]};
+// role hero (sama dengan game3d.html): 🛡️ Pengawal (tank/support) · ⚔️ Jarak Dekat (fighter/assassin) · 🏹 Jarak Jauh (marksman/mage)
+const PERAN_G={buto:'🛡️',genderuwo:'🛡️',sangkuriang:'🛡️',dayang:'🏹',pocong:'⚔️',doni:'⚔️',erick:'⚔️',pitung:'⚔️',lutung:'⚔️',siliwangi:'⚔️',kiansantang:'⚔️',tuyul:'⚔️',saras:'⚔️',kuntilanak:'🏹',nyiroro:'🏹',timunmas:'🏹',angling:'🏹',ciung:'🏹'};
 const SKIN_GRATIS=['buto:ijo','buto:golem','doni:robot','doni:dawala','doni:manchung','erick:robot','erick:cepot','genderuwo:calon','lutung:fox','saras:lina','saras:santi','timunmas:faniya','timunmas:airin','tuyul:robot','tuyul:halloween','tuyul:mecha','tuyul:setan'];   // skin yang bisa dipakai tanpa kartu (hapus dari sini kalau mau dibuka lewat kartu)
 const punyaHero=h=>GRATIS.includes(h)||KOL.hero.includes(h),punyaSkin=s=>SKIN_GRATIS.includes(s)||KOL.skin.includes(s);
 let skinPick=(()=>{try{return JSON.parse(localStorage.getItem('kgSkin')||'{}')||{}}catch(e){return{}}})();
@@ -590,7 +592,7 @@ function seen(v,t){if(t.dead||t.gone)return false;if(v.side===t.side)return true
 const headOf=f=>heroHead(f.id,f.skin);
 const stars=Array.from({length:50},()=>[Math.random()*W,Math.random()*160]);
 function grid(){if(!punyaHero(pick))pick='pocong';
- $('#grid').innerHTML=ALL.map(a=>{const x=a[0]=='x',own=!x&&punyaHero(a[0]);return `<div class="card ${a[0]==pick?'sel':''} ${x?'off':own?'':'lock'}" data-id="${a[0]}" data-n="${a[1]}"><i style="background:${x?a[2]:'url('+heroHead(a[0],skinOf(a[0]))+') center/cover #1a1030'}"></i>${!x&&!own?'🔒 ':''}${a[1]}</div>`}).join('');
+ $('#grid').innerHTML=ALL.map(a=>{const x=a[0]=='x',own=!x&&punyaHero(a[0]);return `<div class="card ${a[0]==pick?'sel':''} ${x?'off':own?'':'lock'}" data-id="${a[0]}" data-n="${a[1]}"><i style="background:${x?a[2]:'url('+heroHead(a[0],skinOf(a[0]))+') center/cover #1a1030'}"></i>${!x&&!own?'🔒 ':''}${PERAN_G[a[0]]?PERAN_G[a[0]]+' ':''}${a[1]}</div>`}).join('');
  const sk=Object.entries(SKINS).filter(([id,v])=>v.h==pick),cur=skinOf(pick);
  $('#skins').innerHTML=sk.length?`<span>Skin:</span><b class="sk ${cur?'':'on'}" data-s="">Bawaan</b>`+sk.map(([id,v])=>`<b class="sk ${cur==id?'on':''} ${punyaSkin(id)?'':'lk'}" data-s="${id}">${punyaSkin(id)?'':'🔒 '}${v.n}</b>`).join(''):'';
  document.querySelectorAll('#grid .card').forEach(c=>c.onclick=()=>{const id=c.dataset.id;
