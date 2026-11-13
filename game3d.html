@@ -965,10 +965,13 @@ function terapTerang() {
   if (sl) { sl.style.display = lb.style.display = (t && KUAL.lv === 0) ? '' : 'none'; sl.value = f;
     if (!sl.dataset.ok) { sl.dataset.ok = 1; sl.onpointerdown = e => e.stopPropagation(); sl.oninput = () => { KUAL.fT = +sl.value; try { localStorage.setItem('terangRendah', KUAL.fT); } catch (e) { } terapTerang(); }; } }
 }
-function terapResolusi() {   // Rendah di HP: resolusi lebih kecil, bisa turun lagi otomatis (KUAL.skala)
-  const lv = KUAL.lv, dasar = lv === 0 ? (DI_HP ? .7 : 1) : lv === 1 ? (DI_HP ? 1 : 1.5) : 2;
-  renderer.setPixelRatio(Math.max(.45, Math.min(devicePixelRatio, dasar) * (KUAL.skala || 1)));
+function terapResolusi() {   // HP: minimal 1 piksel per titik layar (dulu Rendah 0,7 dan bisa turun ke 0,45 → gambar pecah)
+  const lv = KUAL.lv, dasar = lv === 0 ? 1 : lv === 1 ? (DI_HP ? 1.25 : 1.5) : 2;
+  renderer.setPixelRatio(Math.max(.85, Math.min(devicePixelRatio, dasar) * (KUAL.skala || 1)));
 }
+// HP kentang (RAM ≤ 4 GB) & grafis Rendah di HP: dikunci 30 fps — stabil terasa lebih mulus daripada naik-turun,
+// HP tidak cepat panas, dan tenaga grafis yang tersisa dipakai untuk resolusi yang lebih tajam
+function batasFps() { return DI_HP && (HP_LEMAH || KUAL.lv === 0) ? 30 : 0; }
 function resize() {
   const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h;
   camera.fov = w < h ? 60 : 42; camera.updateProjectionMatrix();
@@ -8057,9 +8060,10 @@ function kualitasOtomatis(dt) {   // fps < 26 selama ±4 detik → turunkan kual
   if (OTO.jeda > 0) { OTO.jeda -= dt; return; }
   OTO.t += dt; OTO.n++; if (OTO.t < 4) return;
   const fps = OTO.n / OTO.t; OTO.t = 0; OTO.n = 0;
-  if (fps < (DI_HP ? 30 : 26) && KUAL.lv > 0) { setKual(KUAL.lv - 1); OTO.jeda = 3; const t = $('#fps'); if (t) t.textContent = 'Kualitas diturunkan otomatis (' + Math.round(fps) + ' fps)'; }
-  else if (KUAL.lv === 0 && fps < 28 && (KUAL.skala || 1) > .65) { KUAL.skala = Math.max(.65, (KUAL.skala || 1) - .12); terapResolusi(); resize(); OTO.jeda = 2; }   // masih patah-patah: kecilkan resolusi lagi
-  else if (KUAL.lv === 0 && fps > 50 && (KUAL.skala || 1) < 1) { KUAL.skala = Math.min(1, KUAL.skala + .1); terapResolusi(); resize(); OTO.jeda = 2; }
+  const kunci = batasFps();
+  if (fps < (kunci ? 24 : DI_HP ? 30 : 26) && KUAL.lv > 0) { setKual(KUAL.lv - 1); OTO.jeda = 3; const t = $('#fps'); if (t) t.textContent = 'Kualitas diturunkan otomatis (' + Math.round(fps) + ' fps)'; }
+  else if (KUAL.lv === 0 && fps < (kunci ? 22 : 28) && (KUAL.skala || 1) > .85) { KUAL.skala = Math.max(.85, (KUAL.skala || 1) - .075); terapResolusi(); resize(); OTO.jeda = 2; }   // masih patah-patah: kecilkan resolusi sedikit (tidak sampai pecah)
+  else if (KUAL.lv === 0 && fps > (kunci ? 28.5 : 50) && (KUAL.skala || 1) < 1) { KUAL.skala = Math.min(1, KUAL.skala + .1); terapResolusi(); resize(); OTO.jeda = 2; }
 }
 function panaskan() {   // siapkan semua shader sebelum main → tidak tersendat saat skill / efek pertama kali muncul
   const sem = []; scene.traverse(o => { if (o.name === 'gendKepal' && !o.visible) { o.visible = true; sem.push(o); } });   // badan kepal ikut disiapkan
@@ -8070,6 +8074,7 @@ function mulaiLoop() {
   if (LOOP) return; LOOP = true; panaskan();
   let last = performance.now(), fN = 0, fT = 0, t0 = 0;
   renderer.setAnimationLoop(now => {
+    const kunci = batasFps(); if (kunci && now - last < 1000 / kunci - 4) return;   // lewati frame (kunci 30 fps)
     const nyata = Math.min(.1, (now - last) / 1000);
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
     fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v3 · lutung-v4 · saras-v3 · angling-v1 · dayang-v1 · nyi-v1 · siliwangi-v1 · ciung-v1 · sangkuriang-v1 · kiansantang-v1 · lina-v3 · tuyulbot-v1 · tuyulhalo-v1 · tuyulmecha-v1 · tuyulsetan-v1 · tuyultangan-v2 · golem-v2 · santi-v1 · roberick-v1 · lunara-v3'; fN = 0; fT = 0; }
