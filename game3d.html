@@ -5863,21 +5863,22 @@ function wrNaga(pos, a, panjang) {   // gelombang naga emas dari ayunan kapak sa
       if (Math.random() < .9) nyala(g.position.clone(), naga ? 1 : .6, Math.random() < .5 ? WRV.emas : WRV.jingga, .3); return q < 1; },
     akhir() { scene.remove(g); if (naga) naga.userData.buang(); else kepala.material.dispose(); } });
 }
-function wrHantam(pos, R) {   // hantaman naga emas penutup: naga emas menukik dari langit lalu menembus masuk ke dalam tanah
-  const c = pos.clone(), T = wrPemilik(pos); c.y = 0; if (T) T.wrEmasT = 0;
-  const pecah = () => { gelombang(c, R * 1.25, .6, WRV.emas); gelombang(c, R * .8, .5, WRV.jingga); gelombang(c, R * .45, .4, 0xffffff); retak(c, R * .7, 1.6, 0);
-    asap(c, 14, COKLAT_MUDA, 2.6, 1.1); percik(c.clone().setY(.6), 44, WRV.emas, 6.5, .2); percik(c.clone().setY(1), 20, WRV.jingga, 4, .16); kilat(c, 80); goyang = Math.max(goyang, .35); };
-  const naga = nagaWiro(WRV.naga.hantam);
-  if (!naga) { pecah(); wrAmuk(pos, 0); return; }
-  const H = WRV.naga.hantam / 2, y0 = H + 7, y1 = -H - 1.5, L = .55; let kena = false;   // pusat naga: dari atas langit sampai seluruh badan masuk ke tanah
+function wrNagaTukik(pos, tiba) {   // naga emas menukik dari langit: kepala menyentuh tanah TEPAT saat Wiro menghantam tanah (tiba detik), lalu terus masuk ke dalam tanah
+  const naga = nagaWiro(WRV.naga.hantam); if (!naga) return;
+  const c = pos.clone(); c.y = 0; const H = WRV.naga.hantam / 2, y0 = H + 6, y1 = -H - 1.5, v = 2 * (y0 - H) / tiba;   // jatuh makin cepat; kecepatan saat menyentuh tanah dipertahankan
   naga.userData.isi.rotation.z = -Math.PI / 2; naga.position.copy(c).setY(y0); scene.add(naga);   // kepala ke bawah
-  TMFX.push({ t: 0, upd(e, dt) { const q = Math.min(1, e.t / L), u = q * q;   // menukik makin cepat (tanpa melambat) lalu menghunjam tanah
-      if (naga.userData.mix) naga.userData.mix.update(dt); naga.position.y = y0 + (y1 - y0) * u; naga.rotation.y = u * 2.4;
-      if (!kena && naga.position.y - H <= 0) { kena = true; pecah(); }   // kepala menyentuh tanah
-      if (kena && Math.random() < .7) { asap(c, 1, COKLAT_MUDA, 1.6, .7); percik(c.clone().setY(.3), 3, WRV.emas, 3, .14); }   // tanah terus terbongkar selama naga masuk
-      if (Math.random() < .8) nyala(naga.position.clone().add(new THREE.Vector3(rnd(-.8, .8), rnd(-1.5, 1.5), rnd(-.8, .8))), 1.4, Math.random() < .5 ? WRV.emas : WRV.jingga, .4);
-      naga.userData.redup(e.t < .08 ? e.t / .08 : e.t > L ? Math.max(0, 1 - (e.t - L) / .35) : 1); return e.t < L + .35; },   // ekor cahaya masih terlihat sebentar setelah naga masuk tanah
-    akhir() { scene.remove(naga); naga.userData.buang(); if (!kena) pecah(); } });
+  TMFX.push({ t: 0, upd(e, dt) { const t = e.t; if (naga.userData.mix) naga.userData.mix.update(dt);
+      naga.position.y = t < tiba ? y0 - (y0 - H) * (t / tiba) * (t / tiba) : Math.max(y1, H - v * (t - tiba)); naga.rotation.y = t * 3;
+      if (t > tiba && Math.random() < .7) { asap(c, 1, COKLAT_MUDA, 1.6, .7); percik(c.clone().setY(.3), 3, WRV.emas, 3, .14); }   // tanah terbongkar selama naga masuk
+      const masuk = naga.position.y <= y1; if (masuk) e.habis = (e.habis || 0) + dt;
+      naga.userData.redup(t < .06 ? t / .06 : masuk ? Math.max(0, 1 - e.habis / .3) : 1); return !masuk || e.habis < .3; },
+    akhir() { scene.remove(naga); naga.userData.buang(); } });
+}
+function wrHantam(pos, R) {   // saat tangan Wiro menghantam tanah: tanah pecah (naga sudah menukik sejak awal gerakan lewat wrNagaTukik)
+  const c = pos.clone(), T = wrPemilik(pos); c.y = 0; if (T) T.wrEmasT = 0;
+  gelombang(c, R * 1.25, .6, WRV.emas); gelombang(c, R * .8, .5, WRV.jingga); gelombang(c, R * .45, .4, 0xffffff); retak(c, R * .7, 1.6, 0);
+  asap(c, 14, COKLAT_MUDA, 2.6, 1.1); percik(c.clone().setY(.6), 44, WRV.emas, 6.5, .2); percik(c.clone().setY(1), 20, WRV.jingga, 4, .16); kilat(c, 80); goyang = Math.max(goyang, .35);
+  if (!WR_NAGA.glb) wrAmuk(pos, 0);
 }
 // ---- memakai skill ----
 function pakaiWiro(i) {
@@ -5909,7 +5910,7 @@ function pakaiWiro(i) {
   }
   P.t = 0; P.hit = 0;
 }
-function wrMulaiHantam() { WR.amuk = 0; WR.tutup = 0; P.state = 'wrHantam'; P.t = 0; P.hit = 0; const m = terdekat(4); if (m) hadapKe(m.g.position); P.root.rotation.y = P.arah; mainUlang('hantam', .05, wrTs(P, 'hantam', WRV.s3.dur)); P.cd[3] = CD_MAX[3]; wrLencana(); }
+function wrMulaiHantam() { WR.amuk = 0; WR.tutup = 0; P.state = 'wrHantam'; P.t = 0; P.hit = 0; const m = terdekat(4); if (m) hadapKe(m.g.position); P.root.rotation.y = P.arah; mainUlang('hantam', .05, wrTs(P, 'hantam', WRV.s3.dur)); fx('wrNagaTukik', P.root.position.clone().addScaledVector(depan(), .8), WRV.s3.tH); P.cd[3] = CD_MAX[3]; wrLencana(); }   // naga menukik, tiba bersamaan dengan hantaman
 function wrLencana() {
   if (HERO !== 'wiro') return;
   const isi = (n, tx) => { const b = document.getElementById(n ? 'b' + n : 'bA'); if (!b) return; let e = b.querySelector('.k2'); if (!e) { e = document.createElement('span'); e.className = 'k2'; b.appendChild(e); } if (e.textContent !== tx) e.textContent = tx; };
@@ -6062,7 +6063,7 @@ const BOT_FX = (() => {
           kena: c => { if (!c.T.ayam) c.vf('gelombang', c.tj.clone(), c.k.r, .6, CWV.merah); } }] },
     wiro: { d: { kena: c => c.vf('wrTebas', c.pos, c.a, ...tebas(c.n), 0) },
       s: [{ lepas: c => c.vf('wrKapak', dpn(c, .5).setY(0), batasi(dpn(c, Math.min(WRV.s1.jarak, c.L))), ID()) }, { mulai: c => c.vf('wrSilat', c.pos, c.a), kena: c => c.vf('wrTebas', c.pos, c.a, 0, 1, 0) },
-        { mulai: c => c.vf('wrAmuk', c.pos, 1.2), kena: c => c.vf('wrHantam', c.tj.clone(), c.k.r) }] },
+        { mulai: c => { c.vf('wrAmuk', c.pos, 1.2); c.vf('wrNagaTukik', c.tj.clone(), .6); }, kena: c => c.vf('wrHantam', c.tj.clone(), c.k.r) }] },
     kiansantang: { d: { kena: c => c.vf('ksTebas', c.pos, c.a, ...tebas(c.n), 0) },
       s: [{ kena: c => FXF.ksPerisai(c.pos, c.k.lama || 2, { g: c.T.root }) }, null, { kena: c => { c.vf('ksHilang', c.pos); c.vf('ksTebas', c.pos, c.a, 0, 1, 0); } }] } };
 })();
@@ -7791,7 +7792,7 @@ R.root.add(R.tilt);
 R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, remote: true, bar: null };
 
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
-const FXF = { bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam };
+const FXF = { bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik };
 const FX_SUDUT = { wrTebas: [1], wrSilat: [1], wrNaga: [1], ksTebas: [1], ksGerak: [3], ksSerang: [2], skPerahu: [1], skTebas: [1], swMacan: [2], swCakar: [2], swTebas: [1], swBayang: [1], nrBola: [1], nrLesat: [1], nrOmbak: [1], dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
 // ---- efek skill MUSUH diberi warna kemerahan, agar beda dengan efek sendiri / tim ----
 const MERAH_MUSUH = new THREE.Color(0xff2020), MERAH_KADAR = .45;
