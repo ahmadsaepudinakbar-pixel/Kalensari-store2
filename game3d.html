@@ -976,7 +976,7 @@ function terapTerang() {
     if (!sl.dataset.ok) { sl.dataset.ok = 1; sl.onpointerdown = e => e.stopPropagation(); sl.oninput = () => { KUAL.fT = +sl.value; try { localStorage.setItem('terangRendah', KUAL.fT); } catch (e) { } terapTerang(); }; } }
 }
 function terapResolusi() {   // HP: minimal 1 piksel per titik layar (dulu Rendah 0,7 dan bisa turun ke 0,45 → gambar pecah)
-  const lv = KUAL.lv, dasar = lv === 0 ? 1 : lv === 1 ? (DI_HP ? 1.25 : 1.5) : 2;
+  const lv = KUAL.lv, dasar = lv === 0 ? 1.2 : lv === 1 ? (DI_HP ? 1.3 : 1.5) : 2;
   renderer.setPixelRatio(Math.max(.85, Math.min(devicePixelRatio, dasar) * (KUAL.skala || 1)));
 }
 // HP kentang (RAM ≤ 4 GB) & grafis Rendah di HP: dikunci 30 fps — stabil terasa lebih mulus daripada naik-turun,
@@ -6482,7 +6482,22 @@ function wnModelHewan(stat) {
     e.rotation.x = -.35; R.tinggi = 1.9;
   }
   b.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  wnGabungAnak(b); if (R.ekor) wnGabungAnak(R.ekor);   // badan+kepala+mata+tanduk jadi 1 · ekor/bulu merak jadi 1 (kaki & lengan tetap terpisah supaya bisa melangkah)
+  g.userData.kat = 'monster';
   return R;
+}
+// gabungkan mesh anak langsung (yang tidak dianimasikan sendiri) menjadi satu mesh berwarna-per-titik
+const WN_BAHAN_VC = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+function wnGabungAnak(grp) {
+  const anak = grp.children.filter(o => o.isMesh && !o.isSkinnedMesh && o.material && o.material.color && !Array.isArray(o.material));
+  if (anak.length < 2) return;
+  const geos = anak.map(o => { o.updateMatrix(); let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone(); g.applyMatrix4(o.matrix);
+    for (const n of Object.keys(g.attributes)) if (n !== 'position' && n !== 'normal') g.deleteAttribute(n);
+    const c = o.material.color, n = g.attributes.position.count, w = new Float32Array(n * 3); for (let i = 0; i < n; i++) { w[i * 3] = c.r; w[i * 3 + 1] = c.g; w[i * 3 + 2] = c.b; }
+    g.setAttribute('color', new THREE.BufferAttribute(w, 3)); return g; });
+  const gab = mergeGeometries(geos); geos.forEach(g => g.dispose()); if (!gab) return;
+  anak.forEach(o => grp.remove(o));
+  const m = new THREE.Mesh(gab, WN_BAHAN_VC); m.castShadow = true; grp.add(m);
 }
 // Singa penjaga (Tripo + animasi Mixamo, kapak bermata dua di tangan kanan): Tim Merah = singa merah, Tim Putih = singa putih
 // klip: diam (lihat sekeliling) · diam2 · siaga (kapak 2 tangan, lawan di lingkaran) · tahan (bertahan, HP < 40%) · lari · serang1 · serang2 · putar (sapuan 360°, kena semua lawan dekat)
@@ -8150,6 +8165,7 @@ function rekDetik(fps, hit, gbr, sisa, segRata, subRata, inf, mem) {   // dipang
   rekMaks(d.maks, 'draw call', inf.render.calls); rekMaks(d.maks, 'segitiga (ribu)', Math.round(inf.render.triangles / 1000));
   rekMaks(d.maks, 'tekstur', inf.memory.textures); rekMaks(d.maks, 'geometri', inf.memory.geometries); if (mem) rekMaks(d.maks, 'RAM JS (MB)', Math.round(mem.usedJSHeapSize / 1048576));
   if (CEK.kulit !== undefined) { rekMaks(d.maks, 'karakter beranimasi', CEK.kulit); rekMaks(d.maks, 'objek di layar', CEK.objek); }
+  if (CEK.kat) { d.dc = d.dc || {}; for (const k in CEK.kat) rekMaks(d.dc, k, CEK.kat[k]); }
   segRata.forEach((v, i) => rekMaks(d.seg, CEK_NAMA[i], +v.toFixed(1)));
   for (const k in subRata) rekMaks(d.sub, k, +subRata[k].toFixed(1));
   const t = performance.now(); if (t - REK.simpanT > 2000) { REK.simpanT = t; try { localStorage.setItem('kgRekor', JSON.stringify(d)); } catch (e) { } }
@@ -8165,7 +8181,8 @@ function rekTeks(d, judul) {
     + `tersendat: >100 ms ${d.sendat100}x · >250 ms ${d.sendat250}x · >500 ms ${d.sendat500}x\n\n`
     + `PUNCAK (rata-rata 1 detik terberat):\n${Object.entries(d.maks).map(([k, v]) => `  ${k}: ${v}`).join('\n')}\n\n`
     + `BAGIAN (puncak ms/frame):\n${urut(d.seg).map(([k, v]) => `  ${k}: ${v}`).join('\n')}\n\n`
-    + `RINCIAN FUNGSI (puncak ms/frame):\n${urut(d.sub).slice(0, 12).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`;
+    + `RINCIAN FUNGSI (puncak ms/frame):\n${urut(d.sub).slice(0, 12).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`
+    + (d.dc ? `\n\nDRAW CALL PER JENIS (puncak, perkiraan):\n${urut(d.dc).map(([k, v]) => `  ${k}: ${v}`).join('\n')}` : '');
 }
 function rekBuka() {
   let lalu = null; try { lalu = JSON.parse(localStorage.getItem('kgRekorLalu') || 'null'); } catch (e) { }
@@ -8193,7 +8210,13 @@ function rekBuka() {
 function cekLapor(dtNyata) {
   CEK.n++; CEK.t += dtNyata; if (CEK.t < 1) return;
   const n = CEK.n, inf = renderer.info, mem = performance.memory;
-  CEK.hit = (CEK.hit || 0) + 1; if (CEK.hit % 10 === 1) { CEK.kulit = 0; CEK.objek = 0; scene.traverse(o => { CEK.objek++; if (o.isSkinnedMesh && o.visible) CEK.kulit++; }); }
+  CEK.hit = (CEK.hit || 0) + 1;
+  if (CEK.hit % 10 === 1) { CEK.kulit = 0; CEK.objek = 0; const kat = CEK.kat = {}; FRUM.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); FRUS.setFromProjectionMatrix(FRUM);
+    scene.traverse(o => { CEK.objek++; if (o.isSkinnedMesh && o.visible) CEK.kulit++;
+      if (!(o.isMesh || o.isSprite || o.isPoints) || !o.visible) return; let p = o, ok = true, k = ''; while (p) { if (!p.visible) { ok = false; break; } if (!k && p.userData && p.userData.kat) k = p.userData.kat; p = p.parent; } if (!ok) return;
+      try { if (o.frustumCulled && !FRUS.intersectsObject(o)) return; } catch (e) { }
+      if (!k) k = o.isSkinnedMesh ? 'karakter/makhluk GLB' : (o.isSprite || o.isPoints || (o.material && o.material.transparent)) ? 'efek & transparan' : o.isInstancedMesh ? 'pohon/semak instanced' : 'pemandangan & bangunan';
+      kat[k] = (kat[k] || 0) + (Array.isArray(o.material) ? o.material.length : 1); }); }
   const kulit = CEK.kulit, objek = CEK.objek, fps = Math.round(n / CEK.t), hit = CEK.upd / n, gbr = CEK.ren / n, sisa = CEK.gap / n;
   const subRata = {}; for (const k in CEK_SUB) { subRata[k] = CEK_SUB[k] / n; delete CEK_SUB[k]; }
   const segRata = CEK.seg.map(v => v / n);
