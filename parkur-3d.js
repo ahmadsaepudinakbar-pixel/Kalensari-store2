@@ -11,6 +11,8 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 const S = 1 / 62;                       // 62 piksel dunia = 1 meter
 const TINGGI = 1.7;                     // tinggi hero (meter) — sama untuk Ocong & Kunti
 const AIR = -50;                        // permukaan kali (piksel dunia); mati di PKWATER (-70)
+// grafis Rendah & Sedang (pengaturan game 3D): model ringan dari model-3d-hp/ · Tinggi: model asli
+function urlModelHP(u) { let lv = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 1 : 2; try { const s = localStorage.getItem('uji3dKual'); if (s !== null) lv = +s; } catch (e) { } return (lv < 2 && typeof u === 'string' && u.startsWith('model-3d/')) ? 'model-3d-hp/' + u.slice(9) : u; }
 const MODEL_BONEKA = 'model-3d/skinocong.glb';   // dipakai untuk skin "Ocong Boneka Horor"
 const MODEL_OCONG = 'model-3d/skinocong-lompat.glb';   // hero Ocong (Pocong Lompat, sama dengan Game 3D); skin Pink (id kartu pocong:emas) = model ini berwarna pink
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -628,7 +630,7 @@ function mulai3D() {
   }
   function muatBoneka() {
     if (bonekaMuat) return; bonekaMuat = 1;
-    new GLTFLoader().load(MODEL_BONEKA, gl => {
+    new GLTFLoader().load(urlModelHP(MODEL_BONEKA), gl => {
       const m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.material) o.material.envMapIntensity = .6; } });
       const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y; m.scale.setScalar(TINGGI / h); m.position.y = -bb.min.y * TINGGI / h;
       const cari = k => gl.animations.find(a => a.name.toLowerCase().includes(k)), sub = (c, n, a, b) => THREE.AnimationUtils.subclip(c, n, a, b, 24);
@@ -643,7 +645,7 @@ function mulai3D() {
   let OCONG3D = null, ocongMuat = 0;
   function muatOcong3D() {
     if (ocongMuat) return; ocongMuat = 1;
-    new GLTFLoader().load(MODEL_OCONG, gl => {
+    new GLTFLoader().load(urlModelHP(MODEL_OCONG), gl => {
       const m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.material) o.material.envMapIntensity = .6; } });
       const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y, sk = TINGGI / h;
       m.scale.set(sk * 1.2, sk, sk * 1.2); m.position.y = -bb.min.y * sk;   // sedikit gemuk, sama seperti di Game 3D
@@ -663,17 +665,17 @@ function mulai3D() {
   const MODEL_LAIN = {
     kunti: { url: 'model-3d/skinkunti-asli.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
     merah: { url: 'model-3d/skinkunti.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
-    gothic: { url: 'model-3d/skinkunti-jalan.glb?v=2', tinggi: TINGGI, klip: { diam: 'diamKaki', jalan: 'jalanKaki', loncat: 'lompatKaki' } },   // skin Lunara: berdiri & berjalan kaki
+    gothic: { url: 'model-3d/skinkunti-jalan.glb?v=3', tinggi: TINGGI, klip: { diam: 'diamKaki', jalan: 'jalanKaki', loncat: 'lompatKaki' } },   // skin Lunara: berdiri & berjalan kaki
     tuyul: { url: 'model-3d/tuyul.glb', tinggi: 1.15, klip: { diam: 'diam', jalan: 'lari', loncat: 'lompat' } },
     genderuwo: { url: 'model-3d/genderuwo.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // hero ke-4
     leak: { url: 'model-3d/leak.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // skin Genderuwo: Leak
     pitung: { url: 'model-3d/pitung.glb', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'lari', loncat: 'terbang' } },   // hero ke-5: melompat dengan pose ikonik
-    pendekar: { url: 'model-3d/pitung-batik.glb?v=2', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'lari', loncat: 'terbang' } },   // skin Si Pitung: Aziz Ajiguna
+    pendekar: { url: 'model-3d/pitung-batik.glb?v=3', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'lari', loncat: 'terbang' } },   // skin Si Pitung: Aziz Ajiguna
   };
   const M3D = {};
   function muatM3D(kunci) {
     const c = MODEL_LAIN[kunci]; if (!c || c.muat) return; c.muat = 1;
-    new GLTFLoader().load(c.url, gl => {
+    new GLTFLoader().load(urlModelHP(c.url), gl => {
       const m = gl.scene; m.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.material) o.material.envMapIntensity = .6; } });
       const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y, sk = c.tinggi / h; m.scale.setScalar(sk); m.position.y = -bb.min.y * sk;
       const K = {}; for (const n in c.klip) { const a = gl.animations.find(x => x.name === c.klip[n]); if (a) K[n] = rapikanKlip(a.clone(), m, 0, false); }
