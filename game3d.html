@@ -5693,6 +5693,7 @@ function updKianSantang(dt, pos, f) {
 // Skill 2 Gerak Silat: langkah silat (kebal damage sesaat). Kalau kapak sedang di luar: melesat ke kapak, menangkapnya + tebasan area (stun) dan jeda Kapak Naga berkurang 50%
 // Skill 3 Amukan Naga Emas: 6 dtk kapak emas — tiap serangan dasar melepas gelombang naga, lari lebih cepat; ditutup (tekan lagi / waktu habis) hantaman naga emas: lawan di area terlempar ke atas
 const WRV = { cepat: 4.6, emas: 0xffc83a, emasT: 0xffe9a0, perak: 0xdfe7f2, jingga: 0xff8a1a, tsLari: 1.6, tsAmuk: 1.1,
+  naga: { tebal: 1.7, aura: 3.4, gel: 4, hantam: 6.5 },   // ukuran naga emas (m) · tebal: badan naga dipertebal
   dasar: [{ anim: 'tebas1', dur: .5, tH: .25, dmg: 55, R: 1.9, dorong: 1.4, miring: -.5 }, { anim: 'tebas2', dur: .5, tH: .27, dmg: 58, R: 1.9, dorong: 1.4, miring: .55 },
     { anim: 'tebas3', dur: .62, tH: .3, dmg: 80, R: 2.1, dorong: 3.5, miring: -.1 }], jeda: 1.1,
   p212: { dmg: 212, lambat: 1, perlu: 2 },
@@ -5802,44 +5803,47 @@ const WR_NAGA = { url: 'model-3d/naga-emas.glb?v=1', glb: null, muat: false };
 function muatNagaWiro() { if (WR_NAGA.glb || WR_NAGA.muat) return; WR_NAGA.muat = true; muatGLB(WR_NAGA.url).then(g => { WR_NAGA.glb = g; }).catch(e => console.warn('[Wiro] naga-emas.glb gagal dimuat, pakai efek cahaya', e)); }
 function nagaWiro(sk) {   // salinan naga: bahan bercahaya sendiri (tidak butuh lampu), bisa memudar
   if (!WR_NAGA.glb) return null;
-  const m = WR_NAGA.glb.scene.clone(true), bahan = [];
-  m.traverse(o => { if (o.isMesh) { const b = new THREE.MeshBasicMaterial({ map: o.material.map, transparent: true, side: THREE.DoubleSide, toneMapped: false, depthWrite: false }); o.material = b; o.frustumCulled = false; o.renderOrder = 6; bahan.push(b); } });
-  const g = new THREE.Group(), isi = new THREE.Group(); g.add(isi); isi.add(m); m.scale.setScalar(sk); m.position.y = -.155 * sk;   // poros di tengah badan naga
-  g.userData.isi = isi; g.userData.redup = q => bahan.forEach(b => { b.opacity = q; }); g.userData.buang = () => bahan.forEach(b => b.dispose());
+  const m = WR_NAGA.glb.scene.clone(true), bahan = [], tebal = WRV.naga.tebal;
+  m.traverse(o => { if (o.isMesh) { const b = new THREE.MeshBasicMaterial({ map: o.material.map, transparent: true, side: THREE.DoubleSide, toneMapped: false, depthWrite: false }); b.userData.op = 1; o.material = b; o.frustumCulled = false; o.renderOrder = 6; bahan.push(b); } });
+  const g = new THREE.Group(), isi = new THREE.Group(); g.add(isi); isi.add(m); m.scale.set(sk, sk * tebal, sk * tebal); m.position.y = -.155 * sk * tebal;   // poros di tengah badan naga · badan dipertebal
+  if (KUAL.lv > 0) [[1.07, .45, WRV.emas], [1.16, .22, WRV.jingga]].forEach(([k, op, w]) => {   // lapisan cahaya membara di sekeliling naga (dimatikan di mode Rendah)
+    const c = m.clone(true); c.traverse(o => { if (o.isMesh) { const b = new THREE.MeshBasicMaterial({ color: w, transparent: true, opacity: op, blending: THREE.AdditiveBlending, side: THREE.BackSide, toneMapped: false, depthWrite: false }); b.userData.op = op; o.material = b; o.frustumCulled = false; o.renderOrder = 5; bahan.push(b); } });
+    c.scale.copy(m.scale).multiplyScalar(k); c.position.copy(m.position).multiplyScalar(k); isi.add(c); });
+  g.userData.isi = isi; g.userData.redup = q => bahan.forEach(b => { b.opacity = q * b.userData.op; }); g.userData.buang = () => bahan.forEach(b => b.dispose());
   return g;
 }
 function wrAmuk(pos, lama) {   // Amukan Naga Emas: naga emas melilit naik di sekeliling Wiro
   const T = wrPemilik(pos); if (T) T.wrEmasT = lama;
   const p = pos.clone(); p.y = 0; gelombang(p, 2.4, .6, WRV.emas); gelombang(p, 1.4, .45, WRV.jingga); percik(pos.clone().setY(1.2), 34, WRV.emas, 5, .16); kilat(pos, 60);
-  const naga = nagaWiro(1.9), ulir = new THREE.Group(); ulir.position.copy(p); scene.add(ulir); const bola = [];
+  const naga = nagaWiro(WRV.naga.aura), ulir = new THREE.Group(); ulir.position.copy(p); scene.add(ulir); const bola = [];
   if (naga) ulir.add(naga);
   else for (let i = 0; i < 16; i++) { const s = new THREE.Sprite(botPelBahan(i % 3 ? WRV.emas : WRV.jingga)); s.scale.setScalar(.5 - i * .02); ulir.add(s); bola.push(s); }
-  const L = 1.25, sudut = u => u * 7;
+  const L = 1.5, sudut = u => u * 6.5;
   TMFX.push({ t: 0, upd(e) { const q = e.t / L; if (T && T.root) ulir.position.copy(T.root.position).setY(0);
-      if (naga) { const u = Math.min(1, q), r = 1.3 - u * .4, s0 = sudut(u), x = Math.cos(s0) * r, z = Math.sin(s0) * r;
-        naga.position.set(x, .3 + u * 2.6, z); naga.rotation.set(0, Math.atan2(-Math.cos(s0), -Math.sin(s0)), 0); naga.userData.isi.rotation.z = .35;   // terbang melingkar (kepala searah gerak) sambil naik
-        naga.userData.redup(q < .15 ? q / .15 : q > .75 ? Math.max(0, (1 - q) / .25) : 1); if (Math.random() < .6) nyala(naga.getWorldPosition(new THREE.Vector3()), .6, WRV.emas, .3); }
+      if (naga) { const u = Math.min(1, q), r = 2 - u * .6, s0 = sudut(u), x = Math.cos(s0) * r, z = Math.sin(s0) * r;
+        naga.position.set(x, .5 + u * 3.4, z); naga.rotation.set(0, Math.atan2(-Math.cos(s0), -Math.sin(s0)), 0); naga.userData.isi.rotation.z = .35;   // terbang melingkar (kepala searah gerak) sambil naik
+        naga.userData.redup(q < .15 ? q / .15 : q > .75 ? Math.max(0, (1 - q) / .25) : 1); if (Math.random() < .9) nyala(naga.getWorldPosition(new THREE.Vector3()), 1.1, Math.random() < .5 ? WRV.emas : WRV.jingga, .4); }
       else bola.forEach((s, i) => { const u = q * 1.4 - i * .05, r = 1.1 - u * .4; s.position.set(Math.cos(u * 9 + i * .2) * r, u * 2.6, Math.sin(u * 9 + i * .2) * r); s.visible = u > 0 && u < 1.2; });
       return q < 1; }, akhir() { scene.remove(ulir); if (naga) naga.userData.buang(); } });
 }
 function wrNaga(pos, a, panjang) {   // gelombang naga emas dari ayunan kapak saat Amukan Naga Emas
   const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), g = new THREE.Group(); g.position.copy(pos).setY(1); scene.add(g);
-  const naga = nagaWiro(2.2); let kepala = null;
+  const naga = nagaWiro(WRV.naga.gel); let kepala = null;
   if (naga) { naga.rotation.y = a - Math.PI / 2; g.add(naga); }   // kepala naga (+X) menghadap arah tebasan
   else { kepala = new THREE.Mesh(GEO_TEBAS, bahanG({ color: WRV.emas, opacity: .9, blending: THREE.AdditiveBlending })); kepala.rotation.set(Math.PI / 2, 0, -.1 * Math.PI); kepala.scale.setScalar(.75); const ar = new THREE.Group(); ar.rotation.y = a; ar.add(kepala); g.add(ar); }
   const L = naga ? .45 : .38;
-  TMFX.push({ t: 0, upd(e, dt) { const q = e.t / L; g.position.copy(pos).addScaledVector(d, panjang * q).setY(1 + Math.sin(q * Math.PI * 2) * .2);
+  TMFX.push({ t: 0, upd(e, dt) { const q = e.t / L; g.position.copy(pos).addScaledVector(d, panjang * q).setY((naga ? 1.3 : 1) + Math.sin(q * Math.PI * 2) * .2);
       if (naga) { naga.userData.isi.rotation.x = Math.sin(q * Math.PI * 3) * .25; naga.userData.redup(q < .1 ? q / .1 : 1 - Math.max(0, q - .6) / .4); } else kepala.material.opacity = .9 * (1 - q * .6);
-      if (Math.random() < .9) nyala(g.position.clone(), .6, Math.random() < .5 ? WRV.emas : WRV.jingga, .3); return q < 1; },
+      if (Math.random() < .9) nyala(g.position.clone(), naga ? 1 : .6, Math.random() < .5 ? WRV.emas : WRV.jingga, .3); return q < 1; },
     akhir() { scene.remove(g); if (naga) naga.userData.buang(); else kepala.material.dispose(); } });
 }
 function wrHantam(pos, R) {   // hantaman naga emas penutup: tanah pecah, naga emas menyembur keluar dari tanah ke langit
   const c = pos.clone(); c.y = 0; gelombang(c, R * 1.25, .6, WRV.emas); gelombang(c, R * .8, .5, WRV.jingga); gelombang(c, R * .45, .4, 0xffffff); retak(c, R * .7, 1.4, 0);
   asap(c, 14, COKLAT_MUDA, 2.6, 1.1); percik(c.clone().setY(.6), 44, WRV.emas, 6.5, .2); percik(c.clone().setY(1), 20, WRV.jingga, 4, .16); kilat(c, 80); goyang = Math.max(goyang, .3);
   const T = wrPemilik(pos); if (T) T.wrEmasT = 0;
-  const naga = nagaWiro(3.4);
+  const naga = nagaWiro(WRV.naga.hantam);
   if (naga) { naga.userData.isi.rotation.z = Math.PI / 2; naga.position.copy(c); scene.add(naga);   // kepala ke atas
-    TMFX.push({ t: 0, upd(e) { const q = e.t / .8; naga.position.y = -1.5 + q * 6; naga.rotation.y = q * 3; naga.userData.redup(q < .1 ? q / .1 : 1 - Math.max(0, q - .5) / .5); if (Math.random() < .8) nyala(naga.position.clone(), .9, WRV.emas, .35); return q < 1; },
+    TMFX.push({ t: 0, upd(e) { const q = e.t / .8; naga.position.y = -2.5 + q * 9; naga.rotation.y = q * 3; naga.userData.redup(q < .1 ? q / .1 : 1 - Math.max(0, q - .5) / .5); if (Math.random() < .95) nyala(naga.position.clone().add(new THREE.Vector3(rnd(-.8, .8), rnd(-1, 1), rnd(-.8, .8))), 1.6, Math.random() < .5 ? WRV.emas : WRV.jingga, .45); if (e.t < .3) goyang = Math.max(goyang, .2); return q < 1; },
       akhir() { scene.remove(naga); naga.userData.buang(); } }); }
   else wrAmuk(pos, 0);
 }
