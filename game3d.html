@@ -148,7 +148,8 @@ body:has(#timHud:not([style*="none"])) #koin{top:52px}
 #wnStat{position:fixed;left:50%;top:66px;transform:translateX(-50%);z-index:6;display:flex;gap:7px;font:700 11px Arial;color:#aab3c8;background:#0b1020b8;border-radius:10px;padding:3px 9px;pointer-events:none;white-space:nowrap}#wnStat .on{color:#9dff8a}
 #wnMini{position:fixed;right:8px;top:46px;width:80px;height:172px;border:2px solid #000a;border-radius:8px;z-index:5;pointer-events:none;opacity:.92}
 @media (orientation:landscape) and (max-height:560px){#wnMini{width:54px;height:116px;top:40px}#wnStat{top:58px;font-size:10px}}
-#wnKartu{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:20;display:none;gap:8px;align-items:flex-end}#wnKartu.on{display:flex}
+#wnKartu{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:20;display:none;gap:8px;align-items:flex-end}#wnKartu.on{display:flex}#wnKartu{contain:layout style}.wk{will-change:transform,opacity}
+@media (pointer:coarse){.wk.merah,.wk.emas,.wk.r2,.wk.r3{box-shadow:none!important}.wk{animation-duration:.2s}}
 #wnKartu .wkj{position:absolute;top:-22px;left:-40px;right:-40px;text-align:center;font:700 12px Arial;color:#ffd166;text-shadow:0 1px 2px #000;pointer-events:none}
 .wk{position:relative;width:86px;padding:7px 4px 6px;border-radius:12px;background:linear-gradient(#22305a,#0b1020);border:2px solid #4a5a80;color:#e8eefc;font:700 11px Arial;text-align:center;cursor:pointer;animation:wkIn .3s ease-out both;touch-action:none}
 .wk:nth-child(3){animation-delay:.06s}.wk:nth-child(4){animation-delay:.12s}.wk i{display:block;font-style:normal;font-size:26px;line-height:1.1}.wk span{display:block;white-space:nowrap}.wk b{display:block;font:900 19px Arial;color:#9dff8a;margin-top:2px}.wk small{position:absolute;top:3px;left:6px;color:#8a94b0;font-size:10px}
@@ -1042,13 +1043,14 @@ function efekGambar(nama, pos, o = {}) {
 const T_CINCIN = tex(256, 256, (x) => { const g = x.createRadialGradient(128, 128, 70, 128, 128, 128); g.addColorStop(0, 'rgba(255,60,30,0)'); g.addColorStop(.7, 'rgba(255,90,40,.9)'); g.addColorStop(.85, 'rgba(255,220,180,1)'); g.addColorStop(1, 'rgba(255,60,30,0)'); x.fillStyle = g; x.fillRect(0, 0, 256, 256); });
 T_CINCIN.wrapS = T_CINCIN.wrapT = THREE.ClampToEdgeWrapping; T_CINCIN.repeat.set(1, 1);
 function gelombang(pos, radius, umur = .5, warna = 0xff5030) {
+  if (efekLuar(pos)) return;
   const m = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: T_CINCIN, color: warna, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
   m.rotation.x = -Math.PI / 2; m.position.set(pos.x, .05, pos.z); scene.add(m);
   FXS.push({ ring: m, t: 0, umur, R: radius });
 }
 // partikel percikan / serpihan
 function percik(pos, n = 40, warna = 0xff6030, kuat = 6, ukuran = .18) {
-  if (KUAL.lv === 0) { if (FXS.length > 45) return; n = Math.ceil(n * .35); if (n <= 2 && Math.random() < .65) return; }
+  if (KUAL.lv === 0) { if (FXS.length > (RAMAI.on ? RAMAI.maks : 45) || efekLuar(pos)) return; n = Math.ceil(n * (RAMAI.on ? .2 : .35)); if (n <= 2 && Math.random() < (RAMAI.on ? .8 : .65)) return; }
   if (DI_HP && n <= 3 && pos.y > -50 && Math.random() < .5) return;   // HP: jejak efek (percikan kecil tiap frame) dikurangi setengah
   const geo = new THREE.BufferGeometry(), p = new Float32Array(n * 3), v = [];
   for (let i = 0; i < n; i++) { p[i * 3] = pos.x; p[i * 3 + 1] = pos.y + .3; p[i * 3 + 2] = pos.z; const a = Math.random() * Math.PI * 2, s = rnd(.3, 1) * kuat; v.push(new THREE.Vector3(Math.cos(a) * s, rnd(.4, 1.2) * kuat, Math.sin(a) * s)); }
@@ -1079,13 +1081,26 @@ function lingkaranLantai(pos, R, umur, putar = 1.5) {
 }
 // bola cahaya kecil yang memudar (jejak api)
 function nyala(pos, ukuran = .8, warna = 0xff4a20, umur = .35) {
-  if (KUAL.lv === 0 && (FXS.length > 45 || Math.random() < .5)) return;   // Rendah: jejak cahaya separuh
+  if (KUAL.lv === 0 && (FXS.length > (RAMAI.on ? RAMAI.maks : 45) || Math.random() < (RAMAI.on ? .8 : .5) || efekLuar(pos))) return;   // Rendah: jejak cahaya separuh · mode ramai: seperlima
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_BULAT, color: warna, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false })); sp.position.copy(pos); sp.renderOrder = 3; scene.add(sp);
   FXS.push({ glow: sp, t: 0, umur, uk: ukuran });
 }
 let goyang = 0, hentiSejenak = 0, BOT_VS_BOT = false;
 const CUBIT = dr => dr != null && dr <= .6;   // cubitan gerombolan Tuyul: kecil & sering → tanpa goyang / jeda (terasa seperti nge-lag)
+// ---- mode ramai (grafis Rendah): saat banyak efek tampil bersamaan (war 3 vs 3), percikan/asap/cahaya dibatasi & efek di luar layar tidak digambar ----
+const RAMAI = { on: false, n: 0, naik: 40, turun: 22, maks: 25 };
+function updRamai() {
+  if (KUAL.lv !== 0) { RAMAI.on = false; return; }
+  RAMAI.n = FXS.length + GFX.length + TMFX.length;
+  if (!RAMAI.on && RAMAI.n > RAMAI.naik) RAMAI.on = true; else if (RAMAI.on && RAMAI.n < RAMAI.turun) RAMAI.on = false;
+}
+function efekLuar(pos) {   // mode ramai: titik efek di luar layar → lewati
+  if (!RAMAI.on || !pos) return false;
+  if (frusN !== renderer.info.render.frame) { frusN = renderer.info.render.frame; FRUM.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); FRUS.setFromProjectionMatrix(FRUM); }
+  BOLA.center.set(pos.x, Math.max(0, pos.y || 0), pos.z); const r = BOLA.radius; BOLA.radius = 2.5; const ada = FRUS.intersectsSphere(BOLA); BOLA.radius = r; return !ada;
+}
 function updEfek(dt) {
+  updRamai();
   updGFX(dt);
   for (let i = FXS.length - 1; i >= 0; i--) {
     const e = FXS[i]; e.t += dt; const q = Math.min(1, e.t / e.umur);
@@ -1194,10 +1209,18 @@ function muatGLB(url, onProg) {
   })());
   return GLB.get(url);
 }
+const GLB_DIMUAT = new Set();
 function kirimTeksturGLB(g) {   // tekstur model langsung dikirim ke GPU begitu file selesai dimuat (bukan saat pertama tampil di layar → tidak tersendat 200–500 ms di tengah main)
   try { if (!g || !g.scene || typeof renderer === 'undefined') return; const tx = new Set();
     g.scene.traverse(o => { if (!o.material) return; [].concat(o.material).forEach(m => ['map', 'emissiveMap', 'normalMap', 'alphaMap', 'aoMap'].forEach(k => { if (m[k] && m[k].isTexture) tx.add(m[k]); })); });
-    tx.forEach(t => renderer.initTexture(t)); } catch (e) { }
+    tx.forEach(t => renderer.initTexture(t)); GLB_DIMUAT.add(g); if (typeof LOOP !== 'undefined' && LOOP) panaskanGLB([g], false); } catch (e) { }
+}
+function panaskanGLB(daftar, gambar) {   // salinan tiap model (macan, kembaran, duyung, candi…) digambar sekali → shader utama & bayangan sudah siap sebelum dipakai
+  const tmp = []; try { const pos = P && P.root ? P.root.position : new THREE.Vector3();
+    daftar.forEach(g => { if (!g || !g.scene) return; let c; try { c = salinGLB(g).scene; } catch (e) { return; } if (KUAL.lv === 0) gantiBahan(c, keLambert);
+      c.traverse(o => { o.visible = true; if (o.isMesh) { o.frustumCulled = false; o.castShadow = KUAL.lv > 0; } }); c.position.set(pos.x, gambar ? 0 : -80, pos.z); c.scale.multiplyScalar(.01); scene.add(c); tmp.push(c); });
+    if (tmp.length) { renderer.compile(scene, camera); if (gambar) renderer.render(scene, camera); } } catch (e) { console.warn('[panaskan GLB]', e); }
+  tmp.forEach(c => scene.remove(c));
 }
 function panaskanObj(o) {   // siapkan shader efek yang belum pernah tampil (dipanggil saat model efek selesai dimuat)
   if (!o) return; try { const v = []; o.traverse(x => { if (!x.visible) { x.visible = true; v.push(x); } }); o.position.y -= 80; scene.add(o); renderer.compile(scene, camera); scene.remove(o); v.forEach(x => { x.visible = false; }); } catch (e) { }
@@ -1811,7 +1834,7 @@ T_RETAK.wrapS = T_RETAK.wrapT = THREE.ClampToEdgeWrapping; T_RETAK.repeat.set(1,
 const GEO_TEBAS = new THREE.TorusGeometry(1.05, .08, 6, 36, Math.PI * 1.2), GEO_BIDANG = new THREE.PlaneGeometry(2, 2);
 const bahanG = (o = {}) => new THREE.MeshBasicMaterial(Object.assign({ transparent: true, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }, o));
 function asap(pos, n = 6, warna = HITAM, uk = 1, umur = .9) {   // kepulan asap gelap (bukan cahaya: tampak hitam / coklat)
-  if (KUAL.lv === 0) n = Math.ceil(n * .5);
+  if (KUAL.lv === 0) { if (RAMAI.on && (FXS.length > RAMAI.maks || efekLuar(pos))) return; n = Math.ceil(n * (RAMAI.on ? .25 : .5)); }
   for (let i = 0; i < n; i++) {
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_BULAT, color: warna, transparent: true, opacity: 0, depthWrite: false })); sp.renderOrder = 4;
     sp.position.set(pos.x + rnd(-.35, .35) * uk, pos.y + rnd(0, .3), pos.z + rnd(-.35, .35) * uk); scene.add(sp);
@@ -1827,6 +1850,7 @@ function tebas(pos, a, warna = COKLAT, merah = 0, miring = -.5, R = 1) {   // sa
   scene.add(g); GFX.push({ o: g, t: 0, umur: .34, jenis: 'tebas', R });
 }
 function retak(pos, R = 1.5, umur = 1, merah = 0) {   // tanah retak gelap, merah menyala saat Amukan
+  if (efekLuar(pos)) return;
   const m = new THREE.Mesh(GEO_BIDANG, bahanG({ map: T_RETAK, color: 0x1a0e06, opacity: 0 })); m.rotation.x = -Math.PI / 2; m.rotation.z = Math.random() * 6.3; m.position.set(pos.x, .035, pos.z); m.scale.setScalar(R); m.renderOrder = 1; scene.add(m);
   GFX.push({ o: m, t: 0, umur, jenis: 'retak', R });
   if (merah) { const n = new THREE.Mesh(GEO_BIDANG, bahanG({ map: T_RETAK, color: MERAH_G, opacity: 0, blending: THREE.AdditiveBlending })); n.rotation.copy(m.rotation); n.position.set(pos.x, .04, pos.z); n.scale.setScalar(R * .96); n.renderOrder = 2; scene.add(n); GFX.push({ o: n, t: 0, umur, jenis: 'retak', R: R * .96, nyalaM: 1 }); }
@@ -7857,7 +7881,7 @@ function wnKartuBuka() {
   if (!c) { WN_KARTU.buka = null; e.classList.remove('on'); return; }
   WN_KARTU.buka = c; WN_KARTU.t = 10;
   e.innerHTML = '<div class="wkj"></div>' + c.map((x, i) => `<button class="wk ${x.merah ? 'merah' : x.emas ? 'emas' : 'r' + (x.v >= 13 ? 3 : x.v >= 9 ? 2 : 1)}" data-i="${i}"><i>${WN_STAT[x.k].ik}</i><span>${WN_STAT[x.k].n}</span><b>+${x.v}%</b>${x.sumber ? `<em>${x.sumber}</em>` : ''}<small>${DI_HP ? '' : i + 1}</small></button>`).join('');
-  e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); wnKartuJudul();
+  e.classList.add('on'); wnKartuJudul(); rekEv('kartu muncul');   // tanpa 'void offsetWidth' (memaksa hitung ulang tata letak seluruh halaman = patah)
 }
 function wnKartuJudul() { const j = $('#wnKartu .wkj'); if (j) j.textContent = `${WN_KARTU.buka && WN_KARTU.buka.judul ? WN_KARTU.buka.judul : WN_KARTU.buka && WN_KARTU.buka[0].emas ? '🌟 Kartu Emas! Pilih 1' : '🃏 Pilih 1 kartu'} · ${Math.max(1, Math.ceil(WN_KARTU.t))} dtk` + (WN_KARTU.antri.length ? ` · +${WN_KARTU.antri.length} lagi` : ''); }
 function wnKartuPilih(i) {
@@ -7870,6 +7894,7 @@ function wnKartuUpd(dt) {
   if (WN_KARTU.t <= 0) { const c = WN_KARTU.buka; let b = 0; c.forEach((x, i) => { if (x.v > c[b].v) b = i; }); wnKartuPilih(b); }
   else if (Math.ceil(WN_KARTU.t) !== lama) wnKartuJudul();
 }
+if (WN.on) { const pr = document.createElement('div'); pr.style.cssText = 'position:fixed;left:0;top:0;opacity:.01;pointer-events:none;font:26px Arial;z-index:-1'; pr.textContent = Object.values(WN_STAT).map(x => x.ik).join('') + '🌟🃏🟥🤝⚔️🗡️🐊🛡️'; document.body.appendChild(pr); setTimeout(() => pr.remove(), 8000); }   // emoji kartu digambar sekali di awal (pertama kali menggambar emoji berwarna bisa lambat)
 addEventListener('keydown', e => { if (!WN.on || !WN_KARTU.buka) return; const i = { '1': 0, '2': 1, '3': 2 }[e.key]; if (i !== undefined) { e.preventDefault(); wnKartuPilih(i); } });
 
 // ---- statistik pertandingan: kill / assist / mati, damage ke hero & bangunan, damage diterima, monster, tugu, heal → MVP ----
@@ -8785,7 +8810,7 @@ const TIPS_UMUM = ['Tahan tombol skill lalu geser untuk <b>membidik</b> arah ski
   ganti(); setInterval(ganti, 4200); }
 async function siapMain() {   // shader & tekstur disiapkan DI BALIK layar loading → tidak ada patah di awal pertandingan
   muatTahap(88, 97); await new Promise(r => requestAnimationFrame(() => setTimeout(r, 40)));
-  try { panaskan(); renderer.render(scene, camera); } catch (e) { console.warn('[muat] panaskan', e); }
+  try { panaskan(); panaskanGLB([...GLB_DIMUAT], true); renderer.render(scene, camera); } catch (e) { console.warn('[muat] panaskan', e); }
   MUAT.tgt = MUAT.cap = 100; await new Promise(r => setTimeout(r, 350)); MUAT.tampil = 100; tampilMuat();
   await new Promise(r => setTimeout(r, 200));
   $('#load').classList.add('off'); mulaiLoop();
