@@ -468,6 +468,31 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
 @keyframes rkJudul{0%{letter-spacing:2cqw;opacity:0}100%{letter-spacing:0;opacity:1}}
 .rkSinar{animation:rkSinar 6s linear infinite;transform-origin:50px 50px}@keyframes rkSinar{to{transform:rotate(360deg)}}
 .mgrid #bRank{grid-column:1/-1;justify-self:center;width:50%;background:linear-gradient(#3a2a08,#1a1204);border-color:#ffd16699;color:#ffe680}
+/* ===== Hadiah Musim: bingkai foto profil, gelar, efek nama, peti naik rank ===== */
+.rkBk{position:relative;display:inline-block;flex:none}.rkBk>i{position:absolute;left:19%;top:19%;width:62%;height:62%;border-radius:50%;background:#1a2440 center/cover}.rkBk>svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#rkHd{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;gap:.6cqw;padding:1cqw 2cqw;background:radial-gradient(ellipse at 50% 0%,#1d2658,#070b1a 70%);z-index:6}#rkHd.on{display:flex}
+#rkHd h2{font-size:2.6cqw}.rkHdL{display:grid;grid-template-columns:repeat(8,1fr);gap:.6cqw;width:100%}
+.rkHk{background:#0b1020e0;border:.18cqw solid #2c3f73;border-radius:1cqw;padding:.6cqw .4cqw;display:flex;flex-direction:column;align-items:center;gap:.25cqw;cursor:pointer;position:relative;text-align:center}
+.rkHk .rkBk{width:8.4cqw;height:8.4cqw}.rkHk b{font:900 1.05cqw Arial;color:#fff;line-height:1.1}.rkHk ul{list-style:none;margin:0;padding:0;font:700 .82cqw Arial;color:#b8c4ee;line-height:1.35}
+.rkHk .st{margin-top:auto;font:800 .8cqw Arial;padding:.1cqw .5cqw;border-radius:.6cqw;background:#2a3350;color:#8fa0d0}.rkHk.buka .st{background:#1f5a2a;color:#9dff8a}.rkHk:not(.buka) .rkBk{filter:grayscale(.7) brightness(.65)}
+.rkHk.pil{border-color:#ffd166;box-shadow:0 0 1.2cqw #ffd16666}.rkHk.ini{background:linear-gradient(#ffd16622,#0b1020e0)}
+.rkHk .skin{color:#ffd166}
+.rkPrev{display:flex;align-items:center;gap:1.4cqw;background:#0b1020e0;border:.18cqw solid #2c3f73;border-radius:1.2cqw;padding:.6cqw 2cqw;min-width:50cqw}
+.rkPrev .rkBk{width:10cqw;height:10cqw}.rkPrev .nm{font:900 2.4cqw Arial;color:#fff}.rkPrev .gl{font:800 1.2cqw Arial;color:#ffd166;margin-top:.2cqw}.rkPrev .ket{font:600 1cqw Arial;color:#8fa0d0;margin-top:.3cqw}
+/* efek nama (Panglima Tempur ke atas) */
+.nmEf5{background:linear-gradient(90deg,#ff6a4a,#ffd166,#ff6a4a);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;animation:nmGeser 3s linear infinite}
+.nmEf6{background:linear-gradient(90deg,#b07aff,#fff,#7ab8ff,#b07aff);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;animation:nmGeser 4s linear infinite;filter:drop-shadow(0 0 .5cqw #9a5aff)}
+.nmEf7{background:linear-gradient(90deg,#ffe680,#fff,#ffb703,#fff6c8,#ffe680);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent!important;animation:nmGeser 2.5s linear infinite;filter:drop-shadow(0 0 .7cqw #ffb703)}
+@keyframes nmGeser{to{background-position:-200% 0}}
+/* peti hadiah naik rank */
+#rkPeti{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1cqw;background:#000c;z-index:8}#rkPeti.on{display:flex}
+#rkPeti .pt{font-size:12cqw;line-height:1;animation:ptGoyang .5s ease-in-out 3}#rkPeti.buka .pt{animation:ptBuka .5s ease-out forwards}
+#rkPeti .isi{display:none;flex-direction:column;align-items:center;gap:.6cqw}#rkPeti.buka .isi{display:flex;animation:rkNaik .8s cubic-bezier(.2,1.6,.4,1)}
+#rkPeti .isi .rkBk{width:12cqw;height:12cqw}#rkPeti .jdl{font:900 2.6cqw Georgia,serif;color:#ffe680;text-shadow:0 0 1.5cqw #ffb703}#rkPeti .dft{font:800 1.4cqw Arial;color:#fff;text-align:center;line-height:1.5}
+#rkPeti .ok{pointer-events:auto;font:800 1.5cqw Arial;padding:.4cqw 3cqw}
+@keyframes ptGoyang{0%,100%{transform:rotate(0)}25%{transform:rotate(-12deg) scale(1.05)}75%{transform:rotate(12deg) scale(1.05)}}
+@keyframes ptBuka{0%{transform:scale(1)}50%{transform:scale(1.4);filter:brightness(3)}100%{transform:scale(.6);opacity:0;height:0}}
+
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 </head><body>
@@ -542,7 +567,7 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
 <div class="rkStat"><div><b id="rkMain">0</b>Main</div><div><b id="rkWr">0%</b>Menang</div><div><b id="rkMvp">0</b>MVP</div></div><div id="rkPop"></div></div>
 <div class="rkP"><h3>TANGGA RANK</h3><div class="rkTangga" id="rkTangga"></div></div>
 <div class="rkP"><h3>👑 PAPAN SEPUH</h3><div class="rkTab" id="rkTab"><button data-t="nas">Nasional</button><button data-t="jb">Jawa Barat</button><button data-t="tm">Teman</button></div><div class="rkPapan" id="rkPapan"></div></div></div>
-<div class="rkBawah"><button class="btn" id="rkBack">Kembali</button><button class="btn g" id="rkMenang">⭐ Coba Menang</button><button class="btn" id="rkKalah">💔 Coba Kalah</button></div></div>
+<div class="rkBawah"><button class="btn" id="rkBack">Kembali</button><button class="btn g" id="rkMenang">⭐ Coba Menang</button><button class="btn" id="rkKalah">💔 Coba Kalah</button><button class="btn" id="rkHadiahB" style="border-color:#ffd16699;color:#ffe680">🎁 Hadiah Musim</button></div><div id="rkHd"><h2>🎁 Hadiah Musim 1</h2><div class="rkInfo">Capai rank-nya sebelum musim berakhir · hadiah dikirim otomatis · ketuk kartu untuk melihat contoh</div><div class="rkPrev" id="rkPrev"></div><div class="rkHdL" id="rkHdL"></div><button class="btn" id="rkHdX" style="font:800 1.5cqw Arial;padding:.4cqw 3cqw">Kembali</button></div><div id="rkPeti"></div></div>
 <div id="kar" class="scr"><div class="kl"><h2>Scan Kartu</h2>
 <div class="kcam"><video id="kVid" muted playsinline></video><div class="kfr"><i></i><i></i><i></i><i></i><b></b></div><div class="kph" id="kPh">📷<br>Tekan <b>Buka Kamera</b> lalu arahkan ke QR di kartu</div></div>
 <div class="krow"><button class="btn g" id="kCam">📷 Buka Kamera</button></div>
@@ -1620,7 +1645,7 @@ function rkMenang() {   // contoh: hasil menang → +1 bintang, penuh → naik d
   if (!R.bin) { const p = 14 + Math.floor(Math.random() * 7); RK.poin += p; rkGambar(); rkPop('+' + p + ' Poin', 'Sepuh · ' + RK.poin.toLocaleString('id-ID') + ' poin', 7); rkPapan(); return; }
   RK.b++; if (RK.b <= R.bin) { rkGambar('naik'); return; }
   if (RK.d > 1) { RK.d--; RK.b = 1; rkGambar('naik'); rkPop('NAIK DIVISI!', rkTeks(RK.t, RK.d), RK.t); return; }
-  RK.t++; const N = RANK[RK.t]; RK.d = N.div; RK.b = N.bin ? 1 : 0; if (!N.bin) RK.poin = 0; rkGambar('naik'); rkPop('NAIK RANK!', '🎉 ' + rkTeks(RK.t, RK.d), RK.t); if (!N.bin) rkPapan();
+  RK.t++; const N = RANK[RK.t]; RK.d = N.div; RK.b = N.bin ? 1 : 0; if (!N.bin) RK.poin = 0; rkGambar('naik'); rkPop('NAIK RANK!', '🎉 ' + rkTeks(RK.t, RK.d), RK.t); if (!N.bin) rkPapan(); const tt = RK.t; setTimeout(() => rkPetiBuka(tt), 2300);
 }
 function rkKalah() {
   RK.main++; const R = RANK[RK.t];
@@ -1638,6 +1663,54 @@ function bukaRank() { sc('rnk'); rkGambar(); rkPapan(); }
 $('#bRank').onclick = bukaRank; $('#rkBack').onclick = () => sc('menu'); $('#rkMenang').onclick = rkMenang; $('#rkKalah').onclick = rkKalah;
 document.querySelectorAll('#rkTab button').forEach(b => b.onclick = () => { RK.tab = b.dataset.t; rkPapan(); });
 window.KG_RANK = { RANK, lencana: rkLencana, teks: rkTeks };   // dipakai nanti: lencana di profil, layar hasil, Pilih Hero, dll.
+// ---------- Hadiah Musim 1 (bingkai foto, gelar, efek nama, peti naik rank) ----------
+const RK_MUSIM = 1;
+const RK_HADIAH = [   // b: nama bingkai · koin: isi peti saat pertama kali mencapai rank ini · gelar / efek / skin
+  { b: 'Bingkai Daun', koin: 0 },
+  { b: 'Bingkai Perunggu', koin: 200 },
+  { b: 'Bingkai Perak', koin: 300, gelar: 1 },
+  { b: 'Bingkai Emas', koin: 400, gelar: 1, skin: 1 },
+  { b: 'Bingkai Bersayap', koin: 500, gelar: 1 },
+  { b: 'Bingkai Merah-Emas', koin: 600, gelar: 1, efek: 1 },
+  { b: 'Bingkai Mahkota Ungu', koin: 800, gelar: 1, efek: 1 },
+  { b: 'Bingkai Sepuh', koin: 1000, gelar: 1, efek: 1, abadi: 1 } ];
+const rkGelar = t => RK_HADIAH[t].gelar ? (RK_HADIAH[t].abadi ? '👑 Sepuh Musim ' + RK_MUSIM : RANK[t].n + ' Musim ' + RK_MUSIM) : '';
+const rkEfek = t => RK_HADIAH[t].efek ? 'nmEf' + Math.min(7, t) : '';
+function rkBingkaiSvg(t) {   // cincin bingkai di sekeliling foto (viewBox 120): makin tinggi rank makin megah
+  const R = RANK[t], u = 'bk' + (++rkUid), [a, b] = R.w; let s = `<svg viewBox="0 0 120 120"><defs><linearGradient id="${u}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".5" stop-color="${R.rim}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>`;
+  if (t >= 6) { s += `<g class="rkSinar" style="transform-origin:60px 60px" opacity="${t === 7 ? .85 : .5}">`; for (let i = 0; i < 16; i++) { const g = i / 8 * Math.PI; s += `<path d="M60 60 L${60 + 60 * Math.cos(g - .07)} ${60 + 60 * Math.sin(g - .07)} L${60 + 60 * Math.cos(g + .07)} ${60 + 60 * Math.sin(g + .07)}Z" fill="${t === 7 ? '#ffe680' : a}"/>`; } s += '</g>'; }
+  if (t >= 4) { const bulu = k => [[-30, 30, 7], [-8, 27, 6.5], [14, 22, 6]].map(([r, L, w]) => `<path d="M0 0 Q${L / 2} ${-w} ${L} 0 Q${L / 2} ${w} 0 0Z" transform="translate(${60 + k * 36} 58) scale(${k} 1) rotate(${r})" fill="url(#${u})" stroke="${R.rim}" stroke-width="1.2"/>`).join(''); s += bulu(1) + bulu(-1); }
+  if (t === 5) s += `<g stroke="${R.rim}" stroke-width="3" stroke-linecap="round"><path d="M28 18 L92 102" stroke="#c8ccd8"/><path d="M92 18 L28 102" stroke="#c8ccd8"/></g>`;   // pedang bersilang di belakang
+  s += '</svg>'; const bel = s; s = `<svg viewBox="0 0 120 120"><defs><linearGradient id="${u}d" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".5" stop-color="${R.rim}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>`;   // lapis depan (di atas foto)
+  if (t === 3 || t >= 5) for (let i = 0; i < 7; i++) { const g = Math.PI * (.62 + i * .1); s += `<ellipse cx="${60 + 44 * Math.cos(g) * -1}" cy="${60 + 44 * Math.sin(g)}" rx="7" ry="3" transform="rotate(${g * 57.3 + 90} ${60 + 44 * Math.cos(g) * -1} ${60 + 44 * Math.sin(g)})" fill="${t === 3 ? '#ffd96a' : R.rim}" opacity=".95"/><ellipse cx="${60 + 44 * Math.cos(g)}" cy="${60 + 44 * Math.sin(g)}" rx="7" ry="3" transform="rotate(${-g * 57.3 - 90} ${60 + 44 * Math.cos(g)} ${60 + 44 * Math.sin(g)})" fill="${t === 3 ? '#ffd96a' : R.rim}" opacity=".95"/>`; }   // daun / bulu di bawah
+  s += `<circle cx="60" cy="60" r="${t >= 2 ? 41 : 40}" fill="none" stroke="url(#${u}d)" stroke-width="${t === 0 ? 5 : t < 4 ? 7 : 8}"/>`;
+  if (t >= 2) s += `<circle cx="60" cy="60" r="46" fill="none" stroke="${R.rim}" stroke-opacity=".6" stroke-width="1.5"${t === 2 ? ' stroke-dasharray="6 4"' : ''}/>`;
+  if (t === 1) for (let i = 0; i < 8; i++) { const g = i / 4 * Math.PI; s += `<circle cx="${60 + 40 * Math.cos(g)}" cy="${60 + 40 * Math.sin(g)}" r="2.2" fill="${R.rim}"/>`; }   // paku perunggu
+  if (t === 0) s += `<path d="M48 96 Q52 84 60 98 Q68 84 72 96" fill="#6ad05a" stroke="#e0ffd6" stroke-width="1"/>`;
+  if (t >= 6) s += `<path d="M42 22 L46 6 L53 15 L60 1 L67 15 L74 6 L78 22Z" fill="${t === 7 ? '#ffd23a' : '#d8b0ff'}" stroke="#fff6c8" stroke-width="1.5"/><circle cx="60" cy="10" r="3" fill="${t === 7 ? '#ff3a5a' : '#7a3aff'}"/>`;
+  if (t >= 4) s += `<circle cx="60" cy="101" r="5" fill="url(#${u}d)" stroke="${R.rim}" stroke-width="1.5"/>`;
+  return [bel, s + '</svg>'];   // [belakang foto, depan foto]
+}
+function rkBingkai(t, foto) { const [b, d] = rkBingkaiSvg(t); return `<span class="rkBk">${b}<i style="background-image:url('${foto}')"></i>${d}</span>`; }
+const rkFoto = () => { try { return akFotoSaya() || heroHead(pick, skinOf(pick)); } catch (e) { return ''; } };
+function rkHadiahIsi(t) { const H = RK_HADIAH[t]; return [H.b, H.koin ? '🪙 ' + H.koin + ' koin' : '', H.gelar ? '🏷️ Gelar' : '', H.efek ? '✨ Efek nama' : '', H.skin ? '<span class="skin">🎭 Skin Musim ' + RK_MUSIM + '</span>' : '', H.abadi ? '♾️ Gelar permanen' : ''].filter(Boolean); }
+function rkPrev(t) {
+  const H = RK_HADIAH[t], ef = rkEfek(t), terbuka = t <= RK.t;
+  $('#rkPrev').innerHTML = `${rkBingkai(t, rkFoto())}<div><div class="nm ${ef}">${(typeof myName == 'function' ? myName() : 'Pemain')}</div><div class="gl">${rkGelar(t) || '—'}</div>
+    <div class="ket">${terbuka ? '✅ Sudah terbuka (contoh)' : '🔒 Capai ' + RANK[t].n + ' di Musim ' + RK_MUSIM} · ${rkHadiahIsi(t).join(' · ').replace(/<[^>]+>/g, '')}</div></div>`;
+  document.querySelectorAll('.rkHk').forEach(k => k.classList.toggle('pil', +k.dataset.t === t));
+}
+function bukaHadiah() {
+  const f = rkFoto(); $('#rkHdL').innerHTML = RANK.map((R, t) => `<div class="rkHk${t <= RK.t ? ' buka' : ''}${t === RK.t ? ' ini' : ''}" data-t="${t}">${rkBingkai(t, f)}<b>${R.n}</b><ul>${rkHadiahIsi(t).map(x => '<li>' + x + '</li>').join('')}</ul><span class="st">${t <= RK.t ? '✅ Terbuka' : '🔒 Terkunci'}</span></div>`).join('');
+  document.querySelectorAll('.rkHk').forEach(k => k.onclick = () => rkPrev(+k.dataset.t)); rkPrev(RK.t); $('#rkHd').classList.add('on');
+}
+function rkPetiBuka(t) {   // peti hadiah saat pertama kali naik ke rank t
+  const P = $('#rkPeti'), H = RK_HADIAH[t]; P.className = 'on';
+  P.innerHTML = `<div class="pt">🎁</div><div class="isi">${rkBingkai(t, rkFoto())}<div class="jdl">Hadiah ${RANK[t].n}!</div><div class="dft">${rkHadiahIsi(t).join('<br>')}</div><button class="btn g ok">Ambil</button></div>`;
+  setTimeout(() => { P.className = 'on buka'; }, 1500); P.querySelector('.ok').onclick = () => { P.className = ''; };
+}
+$('#rkHadiahB').onclick = bukaHadiah; $('#rkHdX').onclick = () => $('#rkHd').classList.remove('on');
+window.KG_RANK.bingkai = rkBingkai; window.KG_RANK.gelar = rkGelar; window.KG_RANK.efek = rkEfek;
 $('#akKeluar').onclick=()=>$('#akPop').classList.add('on');   // ganti akun: tanya dulu lewat pop up
 $('#akTidak').onclick=()=>$('#akPop').classList.remove('on');
 $('#akYa').onclick=()=>{$('#akPop').classList.remove('on');   // keluar dari akun warga desa di HP ini, lalu masuk dengan akun lain
