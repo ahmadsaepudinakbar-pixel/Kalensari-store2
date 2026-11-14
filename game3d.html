@@ -220,7 +220,7 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
 <div id="koin" class="ui" style="display:none"></div>
 <div id="help">WASD / panah: gerak · J / Spasi: Sundul Kepala · U (tahan, arahkan dgn mouse): Loncat Jauh · I (tahan): Guling Cepat · O: Lingkaran Kutukan</div>
 <div id="hasil"><b id="hasilT"></b><small id="hasilS"></small>
- <div class="tb" id="hasilTb"><button id="lagi">🔁 Main Lagi</button><button id="pilihH" class="abu" style="display:none">🦸 Pilih Hero</button><button id="keMenu" class="abu">Menu</button></div>
+ <div class="tb" id="hasilTb"><button id="lagi">🔁 Main Lagi</button><button id="pilihH" class="abu" style="display:none">🦸 Pilih Hero</button><button id="keMenu" class="abu">Menu</button><button id="rekSalinB" class="abu">📋 Salin Hasil Tes</button><button id="rekUnduhB" class="abu">📊 Unduh Hasil Tes</button></div>
  <div id="ph" style="display:none"><b class="phj">Pilih Hero</b>
   <div id="phHero"></div><div id="phSkin"></div><div id="phInfo"></div>
   <div class="tb"><button id="phMain">⚔️ Main</button><button id="phBatal" class="abu">← Kembali</button></div></div></div>
@@ -945,8 +945,8 @@ function gantiBahan(o, f) { o.traverse(c => { if (!c.isMesh || !c.material) retu
 function terapBahan() { gantiBahan(scene, KUAL.lv === 0 ? keLambert : (m => ASLI.get(m) || m)); scene.environment = KUAL.lv === 0 ? null : ENV; P._a = undefined; if (typeof R !== 'undefined') R._a = undefined; }
 const KUAL = { lv: 1, bloom: false, apiTerang: 1 };
 let composer = null, bloomPass = null;
-function setKual(lv) {
-  KUAL.lv = lv; try { localStorage.setItem('uji3dKual', lv); } catch (e) { }
+function setKual(lv, simpan = true) {   // simpan = false: diturunkan otomatis → tidak disimpan, pertandingan berikutnya kembali ke pilihan pemain
+  KUAL.lv = lv; if (simpan) try { localStorage.setItem('uji3dKual', lv); } catch (e) { }
   document.querySelectorAll('#kual button[data-q]').forEach(b => b.classList.toggle('on', +b.dataset.q === lv));
   KUAL.skala = 1; terapResolusi();
   renderer.shadowMap.enabled = lv > 0; sun.castShadow = lv > 0;
@@ -1187,8 +1187,8 @@ function diLayar(g) {
 }
 function animasi(T, dt) {
   if (!T.mixer) return;
-  if (KUAL.lv > 0) { T.mixer.update(dt); return; }
   T.mdt = (T.mdt || 0) + dt;
+  if (KUAL.lv > 0) { if (T.root.visible && diLayar(T.root) || T.mdt >= .1) { T.mixer.update(T.mdt); T.mdt = 0; } return; }   // Sedang/Tinggi: di layar tiap frame, di luar layar ±10x/detik
   const banyak = TIM.on && TIM.obj.size + TIM.bot.size >= 3, jeda = !T.root.visible || !diLayar(T.root) ? .14 : banyak ? .05 : .033;
   if (T.mdt >= jeda) { T.mixer.update(T.mdt); T.mdt = 0; }
 }
@@ -6643,7 +6643,7 @@ const WNV = {
   tugu: { lama: 10, heal: .1, jedaHeal: 2, padat: 1.3, hadiahHp: .3, hadiahCd: 90 },   // heal 10% HP / detik · hadiah merebut: pulih 30% HP + kartu emas (jeda 90 dtk per tim)
   mon: { hp: 650, dmg: 38, jeda: 1.2, kec: 3.2, leash: 8, ulang: 45, naikPerMenit: .06 },
   // Buaya: muncul tiap 4 menit (menit 4, 8, 12, …) di kedua danau; level naik tiap kemunculan: lv1 lemah, lalu makin kuat
-  buaya: { hp: 2200, dmg: 70, jeda: 1.6, kec: 2.6, leash: 9, selang: 240, naikHp: .6, naikDmg: .4, naikPerMenit: 0 },
+  buaya: { hp: 3500, dmg: 110, jeda: 1.6, kec: 2.6, leash: 9, selang: 240, naikHp: .8, naikDmg: .5, naikPerMenit: 0 },   // ke-1 3.500 HP · ke-2 6.300 · ke-3 9.100 · ke-4 11.900 (sebelumnya 2.200, +60%/kemunculan)
   buayaT: { hp: 1600, dmg: 70, dmgB: 160, jeda: 1.6, kec: 2.5 },
   respawn: [10, 2, 45] };   // [awal, tambah per menit, maks] detik
 // stat hasil kartu (dalam persen, ditumpuk): HP & Attack +p% · Defense: damage diterima ×100/(100+p) · Speed +p% (maks +80%)
@@ -6902,7 +6902,9 @@ function wnAnimSinga(E, dt) {
   else if (E.jalan) { wnMainSinga(R, 'lari', .2); const a = R.act.lari; if (a) a.setEffectiveTimeScale(Math.max(.7, E.kec / 5)); }
   else if (E.sas && !E.mt.pusing && !E.mt.kunci) wnMainSinga(R, E.hp / E.hpMax < .4 && R.act.tahan ? 'tahan' : 'siaga', .25);
   else { R.diamT -= dt; if (R.cur !== 'diam' && R.cur !== 'diam2' || R.diamT <= 0) { const n = R.cur === 'diam' && R.diamT <= 0 && R.act.diam2 ? 'diam2' : 'diam'; R.diamT = n === 'diam' ? 11.2 : 3.8; wnMainSinga(R, n, .35); } }
-  R.mix.update(E.mt.pusing > 0 || E.mt.kunci > 0 ? 0 : dt);   // terkena stun: gerakan membeku
+  const dtM = E.mt.pusing > 0 || E.mt.kunci > 0 ? 0 : dt;   // terkena stun: gerakan membeku
+  R.mdt = (R.mdt || 0) + dtM; const tampak = diLayar(E.g);   // di luar layar cukup ±7x/detik (semua kualitas) · di layar: Rendah ±30x/detik, Sedang/Tinggi tiap frame
+  if (R.mdt >= (!tampak ? .14 : KUAL.lv === 0 ? .033 : 0)) { R.mix.update(R.mdt); R.mdt = 0; }
   if (R.serang && R.serang.loncat) { const S = R.serang, a = R.act.serang; let y = 0; if (R.cur === 'serang' && a && a.isRunning()) { const q = (a.time / a.getClip().duration - S.l0) / (S.l1 - S.l0); if (q > 0 && q < 1) y = Math.sin(q * Math.PI) * S.loncat; } R.b.position.y = y; }   // Bangbung: melompat salto saat menyerang
   const sk = E.skalaB || R.skala;
   if (E.kilau > 0) { E.kilau -= dt; R.b.scale.setScalar(sk * (1 + E.kilau * .4)); }
@@ -8491,19 +8493,22 @@ async function mulai() {
   mulaiLoop();
 }
 let LOOP = false;
-const OTO = { t: 0, n: 0, jeda: 3, naik: 0 };
+const OTO = { t: 0, n: 0, jeda: 10, naik: 0, buruk: 0 };   // 10 dtk pertama diabaikan (masih memuat & menyiapkan shader)
 function kualitasOtomatis(dt) {   // fps < 26 selama ±4 detik → turunkan kualitas satu tingkat
   if (OTO.jeda > 0) { OTO.jeda -= dt; return; }
   OTO.t += dt; OTO.n++; if (OTO.t < 4) return;
   const fps = OTO.n / OTO.t; OTO.t = 0; OTO.n = 0;
   const kunci = batasFps();
-  if (fps < (kunci ? 24 : DI_HP ? 30 : 26) && KUAL.lv > 0) { setKual(KUAL.lv - 1); OTO.jeda = 3; const t = $('#fps'); if (t) t.textContent = 'Kualitas diturunkan otomatis (' + Math.round(fps) + ' fps)'; }
+  const jelek = fps < (kunci ? 24 : DI_HP ? 25 : 26) && KUAL.lv > 0; OTO.buruk = jelek ? OTO.buruk + 1 : 0;   // harus jelek 2x berturut-turut (±8 dtk), bukan sekali sendat
+  if (jelek && OTO.buruk >= 2) { OTO.buruk = 0; setKual(KUAL.lv - 1, false); OTO.jeda = 6; const t = $('#fps'); if (t) t.textContent = 'Kualitas diturunkan otomatis (' + Math.round(fps) + ' fps)'; }
   else if (!kunci && KUAL.lv === 0 && fps < 28 && (KUAL.skala || 1) > .85) { KUAL.skala = Math.max(.85, (KUAL.skala || 1) - .075); terapResolusi(); resize(); OTO.jeda = 8; OTO.naik = 0; }   // masih patah-patah: kecilkan resolusi sedikit (tidak sampai pecah)
   else if (!kunci && KUAL.lv === 0 && fps > 50 && (KUAL.skala || 1) < 1 && ++OTO.naik >= 3) { OTO.naik = 0; KUAL.skala = Math.min(1, KUAL.skala + .1); terapResolusi(); resize(); OTO.jeda = 8; }
 }
 function panaskan() {   // siapkan semua shader sebelum main → tidak tersendat saat skill / efek pertama kali muncul
-  const sem = []; scene.traverse(o => { if (o.name === 'gendKepal' && !o.visible) { o.visible = true; sem.push(o); } });   // badan kepal ikut disiapkan
+  const sem = []; scene.traverse(o => { if (!o.visible) { o.visible = true; sem.push(o); } });   // semua objek yang sedang tersembunyi ikut disiapkan (badan kepal, efek, model cadangan…)
   try { percik(new THREE.Vector3(0, -60, 0), 2); renderer.compile(scene, camera); } catch (e) { }
+  try { const tx = new Set(); scene.traverse(o => { if (!o.material) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => ['map', 'emissiveMap', 'alphaMap', 'normalMap', 'aoMap'].forEach(k => { if (m[k] && m[k].isTexture) tx.add(m[k]); })); });
+    tx.forEach(t => renderer.initTexture(t)); } catch (e) { }   // tekstur dikirim ke GPU sekarang, bukan saat pertama kali terlihat (penyebab frame 200–300 ms)
   sem.forEach(o => { o.visible = false; });
 }
 // 📊 Cek performa: rincian waktu per frame (hitungan game vs gambar) + beban grafis — untuk mencari bagian yang berat di HP
@@ -8554,6 +8559,7 @@ function rekTeks(d, judul) {
   if (!d) return judul + ': belum ada data.';
   const urut = o => Object.entries(o).sort((a, b) => b[1] - a[1]);
   const fpsR = d.fpsN ? (d.fpsJml / d.fpsN).toFixed(1) : '-';
+  if (!d.fpsN || d.detik < 10) return `== ${judul} ==\n${d.mulai} · ${d.mode} · ${d.arena} · ${d.hero}\nlama main: ${d.detik} detik\n⚠️ Data belum cukup — main minimal 10 detik supaya hasil tes bisa dibaca.`;
   return `== ${judul} ==\n${d.mulai} · ${d.mode} · ${d.arena} · ${d.hero}\nHP: ${d.hp} · RAM ±${d.ram} GB · inti CPU ${d.cpu}\n`
     + `lama main: ${d.detik} detik · grafis: ${Object.entries(d.kual).map(([k, v]) => k + ' ' + v + ' dtk').join(', ')}\n\n`
     + `FPS rata-rata ${fpsR} · FPS terendah ${d.fpsMin === 999 ? '-' : d.fpsMin}\n  saat FPS terendah: ${d.fpsMinKonteks || '-'}\n`
@@ -8564,9 +8570,27 @@ function rekTeks(d, judul) {
     + `RINCIAN FUNGSI (puncak ms/frame):\n${urut(d.sub).slice(0, 12).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`
     + (d.dc ? `\n\nDRAW CALL PER JENIS (puncak, perkiraan):\n${urut(d.dc).map(([k, v]) => `  ${k}: ${v}`).join('\n')}` : '');
 }
-function rekBuka() {
+function rekSemuaTeks() {
   let lalu = null; try { lalu = JSON.parse(localStorage.getItem('kgRekorLalu') || 'null'); } catch (e) { }
-  const teks = rekTeks(REK.d, 'HASIL TES PERFORMA (pertandingan ini)') + '\n\n' + rekTeks(lalu, 'pertandingan sebelumnya');
+  return rekTeks(REK.d, 'HASIL TES PERFORMA (pertandingan ini)') + '\n\n' + rekTeks(lalu, 'pertandingan sebelumnya');
+}
+// unduh laporan .txt · di aplikasi Android (WebView) unduhan blob tidak jalan → pakai jembatan KalensariApp.simpanTeks bila ada, kalau tidak: salin teks
+async function rekSalin(t, tombol) {
+  let ok = false; try { await navigator.clipboard.writeText(t); ok = true; } catch (er) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { ok = document.execCommand('copy'); } catch (e2) { } ta.remove(); }
+  if (tombol) tombol.textContent = ok ? '✅ Tersalin — tempel di WhatsApp' : '⚠️ Gagal salin, screenshot saja'; return ok;
+}
+async function rekUnduh(t, tombol) {
+  const nama = 'hasil-tes-kalensari-' + new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-') + '.txt';
+  if (window.KalensariApp && KalensariApp.simpanTeks) { try { KalensariApp.simpanTeks(nama, t); if (tombol) tombol.textContent = '✅ Tersimpan di folder Download'; return; } catch (e) { } }
+  if (/KalensariGameApp/.test(navigator.userAgent)) {
+    await rekSalin(t, tombol); return; }
+  const u = URL.createObjectURL(new Blob([t], { type: 'text/plain' })), l = document.createElement('a'); l.href = u; l.download = nama; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000);
+  if (tombol) tombol.textContent = '✅ Terunduh';
+}
+{ const b = $('#rekUnduhB'); if (b) { b.onpointerdown = e => e.stopPropagation(); b.onclick = () => rekUnduh(rekSemuaTeks(), b); } }
+{ const b = $('#rekSalinB'); if (b) { b.onpointerdown = e => e.stopPropagation(); b.onclick = () => rekSalin(rekSemuaTeks(), b); } }
+function rekBuka() {
+  const teks = rekSemuaTeks();
   let o = $('#rekPanel');
   if (!o) {
     o = document.createElement('div'); o.id = 'rekPanel';
@@ -8577,10 +8601,8 @@ function rekBuka() {
     ['pointerdown', 'touchstart', 'keydown'].forEach(ev => o.addEventListener(ev, e => e.stopPropagation()));
     o.onclick = async e => { const a = e.target.dataset && e.target.dataset.a; if (!a) return; const t = o.querySelector('pre').textContent;
       if (a === 'tutup') o.remove();
-      else if (a === 'salin') { let ok = false; try { await navigator.clipboard.writeText(t); ok = true; } catch (er) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { ok = document.execCommand('copy'); } catch (e2) { } ta.remove(); }
-        e.target.textContent = ok ? '✅ Tersalin — tempel di WhatsApp' : '⚠️ Gagal salin, screenshot saja'; }
-      else if (a === 'unduh') { const u = URL.createObjectURL(new Blob([t], { type: 'text/plain' })), l = document.createElement('a'); l.href = u; l.download = 'hasil-tes-kalensari-' + Date.now() + '.txt'; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000);
-        if (/KalensariGameApp/.test(navigator.userAgent)) e.target.textContent = '⬇️ Di aplikasi pakai "Salin teks"'; }
+      else if (a === 'salin') rekSalin(t, e.target);
+      else if (a === 'unduh') rekUnduh(t, e.target);
       else if (a === 'hapus') { try { localStorage.removeItem('kgRekor'); localStorage.removeItem('kgRekorLalu'); } catch (er) { } rekBaru(); REK.d.detik = 0; o.querySelector('pre').textContent = 'Catatan dikosongkan. Main lagi, lalu buka 📋 lagi.'; } };
     document.body.appendChild(o);
   }
