@@ -41,8 +41,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #load small{color:#9aa3b8;max-width:420px}#load.off{display:none}
 #lpersen{font:900 clamp(26px,6vh,44px) Arial;color:#ffd166;text-shadow:0 2px 0 #000,0 0 14px #ffb70366;letter-spacing:1px}
 #ltips{max-width:min(92vw,620px);min-height:2.6em;padding:8px 14px;border-radius:10px;background:#0b1430cc;border:1px solid #2c3f73;color:#dfe8ff;font:600 clamp(11px,2.1vh,14px) Arial;line-height:1.35;transition:opacity .35s}#ltips:empty{display:none}#ltips b{color:#ffd166}
+#wnBukaT .wnPil{display:inline-block;margin-left:6px;padding:0 8px;border-radius:6px;background:#201400;color:#ffe066}
 #wnBukaT{position:fixed;z-index:42;transform:translate(-100%,-50%);pointer-events:none;font:800 12px Arial;color:#ffe9a8;background:#0b1024d9;border:1px solid #ffd16688;border-radius:9px;padding:3px 9px;white-space:nowrap;text-shadow:0 1px 2px #000}
-#wnBukaT.bisa{font-size:15px;color:#201400;background:linear-gradient(#ffe066,#e0a010);border:2px solid #fff2a8;box-shadow:0 0 14px #ffb703;animation:wnDenyut .7s infinite alternate}
+#wnBukaT.bisa{pointer-events:auto;cursor:pointer;font-size:15px;color:#201400;background:linear-gradient(#ffe066,#e0a010);border:2px solid #fff2a8;box-shadow:0 0 14px #ffb703;animation:wnDenyut .7s infinite alternate}
 .wnPanah{position:fixed;z-index:42;transform:translate(-100%,-50%);pointer-events:none;font:900 30px Arial;color:#ffd166;text-shadow:0 0 8px #ffb703,0 2px 2px #000;animation:wnPanahL .55s infinite alternate}.wnPanah.atas{transform:translate(-50%,-100%);animation-name:wnPanahA}
 @keyframes wnPanahL{to{margin-left:-10px}}@keyframes wnPanahA{to{margin-top:-10px}}@keyframes wnDenyut{to{filter:brightness(1.25)}}
 .sb .wnL{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;background:#000a;border-radius:50%;pointer-events:none}
@@ -4814,7 +4815,7 @@ const camPos = new THREE.Vector3(), camLihat = new THREE.Vector3();
 // arah joystick, WASD & arah bidik skill ikut berputar sesuai arah kamera
 const KAM = { on: MODE === 'nanas', yaw: 0, pitch: .62, jarak: 12, min: 5, maks: 18, jari: new Map(), cubit: 0, kunci: false };
 // 🔒 kunci sudut: kamera Custom tidak bisa diputar / di-zoom (sudut, tinggi & jarak tersimpan di HP sampai dibuka lagi)
-try { const k = JSON.parse(localStorage.getItem('kgKamRoblox') || 'null'); if (k) { KAM.pitch = Math.min(1.25, Math.max(.12, +k.p || .62)); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, +k.j || 12)); KAM.kunci = !!k.k; if (KAM.kunci && isFinite(+k.y)) KAM.yaw = +k.y; } } catch (e) { }
+try { const k = JSON.parse(localStorage.getItem('kgKamRoblox2') || 'null'); if (k) { KAM.pitch = Math.min(1.25, Math.max(.12, +k.p || .62)); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, +k.j || 12)); KAM.kunci = !!k.k; if (KAM.kunci && isFinite(+k.y)) KAM.yaw = +k.y; } } catch (e) { }
 try { const m = localStorage.getItem('kgKamMode'); if (m === 'custom' || m === 'bawaan') KAM.on = m === 'custom'; } catch (e) { }
 const kamCustom = () => KAM.on && !UMP.on && !TIM.tonton;   // Petak Umpet & wasit tetap memakai kamera bawaan
 function tandaKam() { const b = $('#bKam'); if (b) { b.textContent = KAM.on ? '🎥 Custom' : '🎥 Bawaan'; b.classList.toggle('on', KAM.on); }
@@ -4825,7 +4826,7 @@ function tandaKam() { const b = $('#bKam'); if (b) { b.textContent = KAM.on ? '�
 $('#bKam').onclick = () => { KAM.on = !KAM.on; try { localStorage.setItem('kgKamMode', KAM.on ? 'custom' : 'bawaan'); } catch (e) { } KAM.jari.clear(); KAM.cubit = 0; tandaKam();
   banner(KAM.on ? (KAM.kunci ? '🎥 Kamera Custom (🔒 terkunci — ketuk gembok untuk membuka)' : '🎥 Kamera Custom: geser layar untuk memutar, cubit / roda mouse untuk zoom · 🔓 ketuk gembok untuk mengunci') : '🎥 Kamera Bawaan', '#ffd166'); };
 tandaKam();
-function simpanKam() { try { localStorage.setItem('kgKamRoblox', JSON.stringify({ p: KAM.pitch, j: KAM.jarak, y: KAM.yaw, k: KAM.kunci ? 1 : 0 })); } catch (e) { } }
+function simpanKam() { try { localStorage.setItem('kgKamRoblox2', JSON.stringify({ p: KAM.pitch, j: KAM.jarak, y: KAM.yaw, k: KAM.kunci ? 1 : 0 })); } catch (e) { } }
 function updKameraRoblox(dt) {
   const tg = kamSasaran().clone().setY(1.5);
   camLihat.lerp(tg, Math.min(1, dt * 10));
@@ -7859,8 +7860,11 @@ function wnSpHud() {
   if (!WN.on || !WN_SP.has(TIM.me)) return; const bisa = wnSpBisa(TIM.me), s = WN_SP.get(TIM.me);
   [1, 2, 3].forEach(i => { const b = $('#b' + i); if (!b) return; let l = b.querySelector('.wnL'); if (!l) { l = document.createElement('span'); l.className = 'wnL'; l.textContent = '🔒'; b.appendChild(l); }
     l.style.display = s.buka[i] ? 'none' : ''; b.classList.toggle('wnBisa', bisa.includes(i)); });
-  let t = $('#wnBukaT'); if (!t) { t = document.createElement('div'); t.id = 'wnBukaT'; document.body.appendChild(t); }
-  t.innerHTML = bisa.length ? `🔓 BUKA SKILL${bisa.length > 1 ? ' · pilih 1' : ''}` : wnSpPenuh(s) ? '' : `🔒 Skill berikutnya: ${s.kartu}/2 kartu · atau 1 kartu emas`;
+  let t = $('#wnBukaT'); if (!t) { t = document.createElement('div'); t.id = 'wnBukaT'; document.body.appendChild(t);
+    // tulisan BUKA SKILL bisa diketuk: 1 pilihan → langsung dibuka · 2 pilihan → ketuk angka skill-nya (ketuk di luar angka = Skill 1)
+    t.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); const L = WN.spBisa || []; if (!L.length) return;
+      const k = e.target.closest && e.target.closest('[data-sk]'), i = k ? +k.dataset.sk : L[0]; if (L.includes(i)) wnSpBukaSkill(TIM.me, i); }); }
+  t.innerHTML = bisa.length ? (bisa.length > 1 ? `🔓 BUKA SKILL ${bisa.map(i => `<span class="wnPil" data-sk="${i}">${i}</span>`).join('')}` : `🔓 BUKA SKILL${bisa[0] === 3 ? ' ULTI' : ' ' + bisa[0]}`) : wnSpPenuh(s) ? '' : `🔒 Skill berikutnya: ${s.kartu}/2 kartu · atau 1 kartu emas`;
   t.classList.toggle('bisa', !!bisa.length); t.style.display = t.innerHTML ? '' : 'none'; WN.spBisa = bisa; wnSpPosisi();
 }
 function wnSpPosisi() {   // panah emas di atas tombol skill yang bisa dibuka + tulisan BUKA SKILL (ikut posisi tombol, termasuk kontrol custom)
@@ -9077,7 +9081,7 @@ function mulaiLoop() {
     const nyata = Math.min(.1, (now - last) / 1000);
     const c0 = performance.now(); if (cekAkhir) CEK.gap += c0 - cekAkhir;
     let dt = Math.min(.05, (now - last) / 1000); last = now; t0 += dt;
-    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv] + ' · doni-v10 · erick-v3 · timun-v5 · buto-v3 · lutung-v4 · saras-v3 · angling-v1 · dayang-v1 · nyi-v1 · siliwangi-v1 · ciung-v1 · sangkuriang-v1 · kiansantang-v1 · lina-v3 · tuyulbot-v1 · tuyulhalo-v1 · tuyulmecha-v1 · tuyulsetan-v1 · tuyultangan-v2 · golem-v2 · santi-v1 · roberick-v1 · lunara-v3'; fN = 0; fT = 0; }
+    fN++; fT += dt; if (fT > .5) { $('#fps').textContent = Math.round(fN / fT) + ' fps · ' + ['Rendah', 'Sedang', 'Tinggi'][KUAL.lv]; /* daftar versi model dipindah ke menu utama (game.html) */ fN = 0; fT = 0; }
     if (hentiSejenak > 0) { hentiSejenak -= dt; dt *= .15; }   // hit-stop: terasa "berat" saat kena
     if (ATUR.on && !NET.on) dt = 0;   // sedang Atur Tombol (main sendiri): permainan berhenti sebentar
     const ck = true; let sg = c0;
