@@ -987,7 +987,7 @@ function terapTerang() {
     if (!sl.dataset.ok) { sl.dataset.ok = 1; sl.onpointerdown = e => e.stopPropagation(); sl.oninput = () => { KUAL.fT = +sl.value; try { localStorage.setItem('terangRendah', KUAL.fT); } catch (e) { } terapTerang(); }; } }
 }
 function terapResolusi() {   // HP: minimal 1 piksel per titik layar (dulu Rendah 0,7 dan bisa turun ke 0,45 → gambar pecah)
-  const lv = KUAL.lv, dasar = lv === 0 ? 1.2 : lv === 1 ? (DI_HP ? 1.3 : 1.5) : 2;
+  const lv = KUAL.lv, dasar = lv === 0 ? (DI_HP && HP_LEMAH ? 1 : 1.2) : lv === 1 ? (DI_HP ? 1.3 : 1.5) : 2;
   renderer.setPixelRatio(Math.max(.85, Math.min(devicePixelRatio, dasar) * (KUAL.skala || 1)));
 }
 // HP kentang (RAM ≤ 4 GB) & grafis Rendah di HP: dikunci 30 fps — stabil terasa lebih mulus daripada naik-turun,
@@ -1168,13 +1168,21 @@ function muatGLB(url, onProg) {
   if (!GLB.has(url)) GLB.set(url, (async () => {
     let err;
     for (let k = 0; k < GLB_COBA; k++) {
-      try { return await ambilGLB(url, onProg, k); }
+      try { const g = await ambilGLB(url, onProg, k); kirimTeksturGLB(g); return g; }
       catch (e) { err = e; console.warn('[GLB] gagal', url, 'percobaan ' + (k + 1), e); if (k < GLB_COBA - 1) { glbInfo(url, k + 1); await new Promise(r => setTimeout(r, 800 * (k + 1))); } }
     }
     GLB.delete(url);   // jangan simpan kegagalan: kesempatan berikutnya diunduh lagi
     const e = new Error(url.split('?')[0].split('/').pop() + ': ' + ((err && err.message) || err)); e.url = url; e.sebab = err; throw e;
   })());
   return GLB.get(url);
+}
+function kirimTeksturGLB(g) {   // tekstur model langsung dikirim ke GPU begitu file selesai dimuat (bukan saat pertama tampil di layar → tidak tersendat 200–500 ms di tengah main)
+  try { if (!g || !g.scene || typeof renderer === 'undefined') return; const tx = new Set();
+    g.scene.traverse(o => { if (!o.material) return; [].concat(o.material).forEach(m => ['map', 'emissiveMap', 'normalMap', 'alphaMap', 'aoMap'].forEach(k => { if (m[k] && m[k].isTexture) tx.add(m[k]); })); });
+    tx.forEach(t => renderer.initTexture(t)); } catch (e) { }
+}
+function panaskanObj(o) {   // siapkan shader efek yang belum pernah tampil (dipanggil saat model efek selesai dimuat)
+  if (!o) return; try { const v = []; o.traverse(x => { if (!x.visible) { x.visible = true; v.push(x); } }); o.position.y -= 80; scene.add(o); renderer.compile(scene, camera); scene.remove(o); v.forEach(x => { x.visible = false; }); } catch (e) { }
 }
 function gagalMuat(e) {   // layar muat: sebutkan file yang benar-benar gagal + tombol coba lagi
   console.error('[Model gagal dimuat]', e);
@@ -4363,7 +4371,7 @@ void main() { float rim = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 1.6)
 }`;
 // model hiu bertulang (Tripo, hiu-air.glb): dipakai untuk hiu skill 1 & terkaman ulti — tampil sebagai air bercahaya (shader sama); kalau belum termuat: hiu buatan kode
 const HIU_URL = 'model-3d/hiu-air.glb?v=2', HIU_M = { glb: null, p: null };
-function muatHiu() { return HIU_M.p || (HIU_M.p = muatGLB(HIU_URL).then(g => { HIU_M.glb = g; }).catch(e => { console.warn('[Nyi] model hiu gagal dimuat — pakai hiu buatan kode', e); })); }
+function muatHiu() { return HIU_M.p || (HIU_M.p = muatGLB(HIU_URL).then(g => { HIU_M.glb = g; panaskanObj(hiuAir().g); }).catch(e => { console.warn('[Nyi] model hiu gagal dimuat — pakai hiu buatan kode', e); })); }
 const HIU_VS_KULIT = `#include <common>
 #include <skinning_pars_vertex>
 varying vec3 vN; varying vec3 vV; varying float vZ;
@@ -4408,9 +4416,9 @@ function hiuAir() {
     const spM = new THREE.Sprite(pendar.clone()); spM.position.set(0, -.08, zM + .15); spM.scale.set(.7, .45, 1); g.add(spM); sinar.push(spM);
   }
   // cahaya biru air: pendar besar di sekeliling hiu + cahaya di lantai
-  const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_BULAT, color: 0x0a62e8, transparent: true, opacity: .3, depthWrite: false, toneMapped: false })); aura.scale.set(3.4, 2.2, 1); aura.renderOrder = 3; g.add(aura);
+  const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map: T_BULAT, color: 0x0a62e8, transparent: true, opacity: .3, depthWrite: false, toneMapped: false })); aura.scale.set(3.4, 2.2, 1); aura.renderOrder = 3; if (KUAL.lv > 0) g.add(aura);   // grafis Rendah: tanpa pendar besar & cahaya lantai (lapisan tembus pandang = berat di GPU HP)
   const lantai = buang(new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: T_BULAT, color: 0x0a70f0, transparent: true, opacity: .5, depthWrite: false, toneMapped: false })));
-  lantai.scale.set(2.6, 1, 5); lantai.position.y = -.47; lantai.renderOrder = 2; g.add(lantai);
+  lantai.scale.set(2.6, 1, 5); lantai.position.y = -.47; lantai.renderOrder = 2; if (KUAL.lv > 0) g.add(lantai);
   g.position.set(0, .52, -.6); g.scale.setScalar(TINGGI / 1.7);   // hiu digeser ke belakang: kepala putri duyung berada di kepala hiu (titik putar karakter tetap di duyung)
   const H = { g, u, mats, model, sinar, aura, lantai, mata, mulutM, gigi, terjang: 0, du: false };
   H.atur = (op, t, amp, gigit = 0) => {   // transparansi, waktu, kibasan ekor, sentakan kepala (menggigit)
@@ -4579,7 +4587,7 @@ function nrLaut(c, R, lama) {
   const riak = [0, 1].map(k => { const m = new THREE.Mesh(new THREE.CircleGeometry(1, 64).rotateX(-Math.PI / 2), bhn(k ? NR_BIRU.muda : NR_BIRU.terang, 0, T_RIAK)); m.position.y = .045 + k * .01; return m; });
   const tepi = new THREE.Mesh(new THREE.RingGeometry(.94, 1, 72).rotateX(-Math.PI / 2), bhn(NR_BIRU.muda, 0)); tepi.position.y = .06;
   const dinding = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 64, 1, true), bhn(NR_BIRU.laut, 0, T_OMBAK)); dinding.position.y = .25;
-  [dasar, ...riak, tepi, dinding].forEach((x, k) => { x.renderOrder = 2 + k; g.add(x); });
+  [dasar, ...riak, tepi, dinding].forEach((x, k) => { x.renderOrder = 2 + k; if (KUAL.lv > 0 || (x !== dinding && x !== riak[1])) g.add(x); });   // grafis Rendah: laut cukup 1 lapis riak, tanpa dinding ombak
   const sirip = [0, 1, 2].map(k => { const m = new THREE.Mesh(HIU3D.sirip, bhn(NR_BIRU.terang, 0)); m.scale.setScalar(.55); g.add(m); return { m, a: k * 2.1, r: .45 + .2 * k, v: (k % 2 ? -1 : 1) * (.5 + .15 * k) }; });   // sirip hiu berenang berkeliling
   gelombang(q.clone().setY(.05), R, .6, NR_BIRU.terang); nyala(q.clone().setY(.8), 2.4, NR_BIRU.terang, .35); kilat(q, 40);
   TMFX.push({ t: 0, upd(e, dt) {
@@ -6037,7 +6045,7 @@ function siapkanRoro(gl, m, T) {
   klipPustaka(RJ_URL, RJ_ANIM).then(K => { if (T.model !== m) return; for (const [k, c] of Object.entries(K)) { const a = T.mixer.clipAction(rapikanKlip(c, m, 0, false)); a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; T.act[k] = a; } });
   muatCandiRoro();
 }
-function muatCandiRoro() { if (RJ_CANDI.glb || RJ_CANDI.muat) return; RJ_CANDI.muat = true; muatGLB(RJ_CANDI.url).then(g => { RJ_CANDI.glb = g; }).catch(e => { RJ_CANDI.muat = false; console.warn('[Roro] candi-prambanan.glb gagal dimuat, pakai candi buatan kode', e); }); }
+function muatCandiRoro() { if (RJ_CANDI.glb || RJ_CANDI.muat) return; RJ_CANDI.muat = true; muatGLB(RJ_CANDI.url).then(g => { RJ_CANDI.glb = g; const c = salinGLB(g).scene; c.traverse(o => { if (o.isMesh) { o.material = (KUAL.lv === 0 ? keLambert(o.material) : o.material).clone(); o.material.transparent = true; } }); panaskanObj(c); }).catch(e => { RJ_CANDI.muat = false; console.warn('[Roro] candi-prambanan.glb gagal dimuat, pakai candi buatan kode', e); }); }
 function tanganRoro(T) { const v = new THREE.Vector3(); if (T && T.tanganR) T.tanganR.getWorldPosition(v); else if (T && T.root) v.copy(T.root.position).setY(1.2); return v; }
 // ---- efek (dikirim lewat jaringan: fx('rjBatu', ...)) ----
 const RJ_GEO_SERPIH = new THREE.OctahedronGeometry(.13, 0), RJ_GEO_BOLA = new THREE.IcosahedronGeometry(.26, 0);
