@@ -371,7 +371,7 @@ const ENV = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 
 scene.environment = ENV;
 scene.environmentIntensity = .35;
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
-const CAM_OFF = new THREE.Vector3(0, 7.2, 10.1);   // ≈ sudut 35,5° · jarak 12,4 (disamakan dengan kamera Custom bawaan)
+const CAM_OFF = new THREE.Vector3(0, 10.7, 9);   // gaya MLBB: sudut ≈ 50° · jarak 14 (disamakan dengan kamera Custom bawaan)
 
 // langit senja (gradasi)
 scene.background = (() => {
@@ -4813,9 +4813,9 @@ const camPos = new THREE.Vector3(), camLihat = new THREE.Vector3();
 // Custom: geser layar kosong untuk memutar kamera, cubit / roda mouse untuk zoom (War Nanas memakai Custom kalau belum pernah dipilih)
 // HP: seret jari di area layar yang bukan joystick & tombol · PC: seret mouse (kiri/kanan) di layar · roda mouse = zoom
 // arah joystick, WASD & arah bidik skill ikut berputar sesuai arah kamera
-const KAM = { on: MODE === 'nanas', yaw: 0, pitch: .62, jarak: 12, min: 5, maks: 18, jari: new Map(), cubit: 0, kunci: false };
+const KAM = { on: MODE === 'nanas', yaw: 0, pitch: .87, jarak: 14, min: 5, maks: 18, jari: new Map(), cubit: 0, kunci: false };
 // 🔒 kunci sudut: kamera Custom tidak bisa diputar / di-zoom (sudut, tinggi & jarak tersimpan di HP sampai dibuka lagi)
-try { const k = JSON.parse(localStorage.getItem('kgKamRoblox2') || 'null'); if (k) { KAM.pitch = Math.min(1.25, Math.max(.12, +k.p || .62)); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, +k.j || 12)); KAM.kunci = !!k.k; if (KAM.kunci && isFinite(+k.y)) KAM.yaw = +k.y; } } catch (e) { }
+try { const k = JSON.parse(localStorage.getItem('kgKamRoblox3') || 'null'); if (k) { KAM.pitch = Math.min(1.25, Math.max(.12, +k.p || .87)); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, +k.j || 14)); KAM.kunci = !!k.k; if (KAM.kunci && isFinite(+k.y)) KAM.yaw = +k.y; } } catch (e) { }
 try { const m = localStorage.getItem('kgKamMode'); if (m === 'custom' || m === 'bawaan') KAM.on = m === 'custom'; } catch (e) { }
 const kamCustom = () => KAM.on && !UMP.on && !TIM.tonton;   // Petak Umpet & wasit tetap memakai kamera bawaan
 function tandaKam() { const b = $('#bKam'); if (b) { b.textContent = KAM.on ? '🎥 Custom' : '🎥 Bawaan'; b.classList.toggle('on', KAM.on); }
@@ -4826,9 +4826,9 @@ function tandaKam() { const b = $('#bKam'); if (b) { b.textContent = KAM.on ? '�
 $('#bKam').onclick = () => { KAM.on = !KAM.on; try { localStorage.setItem('kgKamMode', KAM.on ? 'custom' : 'bawaan'); } catch (e) { } KAM.jari.clear(); KAM.cubit = 0; tandaKam();
   banner(KAM.on ? (KAM.kunci ? '🎥 Kamera Custom (🔒 terkunci — ketuk gembok untuk membuka)' : '🎥 Kamera Custom: geser layar untuk memutar, cubit / roda mouse untuk zoom · 🔓 ketuk gembok untuk mengunci') : '🎥 Kamera Bawaan', '#ffd166'); };
 tandaKam();
-function simpanKam() { try { localStorage.setItem('kgKamRoblox2', JSON.stringify({ p: KAM.pitch, j: KAM.jarak, y: KAM.yaw, k: KAM.kunci ? 1 : 0 })); } catch (e) { } }
+function simpanKam() { try { localStorage.setItem('kgKamRoblox3', JSON.stringify({ p: KAM.pitch, j: KAM.jarak, y: KAM.yaw, k: KAM.kunci ? 1 : 0 })); } catch (e) { } }
 function updKameraRoblox(dt) {
-  const tg = kamSasaran().clone().setY(1.5);
+  const tg = kamSasaran().clone().setY(1.5); tg.x -= Math.sin(KAM.yaw) * 1.2; tg.z -= Math.cos(KAM.yaw) * 1.2;   // gaya MLBB: titik pandang sedikit di depan hero → hero agak ke bawah layar, area depan lebih luas
   camLihat.lerp(tg, Math.min(1, dt * 10));
   const cp = Math.cos(KAM.pitch), h = KAM.jarak * cp;
   camPos.set(camLihat.x + Math.sin(KAM.yaw) * h, camLihat.y + KAM.jarak * Math.sin(KAM.pitch), camLihat.z + Math.cos(KAM.yaw) * h);
@@ -4857,7 +4857,7 @@ function updKameraRoblox(dt) {
 function kamSasaran() { if (WN.on && WN.lihat && P.state === 'kalah' && !WN.lihat.mt.mati) return WN.lihat.root.position; return P.root.position; }
 function updKamera(dt) {
   if (kamCustom()) return updKameraRoblox(dt);
-  const tg = kamSasaran().clone().setY(.8), off = LYR_W < LYR_H ? CAM_OFF.clone().multiplyScalar(1.25) : CAM_OFF;
+  const tg = kamSasaran().clone().setY(.8); tg.z -= 1.2; const off = LYR_W < LYR_H ? CAM_OFF.clone().multiplyScalar(1.25) : CAM_OFF;
   camLihat.lerp(tg, Math.min(1, dt * 6)); camPos.copy(camLihat).add(off);
   if (goyang > 0) { goyang -= dt; camPos.x += rnd(-1, 1) * goyang * .6; camPos.y += rnd(-1, 1) * goyang * .6; }
   camera.position.copy(camPos); camera.lookAt(camLihat);
