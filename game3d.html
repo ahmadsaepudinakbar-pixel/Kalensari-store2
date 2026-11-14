@@ -152,11 +152,19 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #timHud{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:10px;background:#0b1020d8;border:1px solid #ffffff22;border-radius:12px;padding:5px 14px;font:900 20px Arial;color:#fff;pointer-events:none;flex-wrap:wrap;justify-content:center}
 #timHud .b{color:#5ab4ff}#timHud .m{color:#ff6060}#timHud small{font:700 12px Arial;color:#b8c0d8}#timHud .hdp{flex-basis:100%;text-align:center;font:700 13px Arial;color:#ffd166}
 body:has(#timHud:not([style*="none"])) #koin{top:52px}
+#wnPen{position:fixed;left:10px;top:70px;z-index:6;pointer-events:auto;font:700 11px Arial;background:#0b102073;border:1px solid #ffffff1a;border-radius:8px;padding:3px 7px;backdrop-filter:blur(2px)}
+#wnPen .wpT{cursor:pointer;color:#9dff8a;user-select:none;white-space:nowrap}#wnPen .wpT small{color:#9aa6cc;font-weight:600}#wnPen .wpT i{font-style:normal;color:#ffd166}
+#wnPen .wpL{display:none;flex-direction:column;gap:2px;margin-top:3px;width:150px}#wnPen.buka .wpL{display:flex}#wnPen .wpR{color:#ffd166;font-size:inherit}
+#wnPen .wpB{display:grid;grid-template-columns:1fr auto;gap:0 5px;color:#a8b2d4;line-height:1.2}#wnPen .wpB b{color:#e8eefc;font-weight:800;font-size:inherit}#wnPen .wpB b small{color:#8f9bc4;font-weight:600}
+#wnPen .wpB u{grid-column:1/-1;height:3px;background:#ffffff1f;border-radius:2px;overflow:hidden;text-decoration:none}#wnPen .wpB u i{display:block;height:100%;background:linear-gradient(90deg,#5ad06a,#9dff8a)}
+#wnPen .wpB em{grid-column:1/-1;font:600 10px Arial;font-style:normal;color:#9aa6cc}#wnPen .wpB.on span{color:#fff}#wnPen .wpB.maks u i{background:linear-gradient(90deg,#ffb703,#ffe680)}#wnPen .wpB.maks em,#wnPen .wpB.maks b{color:#ffd166}
+@media (pointer:coarse),(max-height:560px){#wnPen{font-size:9px;padding:2px 5px;border-radius:6px}#wnPen .wpL{width:104px;gap:1px;margin-top:2px}#wnPen .wpB{line-height:1.1}#wnPen .wpB u{height:2px}#wnPen .wpB em{display:none}#wnPen .wpN{display:none}}   /* HP: ramping — tanpa nama stat & keterangan (ikon + angka saja) */
 #wnStat{position:fixed;left:50%;top:66px;transform:translateX(-50%);z-index:6;display:flex;gap:7px;font:700 11px Arial;color:#aab3c8;background:#0b1020b8;border-radius:10px;padding:3px 9px;pointer-events:none;white-space:nowrap}#wnStat .on{color:#9dff8a}
 #wnMini{position:fixed;right:8px;top:46px;width:80px;height:172px;border:2px solid #000a;border-radius:8px;z-index:5;pointer-events:none;opacity:.92}
 @media (orientation:landscape) and (max-height:560px){#wnMini{width:54px;height:116px;top:40px}#wnStat{top:58px;font-size:10px}}
 #wnKartu{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:20;display:none;gap:8px;align-items:flex-end}#wnKartu.on{display:flex}#wnKartu{contain:layout style}.wk{will-change:transform,opacity}
 @media (pointer:coarse){.wk.merah,.wk.emas,.wk.r2,.wk.r3{box-shadow:none!important}.wk{animation-duration:.2s}}
+#wnKartu .wk.saran{position:relative;outline:2px solid #7dff8a;outline-offset:2px}#wnKartu .wk.saran::after{content:'⭐ Saran';position:absolute;top:-9px;left:50%;transform:translateX(-50%);font:800 10px Arial;color:#0a2a10;background:#7dff8a;border-radius:6px;padding:1px 6px;white-space:nowrap}
 #wnKartu .wkj{position:absolute;top:-22px;left:-40px;right:-40px;text-align:center;font:700 12px Arial;color:#ffd166;text-shadow:0 1px 2px #000;pointer-events:none}
 .wk{position:relative;width:86px;padding:7px 4px 6px;border-radius:12px;background:linear-gradient(#22305a,#0b1020);border:2px solid #4a5a80;color:#e8eefc;font:700 11px Arial;text-align:center;cursor:pointer;animation:wkIn .3s ease-out both;touch-action:none}
 .wk:nth-child(3){animation-delay:.06s}.wk:nth-child(4){animation-delay:.12s}.wk i{display:block;font-style:normal;font-size:26px;line-height:1.1}.wk span{display:block;white-space:nowrap}.wk b{display:block;font:900 19px Arial;color:#9dff8a;margin-top:2px}.wk small{position:absolute;top:3px;left:6px;color:#8a94b0;font-size:10px}
@@ -300,7 +308,7 @@ const PERAN_HERO = { buto: 'pengawal', genderuwo: 'pengawal', sangkuriang: 'peng
   ocong: 'dekat', doni: 'dekat', erick: 'dekat', pitung: 'dekat', lutung: 'dekat', siliwangi: 'dekat', kiansantang: 'dekat', tuyul: 'dekat', saras: 'dekat', wiro: 'dekat',
   kunti: 'jauh', nyi: 'jauh', timun: 'jauh', angling: 'jauh', ciung: 'jauh', dayang: 'jauh', roro: 'jauh' };
 const labelPeran = h => { const p = PERAN[PERAN_HERO[h]]; return p ? p.ik + ' ' + p.n : ''; };
-const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul', genderuwo: 'Genderuwo', pitung: 'Si Pitung', erick: 'Erick', doni: 'Doni', timun: 'Timun Mas', buto: 'Buto', lutung: 'Lutung Kasarung', saras: 'Saras', angling: 'Angling Dharma', dayang: 'Dayang Sumbi', nyi: 'Nyi Roro Kidul', siliwangi: 'Prabu Siliwangi', ciung: 'Ciung Wanara', sangkuriang: 'Sangkuriang', kiansantang: 'Kian Santang', wiro: 'Wiro Sableng', roro: 'Roro Jonggrang' }, HP_MAX = { ocong: 1000, kunti: 1000, tuyul: 850, genderuwo: 1200, pitung: 1000, erick: 1000, doni: 1000, timun: 950, buto: 1350, lutung: 800, saras: 950, angling: 900, dayang: 900, nyi: 900, siliwangi: 1000, ciung: 900, sangkuriang: 1050, kiansantang: 950, wiro: 1000, roro: 950 };
+const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul', genderuwo: 'Genderuwo', pitung: 'Si Pitung', erick: 'Erick', doni: 'Doni', timun: 'Timun Mas', buto: 'Buto', lutung: 'Lutung Kasarung', saras: 'Saras', angling: 'Angling Dharma', dayang: 'Dayang Sumbi', nyi: 'Nyi Roro Kidul', siliwangi: 'Prabu Siliwangi', ciung: 'Ciung Wanara', sangkuriang: 'Sangkuriang', kiansantang: 'Kian Santang', wiro: 'Wiro Sableng', roro: 'Roro Jonggrang' }, HP_MAX = { ocong: 1900, kunti: 1900, tuyul: 1750, genderuwo: 2050, pitung: 1900, erick: 1900, doni: 1900, timun: 1850, buto: 2200, lutung: 1700, saras: 1850, angling: 1800, dayang: 1800, nyi: 1800, siliwangi: 1900, ciung: 1800, sangkuriang: 1950, kiansantang: 1850, wiro: 1900, roro: 1850 }   // HP dasar dinaikkan (awal game tidak langsung mati sekali combo) · tank tertinggi 2200;
 const MODE = ['latihan', 'bot', 'nanas', 'acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(Q.get('mode')) ? Q.get('mode') : 'latihan';
 const ONLINE = ['acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(MODE);
 const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'bot' : MODE === 'nanas' ? 'nanas' : 'boneka';
@@ -6934,23 +6942,36 @@ function wnModelMon(mg, mk) {   // monster hutan GLB + mixer (dipakai wnAnimSing
 }
 // angka keseimbangan (gampang diubah)
 const WNV = {
-  singa: { hp: 6000, pulih: .005, R: 6.5, dmg: 140, jeda: 1.4, jangkau: 2.1, kec: 3.6 },
-  garuda: { hp: 9000, pulih: .005, R: 7.5, dmg: 170, jeda: 1.6, padat: 1.9 },
+  singa: { hp: 6000, pulih: .005, R: 6.5, dmg: 260, jeda: 1.4, jangkau: 2.1, kec: 3.6 },
+  garuda: { hp: 9000, pulih: .005, R: 7.5, dmg: 320, jeda: 1.6, padat: 1.9 },
   rumah: { hp: 8000, padat: 3.3 },
   tugu: { lama: 10, heal: .1, jedaHeal: 2, padat: 1.3, hadiahHp: .3, hadiahCd: 90 },   // heal 10% HP / detik · hadiah merebut: pulih 30% HP + kartu emas (jeda 90 dtk per tim)
   mon: { hp: 650, dmg: 38, jeda: 1.2, kec: 3.2, leash: 8, ulang: 45, naikPerMenit: .06 },
   // Buaya: muncul tiap 4 menit (menit 4, 8, 12, …) di kedua danau; level naik tiap kemunculan: lv1 lemah, lalu makin kuat
-  buaya: { hp: 3500, dmg: 110, jeda: 1.6, kec: 2.6, leash: 9, selang: 240, naikHp: .8, naikDmg: .5, naikPerMenit: 0 },   // ke-1 3.500 HP · ke-2 6.300 · ke-3 9.100 · ke-4 11.900 (sebelumnya 2.200, +60%/kemunculan)
-  buayaT: { hp: 1600, dmg: 70, dmgB: 160, jeda: 1.6, kec: 2.5 },
+  buaya: { hp: 3500, dmg: 200, jeda: 1.6, kec: 2.6, leash: 9, selang: 240, naikHp: .8, naikDmg: .5, naikPerMenit: 0 },   // ke-1 3.500 HP · ke-2 6.300 · ke-3 9.100 · ke-4 11.900 (sebelumnya 2.200, +60%/kemunculan)
+  buayaT: { hp: 1600, dmg: 130, dmgB: 160, jeda: 1.6, kec: 2.5 },
   respawn: [10, 2, 45] };   // [awal, tambah per menit, maks] detik
-// stat hasil kartu (dalam persen, ditumpuk): HP & Attack +p% · Defense: damage diterima ×100/(100+p) · Speed +p% (maks +80%)
-// Attack Speed: jeda serangan dasar ×100/(100+p) · Cooldown: jeda skill ×100/(100+p) (keduanya paling cepat 35%)
-const WN_SPD_MAKS = 80, WN_DEF_MAKS = Infinity;
-function wnF(id, k) {
-  const s = WN.st.get(id), p = s ? s[k] || 0 : 0;
-  return k === 'hp' || k === 'atk' ? 1 + p / 100 : k === 'spd' ? 1 + Math.min(WN_SPD_MAKS, p) / 100 : k === 'def' ? 100 / (100 + Math.min(WN_DEF_MAKS, p)) : Math.max(.35, 100 / (100 + p));
+// stat hasil kartu (dalam persen, ditumpuk) — rumus & batasnya lihat di bawah (WN_MAKS)
+// ---- rumus kartu (adil untuk semua hero) · semua stat punya batas maksimal ----
+// HP: +p% × 2.000 HP (angka tetap, sama untuk semua hero) · maks +100% (+2.000 HP) — batas khusus per role: WN_MAKS_ROLE
+// Attack: damage × (1 + p%) — basic & skill · maks +100%
+// Defense: damage diterima × 100/(100+p) · maks 150 (= damage berkurang 60%)
+// Speed: +p% × 4 m/dtk (angka tetap) · maks +100%
+// Attack Speed: jeda basic × 100/(100+p) · maks +100% (2× lebih cepat)
+// Cooldown: jeda skill × (1 − p%) · maks 40%
+const WN_HP_REF = 2000, WN_SPD_REF = 4;
+const WN_MAKS = { hp: 100, atk: 100, def: 150, spd: 100, as: 100, cd: 40 };
+// keistimewaan tiap role (menggantikan batas umum di atas): Fighter kuat di awal, Marksman & Mage yang "menggendong" di akhir game
+const WN_ROLE = { buto: 'tank', genderuwo: 'tank', sangkuriang: 'tank', dayang: 'mm', ciung: 'mm', kunti: 'mage', timun: 'mage', angling: 'mage', nyi: 'mage', roro: 'mage', tuyul: 'assassin', lutung: 'assassin', siliwangi: 'assassin' };   // sisanya Fighter
+const WN_MAKS_ROLE = { tank: { hp: 200, spd: 150 }, mm: { atk: 200, as: 200 }, fighter: { atk: 150, def: 70 }, assassin: { atk: 150, cd: 60 }, mage: { atk: 200, cd: 60 } };
+const wnRole = id => WN_ROLE[wnHeroOf(id)] || 'fighter';
+const wnMaks = (id, k) => { const r = WN_MAKS_ROLE[wnRole(id)]; return r && r[k] != null ? r[k] : WN_MAKS[k]; };
+function wnP(id, k) { const s = WN.st.get(id), p = s ? s[k] || 0 : 0; return Math.min(wnMaks(id, k), p); }
+function wnF(id, k) {   // hp: tambahan HP (angka) · spd: tambahan m/dtk · lainnya: pengali
+  const p = wnP(id, k);
+  return k === 'hp' ? Math.round(WN_HP_REF * p / 100) : k === 'spd' ? WN_SPD_REF * p / 100 : k === 'atk' ? 1 + p / 100 : k === 'def' || k === 'as' ? 100 / (100 + p) : 1 - p / 100;
 }
-function wnPersen(id, k) { const s = WN.st.get(id), p = s ? s[k] || 0 : 0; return k === 'cd' ? Math.round((1 - wnF(id, k)) * 100) : k === 'spd' ? Math.min(WN_SPD_MAKS, p) : k === 'def' ? Math.min(WN_DEF_MAKS, p) : p; }
+function wnPersen(id, k) { return wnP(id, k); }
 const wnWaktu = () => WN.t0 ? (performance.now() - WN.t0) / 1000 : 0;
 function wnJedaHidup() {   // menit ke-0: 10 dtk, +2 dtk tiap menit sampai menit ke-10 (30 dtk), setelah itu +3 dtk tiap menit (33, 36, …)
   const m = Math.floor(wnWaktu() / 60); return m <= 10 ? 10 + 2 * m : 30 + 3 * (m - 10);
@@ -7307,7 +7328,7 @@ function wnMati(E) {
     if (k && k.id != null) {   // yang membunuh: pulih 20% HP + pilih 1 dari 3 kartu stat acak (+5% s/d +15%)
       if (k.id === TIM.me) { if (P.state !== 'kalah') { const t = Math.round(HP_MAX[HERO] * .2), n = Math.min(t, HP_MAX[HERO] - P.hp); P.hp += n; WN.sk.get(TIM.me).heal += n; if (n > 0) angka(P.root.position, '+' + Math.round(n), '#7dff8a'); percik(P.root.position.clone().setY(.3), 14, 0x7dff8a, 2); } if (wnSupAktif(TIM.me)) { wnKartuMuncul(E.stat, false, '🗡️ Kill monster', WNP.killMon, true, `🟥 Kartu Merah +${WNP.killMon}% · Support lebih untung ASSIST`); wnPeringatanPengawal(); }
         else wnKartuMuncul(E.stat, false, '🗡️ Kill monster'); }
-      else { const o = TIM.bot.get(k.id); if (o && !o.mt.mati) o.mt.hp = Math.min(o.mt.hpMax, o.mt.hp + o.mt.hpMax * .2); const c = wnAcakKartu(E.stat, false, '', wnSupAktif(k.id) ? WNP.killMon : 0, false, k.id)[0]; if (c) wnTambah(k.id, c.k, c.v); }
+      else { const o = TIM.bot.get(k.id); if (o && !o.mt.mati) o.mt.hp = Math.min(o.mt.hpMax, o.mt.hp + o.mt.hpMax * .2); const cs = wnAcakKartu(E.stat, false, '', wnSupAktif(k.id) ? WNP.killMon : 0, false, k.id), c = (wnLane(k.id) === 'support' && cs.find(x => x.k === 'hp')) || cs[0]; if (c) wnTambah(k.id, c.k, c.v); /* bot Support utamakan HP */ }
       // pasif Pengawal: ikut memukul monster yang dibunuh teman (≤ 8 dtk terakhir) → 3 kartu +5% (selalu ada Defense & Speed)
       if (E.bantu) { const now = performance.now(); E.bantu.forEach((b, id) => { if (id !== k.id && now - b.t < 8000 && b.dmg >= E.hpMax * WNP.minBantu && timOf(id) === k.tm && wnSupAktif(id)) wnPasifPengawal(id, WNP.asisMon, '🤝 Assist monster'); }); } }   // assist monster: hanya hero di lane Support
     E.bantu = null;
@@ -7330,10 +7351,10 @@ function wnTambah(id, k, v) {   // tambah stat v% (hasil kartu)
   if (!WN.st.has(id)) WN.st.set(id, { hp: 0, atk: 0, def: 0, spd: 0, as: 0, cd: 0 });
   WN.st.get(id)[k] += v;
   if (id === TIM.me) {
-    if (k === 'hp') { const baru = Math.round(WN.hpDasar[HERO] * wnF(id, 'hp')); if (P.state !== 'kalah') P.hp += baru - HP_MAX[HERO]; HP_MAX[HERO] = baru; }
+    if (k === 'hp') { const baru = WN.hpDasar[HERO] + wnF(id, 'hp'); if (P.state !== 'kalah') P.hp += baru - HP_MAX[HERO]; HP_MAX[HERO] = baru; }
     if (k === 'cd' || k === 'as') for (let i = 0; i < 4; i++) CD_MAX[i] = WN.cdDasar[i] * (i === 0 ? wnF(id, 'as') : wnF(id, 'cd'));
     wnStatHud();
-  } else { const o = TIM.bot.get(id); if (o && k === 'hp') { const baru = Math.round(WN.hpDasar[o.hero] * wnF(id, 'hp')); if (!o.mt.mati) o.mt.hp += baru - o.mt.hpMax; o.mt.hpMax = baru; } }
+  } else { const o = TIM.bot.get(id); if (o && k === 'hp') { const baru = WN.hpDasar[o.hero] + wnF(id, 'hp'); if (!o.mt.mati) o.mt.hp += baru - o.mt.hpMax; o.mt.hpMax = baru; } }
 }
 function wnBerikut(tm) { return !WN.singa[tm].mati ? WN.singa[tm] : !WN.garuda[tm].mati ? WN.garuda[tm] : WN.rumah[tm]; }   // bangunan tim tm yang bisa diserang sekarang
 function wnPadat(v, r = 0) {   // bangunan padat: tidak bisa ditembus
@@ -7489,7 +7510,7 @@ function wnAiSinga(E, dt) {
 const WN_BOLA = [];
 let WN_MBOLA = null;
 // ---------- Ulti Garuda: SEMBURAN API — tiap 7 dtk selama bertarung, api luas berbentuk kipas ke arah musuh ----------
-const GARUDA_ULTI = { jeda: 7, lepas: 3, R: 11, sudut: .7, mulai: .45, lama: 1.75, kena: [.7, 1.15, 1.6], f: .9, mulutY: 4.7, maju: 1.3, bakar: 1.2, tembak: .37 };
+const GARUDA_ULTI = { jeda: 7, lepas: 3, R: 11, sudut: .7, mulai: .45, lama: 1.75, kena: [.7, 1.15, 1.6], f: .9, mulutY: 4.7, maju: 1.3, bakar: 3, bakarDps: .04, tembak: .37 };   // bakar: lama terbakar (dtk) · bakarDps: darah berkurang 4% HP maks / detik selama terbakar
 // mulai: api keluar setelah Garuda menarik napas (animasi 'ulti') · tembak: bola serangan biasa dilepas saat paruh mematuk (animasi 'serang')
 function wnGarudaMain(GM, nama, fade = .15) {   // putar animasi garuda: terbang / ulti
   const A = GM.gAct; if (!A || !A[nama]) return; const lama = A[GM.gCur], baru = A[nama];
@@ -7571,11 +7592,27 @@ function wnUpdSembur(E, dt) {
 function wnSemburKena(E, a) {   // semua hero lawan (dan buaya lawan) di dalam kipas api terkena damage & terbakar
   const U = GARUDA_ULTI, c = E.home, dmg = Math.round(E.dmg * U.f);
   const diKipas = p => { const dx = p.x - c.x, dz = p.z - c.z, L = Math.hypot(dx, dz); if (L > U.R + .4 || L < .01) return false; let da = Math.atan2(dx, dz) - a; da = Math.atan2(Math.sin(da), Math.cos(da)); return Math.abs(da) <= U.sudut + .6 / Math.max(L, 1); };
-  WN.U.forEach(u => { if (u.tm === E.tm || !u.hidup || !diKipas(u.pos)) return; const t = u.obj; wnPukul(t, dmg, c.clone(), 2.5); aBakar(wnPos(t).clone(), U.bakar, () => wnHidup(t) ? wnPos(t) : null); });
-  WN.bts.forEach(b => { if (!b.mati && b.tm !== E.tm && diKipas(b.g.position)) { wnPukul(b, dmg, c.clone(), 2); aBakar(b.g.position.clone(), U.bakar, () => b.mati ? null : b.g.position); } });
+  WN.U.forEach(u => { if (u.tm === E.tm || !u.hidup || !diKipas(u.pos)) return; const t = u.obj; wnPukul(t, dmg, c.clone(), 2.5); wnBakar(t, u.max); });
+  WN.bts.forEach(b => { if (!b.mati && b.tm !== E.tm && diKipas(b.g.position)) { wnPukul(b, dmg, c.clone(), 2); wnBakar(b, b.hpMax); } });
   goyang = Math.max(goyang, .08);
 }
 function wnSemburSelesai(E) { E.sembur = null; }
+// terbakar api Garuda: selama api masih menyala di badan, darah berkurang terus (4% HP maks / dtk, tiap 0,5 dtk) · kena lagi = waktu terbakar diulang dari awal (tidak menumpuk)
+const WN_BAKAR = new Map();
+function wnBakar(t, max) {
+  const U = GARUDA_ULTI, b = WN_BAKAR.get(t);
+  if (b) { b.sisa = U.bakar; b.max = max || b.max; } else WN_BAKAR.set(t, { sisa: U.bakar, tk: .5, max: max || 1000 });
+  if (!b || b.visT < performance.now()) { aBakar(wnPos(t).clone(), U.bakar, () => wnHidup(t) ? wnPos(t) : null); WN_BAKAR.get(t).visT = performance.now() + U.bakar * 1000 - 300; }
+}
+function wnUpdBakar(dt) {
+  WN_BAKAR.forEach((b, t) => {
+    if (!wnHidup(t)) { WN_BAKAR.delete(t); return; }
+    b.sisa -= dt; b.tk -= dt;
+    if (b.tk <= 0) { b.tk += .5; const d = Math.max(1, Math.round(b.max * GARUDA_ULTI.bakarDps * .5)); const q = wnPos(t);
+      if (t === P) { TIM.terakhir = null; kenaPemain(d, q.clone(), 0); } else wnPukul(t, d, q.clone(), 0); }
+    if (b.sisa <= 0) WN_BAKAR.delete(t);
+  });
+}
 function wnKipasApi(pos, a, R, sudut, lama) {   // tanda area semburan di tanah: kipas api jingga yang menyala lalu padam
   const g = new THREE.Group(), m = new THREE.Mesh(new THREE.CircleGeometry(R, 32, -Math.PI / 2 - sudut, sudut * 2), new THREE.MeshBasicMaterial({ color: AD.apiW[2], transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
   m.rotation.x = -Math.PI / 2; g.add(m); g.position.set(pos.x, .07, pos.z); g.rotation.y = a; scene.add(g);
@@ -7767,8 +7804,8 @@ function wnUpd(dt) {
   U.push({ obj: P, tm: 0, pos: P.root.position, hidup: P.state !== 'kalah', id: TIM.me, max: HP_MAX[HERO] });
   TIM.bot.forEach(o => U.push({ obj: o, tm: o.tm, pos: o.root.position, hidup: !o.mt.mati, id: o.id, max: o.mt.hpMax }));
   // stat Speed: tambahan langkah (berlaku untuk semua cara bergerak hero)
-  U.forEach(u => { const pv = WN.prev.get(u.id); if (pv && u.hidup) { const f = wnF(u.id, 'spd') - 1, dx = u.pos.x - pv.x, dz = u.pos.z - pv.z, L = Math.hypot(dx, dz);
-      if (f > 0 && L > 1e-4 && L < .5) { u.pos.x += dx * f; u.pos.z += dz * f; batasi(u.pos); } }
+  U.forEach(u => { const pv = WN.prev.get(u.id); if (pv && u.hidup) { const v = wnF(u.id, 'spd'), dx = u.pos.x - pv.x, dz = u.pos.z - pv.z, L = Math.hypot(dx, dz);
+      if (v > 0 && L > 1e-4 && L < .5) { const a = Math.min(v * dt, L * 3) / L; u.pos.x += dx * a; u.pos.z += dz * a; batasi(u.pos); } }   // tambahan langkah tetap (m/dtk) ke arah gerak
     if (!pv) WN.prev.set(u.id, u.pos.clone()); else pv.copy(u.pos); });
   // munculnya Buaya Danau
   const w = wnWaktu();
@@ -7798,7 +7835,7 @@ function wnUpd(dt) {
   });
   wnPadatMon(dt);
   _q = cekS('WN: AI & gerak monster/singa/garuda', _q);
-  wnUpdBola(dt); wnUpdTugu(dt); wnKartuUpd(dt);
+  wnUpdBola(dt); wnUpdBakar(dt); wnUpdTugu(dt); wnKartuUpd(dt);
   _q = cekS('WN: bola, tugu, kartu', _q);
   // bar darah semua bangunan & makhluk (monster hanya kalau dekat atau baru diserang)
   const kini = performance.now();
@@ -7854,15 +7891,16 @@ function wnHud() {
 // ---- kartu stat: tiap membunuh monster muncul 3 kartu stat acak dengan angka sama (+5% s/d +15%), pilih satu (HP: ketuk · PC: tombol 1 / 2 / 3) ----
 // salah satu kartu selalu stat khas monsternya; tidak dipilih dalam 10 detik → otomatis kartu pertama
 const WN_KARTU = { buka: null, antri: [], t: 0 };
-// stat sudah mentok (Speed +80%, Cooldown/Attack Speed paling cepat 35%) → kartunya tidak ditawarkan lagi · DEF tanpa batas (makin tinggi makin kecil tambahannya)
-function wnPenuh(id, k) { const s = WN.st.get(id), p = s ? s[k] || 0 : 0; return k === 'def' ? p >= WN_DEF_MAKS : k === 'spd' ? p >= WN_SPD_MAKS : (k === 'cd' || k === 'as') ? 100 / (100 + p) <= .35 : false; }
+// stat sudah mentok (lihat WN_MAKS) → kartunya tidak ditawarkan lagi
+function wnPenuh(id, k) { const s = WN.st.get(id), p = s ? s[k] || 0 : 0; return p >= wnMaks(id, k); }   // stat sudah mentok → kartunya tidak muncul lagi
 function wnAcakKartu(st0, emas, sumber = '', nilai = 0, merah = false, id = TIM.me) {
   wnSpKartu(id, !!emas && !merah);   // Poin Skill: 2 kartu biasa / 1 kartu emas   // emas = kartu dari membunuh hero lawan (+10% s/d +20%) · nilai: angka tetap (role Pengawal) · merah: kartu Pengawal yang membunuh sendiri
   const semua = ['hp', 'atk', 'def', 'spd', 'as', 'cd'].filter(k => !wnPenuh(id, k)), pil = st0 && semua.includes(st0) ? [st0] : [];
   while (pil.length < Math.min(3, semua.length)) { const k = pilihAcak(semua); if (!pil.includes(k)) pil.push(k); }
   for (let i = pil.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pil[i], pil[j]] = [pil[j], pil[i]]; }
-  const v = emas ? 10 + Math.floor(Math.random() * 11) : 5 + Math.floor(Math.random() * 11);   // satu angka acak untuk ketiga kartu: biasa 5–15%, emas 10–20%
-  return pil.map(k => ({ k, v: nilai || v, emas: !!emas && !merah, merah, sumber }));
+  // tiap kartu punya angka sendiri, disesuaikan batas maksimal stat itu untuk role hero ini (biasa 5–15%, emas 10–20% dari batasnya)
+  // → setiap stat butuh jumlah kartu yang kira-kira sama untuk mentok (adil antar stat & antar role)
+  return pil.map(k => ({ k, v: wnNilaiKartu(id, k, nilai || (emas ? 10 + Math.floor(Math.random() * 11) : 5 + Math.floor(Math.random() * 11))), emas: !!emas && !merah, merah, sumber }));
 }
 // ---- Poin Skill (War Nanas): awal main semua skill terkunci · 1 poin gratis untuk membuka Skill 1 ATAU Skill 2 ·
 // 2 kartu biasa (monster, assist, bonus Support) atau 1 kartu emas (kill musuh, Tugu Nanas, Buaya) = 1 poin · Skill 3 (ulti) terbuka paling akhir · bot ikut aturan yang sama
@@ -7963,34 +8001,36 @@ function wnBonusBuaya(tm, asal = '🐊 Buaya Danau') {   // kartu emas untuk SEM
 }
 function wnPeringatanPengawal() { const now = performance.now(); if (now - WNP_PERINGAT < 20000) return; WNP_PERINGAT = now;
   banner('🛡️ Kamu di lane Support: kartu dari membunuh monster sendiri kecil. Lebih untung bantu teman (assist)!', '#ff9a9a'); }
+function wnNilaiKartu(id, k, dasar) { return Math.max(1, Math.round(dasar * wnMaks(id, k) / 100)); }   // dasar = persen untuk batas 100% · stat ber-batas 200% dapat 2×, batas 40% dapat 0,4×
 function wnPasifPengawal(id, v, sebab) {
   wnSpKartu(id, false);
-  const pil = ['def', 'spd'].filter(k => !wnPenuh(id, k)), lain = ['hp', 'atk', 'as', 'cd'].filter(k => !wnPenuh(id, k));
+  const pil = ['hp', 'def'].filter(k => !wnPenuh(id, k)), lain = ['spd', 'atk', 'as', 'cd'].filter(k => !wnPenuh(id, k));   // Support: kartu HP (disarankan) & Defense selalu ada
   while (pil.length < 3 && lain.length) pil.push(lain.splice(Math.floor(Math.random() * lain.length), 1)[0]);
   for (let i = pil.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pil[i], pil[j]] = [pil[j], pil[i]]; }
   if (id === TIM.me) {
-    const c = pil.map(k => ({ k, v, emas: false, sumber: sebab })); c.judul = `🛡️ Bonus Lane Support · ${sebab.replace(/^\S+\s/, '')} · Pilih 1`;
+    const c = pil.map(k => ({ k, v: wnNilaiKartu(id, k, v), emas: false, sumber: sebab })); c.judul = `🛡️ Bonus Lane Support · ${sebab.replace(/^\S+\s/, '')} · Pilih 1`;
     WN_KARTU.antri.push(c); if (!WN_KARTU.buka) wnKartuBuka(); else wnKartuJudul();
     angka(P.root.position, '🛡️ +' + v + '%', '#9fd8ff');
-  } else { const ok = pil.filter(k => k === 'def' || k === 'spd'), k = ok.length ? pilihAcak(ok) : pil[0]; if (k) wnTambah(id, k, v); }   // bot Pengawal: pilih Defense / Speed (yang belum mentok)
+  } else { const k = pil.includes('hp') ? 'hp' : pil.includes('def') ? 'def' : pil[0]; if (k) wnTambah(id, k, wnNilaiKartu(id, k, v)); }   // bot Support: pilih HP dulu, lalu Defense (yang belum mentok)
 }
 function wnKartuMuncul(st0, emas, sumber = '', nilai = 0, merah = false, judul = '') { const c = wnAcakKartu(st0, emas, sumber, nilai, merah); if (judul) c.judul = judul; WN_KARTU.antri.push(c); if (!WN_KARTU.buka) wnKartuBuka(); else wnKartuJudul(); }
+function wnSaranKartu(c) { return wnLane(TIM.me) === 'support' ? c.findIndex(x => x.k === 'hp') : -1; }   // lane Support: kartu +HP disarankan (ditandai ⭐)
 function wnKartuBuka() {
   const e = $('#wnKartu'), c = WN_KARTU.antri.shift(); if (!e) return;
   if (!c) { WN_KARTU.buka = null; e.classList.remove('on'); return; }
   WN_KARTU.buka = c; WN_KARTU.t = 10;
-  e.innerHTML = '<div class="wkj"></div>' + c.map((x, i) => `<button class="wk ${x.merah ? 'merah' : x.emas ? 'emas' : 'r' + (x.v >= 13 ? 3 : x.v >= 9 ? 2 : 1)}" data-i="${i}"><i>${WN_STAT[x.k].ik}</i><span>${WN_STAT[x.k].n}</span><b>+${x.v}%</b>${x.sumber ? `<em>${x.sumber}</em>` : ''}<small>${DI_HP ? '' : i + 1}</small></button>`).join('');
+  const sar = wnSaranKartu(c); e.innerHTML = '<div class="wkj"></div>' + c.map((x, i) => `<button class="wk ${x.merah ? 'merah' : x.emas ? 'emas' : 'r' + (x.v >= 13 ? 3 : x.v >= 9 ? 2 : 1)}${i === sar ? ' saran' : ''}" data-i="${i}"><i>${WN_STAT[x.k].ik}</i><span>${WN_STAT[x.k].n}</span><b>+${x.v}%</b>${x.sumber ? `<em>${x.sumber}</em>` : ''}<small>${DI_HP ? '' : i + 1}</small></button>`).join('');
   e.classList.add('on'); wnKartuJudul(); rekEv('kartu muncul');   // tanpa 'void offsetWidth' (memaksa hitung ulang tata letak seluruh halaman = patah)
 }
 function wnKartuJudul() { const j = $('#wnKartu .wkj'); if (j) j.textContent = `${WN_KARTU.buka && WN_KARTU.buka.judul ? WN_KARTU.buka.judul : WN_KARTU.buka && WN_KARTU.buka[0].emas ? '🌟 Kartu Emas! Pilih 1' : '🃏 Pilih 1 kartu'} · ${Math.max(1, Math.ceil(WN_KARTU.t))} dtk` + (WN_KARTU.antri.length ? ` · +${WN_KARTU.antri.length} lagi` : ''); }
 function wnKartuPilih(i) {
   const c = WN_KARTU.buka; if (!c || !c[i]) return; const x = c[i], S = WN_STAT[x.k];
-  wnTambah(TIM.me, x.k, x.v); banner(`${S.ik} ${S.n} +${x.v}% (total ${x.k === 'cd' ? '−' : '+'}${wnPersen(TIM.me, x.k)}%)`, '#9dff8a'); angka(P.root.position, S.ik + ' +' + x.v + '%', '#9dff8a');
+  wnTambah(TIM.me, x.k, x.v); banner(`${S.ik} ${S.n} +${x.v}% (total ${x.k === 'cd' ? '−' : '+'}${wnPersen(TIM.me, x.k)}%${x.k === 'hp' ? ' = +' + wnF(TIM.me, 'hp') + ' HP' : x.k === 'spd' ? ' = +' + wnF(TIM.me, 'spd').toFixed(1) + ' m/dtk' : ''}${wnPenuh(TIM.me, x.k) ? ' · MAKS' : ''})`, '#9dff8a'); angka(P.root.position, S.ik + ' +' + x.v + '%', '#9dff8a');
   wnKartuBuka();
 }
 function wnKartuUpd(dt) {
   if (!WN_KARTU.buka) return; const lama = Math.ceil(WN_KARTU.t); WN_KARTU.t -= dt;
-  if (WN_KARTU.t <= 0) { const c = WN_KARTU.buka; let b = 0; c.forEach((x, i) => { if (x.v > c[b].v) b = i; }); wnKartuPilih(b); }
+  if (WN_KARTU.t <= 0) { const c = WN_KARTU.buka, rel = x => x.v / wnMaks(TIM.me, x.k); let b = 0; c.forEach((x, i) => { if (rel(x) > rel(c[b])) b = i; }); const sr = wnSaranKartu(c); wnKartuPilih(sr >= 0 ? sr : b); }   // waktu habis: Support otomatis ambil kartu HP
   else if (Math.ceil(WN_KARTU.t) !== lama) wnKartuJudul();
 }
 if (WN.on) { const pr = document.createElement('div'); pr.style.cssText = 'position:fixed;left:0;top:0;opacity:.01;pointer-events:none;font:26px Arial;z-index:-1'; pr.textContent = Object.values(WN_STAT).map(x => x.ik).join('') + '🌟🃏🟥🤝⚔️🗡️🐊🛡️🔓🔒⭐🔥➡⬇'; document.body.appendChild(pr); }   // tetap dipasang (tidak dihapus): font emoji tidak dibuang browser → kartu pertama di tengah game tidak patah   // emoji kartu digambar sekali di awal (pertama kali menggambar emoji berwarna bisa lambat)
@@ -8031,10 +8071,21 @@ function wnTabel(menang) {   // tabel skor kedua tim; menang = tim pemenang (−
 }
 function wnSkorBuka(buka) { const o = $('#wnSkorO'); if (!o) return; o.classList.toggle('on', buka); if (buka) o.innerHTML = wnTabel(-1) + '<small>ketuk di mana saja untuk menutup</small>'; }
 addEventListener('keydown', e => { if (!WN.on || e.key !== 'Tab') return; e.preventDefault(); wnSkorBuka(!$('#wnSkorO').classList.contains('on')); });
+// ---- panel "📈 Peningkatan" (pojok kiri atas, di bawah fps): tambahan stat dari kartu + batas maksimal role ----
+const WN_ROLE_N = { tank: '🛡️ Tank', mm: '🏹 Marksman', mage: '🔮 Mage', assassin: '🗡️ Assassin', fighter: '⚔️ Fighter' };
+function wnPenTaruh() { const t = $('#ttl'), p = $('#wnPen'); if (!t || !p) return; const r = t.getBoundingClientRect(); p.style.left = r.left + 'px'; p.style.top = (r.bottom + 4) + 'px'; }   // kotak sendiri, tepat di bawah kotak judul/menu
+function wnPenHud() {
+  const box = $('#wnPen'); if (!box) return; wnPenTaruh(); const id = TIM.me, tot = ['hp', 'def', 'atk', 'spd', 'as', 'cd'].reduce((a, k) => a + wnPersen(id, k), 0);
+  box.querySelector('.wpT').innerHTML = `📈 Peningkatan${tot ? '' : ' <small>(0)</small>'} <i>${box.classList.contains('buka') ? '▴' : '▾'}</i>`;
+  if (!box.classList.contains('buka')) return;
+  const nyata = k => { const f = wnF(id, k); return k === 'hp' ? '+' + f + ' HP' : k === 'spd' ? '+' + f.toFixed(1) + ' m/dtk' : k === 'def' ? 'damage −' + Math.round((1 - f) * 100) + '%' : k === 'atk' ? 'damage ×' + f.toFixed(2) : k === 'as' ? 'jeda ×' + f.toFixed(2) : 'jeda skill −' + Math.round((1 - f) * 100) + '%'; };
+  box.querySelector('.wpL').innerHTML = `<div class="wpR">${WN_ROLE_N[wnRole(id)] || ''}</div>` + ['hp', 'def', 'atk', 'spd', 'as', 'cd'].map(k => { const v = wnPersen(id, k), m = wnMaks(id, k), sp = WN_MAKS_ROLE[wnRole(id)] && WN_MAKS_ROLE[wnRole(id)][k] != null;
+    return `<div class="wpB${v ? ' on' : ''}${v >= m ? ' maks' : ''}" title="${WN_STAT[k].n}: ${v ? nyata(k) : 'belum ada'}"><span>${WN_STAT[k].ik}<span class="wpN"> ${WN_STAT[k].n}</span></span><b>${k === 'cd' ? '−' : '+'}${v}<small>/${m}%${sp ? '⭐' : ''}</small></b><u><i style="width:${Math.min(100, v / m * 100)}%"></i></u><em>${v ? nyata(k) : '—'}${v >= m ? ' · MAKS' : ''}</em></div>`; }).join('');
+}
 function wnStatHud() {
   const e = $('#wnStat'); if (!e) return; const id = TIM.me;
   const sk = WN.sk.get(id) || { k: 0, d: 0, a: 0 };
-  e.innerHTML = `<span class="on kda">🗡️ ${sk.k}/${sk.d}/${sk.a}</span>` + ['hp', 'atk', 'def', 'spd', 'as', 'cd'].map(k => { const v = wnPersen(id, k); return `<span class="${v ? 'on' : ''}" title="${WN_STAT[k].n}">${WN_STAT[k].ik}${k === 'cd' ? '−' : '+'}${v}%</span>`; }).join('');
+  e.innerHTML = `<span class="on kda">🗡️ ${sk.k}/${sk.d}/${sk.a}</span>`; wnPenHud();
 }
 function wnPeta() {   // peta kecil (atas = markas Putih)
   const c = $('#wnMini'); if (!c) return; const x = c.getContext('2d'), W = c.width, H = c.height, sx = v => (v + 21) / 42 * W, sz = v => (v + 45) / 90 * H;
@@ -8061,7 +8112,10 @@ async function wnMulai() {
   try { await wnBuat(); } catch (e) { console.error(e); }
   await timMulai({ pl, me: 1, host: 1, kw: 1e9, code: '', a: 0, dur: 1e9 });
   WN.t0 = performance.now(); WN.siap = true; TIM.terakhir = null; TIM.pl.forEach(p => wnSkBaru(p.i));
-  const hud = document.createElement('div'); hud.id = 'wnStat'; hud.className = 'ui'; document.body.appendChild(hud); wnStatHud();
+  const hud = document.createElement('div'); hud.id = 'wnStat'; hud.className = 'ui'; document.body.appendChild(hud);
+  { const pen = document.createElement('div'); pen.id = 'wnPen'; pen.innerHTML = '<div class="wpT"></div><div class="wpL"></div>'; document.body.appendChild(pen); wnPenTaruh(); addEventListener('resize', wnPenTaruh);
+    pen.querySelector('.wpT').onclick = e => { e.stopPropagation(); pen.classList.toggle('buka'); wnPenHud(); }; pen.onpointerdown = e => e.stopPropagation(); }
+  wnStatHud();
   const kartu = document.createElement('div'); kartu.id = 'wnKartu'; document.body.appendChild(kartu);
   kartu.addEventListener('pointerdown', e => { const b = e.target.closest('.wk'); if (!b) return; e.preventDefault(); e.stopPropagation(); wnKartuPilih(+b.dataset.i); });
   const lm = document.createElement('div'); lm.id = 'wnMati'; lm.innerHTML = '<div class="wmj">💀 Anda tumbang · bangkit di rumah dalam</div><div class="wmj" style="font-size:12px;color:#cfe0ff">geser layar untuk memantau wilayah sendiri · ◀ ▶ lihat teman</div><div id="wnMatiD">10</div><div class="wml"><button data-a="-1">◀</button><span id="wnMatiNm"></span><button data-a="1">▶</button></div>'; document.body.appendChild(lm);
