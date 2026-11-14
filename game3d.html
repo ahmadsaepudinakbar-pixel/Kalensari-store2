@@ -41,6 +41,12 @@ html,body{margin:0;height:100%;overflow:hidden;background:#07060a;font-family:Ar
 #load small{color:#9aa3b8;max-width:420px}#load.off{display:none}
 #lpersen{font:900 clamp(26px,6vh,44px) Arial;color:#ffd166;text-shadow:0 2px 0 #000,0 0 14px #ffb70366;letter-spacing:1px}
 #ltips{max-width:min(92vw,620px);min-height:2.6em;padding:8px 14px;border-radius:10px;background:#0b1430cc;border:1px solid #2c3f73;color:#dfe8ff;font:600 clamp(11px,2.1vh,14px) Arial;line-height:1.35;transition:opacity .35s}#ltips:empty{display:none}#ltips b{color:#ffd166}
+#wnBukaT{position:fixed;z-index:42;transform:translate(-100%,-50%);pointer-events:none;font:800 12px Arial;color:#ffe9a8;background:#0b1024d9;border:1px solid #ffd16688;border-radius:9px;padding:3px 9px;white-space:nowrap;text-shadow:0 1px 2px #000}
+#wnBukaT.bisa{font-size:15px;color:#201400;background:linear-gradient(#ffe066,#e0a010);border:2px solid #fff2a8;box-shadow:0 0 14px #ffb703;animation:wnDenyut .7s infinite alternate}
+.wnPanah{position:fixed;z-index:42;transform:translate(-100%,-50%);pointer-events:none;font:900 30px Arial;color:#ffd166;text-shadow:0 0 8px #ffb703,0 2px 2px #000;animation:wnPanahL .55s infinite alternate}.wnPanah.atas{transform:translate(-50%,-100%);animation-name:wnPanahA}
+@keyframes wnPanahL{to{margin-left:-10px}}@keyframes wnPanahA{to{margin-top:-10px}}@keyframes wnDenyut{to{filter:brightness(1.25)}}
+.sb .wnL{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;background:#000a;border-radius:50%;pointer-events:none}
+.sb.wnBisa{box-shadow:0 0 0 3px #ffd166,0 0 22px #ffb703;animation:wnDenyut .6s infinite alternate}.sb.wnBisa .wnL{background:#0006}
 #wnLane{position:fixed;left:50%;top:clamp(54px,11vh,90px);transform:translateX(-50%);z-index:9;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 10px 10px;border-radius:14px;background:#0b1024e6;border:2px solid #ffd166;box-shadow:0 6px 24px #000a;font-family:Arial}
 #wnLane .wlj{color:#fff;font:800 clamp(12px,2.2vh,15px) Arial}#wnLane .wlj b{color:#ffd166;font-size:1.25em}#wnLane .wlb{display:flex;gap:8px}
 #wnLane button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;width:clamp(86px,14vw,140px);padding:7px 6px;border-radius:10px;border:2px solid #3a4f8a;background:linear-gradient(#1c2a55,#0f1733);color:#fff;cursor:pointer;font-family:Arial}
@@ -1544,7 +1550,8 @@ function pakai(i) {
   if (i === 0 && WN.on && s0 === 'bebas' && P.state !== 'bebas') { const k = 1 / wnF(TIM.me, 'as'); P.dasarK = k > 1.01 ? k : 0; }
 }
 function pakaiAsli(i) {
-  if (TIM.tonton) return;   // wasit tidak bertanding
+  if (TIM.tonton) return;
+  if (WN.on && i > 0) { if (WN.spBaruI === i && performance.now() - (WN.spBaruT || 0) < 500) return; if (wnSpTahan(i)) return; }   // War Nanas: skill terkunci (Poin Skill)   // wasit tidak bertanding
   if (UMP.on) { if (i === 0) umpetPakai(); return; }   // Petak Umpet: hanya 1 tombol kemampuan
   if (P.state !== 'bebas' || P.cd[i] > 0 || !P.model || (pingsan() && !lepasStun(i)) || SELESAI) return;
   if (HERO === 'kunti') return pakaiKunti(i);
@@ -1927,7 +1934,7 @@ const PANAH = (() => {
   return g;
 })();
 // tahan tombol skill 1 / 2 (atau U / I) lalu geser untuk mengarahkan, lepas untuk memakai
-function mulaiBidik(i) { if (UMP.on || P.state !== 'bebas' || P.cd[i] > 0 || !P.model || K.bidik || (pingsan() && !lepasStun(i)) || SELESAI) return; K.bidik = i; K.arahBidik = P.arah; K.diarahkan = false; K.jarakBidik = 1; K.bidikKey = false; }
+function mulaiBidik(i) { if (WN.on && i > 0 && !wnSpBuka(TIM.me, i)) { wnSpTahan(i); return; } if (UMP.on || P.state !== 'bebas' || P.cd[i] > 0 || !P.model || K.bidik || (pingsan() && !lepasStun(i)) || SELESAI) return; K.bidik = i; K.arahBidik = P.arah; K.diarahkan = false; K.jarakBidik = 1; K.bidikKey = false; }
 function batalBidik() {   // skill yang sedang dibidik dibatalkan: tidak dipakai, tidak masuk jeda (cooldown)
   if (!K.bidik) return; K.bidik = false; K.diarahkan = false; K.batalSiap = false; tampilBatal(false);
   PANAH.visible = KIPAS.visible = false; if (typeof LANE !== 'undefined') LANE.visible = false; if (typeof LINGKAR !== 'undefined') LINGKAR.visible = LINGKAR.garis.visible = false; KIPAS_PIT.visible = false;
@@ -6863,7 +6870,7 @@ async function buatBotPro(o) {
   function info() {
     return { pos, hero, aksi: B.state, arah: B.state === 'jerit' ? B.arahSkill : T.arah, tujuan: B.tujuan, stun: mt.kunci > 0 || mt.pusing > 0, hp: mt.hp / mt.hpMax, vis: mt, id: o.id, mati: !!mt.mati };
   }
-  const api = { mt, upd, reset, info, root: T.root, tilt: T.tilt, get anim() { return T.cur || 'diam'; }, get hero() { return hero; },
+  const api = { mt, upd, reset, info, root: T.root, tilt: T.tilt, get cd() { return B.cd; }, get anim() { return T.cur || 'diam'; }, get hero() { return hero; },
     get fl() { return (hero === 'kunti' && B.terbangT > 0 ? 1 : 0) | (B.hilang > 0 ? 2 : 0) | (mt.kunci > 0 || mt.pusing > 0 ? 4 : 0) | (mt.mati ? 8 : 0) | (B.amuk > 0 ? 16 : 0) | (B.ungkap > 0 ? 128 : 0); } };
   return api;
 }
@@ -7719,6 +7726,7 @@ function wnUpd(dt) {
   if (WN.riak) { const tt = performance.now() / 1000; WN.riak.forEach(R => { R.m.rotation.y += dt * R.v; R.m.material.opacity = R.op * (R.tepi ? .75 + .25 * Math.sin(tt * 4) : .85 + .15 * Math.sin(tt * 2 + R.k)); }); }
   if (!WN.siap || !TIM.main) return;
   wnLaneUpd(dt);
+  WN.spPosT = (WN.spPosT || 0) - dt; if (WN.spPosT <= 0) { WN.spPosT = .4; wnSpPosisi(); }
   // daftar hero (pemain + bot)
   const U = WN.U; U.length = 0;
   U.push({ obj: P, tm: 0, pos: P.root.position, hidup: P.state !== 'kalah', id: TIM.me, max: HP_MAX[HERO] });
@@ -7811,12 +7819,56 @@ function wnHud() {
 const WN_KARTU = { buka: null, antri: [], t: 0 };
 // stat sudah mentok (Speed +80%, Cooldown/Attack Speed paling cepat 35%) → kartunya tidak ditawarkan lagi · DEF tanpa batas (makin tinggi makin kecil tambahannya)
 function wnPenuh(id, k) { const s = WN.st.get(id), p = s ? s[k] || 0 : 0; return k === 'def' ? p >= WN_DEF_MAKS : k === 'spd' ? p >= WN_SPD_MAKS : (k === 'cd' || k === 'as') ? 100 / (100 + p) <= .35 : false; }
-function wnAcakKartu(st0, emas, sumber = '', nilai = 0, merah = false, id = TIM.me) {   // emas = kartu dari membunuh hero lawan (+10% s/d +20%) · nilai: angka tetap (role Pengawal) · merah: kartu Pengawal yang membunuh sendiri
+function wnAcakKartu(st0, emas, sumber = '', nilai = 0, merah = false, id = TIM.me) {
+  wnSpKartu(id, !!emas && !merah);   // Poin Skill: 2 kartu biasa / 1 kartu emas   // emas = kartu dari membunuh hero lawan (+10% s/d +20%) · nilai: angka tetap (role Pengawal) · merah: kartu Pengawal yang membunuh sendiri
   const semua = ['hp', 'atk', 'def', 'spd', 'as', 'cd'].filter(k => !wnPenuh(id, k)), pil = st0 && semua.includes(st0) ? [st0] : [];
   while (pil.length < Math.min(3, semua.length)) { const k = pilihAcak(semua); if (!pil.includes(k)) pil.push(k); }
   for (let i = pil.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pil[i], pil[j]] = [pil[j], pil[i]]; }
   const v = emas ? 10 + Math.floor(Math.random() * 11) : 5 + Math.floor(Math.random() * 11);   // satu angka acak untuk ketiga kartu: biasa 5–15%, emas 10–20%
   return pil.map(k => ({ k, v: nilai || v, emas: !!emas && !merah, merah, sumber }));
+}
+// ---- Poin Skill (War Nanas): awal main semua skill terkunci · 1 poin gratis untuk membuka Skill 1 ATAU Skill 2 ·
+// 2 kartu biasa (monster, assist, bonus Support) atau 1 kartu emas (kill musuh, Tugu Nanas, Buaya) = 1 poin · Skill 3 (ulti) terbuka paling akhir · bot ikut aturan yang sama
+const WN_SP = new Map();
+function wnSpBaru(id) { WN_SP.set(id, { poin: 1, buka: [true, false, false, false], kartu: 0 }); }
+function wnSpBuka(id, i) { const s = WN_SP.get(id); return !s || !!s.buka[i]; }
+function wnSpBisa(id) { const s = WN_SP.get(id); if (!s || s.poin <= 0) return []; if (!s.buka[1] || !s.buka[2]) return [1, 2].filter(i => !s.buka[i]); return s.buka[3] ? [] : [3]; }
+function wnSpPenuh(s) { return s.buka[1] && s.buka[2] && s.buka[3]; }
+function wnSpBukaSkill(id, i) {
+  const s = WN_SP.get(id); if (!s || !wnSpBisa(id).includes(i)) return false; s.poin--; s.buka[i] = true;
+  if (id === TIM.me) { WN.spBaruT = performance.now(); WN.spBaruI = i; banner(i === 3 ? '🔥 ULTI (Skill 3) terbuka!' : `🔓 Skill ${i} terbuka!`, '#9dff8a'); percik(P.root.position.clone().setY(1.1), 26, 0xffd166, 3.2); gelombang(P.root.position.clone().setY(0), 1.6, .45, 0xffd166); wnSpHud(); }
+  return true;
+}
+function wnSpBot(id) { const s = WN_SP.get(id); let L; while (s && (L = wnSpBisa(id)).length) wnSpBukaSkill(id, pilihAcak(L)); }
+function wnSpKartu(id, emas) {
+  const s = WN_SP.get(id); if (!s || wnSpPenuh(s)) return;
+  if (!emas && ++s.kartu < 2) { if (id === TIM.me) wnSpHud(); return; }
+  if (!emas) s.kartu = 0; s.poin++;
+  if (id === TIM.me) { banner('⭐ Poin Skill +1 — ketuk skill yang bersinar untuk membukanya!', '#ffd166'); wnSpHud(); } else if (TIM.bot.get(id)) wnSpBot(id);
+}
+function wnSpTahan(i) {   // pemain menekan skill: terkunci → buka (kalau ada poin) atau beri tahu
+  if (!WN.on || i === 0 || wnSpBuka(TIM.me, i)) return false;
+  if (wnSpBisa(TIM.me).includes(i)) wnSpBukaSkill(TIM.me, i);
+  else { const s = WN_SP.get(TIM.me); angka(P.root.position, '🔒', '#ffd166');
+    banner(i === 3 && !(s.buka[1] && s.buka[2]) ? '🔒 Ulti terbuka setelah Skill 1 & Skill 2' : `🔒 Butuh Poin Skill: ${s.kartu}/2 kartu biasa atau 1 kartu emas`, '#ffb3a0'); }
+  return true;
+}
+function wnSpHud() {
+  if (!WN.on || !WN_SP.has(TIM.me)) return; const bisa = wnSpBisa(TIM.me), s = WN_SP.get(TIM.me);
+  [1, 2, 3].forEach(i => { const b = $('#b' + i); if (!b) return; let l = b.querySelector('.wnL'); if (!l) { l = document.createElement('span'); l.className = 'wnL'; l.textContent = '🔒'; b.appendChild(l); }
+    l.style.display = s.buka[i] ? 'none' : ''; b.classList.toggle('wnBisa', bisa.includes(i)); });
+  let t = $('#wnBukaT'); if (!t) { t = document.createElement('div'); t.id = 'wnBukaT'; document.body.appendChild(t); }
+  t.innerHTML = bisa.length ? `🔓 BUKA SKILL${bisa.length > 1 ? ' · pilih 1' : ''}` : wnSpPenuh(s) ? '' : `🔒 Skill berikutnya: ${s.kartu}/2 kartu · atau 1 kartu emas`;
+  t.classList.toggle('bisa', !!bisa.length); t.style.display = t.innerHTML ? '' : 'none'; WN.spBisa = bisa; wnSpPosisi();
+}
+function wnSpPosisi() {   // panah emas di atas tombol skill yang bisa dibuka + tulisan BUKA SKILL (ikut posisi tombol, termasuk kontrol custom)
+  const bisa = WN.spBisa || [], t = $('#wnBukaT');
+  [1, 2, 3].forEach(i => { let a = $('#wnPanah' + i); if (!a) { a = document.createElement('div'); a.id = 'wnPanah' + i; a.className = 'wnPanah'; a.textContent = '⬇'; document.body.appendChild(a); }
+    const b = $('#b' + i), on = bisa.includes(i) && b && b.getClientRects().length > 0; a.style.display = on ? '' : 'none';
+    if (on) { const r = b.getBoundingClientRect(), atas = i === 3; a.textContent = atas ? '⬇' : '➡'; a.classList.toggle('atas', atas);
+      a.style.left = (atas ? r.left + r.width / 2 : r.left - 4) + 'px'; a.style.top = (atas ? r.top - 4 : r.top + r.height / 2) + 'px'; } });   // Skill 1 & 2: panah dari kiri · Ulti: panah dari atas
+  if (t && t.style.display !== 'none') { const B = (bisa.length ? bisa : [1, 2]).map(i => $('#b' + i)).filter(Boolean).map(b => b.getBoundingClientRect());
+    if (B.length) { const kiri = Math.min(...B.map(r => r.left)), y = B.reduce((s, r) => s + r.top + r.height / 2, 0) / B.length; t.style.left = (kiri - (bisa.length && !bisa.includes(3) ? 42 : 8)) + 'px'; t.style.top = y + 'px'; } }
 }
 // ---- posisi farming (War Nanas): 15 detik pertama tiap hero memilih Kiri / Support / Kanan · tidak memilih → dipilihkan sesuai role ----
 // Kiri/Kanan dilihat dari rumah tim sendiri · bot farming di sisi lane-nya · Support berkeliling membantu teman (bonus kartu assist monster)
@@ -7872,6 +7924,7 @@ function wnBonusBuaya(tm, asal = '🐊 Buaya Danau') {   // kartu emas untuk SEM
 function wnPeringatanPengawal() { const now = performance.now(); if (now - WNP_PERINGAT < 20000) return; WNP_PERINGAT = now;
   banner('🛡️ Kamu di lane Support: kartu dari membunuh monster sendiri kecil. Lebih untung bantu teman (assist)!', '#ff9a9a'); }
 function wnPasifPengawal(id, v, sebab) {
+  wnSpKartu(id, false);
   const pil = ['def', 'spd'].filter(k => !wnPenuh(id, k)), lain = ['hp', 'atk', 'as', 'cd'].filter(k => !wnPenuh(id, k));
   while (pil.length < 3 && lain.length) pil.push(lain.splice(Math.floor(Math.random() * lain.length), 1)[0]);
   for (let i = pil.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pil[i], pil[j]] = [pil[j], pil[i]]; }
@@ -7982,6 +8035,8 @@ async function wnMulai() {
   banner('🔒 Urutan: Sisingaan → Garuda → Rumah lawan', '#ffd166');
   { const p = PERAN[PERAN_HERO[HERO]]; if (p) banner(`${p.ik} Role kamu: ${p.n} (${p.isi})`, '#9fd8ff'); }
   wnLaneMulai();
+  TIM.pl.forEach(p => { wnSpBaru(p.i); if (p.i !== TIM.me) wnSpBot(p.i); });   // Poin Skill: bot langsung membuka 1 skill
+  wnSpHud(); banner('🔓 Semua skill terkunci! Buka Skill 1 atau Skill 2 dulu', '#ffd166');
 }
 
 // ================== DUEL LAWAN BOT (1 VS 1) ==================
@@ -8624,6 +8679,7 @@ function updTim(dt, nyata) {
   TIM.obj.forEach(o => { updObjTim(o, dt); if (o.kawan) barKawan(o.mt); });
   TIM.bot.forEach(o => {
     if (!o.mt.mati && o.mt.kebalT && performance.now() < o.mt.kebalT) { o.mt.pusing = o.mt.kunci = 0; }   // kebal: lepas dari stun/kunci
+    if (WN.on) { const sp = WN_SP.get(o.id), cd = o.B.cd; if (sp && cd) for (let k = 1; k < 4; k++) if (!sp.buka[k]) cd[k] = Math.max(cd[k] || 0, .5); }   // Poin Skill: skill bot yang masih terkunci tidak bisa dipakai
     if (o.mt.mati) { if (o.hidupT && performance.now() > o.hidupT && !TIM.akhir) { o.hidupT = 0; o.B.reset(); o.mt.kebalT = performance.now() + KEBAL_HIDUP * 1000; kebalFx(() => o.root.position, KEBAL_HIDUP); } }
     else { o.sasT = (o.sasT || 0) - dt; const s = o.sas, habis = !s || (s === P ? P.state === 'kalah' : s.mt && s.mt.mati);
       if (habis || o.sasT <= 0 || KUAL.lv > 0) { o.sasT = .15; o.sas = pilihSasaran(o); } }
@@ -8796,7 +8852,8 @@ function tampilVS(pl) {   // War Nanas: 3 hero Tim Merah vs 3 hero Tim Putih di 
 }
 const TIM_SAYA_ID = 1;
 // ---- tips bermain di layar loading (berganti tiap ±4 dtk) ----
-const TIPS_WN = ['Di <b>15 detik pertama</b> pilih posisi farming: <b>Kiri</b>, <b>Support</b>, atau <b>Kanan</b>. Kalau tidak memilih, sistem memilihkan sesuai role hero.',
+const TIPS_WN = ['<b>Skill terkunci di awal!</b> Buka Skill 1 atau Skill 2 dulu. <b>2 kartu biasa</b> atau <b>1 kartu emas</b> = 1 skill baru. Ulti (Skill 3) terbuka paling akhir.',
+  'Di <b>15 detik pertama</b> pilih posisi farming: <b>Kiri</b>, <b>Support</b>, atau <b>Kanan</b>. Kalau tidak memilih, sistem memilihkan sesuai role hero.',
   'Lane <b>Support</b>: selama <b>7 menit awal</b> dapat kartu bonus saat ikut membantu teman membunuh monster (assist). Membunuh monster sendiri hanya dapat kartu kecil.',
   'Setiap monster hutan yang kamu kalahkan memulihkan <b>20% darah</b> dan memberi <b>kartu stat</b>.',
   'Kuasai <b>Tugu Nanas</b> di tengah: berdiri <b>10 detik</b> di lingkaran tanpa musuh. Di lingkaran hijau darahmu pulih cepat.',
