@@ -11,7 +11,85 @@
 <script src="pwa.js" defer></script>
 <script>/* dibuka sebagai aplikasi (ikon layar utama / APK Play Store): layar sudah penuh & terkunci miring oleh aplikasinya */
 try{var _a=matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: standalone)').matches||/KalensariGameApp/.test(navigator.userAgent);window.KG_CT=!_a&&document.referrer.indexOf('android-app://')===0;try{if(_a&&screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(function(){})}catch(e){}if(_a)sessionStorage.setItem('kgApp','1');window.KG_APP=_a||sessionStorage.getItem('kgApp')==='1';if(window.KG_APP)document.documentElement.classList.add('kgapp')}catch(e){window.KG_APP=false}</script>
-<style>.kgapp #bLand{display:none!important}</style>
+<style>.kgapp #bLand{display:none!important}/* ===== ③ PILIH HERO (gaya rank: latar malam Jawa Barat, hero 3D bisa diputar, draft 1 per 1) ===== */
+#sel.ph{display:none;background:#05060e;font-family:Arial,sans-serif;gap:0}#sel.ph.on{display:block}
+#sel .phBg{position:absolute;inset:0;background:#05060e url(gambar-game/pilih-hero-latar.webp) center/cover;filter:saturate(1.05)}
+@media (max-width:1100px){#sel .phBg{background-image:url(gambar-game/pilih-hero-latar-hp.webp)}}
+#sel .phBg::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 34% 60% at 50% 48%,#0000 40%,#05060e55 75%,#05060ecc 100%),linear-gradient(#05060ecc,#0000 14%,#0000 66%,#05060ef0 92%)}
+#sel.tA-m .phBg{box-shadow:inset 9cqw 0 6cqw -4cqw #c1121f66,inset -9cqw 0 6cqw -4cqw #e8eefc44}#sel.tA-p .phBg{box-shadow:inset 9cqw 0 6cqw -4cqw #e8eefc44,inset -9cqw 0 6cqw -4cqw #c1121f66}
+#phKv{position:absolute;left:31cqw;top:4.6cqw;width:42cqw;height:32cqw;touch-action:none;cursor:grab;outline:none}#phKv:active{cursor:grabbing}
+#phMuat{position:absolute;left:31cqw;width:42cqw;top:19cqw;text-align:center;font:700 1.3cqw Arial;color:#ffe9a8;text-shadow:0 .1cqw .3cqw #000;pointer-events:none;display:none}#phMuat.on{display:block}
+#phMuat img{display:block;margin:0 auto .6cqw;width:9cqw;height:9cqw;border-radius:50%;object-fit:cover;opacity:.75;border:.25cqw solid #ffffff44}
+.phP{position:absolute;background:linear-gradient(#0d1226e6,#070a18e6);border:.15cqw solid #ffffff22;border-radius:.9cqw;box-shadow:0 .4cqw 1.4cqw #0009}
+/* bar atas */
+.phTop{position:absolute;left:0;right:0;top:0;height:4.6cqw;display:flex;align-items:stretch;gap:.4cqw;padding:0 .4cqw}
+.phTop>div{display:flex;flex-direction:column;justify-content:center;background:linear-gradient(#1a0f22f0,#0a0814f0);border:.15cqw solid #ffb70388;border-top:0;border-radius:0 0 1cqw 1cqw;padding:0 1.2cqw;box-shadow:0 .3cqw 1cqw #000a}
+.phTop b{font:900 1.9cqw Georgia,serif;font-style:italic;color:#fff;text-shadow:0 .15cqw 0 #000;white-space:nowrap}.phTop small{font:700 1.05cqw Arial;color:#ffd166;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phJudul{width:17cqw}.phMode{flex:1;align-items:center;text-align:center;border-color:#ffd166!important;background:linear-gradient(#5a0f16f0,#1a060af0)!important}
+.phMode b{font-size:2.1cqw;color:#ffd166}.phMode small{color:#fff}
+.phWaktu{width:10cqw;align-items:center;border-color:#ffb703!important}.phWaktu small{color:#fff;font-size:.95cqw}.phWaktu b{font:900 2.2cqw Arial;font-style:normal;color:#fff}.phWaktu.akhir b{color:#ff6a5a;animation:phKedip .5s infinite alternate}
+@keyframes phKedip{to{opacity:.45}}
+.phTim{width:31cqw;flex-direction:row!important;align-items:center;justify-content:center;gap:.45cqw}
+.phTim span{font:900 1.15cqw Arial;line-height:1.05;text-align:center;width:4.4cqw}.phTim em{font:900 italic 1.7cqw Georgia,serif;color:#ffd166;margin:0 .3cqw}
+.phTim i{width:2.9cqw;height:2.9cqw;border-radius:50%;background:#0a0c18 center/cover;border:.22cqw solid;flex:none}
+.phTim .m{color:#ff6a5a}.phTim .p{color:#f4f4f4}.phTim i.m{border-color:#ff4a3a;box-shadow:0 0 .7cqw #ff3a2a88}.phTim i.p{border-color:#f4f4f4;box-shadow:0 0 .7cqw #ffffff66}
+.phTim.sembunyi{visibility:hidden}
+/* slot pemain kiri / kanan */
+.phSlot{position:absolute;top:5.4cqw;width:9.6cqw;display:flex;flex-direction:column;gap:.6cqw}.phSlot.a{left:.5cqw}.phSlot.b{right:.5cqw}
+.phS{position:relative;height:10.3cqw;border-radius:.9cqw;overflow:hidden;border:.22cqw solid;background:#0a0c18 center 20%/cover;box-shadow:0 .3cqw 1cqw #000a;transition:transform .2s}
+.phS.m{border-color:#ff4a3a;background-color:#5a0a10;background-image:radial-gradient(#ff3a2a55,#2a0306)}.phS.p{border-color:#f0f0f0;background-color:#5a5f72;background-image:radial-gradient(#ffffff55,#30344a)}
+.phS .sil{position:absolute;left:50%;bottom:1.7cqw;transform:translateX(-50%);font-size:6cqw;line-height:1;filter:brightness(0) opacity(.55)}
+.phS .ft{position:absolute;inset:0;background:center 15%/cover no-repeat}
+.phS .nm{position:absolute;left:0;right:0;bottom:0;padding:.25cqw .4cqw;font:800 1.05cqw Arial;color:#fff;text-align:right;background:linear-gradient(#0000,#000c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phS .nm small{display:block;font:700 .85cqw Arial;color:#ffd166}
+.phS.aku{box-shadow:0 0 0 .2cqw #ffd166,0 0 1.4cqw #ffd166aa}.phS.aku .nm{color:#ffe14a}
+.phS.giliran{animation:phGil .6s infinite alternate}.phS.giliran::after{content:'Memilih…';position:absolute;top:.4cqw;left:.4cqw;font:800 .9cqw Arial;color:#201400;background:#ffd166;padding:.1cqw .5cqw;border-radius:.6cqw}
+@keyframes phGil{to{transform:scale(1.04);filter:brightness(1.25)}}
+.phS.kunci::after{content:'✔';position:absolute;top:.3cqw;left:.5cqw;font:900 1.2cqw Arial;color:#7dff8a;text-shadow:0 0 .4cqw #000}
+.phSlot.sembunyi{display:none}
+/* panel role */
+.phRole{left:10.8cqw;top:6cqw;width:8.6cqw;padding:.5cqw;display:flex;flex-direction:column;gap:.35cqw}
+.phRole button{display:flex;align-items:center;gap:.5cqw;font:700 1.12cqw Arial;color:#e8eefc;background:#ffffff08;border:.12cqw solid #ffffff14;border-radius:.6cqw;padding:.55cqw .5cqw;cursor:pointer;text-align:left;white-space:nowrap}
+.phRole button i{font-style:normal;font-size:1.3cqw;width:1.6cqw;text-align:center}.phRole button.on{background:linear-gradient(#ffd166,#c88a10);color:#201400;border-color:#ffe08a}
+/* panel info hero */
+.phInfo{left:20cqw;top:6cqw;width:19.5cqw;padding:.8cqw 1cqw}
+.phInfo h3{margin:0;font:900 2.5cqw Georgia,serif;color:#fff;text-shadow:0 .15cqw 0 #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.phInfo .rl{font:700 1.1cqw Arial;color:#ffd166;margin:.1cqw 0 .7cqw}
+.phBar{display:flex;align-items:center;gap:.5cqw;font:800 .95cqw Arial;color:#dfe6ff;margin:.35cqw 0}.phBar span{width:2.6cqw}
+.phBar u{flex:1;height:.75cqw;border-radius:.4cqw;background:#ffffff14;overflow:hidden;position:relative}.phBar u::before{content:'';position:absolute;inset:0;width:var(--v);border-radius:.4cqw;background:var(--c);box-shadow:0 0 .6cqw var(--c);transition:width .35s}
+.phBar em{font-style:normal;width:2.8cqw;text-align:right;color:#fff}
+.phSkill{display:flex;gap:.7cqw;margin-top:.9cqw;justify-content:space-between}.phSkill div{flex:1;text-align:center;font:700 .95cqw Arial;color:#fff}
+.phSkill img{display:block;width:100%;aspect-ratio:1;border-radius:50%;border:.2cqw solid #ffb703;box-shadow:0 0 .8cqw #ffb70366;background:#1a1030;margin-bottom:.25cqw;object-fit:cover}
+/* panel skin */
+.phSkin{right:10.6cqw;top:6cqw;width:13.4cqw;padding:.5cqw;display:flex;flex-direction:column}
+.phSkin .tb{display:flex;gap:.3cqw;margin-bottom:.45cqw}.phSkin .tb b{flex:1;text-align:center;font:800 1.1cqw Arial;padding:.35cqw;border-radius:.5cqw;background:linear-gradient(#ffd166,#c88a10);color:#201400}
+#phSkinL{flex:1;max-height:23.5cqw;overflow-y:auto;display:flex;flex-direction:column;gap:.45cqw;scrollbar-width:thin;scrollbar-color:#ffb703 #0b1430;overscroll-behavior:contain;touch-action:pan-y}
+.phSk{position:relative;flex:none;height:6.6cqw;border-radius:.6cqw;border:.18cqw solid #ffffff22;background:#1a1030 center 25%/cover;cursor:pointer;overflow:hidden;touch-action:pan-y}
+.phSk span{position:absolute;left:0;right:0;bottom:0;padding:.2cqw;text-align:center;font:800 1cqw Arial;color:#fff;background:linear-gradient(#0000,#000d)}
+.phSk.on{border-color:#ffb703;box-shadow:0 0 1cqw #ffb703aa}.phSk.lk{filter:saturate(.35) brightness(.7)}.phSk.lk::after{content:'🔒';position:absolute;top:.2cqw;right:.3cqw;font-size:1.2cqw}
+/* cari & urutkan */
+.phCari{position:absolute;left:10.8cqw;top:34.6cqw;display:flex;gap:.6cqw}
+.phCari input{width:16cqw;font:700 1.15cqw Arial;color:#fff;background:#0a1028e6;border:.15cqw solid #3a4f8a;border-radius:.7cqw;padding:.45cqw .9cqw;outline:none}.phCari input::placeholder{color:#8a96c0}
+.phCari button{font:800 1.1cqw Arial;color:#fff;background:#0a1028e6;border:.15cqw solid #3a4f8a;border-radius:.7cqw;padding:.4cqw .9cqw;cursor:pointer;white-space:nowrap}
+/* daftar hero */
+.phList{position:absolute;left:10.4cqw;right:10.4cqw;top:37.7cqw;height:6.5cqw;display:flex;align-items:center;gap:.3cqw}
+.phList>button{flex:none;width:2.2cqw;height:100%;font:900 2.4cqw Arial;color:#ffd166;background:none;border:0;cursor:pointer;text-shadow:0 0 .5cqw #000}
+#phGrid{flex:1;height:100%;display:flex;gap:.45cqw;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;scrollbar-width:none;touch-action:pan-x;overscroll-behavior:contain;padding:.15cqw}#phGrid::-webkit-scrollbar{display:none}
+.phC{position:relative;flex:none;width:5.6cqw;height:100%;border-radius:.6cqw;border:.18cqw solid #ffffff2a;background:#1a1030 center 22%/cover;cursor:pointer;overflow:hidden;touch-action:pan-x}
+.phC span{position:absolute;left:0;right:0;bottom:0;padding:.15cqw .1cqw;text-align:center;font:800 .82cqw/1.05 Arial;color:#fff;background:linear-gradient(#0000,#000e)}
+.phC em{position:absolute;top:.15cqw;left:.2cqw;font-style:normal;font-size:.95cqw;text-shadow:0 0 .3cqw #000}
+.phC.on{border-color:#ffb703;box-shadow:0 0 1cqw #ffb703;transform:translateY(-.25cqw)}
+.phC.lk{filter:grayscale(.85) brightness(.6)}.phC.lk::after{content:'🔒';position:absolute;top:.15cqw;right:.25cqw;font-size:1cqw}
+.phC.ambil{filter:grayscale(1) brightness(.4)}.phC.ambil::before{content:attr(data-t);position:absolute;left:0;right:0;top:40%;text-align:center;font:900 .8cqw Arial;color:#fff;z-index:1;text-shadow:0 0 .3cqw #000}
+.phC.ambil.m{box-shadow:inset 0 0 0 .2cqw #ff4a3a}.phC.ambil.p{box-shadow:inset 0 0 0 .2cqw #f0f0f0}
+.phC.x{opacity:.35;cursor:default}
+/* tombol bawah */
+.phBawah{position:absolute;left:0;right:0;bottom:.45cqw;display:flex;justify-content:center;gap:1.6cqw}
+.phBawah .btn{font:800 1.7cqw Arial;padding:.45cqw 2.4cqw;border-radius:.8cqw}#bBack{background:linear-gradient(#2a5ad8,#13286a);border-color:#7aa8ff;color:#fff;min-width:14cqw}
+#bGo{min-width:24cqw;background:linear-gradient(#ffe066,#e0a010);border-color:#fff2a8;box-shadow:0 0 1.4cqw #ffb70388}#bGo:disabled{filter:grayscale(.7) brightness(.75);box-shadow:none;cursor:default}
+#sel #info{position:absolute;left:0;right:0;top:32cqw;text-align:center;font:800 1.2cqw Arial;color:#ffe9a8;text-shadow:0 .1cqw .3cqw #000;min-height:0;pointer-events:none}
+#phBanner{position:absolute;left:52cqw;top:27cqw;transform:translate(-50%,-50%) scale(.6);opacity:0;font:900 italic 3.4cqw Georgia,serif;color:#ffd166;text-shadow:0 .25cqw 0 #5a2a00,0 0 1.6cqw #ffb703;pointer-events:none;white-space:nowrap;transition:all .3s}#phBanner.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
+</style>
 <title>Kalensari Game – Duel 1 vs 1</title>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Lilita+One&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
@@ -453,8 +531,16 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
 <div id="ars" class="scr"><h2>② Pilih Arena</h2><div id="agrid"></div>
 <div class="blv"><span>🤖 Tingkat Bot</span><div id="aLv"><button data-lv="0">🙂 Mudah</button><button data-lv="1">😐 Sedang</button><button data-lv="2">😠 Susah</button><button data-lv="3">😈 Pro Player</button></div></div>
 <div style="display:flex;gap:1.5cqw"><button class="btn" id="aBack">Kembali</button><button class="btn" id="aLat">🎯 Latihan</button><button class="btn g" id="aGo">🤖 Lawan Bot</button></div></div>
-<div id="sel" class="scr"><h2>③ Pilih Hero</h2><div id="grid"></div><div id="skins"></div><div id="info" style="font-size:1.9cqw;min-height:2.4cqw"></div>
-<div style="display:flex;gap:1.5cqw"><button class="btn" id="bBack">Kembali</button><button class="btn g" id="bGo">Main</button></div></div>
+<div id="sel" class="scr ph"><div class="phBg"></div><canvas id="phKv"></canvas><div id="phMuat"><img id="phMuatF" alt="">Memuat hero 3D…</div>
+<div class="phTop"><div class="phJudul"><b>Pilih Hero</b><small>Geser hero untuk memutar</small></div><div class="phMode"><b id="phModeB">War Nanas 3v3</b><small id="phArenaS"></small></div><div class="phWaktu" id="phWaktu"><small>Waktu Pilih</small><b id="phT">00:30</b></div><div class="phTim" id="phTim"></div></div>
+<div class="phSlot a" id="phSlotA"></div><div class="phSlot b" id="phSlotB"></div>
+<div class="phP phRole" id="phRole"></div>
+<div class="phP phInfo"><h3 id="phNama">Ocong</h3><div class="rl" id="phRl"></div><div id="phStat"></div><div class="phSkill" id="phSkill"></div></div>
+<div class="phP phSkin"><div class="tb"><b>Skin</b></div><div id="phSkinL"></div></div>
+<div class="phCari"><input id="phCari" placeholder="🔍 Cari Hero…" autocomplete="off"><button id="phUrut">⇅ Bawaan</button></div>
+<div class="phList"><button data-d="-1">‹</button><div id="phGrid"></div><button data-d="1">›</button></div>
+<div id="phBanner"></div><div id="info"></div>
+<div class="phBawah"><button class="btn" id="bBack">Batal Pilih</button><button class="btn g" id="bGo">✔ Konfirmasi Hero</button></div></div>
 <div id="bat" class="scr"><div id="hud">
 <div class="hp a"><i id="pA"></i><span class="ks" id="kA">0</span></div>
 <div class="mid2"><span id="tm">3:00</span><small>3 kill menang</small></div>
@@ -591,26 +677,114 @@ const inBush=f=>BUSH.findIndex(b=>((f.x-b.x)/b.rx)**2+((f.y-b.y)/b.ry)**2<=1);
 function seen(v,t){if(t.dead||t.gone)return false;if(v.side===t.side)return true;const b=inBush(t);return b<0||t.rev>0||inBush(v)===b||Math.hypot(t.x-v.x,t.y-v.y)<85}let SFX=[],LPF=34,DN=[],FXS=[],first=1,kbT=0;
 const headOf=f=>heroHead(f.id,f.skin);
 const stars=Array.from({length:50},()=>[Math.random()*W,Math.random()*160]);
-function grid(){if(!punyaHero(pick))pick='pocong';
- $('#grid').innerHTML=ALL.map(a=>{const x=a[0]=='x',own=!x&&punyaHero(a[0]);return `<div class="card ${a[0]==pick?'sel':''} ${x?'off':own?'':'lock'}" data-id="${a[0]}" data-n="${a[1]}"><i style="background:${x?a[2]:'url('+heroHead(a[0],skinOf(a[0]))+') center/cover #1a1030'}"></i>${!x&&!own?'🔒 ':''}${PERAN_G[a[0]]?PERAN_G[a[0]]+' ':''}${a[1]}</div>`}).join('');
- skinRow();
- document.querySelectorAll('#grid .card').forEach(c=>ketuk(c,()=>{const id=c.dataset.id;
-  if(id=='x'){$('#info').textContent=c.dataset.n+' segera hadir'}
-  else if(!punyaHero(id)){$('#info').textContent='🔒 '+c.dataset.n+' terkunci — scan kartu '+c.dataset.n+' di menu 🃏 Kartu'}
-  else{pick=id;$('#info').textContent='';document.querySelectorAll('#grid .card.sel').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');skinRow()}}))}   // pilih hero: cukup pindah tanda, tidak membangun ulang 22 kotak
-function skinRow(){const sk=Object.entries(SKINS).filter(([id,v])=>v.h==pick),cur=skinOf(pick);
- $('#skins').innerHTML=sk.length?`<span>Skin:</span><b class="sk ${cur?'':'on'}" data-s="">Bawaan</b>`+sk.map(([id,v])=>`<b class="sk ${cur==id?'on':''} ${punyaSkin(id)?'':'lk'}" data-s="${id}">${punyaSkin(id)?'':'🔒 '}${v.n}</b>`).join(''):'';
- document.querySelectorAll('#skins .sk').forEach(b=>ketuk(b,()=>{const id=b.dataset.s;
+// ===== ③ PILIH HERO gaya rank (Main Solo): hero 3D diputar di tengah, pilih bergiliran 1 per 1, hero tidak boleh sama =====
+// PH.n = jumlah anggota tiap tim (3 = War Nanas 3v3, 1 = Lawan Bot, 0 = tanpa lawan: Latihan / Parkur / lihat koleksi)
+const PH_DET={pocong:'Fighter',kuntilanak:'Mage',tuyul:'Assassin',genderuwo:'Tank',pitung:'Fighter',erick:'Fighter / Assassin',doni:'Fighter',timunmas:'Mage',buto:'Tank',lutung:'Assassin',saras:'Fighter',angling:'Mage / Rider',dayang:'Marksman',nyiroro:'Mage / Assassin',siliwangi:'Assassin',ciung:'Marksman',sangkuriang:'Tank',kiansantang:'Fighter / Assassin',wiro:'Fighter',roro:'Mage'};
+const PH_JARAK={'⚔️':'Jarak Dekat','🏹':'Jarak Jauh','🛡️':'Support'};
+// [HP, Attack, Defense, Speed] — HP sama dengan game 3D, lainnya skala 1–10 (gambaran kasar)
+const PH_STAT={pocong:[1000,7,5,6],kuntilanak:[1000,7,3,7],tuyul:[850,7,3,9],genderuwo:[1200,6,8,5],pitung:[1000,8,5,7],erick:[1000,9,4,7],doni:[1000,8,5,6],timunmas:[950,7,3,6],buto:[1350,5,9,4],lutung:[800,8,4,8],saras:[950,8,4,7],angling:[900,7,3,6],dayang:[900,7,3,6],nyiroro:[900,8,3,7],siliwangi:[1000,9,5,7],ciung:[900,7,3,6],sangkuriang:[1050,6,7,5],kiansantang:[950,8,5,7],wiro:[1000,8,5,7],roro:[950,8,3,6]};
+const PH_ROLE=[['semua','▦','Semua'],['Fighter','⚔️','Fighter'],['Assassin','🗡️','Assassin'],['Mage','🔮','Mage'],['Marksman','🏹','Marksman'],['Tank','🛡️','Tank']];
+const PH={n:0,role:'semua',cari:'',urut:0,lihat:'pocong',kunci:false,A:[],B:[],urutan:[],k:0,warnaA:'m',t:0,tick:null,botT:null,selesai:false,mulaiT:null,modeN:'',arenaN:''};
+const phNamaH=h=>(ALL.find(a=>a[0]==h)||[])[1]||h;
+const phIkon=(h,i)=>'gambar-game/ikon-skill/'+(H3D[h]||'ocong')+'-'+i+'.webp';
+const phDiambil=h=>PH.A.concat(PH.B).find(s=>s.h==h);
+function phSemuaHero(){let L=ALL.filter(a=>a[0]!='x');
+ if(PH.role!='semua')L=L.filter(a=>(PH_DET[a[0]]||'').includes(PH.role)||(PH.role=='Tank'&&PERAN_G[a[0]]=='🛡️'));
+ if(PH.cari)L=L.filter(a=>a[1].toLowerCase().includes(PH.cari));
+ if(PH.urut==1)L=L.slice().sort((a,b)=>a[1].localeCompare(b[1]));
+ else if(PH.urut==2)L=L.slice().sort((a,b)=>(PERAN_G[a[0]]||'').localeCompare(PERAN_G[b[0]]||'')||a[1].localeCompare(b[1]));
+ else if(PH.urut==3)L=L.slice().sort((a,b)=>(punyaHero(b[0])?1:0)-(punyaHero(a[0])?1:0));
+ return PH.cari||PH.role!='semua'?L:L.concat(ALL.filter(a=>a[0]=='x'))}
+// ---- tampilkan semua bagian ----
+function grid(){if(!punyaHero(pick))pick='pocong';if(!PH.kunci)PH.lihat=pick;
+ $('#phRole').innerHTML=PH_ROLE.map(([k,i,n])=>`<button data-r="${k}" class="${PH.role==k?'on':''}"><i>${i}</i>${n}</button>`).join('');
+ $('#phRole').querySelectorAll('button').forEach(b=>ketuk(b,()=>{PH.role=b.dataset.r;$('#phRole').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));phGrid()}));
+ phGrid();phInfo();phSlot();phTombol()}
+function phGrid(){const L=phSemuaHero();
+ $('#phGrid').innerHTML=L.map(a=>{if(a[0]=='x')return `<div class="phC x" style="background:${a[2]}"><span>${a[1]}<br><small>segera</small></span></div>`;
+  const d=PH.n?phDiambil(a[0]):null,own=punyaHero(a[0]);
+  return `<div class="phC ${a[0]==PH.lihat?'on':''} ${own?'':'lk'} ${d?'ambil '+d.w:''}" data-id="${a[0]}" data-t="${d?(d.aku?'KAMU':d.w==PH.warnaA?'TEMAN':'LAWAN'):''}" style="background-image:url(${heroHead(a[0],a[0]==PH.lihat?skinOf(a[0]):'')})"><em>${PERAN_G[a[0]]||''}</em><span>${a[1]}</span></div>`}).join('')||'<div style="font:700 1.2cqw Arial;color:#9aa3b8;padding:2cqw">Hero tidak ditemukan</div>';
+ $('#phGrid').querySelectorAll('.phC[data-id]').forEach(c=>ketuk(c,()=>phLihat(c.dataset.id)))}
+function phLihat(id){if(PH.kunci&&id!==pick){$('#info').textContent='✔ Hero kamu sudah dikunci: '+phNamaH(pick);}
+ else{PH.lihat=id;if(punyaHero(id)&&!(PH.n&&phDiambil(id)))pick=id;$('#info').textContent=!punyaHero(id)?'🔒 '+phNamaH(id)+' terkunci — scan kartu '+phNamaH(id)+' di menu 🃏 Kartu':PH.n&&phDiambil(id)?'⛔ '+phNamaH(id)+' sudah dipilih':''}
+ $('#phGrid').querySelectorAll('.phC.on').forEach(x=>x.classList.remove('on'));const c=$(`#phGrid .phC[data-id="${PH.lihat}"]`);if(c)c.classList.add('on');
+ phInfo();phTombol()}
+function phInfo(){const h=PH.lihat,st=PH_STAT[h]||[1000,5,5,5],pr=PERAN_G[h]||'⚔️';
+ $('#phNama').textContent=phNamaH(h);$('#phRl').textContent=`${pr} ${PH_DET[h]||''} · ${PH_JARAK[pr]||''}`;
+ const bar=(n,v,mx,c,t)=>`<div class="phBar"><span>${n}</span><u style="--v:${Math.round(v/mx*100)}%;--c:${c}"></u><em>${t}</em></div>`;
+ $('#phStat').innerHTML=bar('HP',st[0],1400,'#3ce86a',st[0])+bar('ATK',st[1],10,'#ff4a3a',st[1])+bar('DEF',st[2],10,'#2aa8ff',st[2])+bar('SPD',st[3],10,'#b45aff',st[3]);
+ $('#phSkill').innerHTML=[1,2,3].map(i=>`<div><img src="${phIkon(h,i)}" alt="" onerror="this.style.visibility='hidden'">Skill ${i}</div>`).join('');
+ phSkin();
+ const sk=h==pick?skinOf(h):'';$('#phMuatF').src=heroHead(h,sk);$('#phMuat').classList.add('on');
+ if(window.PVH)window.PVH.tampil(h,sk,PH.n?(PH.warnaA=='m'?0xff2a4a:0xd8e4ff):0xff3a9a).then(()=>$('#phMuat').classList.remove('on'),()=>{$('#phMuat').classList.remove('on')});else $('#phMuat').classList.remove('on')}
+function phSkin(){const h=PH.lihat,sk=Object.entries(SKINS).filter(([id,v])=>v.h==h),cur=h==pick?skinOf(h):'';
+ $('#phSkinL').innerHTML=[['','Bawaan']].concat(sk.map(([id,v])=>[id,v.n])).map(([id,n])=>`<div class="phSk ${cur==id?'on':''} ${!id||punyaSkin(id)?'':'lk'}" data-s="${id}" style="background-image:url(${heroHead(h,id)})"><span>${n}</span></div>`).join('');
+ $('#phSkinL').querySelectorAll('.phSk').forEach(b=>ketuk(b,()=>{const id=b.dataset.s;
   if(id&&!punyaSkin(id)){$('#info').textContent='🔒 Skin '+SKINS[id].n+' terkunci — scan kartu skinnya di menu 🃏 Kartu';return}
-  skinPick[pick]=id;try{localStorage.setItem('kgSkin',JSON.stringify(skinPick))}catch(e){}$('#info').textContent='';
-  const c=document.querySelector(`#grid .card[data-id="${pick}"] i`);if(c)c.style.background='url('+heroHead(pick,skinOf(pick))+') center/cover #1a1030';skinRow()}))}
-// ketukan cepat di HP: dianggap klik kalau jari bergeser < 12 px (di daftar yang bisa digulir, 'click' bawaan sering batal karena dikira menggulir)
+  if(h!==pick||!punyaHero(h)){$('#info').textContent='Pilih hero ini dulu untuk memakai skinnya';return}
+  skinPick[h]=id;try{localStorage.setItem('kgSkin',JSON.stringify(skinPick))}catch(e){}$('#info').textContent='';
+  const c=$(`#phGrid .phC[data-id="${h}"]`);if(c)c.style.backgroundImage='url('+heroHead(h,skinOf(h))+')';
+  const me=PH.A.find(s=>s.aku);if(me&&me.h==h){me.s=skinOf(h);phSlot()}phInfo()}))}
+function phSlotHTML(s){const f=s.h?heroHead(s.h,s.s||''):'';
+ return `<div class="phS ${s.w} ${s.aku?'aku':''} ${s.giliran?'giliran':''} ${s.h?'kunci':''}">${f?`<div class="ft" style="background-image:url(${f})"></div>`:'<div class="sil">👤</div>'}<div class="nm">${esc(s.nama)}${s.h?`<small>${phNamaH(s.h)}</small>`:''}</div></div>`}
+function phSlot(){
+ const A=PH.n?PH.A:[{nama:namaSaya(),aku:1,w:'m',h:PH.kunci?pick:null}];
+ $('#phSlotA').innerHTML=A.map(phSlotHTML).join('');$('#phSlotB').innerHTML=PH.B.map(phSlotHTML).join('');$('#phSlotB').classList.toggle('sembunyi',!PH.n);
+ const bulat=L=>L.map(s=>`<i class="${s.w}" style="${s.h?`background-image:url(${heroHead(s.h,s.s||'')})`:''}"></i>`).join('');
+ const nm=w=>w=='m'?'Tim<br>Merah':'Tim<br>Putih',wB=PH.warnaA=='m'?'p':'m';
+ $('#phTim').innerHTML=PH.n?`<span class="${PH.warnaA}">${nm(PH.warnaA)}</span>${bulat(PH.A)}<em>VS</em>${bulat(PH.B)}<span class="${wB}">${nm(wB)}</span>`:'';
+ $('#phTim').classList.toggle('sembunyi',!PH.n);$('#sel').classList.toggle('tA-m',!!PH.n&&PH.warnaA=='m');$('#sel').classList.toggle('tA-p',!!PH.n&&PH.warnaA=='p')}
+function phTombol(){const b=$('#bGo'),me=PH.A.find(s=>s.aku);
+ if(!PH.n){b.disabled=false;b.textContent=SOLO.lanjut?$('#bGo').dataset.ket||'▶ Main':'✔ Pilih Hero';return}
+ if(PH.selesai){b.disabled=false;b.textContent='▶ Mulai Sekarang';return}
+ const giliran=PH.urutan[PH.k]&&PH.urutan[PH.k].s===me;
+ b.disabled=!giliran;b.textContent=giliran?'✔ Konfirmasi Hero':me&&me.h?'✔ Hero dikunci · menunggu…':'⏳ Menunggu giliran…'}
+// ---- draft bergiliran ----
+function phMulaiDraft(n){clearInterval(PH.tick);clearTimeout(PH.botT);clearTimeout(PH.mulaiT);
+ PH.n=n;PH.kunci=false;PH.selesai=false;PH.k=0;PH.A=[];PH.B=[];PH.urutan=[];
+ if(!n){phWaktu('--:--');return}
+ PH.warnaA=Math.random()<.5?'m':'p';const wB=PH.warnaA=='m'?'p':'m',aku=Math.floor(Math.random()*n);
+ for(let i=0;i<n;i++){PH.A.push(i==aku?{nama:namaSaya(),aku:1,w:PH.warnaA,h:null}:{nama:'🤖 Bot '+(i<aku?i+1:i),bot:1,w:PH.warnaA,h:null});PH.B.push({nama:'🤖 Lawan '+(i+1),bot:1,w:wB,h:null})}
+ const kita=Math.random()<.5,F=kita?PH.A:PH.B,G=kita?PH.B:PH.A;   // tim yang memilih duluan diacak · urutan 1-2-2-1
+ PH.urutan=(n==1?[F[0],G[0]]:[F[0],G[0],G[1],F[1],F[2],G[2]]).map(s=>({s}));
+ phGiliran()}
+function phWaktu(t,akhir){$('#phT').textContent=t;$('#phWaktu').classList.toggle('akhir',!!akhir)}
+function phGiliran(){clearInterval(PH.tick);clearTimeout(PH.botT);PH.A.concat(PH.B).forEach(s=>s.giliran=0);
+ const u=PH.urutan[PH.k];
+ if(!u){PH.selesai=true;phSlot();phTombol();phBanner('Semua hero terkunci!');let t=5;phWaktu('00:0'+t);$('#info').textContent='Ganti skin sekarang kalau mau · pertandingan dimulai otomatis';
+  PH.tick=setInterval(()=>{t--;phWaktu('00:0'+Math.max(0,t),t<=2);if(t<=0){clearInterval(PH.tick);phMain()}},1000);return}
+ u.s.giliran=1;phSlot();phTombol();
+ if(u.s.aku){PH.t=30;phWaktu('00:30');phBanner('Giliran kamu memilih!');if(PH.lihat&&punyaHero(PH.lihat)&&!phDiambil(PH.lihat))pick=PH.lihat;
+  PH.tick=setInterval(()=>{PH.t--;phWaktu('00:'+String(Math.max(0,PH.t)).padStart(2,'0'),PH.t<=5);if(PH.t<=0){clearInterval(PH.tick);phKunciSaya(true)}},1000)}
+ else{const t0=Date.now(),lama=900+Math.random()*900;PH.t=30;phWaktu('00:30');
+  PH.tick=setInterval(()=>phWaktu('00:'+String(Math.max(0,30-Math.floor((Date.now()-t0)/1000))).padStart(2,'0')),250);
+  PH.botT=setTimeout(()=>{clearInterval(PH.tick);u.s.h=phPilihBot(u.s);u.s.s='';u.s.giliran=0;PH.k++;phGrid();phGiliran()},lama)}}
+function phPilihBot(s){const tim=PH.A.includes(s)?PH.A:PH.B,ada=tim.map(x=>x.h&&PERAN_G[x.h]).filter(Boolean);
+ const bebas=HEROK.filter(h=>!phDiambil(h)),kurang=['🛡️','🏹','⚔️'].filter(r=>!ada.includes(r)),pilih=bebas.filter(h=>kurang.includes(PERAN_G[h]));
+ const L=pilih.length?pilih:bebas;return L[Math.floor(Math.random()*L.length)]}
+function phKunciSaya(otomatis){const me=PH.A.find(s=>s.aku),u=PH.urutan[PH.k];if(!me||!u||u.s!==me)return;
+ let h=PH.lihat;if(!punyaHero(h)||phDiambil(h)){if(!otomatis){$('#info').textContent=!punyaHero(h)?'🔒 Pilih hero yang sudah kamu punya':'⛔ '+phNamaH(h)+' sudah dipilih, pilih hero lain';return}
+  h=punyaHero(pick)&&!phDiambil(pick)?pick:(HEROK.filter(x=>punyaHero(x)&&!phDiambil(x))[0]||'pocong')}
+ clearInterval(PH.tick);pick=h;PH.lihat=h;me.h=h;me.s=skinOf(h);me.giliran=0;PH.kunci=true;PH.k++;
+ $('#info').textContent=otomatis?'⏰ Waktu habis — dipilihkan: '+phNamaH(h):'';phBanner(phNamaH(h)+' dikunci!');phGrid();phInfo();phGiliran()}
+function phBanner(t){const e=$('#phBanner');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1300)}
+function phMain(){clearInterval(PH.tick);clearTimeout(PH.botT);const f=SOLO.lanjut;if(f)kgWait(f);else sc('menu')}
+function phBerhenti(){clearInterval(PH.tick);clearTimeout(PH.botT);clearTimeout(PH.mulaiT);if(window.PVH)window.PVH.henti()}
+// data hasil draft untuk game 3D (dibaca ke3D)
+function phHasil(){if(!PH.n||!PH.selesai)return null;const me=PH.A.find(s=>s.aku);
+ return{warna:PH.warnaA=='m'?'merah':'putih',kawan:PH.A.filter(s=>!s.aku).map(s=>s.h).join(','),musuh:PH.B.map(s=>s.h).join(','),me:me&&me.h}}
+// ---- ketukan cepat di HP: dianggap klik kalau jari bergeser < 12 px (di daftar yang bisa digulir, 'click' bawaan sering batal) ----
 function ketuk(el,fn){let x0=0,y0=0,t0=0,on=0;
  el.addEventListener('pointerdown',e=>{on=1;x0=e.clientX;y0=e.clientY;t0=performance.now()});
  el.addEventListener('pointercancel',()=>{on=0});
  el.addEventListener('pointerup',e=>{if(!on)return;on=0;if(Math.hypot(e.clientX-x0,e.clientY-y0)<12&&performance.now()-t0<900){e.preventDefault();fn()}});
- el.onclick=e=>{if(e.pointerType===''||e.detail===0)fn()}}   // keyboard / aksesibilitas
-$('#bChar').onclick=()=>{grid();sc('sel')};$('#bBack').onclick=()=>sc('menu');
+ el.onclick=e=>{if(e.detail===0)fn()}}   // keyboard
+{const I=$('#phCari');I.addEventListener('input',()=>{PH.cari=I.value.trim().toLowerCase();phGrid()});
+ const U=['Bawaan','A–Z','Role','Dimiliki'];ketuk($('#phUrut'),()=>{PH.urut=(PH.urut+1)%4;$('#phUrut').textContent='⇅ '+U[PH.urut];phGrid()});
+ document.querySelectorAll('.phList>button').forEach(b=>ketuk(b,()=>{$('#phGrid').scrollLeft+=(+b.dataset.d)*$('#phGrid').clientWidth*.8}));
+ new MutationObserver(()=>{if($('#sel').classList.contains('on')){if(window.PVH)window.PVH.mulai($('#phKv'))}else phBerhenti()}).observe($('#sel'),{attributes:true,attributeFilter:['class']})}
+
+$('#bChar').onclick=()=>{SOLO.mode='';soloHero(null,'Pilih',{n:0,mode:'🃏 Koleksi Hero',arena:'Lihat hero & atur skin'})};$('#bBack').onclick=()=>sc('menu');
 // ===== TOMBOL LAYAR MIRING (menu): layar penuh + kunci posisi miring; tekan lagi untuk keluar =====
 const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
 async function landscape(){const d=document.documentElement;
@@ -2270,6 +2444,7 @@ function ke3D(mode,x){if(!punyaHero(pick))pick='pocong';x=x||{};
  q.set('punya',HEROK.filter(punyaHero).map(h=>H3D[h]).join(','));if(mode=='bot'||mode=='nanas')q.set('lv',BOTLV);   // tingkat kesulitan bot (Main Solo)   // hero & skin milik pemain → bisa ganti hero di game 3D
  const SK3={'pocong:boneka':'ocong:boneka','pocong:emas':'ocong:emas','kuntilanak:merah':'kunti:merah','kuntilanak:gothic':'kunti:gothic','genderuwo:leak':'genderuwo:leak','genderuwo:calon':'genderuwo:calon','pitung:pendekar':'pitung:pendekar','buto:ijo':'buto:ijo','buto:golem':'buto:golem','doni:robot':'doni:robot','doni:dawala':'doni:dawala','doni:manchung':'doni:manchung','erick:robot':'erick:robot','erick:cepot':'erick:cepot','lutung:fox':'lutung:fox','saras:lina':'saras:lina','saras:santi':'saras:santi','timunmas:faniya':'timun:faniya','timunmas:airin':'timun:airin','tuyul:robot':'tuyul:robot','tuyul:halloween':'tuyul:halloween','tuyul:mecha':'tuyul:mecha','tuyul:setan':'tuyul:setan'};q.set('skins',[...new Set([...KOL.skin,...SKIN_GRATIS])].map(s=>SK3[s]).filter(Boolean).join(','));
  if(x.kode)q.set('kode',x.kode);if(x.pub!=null)q.set('pub',x.pub);if(x.arena)q.set('arena',x.arena);if(x.lobi)q.set('lobi',x.lobi);try{const sv=new URLSearchParams(location.search).get('server');if(sv)q.set('server',sv)}catch(e){}
+ {const d=phHasil();if(d&&(mode=='nanas'||mode=='bot')){q.set('warna',d.warna);if(mode=='nanas'){q.set('kawan',d.kawan);q.set('musuh',d.musuh)}else q.set('lawan',d.musuh)}}   // hasil draft Pilih Hero (rank)
  if(NET.ws&&NET.ws.readyState===1&&!x.lobi)netSend({t:'leave'});location.href='game3d.html?'+q}
 $('#bMain').onclick=()=>{agrid();sc('ars')};
 $('#aGo').onclick=()=>ke3D('bot');$('#aLat').onclick=()=>ke3D('latihan');
@@ -2281,16 +2456,17 @@ const SOLO={mode:'',lanjut:null};
 $('#bMain').onclick=()=>sc('solo');$('#slBack').onclick=()=>sc('menu');
 $('#slDuel').onclick=()=>{SOLO.mode='duel';agrid();sc('ars')};
 $('#slPk').onclick=()=>{SOLO.mode='pk';pkaGrid();sc('pka')};
-$('#slWn').onclick=()=>{SOLO.mode='nanas';soloHero(()=>ke3D('nanas',{arena:'nanas'}),'War Nanas 3 vs 3 · Bot '+['Mudah','Sedang','Susah','Pro Player'][BOTLV])};   // War Nanas: langsung pilih hero (arena khusus)
+$('#slWn').onclick=()=>{SOLO.mode='nanas';soloHero(()=>ke3D('nanas',{arena:'nanas'}),'War Nanas 3 vs 3 · Bot '+['Mudah','Sedang','Susah','Pro Player'][BOTLV],{n:3,mode:'⚔️ War Nanas 3v3',arena:'🍍 Kebun Nanas Subang · Bot '+['Mudah','Sedang','Susah','Pro Player'][BOTLV]})};   // War Nanas: langsung pilih hero (arena khusus)
 $('#aBack').onclick=$('#pkaBack').onclick=()=>sc('solo');
 let BOTLV=1;try{const v=localStorage.getItem('kgBotLv');if(v!=null)BOTLV=Math.min(3,Math.max(0,+v||0))}catch(e){}   // 0 Mudah · 1 Sedang · 2 Susah · 3 Pro Player
 function botLvTandai(){document.querySelectorAll('#aLv button').forEach(b=>b.classList.toggle('on',+b.dataset.lv===BOTLV))}
 document.querySelectorAll('#aLv button').forEach(b=>b.onclick=()=>{BOTLV=+b.dataset.lv;try{localStorage.setItem('kgBotLv',BOTLV)}catch(e){}botLvTandai()});botLvTandai();
-function soloHero(lanjut,ket){SOLO.lanjut=lanjut;$('#bGo').textContent='▶ '+ket;grid();$('#info').textContent='';sc('sel')}
-$('#aGo').onclick=()=>soloHero(()=>ke3D('bot'),'Lawan Bot · '+['Mudah','Sedang','Susah','Pro Player'][BOTLV]);$('#aLat').onclick=()=>soloHero(()=>ke3D('latihan'),'Latihan');
-$('#pkaGo').onclick=()=>{if(PKAR[PK.ar]&&PKAR[PK.ar].um){kgWait(mbBuatUmpet);return}soloHero(()=>{pkNetReset();pkMulai()},'Mulai Parkur')};   // Petak Umpet butuh teman → lobi Main Bareng
-$('#bGo').onclick=()=>{if(!punyaHero(pick)){$('#info').textContent='🔒 Pilih hero yang sudah kamu punya';return}const f=SOLO.lanjut;if(f)kgWait(f);else sc('menu')};
-$('#bBack').onclick=()=>sc(SOLO.mode=='pk'?'pka':SOLO.mode=='duel'?'ars':SOLO.mode=='nanas'?'solo':'menu');
+function soloHero(lanjut,ket,o){o=o||{};SOLO.lanjut=lanjut;$('#bGo').dataset.ket='▶ '+ket;$('#phModeB').textContent=o.mode||ket;$('#phArenaS').textContent=o.arena||'';phMulaiDraft(o.n||0);grid();$('#info').textContent='';sc('sel')}
+const arNama=()=>(AR3.find(a=>a.k==ar3)||{}).n||'';
+$('#aGo').onclick=()=>soloHero(()=>ke3D('bot'),'Lawan Bot · '+['Mudah','Sedang','Susah','Pro Player'][BOTLV],{n:1,mode:'🤖 Lawan Bot 1v1',arena:'🏟️ '+arNama()+' · Bot '+['Mudah','Sedang','Susah','Pro Player'][BOTLV]});$('#aLat').onclick=()=>soloHero(()=>ke3D('latihan'),'Latihan',{n:0,mode:'🎯 Latihan',arena:'🏟️ '+arNama()});
+$('#pkaGo').onclick=()=>{if(PKAR[PK.ar]&&PKAR[PK.ar].um){kgWait(mbBuatUmpet);return}soloHero(()=>{pkNetReset();pkMulai()},'Mulai Parkur',{n:0,mode:'🏃 Parkur Hantu',arena:(PKAR[PK.ar]&&PKAR[PK.ar].n)||''})};   // Petak Umpet butuh teman → lobi Main Bareng
+$('#bGo').onclick=()=>{if(PH.n){if(PH.selesai)phMain();else phKunciSaya(false);return}if(!punyaHero(pick)){$('#info').textContent='🔒 Pilih hero yang sudah kamu punya';return}const f=SOLO.lanjut;if(f)kgWait(f);else sc('menu')};
+$('#bBack').onclick=()=>{phBerhenti();PH.n=0;PH.A=[];PH.B=[];}; $('#bBack').addEventListener('click',()=>sc(SOLO.mode=='pk'?'pka':SOLO.mode=='duel'?'ars':SOLO.mode=='nanas'?'solo':'menu'));
 // gabung lewat kode / link / daftar room / ajakan teman: tanya server dulu jenis room-nya
 gabungRoom=function(c){c=String(c||'').replace(/\D/g,'').slice(0,4);if(c.length!==4)return;$('#djk').classList.remove('on');$('#ajk').classList.remove('on');onlBersih();bukaOnline();oStat('Mencari room <b>'+c+'</b>…');NET.joinC=c;netConnect({t:'cek',code:c})};
 const _netMsg=netMsg;netMsg=function(m){if(m&&m.t=='cek'){const c=m.code;
@@ -2885,4 +3061,63 @@ const _v = new THREE.Vector3();
 function proj(x, y, z) { _v.copy(V(x, y, z)).project(cam); return [(_v.x + 1) / 2 * 800, (1 - _v.y) / 2 * 400, _v.z > -1 && _v.z < 1]; }
 function hide() { kv.style.display = 'none'; }
 window.PKX = { ok: !!ren, draw, proj, hide };
+
+// ===================== PILIH HERO: model 3D hero di tengah layar, bisa diputar (geser jari / mouse) =====================
+// Renderer sendiri (kanvas #phKv, latar transparan) · hanya jalan saat layar Pilih Hero terbuka · HP: 30 fps, model ringan (model-3d-hp)
+const PV = { ren: null, sc: null, cam: null, root: null, alas: null, mix: null, jalan: false, tok: 0, rotY: 0, vRot: 0, drag: null, t0: 0, raf: 0 };
+function pvSiapkan(kv) {
+  if (PV.ren) return true;
+  try { PV.ren = new THREE.WebGLRenderer({ canvas: kv, alpha: true, antialias: !DI_HP, powerPreference: 'high-performance' }); } catch (e) { console.warn('[Pilih Hero] WebGL tidak tersedia', e); return false; }
+  PV.ren.outputColorSpace = THREE.SRGBColorSpace; PV.ren.toneMapping = THREE.ACESFilmicToneMapping; PV.ren.toneMappingExposure = 1.15;
+  PV.ren.setPixelRatio(Math.min(devicePixelRatio, HP_LEMAH ? 1 : DI_HP ? 1.25 : 1.75)); PV.ren.setClearColor(0x000000, 0);
+  PV.sc = new THREE.Scene(); PV.cam = new THREE.PerspectiveCamera(28, 1.3, .1, 60); PV.cam.position.set(0, 1.15, 6.4); PV.cam.lookAt(0, 1.02, 0);
+  PV.sc.add(new THREE.HemisphereLight(0xc8d4ff, 0x2a1a30, 1.7));
+  const kunci = new THREE.DirectionalLight(0xfff0dc, 2.3); kunci.position.set(2.5, 4, 4); PV.sc.add(kunci);
+  PV.tepi = new THREE.DirectionalLight(0xff4aa0, 1.6); PV.tepi.position.set(-3, 2.5, -3); PV.sc.add(PV.tepi);
+  const isi = new THREE.DirectionalLight(0x8ab0ff, .7); isi.position.set(-3, 1, 3); PV.sc.add(isi);
+  // alas: cincin sihir bercahaya + bayangan bulat
+  const tCincin = ctex(256, 256, (x, w) => { const c = w / 2, g = x.createRadialGradient(c, c, c * .55, c, c, c); g.addColorStop(0, '#fff0'); g.addColorStop(.72, '#ffffffcc'); g.addColorStop(.8, '#ffffff'); g.addColorStop(.88, '#ffffff55'); g.addColorStop(1, '#fff0'); x.fillStyle = g; x.fillRect(0, 0, w, w);
+    x.strokeStyle = '#ffffffaa'; x.lineWidth = 3; for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; x.beginPath(); x.moveTo(c + Math.cos(a) * c * .6, c + Math.sin(a) * c * .6); x.lineTo(c + Math.cos(a) * c * .66, c + Math.sin(a) * c * .66); x.stroke(); } });
+  PV.alas = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: tCincin, color: 0xff3a9a, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+  PV.alas.position.y = .01; PV.sc.add(PV.alas);
+  const tBay = ctex(128, 128, (x, w) => { const g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, '#000c'); g.addColorStop(1, '#0000'); x.fillStyle = g; x.fillRect(0, 0, w, w); });
+  const bay = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: tBay, transparent: true, depthWrite: false })); bay.position.y = .005; PV.sc.add(bay);
+  PV.root = new THREE.Group(); PV.sc.add(PV.root);
+  // putar dengan geser (lembam saat dilepas)
+  kv.addEventListener('pointerdown', e => { PV.drag = { x: e.clientX, t: performance.now() }; PV.vRot = 0; try { kv.setPointerCapture(e.pointerId); } catch (er) { } });
+  kv.addEventListener('pointermove', e => { if (!PV.drag) return; const dx = e.clientX - PV.drag.x; PV.drag.x = e.clientX; const d = dx * .011; PV.rotY += d; PV.vRot = d; });
+  const lepas = () => { PV.drag = null; }; kv.addEventListener('pointerup', lepas); kv.addEventListener('pointercancel', lepas);
+  kv.addEventListener('dblclick', () => { PV.vRot = 0; PV.rotY = 0; });
+  return true;
+}
+function pvLoop() {
+  if (!PV.jalan) return; PV.raf = requestAnimationFrame(pvLoop);
+  const now = performance.now(); if (now - PV.t0 < (DI_HP ? 31 : 15)) return; const dt = Math.min(.1, (now - PV.t0) / 1000); PV.t0 = now;
+  const kv = PV.ren.domElement, w = kv.clientWidth, h = kv.clientHeight; if (!w || !h) return;
+  if (kv.width !== Math.round(w * PV.ren.getPixelRatio()) || kv.height !== Math.round(h * PV.ren.getPixelRatio())) { PV.ren.setSize(w, h, false); PV.cam.aspect = w / h; PV.cam.updateProjectionMatrix(); }
+  if (!PV.drag) { PV.vRot *= .9; PV.rotY += PV.vRot; if (Math.abs(PV.vRot) < .0005) { const d = Math.atan2(Math.sin(PV.rotY), Math.cos(PV.rotY)); if (now - (PV.diamT || 0) > 4000) PV.rotY -= d * Math.min(1, dt * 1.5); } else PV.diamT = now; }
+  else PV.diamT = now;
+  PV.root.rotation.y = PV.rotY; if (PV.mix) PV.mix.update(dt);
+  PV.alas.rotation.y += dt * .35; PV.alas.material.opacity = .75 + .25 * Math.sin(now / 420);
+  PV.ren.render(PV.sc, PV.cam);
+}
+function pvMulai(kv) { if (!pvSiapkan(kv)) return; if (PV.jalan) return; PV.jalan = true; PV.t0 = performance.now(); pvLoop(); }
+function pvHenti() { PV.jalan = false; cancelAnimationFrame(PV.raf); }
+function pvTampil(id, skin, warna) {
+  const tok = ++PV.tok;
+  if (PV.alas && warna != null) { PV.alas.material.color.setHex(warna); PV.tepi.color.setHex(warna); }
+  return muatModel(urlHero(id, skin)).then(gl => {
+    if (tok !== PV.tok || !PV.root) return;
+    while (PV.root.children.length) PV.root.remove(PV.root.children[0]);
+    const m = klonKerangka(gl.scene), bb = gl.kotak, h = (bb.max.y - bb.min.y) || 1, k = 2.05 / h;
+    m.scale.setScalar(k); if (id == 'pocong' && skin != 'pocong:boneka') m.scale.set(k * 1.2, k, k * 1.2);
+    m.position.set(-(bb.min.x + bb.max.x) / 2 * k, -bb.min.y * k, -(bb.min.z + bb.max.z) / 2 * k);
+    m.traverse(o => { if (o.name === 'gendKepal' || /^(patung_|duyung$)/.test(o.name)) o.visible = false;
+      if (o.isMesh) { o.frustumCulled = false; if (skin == 'pocong:emas') { o.material = o.material.clone(); o.material.color = new THREE.Color(0xff9ccf); } } });
+    PV.root.add(m); PV.mix = new THREE.AnimationMixer(m); if (gl.klipDiam) PV.mix.clipAction(gl.klipDiam).play();
+    PV.rotY = 0; PV.vRot = 0;
+  });
+}
+window.PVH = { mulai: pvMulai, henti: pvHenti, tampil: pvTampil };
+if (document.getElementById('sel') && document.getElementById('sel').classList.contains('on')) pvMulai(document.getElementById('phKv'));
 </script></body></html>
