@@ -370,7 +370,7 @@ const ENV = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 
 scene.environment = ENV;
 scene.environmentIntensity = .35;
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 200);
-const CAM_OFF = new THREE.Vector3(0, 12.5, 11.5);
+const CAM_OFF = new THREE.Vector3(0, 7.2, 10.1);   // ≈ sudut 35,5° · jarak 12,4 (disamakan dengan kamera Custom bawaan)
 
 // langit senja (gradasi)
 scene.background = (() => {
@@ -1143,7 +1143,7 @@ function updEfek(dt) {
 // ================== BONEKA (PEMAIN) ==================
 const P = { root: new THREE.Group(), tilt: new THREE.Group(), model: null, mixer: null, act: {}, cur: '', arah: 0, cd: [0, 0, 0, 0], state: 'bebas', t: 0, hp: HP_MAX[HERO] };
 P.root.add(P.tilt); scene.add(P.root); P.root.position.set(0, 0, 4);
-const CD_MAX = HERO === 'roro' ? [.6, 7, 10, 18] : HERO === 'wiro' ? [.45, 7, 8, 16] : HERO === 'kiansantang' ? [.45, 13, 10, 20] : HERO === 'sangkuriang' ? [.55, 12, 8, 18] : HERO === 'ciung' ? [.7, 9, 8, 20] : HERO === 'siliwangi' ? [.5, 14, 10, 20] : HERO === 'nyi' ? [.6, 10, 9, 16] : HERO === 'dayang' ? [.55, 6, 8, 14] : HERO === 'angling' ? [.6, 7, 6, 15] : HERO === 'saras' ? [.4, 7, 8, 15] : HERO === 'lutung' ? [.45, 7, 8, 14] : HERO === 'buto' ? [.7, 7, 8, 14] : HERO === 'timun' ? [.6, 6, 7, 13] : HERO === 'doni' ? [.27, 5, 8, 12] : HERO === 'erick' ? [.5, 5, 8, 14] : HERO === 'pitung' ? [.3, 5, 6, 12] : HERO === 'genderuwo' ? [.75, 6, 7, 14] : HERO === 'tuyul' ? [.4, 5, 8, 12] : HERO === 'kunti' ? [.5, 4, 9, 6] : [.5, 4, 4, 6];   // Kunti: skill 2 (Mode Terbang) jeda 9 dtk   // jeda: serangan, skill 1, 2, 3 (detik)
+const CD_MAX = HERO === 'roro' ? [.6, 7, 10, 18] : HERO === 'wiro' ? [.45, 7, 8, 16] : HERO === 'kiansantang' ? [.45, 13, 10, 20] : HERO === 'sangkuriang' ? [.55, 12, 8, 18] : HERO === 'ciung' ? [.7, 9, 8, 20] : HERO === 'siliwangi' ? [.5, 14, 10, 20] : HERO === 'nyi' ? [.6, 10, 9, 16] : HERO === 'dayang' ? [.55, 6, 8, 14] : HERO === 'angling' ? [.6, 7, 6, 15] : HERO === 'saras' ? [.4, 7, 8, 15] : HERO === 'lutung' ? [.45, 7, 8, 14] : HERO === 'buto' ? [.7, 7, 8, 14] : HERO === 'timun' ? [.6, 6, 7, 13] : HERO === 'doni' ? [.27, 5, 8, 12] : HERO === 'erick' ? [.5, 5, 8, 14] : HERO === 'pitung' ? [.3, 5, 6, 12] : HERO === 'genderuwo' ? [.75, 6, 7, 14] : HERO === 'tuyul' ? [.4, 5, 8, 12] : HERO === 'kunti' ? [.6, 4, 9, 6] : [.5, 4, 4, 6];   // Kunti: skill 2 (Mode Terbang) jeda 9 dtk   // jeda: serangan, skill 1, 2, 3 (detik)
 
 // rapikan animasi Mixamo: badan tidak berputar menyamping & tidak bergeser sendiri
 function rapikanKlip(clip, model, tRef, putar) {
@@ -1594,7 +1594,7 @@ function pakaiAsli(i) {
 const K = { mats: [], peluru: [], penjara: [], gel: [], bidik: false, diarahkan: false, terbangT: 0, lesat: 0, arahLesat: 0, condong: 0, miring: 0 };
 const OCONG_CEPAT = 4;     // kecepatan gerak Ocong, semua skin (meter/detik)
 const KUNTI_CEPAT = 3.6;
-const KUNTI_DASAR = 26;   // damage serangan dasar Kunti (Bola Roh)   // kecepatan gerak biasa Kunti (meter/detik); Ocong 4,4
+const KUNTI_DASAR = 55;   // damage serangan dasar Kunti (Bola Roh) — disamakan dengan mage lain (55, jeda .6 dtk)   // kecepatan gerak biasa Kunti (meter/detik); Ocong 4,4
 const TERBANG = { lama: 4, cepat: 1.35, lesat: 3.5, lesatLama: .3 };   // Mode Terbang: 4 dtk, kecepatan x1,35 (≈ 4,9 m/dtk), melesat 3,5 m di awal
 const KW = { ungu: 0xb040ff, merah: 0xff3050, pucat: 0xffc0e0 };
 const KW_L = { ungu: 0x6a5cff, merah: 0xa8dcff, pucat: 0xffffff, lun: 1 };   // skin Lunara: tema Cahaya Bulan (ungu kebiruan + perak)
@@ -4812,9 +4812,9 @@ const camPos = new THREE.Vector3(), camLihat = new THREE.Vector3();
 // Custom: geser layar kosong untuk memutar kamera, cubit / roda mouse untuk zoom (War Nanas memakai Custom kalau belum pernah dipilih)
 // HP: seret jari di area layar yang bukan joystick & tombol · PC: seret mouse (kiri/kanan) di layar · roda mouse = zoom
 // arah joystick, WASD & arah bidik skill ikut berputar sesuai arah kamera
-const KAM = { on: MODE === 'nanas', yaw: 0, pitch: .5, jarak: 10, min: 5, maks: 18, jari: new Map(), cubit: 0, kunci: false };
+const KAM = { on: MODE === 'nanas', yaw: 0, pitch: .62, jarak: 12, min: 5, maks: 18, jari: new Map(), cubit: 0, kunci: false };
 // 🔒 kunci sudut: kamera Custom tidak bisa diputar / di-zoom (sudut, tinggi & jarak tersimpan di HP sampai dibuka lagi)
-try { const k = JSON.parse(localStorage.getItem('kgKamRoblox') || 'null'); if (k) { KAM.pitch = Math.min(1.25, Math.max(.12, +k.p || .5)); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, +k.j || 10)); KAM.kunci = !!k.k; if (KAM.kunci && isFinite(+k.y)) KAM.yaw = +k.y; } } catch (e) { }
+try { const k = JSON.parse(localStorage.getItem('kgKamRoblox') || 'null'); if (k) { KAM.pitch = Math.min(1.25, Math.max(.12, +k.p || .62)); KAM.jarak = Math.min(KAM.maks, Math.max(KAM.min, +k.j || 12)); KAM.kunci = !!k.k; if (KAM.kunci && isFinite(+k.y)) KAM.yaw = +k.y; } } catch (e) { }
 try { const m = localStorage.getItem('kgKamMode'); if (m === 'custom' || m === 'bawaan') KAM.on = m === 'custom'; } catch (e) { }
 const kamCustom = () => KAM.on && !UMP.on && !TIM.tonton;   // Petak Umpet & wasit tetap memakai kamera bawaan
 function tandaKam() { const b = $('#bKam'); if (b) { b.textContent = KAM.on ? '🎥 Custom' : '🎥 Bawaan'; b.classList.toggle('on', KAM.on); }
