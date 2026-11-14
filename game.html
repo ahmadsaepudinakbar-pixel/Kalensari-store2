@@ -3068,13 +3068,14 @@ const PV = { ren: null, sc: null, cam: null, root: null, alas: null, mix: null, 
 function pvSiapkan(kv) {
   if (PV.ren) return true;
   try { PV.ren = new THREE.WebGLRenderer({ canvas: kv, alpha: true, antialias: !DI_HP, powerPreference: 'high-performance' }); } catch (e) { console.warn('[Pilih Hero] WebGL tidak tersedia', e); return false; }
-  PV.ren.outputColorSpace = THREE.SRGBColorSpace; PV.ren.toneMapping = THREE.ACESFilmicToneMapping; PV.ren.toneMappingExposure = .95;
+  PV.ren.outputColorSpace = THREE.SRGBColorSpace; PV.ren.toneMapping = THREE.ACESFilmicToneMapping; PV.ren.toneMappingExposure = 1.2;
   PV.ren.setPixelRatio(Math.min(devicePixelRatio, HP_LEMAH ? 1.5 : DI_HP ? 1.75 : 2));   // area kecil → boleh tajam PV.ren.setClearColor(0x000000, 0);
   PV.sc = new THREE.Scene(); PV.cam = new THREE.PerspectiveCamera(28, 1.3, .1, 60); PV.cam.position.set(0, 1.15, 6.4); PV.cam.lookAt(0, 1.02, 0);
-  PV.sc.add(new THREE.HemisphereLight(0x7f9ad8, 0x2a2016, 1.15));   // langit malam kebiruan · tanah batu gelap
-  const bulan = new THREE.DirectionalLight(0xb8ccff, 1.25); bulan.position.set(1.5, 5, 2); PV.sc.add(bulan);   // cahaya bulan dari atas
-  const lentera = new THREE.PointLight(0xffa24a, 5, 7, 1.6); lentera.position.set(2.2, 1.3, 1.6); PV.sc.add(lentera);   // lentera kanan (hangat)
-  const lentera2 = new THREE.PointLight(0xff9a40, 3, 7, 1.6); lentera2.position.set(-2.4, 1.1, 1.2); PV.sc.add(lentera2);   // lentera kiri
+  PV.sc.add(new THREE.HemisphereLight(0xb4c4f0, 0x4a3a2a, 2.1));   // langit malam kebiruan · tanah batu gelap
+  const bulan = new THREE.DirectionalLight(0xc8d6ff, 1.4); bulan.position.set(1.5, 5, 2); PV.sc.add(bulan);
+  const depan = new THREE.DirectionalLight(0xfff2e4, 1.9); depan.position.set(.4, 1.8, 6); PV.sc.add(depan);   // cahaya utama dari arah kamera: wajah & baju terlihat jelas   // cahaya bulan dari atas
+  const lentera = new THREE.PointLight(0xffa24a, 7, 8, 1.4); lentera.position.set(2.2, 1.3, 1.6); PV.sc.add(lentera);   // lentera kanan (hangat)
+  const lentera2 = new THREE.PointLight(0xff9a40, 4.5, 8, 1.4); lentera2.position.set(-2.4, 1.1, 1.2); PV.sc.add(lentera2);   // lentera kiri
   PV.tepi = new THREE.DirectionalLight(0x6a8cff, 1.4); PV.tepi.position.set(-2, 2.5, -3.5); PV.sc.add(PV.tepi);   // garis cahaya di belakang (warna tim)
   // alas: cincin sihir bercahaya + bayangan bulat
   const tCincin = ctex(256, 256, (x, w) => { const c = w / 2, g = x.createRadialGradient(c, c, c * .55, c, c, c); g.addColorStop(0, '#fff0'); g.addColorStop(.72, '#ffffffcc'); g.addColorStop(.8, '#ffffff'); g.addColorStop(.88, '#ffffff55'); g.addColorStop(1, '#fff0'); x.fillStyle = g; x.fillRect(0, 0, w, w);
