@@ -8072,7 +8072,7 @@ function updBarPemain() {
 async function siapkanBot() {
   const bar = document.createElement('div'); bar.className = 'hp lawan'; bar.innerHTML = '<i></i><span class="nm"></span>'; $('#bars').appendChild(bar);
   const h = pilihAcak(BOT_HERO), namaBot = hero => { const n = NAMA_HERO[hero] + ' · Bot ' + BOT_LV[BOT_LV_I].ik + ' ' + BOT_LV[BOT_LV_I].n; bar.querySelector('.nm').textContent = n; $('#nmlawan').textContent = 'vs ' + n; if (BOT) BOT.mt.nama = n; };
-  BOT = await buatBotPro({ hero: h, lv: BOT_LV_I, skin: pilihAcak(BOT_SKIN[h]), nama: 'Bot', bar, posAwal: new THREE.Vector3(0, 0, PUSAT_Z - JARAK_AWAL()), arahAwal: 0, id: null, onHero: namaBot,
+  BOT = await buatBotPro({ hero: h, lv: BOT_LV_I, skin: pilihAcak(BOT_SKIN[h] || ['']), nama: 'Bot', bar, posAwal: new THREE.Vector3(0, 0, PUSAT_Z - JARAK_AWAL()), arahAwal: 0, id: null, onHero: namaBot,
     ctx: { kawan: false,
       sasaran: b => { const p = P.state !== 'kalah' && !SELESAI && !(TY.hilang > 0) && !(SLW.hilang > 0) && !(KS.hilang > 0) && (terlihatDari(P.root.position, b.root.position) || P.ungkap > 0) ? P : null;   // bot tidak melihat pemain di semak / saat menghilang
         const kb = !SELESAI && P.ksBayang; if (kb && kb.hp > 0 && kb.umur > 0) { const dK = kb.g.position.distanceTo(b.root.position); if (!p || dK < p.root.position.distanceTo(b.root.position) * .8) return kembarEnt(kb); }   // kembaran lebih dekat: diserang
