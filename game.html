@@ -593,15 +593,23 @@ const headOf=f=>heroHead(f.id,f.skin);
 const stars=Array.from({length:50},()=>[Math.random()*W,Math.random()*160]);
 function grid(){if(!punyaHero(pick))pick='pocong';
  $('#grid').innerHTML=ALL.map(a=>{const x=a[0]=='x',own=!x&&punyaHero(a[0]);return `<div class="card ${a[0]==pick?'sel':''} ${x?'off':own?'':'lock'}" data-id="${a[0]}" data-n="${a[1]}"><i style="background:${x?a[2]:'url('+heroHead(a[0],skinOf(a[0]))+') center/cover #1a1030'}"></i>${!x&&!own?'🔒 ':''}${PERAN_G[a[0]]?PERAN_G[a[0]]+' ':''}${a[1]}</div>`}).join('');
- const sk=Object.entries(SKINS).filter(([id,v])=>v.h==pick),cur=skinOf(pick);
- $('#skins').innerHTML=sk.length?`<span>Skin:</span><b class="sk ${cur?'':'on'}" data-s="">Bawaan</b>`+sk.map(([id,v])=>`<b class="sk ${cur==id?'on':''} ${punyaSkin(id)?'':'lk'}" data-s="${id}">${punyaSkin(id)?'':'🔒 '}${v.n}</b>`).join(''):'';
- document.querySelectorAll('#grid .card').forEach(c=>c.onclick=()=>{const id=c.dataset.id;
+ skinRow();
+ document.querySelectorAll('#grid .card').forEach(c=>ketuk(c,()=>{const id=c.dataset.id;
   if(id=='x'){$('#info').textContent=c.dataset.n+' segera hadir'}
   else if(!punyaHero(id)){$('#info').textContent='🔒 '+c.dataset.n+' terkunci — scan kartu '+c.dataset.n+' di menu 🃏 Kartu'}
-  else{pick=id;$('#info').textContent='';grid()}});
- document.querySelectorAll('#skins .sk').forEach(b=>b.onclick=()=>{const id=b.dataset.s;
+  else{pick=id;$('#info').textContent='';document.querySelectorAll('#grid .card.sel').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');skinRow()}}))}   // pilih hero: cukup pindah tanda, tidak membangun ulang 22 kotak
+function skinRow(){const sk=Object.entries(SKINS).filter(([id,v])=>v.h==pick),cur=skinOf(pick);
+ $('#skins').innerHTML=sk.length?`<span>Skin:</span><b class="sk ${cur?'':'on'}" data-s="">Bawaan</b>`+sk.map(([id,v])=>`<b class="sk ${cur==id?'on':''} ${punyaSkin(id)?'':'lk'}" data-s="${id}">${punyaSkin(id)?'':'🔒 '}${v.n}</b>`).join(''):'';
+ document.querySelectorAll('#skins .sk').forEach(b=>ketuk(b,()=>{const id=b.dataset.s;
   if(id&&!punyaSkin(id)){$('#info').textContent='🔒 Skin '+SKINS[id].n+' terkunci — scan kartu skinnya di menu 🃏 Kartu';return}
-  skinPick[pick]=id;try{localStorage.setItem('kgSkin',JSON.stringify(skinPick))}catch(e){}$('#info').textContent='';grid()})}
+  skinPick[pick]=id;try{localStorage.setItem('kgSkin',JSON.stringify(skinPick))}catch(e){}$('#info').textContent='';
+  const c=document.querySelector(`#grid .card[data-id="${pick}"] i`);if(c)c.style.background='url('+heroHead(pick,skinOf(pick))+') center/cover #1a1030';skinRow()}))}
+// ketukan cepat di HP: dianggap klik kalau jari bergeser < 12 px (di daftar yang bisa digulir, 'click' bawaan sering batal karena dikira menggulir)
+function ketuk(el,fn){let x0=0,y0=0,t0=0,on=0;
+ el.addEventListener('pointerdown',e=>{on=1;x0=e.clientX;y0=e.clientY;t0=performance.now()});
+ el.addEventListener('pointercancel',()=>{on=0});
+ el.addEventListener('pointerup',e=>{if(!on)return;on=0;if(Math.hypot(e.clientX-x0,e.clientY-y0)<12&&performance.now()-t0<900){e.preventDefault();fn()}});
+ el.onclick=e=>{if(e.pointerType===''||e.detail===0)fn()}}   // keyboard / aksesibilitas
 $('#bChar').onclick=()=>{grid();sc('sel')};$('#bBack').onclick=()=>sc('menu');
 // ===== TOMBOL LAYAR MIRING (menu): layar penuh + kunci posisi miring; tekan lagi untuk keluar =====
 const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
