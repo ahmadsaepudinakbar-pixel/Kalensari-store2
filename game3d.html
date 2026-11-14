@@ -7746,6 +7746,16 @@ function wnRumahTitik() {   // titik sasaran Rumah ikut ke dinding yang paling d
     g.position.set(E.home.x + dx / L * r, 0, E.home.z + dz / L * r); }
 }
 function wnLihatTim(pos, r) { for (const u of WN.U) if (u.tm === 0 && u.hidup && Math.hypot(u.pos.x - pos.x, u.pos.z - pos.z) < r) return true; return false; }   // jangkauan pandang tim saya (pemain + teman)
+const WN_PADAT_MON = { mon: .8, buaya: 1.4 }, WN_JALAN_MAKS = 8;   // jari-jari badan monster yang tidak bisa ditembus · lebih cepat dari 8 m/dtk = dash/lompat/blink → boleh menembus
+function wnPadatMon(dt) {   // hero & bot tidak bisa berjalan menembus monster hutan / Buaya Danau (dash, lompat & blink tetap bisa lewat, seperti MLBB)
+  const M = WN.E.filter(E => WN_PADAT_MON[E.jenis] && !E.mati && E.g.visible); if (!M.length || dt <= 0) return;
+  const tahan = (u, v) => { const pr = u._wnPrev || (u._wnPrev = v.clone()), L = Math.hypot(v.x - pr.x, v.z - pr.z);
+    if (L <= WN_JALAN_MAKS * dt + .02 && v.y < .5) for (const E of M) { const c = E.g.position, R = WN_PADAT_MON[E.jenis] + .35, dx = v.x - c.x, dz = v.z - c.z, d = Math.hypot(dx, dz);
+      if (d < R) { if (d < 1e-3) { v.x = c.x + R; } else { v.x = c.x + dx / d * R; v.z = c.z + dz / d * R; if (u !== P) { const sg = (u.id | 0) % 2 ? 1 : -1; v.x += -dz / d * sg * 2.5 * dt; v.z += dx / d * sg * 2.5 * dt; } } } }   // bot: geser memutari monster supaya tidak tersangkut
+    pr.copy(v); };
+  if (P.state !== 'kalah') tahan(P, P.root.position); else P._wnPrev = null;
+  TIM.bot.forEach(o => { if (o.mt.mati) { o._wnPrev = null; return; } tahan(o, o.root.position); });
+}
 function wnUpd(dt) {
   if (WN.riak) { const tt = performance.now() / 1000; WN.riak.forEach(R => { R.m.rotation.y += dt * R.v; R.m.material.opacity = R.op * (R.tepi ? .75 + .25 * Math.sin(tt * 4) : .85 + .15 * Math.sin(tt * 2 + R.k)); }); }
   if (!WN.siap || !TIM.main) return;
@@ -7786,6 +7796,7 @@ function wnUpd(dt) {
     if (E.jenis === 'mon' || E.jenis === 'singa' || E.jenis.startsWith('buaya')) wnAnim(E, dt);
     if (E.jenis === 'rumah') { const bd = E.g.userData.bendera; if (bd) bd.rotation.y = Math.sin(performance.now() / 300) * .25; }
   });
+  wnPadatMon(dt);
   _q = cekS('WN: AI & gerak monster/singa/garuda', _q);
   wnUpdBola(dt); wnUpdTugu(dt); wnKartuUpd(dt);
   _q = cekS('WN: bola, tugu, kartu', _q);
