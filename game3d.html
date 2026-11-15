@@ -6315,9 +6315,9 @@ function updRoro(dt, pos, f) {
 const MD = { cepat: 3.8, tsLari: 1, kuning: 0xffc83a, oranye: 0xff7a20, putih: 0xffffff, hijau: 0x6a7a3a,
   tembak: { ts: 1.6, rilis: .16, akhir: .42, jarak: 8.5, dmg: 62, lebar: .45 },
   granat: { ts: 2.6, rilis: .5, akhir: .95, jarak: 7.5, R: 2.6, terbang: .65, dmg: 175, lambat: 1.2, dorong: 3 },
-  lompat: { ts: 2.8, lama: .62, jarak: 5.5, tinggi: 1.5 },
+  lompat: { ts: 2.8, lama: .62, jarak: 5.5, tinggi: 0 },   // tinggi 0: berguling di lantai saja (tidak melayang)
   sniper: { lama: 10, jarak: 40, dmg: 520, fov: 56, zoomMin: 2, zoomMaks: 8, zoomAwal: 3, putar: 1.5, atas: .6, bawah: -.45, mata: .45, lebar: .45 },   // teropong orang pertama: zoom 2×–8×, menoleh kiri-kanan & atas-bawah
-  bren: { lama: 8, jeda: .1, jarak: 9, dmg: 17, lebar: .5, depan: .85, tinggi: 1.15, putar: 7 } };
+  bren: { lama: 8, jeda: .1, jarak: 9, dmg: 17, lebar: .5, depan: .85, tinggi: 1.15, putar: 7, gagang: .8, masuk: .06 } };   // gagang: tinggi pegangan belakang (bagian dari tinggi minigun) · masuk: gagang sedikit masuk ke genggaman
 const MD_URL = 'model-3d/masdim.glb?v=1';
 const MD_SJ = { senapan: { url: 'model-3d/masdim-senapan.glb?v=1', glb: null, muat: false, laras: 'z', panjang: .95, pegang: .36 },   // panjang senjata di game (meter, tinggi hero 1,7) · pegang: posisi gagang dari pangkal popor (0..1)
   sniper: { url: 'model-3d/masdim-sniper.glb?v=1', glb: null, muat: false, laras: 'x', panjang: 1.25, pegang: .3 },
@@ -6381,7 +6381,8 @@ function senjataMasdim(k) {
   if (S.laras === 'x') rot.rotation.y = -Math.PI / 2; else if (S.laras === '-x') rot.rotation.y = Math.PI / 2;   // laras → +Z
   rot.updateMatrixWorld(true); const bb = new THREE.Box3().setFromObject(rot), uk = bb.getSize(new THREE.Vector3());
   if (k === 'granat') { const s = .16 / Math.max(uk.x, uk.y, uk.z, .001); rot.scale.setScalar(s); rot.position.copy(bb.getCenter(new THREE.Vector3()).multiplyScalar(-s)); return luar; }
-  if (k === 'bren') { const s = MD.bren.tinggi / Math.max(uk.y, .001); rot.scale.setScalar(s); rot.position.set(-(bb.min.x + bb.max.x) / 2 * s, -bb.min.y * s, -(bb.min.z + bb.max.z) / 2 * s); return luar; }   // berdiri di tanah, titik tengah tiang di (0,0,0)
+  if (k === 'bren') { const s = MD.bren.tinggi / Math.max(uk.y, .001); rot.scale.setScalar(s); rot.position.set(-(bb.min.x + bb.max.x) / 2 * s, -bb.min.y * s, -(bb.min.z + bb.max.z) / 2 * s);
+    luar.userData.belakang = uk.z / 2 * s; luar.userData.gagang = MD.bren.gagang * MD.bren.tinggi; return luar; }   // belakang: tiang → ujung belakang (tempat tangan) · gagang: tinggi pegangan   // berdiri di tanah, titik tengah tiang di (0,0,0)
   const s = S.panjang / Math.max(uk.z, .001); rot.scale.setScalar(s);
   rot.position.set(-(bb.min.x + bb.max.x) / 2 * s, -(bb.min.y + (bb.max.y - bb.min.y) * .55) * s, -(bb.min.z + uk.z * S.pegang) * s);   // gagang (sepertiga dari popor, agak ke bawah) di titik nol
   return luar;
@@ -6451,17 +6452,17 @@ function mdLedak(c, R = MD.granat.R) {
 function mdLompatDebu(pos) { const p = pos.clone(); p.y = 0; asap(p, 4, 0xb8a888, .8, .5); gelombang(p, 1.1, .3, 0xd8c8a8); }
 // bren: minigun bertiang berdiri di depan Masdim (semua pemain melihatnya) · lama: detik sebelum hilang sendiri (aman bila pesan "lepas" tidak sampai)
 const MD_BREN = new Map();
-function mdBren(pos, a, id, lama = MD.bren.lama + .5) {
+function mdBren(pos, a, id, lama = MD.bren.lama + .5, depanB = MD.bren.depan, sk = 1) {
   if (MD_BREN.has(id)) { MD_BREN.get(id).umur = lama; return; }
-  const g = senjataMasdim('bren'), c = pos.clone().add(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)).multiplyScalar(MD.bren.depan)); c.y = 0; g.position.copy(c); g.rotation.y = a; scene.add(g);
+  const g = senjataMasdim('bren'), c = pos.clone().add(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)).multiplyScalar(depanB)); c.y = 0; g.position.copy(c); g.rotation.y = a; g.scale.setScalar(sk); scene.add(g);
   asap(c.clone(), 4, 0x8a8070, .9, .5); gelombang(c.clone().setY(.05), 1, .3, MD.kuning);
-  const B = { g, a, umur: lama, putar: 0 }; MD_BREN.set(id, B);
-  TMFX.push({ t: 0, upd(e, dt) { B.umur -= dt; let d = B.a - g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); g.rotation.y += d * Math.min(1, dt * 14); return B.umur > 0; },
+  const B = { g, a, umur: lama, putar: 0, depan: depanB, pos: pos.clone() }; MD_BREN.set(id, B);
+  TMFX.push({ t: 0, upd(e, dt) { B.umur -= dt; let d = B.a - g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); g.rotation.y += d * Math.min(1, dt * 14); const r = g.rotation.y; g.position.x = B.pos.x + Math.sin(r) * B.depan; g.position.z = B.pos.z + Math.cos(r) * B.depan; return B.umur > 0; },
     akhir() { asap(g.position.clone(), 3, 0x8a8070, .7, .4); scene.remove(g); MD_BREN.delete(id); } });
 }
-function mdBrenArah(id, a, pos) { const B = MD_BREN.get(id); if (!B) return; B.a = a; if (pos) { B.g.position.x = pos.x + Math.sin(a) * MD.bren.depan; B.g.position.z = pos.z + Math.cos(a) * MD.bren.depan; } }
+function mdBrenArah(id, a, pos, depanB, sk) { const B = MD_BREN.get(id); if (!B) return; B.a = a; if (depanB != null) B.depan = depanB; if (sk) B.g.scale.setScalar(sk); if (pos) B.pos = pos.clone(); const p = B.pos; B.g.position.x = p.x + Math.sin(a) * B.depan; B.g.position.z = p.z + Math.cos(a) * B.depan; }
 function mdBrenLepas(id) { const B = MD_BREN.get(id); if (B) B.umur = 0; }
-function mdBrenMoncong(id, a) { const B = MD_BREN.get(id), p = new THREE.Vector3(); if (B) p.copy(B.g.position); p.y = MD.bren.tinggi * .78; return p.addScaledVector(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), .75); }
+function mdBrenMoncong(id, a) { const B = MD_BREN.get(id), p = new THREE.Vector3(); if (B) p.copy(B.g.position); p.y = MD.bren.tinggi * .78 * (B ? B.g.scale.x : 1); return p.addScaledVector(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), .75); }
 // ---- teropong sniper (layar) ----
 function mdTeropong(on) {
   let o = document.getElementById('mdScope');
@@ -6521,7 +6522,7 @@ function mdMasukMode(m) {
     const s = terdekat(MD.sniper.jarak); if (s) hadapKe(s.g.position); MDW.yaw = P.arah; MDW.pitch = 0; MDW.zoom = MD.sniper.zoomAwal; if (MDW_FOV0 == null) MDW_FOV0 = camera.fov;
     main('sniper', .2); mdTeropong(true); banner('🎯 MODE SNIPER — geser layar / joystick untuk membidik, cubit / roda mouse untuk zoom, tekan serang untuk menembak', '#ffffff');
   } else {
-    MDW.brenId = Math.floor(Math.random() * 1e9); MDW.brenT = 0; const m0 = terdekat(MD.bren.jarak); if (m0) hadapKe(m0.g.position);
+    MDW.brenId = Math.floor(Math.random() * 1e9); MDW.brenT = 0; MDW.brenDepan = null; MDW.arahBren = null; const m0 = terdekat(MD.bren.jarak); if (m0) hadapKe(m0.g.position);
     fx('mdBren', pos.clone(), P.arah, MDW.brenId, MD.bren.lama + .5); main('bren', .15); banner('🔫 MODE BREN — tahan serang untuk menembak', '#ffc070');
   }
   P.aksiDasar = false;
@@ -6594,7 +6595,12 @@ function updMasdim(dt, pos, f) {
       const tahan = MDW.tahanTombol || inp.k.j || inp.k[' '] || (MDW.tahanT || 0) > 0; MDW.tahanT = Math.max(0, (MDW.tahanT || 0) - dt);
       if (MDW.arahTahan != null) P.arah = MDW.arahTahan; else if (tahan) { const m = terdekat(B.jarak + .5); if (m) hadapKe(m.g.position); }
       { let d = P.arah - (MDW.arahBren != null ? MDW.arahBren : P.arah); d = Math.atan2(Math.sin(d), Math.cos(d)); MDW.arahBren = (MDW.arahBren != null ? MDW.arahBren : P.arah) + d * Math.min(1, dt * B.putar); }
-      MDW.brenKirim = (MDW.brenKirim || 0) - dt; if (MDW.brenKirim <= 0) { MDW.brenKirim = .12; fx('mdBrenArah', MDW.brenId, MDW.arahBren, pos.clone()); }
+      { const Bo = MD_BREN.get(MDW.brenId); if (Bo && P.mdTanganR && P.mdTanganL) {   // gagang belakang minigun tepat di antara kedua tangan Masdim, tinggi gagang = tinggi tangan
+          P.mdTanganR.getWorldPosition(_mdR); P.mdTanganL.getWorldPosition(_mdL); const mx = (_mdR.x + _mdL.x) / 2 - pos.x, mz = (_mdR.z + _mdL.z) / 2 - pos.z, my = (_mdR.y + _mdL.y) / 2;
+          const a = Bo.g.rotation.y, maju = mx * Math.sin(a) + mz * Math.cos(a), ud = Bo.g.userData, sk = Math.max(.75, Math.min(1.35, my / Math.max(.2, ud.gagang || .9)));
+          const dp = Math.max(.25, maju + (ud.belakang || .5) * sk - MD.bren.masuk); MDW.brenDepan = MDW.brenDepan == null ? dp : MDW.brenDepan + (dp - MDW.brenDepan) * Math.min(1, dt * 10); MDW.brenSk = sk;
+          mdBrenArah(MDW.brenId, MDW.arahBren, pos, MDW.brenDepan, sk); } }
+      MDW.brenKirim = (MDW.brenKirim || 0) - dt; if (MDW.brenKirim <= 0) { MDW.brenKirim = .12; fx('mdBrenArah', MDW.brenId, MDW.arahBren, pos.clone(), MDW.brenDepan, MDW.brenSk); }
       MDW.brenT -= dt;
       if (tahan && MDW.brenT <= 0 && !pingsan()) { MDW.brenT = B.jeda; const a = MDW.arahBren + rnd(-.04, .04), st = mdBrenMoncong(MDW.brenId, a), r = mdSasaranGaris(st, a, B.jarak, B.lebar);
         fx('mdTembak', st, a, r.L, 2); if (r.m) { kena(r.m, B.dmg, st.clone().addScaledVector(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), -1), .25); P.aksiDasar = true; }
