@@ -2028,8 +2028,9 @@ function updBidik() {
     return;
   }
   if (HERO === 'masdim') {   // skill 1: lingkaran ledakan granat · skill 2: lingkaran tempat mendarat · mode Bren: panah arah tembakan saat tombol serang digeser
-    const br = MDW.mode === 'bren' && MDW.arahTahan != null, on = !!K.bidik && P.state === 'bebas' && !(MDW.mode === 'sniper' && K.bidik === 1) && (K.bidik === 1 || K.bidik === 2);
-    LINGKAR.visible = LINGKAR.garis.visible = on; PANAH.visible = br; LANE.visible = false;
+    const sn = MDW.arahSniper != null, br = MDW.mode === 'bren' && MDW.arahTahan != null, on = !!K.bidik && P.state === 'bebas' && !(MDW.mode === 'sniper' && K.bidik === 1) && (K.bidik === 1 || K.bidik === 2);
+    LINGKAR.visible = LINGKAR.garis.visible = on; PANAH.visible = br || sn; LANE.visible = false;
+    if (sn) { PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = MDW.arahSniper; PANAH.scale.set(1.3, 1, 14 / TERBANG.lesat); P.arah = MDW.arahSniper; }
     if (on) { const B = K.bidik === 1 ? MD.granat : MD.lompat, t = tujuanLompat(B.jarak), p = P.root.position; LINGKAR.position.set(t.x, 0, t.z); LINGKAR.scale.setScalar((K.bidik === 1 ? MD.granat.R : .9) / 2); const L = Math.hypot(t.x - p.x, t.z - p.z);
       LINGKAR.garis.position.set((t.x + p.x) / 2, .05, (t.z + p.z) / 2); LINGKAR.garis.scale.y = Math.max(.01, L); LINGKAR.garis.rotation.z = Math.atan2(t.x - p.x, t.z - p.z); LINGKAR.garis.rotation.order = 'XYZ'; }
     if (br) { PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = MDW.arahTahan; PANAH.scale.set(1, 1, MD.bren.jarak / TERBANG.lesat); }
@@ -6316,8 +6317,8 @@ const MD = { cepat: 3.8, tsLari: 1, kuning: 0xffc83a, oranye: 0xff7a20, putih: 0
   tembak: { ts: 1.6, rilis: .16, akhir: .42, jarak: 8.5, dmg: 62, lebar: .45 },
   granat: { ts: 2.6, rilis: .5, akhir: .95, jarak: 7.5, R: 2.6, terbang: .65, dmg: 175, lambat: 1.2, dorong: 3 },
   lompat: { ts: 2.8, lama: .62, jarak: 5.5, tinggi: 0 },   // tinggi 0: berguling di lantai saja (tidak melayang)
-  sniper: { lama: 10, jarak: 40, dmg: 520, fov: 56, zoomMin: 2, zoomMaks: 8, zoomAwal: 3, putar: 1.5, atas: .6, bawah: -.45, mata: .45, lebar: .45 },   // teropong orang pertama: zoom 2×–8×, menoleh kiri-kanan & atas-bawah
-  bren: { lama: 8, jeda: .1, jarak: 9, dmg: 17, lebar: .5, depan: .85, tinggi: 1.15, putar: 7, gagang: .8, masuk: .06 } };   // gagang: tinggi pegangan belakang (bagian dari tinggi minigun) · masuk: gagang sedikit masuk ke genggaman
+  sniper: { lama: 10, jarak: 40, dmg: 700, fov: 56, zoomMin: 2, zoomMaks: 8, zoomAwal: 3, putar: 1.5, atas: .6, bawah: -.45, mata: .45, lebar: .45 },   // teropong orang pertama: zoom 2×–8×, menoleh kiri-kanan & atas-bawah
+  bren: { lama: 8, jeda: .1, jarak: 9, dmg: 40, lebar: .5, depan: .85, tinggi: 1.15, putar: 7, gagang: .8, masuk: .06 } };   // gagang: tinggi pegangan belakang (bagian dari tinggi minigun) · masuk: gagang sedikit masuk ke genggaman
 const MD_URL = 'model-3d/masdim.glb?v=1';
 const MD_SJ = { senapan: { url: 'model-3d/masdim-senapan.glb?v=1', glb: null, muat: false, laras: 'z', panjang: .95, pegang: .36 },   // panjang senjata di game (meter, tinggi hero 1,7) · pegang: posisi gagang dari pangkal popor (0..1)
   sniper: { url: 'model-3d/masdim-sniper.glb?v=1', glb: null, muat: false, laras: 'x', panjang: 1.25, pegang: .3 },
@@ -6482,7 +6483,13 @@ function mdPilihMode(on) {   // tombol pilihan mode ulti: 🎯 Sniper / 🔫 Bre
     o.style.cssText = 'position:fixed;z-index:60;display:flex;gap:10px;right:14px;bottom:200px';
     const tb = (m, t, w) => `<button data-m="${m}" style="pointer-events:auto;border:3px solid #fff;border-radius:16px;padding:10px 14px;font:900 16px sans-serif;color:#fff;background:${w};box-shadow:0 4px 0 #0006">${t}</button>`;
     o.innerHTML = tb('sniper', '🎯 Sniper', 'linear-gradient(#5a6a80,#1a2230)') + tb('bren', '🔫 Bren', 'linear-gradient(#b05a10,#3a1a04)');
-    o.querySelectorAll('button').forEach(b => { b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); mdPilihMode(false); mdMasukMode(b.dataset.m); }; });
+    o.querySelectorAll('button').forEach(b => {
+      if (b.dataset.m === 'bren') { b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); mdPilihMode(false); mdMasukMode('bren'); }; return; }
+      let x0 = 0, y0 = 0, pid = null;   // 🎯 Sniper: tahan lalu geser = arahkan dulu (panah di lantai), lepas = masuk teropong menghadap arah itu · ketuk saja = ke musuh terdekat
+      b.onpointerdown = e => { e.preventDefault(); e.stopPropagation(); pid = e.pointerId; try { b.setPointerCapture(pid); } catch (x) { } x0 = e.clientX; y0 = e.clientY; MDW.arahSniper = null; MDW.pilihT = 99; };
+      b.onpointermove = e => { if (e.pointerId !== pid) return; const dx = e.clientX - x0, dy = e.clientY - y0; if (Math.hypot(dx, dy) > 14) MDW.arahSniper = Math.atan2(dx, dy) + (kamCustom() ? KAM.yaw : 0); };
+      b.onpointerup = e => { if (e.pointerId !== pid) return; pid = null; const a = MDW.arahSniper; MDW.arahSniper = null; mdPilihMode(false); mdMasukMode('sniper', a); };
+      b.onpointercancel = () => { pid = null; MDW.arahSniper = null; mdPilihMode(false); }; });
     document.body.appendChild(o); }
   if (o) { o.style.display = on ? 'flex' : 'none'; if (on) { const u = $('#b3'); if (u) { const r = u.getBoundingClientRect(); o.style.right = Math.max(8, innerWidth - r.right) + 'px'; o.style.bottom = Math.max(8, innerHeight - r.top + 10) + 'px'; } } }
   MDW.pilih = on ? 3 : null; MDW.pilihT = on ? 4 : 0;
@@ -6515,11 +6522,11 @@ function pakaiMasdim(i) {
   }
   P.cd[i] = CD_MAX[i]; P.t = 0; P.hit = 0;
 }
-function mdMasukMode(m) {
+function mdMasukMode(m, arah = null) {
   if (HERO !== 'masdim' || MDW.mode || P.cd[3] > 0 || P.state !== 'bebas' || SELESAI || pingsan()) return;
   const pos = P.root.position; MDW.mode = m; MDW.t = 0; MDW.sudah = 0; MDW.tahan = false;
   if (m === 'sniper') {
-    const s = terdekat(MD.sniper.jarak); if (s) hadapKe(s.g.position); MDW.yaw = P.arah; MDW.pitch = 0; MDW.zoom = MD.sniper.zoomAwal; if (MDW_FOV0 == null) MDW_FOV0 = camera.fov;
+    if (arah != null) P.arah = arah; else { const s = terdekat(MD.sniper.jarak); if (s) hadapKe(s.g.position); } MDW.yaw = P.arah; P.root.rotation.y = P.arah; MDW.pitch = 0; MDW.zoom = MD.sniper.zoomAwal; if (MDW_FOV0 == null) MDW_FOV0 = camera.fov;
     main('sniper', .2); mdTeropong(true); banner('🎯 MODE SNIPER — geser layar / joystick untuk membidik, cubit / roda mouse untuk zoom, tekan serang untuk menembak', '#ffffff');
   } else {
     MDW.brenId = Math.floor(Math.random() * 1e9); MDW.brenT = 0; MDW.brenDepan = null; MDW.arahBren = null; const m0 = terdekat(MD.bren.jarak); if (m0) hadapKe(m0.g.position);
