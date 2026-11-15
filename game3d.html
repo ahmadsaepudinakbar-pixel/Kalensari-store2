@@ -4892,9 +4892,13 @@ function wnBebasBatas(v) { const R = WN.rumah && WN.rumah[0]; if (!R) return v; 
   const lepas = e => { if (geser && e.pointerId === geser.id) { geser = null; e.stopImmediatePropagation(); } };
   canvas.addEventListener('pointerup', lepas, true); canvas.addEventListener('pointercancel', lepas, true); }
 function updKamera(dt) {
-  if (HERO === 'masdim' && MDW.mode === 'sniper' && MDW.titik) {   // teropong Sniper: kamera mendekat ke titik bidik (seperti PUBG / FF)
-    const tg = MDW.titik.clone().setY(.8); tg.z -= .6; camLihat.lerp(tg, Math.min(1, dt * 8)); camPos.copy(camLihat).addScaledVector(CAM_OFF, MD.sniper.zoom);
-    camera.position.copy(camPos); camera.lookAt(camLihat); return; }
+  if (HERO === 'masdim' && MDW.mode === 'sniper') {   // teropong Sniper orang pertama (seperti PUBG / FF): dari mata Masdim yang tiarap, zoom = sudut pandang menyempit
+    if (P.model && P.model.visible) { P.model.visible = false; MDW.sembunyi = true; }   // badan sendiri tidak menghalangi teropong (pemain lain tetap melihat Masdim tiarap)
+    const o = mdMataSniper(), d = mdArahSniper(); camera.position.copy(o); camera.lookAt(o.clone().add(d));
+    const fov = MD.sniper.fov / MDW.zoom; if (Math.abs(camera.fov - fov) > .01) { camera.fov = fov; camera.updateProjectionMatrix(); }
+    camLihat.copy(P.root.position).setY(.8); camPos.copy(camLihat).add(CAM_OFF); return; }
+  if (MDW.sembunyi) { MDW.sembunyi = false; if (P.model) P.model.visible = true; }
+  if (MDW_FOV0 != null && camera.fov !== MDW_FOV0) { camera.fov = MDW_FOV0; camera.updateProjectionMatrix(); }   // keluar teropong: sudut pandang kembali normal
   if (kamCustom()) return updKameraRoblox(dt);
   const tg = kamSasaran().clone().setY(.8); tg.z -= 1.2; const off = LYR_W < LYR_H ? CAM_OFF.clone().multiplyScalar(1.25) : CAM_OFF;
   camLihat.lerp(tg, Math.min(1, dt * 6)); camPos.copy(camLihat).add(off);
@@ -6312,19 +6316,24 @@ const MD = { cepat: 3.8, tsLari: 1, kuning: 0xffc83a, oranye: 0xff7a20, putih: 0
   tembak: { ts: 1.6, rilis: .16, akhir: .42, jarak: 8.5, dmg: 62, lebar: .45 },
   granat: { ts: 2.6, rilis: .5, akhir: .95, jarak: 7.5, R: 2.6, terbang: .65, dmg: 175, lambat: 1.2, dorong: 3 },
   lompat: { ts: 2.8, lama: .62, jarak: 5.5, tinggi: 1.5 },
-  sniper: { lama: 10, jarak: 30, geser: 11, R: 1.1, dmg: 520, magnet: 1.6, zoom: .5 },
+  sniper: { lama: 10, jarak: 40, dmg: 520, fov: 56, zoomMin: 2, zoomMaks: 8, zoomAwal: 3, putar: 1.5, atas: .6, bawah: -.45, mata: .45, lebar: .45 },   // teropong orang pertama: zoom 2×–8×, menoleh kiri-kanan & atas-bawah
   bren: { lama: 8, jeda: .1, jarak: 9, dmg: 17, lebar: .5, depan: .85, tinggi: 1.15, putar: 7 } };
 const MD_URL = 'model-3d/masdim.glb?v=1';
 const MD_SJ = { senapan: { url: 'model-3d/masdim-senapan.glb?v=1', glb: null, muat: false, laras: 'z', panjang: .95, pegang: .36 },   // panjang senjata di game (meter, tinggi hero 1,7) · pegang: posisi gagang dari pangkal popor (0..1)
   sniper: { url: 'model-3d/masdim-sniper.glb?v=1', glb: null, muat: false, laras: 'x', panjang: 1.25, pegang: .3 },
   bren: { url: 'model-3d/masdim-bren.glb?v=1', glb: null, muat: false, laras: '-x' },
   granat: { url: 'model-3d/masdim-granat.glb?v=1', glb: null, muat: false } };
+// posisi senjata di tulang tangan (matriks lokal tulang, hasil penempelan di asa27: mode_tembakan_biasa.glb & mode_granat.glb)
+const MD_TEMPEL = {
+  senapanKanan: [-0.249691, -0.355035, 0.414251, 0, 0.535174, -0.070848, 0.261857, 0, -0.106033, 0.478467, 0.34616, 0, -0.087365, 0.225821, -0.012728, 1],   // RightHand: tembakan biasa, diam, lari
+  senapanKiri: [0.110662, -0.586731, 0.059166, 0, -0.10594, -0.078999, -0.585266, 0, 0.580113, 0.097497, -0.118167, 0, 0.001402, 0.073061, 0.102798, 1],      // LeftHand: saat melempar granat
+  granatKanan: [0.06526, -0.123308, -0.011668, 0, 0.122018, 0.061739, 0.029997, 0, -0.021275, -0.024152, 0.13625, 0, -0.053725, 0.035631, 0.013807, 1] };    // RightHand: granat sebelum dilempar
 const MD_PEGANG = { turun: .05, majuTangan: .02, miring: 0 };   // koreksi posisi senjata di tangan: turun (laras sedikit di atas genggaman), maju sepanjang laras, miring (derajat)
 const MD_ANIM = { kena: [['hit_to_body_01', 'hit_to_body_02'], 1] };
 const MD_LIST = new Set();
-const MDW = { mode: null, t: 0, titik: null, sudah: 0, brenId: 0, brenT: 0, tahan: false, arahTahan: null, granat: [], pilih: null };
+const MDW = { mode: null, t: 0, yaw: 0, pitch: 0, zoom: 3, titik: null, sudah: 0, brenId: 0, brenT: 0, tahan: false, arahTahan: null, granat: [], pilih: null };
 function siapkanMasdim(gl, m, T) {
-  const cari = n => gl.animations.find(a => a.name === n);
+  const cari = n => gl.animations.find(a => a.name === n) || gl.animations.find(a => a.name.endsWith('– ' + n));   // juga nama hasil ekspor asa27: "masdim (1) – diam"
   const pasang = (nama, klip, sekali) => { if (!klip) return; const a = T.mixer.clipAction(rapikanKlip(klip, m, 0, false)); if (sekali) { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; } T.act[nama] = a; };
   const sub = (n, a, b, nama) => { const c = cari(n); return c ? THREE.AnimationUtils.subclip(c, nama, Math.round(a * 30), Math.round(b * 30), 30) : null; };
   pasang('diam', cari('diam'));                       // diam: mengisi ulang peluru
@@ -6339,15 +6348,27 @@ function siapkanMasdim(gl, m, T) {
   ['granat', 'lompat'].forEach(k => { if (!T.act[k]) T.act[k] = T.act.serang; }); if (!T.act.bren) T.act.bren = T.act.serang || T.act.diam; if (!T.act.sniper) T.act.sniper = T.act.bren;
   T.masdim = true; MD_LIST.add(T); T.mdModel = m;
   T.mdTanganR = T.mdTanganL = null; m.traverse(o => { if (o.isBone && /RightHand$/.test(o.name)) T.mdTanganR = o; if (o.isBone && /LeftHand$/.test(o.name)) T.mdTanganL = o; });
-  buangSenjataMasdim(T); T.mdS = {};
-  ['senapan', 'sniper', 'granat'].forEach(k => { T.mdS[k] = senjataMasdim(k); T.mdS[k].visible = false; scene.add(T.mdS[k]); });
+  buangSenjataMasdim(T); T.mdS = { sniper: senjataMasdim('sniper') }; T.mdS.sniper.visible = false; scene.add(T.mdS.sniper);
+  m.traverse(o => { if (/masdim-(senapan|granat|sniper|bren)/.test(o.name || '')) o.visible = false; });   // model berisi senjata tempelan asa27: disembunyikan (senjata dipasang kode di bawah)
+  T.mdH = {}; ['senapan', 'granat'].forEach(k => { const h = new THREE.Group(); h.matrixAutoUpdate = false; h.name = 'md-' + k; T.mdH[k] = h; isiPeganganMasdim(T, k); });
+  T.mdHTangan = ''; pasangPeganganMasdim(T, 'kanan'); if (T.mdTanganR) { T.mdH.granat.matrix.fromArray(MD_TEMPEL.granatKanan); T.mdTanganR.add(T.mdH.granat); } T.mdH.granat.visible = false;
   ['senapan', 'sniper', 'granat', 'bren'].forEach(muatSenjataMasdim);
   klipPustaka(MD_URL, MD_ANIM).then(K => { if (T.model !== m) return; for (const [k, c] of Object.entries(K)) { const a = T.mixer.clipAction(rapikanKlip(c, m, 0, false)); a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; T.act[k] = a; } }).catch(() => { });
 }
-function buangSenjataMasdim(T) { if (!T.mdS) return; Object.values(T.mdS).forEach(o => { if (o && o.parent) o.parent.remove(o); }); T.mdS = null; }
+function buangSenjataMasdim(T) { if (T.mdS) Object.values(T.mdS).forEach(o => { if (o && o.parent) o.parent.remove(o); }); T.mdS = null; if (T.mdH) Object.values(T.mdH).forEach(o => { if (o && o.parent) o.parent.remove(o); }); T.mdH = null; }
+function isiPeganganMasdim(T, k) {   // isi pegangan = model senjata mentah (ukuran file asli, tanpa diputar) — matriks MD_TEMPEL yang menempatkannya di tangan
+  const h = T.mdH && T.mdH[k]; if (!h) return; while (h.children.length) h.remove(h.children[0]); const S = MD_SJ[k]; let isi;
+  if (S.glb) { isi = salinGLB(S.glb).scene; isi.traverse(o => { if (o.isMesh) { if (KUAL.lv === 0) o.material = keLambert(o.material); o.castShadow = KUAL.lv > 0; o.frustumCulled = false; } }); }
+  else { isi = senjataBuatanMasdim(k); if (k === 'granat') { isi.scale.setScalar(.45); isi.position.y = .5; } else isi.scale.setScalar(.8); }   // cadangan: kira-kira seukuran file asli
+  h.add(isi);
+}
+function pasangPeganganMasdim(T, sisi) {   // senapan: tangan kanan (biasa) / tangan kiri (saat lempar granat)
+  if (!T.mdH || T.mdHTangan === sisi) return; const b = sisi === 'kiri' ? T.mdTanganL : T.mdTanganR; if (!b) return;
+  T.mdHTangan = sisi; T.mdH.senapan.matrix.fromArray(sisi === 'kiri' ? MD_TEMPEL.senapanKiri : MD_TEMPEL.senapanKanan); b.add(T.mdH.senapan); T.mdH.senapan.matrixWorldNeedsUpdate = true;
+}
 function muatSenjataMasdim(k) {
   const S = MD_SJ[k]; if (S.glb || S.muat) return; S.muat = true;
-  muatGLB(S.url).then(g => { S.glb = g; MD_LIST.forEach(T => { if (!T.mdS || !T.mdS[k]) return; const lama = T.mdS[k], b = senjataMasdim(k); b.visible = false; scene.add(b); if (lama.parent) lama.parent.remove(lama); T.mdS[k] = b; });
+  muatGLB(S.url).then(g => { S.glb = g; MD_LIST.forEach(T => { if (T.mdH && T.mdH[k]) isiPeganganMasdim(T, k); if (!T.mdS || !T.mdS[k]) return; const lama = T.mdS[k], b = senjataMasdim(k); b.visible = false; scene.add(b); if (lama.parent) lama.parent.remove(lama); T.mdS[k] = b; });
     const c = senjataMasdim(k); panaskanObj(c); })
     .catch(e => { S.muat = false; console.warn('[Masdim] ' + S.url + ' gagal dimuat, pakai senjata buatan kode', e); });
 }
@@ -6376,17 +6397,18 @@ function senjataBuatanMasdim(k) {   // cadangan bila GLB senjata belum / gagal d
   return g;
 }
 const _mdR = new THREE.Vector3(), _mdL = new THREE.Vector3(), _mdD = new THREE.Vector3(), _mdU = new THREE.Vector3(), _mdS = new THREE.Vector3(), _mdM = new THREE.Matrix4();
-function tiapMasdim(T, dt) {   // tiap frame untuk SEMUA Masdim (pemain, bot, lawan online): senjata yang dipegang mengikuti tangan
+function tiapMasdim(T, dt) {   // tiap frame untuk SEMUA Masdim (pemain, bot, lawan online): senapan & granat menempel di tulang tangan, sniper mengikuti tangan
   if (!T.root || !T.root.parent) { MD_LIST.delete(T); buangSenjataMasdim(T); return; }
-  const S = T.mdS; if (!S) return;
-  let tampak = T.root.visible && T.model && T.model.visible; for (let p = T.root.parent; p && tampak; p = p.parent) if (!p.visible) tampak = false;
-  const c = T.cur, pakai = !tampak || c === 'bren' || c === 'kalah' ? null : c === 'sniper' ? 'sniper' : c === 'granat' ? 'granat' : 'senapan';
-  ['senapan', 'sniper', 'granat'].forEach(k => { if (S[k]) S[k].visible = k === pakai; });
-  if (!pakai || !T.mdTanganR) return;
-  const o = S[pakai]; T.mdTanganR.getWorldPosition(_mdR);
-  if (pakai === 'granat') {   // granat di genggaman sampai dilempar
-    const a = T.act.granat, q = a ? a.time / Math.max(.01, a.getClip().duration) : 0; if (q > .48) { o.visible = false; return; }
-    o.position.copy(_mdR); o.quaternion.identity(); o.scale.setScalar(T.root.scale.x || 1); return; }
+  const c = T.cur, H = T.mdH;
+  if (H) {
+    const lempar = c === 'granat'; pasangPeganganMasdim(T, lempar ? 'kiri' : 'kanan');
+    H.senapan.visible = c !== 'bren' && c !== 'sniper';
+    let g = false; if (lempar) { const a = T.act.granat; g = !a || a.time / Math.max(.01, a.getClip().duration) < .48; } H.granat.visible = g;   // granat hilang dari tangan saat dilempar
+  }
+  const S = T.mdS; if (!S || !S.sniper) return;
+  let tampak = c === 'sniper' && T.root.visible && T.model && T.model.visible; for (let p = T.root.parent; p && tampak; p = p.parent) if (!p.visible) tampak = false;
+  S.sniper.visible = tampak; if (!tampak || !T.mdTanganR) return;
+  const o = S.sniper; T.mdTanganR.getWorldPosition(_mdR);
   const arahDepan = _mdS.set(Math.sin(T.root.rotation.y), 0, Math.cos(T.root.rotation.y));
   if (T.mdTanganL) { T.mdTanganL.getWorldPosition(_mdL); _mdD.subVectors(_mdL, _mdR); } else _mdD.set(0, 0, 0);
   const L = _mdD.length(); if (L < .12 || L > .9 || _mdD.dot(arahDepan) < -.05) _mdD.copy(arahDepan).setY(-.08);   // tangan kiri terlalu jauh / di belakang: laras ke depan
@@ -6496,8 +6518,8 @@ function mdMasukMode(m) {
   if (HERO !== 'masdim' || MDW.mode || P.cd[3] > 0 || P.state !== 'bebas' || SELESAI || pingsan()) return;
   const pos = P.root.position; MDW.mode = m; MDW.t = 0; MDW.sudah = 0; MDW.tahan = false;
   if (m === 'sniper') {
-    const s = terdekat(MD.sniper.jarak); MDW.titik = s ? s.g.position.clone().setY(0) : batasi(pos.clone().addScaledVector(depan(), 8)); MDW.titik.y = 0;
-    main('sniper', .2); mdTeropong(true); banner('🎯 MODE SNIPER — geser joystick untuk membidik, tekan serang untuk menembak', '#ffffff');
+    const s = terdekat(MD.sniper.jarak); if (s) hadapKe(s.g.position); MDW.yaw = P.arah; MDW.pitch = 0; MDW.zoom = MD.sniper.zoomAwal; if (MDW_FOV0 == null) MDW_FOV0 = camera.fov;
+    main('sniper', .2); mdTeropong(true); banner('🎯 MODE SNIPER — geser layar / joystick untuk membidik, cubit / roda mouse untuk zoom, tekan serang untuk menembak', '#ffffff');
   } else {
     MDW.brenId = Math.floor(Math.random() * 1e9); MDW.brenT = 0; const m0 = terdekat(MD.bren.jarak); if (m0) hadapKe(m0.g.position);
     fx('mdBren', pos.clone(), P.arah, MDW.brenId, MD.bren.lama + .5); main('bren', .15); banner('🔫 MODE BREN — tahan serang untuk menembak', '#ffc070');
@@ -6513,14 +6535,42 @@ function mdSasaranGaris(st, a, jarak, lebar) {   // musuh pertama di garis temba
   MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const rx = m.g.position.x - st.x, rz = m.g.position.z - st.z, t = rx * dx + rz * dz; if (t < 0 || t > bt) return; if (Math.abs(rx * dz - rz * dx) < lebar + .35) { b = m; bt = t; } });
   return { m: b, L: b ? bt : jarak };
 }
-function mdTembakSniper() {
-  const pos = P.root.position, tj = MDW.titik, a = Math.atan2(tj.x - pos.x, tj.z - pos.z); P.arah = a;
-  let kenaM = null, bd = MD.sniper.R; MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const d = Math.hypot(m.g.position.x - tj.x, m.g.position.z - tj.z); if (d < bd) { bd = d; kenaM = m; } });
-  const st = pos.clone().setY(.35).addScaledVector(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), 1.1), L = Math.hypot(tj.x - st.x, tj.z - st.z);
-  fx('mdTembak', st, a, L, 1); goyang = Math.max(goyang, .2);
-  if (kenaM) { kena(kenaM, MD.sniper.dmg, pos.clone(), 2.5); angka(kenaM.g.position, '🎯', '#ffffff'); }
-  MDW.sudah = 1; setTimeout(() => { if (MDW.mode === 'sniper') mdKeluarMode(); }, 350);
+let MDW_FOV0 = null;
+function mdMataSniper() { const p = P.root.position, a = MDW.yaw; return new THREE.Vector3(p.x + Math.sin(a) * .55, MD.sniper.mata, p.z + Math.cos(a) * .55); }
+function mdArahSniper() { const a = MDW.yaw, c = Math.cos(MDW.pitch); return new THREE.Vector3(Math.sin(a) * c, Math.sin(MDW.pitch), Math.cos(a) * c); }
+function mdTembakSniper() {   // peluru putih lurus ke tengah teropong: kena musuh pertama yang dilewati (badan setinggi ±2 m), bisa juga ke atas (Garuda, Buaya besar)
+  const o = mdMataSniper(), d = mdArahSniper(), S = MD.sniper, h2 = d.x * d.x + d.z * d.z;
+  let kenaM = null, bt = S.jarak;
+  MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const c = m.g.position, tinggi = Math.max(1.9, (m.tinggi || 0) * 1.1), lebar = S.lebar + (m.wn ? .5 : .3);
+    if (h2 < 1e-6) return; const t = ((c.x - o.x) * d.x + (c.z - o.z) * d.z) / h2; if (t < 0 || t > bt) return;
+    const jx = o.x + d.x * t - c.x, jz = o.z + d.z * t - c.z, y = o.y + d.y * t - (c.y || 0); if (Math.hypot(jx, jz) < lebar && y > -.2 && y < tinggi) { kenaM = m; bt = t; } });
+  let L = bt; if (!kenaM && d.y < -.01) L = Math.min(L, -o.y / d.y);   // tidak kena: peluru berhenti di tanah / jarak maksimal
+  const ujung = o.clone().addScaledVector(d, L), st = o.clone().addScaledVector(d, .4).setY(o.y - .08);
+  fx('mdSniper', st, ujung, kenaM ? 1 : 0); goyang = Math.max(goyang, .15); P.arah = MDW.yaw;
+  if (kenaM) { kena(kenaM, S.dmg, P.root.position.clone(), 2.5); angka(kenaM.g.position, '🎯', '#ffffff'); }
+  MDW.sudah = 1; setTimeout(() => { if (MDW.mode === 'sniper') mdKeluarMode(); }, 450);
 }
+function mdSniper(st, ujung, kenaT) {   // garis peluru sniper putih (3D, bisa miring ke atas)
+  const d = ujung.clone().sub(st), L = Math.max(.1, d.length()), bhn = new THREE.MeshBasicMaterial({ color: MD.putih, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+  const o = new THREE.Mesh(MD_GEO_TRACER, bhn); o.position.copy(st); o.lookAt(ujung); o.scale.set(.08, .08, L); scene.add(o);
+  nyala(st.clone(), 1.1, MD.putih, .1); nyala(ujung.clone(), kenaT ? 1.4 : .7, MD.putih, .2); percik(ujung.clone(), kenaT ? 16 : 8, MD.putih, 4, .1); if (kenaT) kilat(ujung, 45);
+  if (ujung.y < .3) gelombang(ujung.clone().setY(.05), 1, .35, MD.putih);
+  TMFX.push({ t: 0, upd(e) { bhn.opacity = Math.max(0, 1 - e.t / .35); o.scale.x = o.scale.y = .08 * (1 + e.t * 3); return e.t < .35; }, akhir() { scene.remove(o); bhn.dispose(); } });
+}
+// teropong: geser layar = menoleh · cubit / buka cubit = zoom · roda mouse = zoom (hanya saat mode Sniper; kontrol kamera lain diabaikan)
+{ const jari = new Map(); let cubit0 = 0, zoom0 = 3;
+  const aktif = () => HERO === 'masdim' && MDW.mode === 'sniper';
+  const zoomKe = z => { MDW.zoom = Math.max(MD.sniper.zoomMin, Math.min(MD.sniper.zoomMaks, z)); };
+  canvas.addEventListener('wheel', e => { if (!aktif()) return; e.preventDefault(); e.stopImmediatePropagation(); zoomKe(MDW.zoom * (e.deltaY > 0 ? 1 / 1.15 : 1.15)); }, { capture: true, passive: false });
+  canvas.addEventListener('pointerdown', e => { if (!aktif()) return; e.stopImmediatePropagation(); jari.set(e.pointerId, [e.clientX, e.clientY]); try { canvas.setPointerCapture(e.pointerId); } catch (x) { }
+    if (jari.size === 2) { const [a, b] = [...jari.values()]; cubit0 = Math.hypot(a[0] - b[0], a[1] - b[1]); zoom0 = MDW.zoom; } }, true);
+  canvas.addEventListener('pointermove', e => { if (!aktif() || !jari.has(e.pointerId)) return; e.stopImmediatePropagation(); const lama = jari.get(e.pointerId); jari.set(e.pointerId, [e.clientX, e.clientY]);
+    if (jari.size >= 2) { const [a, b] = [...jari.values()], j = Math.hypot(a[0] - b[0], a[1] - b[1]); if (cubit0 > 20) zoomKe(zoom0 * j / cubit0); return; }
+    const k = (MD.sniper.fov / MDW.zoom) * Math.PI / 180 / Math.max(200, innerHeight);   // 1 piksel geser = 1 piksel di teropong
+    MDW.yaw -= (e.clientX - lama[0]) * k; MDW.pitch = Math.max(MD.sniper.bawah, Math.min(MD.sniper.atas, MDW.pitch + (e.clientY - lama[1]) * k * -1)); }, true);
+  const lepas = e => { if (!jari.has(e.pointerId)) return; jari.delete(e.pointerId); if (jari.size < 2) cubit0 = 0; if (aktif()) e.stopImmediatePropagation(); };
+  canvas.addEventListener('pointerup', lepas, true); canvas.addEventListener('pointercancel', lepas, true);
+  addEventListener('keydown', e => { if (!aktif()) return; if (e.key === '+' || e.key === '=') zoomKe(MDW.zoom * 1.2); if (e.key === '-') zoomKe(MDW.zoom / 1.2); }); }
 function mdBebas() { P.state = 'bebas'; main(MDW.mode === 'bren' ? 'bren' : MDW.mode === 'sniper' ? 'sniper' : 'diam', .2); P.tilt.position.y = 0; }
 function updMasdim(dt, pos, f) {
   const t = P.t; updBidik();
@@ -6532,13 +6582,11 @@ function updMasdim(dt, pos, f) {
   if (MDW.pilih) { MDW.pilihT -= dt; if (P.state !== 'bebas' || P.cd[3] > 0 || MDW.pilihT <= 0) mdPilihMode(false); }
   if (MDW.mode) MDW.t += dt;
   if (P.state === 'bebas') {
-    if (MDW.mode === 'sniper') {   // tiarap: joystick menggeser teropong
-      const [x, z] = arahGerak(), S = MD.sniper; main('sniper', .2);
-      if (x || z) { MDW.titik.x += x * S.geser * dt; MDW.titik.z += z * S.geser * dt; }
-      else { let b = null, bd = S.magnet; MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const d = Math.hypot(m.g.position.x - MDW.titik.x, m.g.position.z - MDW.titik.z); if (d < bd) { bd = d; b = m; } }); if (b) { MDW.titik.x += (b.g.position.x - MDW.titik.x) * Math.min(1, dt * 5); MDW.titik.z += (b.g.position.z - MDW.titik.z) * Math.min(1, dt * 5); } }   // bantuan bidik: teropong menempel pelan ke musuh terdekat
-      const dx = MDW.titik.x - pos.x, dz = MDW.titik.z - pos.z, L = Math.hypot(dx, dz); if (L > S.jarak) { MDW.titik.x = pos.x + dx / L * S.jarak; MDW.titik.z = pos.z + dz / L * S.jarak; }
-      MDW.titik.copy(batasi(MDW.titik)); if (L > .5) P.arah = Math.atan2(dx, dz);
-      const sisa = Math.max(0, Math.ceil(S.lama - MDW.t)), e = document.getElementById('mdScopeT'); if (e) { const tx = `🎯 1 peluru · ${sisa} dtk`; if (e.textContent !== tx) e.textContent = tx; }
+    if (MDW.mode === 'sniper') {   // tiarap: joystick / geser layar = menoleh (kiri-kanan, atas-bawah) · makin besar zoom makin pelan
+      const [x, z] = arahGerak(), S = MD.sniper, k = S.putar / MDW.zoom * 2.2; main('sniper', .2);
+      if (x || z) { MDW.yaw -= x * k * dt; MDW.pitch = Math.max(S.bawah, Math.min(S.atas, MDW.pitch - z * k * dt)); }
+      P.arah = MDW.yaw;
+      const sisa = Math.max(0, Math.ceil(S.lama - MDW.t)), e = document.getElementById('mdScopeT'); if (e) { const tx = `🎯 1 peluru · ${sisa} dtk · 🔍 ${MDW.zoom.toFixed(1)}×`; if (e.textContent !== tx) e.textContent = tx; }
       if (MDW.t >= S.lama && !MDW.sudah) mdKeluarMode();
     }
     else if (MDW.mode === 'bren') {   // joystick terkunci · tahan serang = tembakan bertubi-tubi
@@ -8584,7 +8632,7 @@ R.root.add(R.tilt);
 R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, remote: true, bar: null };
 
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
-const FXF = { mdTembak, mdGranat, mdBren, mdBrenArah, mdBrenLepas, mdDebu: mdLompatDebu, bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik, rjBatu, rjBatuPatung, rjTanda, rjPasif, rjPatung, rjLesung, rjCandi };
+const FXF = { mdSniper, mdTembak, mdGranat, mdBren, mdBrenArah, mdBrenLepas, mdDebu: mdLompatDebu, bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik, rjBatu, rjBatuPatung, rjTanda, rjPasif, rjPatung, rjLesung, rjCandi };
 const FX_SUDUT = { mdTembak: [1], mdBren: [1], mdBrenArah: [1], rjBatu: [1], rjBatuPatung: [1], rjLesung: [1], rjCandi: [1], wrTebas: [1], wrSilat: [1], wrNaga: [1], ksTebas: [1], ksGerak: [3], ksSerang: [2], skPerahu: [1], skTebas: [1], swMacan: [2], swCakar: [2], swTebas: [1], swBayang: [1], nrBola: [1], nrLesat: [1], nrOmbak: [1], dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
 // ---- efek skill MUSUH diberi warna kemerahan, agar beda dengan efek sendiri / tim ----
 const MERAH_MUSUH = new THREE.Color(0xff2020), MERAH_KADAR = .45;
