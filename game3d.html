@@ -6318,7 +6318,7 @@ const MD = { cepat: 3.8, tsLari: 1, kuning: 0xffc83a, oranye: 0xff7a20, putih: 0
   granat: { ts: 2.6, rilis: .5, akhir: .95, jarak: 7.5, R: 2.6, terbang: .65, dmg: 175, lambat: 1.2, dorong: 3 },
   lompat: { ts: 2.8, lama: .62, jarak: 5.5, tinggi: 0 },   // tinggi 0: berguling di lantai saja (tidak melayang)
   sniper: { lama: 10, jarak: 40, dmg: 700, fov: 56, zoomMin: 2, zoomMaks: 8, zoomAwal: 3, putar: 1.5, atas: .6, bawah: -.45, mata: .45, lebar: .45 },   // teropong orang pertama: zoom 2×–8×, menoleh kiri-kanan & atas-bawah
-  bren: { lama: 8, jeda: .1, jarak: 9, dmg: 40, lebar: .5, depan: .85, tinggi: 1.15, putar: 7, gagang: .8, masuk: .06 } };   // gagang: tinggi pegangan belakang (bagian dari tinggi minigun) · masuk: gagang sedikit masuk ke genggaman
+  bren: { lama: 8, jeda: .1, jarak: 9, dmg: 40, push: .45, lebar: .5, depan: .85, tinggi: 1.15, putar: 7, gagang: .8, masuk: .06 } };   // gagang: tinggi pegangan belakang (bagian dari tinggi minigun) · masuk: gagang sedikit masuk ke genggaman
 const MD_URL = 'model-3d/masdim.glb?v=1';
 const MD_SJ = { senapan: { url: 'model-3d/masdim-senapan.glb?v=1', glb: null, muat: false, laras: 'z', panjang: .95, pegang: .36 },   // panjang senjata di game (meter, tinggi hero 1,7) · pegang: posisi gagang dari pangkal popor (0..1)
   sniper: { url: 'model-3d/masdim-sniper.glb?v=1', glb: null, muat: false, laras: 'x', panjang: 1.25, pegang: .3 },
@@ -6610,7 +6610,7 @@ function updMasdim(dt, pos, f) {
       MDW.brenKirim = (MDW.brenKirim || 0) - dt; if (MDW.brenKirim <= 0) { MDW.brenKirim = .12; fx('mdBrenArah', MDW.brenId, MDW.arahBren, pos.clone(), MDW.brenDepan, MDW.brenSk); }
       MDW.brenT -= dt;
       if (tahan && MDW.brenT <= 0 && !pingsan()) { MDW.brenT = B.jeda; const a = MDW.arahBren + rnd(-.04, .04), st = mdBrenMoncong(MDW.brenId, a), r = mdSasaranGaris(st, a, B.jarak, B.lebar);
-        fx('mdTembak', st, a, r.L, 2); if (r.m) { kena(r.m, B.dmg, st.clone().addScaledVector(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), -1), .25); P.aksiDasar = true; }
+        fx('mdTembak', st, a, r.L, 2); if (r.m) { const bgn = r.m.wn && ['singa', 'garuda', 'rumah', 'buaya', 'buayaT'].includes(r.m.wn.jenis); /* Bren lemah ke penjaga, rumah & Buaya (danau maupun yang ikut tim) */ kena(r.m, Math.round(B.dmg * (bgn ? B.push : 1)), st.clone().addScaledVector(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), -1), .25); P.aksiDasar = true; }
         goyang = Math.max(goyang, .05); }
       if (MDW.t >= B.lama) mdKeluarMode();
     }
