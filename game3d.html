@@ -6491,7 +6491,7 @@ function updWewe(dt, pos, f) {
       else { WGS.idleT += dt; if (WGS.idleT > 9 && P.act.diam2) { WGS.idleT = -P.act.diam2.getClip().duration; mainUlang('diam2', .3); } else if (WGS.idleT >= 0 || P.cur !== 'diam2') main('diam', .3); } }   // sesekali menggaruk (diam 2)
   }
   else if (P.state === 'wgPulang') {   // terbang pulang ke rumpun bambu membawa korban (korban tidak terlihat)
-    const u = Math.min(1, t / P.pulangLama), e = u * u * (3 - 2 * u); pos.lerpVectors(P.awal, P.tujuan, e); pos.y = 0;
+    const u = Math.min(1, P.t / P.pulangLama), e = u * u * (3 - 2 * u); pos.lerpVectors(P.awal, P.tujuan, e); pos.y = 0;   // P.t (bukan t lama): saat menangkap mangsa, terbang dimulai dari nol di frame yang sama
     const dx = P.tujuan.x - P.awal.x, dz = P.tujuan.z - P.awal.z; if (Math.hypot(dx, dz) > .3) P.arah = Math.atan2(dx, dz);
     P.tilt.position.y = Math.sin(u * Math.PI) * WG.ulti.terbang + .3 * (1 - u); P.tilt.rotation.x = .55 * Math.sin(Math.min(1, u * 1.4) * Math.PI); main(P.act.terbang ? 'terbang' : 'melayang', .12);   // pose T, badan condong ke depan
     if (Math.random() < .5) fx('asap', pos.clone().setY(.8 + P.tilt.position.y), 1, 0x2a1010, .5, .4);
