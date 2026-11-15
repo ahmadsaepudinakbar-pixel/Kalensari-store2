@@ -6330,7 +6330,7 @@ const WG = { cepat: 3.9, merah: 0xd02020, ungu: 0xb48cff, batik: 0xc87a2a,
   cakar: { ts: 2, hit: [.18, .5], akhir: .62, jarak: 1.75, sudut: .7, dmg: 48, kuat: 1.6 },
   bayi: { ts: 1.6, rilis: .53, akhir: .9, jarak: 7, cepat: 9, dmg: 70, dot: 25, lama: 3, lambat: 3, isi: 8, jeda: .8, maks: 2 },
   tembang: { ts: 1.5, rilis: .45, akhir: 1.15, jarak: 5, sudut: .62, dmg: 40, kantuk: 1, tidur: 1.5, bangun: 1.3 },
-  ulti: { hilang: 4, cepat: 1.4, sentuh: 1.3, pulang: 13, pulangMin: .45, dmg: 260, stun: .8, tinggi: .35, terbang: 1.6, bambu: 3.6 },   // pulang: kecepatan terbang kembali ke rumpun bambu (m/dtk) · bambu: tinggi rumpun (m)
+  ulti: { hilang: 4, cepat: 1.4, sentuh: 1.3, pulangMin: 1, pulangMaks: 2, pulangJauh: 20, dmg: 260, stun: .8, tinggi: .35, terbang: 1.6, bambu: 3.6 },   // terbang pulang ke bambu: 1 dtk (dekat) sampai 2 dtk (≥20 m), tergantung jarak · bambu: tinggi rumpun (m)
   gendong: { x: .1, y: .6, z: -.24, tinggi: .36, miring: .25 } };   // posisi gendongan (ruang model, tinggi model = 1)
 const WG_URL = 'model-3d/wewe.glb?v=1', WG_GD = { url: 'model-3d/wewe-gendongan.glb?v=1', glb: null, muat: false }, WG_BB = { url: 'model-3d/wewe-bambu.glb?v=1', glb: null, muat: false };
 const WGS = { bambu: null, bayi: 2, isi: 0, hilang: 0, culik: null, combo: 0, idleT: 0, korban: new Map(), tidur: [], tempel: [] };
@@ -6421,6 +6421,7 @@ function wgBambu(pos, id, lama = WG.ulti.hilang + 3) {   // rumpun bambu muncul 
     akhir() { percik(luar.position.clone().setY(1.6), KUAL.lv === 0 ? 10 : 20, 0x8ac040, 2.6, .1); asap(luar.position.clone(), 5, 0x4a3a2a, 1, .5); scene.remove(luar); scene.remove(aura);
       [cincin, dalam, tiang].forEach(o => o.geometry.dispose()); [mCincin, mDalam, mTiang].forEach(m => m.dispose()); WG_BAMBU.delete(id); } });
 }
+function wgLamaPulang(j) { const U = WG.ulti; return U.pulangMin + (U.pulangMaks - U.pulangMin) * Math.min(1, j / U.pulangJauh); }   // lama terbang pulang menurut jarak
 function wgBambuHapus(id) { const B = WG_BAMBU.get(id); if (B) B.umur = 0; }
 function wgHilangFx(p) { asap(p.clone(), KUAL.lv === 0 ? 6 : 12, 0x2a1010, 1.4, .8); gelombang(p.clone().setY(.05), 1.6, .5, WG.merah); percik(p.clone().setY(1.2), 14, WG.merah, 2.4, .1); }
 function wgJatuhkan(p) { asap(p.clone(), 8, 0x3a2020, 1.4, .7); gelombang(p.clone().setY(.05), 2, .45, WG.merah); retak(p.clone(), 1.2, 1, 1); kilat(p, 50); goyang = Math.max(goyang, .3); }
@@ -6471,9 +6472,9 @@ function updWewe(dt, pos, f) {
   if (WGS.hilang > 0 && P.state !== 'kalah' && !WGS.culik) {
     WGS.hilang -= dt; const m = MUSUH.find(m => wgBolehCulik(m) && Math.hypot(m.g.position.x - pos.x, m.g.position.z - pos.z) < WG.ulti.sentuh);
     if (m && WGS.bambu) { WGS.hilang = 0; WGS.culik = { m, t: 0, kirim: 0 }; m.pusing = Math.max(m.pusing || 0, 1); fx('wgHilang', m.g.position.clone()); banner('🫳 Diculik! Pulang ke rumpun bambu…', '#ff8080');
-      const B = WGS.bambu.pos, j = Math.hypot(B.x - pos.x, B.z - pos.z); P.awal = pos.clone(); P.tujuan = B.clone(); P.pulangLama = Math.max(WG.ulti.pulangMin, j / WG.ulti.pulang); P.state = 'wgPulang'; P.t = 0; P.hit = 0; main(P.act.terbang ? 'terbang' : 'melayang', .1); }
+      const B = WGS.bambu.pos, j = Math.hypot(B.x - pos.x, B.z - pos.z); P.awal = pos.clone(); P.tujuan = B.clone(); P.pulangLama = wgLamaPulang(j); P.state = 'wgPulang'; P.t = 0; P.hit = 0; main(P.act.terbang ? 'terbang' : 'melayang', .1); }
     else if (WGS.hilang <= 0) { WGS.hilang = 0; fx('wgHilang', pos.clone());   // tidak dapat mangsa: tetap terbang pulang ke rumpun bambu (bambu hilang setelah tiba)
-      if (WGS.bambu && !pingsan()) { const B = WGS.bambu.pos, j = Math.hypot(B.x - pos.x, B.z - pos.z); P.awal = pos.clone(); P.tujuan = B.clone(); P.pulangLama = Math.max(WG.ulti.pulangMin, j / WG.ulti.pulang); P.state = 'wgPulang'; P.t = 0; P.hit = 0; main(P.act.terbang ? 'terbang' : 'melayang', .1); }
+      if (WGS.bambu && !pingsan()) { const B = WGS.bambu.pos, j = Math.hypot(B.x - pos.x, B.z - pos.z); P.awal = pos.clone(); P.tujuan = B.clone(); P.pulangLama = wgLamaPulang(j); P.state = 'wgPulang'; P.t = 0; P.hit = 0; main(P.act.terbang ? 'terbang' : 'melayang', .1); }
       else if (WGS.bambu) { fx('wgBambuHapus', WGS.bambu.id); WGS.bambu = null; } }
   }
   if (P.state === 'kalah' && P.tilt.rotation.x) P.tilt.rotation.x = 0;
