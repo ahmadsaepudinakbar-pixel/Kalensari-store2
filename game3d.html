@@ -9558,7 +9558,7 @@ async function siapkanBot() {
 // Main Bareng: datang dari lobi game.html (…&lobi=1234) → masuk otomatis, selesai kembali ke lobi yang sama
 const LOBI = (Q.get('lobi') || '').replace(/\D/g, '').slice(0, 4);
 const PID = (() => { try { return localStorage.getItem('kgPid') || ''; } catch (e) { return ''; } })();
-function keLobiMB() { if (TIM.main && !SELESAI) kirim({ t: 'leave' }); NET.keluar = true; try { if (NET.ws) NET.ws.close(); } catch (e) { } const q = new URLSearchParams(RANK ? { rank: '1' } : { lobi: LOBI }); if (Q.get('server')) q.set('server', Q.get('server')); location.href = 'game.html?' + q; }
+function keLobiMB() { if (TIM.main && !SELESAI) kirim({ t: 'leave' }); NET.keluar = true; try { if (NET.ws) NET.ws.close(); } catch (e) { } const pulang = (Q.get('pulang') || '').replace(/\D/g, '').slice(0, 4), q = new URLSearchParams(RANK && !pulang ? { rank: '1' } : { lobi: RANK ? pulang : LOBI }); if (Q.get('server')) q.set('server', Q.get('server')); location.href = 'game.html?' + q; }
 const SESI = (() => { try { return localStorage.getItem('kalensari_sesi_pembeli') || ''; } catch (e) { return ''; } })();
 const ULANG = +Q.get('ulang') || 0;   // percobaan sambung ulang ke room yang sama
 function ingatRoom(c) { try { localStorage.setItem('kgRoom', JSON.stringify({ c: String(c), m: MODE.startsWith('tim') ? 'tim' : 'duel', t: Date.now() })); } catch (e) { } }
@@ -9657,7 +9657,7 @@ function linkRoom() { return location.origin + location.pathname + '?room=' + NE
 $('#lbWa').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent('Ayo mabar Kalensari Game! 👻 ' + (TIM.on ? 'Duel Tim 3D' : 'Duel 1 vs 1') + ' · room ' + NET.kode + '\nKetuk untuk langsung masuk: ' + linkRoom()), '_blank');
 $('#lbSalin').onclick = () => { try { navigator.clipboard.writeText(linkRoom()); $('#lbSalin').textContent = '✅ Link disalin'; } catch (e) { prompt('Salin link ini:', linkRoom()); } };
 $('#lbMenu').onclick = () => { if (LOBI) { keLobiMB(); return; } keluarRoom(); location.href = 'game.html'; };
-if (LOBI) $('#lbMenu').textContent = RANK ? '← Kembali ke Rank' : '← Kembali ke Lobi';
+if (LOBI) $('#lbMenu').textContent = RANK && !Q.get('pulang') ? '← Kembali ke Rank' : '← Kembali ke Lobi';
 
 function sambung() {
   lobi('Menghubungkan ke server…');
@@ -10002,7 +10002,7 @@ function timAkhir(menang) {   // menang = 0/1, -1 = seri
     $('#hasilS').textContent = TIM.tonton ? '👁️ Kamu menonton sebagai wasit · skor ' + TIM.skor[0] + ' – ' + TIM.skor[1] : WN.on ? '🏠 Rumah lawan hancur · kill ' + TIM.skor[0] + ' – ' + TIM.skor[1] + ' · ' + Math.floor(wnWaktu() / 60) + ' menit' : '';
     $('#lagi').textContent = WN.on && !WN_ONLINE ? '🔁 Main Lagi' : 'Kembali ke Lobi';
     if (WN.on) { wnSkorBuka(false); let tb = $('#wnHasil'); if (!tb) { tb = document.createElement('div'); tb.id = 'wnHasil'; $('#hasilS').after(tb); } tb.innerHTML = wnTabel(menang); $('#hasil').classList.add('wn'); } $('#lagi').style.display = ''; $('#pilihH').style.display = 'none'; $('#hasil').classList.add('on');
-    if (RANK) { rkHasilTampil(); $('#lagi').textContent = '🏆 Kembali ke Rank'; setTimeout(() => { if ($('#hasil').classList.contains('on')) keLobiMB(); }, 25000); }
+    if (RANK) { rkHasilTampil(); $('#lagi').textContent = Q.get('pulang') ? '👥 Kembali ke Lobi' : '🏆 Kembali ke Rank'; setTimeout(() => { if ($('#hasil').classList.contains('on')) keLobiMB(); }, 25000); }
     else if (LOBI) setTimeout(() => { if ($('#hasil').classList.contains('on')) keLobiMB(); }, 10000);   // Main Bareng: otomatis kembali ke lobi
   }, 900);
 }

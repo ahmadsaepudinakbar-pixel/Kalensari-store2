@@ -2445,7 +2445,7 @@ function ke3D(mode,x){if(!punyaHero(pick))pick='pocong';x=x||{};
  const q=new URLSearchParams({main:1,hero:H3D[pick]||'ocong',arena:ar3,mode,nama:namaSaya()});const sk=skin3D(pick);if(sk)q.set('skin',sk);
  q.set('punya',HEROK.filter(punyaHero).map(h=>H3D[h]).join(','));if(mode=='bot'||mode=='nanas')q.set('lv',x.tutor?0:BOTLV);if(x.tutor)q.set('tutor',1);   // tingkat kesulitan bot (Main Solo)   // hero & skin milik pemain → bisa ganti hero di game 3D
  const SK3={'pocong:boneka':'ocong:boneka','pocong:emas':'ocong:emas','kuntilanak:merah':'kunti:merah','kuntilanak:gothic':'kunti:gothic','genderuwo:leak':'genderuwo:leak','genderuwo:calon':'genderuwo:calon','pitung:pendekar':'pitung:pendekar','buto:ijo':'buto:ijo','buto:golem':'buto:golem','doni:robot':'doni:robot','doni:dawala':'doni:dawala','doni:manchung':'doni:manchung','erick:robot':'erick:robot','erick:cepot':'erick:cepot','lutung:fox':'lutung:fox','saras:lina':'saras:lina','saras:santi':'saras:santi','timunmas:faniya':'timun:faniya','timunmas:airin':'timun:airin','tuyul:robot':'tuyul:robot','tuyul:halloween':'tuyul:halloween','tuyul:mecha':'tuyul:mecha','tuyul:setan':'tuyul:setan'};q.set('skins',[...new Set([...KOL.skin,...SKIN_GRATIS])].map(s=>SK3[s]).filter(Boolean).join(','));
- if(x.kode)q.set('kode',x.kode);if(x.pub!=null)q.set('pub',x.pub);if(x.arena)q.set('arena',x.arena);if(x.lobi)q.set('lobi',x.lobi);if(x.wn){q.set('wn','1');q.set('warna',x.wn);q.set('lv',BOTLV)}if(x.rank){q.set('rank','1');if(x.lv!=null)q.set('lv',x.lv)}try{const sv=new URLSearchParams(location.search).get('server');if(sv)q.set('server',sv)}catch(e){}
+ if(x.kode)q.set('kode',x.kode);if(x.pub!=null)q.set('pub',x.pub);if(x.arena)q.set('arena',x.arena);if(x.lobi)q.set('lobi',x.lobi);if(x.wn){q.set('wn','1');q.set('warna',x.wn);q.set('lv',BOTLV)}if(x.rank){q.set('rank','1');if(x.lv!=null)q.set('lv',x.lv);if(x.pulang)q.set('pulang',x.pulang)}try{const sv=new URLSearchParams(location.search).get('server');if(sv)q.set('server',sv)}catch(e){}
  {const d=phHasil();if(d&&(mode=='nanas'||mode=='bot')){q.set('warna',d.warna);if(mode=='nanas'){q.set('kawan',d.kawan);q.set('musuh',d.musuh)}else q.set('lawan',d.musuh)}}   // hasil draft Pilih Hero (rank)
  if(NET.ws&&NET.ws.readyState===1&&!x.lobi)netSend({t:'leave'});location.href='game3d.html?'+q}
 $('#bMain').onclick=()=>{agrid();sc('ars')};
@@ -2483,10 +2483,10 @@ const _netMsg=netMsg;netMsg=function(m){if(m&&m.t=='cek'){const c=m.code;
 // Host memilih mode (Duel / Parkur / Acak) lalu arena (bawaan 🎲 acak). Hero dipilih paling akhir di layar penuh,
 // masing-masing hanya melihat hero sendiri. Selesai main → semua kembali ke lobi yang sama.
 // Arena baru cukup ditambahkan di MBA (dan jumlahnya di LB_AR server.js).
-const MBM={duel:{e:'⚔️',n:'DUEL',d:'1 lawan 1',img:'mode-duel'},tim:{e:'👥',n:'DUEL TIM',d:'Biru lawan Merah',img:'mode-tim'},wn:{e:'🍍',n:'WAR NANAS',d:'3 vs 3 · rebut Tugu Nanas',bg:'radial-gradient(circle at 50% 35%,#ffd23f,#3f8a1e 45%,#0b1a10 80%)'},pk:{e:'🏃',n:'PARKUR',d:'Balapan lompat-lompat',img:'mode-parkur'},umpet:{e:'🙈',n:'PETAK UMPET',d:'Sembunyi dari penjaga',bg:'radial-gradient(circle at 50% 35%,#3a6a2a,#0b1a12 70%)'},acak:{e:'🎲',n:'ACAK',d:'Game yang memilihkan',img:'mode-acak'}};
+const MBM={rk:{e:'🏆',n:'RANK',d:'bareng teman',bg:'radial-gradient(circle at 50% 35%,#ffe066,#c07a00 45%,#2a1600 80%)'},duel:{e:'⚔️',n:'DUEL',d:'1 lawan 1',img:'mode-duel'},tim:{e:'👥',n:'DUEL TIM',d:'Biru lawan Merah',img:'mode-tim'},wn:{e:'🍍',n:'WAR NANAS',d:'3 vs 3 · rebut Tugu Nanas',bg:'radial-gradient(circle at 50% 35%,#ffd23f,#3f8a1e 45%,#0b1a10 80%)'},pk:{e:'🏃',n:'PARKUR',d:'Balapan lompat-lompat',img:'mode-parkur'},umpet:{e:'🙈',n:'PETAK UMPET',d:'Sembunyi dari penjaga',bg:'radial-gradient(circle at 50% 35%,#3a6a2a,#0b1a12 70%)'},acak:{e:'🎲',n:'ACAK',d:'Game yang memilihkan',img:'mode-acak'}};
 const MBIMG=n=>'gambar-game/lobi/'+n+'.webp';
 const MBA={umpet:[{n:'Kebun Malam',e:'🌳',bg:'linear-gradient(#0b1430,#1d3a1f)',k:'kebun'}],duel:[{n:'Lapangan SD',img:'gambar-game/7c244511a3.webp',k:'lapangan'},{n:'Kuil Malam',img:'gambar-game/455f6b31f9.webp',k:'kuil'},{n:'Sawah Siang',e:'🌾',bg:'linear-gradient(#5fb0f0 0 38%,#7fc3c4 38% 48%,#76b843 48%)',k:'sawah'},{n:'Taman Pink',e:'💗',bg:'linear-gradient(#ff7ab8,#ffb3d6 50%,#ffa6cd 50%,#ffc2dc)',k:'pink'}],
- pk:PKAR.map((a,i)=>({n:a.n,e:a.e,bg:a.bg,img:a.um?'':'gambar-game/ui/arena-'+(i+1)+'.webp'}))};MBA.tim=MBA.duel;MBA.wn=[{n:'Kebun Nanas Subang',e:'🍍',bg:'linear-gradient(#2a5a1a,#7a9a2a 55%,#c8a040)',k:'nanas'}];
+ pk:PKAR.map((a,i)=>({n:a.n,e:a.e,bg:a.bg,img:a.um?'':'gambar-game/ui/arena-'+(i+1)+'.webp'}))};MBA.tim=MBA.duel;MBA.wn=[{n:'Kebun Nanas Subang',e:'🍍',bg:'linear-gradient(#2a5a1a,#7a9a2a 55%,#c8a040)',k:'nanas'}];MBA.rk=MBA.wn;
 const MBWARNA=['#7b2cbf','#c1121f','#127a34','#1d5fbf','#b8860b','#8d3a7a'];
 const MB={room:null,hero:null,msg:'',tHero:0};
 const mbAr=(m,a)=>m=='umpet'?MBA.umpet[0]:(MBA[m]||[])[a]||null;
@@ -2496,17 +2496,21 @@ function mbPesan(t,coba){MB.msg=t;MB.coba=coba?1:0;if(!MB.room)mbRender();else{c
 let mbPre=0;function mbMuatGambar(){if(mbPre)return;mbPre=1;['avatar-hantu','mode-duel','mode-tim','mode-parkur','mode-acak'].forEach(n=>{const i=new Image();i.src=MBIMG(n)});ALL.filter(a=>a[0]!='x').forEach(a=>{const h=a[0],s=skinOf(h);[heroHead(h,s),heroImg(h,s)].forEach(u=>{const i=new Image();i.src=u})})}
 function mbBuat(){mbMuatGambar();onlBersih();MB.room=null;MB.msg='Menyiapkan lobi…';sc('mbl');mbRender();netConnect({t:'lbCreate',pub:KPUB},1)}
 function mbMasuk(c){mbMuatGambar();onlBersih();MB.room=null;MB.msg='Masuk ke lobi <b>'+c+'</b>…';sc('mbl');mbRender();NET.joinC=c;netConnect({t:'lbJoin',code:c},1)}
+function mbRkWaktu(){const s=Math.max(0,Math.floor((Date.now()-(MB.rkT0||Date.now()))/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+setInterval(()=>{const e=document.getElementById('mbRkW');if(e)e.textContent=mbRkWaktu()},500);
+$('#mbl').addEventListener('click',e=>{if(e.target.closest('[data-rkbatal]'))netSend({t:'lbRkBatal'})});
 function mbRender(){const r=MB.room,E=$('#mbl');
  if(!r){E.innerHTML=`<div class="mbtop"><h2><i>👥</i><span>MAIN BARENG</span></h2><button class="mbb kd" data-kode>🔢 Masuk Kode</button><span class="sp"></span><button class="mbb x" data-out>✖ Keluar</button></div>
   <div class="mbwait"><i>👻</i>${MB.msg||'Menghubungkan…'}${MB.coba?'<button class="mbb" data-coba style="margin-top:1cqw">Coba Lagi</button>':''}</div>`;return}
  const host=r.host,mode=r.m,ars=MBA[mode]||[];
- const diKotak=k=>r.pl.find(q=>q.p===k)||(r.pl.every(q=>q.p==null)?r.pl[k]:null),duel=mode=='duel',wnM=mode=='wn',timM=mode=='tim'||wnM,TB=wnM?'🔴 MERAH':'🔵 BIRU',TR=wnM?'⚪ PUTIH':'🔴 MERAH',lbl=k=>duel?(k<2?'<u class="pr">⚔️ PEMAIN</u>':'<u class="ws">👁️ WASIT</u>'):timM?(k%2?`<u>${TR}</u>`:`<u>${TB}</u>`):'';
- let pl='';for(let k=0;k<r.max;k++){const p=diKotak(k);
+ const rkM=mode=='rk',orang=r.pl.filter(q=>!q.bot);
+ const diKotak=k=>rkM?orang[k]||null:r.pl.find(q=>q.p===k)||(r.pl.every(q=>q.p==null)?r.pl[k]:null),duel=mode=='duel',wnM=mode=='wn',timM=mode=='tim'||wnM,TB=wnM?'🔴 MERAH':'🔵 BIRU',TR=wnM?'⚪ PUTIH':'🔴 MERAH',lbl=k=>duel?(k<2?'<u class="pr">⚔️ PEMAIN</u>':'<u class="ws">👁️ WASIT</u>'):timM?(k%2?`<u>${TR}</u>`:`<u>${TB}</u>`):'';
+ let pl='';for(let k=0;k<(rkM?Math.max(3,orang.length):r.max);k++){const p=diKotak(k);
   const tim=timM&&p,aku=p&&p.k===r.me;
   if(p&&p.bot){pl+=`<div class="mbp bot ${timM?(p.tm?'tr':'tb'):''}" ${host&&timM?`data-btim="${p.k}"`:''}><i class="rb">🤖</i><span>${esc(p.n)}</span>${host?`<b class="bx" data-bdel="${p.k}">✖</b>`:''}${timM?`<u>${p.tm?TR:TB}${host?' · ketuk ganti':''}</u>`:lbl(k)}</div>`;continue}
   pl+=p?`<div class="mbp ${aku?'me':''} ${p.on?'':'off'} ${tim?(p.tm?'tr':'tb'):''}" ${tim&&aku?'data-tukar':''}>${MB.foto&&MB.foto[p.k]?`<i class="ft" style="--c:${MBWARNA[p.k%MBWARNA.length]}"><img src="${MB.foto[p.k]}" alt=""></i>`:`<i style="--c:${MBWARNA[p.k%MBWARNA.length]};--h:${(p.k*57)%360}deg"><img src="${MBIMG('avatar-hantu')}" alt=""></i>`}<span>${esc(p.n)}${aku?' (kamu)':''}</span>${p.h?'<em>👑</em>':''}${tim?`<u>${p.tm?TR:TB}${aku?' · ketuk ganti':''}</u>`:lbl(k)}</div>`
    :`<div class="mbp kos ${MB.ops===k?'pil':''} ${timM?(k%2?'tr':'tb'):''}" data-tambah="${k}"><b>＋</b>${wnM?'🤖 Bot otomatis':'Tambah'}${lbl(k)}</div>`}
- const ops=MB.ops!=null&&!diKotak(MB.ops)?`<div class="mbops"><b>Kotak ${MB.ops+1}${duel?(MB.ops<2?' · ⚔️ Pemain':' · 👁️ Wasit'):timM?(MB.ops%2?' · '+TR:' · '+TB):''}</b><button class="mbb" data-opsi="pindah">📍 Pindah ke kotak ini</button><button class="mbb kd" data-opsi="teman">👥 Teman yang aktif</button><button class="mbb" data-opsi="acak">🎲 Random</button>${host?`<button class="mbb wa" data-opsi="bot">🤖 Bot</button>`:''}<button class="mbb x" data-opsi="tutup">✖</button></div>`:'';
+ const ops=MB.ops!=null&&!diKotak(MB.ops)?`<div class="mbops"><b>Kotak ${MB.ops+1}${duel?(MB.ops<2?' · ⚔️ Pemain':' · 👁️ Wasit'):timM?(MB.ops%2?' · '+TR:' · '+TB):''}</b><button class="mbb" data-opsi="pindah">📍 Pindah ke kotak ini</button><button class="mbb kd" data-opsi="teman">👥 Teman yang aktif</button><button class="mbb" data-opsi="acak">🎲 Random</button>${host&&!rkM?`<button class="mbb wa" data-opsi="bot">🤖 Bot</button>`:''}<button class="mbb x" data-opsi="tutup">✖</button></div>`:'';
  const modeH=Object.keys(MBM).filter(k=>k!='umpet').map(k=>`<div class="mbm ${k} ${mode==k?'on':''} ${host?'':'dis'}" ${host?`data-mode="${k}"`:''}>${MBM[k].img?`<img src="${MBIMG(MBM[k].img)}" alt="">`:`<span class="mbmE" style="background:${MBM[k].bg}">${MBM[k].e}</span>`}<div class="mt"><b>${MBM[k].n}</b><small>${MBM[k].d}</small></div></div>`).join('');
  let arH='';
  if(mode=='duel'||mode=='tim'||mode=='pk')arH=`<h4 class="mbh4">${host?'<em>2.</em> PILIH ARENA':'ARENA'}<small>${host?'atau biarkan 🎲 acak':'dipilih host'}${ars.length+1>5?' · <b class="mbges">⇅ geser untuk arena lain</b>':''}</small></h4><div class="mbar">`+
@@ -2514,13 +2518,14 @@ function mbRender(){const r=MB.room,E=$('#mbl');
  else if(mode=='wn')arH=`<div class="mbnote">🍍 Arena: Kebun Nanas Subang · 3 vs 3 · kotak kosong otomatis diisi 🤖 bot. Farming monster hutan, rebut Tugu Nanas, hancurkan Sisingaan → Garuda → Rumah lawan!</div>`;
  else if(mode=='umpet')arH=`<div class="mbnote">🌳 Arena: Kebun Malam · 1 penjaga mencari, yang lain sembunyi di semak. Sentuh pohon jaga untuk membebaskan teman!</div>`;
  else if(mode=='acak')arH=`<div class="mbnote">🎲 Mode dan arena akan dipilih acak saat MULAI — kejutan!</div>`;
+ else if(rkM)arH=`<div class="mbnote">🏆 Rank War Nanas 3 vs 3 · kamu & teman (maks 3) selalu satu tim · lawan dicari online · semua anggota wajib login akun · selisih tingkat maks 2 · poin tiap anggota dihitung sendiri</div>`;
  else arH=`<div class="mbnote">${host?'Ketuk salah satu mode di atas':'Menunggu host memilih mode…'}</div>`;
- const nOn=r.pl.filter(p=>p.on&&!p.bot).length,nBot=r.pl.filter(p=>p.bot).length,botPakai=mode=='duel'||mode=='tim'||mode=='wn'||mode=='acak',cukup=wnM?nOn>=1:nOn+(botPakai?nBot:0)>=2,bisa=host&&mode&&cukup;
+ const nOn=r.pl.filter(p=>p.on&&!p.bot).length,nBot=r.pl.filter(p=>p.bot).length,botPakai=mode=='duel'||mode=='tim'||mode=='wn'||mode=='acak',cukup=rkM?nOn>=1&&nOn<=3:wnM?nOn>=1:nOn+(botPakai?nBot:0)>=2,bisa=host&&mode&&cukup&&!(r.rkT>=0);
  const n0=r.pl.filter(p=>p.on&&!p.tm).length,n1=r.pl.filter(p=>p.on&&p.tm).length;
  const pilih=(a,v,k,f)=>a.map(x=>`<button class="mbb ${v==x?'on':''} ${host?'':'dis'}" ${host?`data-atur="${k}:${x}"`:''}>${f(x)}</button>`).join('');
  if(mode=='tim')arH+=`<div class="mbopsi"><span class="lb">⏱️ Durasi (menit)</span>${pilih([5,7,10,15],r.dur||5,'dur',x=>x)}<span class="lb ka">💀 Batas Kill</span>${pilih([10,15,20,30],r.kill||10,'kill',x=>x)}</div>`;
  const vsH=mode=='tim'?`<div class="mbvs"><span class="b">🔵 BIRU <b>${n0}</b></span><i>vs</i><span class="m"><b>${n1}</b> MERAH 🔴</span></div>`:wnM?`<div class="mbvs wn"><span class="b">🔴 MERAH <b>${n0}</b></span><i>vs</i><span class="m"><b>${n1}</b> PUTIH ⚪</span></div>`:'';
- let info=MB.msg||(host?(!mode?'Pilih mode dulu':!cukup?(botPakai?'Ajak teman, atau ketuk ＋ lalu pilih 🤖 Bot':'Ajak teman dulu — minimal 2 pemain'):nBot&&!botPakai?'🤖 Bot hanya ikut Duel, Duel Tim & War Nanas · tekan MULAI kalau sudah siap':wnM?'🍍 Kiri 🔴 MERAH · kanan ⚪ PUTIH · ketuk kartumu untuk pindah tim · kotak kosong = 🤖 bot':mode=='duel'?'⚔️ 2 kotak atas bertanding · kotak bawah jadi 👁️ wasit (menonton)':mode=='tim'?'Kiri 🔵 BIRU · kanan 🔴 MERAH · ketuk kartumu untuk pindah tim':mode=='umpet'?'Siap! Penjaga dipilih acak · tekan MULAI':'Siap! Tekan MULAI'):wnM?'🍍 Kiri 🔴 MERAH · kanan ⚪ PUTIH · ketuk kartumu untuk pindah tim':mode=='tim'?'Kiri 🔵 BIRU · kanan 🔴 MERAH · ketuk kartumu untuk pindah tim':'Host yang memilih mode & arena. Tunggu ya!');
+ let info=MB.msg||(rkM&&r.rkT>=0?'Sambil menunggu, siapkan hero andalanmu! 💪':rkM?(nOn>3?'⚠️ Rank party maksimal 3 orang — sisanya keluar dulu':host?'🏆 Tekan CARI LAWAN · semua anggota wajib login akun warga desa':'🏆 Menunggu host menekan CARI LAWAN'):host?(!mode?'Pilih mode dulu':!cukup?(botPakai?'Ajak teman, atau ketuk ＋ lalu pilih 🤖 Bot':'Ajak teman dulu — minimal 2 pemain'):nBot&&!botPakai?'🤖 Bot hanya ikut Duel, Duel Tim & War Nanas · tekan MULAI kalau sudah siap':wnM?'🍍 Kiri 🔴 MERAH · kanan ⚪ PUTIH · ketuk kartumu untuk pindah tim · kotak kosong = 🤖 bot':mode=='duel'?'⚔️ 2 kotak atas bertanding · kotak bawah jadi 👁️ wasit (menonton)':mode=='tim'?'Kiri 🔵 BIRU · kanan 🔴 MERAH · ketuk kartumu untuk pindah tim':mode=='umpet'?'Siap! Penjaga dipilih acak · tekan MULAI':'Siap! Tekan MULAI'):wnM?'🍍 Kiri 🔴 MERAH · kanan ⚪ PUTIH · ketuk kartumu untuk pindah tim':mode=='tim'?'Kiri 🔵 BIRU · kanan 🔴 MERAH · ketuk kartumu untuk pindah tim':'Host yang memilih mode & arena. Tunggu ya!');
  let tunggu='';
  if(r.state!='lobby'&&!r.ikut&&r.wasit)tunggu=`<div class="mbwait"><i>👁️</i>Kamu WASIT${r.state=='hero'?' — pemain sedang memilih hero…':''}<small>Sebentar lagi kamu menonton duel temanmu</small></div>`;
  else if(r.state!='lobby'&&!r.ikut)tunggu=`<div class="mbwait"><i>🎮</i>${r.state=='hero'?'Teman-teman sedang memilih hero…':'Teman-teman sedang bermain…'}<small>Kamu ikut di ronde berikutnya. Tunggu sebentar ya!</small></div>`;
@@ -2528,7 +2533,7 @@ function mbRender(){const r=MB.room,E=$('#mbl');
  const arGes=(E.querySelector('.mbar')||{}).scrollTop||0;
  E.innerHTML=`<div class="mbtop"><h2><i>👥</i><span>MAIN BARENG</span></h2><div class="mbkode">KODE<b>${r.code}</b></div><button class="mbb wa" data-ajak>📲 Ajak Teman</button><button class="mbb kd" data-kode>🔢 Masuk Kode</button><span class="sp"></span><button class="mbb x" data-out>✖ Keluar</button></div>
  <div class="mbisi"><div class="mbpl ${duel?'duel':''} ${wnM?'wn':''}">${pl}${vsH}${ops}</div><div class="mbkan">${MB.panel?'<div class="mbpan" id="mbPan"></div>':''}<div class="mbpanel"><h4 class="mbh4">${host?'<em>1.</em> PILIH MODE':'MODE'}<small>${host?'kamu host 👑':'dipilih host'}</small></h4><div class="mbmode">${modeH}</div>${arH}</div>
-  <div class="mbbawah">${host?`<button class="mbgo" data-go ${bisa?'':'disabled'}>▶ MULAI</button>`:''}<div class="mbinfo" id="mbInfo">${info}${MB.coba?' <button class="mbb" data-coba>Coba Lagi</button>':''}</div></div></div></div>${tunggu}`;{const B=E.querySelector('.mbar');if(B)B.scrollTop=arGes}if(MB.panel)mbPanelRender()}
+  <div class="mbbawah">${r.rkT>=0?`<div class="mbrk"><i></i>Mencari lawan… <b id="mbRkW">${mbRkWaktu()}</b></div><button class="mbb x" data-rkbatal>✖ Batal</button>`:host?`<button class="mbgo ${rkM?'rk':''}" data-go ${bisa?'':'disabled'}>${rkM?'🏆 CARI LAWAN':'▶ MULAI'}</button>`:''}<div class="mbinfo" id="mbInfo">${info}${MB.coba?' <button class="mbb" data-coba>Coba Lagi</button>':''}</div></div></div></div>${tunggu}`;{const B=E.querySelector('.mbar');if(B)B.scrollTop=arGes}if(MB.panel)mbPanelRender()}
 // panel kanan: daftar teman yang aktif / pemain acak yang sedang membuka game
 function mbPanelRender(){const P=$('#mbPan');if(!P||!MB.room)return;let h='',L=[];
  if(MB.panel=='teman'){h='<h4 class="mbh4"><em>👥</em>TEMAN YANG AKTIF<small>ajak masuk ke lobi ini</small></h4>';
@@ -2583,14 +2588,14 @@ setInterval(()=>{const H=MB.hero;if(!H||!$('#mbh').classList.contains('on'))retu
 // ---- dari server ----
 function mbNet(m){
  if(m.t=='lbFoto'){MB.foto=MB.foto||{};(m.L||[]).forEach(x=>{if(x.f)MB.foto[x.k]=x.f;else delete MB.foto[x.k]});if(MB.room&&$('#mbl').classList.contains('on'))mbRender();return}
- if(m.t=='lbRoom'){const baru=!MB.room||MB.room.code!==m.code;MB.room=m;if(MB.preset&&m.host&&m.state=='lobby'){const p=MB.preset;MB.preset=null;netSend({t:'lbMode',m:p.m});netSend({t:'lbArena',a:p.a});MB.msg='🙈 Petak Umpet siap — ajak teman lalu tekan MULAI'}NET.joinC='';NET.sambung=0;ingatRoom(m.code,'lb');if(baru)MB.msg='';
+ if(m.t=='lbRoom'){const baru=!MB.room||MB.room.code!==m.code;if(m.rkT>=0){if(!(MB.room&&MB.room.rkT>=0)||baru)MB.rkT0=Date.now()-m.rkT}MB.room=m;if(MB.preset&&m.host&&m.state=='lobby'){const p=MB.preset;MB.preset=null;netSend({t:'lbMode',m:p.m});netSend({t:'lbArena',a:p.a});MB.msg='🙈 Petak Umpet siap — ajak teman lalu tekan MULAI'}NET.joinC='';NET.sambung=0;ingatRoom(m.code,'lb');if(baru)MB.msg='';
   if($('#mbh').classList.contains('on')){if(m.state=='lobby'){MB.hero=null;sc('mbl')}else return}
   if(PK.on)return;
   if(!$('#mbl').classList.contains('on'))sc('mbl');mbRender();return}
  if(m.t=='lbHero'){mbHeroBuka(m);return}
  if(m.t=='lbGo3d'){if(!m.wasit){if(!adaHero(m.h))return;pick=m.h}MB.hero=null;const um=m.m=='umpet',wn=m.m=='wn',ar=um?MBA.umpet[0]:wn?MBA.wn[0]:mbAr('duel',m.a);
   $('#mbh').innerHTML=`<div class="mbwait"><i>${m.wasit?'👁️':um?'🙈':'⚔️'}</i>${m.wasit?'Membuka arena untuk menonton':'Membuka arena'} ${ar?esc(ar.n):''}…<small>${m.wasit?'Kamu WASIT':um?'Petak Umpet Hantu':wn?'War Nanas · Tim kamu: '+(m.tm?'⚪ PUTIH':'🔴 MERAH'):'Tim kamu: '+(m.tm?'🔴 MERAH':'🔵 BIRU')}</small></div>`;if(m.wasit)sc('mbh');
-  setTimeout(()=>ke3D('timgabung',{kode:m.code,lobi:m.lb,arena:ar?ar.k:'kuil',wn:wn?(m.tm?'putih':'merah'):'',rank:m.rank,lv:m.lv}),700);return}}
+  setTimeout(()=>ke3D('timgabung',{kode:m.code,lobi:m.lb,arena:ar?ar.k:'kuil',wn:wn?(m.tm?'putih':'merah'):'',rank:m.rank,lv:m.lv,pulang:m.pulang}),700);return}}
 function mbDariParkur(){PK.on=0;PKN.on=0;PK.net=0;clearTimeout(PK.tEnd);$('#pkEnd').classList.remove('on');$('#kbn').classList.remove('on');pkNetReset();
  sc('mbl');mbRender()}
 const _netMsgMB=netMsg;netMsg=function(m){
@@ -2616,12 +2621,12 @@ $('#mkX').onclick=()=>{if(MB.room){sc('mbl');mbRender()}else sc('menu')};
 // Yang tampil hanya lama mencari (seperti game moba lain), tanpa hitungan mundur.
 const RK_T=[[0,'Anak Bawang','🌱','#8fd06a'],[100,'Prajurit','🛡️','#a9b6c8'],[250,'Jagoan','⚔️','#d0924a'],[450,'Pendekar','🥋','#4ab8e8'],[700,'Ksatria','🐎','#7a8cff'],[1000,'Panglima Tempur','🦅','#c46cff'],[1400,'Suhu','🐉','#ff7a3a'],[1900,'Sepuh','👑','#ffd040']];
 const rkTk=p=>{let i=0;RK_T.forEach((t,k)=>{if((p|0)>=t[0])i=k});return i};
-const RKS={cari:0,t0:0,saya:null,papan:null,msg:'',muat:0,ketemu:0};
+const RKS={cari:0,t0:0,saya:null,papan:null,papanErr:'',msg:'',muat:0,ketemu:0,tab:'top'};
 async function rkIdAkun(){if(FR.srvId)return FR.srvId;if(FR.id)return FR.id;try{const r=await krpc('game_teman_saya',{p_sesi:ksSesi()});if(r&&r.id){FR.id=r.id;return r.id}}catch(e){}return''}
-async function rkMuat(){if(!KOL.login){rkRender();return}RKS.muat=1;rkRender();const id=await rkIdAkun();
- try{if(id)RKS.saya=await krpc('game_rank_akun',{p_akun:id})}catch(e){RKS.msg=/belum dipasang/.test(e.message)?'Rank belum dipasang di server':'⚠️ '+e.message}
- try{RKS.papan=await krpc('game_rank_papan',{p_n:50})}catch(e){}
- RKS.muat=0;rkRender()}
+async function rkMuat(){RKS.muat=1;RKS.papanErr='';rkRender();
+ const pp=krpc('game_rank_papan',{p_n:100}).then(r=>{RKS.papan=r||[]}).catch(e=>{RKS.papanErr=/belum dipasang/.test(e.message)?'Rank belum dipasang di server (jalankan supabase-rank-game.sql)':'Papan peringkat belum bisa dimuat'});
+ if(KOL.login){const id=await rkIdAkun();try{if(id)RKS.saya=await krpc('game_rank_akun',{p_akun:id})}catch(e){RKS.msg=/belum dipasang/.test(e.message)?'Rank belum dipasang di server':'⚠️ '+e.message}}
+ await pp;RKS.muat=0;rkRender()}
 function rkBuka(){RKS.msg='';RKS.ketemu=0;sc('rk');rkMuat()}
 function rkWaktu(){const s=Math.max(0,Math.floor((Date.now()-RKS.t0)/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
 function rkRender(){const e=$('#rk');if(!e)return;const S=RKS.saya||{poin:0,menang:0,kalah:0,mvp:0},p=S.poin|0,i=rkTk(p),T=RK_T[i],N=RK_T[i+1];
@@ -2631,7 +2636,7 @@ function rkRender(){const e=$('#rk');if(!e)return;const S=RKS.saya||{poin:0,mena
  else if(RKS.ketemu)aksi=`<div class="rkCari"><div class="cr">✅ Lawan ditemukan!</div><div class="rkMode">Bersiap memilih hero…</div></div>`;
  else if(RKS.cari)aksi=`<div class="rkCari"><div class="cr"><i></i>Mencari lawan… <span class="wk" id="rkWkt">${rkWaktu()}</span></div><button class="rkGo bt" data-rk="batal">✖ BATAL</button></div>`;
  else aksi=`<button class="rkGo" data-rk="cari">⚔️ CARI LAWAN</button><div class="rkMode">🍍 War Nanas 3 vs 3 · Kebun Nanas Subang</div>`;
- const papan=RKS.papan==null?`<div class="rkKosong">${RKS.muat?'Memuat papan peringkat…':'Papan peringkat belum bisa dimuat'}</div>`:!RKS.papan.length?`<div class="rkKosong">Belum ada yang main Rank.<br>Jadilah yang pertama! 🏆</div>`:
+ const papan=RKS.papan==null?`<div class="rkKosong">${RKS.muat?'Memuat papan peringkat…':RKS.papanErr||'Papan peringkat belum bisa dimuat'}</div>`:!RKS.papan.length?`<div class="rkKosong">Belum ada yang main Rank.<br>Jadilah yang pertama! 🏆</div>`:
   RKS.papan.map(r=>{const t=RK_T[rkTk(r.poin)];return `<div class="rkR ${r.akun===saya?'aku':''}" style="--tk:${t[3]}"><span class="no ${r.no<=3?'t'+r.no:''}">${r.no<=3?['🥇','🥈','🥉'][r.no-1]:r.no}</span><span class="em">${t[2]}</span><span class="nm">${esc(r.nama||'Pemain')}<small>${t[1]}</small></span><span class="pt">${r.poin}</span></div>`}).join('');
  e.innerHTML=`<div class="rkTop"><h2>🏆 Rank Online</h2><button class="rkX" data-rk="x">${RKS.cari?'✖ Batal & Kembali':'Kembali'}</button></div>
  <div class="rkIsi"><div class="rkKartu" style="--tk:${T[3]}"><div class="rkEmb">${T[2]}</div><div class="rkTk">${T[1]}</div>
@@ -2640,12 +2645,16 @@ function rkRender(){const e=$('#rk');if(!e)return;const S=RKS.saya||{poin:0,mena
   <div class="rkSt"><span><b>${S.menang|0}</b>Menang</span><span><b>${S.kalah|0}</b>Kalah</span><span><b>${S.mvp|0}</b>MVP</span></div>
   <div class="rkTangga">${RK_T.map((t,k)=>`<span class="${k<=i?'ok':''} ${k==i?'ini':''}" style="color:${t[3]}" title="${t[1]} · ${t[0]}">${t[2]}</span>`).join('')}</div>
   <div class="rkMsg">${RKS.msg||''}</div>${aksi}</div>
-  <div class="rkPapan"><h3>📜 Papan Peringkat</h3><div class="rkList">${papan}</div></div></div>`}
+  <div class="rkPapan"><div class="rkTab"><button data-rk="tab:top" class="${RKS.tab=='top'?'on':''}">🌍 Top Global</button><button data-rk="tab:tk" class="${RKS.tab=='tk'?'on':''}">🏅 Tingkatan Rank</button></div>
+  <div class="rkList">${RKS.tab=='tk'?rkDaftarTk(p):papan}</div></div></div>`}
+function rkDaftarTk(p){const i=rkTk(p);return RK_T.slice().reverse().map((t,r)=>{const k=RK_T.length-1-r,N=RK_T[k+1],n=RKS.papan?RKS.papan.filter(x=>rkTk(x.poin)===k).length:null;
+ return `<div class="rkT ${k===i?'ini':''} ${k<i?'lewat':''}" style="--tk:${t[3]}"><span class="em">${t[2]}</span><span class="nm">${t[1]}<small>${N?t[0]+' – '+(N[0]-1)+' poin':t[0]+'+ poin'}</small></span><span class="tg">${k===i?'⬅ KAMU':k<i?'✔':n?n+' pemain':''}</span></div>`}).join('')+
+ `<div class="rkAtur">Menang <b>+25</b> · MVP tim menang <b>+5</b> · Kalah <b>−20</b> · MVP tim kalah hanya <b>−10</b> · keluar di tengah = kalah</div>`}
 function rkCari(){if(!KOL.login){bukaAkun();return}RKS.msg='';RKS.cari=1;RKS.t0=Date.now();RKS.ketemu=0;rkRender();
  netConnect({t:'rkCari',poin:(RKS.saya&&RKS.saya.poin)|0},true)}
 function rkBatal(){if(RKS.cari&&NET.ws&&NET.ws.readyState===1)netSend({t:'rkBatal'});RKS.cari=0;NET.want=null;rkRender()}
 $('#rk').addEventListener('click',e=>{const b=e.target.closest('[data-rk]');if(!b)return;const k=b.dataset.rk;
- if(k=='cari')rkCari();else if(k=='batal')rkBatal();else if(k=='akun')bukaAkun();else if(k=='x'){rkBatal();sc('menu')}});
+ if(k.startsWith('tab:')){RKS.tab=k.slice(4);rkRender();return}if(k=='cari')rkCari();else if(k=='batal')rkBatal();else if(k=='akun')bukaAkun();else if(k=='x'){rkBatal();sc('menu')}});
 $('#bRank').onclick=()=>kgWait(rkBuka);
 setInterval(()=>{if(!RKS.cari||!$('#rk').classList.contains('on'))return;const w=$('#rkWkt');if(w)w.textContent=rkWaktu();
  if(Date.now()-RKS.t0>4000&&(!NET.ws||NET.ws.readyState>1)){RKS.cari=0;RKS.msg='⚠️ Koneksi ke server terputus, coba lagi';rkRender()}},500);
@@ -3294,6 +3303,16 @@ html.kgapp .mgrid #bTut{grid-column:1/-1;width:calc(50% - .7cqw);justify-self:ce
 .rkR .em{font-size:2cqw;text-align:center}.rkR .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rkR .nm small{display:block;font:700 1cqw Arial;color:var(--tk)}.rkR .pt{color:#fff;font-variant-numeric:tabular-nums}
 .rkKosong{padding:3cqw 1cqw;font:700 1.5cqw Arial;color:#9aa3b8}
 .rkLogin{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:.8cqw;font:700 1.5cqw Arial;color:#ffd166}
+.rkTab{display:flex;gap:.6cqw;padding:.8cqw .8cqw 0;border-bottom:.2cqw solid #ffffff14}.rkTab button{flex:1;font:700 1.45cqw Arial;color:#9fb0d8;background:#101a33;border:.2cqw solid #2c3f73;border-bottom:0;border-radius:.9cqw .9cqw 0 0;padding:.6cqw .4cqw;cursor:pointer}.rkTab button.on{color:#1c1000;background:linear-gradient(#ffd966,#f0a000);border-color:#ffd166}
+.rkT{display:grid;grid-template-columns:3.6cqw 1fr auto;align-items:center;gap:.9cqw;padding:.5cqw .8cqw;margin:.3cqw 0;border-radius:.9cqw;border:.18cqw solid transparent;font:700 1.55cqw Arial;color:#e8ecf8;text-align:left;opacity:.8}
+.rkT .em{width:3.4cqw;height:3.4cqw;border-radius:50%;display:grid;place-items:center;font-size:1.9cqw;background:#0008;border:.2cqw solid var(--tk)}
+.rkT .nm{color:var(--tk)}.rkT .nm small{display:block;font:700 1.05cqw Arial;color:#9aa3b8}.rkT .tg{font:700 1.15cqw Arial;color:#9aa3b8}
+.rkT.ini{opacity:1;background:color-mix(in srgb,var(--tk) 18%,transparent);border-color:var(--tk)}.rkT.ini .tg{color:#ffd166}.rkT.lewat{opacity:1}.rkT.lewat .tg{color:#7dff8a}
+.rkAtur{margin:.8cqw .4cqw .4cqw;padding:.7cqw;border-radius:.8cqw;background:#ffffff0a;font:700 1.1cqw Arial;color:#9fb0d8;line-height:1.5}.rkAtur b{color:#fff}
+.mbm.rk .mt b{font-size:1.8cqw}
+.mbgo.rk{white-space:nowrap;padding-left:3cqw;padding-right:3cqw;background:linear-gradient(#ffd966,#f0a000);color:#1c1000;border-color:#fff3b0}
+.mbrk{white-space:nowrap;display:flex;align-items:center;gap:1cqw;font:700 1.9cqw Arial;color:#ffd166}.mbrk b{font:900 2.6cqw Arial;color:#fff;font-variant-numeric:tabular-nums}
+.mbrk i{width:2.2cqw;height:2.2cqw;border-radius:50%;border:.35cqw solid #ffd16633;border-top-color:#ffd166;animation:rkPutar 1s linear infinite}
 </style>
 <script>
 (function(){

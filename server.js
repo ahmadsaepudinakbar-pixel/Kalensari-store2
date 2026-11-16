@@ -57,7 +57,7 @@ wss.clients = clients;
 
 const PORT = +process.env.PORT || 8090;
 const HOST = process.env.HOST || '127.0.0.1';
-const HEROES = ["pocong", "kuntilanak", "tuyul", "genderuwo", "pitung", "erick", "doni", "timunmas", "buto", "lutung", "saras", "angling", "dayang", "nyiroro", "siliwangi", "ciung", "sangkuriang", "kiansantang", "wiro", "roro", "masdim", "wewe"];   // samakan dengan HEROK di game.html (hero baru wajib ditambah di sini)   // doni: hero ke-7   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
+const HEROES = ["pocong", "kuntilanak", "tuyul", "genderuwo", "pitung", "erick", "doni", "timunmas", "buto", "lutung", "saras", "angling", "dayang", "nyiroro", "siliwangi", "ciung", "sangkuriang", "kiansantang", "wiro", "roro", "masdim", "wewe", "blorong"];   // samakan dengan HEROK di game.html (hero baru wajib ditambah di sini)   // doni: hero ke-7   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
 const RELAY_FROM_HOST = new Set(['st', 'end']);   // data pertandingan dari host → tamu
 const RELAY_FROM_GUEST = new Set(['in']);         // tombol tamu → host
 
@@ -75,6 +75,17 @@ function cekAkun(sesi) {
         let d = ''; r.on('data', c => { d += c; if (d.length > 4000) rq.destroy(); }); r.on('end', () => { try { res(JSON.parse(d)); } catch { res(null); } });
       });
       rq.on('error', () => res(null)); rq.on('timeout', () => { rq.destroy(); res(null); }); rq.end(body);
+    } catch { res(null); }
+  });
+}
+function sbRpc(fn, isi) {   // panggil fungsi RPC Supabase (dipakai Rank)
+  return new Promise(res => {
+    try {
+      const body = JSON.stringify(isi), u = new URL(SB_URL + '/rest/v1/rpc/' + fn);
+      const rq = require('https').request(u, { method: 'POST', timeout: 10000, headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) } }, r => {
+        let d = ''; r.on('data', c => { d += c; if (d.length > 20000) rq.destroy(); }); r.on('end', () => { let j = null; try { j = JSON.parse(d); } catch { } if (r.statusCode >= 300) console.log(new Date().toISOString(), 'rpc ' + fn + ' gagal', r.statusCode, d.slice(0, 200)); res(r.statusCode < 300 ? j : null); });
+      });
+      rq.on('error', e => { console.log('rpc ' + fn + ' error', e.message); res(null); }); rq.on('timeout', () => { rq.destroy(); res(null); }); rq.end(body);
     } catch { res(null); }
   });
 }
@@ -162,7 +173,9 @@ function tmLeave(ws) {
   const r = ws.troom && trooms.get(ws.troom); ws.troom = null;
   if (!r) return;
   if (r.tonton && r.tonton.includes(ws)) { r.tonton = r.tonton.filter(w => w !== ws); return; }   // penonton keluar
+  if (r.state === 'game' && r.wn && r.pl.includes(ws) && ws.pid) { tmTunda(r, ws); return; }   // War Nanas: kursi ditahan dulu (sinyal putus) / diganti bot
   r.pl = r.pl.filter(w => w !== ws);
+  if (r.rank && r.state === 'game') rkKabur(r, ws.pid);   // Rank: keluar di tengah pertandingan = kalah
   if (!r.pl.length) { clearTimeout(r.autoT); trooms.delete(r.code); if (r.lb) lbKembali(r.lb, r.code); return; }
   const wasHost = r.host === ws;
   if (wasHost) r.host = r.pl[0];
@@ -170,6 +183,53 @@ function tmLeave(ws) {
     r.pl.forEach(w => send(w, { t: 'tmLeft', i: ws.id, host: wasHost ? 1 : 0 }));
     if (wasHost) { r.state = 'lobby'; r.pl.forEach(w => { w.tmR = 0; }); tmRoomMsg(r); }   // wasit keluar → pertandingan berhenti
   } else tmRoomMsg(r);
+}
+// ---- War Nanas online: sambung ulang & pindah wasit ----
+// Putus sinyal → kursi ditahan (wasit 12 dtk, pemain lain 30 dtk). Tersambung lagi (tmBalik) → main terus seperti biasa.
+// Lewat batas / keluar sengaja → heronya dijalankan bot. Kalau yang hilang wasit, HP terkuat yang tersisa menjadi wasit baru.
+const TM_TAHAN = 30000, TM_TAHAN_WASIT = 12000;
+function tmTunda(r, ws) {
+  const wasit = r.host === ws, putus = !!ws.putus;
+  r.pl = r.pl.filter(w => w !== ws);
+  if (wasit) r.host = null;
+  r.tunda = r.tunda || new Map();
+  const T = { pid: ws.pid, i: ws.id, tm: ws.tmT, h: ws.hero, s: ws.skin || '', n: ws.name, wasit };
+  r.tunda.set(ws.pid, T);
+  if (putus) r.pl.forEach(w => send(w, { t: 'tmPutus', i: T.i, host: wasit ? 1 : 0 }));
+  T.timer = setTimeout(() => tmTundaHabis(r, ws.pid), putus ? (wasit ? TM_TAHAN_WASIT : TM_TAHAN) : 0);
+  console.log(new Date().toISOString(), 'war nanas', r.code, ws.name, putus ? 'terputus (kursi ditahan)' : 'keluar', wasit ? '[wasit]' : '');
+}
+function tmTundaHabis(r, pid) {
+  const T = r.tunda && r.tunda.get(pid); if (!T) return;
+  r.tunda.delete(pid);
+  if (trooms.get(r.code) !== r || r.state !== 'game') return;
+  if (r.rank) rkKabur(r, pid);   // Rank: tidak kembali = kalah
+  r.bots.push({ i: T.i, n: T.n, h: T.h, tm: T.tm, ganti: 1 });   // heronya diteruskan bot (id sama)
+  if (!r.pl.length) { if (!r.tunda.size) { clearTimeout(r.autoT); trooms.delete(r.code); if (r.lb) lbKembali(r.lb, r.code); } return; }
+  if (!r.host) {   // pindah wasit: HP terkuat yang tersisa
+    r.host = r.pl.slice().sort((p, q) => (q.kuat || 0) - (p.kuat || 0))[0];
+    r.pl.forEach(w => send(w, { t: 'tmWasit', host: r.host.id, bots: r.bots.map(b => b.i), keluar: T.i }));
+    console.log(new Date().toISOString(), 'war nanas', r.code, 'wasit pindah ke', r.host.name);
+  } else r.pl.forEach(w => send(w, { t: 'tmJadiBot', i: T.i }));
+}
+function tmBalik(ws, m) {   // HP yang tadi terputus masuk lagi ke pertandingan yang sama
+  const r = trooms.get(clean(m.code, 6)), i = m.i | 0;
+  if (!r || r.state !== 'game' || !ws.pid) { send(ws, { t: 'tmBalikGagal' }); return; }
+  const T = r.tunda && r.tunda.get(ws.pid), lama = r.pl.find(w => w !== ws && w.pid === ws.pid && w.id === i);
+  if (!(T && T.i === i) && !lama) { send(ws, { t: 'tmBalikGagal' }); return; }
+  leave(ws);
+  if (T && T.i === i) {
+    clearTimeout(T.timer); r.tunda.delete(ws.pid);
+    ws.id = T.i; ws.tmT = T.tm; ws.hero = T.h; ws.skin = T.s; ws.tmR = 1; ws.troom = r.code; r.pl.push(ws);
+    if (T.wasit && !r.host) r.host = ws;
+  } else {   // server belum sadar koneksi lama putus: koneksi baru langsung menggantikannya
+    ws.id = lama.id; ws.tmT = lama.tmT; ws.hero = lama.hero; ws.skin = lama.skin; ws.tmR = 1; ws.troom = r.code;
+    r.pl[r.pl.indexOf(lama)] = ws; if (r.host === lama) r.host = ws;
+    lama.troom = null; lama.lobi = null; try { lama.terminate(); } catch { }
+  }
+  send(ws, { t: 'tmBalikOk', host: r.host === ws ? 1 : 0, hostId: r.host ? r.host.id : 0 });
+  r.pl.forEach(w => { if (w !== ws) send(w, { t: 'tmSambung', i: ws.id }); });
+  console.log(new Date().toISOString(), 'war nanas', r.code, ws.name, 'tersambung lagi');
 }
 function tmMsg(ws, m, raw) {
   const r = ws.troom && trooms.get(ws.troom);
@@ -214,8 +274,10 @@ function tmMsg(ws, m, raw) {
       tmMulaiRoom(r);
       return;
     }
-    case 'tmOver': if (r && r.host === ws && r.state === 'game') { if (r.um && r.lb && m.first) { const w = r.pl.find(x => x.id === (m.first | 0)), L = lbrooms.get(r.lb); if (w && L) L.umNext = w.pid; } r.state = 'lobby'; r.pl.forEach(w => { w.tmR = 0; }); tmRoomMsg(r); if (r.lb) { r.exp = null; lbKembali(r.lb, r.code); } } return;
+    case 'tmOver': if (r && r.host === ws && r.state === 'game' && r.rank) { rkSelesai(r, m); return; }
+      if (r && r.host === ws && r.state === 'game') { if (r.um && r.lb && m.first) { const w = r.pl.find(x => x.id === (m.first | 0)), L = lbrooms.get(r.lb); if (w && L) L.umNext = w.pid; } r.state = 'lobby'; r.pl.forEach(w => { w.tmR = 0; }); tmRoomMsg(r); if (r.lb) { r.exp = null; lbKembali(r.lb, r.code); } } return;
     case 'tmBack': if (r) tmRoomMsg(r); return;
+    case 'tmBalik': tmBalik(ws, m); return;
   }
 }
 function tmRelay(ws, m, raw) {   // data pertandingan tim
@@ -343,7 +405,7 @@ const LB_HOST_GANTI = 20000;               // host terputus 20 detik di lobi →
 const LB_TUNGGU_3D = 30000;                // batas menunggu semua pemain masuk arena Duel 3D (ms)
 const LB_KW = 10;
 const LB_DUR = [5, 7, 10, 15], LB_KILL = [10, 15, 20, 30];   // pilihan host untuk Duel Tim (menit / target kill)                          // target kill Duel Main Bareng
-const LB_MODE = ['duel', 'tim', 'wn', 'pk', 'umpet', 'acak'];   // wn = War Nanas 3 vs 3 (slot kosong diisi bot)   // umpet = Petak Umpet Hantu (1 penjaga, sisanya sembunyi)   // duel = 1 vs 1 (bergiliran bila >2 pemain), tim = Biru vs Merah (+ bot)
+const LB_MODE = ['duel', 'tim', 'wn', 'pk', 'umpet', 'acak', 'rk'];   // rk = Rank party (maks 3 orang satu tim, cari lawan online)   // wn = War Nanas 3 vs 3 (slot kosong diisi bot)   // umpet = Petak Umpet Hantu (1 penjaga, sisanya sembunyi)   // duel = 1 vs 1 (bergiliran bila >2 pemain), tim = Biru vs Merah (+ bot)
 const LB_AR = { duel: 4, tim: 4, wn: 1, pk: PK_ARENA + 1, umpet: 1 };   // pk: lintasan ke-7 (nomor PK_ARENA) = Petak Umpet Hantu
 const UMPET_ARENA = 4;   // game3d.html: ARENA_NAMA[4] = 'kebun' (Kebun Malam)   // jumlah arena: duel 3D (0 Lapangan SD, 1 Kuil Malam, 2 Sawah Siang, 3 Taman Pink), parkur (lihat PK_ARENA)
 const lbrooms = new Map();                 // kode → {code, hostPid, mem: Map pid→anggota, m, a, state:'lobby'|'hero'|'main', ...}
@@ -355,18 +417,20 @@ const lbTimM = m => m === 'tim' || m === 'wn';   // mode bertim (Biru/Merah · W
 function lbTimPos(L) { if (lbTimM(L.m) || lbTimM(L.rm)) [...L.mem.values(), ...(L.bots || [])].forEach(y => { if (y.pos != null) y.tm = y.pos % 2; }); }
 const lbKotakTim = (L, t) => { for (let p = t; p < LB_MAX; p += 2) if (lbKosong(L, p)) return p; return -1; };   // kotak kosong pertama di kolom tim t
 function lbKirim(L) {
+  if (L.rank) return;   // Rank: tidak ada layar lobi
   lbPos(L); if (L.state === 'lobby') lbTimPos(L);
   const pl = [...L.mem.values()].map(x => ({ k: x.k, n: x.n, on: x.ws && x.ws.readyState === 1 ? 1 : 0, h: x.pid === L.hostPid ? 1 : 0, tm: x.tm | 0, p: x.pos }))
     .concat((L.bots || []).map(b => ({ k: b.k, n: b.n, on: 1, h: 0, tm: b.tm, bot: 1, p: b.pos })));   // bot yang ditambahkan host lewat tanda +
   const sisa = L.state === 'hero' ? Math.max(0, L.heroEnd - Date.now()) : 0;
   lbOn(L).forEach(x => send(x.ws, { t: 'lbRoom', code: L.code, me: x.k, host: x.pid === L.hostPid, pl, m: L.m, a: L.a, state: L.state, max: LB_MAX,
-    ikut: x.inR ? 1 : 0, rm: L.state !== 'lobby' ? L.rm : '', ra: L.state !== 'lobby' ? L.ra : -1, sisa, wasit: x.wasit ? 1 : 0, pub: L.pub ? 1 : 0, bot: 0, tmMax: TM_MAX, dur: L.dur || 5, kill: L.kill || 10 }));
+    ikut: x.inR ? 1 : 0, rm: L.state !== 'lobby' ? L.rm : '', ra: L.state !== 'lobby' ? L.ra : -1, sisa, wasit: x.wasit ? 1 : 0, pub: L.pub ? 1 : 0, bot: 0, tmMax: TM_MAX, dur: L.dur || 5, kill: L.kill || 10, rkT: L.rkQ ? Date.now() - L.rkQ.t0 : -1 }));
 }
 function lbJoin(ws, code) {
   const L = lbrooms.get(code);
   if (!L) { send(ws, { t: 'err', msg: 'Lobi ' + code + ' tidak ditemukan (mungkin sudah ditutup)', hilang: 1 }); return; }
   if (!ws.pid) { send(ws, { t: 'err', msg: 'Muat ulang halaman game lalu coba lagi' }); return; }
   let x = L.mem.get(ws.pid);
+  if (!x && L.rkQ) rkBatalParty(L, '⚠️ ' + ws.name + ' masuk lobi — pencarian lawan dibatalkan');
   if (!x && L.mem.size + (L.bots || []).length >= LB_MAX && (L.bots || []).length) L.bots.pop();   // lobi penuh tapi ada bot → bot memberi tempat untuk teman
   if (!x && L.mem.size >= LB_MAX) { send(ws, { t: 'err', msg: 'Lobi sudah penuh (' + LB_MAX + ' pemain)' }); return; }
   if (ws.lobi !== code) leave(ws);
@@ -456,19 +520,20 @@ function lbLuncur(L) {
     }
     else if (lbTimM(L.rm)) ikut.forEach(x => exp.set(x.pid, x.tm | 0));             // tim pilihan pemain sendiri
     else ikut.slice().sort(() => Math.random() - .5).forEach((x, i) => exp.set(x.pid, i % 2));   // 1 vs 1
-    const acakH = () => HEROES[Math.floor(Math.random() * HEROES.length)];
+    const heroTim = t => ikut.filter(x => exp.get(x.pid) === t).map(x => x.h).concat(bots.filter(b => b.tm === t).map(b => b.h));
+    const acakH = t => { const L2 = L.rank && t != null ? HEROES.filter(h => !heroTim(t).includes(h)) : HEROES; return L2[Math.floor(Math.random() * L2.length)]; };   // Rank: hero tidak kembar dalam satu tim
     let bots = [];
     if (L.rm === 'duel' && ikut.length === 1 && L.duelBot) bots = [{ i: -(++botSeq), n: L.duelBot.n, h: acakH(), tm: 1 - exp.get(ikut[0].pid) }];   // 1 lawan bot
     if (lbTimM(L.rm)) bots = botL.map(b => ({ i: -(++botSeq), n: b.n, h: acakH(), tm: b.tm }));
     if (L.rm === 'wn') { const ada = t => [...exp.values()].filter(v => v === t).length + bots.filter(b => b.tm === t).length;   // War Nanas selalu 3 vs 3: kotak kosong diisi bot
-      [0, 1].forEach(t => { while (ada(t) < TM_MAX) bots.push({ i: -(++botSeq), n: '🤖 Bot ' + (bots.length + 1), h: acakH(), tm: t }); }); }
+      [0, 1].forEach(t => { while (ada(t) < TM_MAX) bots.push({ i: -(++botSeq), n: L.rank ? rkNamaBot(ikut.map(x => x.n).concat(bots.map(b => b.n))) : '🤖 Bot ' + (bots.length + 1), h: acakH(t), tm: t }); }); }
     const n0 = [...exp.values()].filter(t => t === 0).length + bots.filter(b => b.tm === 0).length, n1 = exp.size + bots.length - n0;
     if (pakaiBot) bots = bots.concat(lbRencanaBot(n0, n1).map((tm, i) => ({ i: -(++botSeq), n: 'Bot ' + (bots.length + i + 1), h: acakH(), tm })));
-    const r = { code, host: null, pl: [], bots: [], botRencana: bots, state: 'lobby', a: L.rm === 'umpet' ? UMPET_ARENA : L.rm === 'wn' ? 0 : L.ra, um: penjaga, wn: L.rm === 'wn' ? 1 : 0, kw: L.rm === 'tim' ? L.kill || 10 : L.rm === 'wn' ? 0 : LB_KW, dur: L.rm === 'tim' ? (L.dur || 5) * 60 : 0, pub: false, t0: Date.now(), ver: '3d', lb: L.code, exp, hostPid: L.hostPid, wasit: new Set(L.rm === 'duel' ? lbOn(L).filter(x => x.wasit).map(x => x.pid) : []), tonton: [] };
+    const r = { code, host: null, pl: [], bots: [], botRencana: bots, state: 'lobby', a: L.rm === 'umpet' ? UMPET_ARENA : L.rm === 'wn' ? 0 : L.ra, um: penjaga, wn: L.rm === 'wn' ? 1 : 0, kw: L.rm === 'tim' ? L.kill || 10 : L.rm === 'wn' ? 0 : LB_KW, dur: L.rm === 'tim' ? (L.dur || 5) * 60 : 0, pub: false, t0: Date.now(), ver: '3d', lb: L.code, exp, hostPid: L.hostPid, rank: L.rank ? 1 : 0, rkAkun: L.rkAkun || null, rkSudah: new Set(), partai: L.partai || null, wasit: new Set(L.rm === 'duel' ? lbOn(L).filter(x => x.wasit).map(x => x.pid) : []), tonton: [] };
     trooms.set(code, r);
     r.autoT = setTimeout(() => lbTmMulai(r, 1), LB_TUNGGU_3D);
     lbKirim(L);
-    ikut.forEach(x => send(x.ws, { t: 'lbGo3d', code, m: L.rm, a: L.ra, h: x.h, s: x.s || '', tm: exp.get(x.pid), kw: r.kw, lb: L.code }));
+    ikut.forEach(x => send(x.ws, { t: 'lbGo3d', code, m: L.rm, a: L.ra, h: x.h, s: x.s || '', tm: exp.get(x.pid), kw: r.kw, lb: L.code, rank: L.rank ? 1 : 0, lv: L.rank ? L.rkLv : undefined, pulang: L.pulang ? L.pulang.get(x.pid) || '' : '' }));
     lbOn(L).filter(x => x.wasit && r.wasit.has(x.pid)).forEach(x => send(x.ws, { t: 'lbGo3d', code, m: L.rm, a: L.ra, h: x.h || 'pocong', s: '', tm: 0, kw: LB_KW, lb: L.code, wasit: 1 }));   // wasit ikut membuka arena untuk menonton
     console.log(new Date().toISOString(), 'main bareng ' + L.rm, L.code, bots.length ? '+' + bots.length + ' bot' : '', '→ room', code, ikut.map(x => x.n).join(', '));
   }
@@ -482,9 +547,9 @@ function lbTmMulai(r, waktuHabis) {   // semua pemain Main Bareng sudah masuk ar
   if (r.um) { if (r.pl.length < 2) { r.pl.forEach(w => send(w, { t: 'err', msg: 'Teman belum masuk arena — kembali ke lobi…', balik: 1 })); r.exp = null; lbKembali(r.lb, r.code); return; } }
   else for (const t of [0, 1]) if (!tmCount(r, t)) {   // tim kosong (ada yang tidak masuk) → pindahkan 1 pemain / bot
     const w = r.pl.length > 1 && r.pl.filter(x => x.tmT !== t).length > 1 ? r.pl.filter(x => x.tmT !== t)[0] : null;
-    if (w) w.tmT = t; else { const b = r.bots.find(x => x.tm !== t); if (b && tmCount(r, 1 - t) > 1) b.tm = t; else r.bots.push({ i: -(++botSeq), n: 'Bot ' + (r.bots.length + 1), h: HEROES[Math.floor(Math.random() * HEROES.length)], tm: t }); }
+    if (w) w.tmT = t; else { const b = r.bots.find(x => x.tm !== t); if (b && tmCount(r, 1 - t) > 1) b.tm = t; else r.bots.push({ i: -(++botSeq), n: r.rank ? rkNamaBot(r.pl.map(w => w.name).concat(r.bots.map(b => b.n))) : 'Bot ' + (r.bots.length + 1), h: HEROES[Math.floor(Math.random() * HEROES.length)], tm: t }); }
   }
-  if (r.wn) [0, 1].forEach(t => { while (tmCount(r, t) < TM_MAX) r.bots.push({ i: -(++botSeq), n: '🤖 Bot ' + (r.bots.length + 1), h: HEROES[Math.floor(Math.random() * HEROES.length)], tm: t }); });   // War Nanas: yang tidak masuk diganti bot
+  if (r.wn) [0, 1].forEach(t => { while (tmCount(r, t) < TM_MAX) r.bots.push({ i: -(++botSeq), n: r.rank ? rkNamaBot(r.pl.map(w => w.name).concat(r.bots.map(b => b.n))) : '🤖 Bot ' + (r.bots.length + 1), h: HEROES[Math.floor(Math.random() * HEROES.length)], tm: t }); });   // War Nanas: yang tidak masuk diganti bot
   // yang menjalankan bot = HP paling kuat (bukan selalu host lobi), supaya HP kentang tidak terbebani
   r.host = r.pl.slice().sort((p, q) => (q.kuat || 0) - (p.kuat || 0) || (q.pid === r.hostPid) - (p.pid === r.hostPid))[0];
   tmMulaiRoom(r);
@@ -499,7 +564,7 @@ function lbMsg(ws, m) {
       lbJoin(ws, code); return;
     }
     case 'lbJoin': lbJoin(ws, clean(m.code, 6)); return;
-    case 'lbMode': if (L && host && L.state === 'lobby' && LB_MODE.includes(m.m)) { if (LB_AR[L.m] !== LB_AR[m.m] || (L.m === 'pk') !== (m.m === 'pk')) L.a = -1; L.m = m.m; lbAturTim(L); lbKirim(L); } return;
+    case 'lbMode': if (L && host && L.state === 'lobby' && !L.rkQ && LB_MODE.includes(m.m)) { if (m.m === 'rk') L.bots = []; if (LB_AR[L.m] !== LB_AR[m.m] || (L.m === 'pk') !== (m.m === 'pk')) L.a = -1; L.m = m.m; lbAturTim(L); lbKirim(L); } return;
     case 'lbTim': {   // pemain pindah tim sendiri (Duel Tim)
       if (!L || !x || L.state !== 'lobby') return;
       const t = m.tm === 1 ? 1 : 0; if (t === x.tm) return;
@@ -513,6 +578,7 @@ function lbMsg(ws, m) {
     }
     case 'lbBotAdd': {   // host menambah bot ke kotak kosong
       if (!L || !host || L.state !== 'lobby') return; L.bots = L.bots || [];
+      if (L.m === 'rk' || L.rkQ) { send(ws, { t: 'err', msg: 'Mode Rank tidak memakai bot pilihan — kursi kosong diisi otomatis saat mencari lawan' }); return; }
       if (L.mem.size + L.bots.length >= LB_MAX) { send(ws, { t: 'err', msg: 'Lobi sudah penuh' }); return; }
       L.bots.push({ k: ++lbSeq, n: lbBotNama(L), tm: lbTimKecil(L), pos: lbKosong(L, m.p | 0) ? m.p | 0 : null }); lbKirim(L); return;
     }
@@ -532,7 +598,8 @@ function lbMsg(ws, m) {
       L.a = a; lbKirim(L); return;
     }
     case 'lbGo': {
-      if (!L || !host || L.state !== 'lobby') return;
+      if (!L || !host || L.state !== 'lobby' || L.rkQ) return;
+      if (L.m === 'rk') { rkParty(L, ws); return; }
       if (!L.m) { send(ws, { t: 'err', msg: 'Pilih mode dulu: Duel, Parkur, atau Acak' }); return; }
       const on = lbOn(L);
       const nb = (L.bots || []).length;
@@ -564,6 +631,7 @@ function lbMsg(ws, m) {
       lbCekPilih(L); return;
     }
     case 'lbPub': if (L && host) { L.pub = m.pub ? true : false; lbKirim(L); } return;
+    case 'lbRkBatal': if (L && x && L.rkQ) rkBatalParty(L, '✖ ' + x.n + ' membatalkan pencarian lawan'); return;
   }
 }
 // bersihkan anggota yang lama terputus & pindahkan host yang hilang
@@ -575,12 +643,167 @@ setInterval(() => {
     const h = lbHost(L);
     if (L.state === 'lobby' && h && !h.ws && now - Math.max(h.gone || 0, L.backT || 0) > LB_HOST_GANTI) { const on = lbOn(L)[0]; if (on) { L.hostPid = on.pid; ubah = true; } }
     if (L.state === 'main' && !lbOn(L).length && L.sub && !trooms.has(L.sub) && !prooms.has(L.sub)) { lbKembali(L.code); ubah = true; }
+    if (L.rkMain) { const RL = lbrooms.get(L.rkMain), jalan = RL && (RL.state === 'hero' || (RL.state === 'main' && [...trooms.values()].some(r => r.lb === RL.code))); if (!jalan) { rkLepasParty(L.code); ubah = true; } }   // Rank party batal / selesai
     if (ubah) lbRapikan(L);
   });
 }, 3000);
 
+// =================== RANK ONLINE (War Nanas 3 vs 3) ===================
+// Pemain menekan CARI LAWAN → antre. 6 pemain → langsung main. Kurang dari 6 → setelah 27–60 detik (acak per pemain,
+// tidak diberitahukan) kursi kosong diisi bot bernama seperti pemain biasa. Hasil dikirim ke Supabase (game_rank_hasil)
+// memakai kunci rahasia server: menang +25 (MVP +5), kalah −20 (MVP tim kalah hanya −10), keluar di tengah = kalah.
+const RANK_KUNCI = process.env.KS_RANK_KUNCI || 'GANTI-KUNCI-RANK';
+const RK_TUNGGU = [27000, 60000];          // lama menunggu sebelum diisi bot (acak)
+const RK_ZIGZAG = [0, 1, 1, 0, 0, 1];      // pembagian tim berdasarkan poin (terkuat → tim 0, lalu 1, 1, 0, 0, 1)
+let RK = [];                               // antrean: {ws, t0, tunggu, poin}
+const RK_DEPAN = ['Raka', 'Dimas', 'Bayu', 'Fajar', 'Rizky', 'Adit', 'Galih', 'Ilham', 'Yoga', 'Reza', 'Bima', 'Arya', 'Dafa', 'Farel', 'Naufal', 'Rafi', 'Zidan', 'Alif', 'Haikal', 'Kevin',
+  'Putri', 'Nayla', 'Salsa', 'Aulia', 'Citra', 'Dinda', 'Keysha', 'Zahra', 'Alya', 'Nabila', 'Rara', 'Tasya', 'Asep', 'Ujang', 'Cecep', 'Dadang', 'Euis', 'Neng', 'Agus', 'Wahyu', 'Ucup', 'Komeng', 'Iqbal', 'Satria', 'Gilang'];
+const RK_GAYA = [
+  n => n, n => n.toLowerCase(), n => n + (10 + Math.floor(Math.random() * 90)), n => n.toLowerCase() + '_' + (Math.floor(Math.random() * 999) + 1),
+  n => n + ' ' + ['Gaming', 'Pro', 'GG', 'ID', 'Sakti', 'Ganteng', 'Kece', 'Jago', 'Santuy', 'Subang', 'Bandung', 'Garut'][Math.floor(Math.random() * 12)],
+  n => ['xX', 'Si', 'Kang ', 'Mang ', 'Teh ', 'Bang ', 'Mas '][Math.floor(Math.random() * 7)] + n, n => n.toUpperCase(), n => n + '.' + String(2008 + Math.floor(Math.random() * 12)).slice(2)];
+function rkNamaBot(dipakai) {
+  for (let k = 0; k < 30; k++) { const d = RK_DEPAN[Math.floor(Math.random() * RK_DEPAN.length)], n = RK_GAYA[Math.floor(Math.random() * RK_GAYA.length)](d).slice(0, 16); if (!dipakai.some(x => String(x).toLowerCase().includes(d.toLowerCase()))) return n; }   // nama dasar tidak boleh kembar (neng & xXNeng)
+  return 'Pemain' + (100 + Math.floor(Math.random() * 900));
+}
+const RK_TK = [0, 100, 250, 450, 700, 1000, 1400, 1900], RK_TK_NAMA = ['Anak Bawang', 'Prajurit', 'Jagoan', 'Pendekar', 'Ksatria', 'Panglima Tempur', 'Suhu', 'Sepuh'];
+const rkTk = p => RK_TK.filter(b => (p | 0) >= b).length - 1;
+const RK_PARTY_MAX = 3, RK_PARTY_SELISIH = 2;   // party Rank: maks 3 orang, selisih tingkat maks 2
+const rkJml = e => e.anggota.length, rkPoin = e => e.anggota.reduce((s, a) => s + a.poin, 0);
+function rkHapusEntri(e) { RK = RK.filter(z => z !== e); e.anggota.forEach(a => { if (a.ws.rkQ === e) a.ws.rkQ = null; }); }
+function rkKeluarAntre(ws) {
+  const e = ws.rkQ; if (!e) return; ws.rkQ = null;
+  const L = e.party && lbrooms.get(e.party);
+  if (L && L.rkQ === e) { rkBatalParty(L, '⚠️ ' + ws.name + ' keluar — pencarian lawan dibatalkan'); return; }
+  rkHapusEntri(e);
+}
+function rkBatalParty(L, msg) {   // party Main Bareng berhenti mencari lawan
+  const e = L.rkQ; if (!e) return; L.rkQ = null; rkHapusEntri(e);
+  if (msg) lbOn(L).forEach(x => send(x.ws, { t: 'err', msg }));
+  lbKirim(L);
+}
+async function rkParty(L, ws) {   // host lobi menekan CARI LAWAN di mode Rank
+  const on = lbOn(L);
+  if (!on.length) return;
+  if (on.length > RK_PARTY_MAX) { send(ws, { t: 'err', msg: 'Rank party maksimal ' + RK_PARTY_MAX + ' orang (satu tim) — sisanya keluar dulu atau main mode lain' }); return; }
+  const belum = on.filter(x => !x.ws.akun);
+  if (belum.length) { send(ws, { t: 'err', msg: '🔒 Belum masuk akun: ' + belum.map(x => x.n).join(', ') + ' — semua anggota party wajib login akun warga desa' }); return; }
+  if (L.rkCek) return; L.rkCek = 1;
+  const poin = await Promise.all(on.map(x => sbRpc('game_rank_akun', { p_akun: x.ws.akun }).then(j => Math.max(0, (j && j.poin) | 0))));
+  L.rkCek = 0;
+  if (lbrooms.get(L.code) !== L || L.state !== 'lobby' || L.rkQ || L.m !== 'rk') return;
+  const on2 = lbOn(L); if (on2.length !== on.length || on.some(x => !on2.includes(x))) { send(ws, { t: 'err', msg: 'Anggota lobi berubah — tekan CARI LAWAN lagi' }); return; }
+  const tk = poin.map(rkTk), lo = Math.min(...tk), hi = Math.max(...tk);
+  if (hi - lo > RK_PARTY_SELISIH) { const a = on[tk.indexOf(hi)], b = on[tk.indexOf(lo)];
+    send(ws, { t: 'err', msg: 'Selisih tingkat terlalu jauh: ' + a.n + ' (' + RK_TK_NAMA[hi] + ') & ' + b.n + ' (' + RK_TK_NAMA[lo] + ') — maksimal ' + RK_PARTY_SELISIH + ' tingkat' }); return; }
+  const e = { anggota: on.map((x, i) => ({ ws: x.ws, poin: poin[i] })), t0: Date.now(), tunggu: RK_TUNGGU[0] + Math.random() * (RK_TUNGGU[1] - RK_TUNGGU[0]), party: L.code };
+  on.forEach(x => { rkKeluarAntre(x.ws); x.ws.rkQ = e; });
+  L.rkQ = e; RK.push(e); lbKirim(L); rkCek();
+  console.log(new Date().toISOString(), 'rank party mencari', L.code, on.map((x, i) => x.n + '(' + poin[i] + ')').join(', '));
+}
+function rkLepasParty(code) {   // pertandingan Rank party selesai → lobi Main Bareng dibuka lagi
+  const L = lbrooms.get(code); if (!L || !L.rkMain) return;
+  L.rkMain = null; lbKembali(code);
+}
+function rkMsg(ws, m) {
+  switch (m.t) {
+    case 'rkCari': {
+      if (!ws.pid) { send(ws, { t: 'rkErr', msg: 'Muat ulang halaman game lalu coba lagi' }); return; }
+      if (!ws.akun) {   // akun belum selesai dicek (hello baru dikirim) → tunggu sebentar
+        if (ws.sesi && (m._c | 0) < 8) { setTimeout(() => { if (ws.readyState === 1) rkMsg(ws, Object.assign({}, m, { _c: (m._c | 0) + 1 })); }, 700); return; }
+        send(ws, { t: 'rkErr', msg: 'Masuk akun warga desa dulu untuk main Rank', login: 1 }); return;
+      }
+      leave(ws);
+      RK.filter(e => e.anggota.some(a => a.ws !== ws && (a.ws.pid === ws.pid || a.ws.akun === ws.akun))).forEach(e => e.anggota.forEach(a => { if (a.ws.pid === ws.pid || a.ws.akun === ws.akun) { send(a.ws, { t: 'rkBatal' }); rkKeluarAntre(a.ws); } }));
+      const e = { anggota: [{ ws, poin: Math.max(0, Math.min(99999, m.poin | 0)) }], t0: Date.now(), tunggu: RK_TUNGGU[0] + Math.random() * (RK_TUNGGU[1] - RK_TUNGGU[0]), party: '' };
+      ws.rkQ = e; RK.push(e);
+      send(ws, { t: 'rkAntre' });
+      rkCek(); return;
+    }
+    case 'rkBatal': rkKeluarAntre(ws); send(ws, { t: 'rkBatal' }); return;
+  }
+}
+function rkSusun(daftar) {   // susun 2 tim × 3 kursi dari antrean (tertua dulu); party tidak dipisah
+  const tim = [[], []], n = [0, 0], p = [0, 0], pakai = [];
+  for (const e of daftar) {
+    const k = rkJml(e), bisa = [0, 1].filter(t => n[t] + k <= TM_MAX); if (!bisa.length) continue;
+    const t = bisa.length === 1 ? bisa[0] : n[0] !== n[1] ? (n[0] < n[1] ? 0 : 1) : (p[0] <= p[1] ? 0 : 1);   // isi tim yang lebih sedikit, kalau sama: yang poinnya lebih kecil
+    tim[t].push(e); n[t] += k; p[t] += rkPoin(e); pakai.push(e);
+    if (n[0] === TM_MAX && n[1] === TM_MAX) break;
+  }
+  return { tim, pakai, penuh: n[0] === TM_MAX && n[1] === TM_MAX };
+}
+function rkCek() {
+  RK.slice().forEach(e => { if (e.anggota.every(a => a.ws.readyState === 1 && a.ws.rkQ === e)) return;
+    const L = e.party && lbrooms.get(e.party); if (L && L.rkQ === e) rkBatalParty(L, '⚠️ Ada anggota yang terputus — pencarian lawan dibatalkan'); else rkHapusEntri(e); });
+  for (let k = 0; k < 20 && RK.length; k++) {
+    const S = rkSusun(RK);
+    if (!S.penuh && Date.now() - RK[0].t0 < RK[0].tunggu) break;   // belum penuh & belum waktunya diisi bot
+    RK = RK.filter(e => !S.pakai.includes(e)); rkMulai(S.tim);
+  }
+}
+setInterval(rkCek, 1000);
+function rkMulai(tim) {
+  const semua = tim[0].concat(tim[1]); semua.forEach(e => e.anggota.forEach(a => { a.ws.rkQ = null; }));
+  const code = newCode(), now = Date.now(), ang = [];
+  [0, 1].forEach(t => tim[t].forEach(e => e.anggota.forEach(a => ang.push({ ws: a.ws, poin: a.poin, tm: t, party: e.party, t0: e.t0 }))));
+  ang.sort((a, b) => b.poin - a.poin);
+  const L = { code, hostPid: ang[0].ws.pid, mem: new Map(), m: 'wn', a: 0, rm: 'wn', ra: 0, state: 'hero', pub: false, t0: now, rank: 1, bots: [], cepat: 0, heroEnd: now + LB_HERO, rkAkun: new Map(), pulang: new Map(), partai: [] };
+  const rata = ang.reduce((s, a) => s + a.poin, 0) / ang.length;
+  L.rkLv = rata < 250 ? 1 : rata < 1000 ? 2 : 3;   // kemampuan bot mengikuti rata-rata poin (Sedang / Susah / Pro)
+  ang.forEach(a => {
+    const ws = a.ws, x = { k: ++lbSeq, pid: ws.pid, ws, n: ws.name, h: ws.hero, s: ws.skin, gone: 0, inR: true, pick: 0, tm: a.tm, main: 0 };
+    L.mem.set(ws.pid, x); L.rkAkun.set(ws.pid, { akun: ws.akun, n: ws.name });
+    if (a.party) {   // anggota party: lobi Main Bareng-nya ditahan sampai pertandingan selesai
+      const PL = lbrooms.get(a.party);
+      if (PL) { if (!L.partai.includes(a.party)) L.partai.push(a.party); L.pulang.set(ws.pid, a.party); PL.rkQ = null; PL.rkMain = code; PL.state = 'main'; PL.sub = null;
+        const px = PL.mem.get(ws.pid); if (px && px.ws === ws) { px.ws = null; px.gone = 0; px.inR = false; } }
+    }
+    ws.lobi = code;
+  });
+  lbrooms.set(code, L);
+  L.mem.forEach(x => { send(x.ws, { t: 'rkKetemu' }); send(x.ws, { t: 'lbHero', m: 'wn', a: 0, sec: LB_HERO / 1000, tm: x.tm, rank: 1 }); });
+  L.heroT = setTimeout(() => lbLuncur(L), LB_HERO + 500);
+  console.log(new Date().toISOString(), 'rank ketemu', code, [0, 1].map(t => tim[t].map(e => e.anggota.map(a => a.ws.name + '(' + a.poin + ')').join('+') + (e.party ? '[party]' : '')).join(', ')).join('  VS  '), ang.length < LB_MAX ? '+' + (LB_MAX - ang.length) + ' bot' : '');
+}
+function rkKirimHasil(r, hasil) {   // hasil: [{pid, akun, nama, menang, mvp}]
+  if (!hasil.length) return;
+  hasil.forEach(h => r.rkSudah.add(h.pid));
+  sbRpc('game_rank_hasil', { p_kunci: RANK_KUNCI, p_hasil: hasil.map(h => ({ akun: h.akun, nama: h.nama, menang: !!h.menang, mvp: !!h.mvp })) }).then(j => {
+    const L = Array.isArray(j) ? j : [];
+    hasil.forEach(h => {
+      const d = L.find(x => x.akun === h.akun), w = r.pl.find(x => x.pid === h.pid) || akunWs.get(h.akun);
+      if (d) send(w, { t: 'rkHasil', poin: d.poin, ubah: d.ubah, menang: h.menang ? 1 : 0, mvp: h.mvp ? 1 : 0 });
+      else send(w, { t: 'rkHasil', gagal: 1 });
+    });
+    console.log(new Date().toISOString(), 'rank hasil', r.code, hasil.map(h => h.nama + (h.menang ? ' M' : ' K') + (h.mvp ? '*' : '') + (d => d ? ' ' + d.poin + '(' + d.ubah + ')' : ' ?')(L.find(x => x.akun === h.akun))).join(', '));
+  });
+}
+function rkKabur(r, pid) {   // keluar di tengah pertandingan Rank → langsung dicatat kalah
+  const a = r.rkAkun && r.rkAkun.get(pid); if (!a || r.rkSudah.has(pid)) return;
+  rkKirimHasil(r, [{ pid, akun: a.akun, nama: a.n, menang: false, mvp: false }]);
+}
+function rkSelesai(r, m) {   // pertandingan Rank selesai (dikirim HP wasit): m.m = tim pemenang, m.mvp = [id MVP tim 0, id MVP tim 1]
+  const menang = m.m === 0 || m.m === 1 ? m.m : -1, mvp = Array.isArray(m.mvp) ? m.mvp.map(v => v | 0) : [];
+  const hasil = [];
+  (r.rkAkun || new Map()).forEach((a, pid) => {
+    if (r.rkSudah.has(pid)) return;
+    const td = r.tunda && r.tunda.get(pid), w = r.pl.find(x => x.pid === pid) || (td && { tmT: td.tm, id: td.i, name: td.n }), tm = r.exp ? r.exp.get(pid) : w && w.tmT;   // yang sedang tersambung ulang tetap dihitung
+    if (!w) { hasil.push({ pid, akun: a.akun, nama: a.n, menang: false, mvp: false }); return; }   // tidak pernah masuk arena = kalah
+    if (menang < 0) return;   // seri: poin tidak berubah
+    const t = w.tmT != null ? w.tmT : tm;
+    hasil.push({ pid, akun: a.akun, nama: w.name || a.n, menang: t === menang, mvp: mvp[t] === w.id });
+  });
+  rkKirimHasil(r, hasil);
+  if (r.tunda) { r.tunda.forEach(T => clearTimeout(T.timer)); r.tunda.clear(); }
+  r.state = 'lobby'; r.exp = null; r.pl.forEach(w => { w.tmR = 0; });
+  const L = r.lb && lbrooms.get(r.lb); if (L) { clearTimeout(L.heroT); lbrooms.delete(r.lb); }
+  (r.partai || []).forEach(rkLepasParty);
+}
+
 function leave(ws, notify = true) {
   queue = queue.filter(q => q !== ws);
+  rkKeluarAntre(ws);
   lbLeave(ws);
   pkLeave(ws);
   tmLeave(ws);
@@ -616,6 +839,7 @@ wss.on('connection', (ws, req) => {
     if (m.t.startsWith('pk')) return pkMsg(ws, m, raw);
     if (m.t.startsWith('tm')) return tmMsg(ws, m, raw);
     if (m.t.startsWith('lb')) return lbMsg(ws, m);
+    if (m.t.startsWith('rk')) return rkMsg(ws, m);
     if (ws.troom && tmRelay(ws, m, raw)) return;
     const r = ws.room && rooms.get(ws.room);
 
@@ -751,7 +975,7 @@ wss.on('connection', (ws, req) => {
       case 'ping': send(ws, { t: 'pong', c: m.c }); break;
     }
   });
-  ws.on('close', () => { lbLepas(ws); leave(ws); if (ws.akun && akunWs.get(ws.akun) === ws) akunWs.delete(ws.akun); });
+  ws.on('close', () => { ws.putus = true; lbLepas(ws); leave(ws); if (ws.akun && akunWs.get(ws.akun) === ws) akunWs.delete(ws.akun); });
   ws.on('error', () => {});
 });
 
