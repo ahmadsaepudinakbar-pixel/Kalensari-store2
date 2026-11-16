@@ -7663,6 +7663,15 @@ const WNV = {
   buaya: { hp: 3500, dmg: 200, jeda: 1.6, kec: 2.6, leash: 9, selang: 240, naikHp: .8, naikDmg: .5, naikPerMenit: 0 },   // ke-1 3.500 HP · ke-2 6.300 · ke-3 9.100 · ke-4 11.900 (sebelumnya 2.200, +60%/kemunculan)
   buayaT: { hp: 1600, dmg: 130, dmgB: 160, jeda: 1.6, kec: 2.5 },
   respawn: [10, 2, 45] };   // [awal, tambah per menit, maks] detik
+// ---- mode tutorial (?tutor=1): SEMUA dibuat lemah supaya inti permainan cepat dipahami (monster, bangunan, Tugu, hero lawan) ----
+const TUT_LEMAH = Q.get('tutor') === '1', TUT_SKALA_MUSUH = { hp: .3, dmg: .2 };   // hero lawan: HP 30% · damage 20%
+if (TUT_LEMAH) {
+  Object.assign(WNV.mon, { hp: 140, dmg: 8, jeda: 1.8 });
+  Object.assign(WNV.singa, { hp: 500, dmg: 25, jeda: 2.4 });
+  Object.assign(WNV.garuda, { hp: 700, dmg: 30, jeda: 2.6 });
+  WNV.rumah.hp = 700; WNV.tugu.lama = 3;
+  Object.assign(WNV.buaya, { hp: 400, dmg: 20 }); Object.assign(WNV.buayaT, { hp: 300, dmg: 20, dmgB: 25 });
+}
 // stat hasil kartu (dalam persen, ditumpuk) — rumus & batasnya lihat di bawah (WN_MAKS)
 // ---- rumus kartu (adil untuk semua hero) · semua stat punya batas maksimal ----
 // HP: +p% × 2.000 HP (angka tetap, sama untuk semua hero) · maks +100% (+2.000 HP) — batas khusus per role: WN_MAKS_ROLE
@@ -8523,9 +8532,12 @@ const TUT_LANGKAH = [
   { t: 'Pakai skill', s: 'Ketuk skill yang sudah terbuka (PC: <b>U</b> / <b>I</b>). Tahan lalu <b>geser</b> untuk membidik arahnya.', awal: () => { TUT.skill = 0; }, cek: () => TUT.skill >= 1 },
   { t: 'Kalahkan monster hutan', s: 'Ikuti penanda 🎯, dekati monster lalu serang sampai kalah. Kamu pulih <b>20% darah</b> dan dapat <b>kartu stat</b>.', tanda: 'mon', awal: () => { TUT.mon0 = (WN.sk.get(TIM.me) || {}).mon || 0; }, cek: () => ((WN.sk.get(TIM.me) || {}).mon || 0) > TUT.mon0 },
   { t: 'Pilih kartu', s: 'Pilih <b>1 kartu</b> untuk menambah stat. <b>2 kartu biasa</b> atau <b>1 kartu emas</b> = 1 skill baru. Ulti (Skill 3) terbuka paling akhir.', cek: () => !WN_KARTU.buka && !WN_KARTU.antri.length && performance.now() - TUT.t0 > 1500 },
-  { t: 'Rebut Tugu Nanas', s: 'Pergi ke lingkaran di tengah (penanda 🍍). Berdiri <b>10 detik</b> tanpa musuh untuk merebutnya. Di dalam lingkaran darahmu pulih cepat.', tanda: 'tugu', awal: () => { TUT.tg = 0; }, cek: () => TUT.tg >= 3 },
-  { t: 'Hancurkan bangunan lawan', info: 1, s: 'Urutannya: <b>Sisingaan → Garuda → Rumah lawan</b>. Rumah lawan hancur = <b>menang!</b> Menyerang bersama bot timmu jauh lebih aman. Hati-hati: serangan <b>Sisingaan &amp; Garuda makin sakit</b> di tiap pukulannya (+8% per pukulan, maks +80%).' },
-  { t: 'Tutorial selesai!', info: 1, akhir: 1, s: 'Lanjutkan bermain sampai menang. Tips: <b>Support</b> dapat kartu bonus tiap 20 detik mulai menit ke-1, dan assist monster sampai menit ke-7.' }
+  { t: 'Rebut Tugu Nanas', s: 'Pergi ke lingkaran di tengah (penanda 🍍). Berdiri beberapa detik tanpa musuh untuk merebutnya (di tutorial hanya <b>3 detik</b>). Di dalam lingkaran darahmu pulih cepat.', tanda: 'tugu', awal: () => { TUT.tg = 0; }, cek: () => TUT.tg >= 3 },
+  { t: 'Kalahkan hero lawan', s: 'Ikuti penanda ⚔️ lalu serang hero lawan sampai kalah (di tutorial ini mereka <b>lemah</b>). Kill memberi <b>kartu emas</b>, ambil kartunya!', tanda: 'musuh', awal: () => { TUT.k0 = (WN.sk.get(TIM.me) || {}).k || 0; }, cek: () => ((WN.sk.get(TIM.me) || {}).k || 0) > TUT.k0 },
+  { t: 'Hancurkan Sisingaan', s: 'Bangunan pertama lawan. Masuk ke lingkaran jaganya lalu serang sampai hancur. Hati-hati: serangannya <b>makin sakit</b> tiap pukulan (+8%, maks +80%), dan kembali normal kalau ia diam jadi patung.', tanda: 'singa', cek: () => { const B = WN.singa[1 - TIM.saya.tm]; return !B || B.mati; } },
+  { t: 'Hancurkan Garuda', s: 'Garuda baru bisa diserang setelah Sisingaan hancur. Dekati lalu serang sampai jatuh.', tanda: 'garuda', cek: () => { const B = WN.garuda[1 - TIM.saya.tm]; return !B || B.mati; } },
+  { t: 'Hancurkan Rumah lawan', s: 'Bangunan terakhir. Rumah lawan hancur = <b>menang!</b>', tanda: 'rumah', cek: () => { const B = WN.rumah[1 - TIM.saya.tm]; return !B || B.mati; } },
+  { t: 'Tutorial selesai!', info: 1, akhir: 1, s: 'Kamu sudah mencoba semua inti permainan. Tips: <b>Support</b> dapat kartu bonus tiap 20 detik mulai menit ke-1, dan assist monster sampai menit ke-7.' }
 ];
 function tutDom() {
   if (TUT.P) return;
@@ -8559,6 +8571,8 @@ function tutTanda(L) {   // penanda melayang ke monster terdekat / Tugu Nanas (d
   const m = TUT.M; if (!L.tanda) { m.style.display = 'none'; return; }
   let tujuan = null, nama = '';
   if (L.tanda === 'tugu') { tujuan = new THREE.Vector3(0, 0, 0); nama = '🍍 Tugu Nanas'; }
+  else if (L.tanda === 'musuh') { let bd = 1e9; WN.U.forEach(u => { if (u.tm === TIM.saya.tm || !u.hidup) return; const d = u.pos.distanceTo(P.root.position); if (d < bd) { bd = d; tujuan = u.pos; } }); nama = '⚔️ Musuh'; }
+  else if (L.tanda === 'singa' || L.tanda === 'garuda' || L.tanda === 'rumah') { const B = WN[L.tanda][1 - TIM.saya.tm]; if (B && !B.mati) tujuan = B.g.position; nama = { singa: '🦁 Sisingaan', garuda: '🦅 Garuda', rumah: '🏠 Rumah lawan' }[L.tanda]; }
   else { let bd = 1e9; WN.E.forEach(E => { if (E.jenis !== 'mon' || E.mati || !E.g.visible) return; const d = E.g.position.distanceTo(P.root.position); if (d < bd) { bd = d; tujuan = E.g.position; } }); nama = '🎯 Monster'; }
   if (!tujuan) { m.style.display = 'none'; return; }
   const [x, y, depan] = layar(tujuan.clone().setY(1.6)), jarak = Math.round(P.root.position.distanceTo(tujuan));
@@ -9373,6 +9387,7 @@ async function buatBotTim(p) {
         WN.U.forEach(u => { if (u.tm === o.tm || !u.hidup) return; const d = u.pos.distanceTo(ps); if (d < bd && (u.obj !== P || hidupDanTampak(P, ps))) { bd = d; b = u.obj; } }); return b; }, serang: (t, d, dari, dr) => timBotSerangKe(o, t, d, dari, dr), stun: stunEnt, mati: () => timBotMati(o),
       kirim: e => netEvent(Object.assign(e, { oleh: p.i })) } });
   o.B = B; o.pro = B; o.root = B.root; o.mt = B.mt; B.mt.id = p.i; B.mt.obj = o; B.mt.nama = p.n;
+  if (TUT_LEMAH && !kawan) { B.mt.hpMax = Math.round(B.mt.hpMax * TUT_SKALA_MUSUH.hp); B.mt.hp = B.mt.hpMax; }   // tutorial: hero lawan lemah
   TIM.bot.set(p.i, o);
   if (!kawan) MUSUH.push(B.mt);
   return o;
@@ -9409,6 +9424,7 @@ function pilihSasaran(o) {
 function timBotSerang(o, d, dari, dr) { timBotSerangKe(o, o.sas, d, dari, dr); }
 function timBotSerangKe(o, t, d, dari, dr) {   // bot (di HP pembuat room) mengenai sasarannya
   if (!t) return;
+  if (TUT_LEMAH && !o.kawan) d = Math.max(1, Math.round(d * TUT_SKALA_MUSUH.dmg));   // tutorial: damage hero lawan kecil
   if (WN.on) { d = Math.round(d * wnF(o.id, 'atk')); if (t.titik) return; if (t.wnE) { if (t.wnE.jenis === 'rumah' && !RUMAH_IZIN) return; wnKena(t.wnE, d, o); return; } }
   if (t === P) { TIM.terakhir = o.id; kenaPemain(d, dari, dr); }
   else if (t.lokal) { t.terakhir = o.id; BOT_VS_BOT = true; kena(t.mt, d, dari, dr); BOT_VS_BOT = false; }
