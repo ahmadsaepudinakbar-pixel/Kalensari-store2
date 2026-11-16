@@ -76,11 +76,11 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 .krc{position:relative;overflow:hidden}.krc.kos{border:1px dashed #bbb;color:#bbb;font:700 11px Arial;display:flex;align-items:center;justify-content:center}
 .krc .kk{position:absolute;overflow:hidden;transform-origin:0 0}.krc .kk img,.krc .kk i{display:block;width:100%;height:100%;object-fit:cover}.krc .kk i{background:#e9e3dc}
 .krc .x{position:absolute;right:2px;top:2px;width:18px;height:18px;border:0;border-radius:50%;background:#000b;color:#fff;font-size:10px;line-height:1;padding:0;z-index:2}
-.tlay{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:14px;align-items:start;margin-bottom:14px}
+.tlay{display:grid;grid-template-columns:250px minmax(0,1fr) 250px;gap:14px;align-items:start;margin-bottom:14px}
 .tlay>.card{margin-bottom:0;min-width:0}
 .tlay aside{position:sticky;top:70px}
-.tlay.satu{grid-template-columns:minmax(0,1fr)}.tlay.satu aside{display:none}
-@media(max-width:900px){.tlay{grid-template-columns:1fr}.tlay aside{position:static}}
+main.lebar{max-width:1440px}
+@media(max-width:1000px){.tlay{grid-template-columns:1fr}.tlay aside{position:static}.tlay>.card{order:1}.tlay>#kSlot{order:2}.tlay>#gSlot{order:3}}
 .seg{display:flex;gap:6px;margin:0 0 10px}
 .seg button{flex:1;border:1px solid var(--ln);background:#fff;border-radius:10px;padding:9px 10px;font-weight:700;color:var(--mu)}
 .seg button.on{background:var(--br);border-color:var(--br);color:#fff}
@@ -153,22 +153,23 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
       </div>
     </section>
     <section data-p="template" hidden>
-      <div class="tlay satu" id="tLay"><div class="card"><h3>🎴 Template kartu: gambar Anda + QR asli + kode manual</h3>
+      <div class="tlay satu" id="tLay"><aside id="kSlot"><div class="card" id="tkPanel">
+        <h3 style="margin:0 0 4px;font-size:15px">🔢 Kode batch yang belum jadi kartu</h3>
+        <div class="note" id="tkInfo" style="margin:0 0 8px"></div>
+        <label class="chk"><input type="checkbox" id="tkSemua"> <b>Pilih semua</b></label>
+        <div class="row" style="margin:6px 0;gap:6px;flex-wrap:nowrap"><input class="f" type="number" id="tkN" min="1" placeholder="jml" style="width:70px;padding:6px"><button class="btn ol sm" id="tkPilihN" style="flex:1">pilih N pertama</button></div>
+        <div id="tkList" style="max-height:340px;overflow:auto;border:1px solid var(--ln);border-radius:10px;padding:4px"></div>
+        <label class="l" style="margin-top:8px">Langsung ke kertas<select class="f" id="tkKertas"><option value="">tidak</option><option value="a4">A4</option><option value="a3">A3</option><option value="a3p">A3+</option></select></label>
+        <button class="btn br" id="tkJadi" disabled style="width:100%;margin-top:8px">✨ Jadikan kartu (0)</button>
+        <div class="note" id="tkProg" style="margin-top:6px"></div>
+      </div></aside>
+      <div class="card"><h3>🎴 Template kartu: gambar Anda + QR asli + kode manual</h3>
         <p class="note" style="margin-top:0">1) Unggah gambar desain kartu (depan) · 2) pilih batch kode · 3) geser kotak QR ke tempatnya (klik/ketuk pratinjau, atau isi angka) · 4) unduh kartu jadi atau lembar cetak.
         Ukuran gambar paling pas: <b>Remi 63 : 88</b> (mis. 1488 × 2079 px) atau <b>KTP 54 : 85,6</b> (mis. 1276 × 2022 px), 600 dpi. Gambar dengan perbandingan lain dipotong sedikit saat dicetak.</p>
         <div style="display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;align-items:start" class="tgrid">
           <div><canvas id="tPrev" style="width:100%;border-radius:12px;border:1px solid var(--ln);cursor:crosshair;background:#eee"></canvas>
             <div class="note" id="tInfo">Belum ada gambar.</div>
-            <div id="tkPanel" style="margin-top:12px;border:1px solid var(--ln);border-radius:12px;padding:10px;background:#fff">
-              <b style="font-size:15px">🔢 Kode batch yang belum jadi kartu</b>
-              <div class="note" id="tkInfo" style="margin:4px 0 6px"></div>
-              <div class="row" style="align-items:center;gap:8px;margin-bottom:6px"><label class="chk"><input type="checkbox" id="tkSemua"> <b>Pilih semua</b></label>
-                <span style="margin-left:auto;display:flex;gap:4px;align-items:center"><input class="f" type="number" id="tkN" min="1" placeholder="jml" style="width:64px;padding:6px"><button class="btn ol sm" id="tkPilihN">pilih N pertama</button></span></div>
-              <div id="tkList" style="max-height:280px;overflow:auto;border:1px solid var(--ln);border-radius:10px;padding:4px"></div>
-              <div class="row" style="margin-top:8px;align-items:center"><label class="chk">Langsung ke kertas <select class="f" id="tkKertas" style="max-width:110px"><option value="">tidak</option><option value="a4">A4</option><option value="a3">A3</option><option value="a3p">A3+</option></select></label>
-                <button class="btn br" id="tkJadi" disabled>✨ Jadikan kartu (0)</button></div>
-              <div class="note" id="tkProg" style="margin-top:6px"></div>
-            </div></div>
+</div>
           <div>
             <div class="seg"><button class="on" data-sumber="upload">📤 Upload file</button><button data-sumber="galeri">🖼️ Pilih dari galeri</button></div>
             <div id="sUpload">
@@ -350,7 +351,7 @@ const tgl = d => d ? new Date(d).toLocaleString("id-ID", { timeZone: "Asia/Jakar
 let tab = "ringkas";
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => bukaTab(b.dataset.t));
 function bukaTab(t) {
-  tab = t;
+  tab = t; document.querySelector("main").classList.toggle("lebar", t === "template");
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("[data-p]").forEach(s => s.hidden = s.dataset.p !== t);
   if (t === "ringkas") muatRingkas(); if (t === "daftar") muatDaftar(true); if (t === "template") { tSumber(TSUMBER); tMulai(); } if (t === "galeri") { $("#gHome").appendChild($("#gPanel")); tMulai(); } if (t === "kjadi") { tMulai(); krRender(); }
