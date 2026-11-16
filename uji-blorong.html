@@ -130,14 +130,14 @@ const resize = () => { renderer.setSize(innerWidth, innerHeight, false); camera.
 // ---------- model ----------
 const S = 1.8;   // skala: model Tripo tinggi 1 satuan → ±1,8 m (wujud manusia)
 const LIFT = .2; // tinggi pinggang wujud ular (satuan model)
-const REDAM_KAKI = .75; // 0 = langkah asli animasi · 1 = kaki diam (melayang) — saat jalan wujud manusia
+const REDAM_KAKI = 0; // langkah sudah dikecilkan langsung di nyi-blorong.glb · 0 = langkah asli animasi · 1 = kaki diam (melayang) — saat jalan wujud manusia
 const loader = new GLTFLoader(), muat = u => new Promise((ok, no) => loader.load(u, ok, undefined, no));
 const C = { pos: new THREE.Vector3(0, 0, 2), arah: Math.PI, ular: false, jalan: 0, jarak: 0, diamT: 0, gel: 1, lilit: null, cd: 0 };
 let H, U;   // H = wujud manusia, U = wujud ular
 function siapManusia(gl) {
   const g = new THREE.Group(), m = gl.scene; m.scale.setScalar(S); m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } }); g.add(m);
   const mix = new THREE.AnimationMixer(m), cari = k => gl.animations.find(a => a.name.toLowerCase().includes(k));
-  const A = { jalan: mix.clipAction(cari('walk') || gl.animations[0]), diam: mix.clipAction(cari('stand') || gl.animations[1] || gl.animations[0]) };
+  const A = { jalan: mix.clipAction(cari('jalan') || cari('walk') || gl.animations[0]), diam: mix.clipAction(cari('stand') || gl.animations[1] || gl.animations[0]) };
   A.diam.play(); scene.add(g);
   // kaki: gaun panjang ikut tertarik kaki → langkah dibuat kecil & anggun (gerak kaki animasi jalan diredam ke pose diam)
   const kaki = []; m.traverse(o => { if (o.isBone && /(Left|Right)(UpLeg|Leg|Foot|ToeBase)$/.test(o.name)) kaki.push(o); });
