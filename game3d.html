@@ -8169,11 +8169,10 @@ function wnCariDiLingkaran(E) {   // hero lawan (dan buaya lawan) terdekat di da
   WN.bts.forEach(b => { if (!b.mati && b.tm !== E.tm && b.g.position.distanceTo(E.home) < E.R + 1.5) { const d = b.g.position.distanceTo(p) + 2; if (d < bd) { bd = d; tg = b; } } });
   return tg;
 }
-// Sisingaan & Garuda: damage serangan biasa NAIK tiap pukulan (+8% dari damage dasar per pukulan, maks +80% setelah 10 pukulan) · kembali normal kalau 6 dtk tidak memukul
-const WN_NAIK = { per: .08, maks: 10, reset: 6 };
+// Sisingaan & Garuda: damage serangan biasa NAIK tiap pukulan (+8% dari damage dasar per pukulan, maks +80% setelah 10 pukulan) · kembali ke damage dasar begitu kembali DIAM jadi patung (tidak ada musuh di lingkaran)
+const WN_NAIK = { per: .08, maks: 10 };
 function wnNaikPukulan(E) {   // dipanggil sekali per ayunan/tembakan → pengali damage pukulan ini (pukulan pertama = ×1)
-  const now = performance.now(); if (now - (E.naikT || 0) > WN_NAIK.reset * 1000) E.naikN = 0;
-  const m = 1 + WN_NAIK.per * (E.naikN || 0); E.naikN = Math.min(WN_NAIK.maks, (E.naikN || 0) + 1); E.naikT = now; return m;
+  const m = 1 + WN_NAIK.per * (E.naikN || 0); E.naikN = Math.min(WN_NAIK.maks, (E.naikN || 0) + 1); return m;
 }
 function wnAiSinga(E, dt) {
   const p = E.g.position; E.jalan = 0; if (wnStun(E, dt)) return;
@@ -8194,7 +8193,7 @@ function wnAiSinga(E, dt) {
           WN.U.forEach(u => { if (u.tm === E.tm || !u.hidup) return; if (Math.hypot(u.pos.x - p.x, u.pos.z - p.z) < jg + 1) kena({ t: u.obj, q: u.pos }); }); return; }
         if (!wnHidup(tg)) return; const q = wnPos(tg); if (Math.hypot(q.x - p.x, q.z - p.z) < jg + 1) kena({ t: tg, q }); }, (K ? K.kena : .22) * 1000); }
   } else {
-    if (p.distanceTo(E.home) > .3) wnGerak(E, E.home, E.kec, dt); else wnHadap(E, E.tm ? 0 : Math.PI, dt);
+    if (p.distanceTo(E.home) > .3) wnGerak(E, E.home, E.kec, dt); else { wnHadap(E, E.tm ? 0 : Math.PI, dt); E.naikN = 0; }   // sudah kembali diam jadi patung → damage kembali ke dasar
     if (performance.now() - E.kenaT > 5000 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * WNV.singa.pulih * dt); E.mt.hp = E.hp; }   // pulih pelan (0,5% HP/dtk) setelah 5 dtk tidak diserang
   }
 }
@@ -8242,6 +8241,7 @@ function wnGarudaMode(E, dt) {   // diam = patung · bertarung = terbang + aura 
 // lama: lama semburan (dtk) · kena: waktu tiap gelombang damage · f: damage tiap gelombang = f × damage serangan biasa Garuda (3 × 153 = 459)
 function wnAiGaruda(E, dt) {
   const GM = E.M; wnGarudaMode(E, dt);   // patung saat diam · terbang + aura saat bertarung
+  if (!E.ultiT && !E.sembur) E.naikN = 0;   // kembali diam jadi patung → damage kembali ke dasar
   if (wnStun(E, dt)) { if (E.sembur) { wnSemburSelesai(E); wnGarudaMain(GM, 'terbang', .2); } return; }
   if (E.sembur) { wnUpdSembur(E, dt); return; }   // sedang menyemburkan api: tidak menembak bola
   let tg = E.sas; if (!tg || !wnHidup(tg) || wnPos(tg).distanceTo(E.home) > E.R + 1 || Math.random() < dt) tg = E.sas = wnCariDiLingkaran(E);
