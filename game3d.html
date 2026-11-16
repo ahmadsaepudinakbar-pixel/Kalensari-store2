@@ -311,11 +311,12 @@ const labelPeran = h => { const p = PERAN[PERAN_HERO[h]]; return p ? p.ik + ' ' 
 const NAMA_HERO = { ocong: 'Ocong', kunti: 'Kunti', tuyul: 'Tuyul', genderuwo: 'Genderuwo', pitung: 'Si Pitung', erick: 'Erick', doni: 'Doni', timun: 'Timun Mas', buto: 'Buto', lutung: 'Lutung Kasarung', saras: 'Saras', angling: 'Angling Dharma', dayang: 'Dayang Sumbi', nyi: 'Nyi Roro Kidul', siliwangi: 'Prabu Siliwangi', ciung: 'Ciung Wanara', sangkuriang: 'Sangkuriang', kiansantang: 'Kian Santang', wiro: 'Wiro Sableng', roro: 'Roro Jonggrang', masdim: 'Masdim', wewe: 'Wewe Gombel' }, HP_MAX = { ocong: 1900, kunti: 1900, tuyul: 1750, genderuwo: 2050, pitung: 1900, erick: 1900, doni: 1900, timun: 1850, buto: 2200, lutung: 1700, saras: 1850, angling: 1800, dayang: 1800, nyi: 1800, siliwangi: 1900, ciung: 1800, sangkuriang: 1950, kiansantang: 1850, wiro: 1900, roro: 1850, masdim: 1750, wewe: 1900 }   // HP dasar dinaikkan (awal game tidak langsung mati sekali combo) · tank tertinggi 2200;
 const MODE = ['latihan', 'bot', 'nanas', 'acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(Q.get('mode')) ? Q.get('mode') : 'latihan';
 const ONLINE = ['acak', 'buat', 'gabung', 'timbuat', 'timgabung'].includes(MODE);
+const WN_ONLINE = (MODE === 'timbuat' || MODE === 'timgabung') && Q.get('wn') === '1';   // War Nanas 3 vs 3 lewat Main Bareng (HP terkuat = tuan rumah yang menjalankan monster, bangunan, tugu & bot)
 const LAWAN = ONLINE ? 'online' : MODE === 'bot' ? 'bot' : MODE === 'nanas' ? 'nanas' : 'boneka';
 const NAMA = (Q.get('nama') || 'Pemain').slice(0, 16), KODE = (Q.get('kode') || '').replace(/\D/g, '').slice(0, 4);
-let ARENA = MODE === 'nanas' ? 'nanas' : ['lapangan', 'sawah', 'pink', 'kebun'].includes(Q.get('arena')) ? Q.get('arena') : 'kuil';
+let ARENA = MODE === 'nanas' || WN_ONLINE ? 'nanas' : ['lapangan', 'sawah', 'pink', 'kebun'].includes(Q.get('arena')) ? Q.get('arena') : 'kuil';
 // War Nanas (MOBA 3 vs 3): keadaan permainan — isi & aturannya ada di bagian WAR NANAS
-const WN = { on: MODE === 'nanas', siap: false, E: [], st: new Map(), tugu: { milik: -1, prog: 0, tim: -1, st: '', hadiahT: [-1e9, -1e9] }, t0: 0, kenaT: new Map(), prev: new Map(), U: [], hudT: 0, sk: new Map(), log: new Map(), padat: [], singa: [], garuda: [], rumah: [], buayaT: 1e9 };
+const WN = { on: MODE === 'nanas' || WN_ONLINE, saya: 0, siap: false, E: [], st: new Map(), tugu: { milik: -1, prog: 0, tim: -1, st: '', hadiahT: [-1e9, -1e9] }, t0: 0, kenaT: new Map(), prev: new Map(), U: [], hudT: 0, sk: new Map(), log: new Map(), padat: [], singa: [], garuda: [], rumah: [], buayaT: 1e9 };
 const NAMA_ARENA = { lapangan: 'Lapangan SD', kuil: 'Kuil Malam', sawah: 'Sawah Siang', pink: 'Taman Pink', kebun: 'Kebun Malam', nanas: 'War Nanas' };
 const UM_BENTENG = 1.8;   // jari-jari lingkaran pohon jaga (Petak Umpet)             // online: diganti arena pilihan pembuat room
 let PUSAT_Z = 0;                                                              // titik tengah arena (pemain lawan dicerminkan di sini)
@@ -5152,7 +5153,7 @@ function swPilar(pos, R = 1, umur = .9, warna = SLV.emas) {   // pilar cahaya da
 function swMacan(pos, id, a, tim = -1) {   // Panggilan Macan Putih: pilar cahaya + Macan Putih turun dari langit (tim: tim pemanggil di Duel Tim, -1 = duel biasa)
   const p = pos.clone().setY(0), M = SLV.macan; swPilar(p, .9, M.panggil + .45); gelombang(p, M.R, .6, SLV.emas); gelombang(p, M.R * .6, .5, SLV.putih); percik(pos.clone().setY(.3), 20, SLV.emas, 2.5, .15); kilat(pos, 30);
   const md = macanModel(), g = new THREE.Group(); g.position.set(p.x, 8, p.z); g.rotation.y = a; if (md) g.add(md.m); scene.add(g);
-  const milik = SLW.memanggil === id, musuh = !milik && !(TIM.on && TIM.saya && tim === TIM.saya.tm);
+  const milik = SLW.memanggil === id, musuh = !milik && !(TIM.on && TIM.saya && tim === timNetSaya());
   const mc = { id, g, m: md && md.m, tulang: md ? md.tulang : {}, bahan: md ? md.bahan : [], anim: 'turun', at: 0, umur: M.lama + M.panggil, arahT: a, fase: 0, pergi: 0, milik, tujuan: null, hp: M.hp };
   const bar = document.createElement('div'); bar.className = 'hp panggil' + (musuh ? ' lawan' : ''); bar.innerHTML = '<i></i>'; bar.style.display = 'none'; $('#bars').appendChild(bar);
   if (musuh) { mc.mt = { g, hp: M.hp, hpMax: M.hp, remote: true, macanId: id, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, bar, nama: 'Macan Putih' }; MUSUH.push(mc.mt); }   // lawan bisa menyerang macan ini
@@ -5227,7 +5228,7 @@ function pakaiSiliwangi(i) {
     if (K.bidik === 1 && K.diarahkan) { c = tujuanLompat(M.jarak); P.arah = K.arahBidik; }
     else { const m = terdekat(M.jarak); if (m) { hadapKe(m.g.position); c = batasi(m.g.position.clone().setY(0)); } else c = batasi(pos.clone().addScaledVector(depan(), 4)); }
     hadapKe(c); P.state = 'slPanggil'; mainUlang('panggil', .08, slTs(P, 'panggil', .75)); P.cd[1] = CD_MAX[1];
-    const id = Math.floor(Math.random() * 1e9); SLW.memanggil = id; fx('swMacan', c, id, P.arah, TIM.on && TIM.saya ? TIM.saya.tm : -1); const mc = MACAN.peta.get(id); if (mc) SLW.macan = mc;
+    const id = Math.floor(Math.random() * 1e9); SLW.memanggil = id; fx('swMacan', c, id, P.arah, timNetSaya()); const mc = MACAN.peta.get(id); if (mc) SLW.macan = mc;
     banner('🐯 PANGGILAN MACAN PUTIH!', '#ffe08a');
   }
   else if (i === 2) {   // Langkah Bayangan (3 muatan)
@@ -5747,7 +5748,7 @@ function aiKembaran(B, dt) {   // hanya di HP pemilik: kembaran mengejar & meneb
 function ksBayang(asal, lama, id, tim = -1) {   // fx: Kian Santang muncul lagi jadi 2 (kembaran di sampingnya)
   const T = ksPemilik(asal); if (!T || !T.ksGL) return; if (T.ksBayang) buangBayangKS(T.ksBayang);
   const B = bayangKS(T); B.umur = lama; B.id = id; B.milik = T === P; T.ksBayang = B; const a = T.root.rotation.y;
-  const musuh = !B.milik && !(TIM.on && TIM.saya && tim === TIM.saya.tm), bar = document.createElement('div'); bar.className = 'hp panggil' + (musuh ? ' lawan' : ''); bar.innerHTML = '<i></i>'; bar.style.display = 'none'; $('#bars').appendChild(bar);
+  const musuh = !B.milik && !(TIM.on && TIM.saya && tim === timNetSaya()), bar = document.createElement('div'); bar.className = 'hp panggil' + (musuh ? ' lawan' : ''); bar.innerHTML = '<i></i>'; bar.style.display = 'none'; $('#bars').appendChild(bar);
   if (musuh) { B.mt = { g: B.g, hp: B.hp, hpMax: HP_MAX.kiansantang, remote: true, kembarId: id, bukanHero: true, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, bar, nama: 'Kembaran Kian Santang' }; MUSUH.push(B.mt); }
   else B.bar = bar;
   B.g.position.copy(T.root.position).add(new THREE.Vector3(Math.cos(a), 0, -Math.sin(a)).multiplyScalar(KSV.s3.sisi)); B.g.rotation.y = a; B.arahT = a;
@@ -5823,7 +5824,7 @@ function updKianSantang(dt, pos, f) {
   else if (P.state === 'ksPerisai') { if (t > KSV.s1.anim) ksBebas(); }
   else if (P.state === 'ksHilang') {   // menghilang sejenak, lalu muncul jadi 2 sosok sambil menebas berputar
     lepasCC();
-    if (t >= KSV.s3.hilang && !P.hit) { P.hit = 1; KS.hilang = 0; if (P.model) P.model.visible = true; fx('ksBayang', pos.clone(), KSV.s3.lama, Math.floor(Math.random() * 1e9), TIM.on && TIM.saya ? TIM.saya.tm : -1); mainUlang('putar', .03, ksTs(P, 'putar', KSV.s3.putar));
+    if (t >= KSV.s3.hilang && !P.hit) { P.hit = 1; KS.hilang = 0; if (P.model) P.model.visible = true; fx('ksBayang', pos.clone(), KSV.s3.lama, Math.floor(Math.random() * 1e9), timNetSaya()); mainUlang('putar', .03, ksTs(P, 'putar', KSV.s3.putar));
       fx('ksHilang', pos.clone()); let ada = 0; MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && m.g.position.distanceTo(pos) < KSV.s3.R) { kena(m, KSV.s3.dmg, pos, 2.5); ada = 1; } }); if (ada) goyang = Math.max(goyang, .15); }
     if (t > KSV.s3.hilang + KSV.s3.putar) ksBebas();
   }
@@ -7556,7 +7557,7 @@ async function buatBotPro(o) {
 // Respawn hero: 10 dtk, +2 dtk tiap menit sampai menit 10 (30 dtk), lalu +3 dtk tiap menit (tanpa batas).
 // Model sementara: Singa, Rumah, monster hutan & Buaya dibuat dari bentuk sederhana — tinggal diganti GLB kalau sudah ada.
 const WN_Z = { rumah: 40, garuda: 29, singa: 13 }, WN_TUGU_R = 4.5, WN_DANAU = [new THREE.Vector3(-15.2, 0, 0), new THREE.Vector3(15.2, 0, 0)], WN_DANAU_R = 4.6;   // 2 danau: kiri & kanan
-const WN_TUKAR = MODE === 'nanas' && Q.get('warna') === 'putih';   // hasil Pilih Hero: tim kamu (tim 0, selalu di bawah) bisa berwarna Putih
+const WN_TUKAR = (MODE === 'nanas' || WN_ONLINE) && Q.get('warna') === 'putih';   // hasil Pilih Hero: tim kamu (tim 0, selalu di bawah) bisa berwarna Putih
 const wnVc = tm => WN_TUKAR ? 1 - tm : tm;   // tim → warna (0 Merah, 1 Putih)
 const WN_NAMA_TIM = WN_TUKAR ? ['Putih', 'Merah'] : ['Merah', 'Putih'], WN_WARNA = WN_TUKAR ? [0xf2f2ee, 0xd8322a] : [0xd8322a, 0xf2f2ee], WN_CSS = WN_TUKAR ? ['#f4f4f4', '#ff6a5a'] : ['#ff6a5a', '#f4f4f4'], WN_EMO = WN_TUKAR ? ['⚪', '🔴'] : ['🔴', '⚪'];
 const WN_STAT = {
@@ -7940,22 +7941,28 @@ const wnHidup = t => !t ? false : t === P ? P.state !== 'kalah' : t.wnE ? !t.wnE
 const wnTimOf = t => t === P ? 0 : t.wnE ? t.wnE.tm : t.tm;
 const wnIdOf = t => t === P ? TIM.me : t.id;
 function wnPukul(t, dmg, dari, dorong = 2) {   // monster / penjaga / buaya mengenai hero atau buaya
-  if (!t || !wnHidup(t)) return;
+  if (!t || !wnHidup(t) || wnKlien()) return;   // online: hanya tuan rumah yang menghitung serangan monster
   if (t === P) { TIM.terakhir = null; kenaPemain(dmg, dari, dorong); }
   else if (t.wnE) wnKena(t.wnE, dmg, null);
+  else if (WN_ONLINE && TIM.obj.get(t.id) === t) { const d = Math.max(1, Math.round(dmg)), [x, z] = keNet(dari.x, dari.z); netEvent({ k: 'hit', ke: t.id, d, x: r2(x), z: r2(z), dr: dorong, oleh: 0 }); angka(t.root.position, d); t.mt.kilau = .18; }   // pemain online: darahnya dihitung di HP-nya (oleh 0 = monster)
   else { t.terakhir = null; BOT_VS_BOT = true; kena(t.mt, dmg, dari, dorong); BOT_VS_BOT = false; }
 }
 function wnKena(E, dmg, oleh) {   // oleh: P / bot (Duel Tim) / null
   if (E.mati || SELESAI) return;
   if (wnTerkunci(E)) { if (oleh === P) { WN.fokus = E; WN.fokusT = performance.now(); } if (performance.now() - (E.kunciT || 0) > 900) { E.kunciT = performance.now(); angka(E.g.position.clone().setY(E.M.tinggi - 2), '🔒 kalahkan ' + (E.jenis === 'garuda' ? 'Sisingaan' : 'Garuda') + ' dulu', '#ffd166'); } return; }
-  if ((E.jenis === 'singa' || E.jenis === 'garuda') && oleh && (oleh === P || oleh.B) && wnPos(oleh).distanceTo(E.home) > E.R + .8) {   // penjaga hanya bisa dilukai hero yang masuk ke lingkaran jaganya (tembakan dari luar garis: kebal)
+  const hero = !!oleh && (oleh === P || !!oleh.B || !!(oleh.mt && oleh.mt.remote));   // hero penyerang: saya, bot, atau pemain online
+  if ((E.jenis === 'singa' || E.jenis === 'garuda') && hero && wnPos(oleh).distanceTo(E.home) > E.R + .8) {   // penjaga hanya bisa dilukai hero yang masuk ke lingkaran jaganya (tembakan dari luar garis: kebal)
     if (oleh === P && performance.now() - (E.luarT || 0) > 900) { E.luarT = performance.now(); angka(E.g.position.clone().setY(E.M.tinggi - 1.5), '🛡️ masuk ke lingkaran dulu', '#9fd8ff'); } return; }
   dmg = Math.max(1, Math.round(dmg));
   if (oleh === P && E.besar) { WN.fokus = E; WN.fokusT = performance.now(); }
-  if (oleh === P || (oleh && oleh.B)) { const sk = WN.sk.get(wnIdOf(oleh)); if (sk) { if (E.jenis === 'singa' || E.jenis === 'garuda' || E.jenis === 'rumah') sk.db += Math.min(dmg, E.hp); else if (E.jenis === 'buayaT') sk.dh += Math.min(dmg, E.hp); } }
+  if (wnKlien()) {   // bukan tuan rumah: damage dikirim, darah monster/bangunan dihitung tuan rumah
+    if (oleh !== P) return; netEvent({ k: 'wnHit', i: E.ki, d: dmg });
+    const sk = WN.sk.get(TIM.me); if (sk && (E.jenis === 'singa' || E.jenis === 'garuda' || E.jenis === 'rumah')) sk.db += Math.min(dmg, E.hp);
+    E.kenaT = E.kenaKawanT = performance.now(); E.kilau = .15; angka(E.g.position.clone().setY(E.M.tinggi - 2.2), dmg); return; }
+  if (hero) { const sk = WN.sk.get(wnIdOf(oleh)); if (sk) { if (E.jenis === 'singa' || E.jenis === 'garuda' || E.jenis === 'rumah') sk.db += Math.min(dmg, E.hp); else if (E.jenis === 'buayaT') sk.dh += Math.min(dmg, E.hp); } }
   E.hp = Math.max(0, E.hp - dmg); E.mt.hp = E.hp; E.kenaT = performance.now(); E.kilau = .15;
   angka(E.g.position.clone().setY(E.M.tinggi - 2.2), dmg, E.tm === 0 ? '#ff9a9a' : undefined);
-  if (oleh === P || (oleh && oleh.B)) {
+  if (hero) {
     E.oleh = { id: wnIdOf(oleh), tm: wnTimOf(oleh) }; if (E.oleh.tm === 0) E.kenaKawanT = performance.now();
     if (E.jenis === 'mon') { const bt = E.bantu || (E.bantu = new Map()), lama = bt.get(E.oleh.id), now = performance.now(), sum = lama && now - lama.t < 8000 ? lama.dmg : 0;
       bt.set(E.oleh.id, { t: now, dmg: sum + Math.min(dmg, E.hp + dmg) }); }   // untuk pasif Pengawal: jumlah damage tiap hero ke monster ini (8 dtk terakhir)
@@ -7970,8 +7977,8 @@ function wnMati(E) {
     E.hidupT = performance.now() + WNV.mon.ulang * 1000; E.g.visible = false; percik(p, 22, 0xffe08a, 3); asap(p, 5, 0xbfae8a, 1, .7);
     if (k && k.id != null && WN.sk.get(k.id)) WN.sk.get(k.id).mon++;
     if (k && k.id != null) {   // yang membunuh: pulih 20% HP + pilih 1 dari 3 kartu stat acak (+5% s/d +15%)
-      if (k.id === TIM.me) { if (P.state !== 'kalah') { const t = Math.round(HP_MAX[HERO] * .2), n = Math.min(t, HP_MAX[HERO] - P.hp); P.hp += n; WN.sk.get(TIM.me).heal += n; if (n > 0) angka(P.root.position, '+' + Math.round(n), '#7dff8a'); percik(P.root.position.clone().setY(.3), 14, 0x7dff8a, 2); } if (wnSupAktif(TIM.me)) { wnKartuMuncul(E.stat, false, '🗡️ Kill monster', WNP.killMon, true, `🟥 Kartu Merah +${WNP.killMon}% · Support lebih untung ASSIST`); wnPeringatanPengawal(); }
-        else wnKartuMuncul(E.stat, false, '🗡️ Kill monster'); }
+      if (k.id === TIM.me) wnHadiahMon(E.stat);
+      else if (!TIM.bot.get(k.id)) { if (WN_ONLINE && TIM.obj.has(k.id)) wnHd(k.id, { j: 'mon', st: E.stat }); }   // pemain online: hadiahnya diberikan di HP-nya
       else { const o = TIM.bot.get(k.id); if (o && !o.mt.mati) o.mt.hp = Math.min(o.mt.hpMax, o.mt.hp + o.mt.hpMax * .2); const cs = wnAcakKartu(E.stat, false, '', wnSupAktif(k.id) ? WNP.killMon : 0, false, k.id), c = (wnLane(k.id) === 'support' && cs.find(x => x.k === 'hp')) || cs[0]; if (c) wnTambah(k.id, c.k, c.v); /* bot Support utamakan HP */ }
       // pasif Pengawal: ikut memukul monster yang dibunuh teman (≤ 8 dtk terakhir) → 3 kartu +5% (selalu ada Defense & Speed)
       if (E.bantu) { const now = performance.now(); E.bantu.forEach((b, id) => { if (id !== k.id && now - b.t < 8000 && b.dmg >= E.hpMax * WNP.minBantu && timOf(id) === k.tm && wnSupAktif(id)) wnPasifPengawal(id, WNP.asisMon, '🤝 Assist monster'); }); } }   // assist monster: hanya hero di lane Support
@@ -7990,6 +7997,23 @@ function wnMati(E) {
     E.g.visible = false; percik(p, 40, 0x9fdc6a, 5); asap(p, 10, 0x5a7a3a, 1.6, 1); banner('🐊 Buaya ' + (E.tm === 0 ? 'kita' : 'lawan') + ' tumbang', E.tm === 0 ? '#ff7a7a' : '#7ad0ff');
     wnBonusBuaya(1 - E.tm, '🐊 Buaya Pendorong');   // tim lawan Buaya (yang menghentikan dorongannya) dapat kartu emas
   }
+}
+function wnHd(id, x) { netEvent(Object.assign({ k: 'wnHd', ke: id }, x)); }   // War Nanas online: tuan rumah memberi hadiah ke pemain lain
+function wnHadiahMon(st) {   // saya membunuh monster: pulih 20% HP + pilih 1 dari 3 kartu stat
+if (P.state !== 'kalah') { const t = Math.round(HP_MAX[HERO] * .2), n = Math.min(t, HP_MAX[HERO] - P.hp); P.hp += n; WN.sk.get(TIM.me).heal += n; if (n > 0) angka(P.root.position, '+' + Math.round(n), '#7dff8a'); percik(P.root.position.clone().setY(.3), 14, 0x7dff8a, 2); } if (wnSupAktif(TIM.me)) { wnKartuMuncul(st, false, '🗡️ Kill monster', WNP.killMon, true, `🟥 Kartu Merah +${WNP.killMon}% · Support lebih untung ASSIST`); wnPeringatanPengawal(); }
+        else wnKartuMuncul(st, false, '🗡️ Kill monster');
+}
+function wnHadiahTuguSaya() {   // saya ikut merebut Tugu Nanas: pulih 30% HP + kartu emas
+  if (P.state === 'kalah') return; const n = Math.min(Math.round(HP_MAX[HERO] * WNV.tugu.hadiahHp), HP_MAX[HERO] - P.hp); P.hp += n; const sk = WN.sk.get(TIM.me); if (sk) { sk.heal += n; sk.tugu++; }
+  if (n > 0) angka(P.root.position, '+' + n, '#7dff8a'); percik(P.root.position.clone().setY(.3), 14, 0x7dff8a, 2.5); wnKartuMuncul(null, true, '🍍 Tugu Nanas');
+  setTimeout(() => banner('🌟 Tugu direbut! Pulih 30% HP + Kartu Emas', '#ffd040'), 900);
+}
+function wnTerimaHadiah(e) {   // hadiah dari tuan rumah (War Nanas online)
+  if (!WN.siap || SELESAI) return;
+  if (e.j === 'mon') { const sk = WN.sk.get(TIM.me); if (sk) sk.mon++; wnHadiahMon(e.st); }
+  else if (e.j === 'pasif') wnPasifPengawal(TIM.me, e.v, e.s || '🤝 Assist monster');
+  else if (e.j === 'tugu') wnHadiahTuguSaya();
+  else if (e.j === 'buaya') { const asal = e.s || '🐊 Buaya Danau'; wnKartuMuncul(null, true, asal, WNB, false, `${asal} · bonus satu tim · +${WNB}% · Pilih 1`); banner(`🐊 Bonus Buaya: semua hero tim dapat kartu +${WNB}%!`, '#ffd040'); }
 }
 function wnTambah(id, k, v) {   // tambah stat v% (hasil kartu)
   if (!WN.st.has(id)) WN.st.set(id, { hp: 0, atk: 0, def: 0, spd: 0, as: 0, cd: 0 });
@@ -8234,6 +8258,7 @@ function wnUpdSembur(E, dt) {
   if (S.t >= U.lama + .3) wnSemburSelesai(E);
 }
 function wnSemburKena(E, a) {   // semua hero lawan (dan buaya lawan) di dalam kipas api terkena damage & terbakar
+  if (wnKlien()) return;
   const U = GARUDA_ULTI, c = E.home, dmg = Math.round(E.dmg * U.f);
   const diKipas = p => { const dx = p.x - c.x, dz = p.z - c.z, L = Math.hypot(dx, dz); if (L > U.R + .4 || L < .01) return false; let da = Math.atan2(dx, dz) - a; da = Math.atan2(Math.sin(da), Math.cos(da)); return Math.abs(da) <= U.sudut + .6 / Math.max(L, 1); };
   WN.U.forEach(u => { if (u.tm === E.tm || !u.hidup || !diKipas(u.pos)) return; const t = u.obj; wnPukul(t, dmg, c.clone(), 2.5); wnBakar(t, u.max); });
@@ -8311,6 +8336,7 @@ function wnHadiahTugu(t, dlm) {
   if (sisa > 0) { if (dlm.some(u => u.obj === P)) banner(`🍍 Hadiah tugu masih jeda ${Math.ceil(sisa)} dtk`, '#ffd27a'); return; }
   T.hadiahT[t] = now;
   dlm.forEach(u => { if (!u.hidup || u.tm !== t) return;
+    if (u.obj !== P && !TIM.bot.get(u.id)) { if (WN_ONLINE) wnHd(u.id, { j: 'tugu' }); return; }   // pemain online
     if (u.obj === P) { if (P.state === 'kalah') return; const n = Math.min(Math.round(HP_MAX[HERO] * WNV.tugu.hadiahHp), HP_MAX[HERO] - P.hp); P.hp += n; const sk = WN.sk.get(u.id); if (sk) sk.heal += n;
       if (n > 0) angka(P.root.position, '+' + n, '#7dff8a'); percik(P.root.position.clone().setY(.3), 14, 0x7dff8a, 2.5); wnKartuMuncul(null, true, '🍍 Tugu Nanas'); }
     else { const o = TIM.bot.get(u.id); if (!o || o.mt.mati) return; const n = Math.min(o.mt.hpMax * WNV.tugu.hadiahHp, o.mt.hpMax - o.mt.hp); o.mt.hp += n; const sk = WN.sk.get(u.id); if (sk) sk.heal += n;
@@ -8323,7 +8349,8 @@ function wnUpdTugu(dt) {
   const T = WN.tugu, n = [0, 0], dlm = [];
   WN.U.forEach(u => { if (u.hidup && Math.hypot(u.pos.x, u.pos.z) < WN_TUGU_R) { n[u.tm]++; dlm.push(u); } });
   let st = '';
-  if (n[0] && n[1]) st = 'rebut';
+  if (wnKlien()) st = T.st;   // online: perebutan dihitung tuan rumah (lihat wnTerimaSnap)
+  else if (n[0] && n[1]) st = 'rebut';
   else { const t = n[0] ? 0 : n[1] ? 1 : -1;
     if (t >= 0 && t !== T.milik) { if (T.tim !== t) { T.tim = t; T.prog = 0; } T.kec = WN_TUGU_KEC[Math.min(3, n[t])]; T.prog += dt * T.kec; st = 'rebut' + t;
       if (T.prog >= WNV.tugu.lama) { T.milik = t; T.prog = 0; T.tim = -1; dlm.forEach(u => { const sk = WN.sk.get(u.id); if (sk && u.tm === t) sk.tugu++; }); gelombang(new THREE.Vector3(), WN_TUGU_R + 1, .9, WN_WARNA[t]); percik(new THREE.Vector3(0, 2, 0), 60, t ? 0xffffff : 0xff5a3a, 6);
@@ -8332,7 +8359,7 @@ function wnUpdTugu(dt) {
   T.st = st;
   // pemulihan HP tim pemilik
   let adaHeal = false;
-  if (T.milik >= 0) { const now = performance.now(); dlm.forEach(u => { if (u.tm === T.milik && now - (WN.kenaT.get(u.id) || 0) >= WNV.tugu.jedaHeal * 1000 && (u.obj === P ? P.hp < HP_MAX[HERO] : u.obj.mt.hp < u.obj.mt.hpMax)) adaHeal = true; if (u.tm !== T.milik) return; const kt = WN.kenaT.get(u.id) || 0; if (now - kt < WNV.tugu.jedaHeal * 1000) return;
+  if (T.milik >= 0) { const now = performance.now(); dlm.forEach(u => { if (u.tm === T.milik && now - (WN.kenaT.get(u.id) || 0) >= WNV.tugu.jedaHeal * 1000 && (u.obj === P ? P.hp < HP_MAX[HERO] : u.obj.mt.hp < u.obj.mt.hpMax)) adaHeal = true; if (u.tm !== T.milik || TIM.obj.has(u.id)) return; const kt = WN.kenaT.get(u.id) || 0; if (now - kt < WNV.tugu.jedaHeal * 1000) return;
     const tambah = u.max * WNV.tugu.heal * dt;
     const skH = WN.sk.get(u.id); if (skH) skH.heal += Math.max(0, Math.min(tambah, u.max - (u.obj === P ? P.hp : u.obj.mt.hp)));
     if (u.obj === P) { if (P.hp < HP_MAX[HERO]) { P.hp = Math.min(HP_MAX[HERO], P.hp + tambah); WN.healAk = (WN.healAk || 0) + tambah; if (WN.healAk > 60) { angka(P.root.position, '+' + Math.round(WN.healAk), '#7dff8a'); WN.healAk = 0; } if (Math.random() < dt * 6) percik(P.root.position.clone().setY(.2), 2, 0x7dff8a, 1.2, .14); } }
@@ -8447,13 +8474,15 @@ function wnUpd(dt) {
   const U = WN.U; U.length = 0;
   U.push({ obj: P, tm: 0, pos: P.root.position, hidup: P.state !== 'kalah', id: TIM.me, max: HP_MAX[HERO] });
   TIM.bot.forEach(o => U.push({ obj: o, tm: o.tm, pos: o.root.position, hidup: !o.mt.mati, id: o.id, max: o.mt.hpMax }));
+  TIM.obj.forEach(o => { if (o.ada) U.push({ obj: o, tm: o.tm, pos: o.root.position, hidup: !o.mt.mati, id: o.id, max: o.mt.hpMax || 1000 }); });   // pemain online (dan bot tuan rumah)
+  const klien = wnKlien();
   // stat Speed: tambahan langkah (berlaku untuk semua cara bergerak hero)
-  U.forEach(u => { const pv = WN.prev.get(u.id); if (pv && u.hidup) { const v = wnF(u.id, 'spd'), dx = u.pos.x - pv.x, dz = u.pos.z - pv.z, L = Math.hypot(dx, dz);
+  U.forEach(u => { const pv = WN.prev.get(u.id); if (pv && u.hidup && (u.obj === P || u.obj.lokal)) { const v = wnF(u.id, 'spd'), dx = u.pos.x - pv.x, dz = u.pos.z - pv.z, L = Math.hypot(dx, dz);
       if (v > 0 && L > 1e-4 && L < .5) { const a = Math.min(v * dt, L * 3) / L; u.pos.x += dx * a; u.pos.z += dz * a; batasi(u.pos); } }   // tambahan langkah tetap (m/dtk) ke arah gerak
     if (!pv) WN.prev.set(u.id, u.pos.clone()); else pv.copy(u.pos); });
   // munculnya Buaya Danau
   const w = wnWaktu();
-  WN.buayas.forEach(B => { if (!B.mati || w < B.munculT) return;   // level = kemunculan ke berapa (menit 4 = lv1, menit 8 = lv2, …)
+  if (!klien) WN.buayas.forEach(B => { if (!B.mati || w < B.munculT) return;   // level = kemunculan ke berapa (menit 4 = lv1, menit 8 = lv2, …)
     const lv = Math.max(1, Math.floor(w / WNV.buaya.selang)), a = lv - 1; B.lv = lv; B.munculT = 1e9;
     B.hpMax = Math.round(WNV.buaya.hp * (1 + WNV.buaya.naikHp * a)); B.mt.hpMax = B.hpMax; B.hp = B.hpMax; B.mt.hp = B.hp; B.dmg = Math.round(WNV.buaya.dmg * (1 + WNV.buaya.naikDmg * a));
     B.nama = '🐊 Buaya Danau Lv' + lv; B.mt.bar.querySelector('.nm').textContent = B.nama; B.skalaB = (B.M.skala || 1.35) * (1 + .08 * Math.min(6, a)); B.M.b.scale.setScalar(B.skalaB); B.kilau = 0;
@@ -8464,13 +8493,16 @@ function wnUpd(dt) {
   // makhluk & bangunan
   WN.E.forEach(E => {
     if (E.mati) {
-      if (E.jenis === 'mon' && performance.now() > E.hidupT) { const k = 1 + E.naikPerMenit * Math.floor(w / 60); E.hpMax = Math.round(E.hpDasar * k); E.mt.hpMax = E.hpMax; E.hp = E.hpMax; E.mt.hp = E.hp;
+      if (!klien && E.jenis === 'mon' && performance.now() > E.hidupT) { const k = 1 + E.naikPerMenit * Math.floor(w / 60); E.hpMax = Math.round(E.hpDasar * k); E.mt.hpMax = E.hpMax; E.hp = E.hpMax; E.mt.hp = E.hp;
         E.mati = false; E.mt.mati = 0; E.g.visible = true; E.g.position.copy(E.home); E.g.rotation.y = E.arahAsal; E.sas = null; E.oleh = null; wnMusuh(E); percik(E.home.clone().setY(.3), 16, 0x9fff8a, 2.5); }
       if (E.runtuh !== undefined && E.g.visible) { E.runtuh += dt; E.g.position.y = -E.runtuh * E.runtuh * 1.2; E.g.rotation.z = Math.sin(E.runtuh * 9) * .03; if (Math.random() < .3) asap(E.home.clone(), 2, 0x8a7a6a, 1.6, 1); if (E.runtuh > 2.4) { E.g.visible = false; if (E.cincin) E.cincin.visible = false; } }
       return;
     }
     E.cdA = Math.max(0, E.cdA - dt); E.serangT = Math.max(0, E.serangT - dt);
-    if (E.jenis === 'mon' || E.jenis === 'buaya') wnAiMon(E, dt); else if (E.jenis === 'singa') wnAiSinga(E, dt); else if (E.jenis === 'garuda') wnAiGaruda(E, dt); else if (E.jenis === 'buayaT') wnAiBuayaT(E, dt);
+    if (klien) wnIkut(E, dt);   // online: gerak & serangan mengikuti tuan rumah
+    else { const st0 = E.serangT;
+      if (E.jenis === 'mon' || E.jenis === 'buaya') wnAiMon(E, dt); else if (E.jenis === 'singa') wnAiSinga(E, dt); else if (E.jenis === 'garuda') wnAiGaruda(E, dt); else if (E.jenis === 'buayaT') wnAiBuayaT(E, dt);
+      if (E.serangT > st0 + .01) { E.atkN = ((E.atkN | 0) + 1) % 1000; E.atkK = E.klip || ''; E.atkT = E.serangT; } }   // serangan baru → dikirim ke pemain lain (animasi)
     // bangunan tidak bergeser (tarikan / angkatan skill), makhluk tetap di tanah
     if (E.jenis === 'rumah' || E.jenis === 'garuda') E.g.position.copy(E.home); else { E.g.position.y = 0; E.mt.v.set(0, 0, 0); wnPadat(E.g.position, .5); batasi(E.g.position); }
     if (E.cincin) { E.cincin.material.opacity = (E.sas ? .7 : .32) + (E.sas ? Math.sin(performance.now() / 120) * .15 : 0); }
@@ -8499,7 +8531,7 @@ function wnUpd(dt) {
   WN.hudT -= dt; if (WN.hudT <= 0) { WN.hudT = .25; updHudTim(); wnPeta(); WN.skT = (WN.skT || 0) + 1; if (WN.skT % 4 === 0) { wnStatHud(); if ($('#wnSkorO').classList.contains('on')) wnSkorBuka(true); } }
 }
 // ---- layar menunggu bangkit: agak gelap + hitung mundur besar, sambil melihat teman ----
-function wnTemanHidup() { return [...TIM.bot.values()].filter(o => o.tm === TIM.saya.tm && !o.mt.mati).concat((WN.bts || []).filter(b => b.tm === 0 && !b.mati && b.g.visible)); }   // teman + Buaya milik tim (boleh di wilayah lawan)
+function wnTemanHidup() { return [...TIM.bot.values(), ...TIM.obj.values()].filter(o => o.tm === TIM.saya.tm && !o.mt.mati && (o.lokal || o.ada)).concat((WN.bts || []).filter(b => b.tm === 0 && !b.mati && b.g.visible)); }   // teman + Buaya milik tim (boleh di wilayah lawan)
 function wnGantiLihat(arah) {
   WN.bebas = null; const a = wnTemanHidup(); if (!a.length) { WN.lihat = null; wnNamaLihat(); return; }
   let i = a.indexOf(WN.lihat); i = i < 0 ? 0 : (i + arah + a.length) % a.length; WN.lihat = a[i]; wnNamaLihat();
@@ -8610,7 +8642,7 @@ function wnLaneMulai() {
   e.querySelectorAll('button').forEach(b => b.onpointerdown = ev => { ev.preventDefault(); ev.stopPropagation(); wnLanePilih(b.dataset.l, false); });
 }
 function wnLanePilih(l, otomatis) {
-  if (WN.laneT == null) return; WN.laneT = null; WN.lane.set(TIM.me, l); wnLaneIsi(TIM.saya.tm);
+  if (WN.laneT == null) return; WN.laneT = null; WN.lane.set(TIM.me, l); if (WN_ONLINE) netEvent({ k: 'wnLane', l }); wnLaneIsi(TIM.saya.tm);
   const e = $('#wnLane'); if (e) e.remove();
   const kawan = TIM.pl.filter(p => p.tm === TIM.saya.tm && p.i !== TIM.me).map(p => `${(p.n || '').replace('🤖 ', '')} ${WN_LANE[wnLane(p.i)].ik}`).join(' · ');
   banner(`${WN_LANE[l].ik} ${otomatis ? 'Dipilihkan sistem: ' : 'Posisi kamu: '}${WN_LANE[l].n}` + (l === 'support' ? ' · bantu teman farming untuk kartu bonus' : ''), '#9fd8ff');
@@ -8621,6 +8653,7 @@ function wnLaneUpd(dt) {
     const t = wnWaktu(); if (!WN.supBk) WN.supBk = new Map();
     for (const [id, ln] of WN.lane) {
       if (ln !== 'support') continue;
+      if (WN_ONLINE && id !== TIM.me && !TIM.bot.has(id)) continue;   // pemain online lain menghitung bonusnya sendiri
       let b = WN.supBk.get(id);
       if (!b) { b = { n: 0, next: WN_SUP_BK.mulai }; WN.supBk.set(id, b); if (id === TIM.me) banner('🛡️ Menit ke-1: bonus kartu Support tiap ' + WN_SUP_BK.selang + ' detik dimulai (maks ' + WN_SUP_BK.maks + ' kartu)', '#7dff8a'); }
       if (b.n >= WN_SUP_BK.maks || t < b.next) continue;
@@ -8651,7 +8684,9 @@ function wnBonusAsis(id, v, sebab) {
   else if (TIM.bot.get(id)) { const c = wnAcakKartu(null, false, '', v, false, id)[0]; if (c) wnTambah(id, c.k, c.v); }
 }
 function wnBonusBuaya(tm, asal = '🐊 Buaya Danau') {   // kartu emas untuk SEMUA hero tim tm (Buaya rawa dibunuh, atau Buaya lawan yang sedang mendorong dibunuh)
+  if (wnKlien()) return;   // online: dibagikan tuan rumah
   TIM.pl.forEach(p => { if (p.tm !== tm) return;
+    if (p.i !== TIM.me && !TIM.bot.get(p.i)) { if (WN_ONLINE && TIM.obj.has(p.i)) wnHd(p.i, { j: 'buaya', s: asal }); return; }
     if (p.i === TIM.me) { wnKartuMuncul(null, true, asal, WNB, false, `${asal} · bonus satu tim · +${WNB}% · Pilih 1`); }
     else if (TIM.bot.get(p.i)) { const c = wnAcakKartu(null, true, '', WNB, false, p.i)[0]; if (c) wnTambah(p.i, c.k, c.v); } });
   if (tm === timOf(TIM.me)) banner(`🐊 Bonus Buaya: semua hero tim dapat kartu +${WNB}%!`, '#ffd040');
@@ -8660,6 +8695,7 @@ function wnPeringatanPengawal() { const now = performance.now(); if (now - WNP_P
   banner('🛡️ Kamu di lane Support: kartu dari membunuh monster sendiri kecil. Lebih untung bantu teman (assist)!', '#ff9a9a'); }
 function wnNilaiKartu(id, k, dasar) { return Math.max(1, Math.round(dasar * wnMaks(id, k) / 100)); }   // dasar = persen untuk batas 100% · stat ber-batas 200% dapat 2×, batas 40% dapat 0,4×
 function wnPasifPengawal(id, v, sebab) {
+  if (WN_ONLINE && id !== TIM.me && !TIM.bot.get(id)) { if (TIM.host && TIM.obj.has(id)) wnHd(id, { j: 'pasif', v, s: sebab }); return; }   // pemain online: kartunya muncul di HP-nya
   wnSpKartu(id, false);
   const pil = ['hp', 'def'].filter(k => !wnPenuh(id, k)), lain = ['spd', 'atk', 'as', 'cd'].filter(k => !wnPenuh(id, k));   // Support: kartu HP (disarankan) & Defense selalu ada
   while (pil.length < 3 && lain.length) pil.push(lain.splice(Math.floor(Math.random() * lain.length), 1)[0]);
@@ -8755,7 +8791,7 @@ function wnPeta() {   // peta kecil (atas = markas Putih)
     else if (E.jenis === 'buaya' || E.jenis === 'buayaT') { x.fillStyle = E.jenis === 'buaya' ? '#7adc5a' : WN_CSS[E.tm]; x.beginPath(); x.arc(px, pz, 3.5, 0, 7); x.fill(); x.strokeStyle = '#1a3a10'; x.lineWidth = 1; x.stroke(); }
     else { const s = E.jenis === 'rumah' ? 9 : 6; x.fillStyle = WN_CSS[E.tm]; x.fillRect(px - s / 2, pz - s / 2, s, s); x.strokeStyle = '#000a'; x.lineWidth = 1; x.strokeRect(px - s / 2, pz - s / 2, s, s); } });
   WN.U.forEach(u => { if (!u.hidup || u.obj === P) return; if (u.tm !== 0 && !hidupDanTampak(u.obj, P.root.position)) return;
-    x.fillStyle = u.tm ? '#ffffff' : '#ff5a4a'; x.beginPath(); x.arc(sx(u.pos.x), sz(u.pos.z), 3, 0, 7); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 1; x.stroke(); });
+    x.fillStyle = WN_CSS[u.tm]; x.beginPath(); x.arc(sx(u.pos.x), sz(u.pos.z), 3, 0, 7); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 1; x.stroke(); });
   x.fillStyle = '#ffe14a'; x.beginPath(); x.arc(sx(P.root.position.x), sz(P.root.position.z), 4, 0, 7); x.fill(); x.strokeStyle = '#000'; x.lineWidth = 1.5; x.stroke();
 }
 async function wnMulai() {
@@ -8768,6 +8804,9 @@ async function wnMulai() {
   $('#load b').textContent = 'Menyiapkan War Nanas…'; tampilVS(pl);
   try { await wnBuat(); } catch (e) { console.error(e); }
   await timMulai({ pl, me: 1, host: 1, kw: 1e9, code: '', a: 0, dur: 1e9 });
+  wnSiapkan();
+}
+function wnSiapkan() {   // setelah semua hero masuk arena (Main Solo & Main Bareng)
   WN.t0 = performance.now(); WN.siap = true; TIM.terakhir = null; TIM.pl.forEach(p => wnSkBaru(p.i));
   const hud = document.createElement('div'); hud.id = 'wnStat'; hud.className = 'ui'; document.body.appendChild(hud);
   { const pen = document.createElement('div'); pen.id = 'wnPen'; pen.innerHTML = '<div class="wpT"></div><div class="wpL"></div>'; document.body.appendChild(pen); wnPenTaruh(); addEventListener('resize', wnPenTaruh);
@@ -8786,8 +8825,92 @@ async function wnMulai() {
   banner('🔒 Urutan: Sisingaan → Garuda → Rumah lawan', '#ffd166');
   { const p = PERAN[PERAN_HERO[HERO]]; if (p) banner(`${p.ik} Role kamu: ${p.n} (${p.isi})`, '#9fd8ff'); }
   wnLaneMulai();
-  TIM.pl.forEach(p => { wnSpBaru(p.i); if (p.i !== TIM.me) wnSpBot(p.i); });   // Poin Skill: bot langsung membuka 1 skill
+  TIM.pl.forEach(p => { wnSpBaru(p.i); if (TIM.bot.has(p.i)) wnSpBot(p.i); });   // Poin Skill: bot langsung membuka 1 skill
   wnSpHud(); banner('🔓 Semua skill terkunci! Buka Skill 1 atau Skill 2 dulu', '#ffd166');
+}
+
+// ================== WAR NANAS ONLINE (Main Bareng) ==================
+// Tim di HP sendiri selalu tim 0 (bawah, warna dari ?warna=), nomor tim asli disimpan di WN.saya.
+// Tuan rumah (HP terkuat, sama dengan yang menjalankan bot) menjalankan otak monster, Sisingaan, Garuda, Buaya, Rumah & Tugu Nanas,
+// lalu mengirim keadaannya ±5x/detik (wnSnap). Pemain lain hanya menampilkan & mengirim damage ('wnHit') / stun ('wnSt').
+// Hadiah (kartu, pulih darah) dari monster/tugu/buaya dikirim tuan rumah ke pemain yang berhak ('wnHd').
+async function wnMulaiOnline(m) {
+  if (WN.mulaiOn) return; WN.mulaiOn = true;
+  const saya = m.pl.find(p => p.i === m.me); if (!saya) return;
+  WN.saya = saya.tm ? 1 : 0;
+  TIM.me = m.me;
+  const pl = m.pl.map(p => Object.assign({}, p, { tm: (p.tm ? 1 : 0) ^ WN.saya, n: p.bot ? '🤖 ' + (NAMA_HERO[HERO_3D[p.h]] || p.h) : p.n }));
+  NAMA_TIM[0] = 'TIM ' + WN_NAMA_TIM[0].toUpperCase(); NAMA_TIM[1] = 'TIM ' + WN_NAMA_TIM[1].toUpperCase();
+  $('#lobi').classList.remove('on'); $('#load').classList.remove('off'); $('#load b').textContent = 'Menyiapkan War Nanas…'; tampilVS(pl);
+  if (!ARENA_DIBUAT) { ARENA = 'nanas'; aturArena(); buatArena(); siapkanApi(); setKual(KUAL.lv); }
+  try { await MODEL_SIAP; await wnBuat(); } catch (e) { console.error(e); }
+  await timMulai(Object.assign({}, m, { pl, kw: 1e9, dur: 1e9, a: 0 }));
+  wnKanon(); wnSiapkan();
+  if (!TIM.host) banner('🌐 War Nanas online · monster & bangunan dijalankan HP ' + namaOf(TIM.hostId), '#9fd8ff');
+}
+function wnKanon() {   // urutan monster & bangunan yang sama di semua HP (diurutkan menurut posisi di peta asli)
+  const net = E => keNet(E.home.x, E.home.z);
+  const L = WN.E.filter(E => E.jenis !== 'buayaT').sort((a, b) => { const [ax, az] = net(a), [bx, bz] = net(b); return ax - bx || az - bz; });
+  const bt = WN.bts.map((E, i) => ({ E, x: keNet(WN_DANAU[i].x, WN_DANAU[i].z)[0] })).sort((a, b) => a.x - b.x).map(o => o.E);
+  WN.kanon = L.concat(bt); WN.kanon.forEach((E, i) => { E.ki = i; });
+}
+const wnTmN = t => t < 0 ? -1 : t ^ WN.saya;   // nomor tim lokal ↔ nomor tim asli (dibalik dua kali = semula)
+function wnSnap() {   // tuan rumah: keadaan yang berubah saja (semua tiap ±2 detik)
+  const semua = (WN.snapF = (WN.snapF || 0) + 1) % 10 === 0, out = [];
+  WN.kanon.forEach((E, i) => {
+    const [x, z] = keNet(E.g.position.x, E.g.position.z);
+    const f = (E.mati ? 1 : 0) | (E.jalan ? 2 : 0) | (E.ultiT ? 4 : 0) | (E.sas ? 8 : 0) | (E.g.visible ? 16 : 0);
+    const d = [i, Math.round(E.hp), Math.round(E.hpMax), r2(x), r2(z), r2(sudutNet(E.g.rotation.y)), f, E.atkN | 0, E.atkK || '', r2(E.atkT || 0), E.sembur ? r2(sudutNet(E.sembur.a)) : null, wnTmN(E.tm), E.lv | 0];
+    const kunci = d.join(','); if (!semua && E._snap === kunci) return; E._snap = kunci; out.push(d);
+  });
+  const T = WN.tugu; return { e: out, t: [wnTmN(T.milik), r2(T.prog), wnTmN(T.tim), T.st === 'rebut' ? 1 : 0], w: r2(wnWaktu()) };
+}
+function wnTerimaSnap(w) {   // pemain lain: terapkan keadaan dari tuan rumah
+  if (!WN.kanon || !WN.siap) return;
+  if (w.w != null && Math.abs(wnWaktu() - w.w) > 1.5) WN.t0 = performance.now() - w.w * 1000;   // jam pertandingan ikut tuan rumah (respawn, buaya, bonus Support)
+  (w.e || []).forEach(d => { const E = WN.kanon[d[0]]; if (!E) return;
+    const [, hp, hm, x, z, ry, f, an, ak, at, sa, tm, lv] = d, [lx, lz] = keNet(x, z), matiN = !!(f & 1);
+    E.net = { x: lx, z: lz, ry: sudutNet(ry) };
+    if (matiN && !E.mati) { E.oleh = null; E.hp = 0; wnMati(E); return; }
+    if (!matiN && E.mati) wnHidupKlien(E, wnTmN(tm), lv, hm, lx, lz);
+    if (E.mati) return;
+    if (hp < E.hp - .5) { E.kenaT = performance.now(); E.kilau = .15; }
+    E.hp = hp; E.mt.hp = hp; E.hpMax = hm; E.mt.hpMax = hm;
+    E.jalan = f & 2 ? 1 : 0; E.ultiT = f & 4 ? 1 : 0; E.sas = f & 8 ? 1 : null; E.g.visible = !!(f & 16);
+    if (an !== (E.atkN | 0)) { const baru = E.atkN != null; E.atkN = an; if (baru) { E.klip = ak || E.klip; E.klipBaru = 1; E.serangT = at || .4; if (E.jenis === 'garuda' && sa == null) wnBolaKlien(E); } }
+    if (E.jenis === 'garuda') { if (sa != null && !E.sembur && performance.now() - (E._sbT || 0) > 3000) { E._sbT = performance.now(); const a = sudutNet(sa); wnGarudaSembur(E, { root: { position: E.home.clone().add(new THREE.Vector3(Math.sin(a), 0, Math.cos(a))) } }); } }
+  });
+  const T = WN.tugu, [mk, pr, tt, rb] = w.t || [-1, 0, -1, 0], baru = wnTmN(mk);
+  if (baru !== T.milik && baru >= 0) { gelombang(new THREE.Vector3(), WN_TUGU_R + 1, .9, WN_WARNA[baru]); percik(new THREE.Vector3(0, 2, 0), 60, baru ? 0xffffff : 0xff5a3a, 6);
+    banner(`🍍 Tugu Nanas dikuasai Tim ${WN_NAMA_TIM[baru]}!` + (baru === 0 ? ' Berdiri di lingkaran untuk pulih' : ''), baru === 0 ? '#9dff8a' : '#ff7a7a'); }
+  T.milik = baru; T.prog = pr; T.tim = wnTmN(tt); T.st = rb ? 'rebut' : T.tim >= 0 ? 'rebut' + T.tim : '';
+}
+function wnHidupKlien(E, tm, lv, hm, x, z) {   // monster / buaya muncul lagi (pemain lain)
+  E.mati = false; E.mt.mati = 0; E.runtuh = undefined; E.hp = E.hpMax = E.mt.hp = E.mt.hpMax = hm; E.oleh = null; E.kilau = 0; E.atkN = null;
+  E.g.visible = true; E.g.position.set(x, 0, z); if (E.cincin) E.cincin.visible = true;
+  if (E.jenis === 'buaya') { E.lv = lv; E.nama = '🐊 Buaya Danau Lv' + lv; E.mt.bar.querySelector('.nm').textContent = E.nama; E.skalaB = (E.M.skala || 1.35) * (1 + .08 * Math.min(6, lv - 1)); if (E.M.b) E.M.b.scale.setScalar(E.skalaB);
+    gelombang(E.home, 4, .9, 0x6ac0ff); percik(E.home.clone().setY(.5), 40, 0x9fd8ff, 5); banner(`🐊 Buaya Danau Lv${lv} muncul${lv === 1 ? ' (masih lemah)' : ' — makin kuat!'} Kalahkan untuk dijadikan teman`, '#9fd8ff'); }
+  else if (E.jenis === 'buayaT') { E.tm = tm; E.lv = lv; E.nama = '🐊 Buaya ' + WN_NAMA_TIM[tm] + ' Lv' + lv; E.mt.bar.querySelector('.nm').textContent = E.nama; wnWarnaBar(E); if (E.cincinT) E.cincinT.material.color.setHex(WN_WARNA[tm]);
+    gelombang(E.g.position, 3, .7, WN_WARNA[tm]); percik(E.g.position, 30, 0xffd040, 4); banner(`🐊 Buaya Danau ikut Tim ${WN_NAMA_TIM[tm]}!` + (tm === 0 ? ' Ia mendorong ke bangunan lawan' : ' Hati-hati!'), tm === 0 ? '#9dff8a' : '#ff7a7a'); }
+  else percik(E.home.clone().setY(.3), 16, 0x9fff8a, 2.5);
+  wnMusuh(E);
+}
+function wnIkut(E, dt) {   // pemain lain: monster/bangunan bergerak halus ke posisi kiriman tuan rumah
+  const n = E.net, p = E.g.position, m = E.mt;
+  if (m.pusing > 0 || m.kunci > 0 || (m.lambat || 0) > 0) {   // stun / kunci / lambat dari skill saya → kirim ke tuan rumah
+    if (!E._stK) { E._stK = 1; netEvent({ k: 'wnSt', i: E.ki, p: r2(m.pusing || 0), ku: r2(m.kunci || 0), l: r2(m.lambat || 0) }); }
+    m.pusing = Math.max(0, m.pusing - dt); m.kunci = Math.max(0, m.kunci - dt); m.lambat = Math.max(0, (m.lambat || 0) - dt);
+  } else E._stK = 0;
+  if (!n) return;
+  if (E.jenis !== 'rumah' && E.jenis !== 'garuda') { const dx = n.x - p.x, dz = n.z - p.z; if (dx * dx + dz * dz > 36) p.set(n.x, 0, n.z); else { const k = Math.min(1, dt * 8); p.x += dx * k; p.z += dz * k; } }
+  let d = n.ry - E.g.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); E.g.rotation.y += d * Math.min(1, dt * 10);
+  if (E.jenis === 'garuda') { wnGarudaMode(E, dt); if (E.sembur) wnUpdSembur(E, dt); }
+}
+function wnBolaKlien(E) {   // tampilan bola serangan Garuda (damage-nya dihitung tuan rumah)
+  const tg = wnCariDiLingkaran(E); if (!tg) return;
+  if (!WN_MBOLA) WN_MBOLA = [0, 1].map(t => new THREE.SpriteMaterial({ map: T_BULAT, color: t ? 0xfff4d8 : 0xff7a20, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  const sp = new THREE.Sprite(WN_MBOLA[E.tm]); sp.scale.setScalar(1.1); sp.position.copy(E.home).setY(4.8); scene.add(sp);
+  WN_BOLA.push({ sp, t: tg, dmg: 0, tm: E.tm, umur: 0 });
 }
 
 // ================== DUEL LAWAN BOT (1 VS 1) ==================
@@ -8874,7 +8997,7 @@ function mainLagi(ronde) {   // ronde = lanjut ronde berikutnya (skor tetap); ta
   if (BOT) BOT.reset(!ronde, !!ronde);   // tanding ulang: hero bot diacak lagi; ronde berikutnya: hero bot tetap
   if (LAWAN === 'bot' && !ronde) { SKOR = [0, 0]; updSkorBot(); }
 }
-$('#lagi').onclick = () => { if (WN.on) { location.reload(); return; } if (TIM.on) { if (LOBI) { keLobiMB(); return; } timKeLobi(); return; } if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
+$('#lagi').onclick = () => { if (WN.on && !WN_ONLINE) { location.reload(); return; } if (TIM.on) { if (LOBI) { keLobiMB(); return; } timKeLobi(); return; } if (ONLINE) { if (!NET.on) return; NET.sayaLagi = true; netEvent({ k: 'lagi' }); kirimKeadaan(); cekLagi(); } else mainLagi(); };
 $('#keMenu').onclick = () => { keluarRoom(); location.href = 'game.html'; };
 function posisiAwal() { if (TIM.on && TIM.saya) { const [x, z] = spawnTim(TIM.saya); P.root.position.set(x, 0, z); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); return; }
   P.root.position.set(0, 0, PUSAT_Z + JARAK_AWAL()); P.arah = Math.PI; P.root.rotation.y = Math.PI; camLihat.copy(P.root.position).setY(.8); }
@@ -8914,7 +9037,9 @@ const HERO_SRV = { ocong: 'pocong', kunti: 'kuntilanak', tuyul: 'tuyul', genderu
 const ARENA_IDX = { lapangan: 0, kuil: 1, sawah: 2, pink: 3, kebun: 4 }, ARENA_NAMA = ['lapangan', 'kuil', 'sawah', 'pink', 'kebun'];
 const r2 = v => Math.round(v * 100) / 100;
 // cermin: koordinat dikirim dalam sistem pembuat room; tamu memutar dunia 180° di pusat arena
-const cermin = () => typeof TIM !== 'undefined' && TIM.on ? !!(TIM.saya && TIM.saya.tm === 1) : NET.role === 'guest';
+const cermin = () => typeof TIM !== 'undefined' && TIM.on ? (WN_ONLINE ? WN.saya === 1 : !!(TIM.saya && TIM.saya.tm === 1)) : NET.role === 'guest';   // War Nanas online: tim di HP sendiri selalu tim 0 (bawah), nomor tim asli di WN.saya
+const wnKlien = () => WN_ONLINE && !TIM.host;   // War Nanas online, bukan tuan rumah: monster/bangunan/tugu hanya mengikuti kiriman tuan rumah
+const timNetSaya = () => TIM.on && TIM.saya ? (WN_ONLINE ? WN.saya : TIM.saya.tm) : -1;   // nomor tim yang dikirim lewat jaringan
 function keNet(x, z) { return cermin() ? [-x, 2 * PUSAT_Z - z] : [x, z]; }          // dipakai untuk kirim & terima (dibalik dua kali = semula)
 function sudutNet(a) { return cermin() ? a + Math.PI : a; }
 function kirim(o) { if (NET.ws && NET.ws.readyState === 1) NET.ws.send(JSON.stringify(o)); }
@@ -9311,14 +9436,14 @@ function timTerimaMati(id, oleh) {
 }
 function timAkhir(menang) {   // menang = 0/1, -1 = seri
   if (TIM.akhir) return; TIM.akhir = true; SELESAI = true; K.bidik = false;
-  if (TIM.host) { netEvent({ k: 'akhir', m: menang }); kirimKeadaanTim(); setTimeout(() => kirim({ t: 'tmOver' }), 400); }
+  if (TIM.host) { netEvent({ k: 'akhir', m: WN_ONLINE && menang >= 0 ? menang ^ WN.saya : menang }); kirimKeadaanTim(); setTimeout(() => kirim({ t: 'tmOver' }), 400); }
   const saya = TIM.saya.tm, t = $('#hasilT');
   setTimeout(() => {
     const satu = menang >= 0 && TIM.pl.filter(p => p.tm === menang).length === 1 ? TIM.pl.find(p => p.tm === menang) : null;   // duel 1 lawan 1: tampilkan nama pemenang
     const judul = menang < 0 ? 'SERI' : (satu ? (satu.i === TIM.me ? 'KAMU' : (satu.bot ? '🤖 ' : '') + satu.n) : NAMA_TIM[menang]) + ' MENANG!';
     t.textContent = judul; t.className = TIM.tonton || menang < 0 ? 'info' : menang === saya ? 'menang' : 'kalah';
     $('#hasilS').textContent = TIM.tonton ? '👁️ Kamu menonton sebagai wasit · skor ' + TIM.skor[0] + ' – ' + TIM.skor[1] : WN.on ? '🏠 Rumah lawan hancur · kill ' + TIM.skor[0] + ' – ' + TIM.skor[1] + ' · ' + Math.floor(wnWaktu() / 60) + ' menit' : '';
-    $('#lagi').textContent = WN.on ? '🔁 Main Lagi' : 'Kembali ke Lobi';
+    $('#lagi').textContent = WN.on && !WN_ONLINE ? '🔁 Main Lagi' : 'Kembali ke Lobi';
     if (WN.on) { wnSkorBuka(false); let tb = $('#wnHasil'); if (!tb) { tb = document.createElement('div'); tb.id = 'wnHasil'; $('#hasilS').after(tb); } tb.innerHTML = wnTabel(menang); $('#hasil').classList.add('wn'); } $('#lagi').style.display = ''; $('#pilihH').style.display = 'none'; $('#hasil').classList.add('on');
     if (LOBI) setTimeout(() => { if ($('#hasil').classList.contains('on')) keLobiMB(); }, 10000);   // Main Bareng: otomatis kembali ke lobi
   }, 900);
@@ -9347,7 +9472,7 @@ function banner(t, warna) {   // notif kiri atas: maks 5, notif yang sama bertur
 // ---------- jaringan ----------
 function timTerima(m) {
   if (m.t === 'tmRoom') { timLobi(m); return true; }
-  if (m.t === 'tmStart') { timMulai(m); return true; }
+  if (m.t === 'tmStart') { if (WN_ONLINE) wnMulaiOnline(m); else timMulai(m); return true; }
   if (m.t === 'tmLeft') {
     const o = objek(m.i); if (o) { banner(o.nama + ' keluar', '#ffd166'); hapusObj(o); }
     TIM.pl = TIM.pl.filter(p => p.i !== m.i);
@@ -9361,7 +9486,7 @@ function timTerima(m) {
   return false;
 }
 function terapState(o, s) {
-  const [x, z, a, ty, rx, ry, rz, hp, an, ts, fl] = s, [lx, lz] = keNet(x, z);
+  const [x, z, a, ty, rx, ry, rz, hp, an, ts, fl, hm] = s, [lx, lz] = keNet(x, z); if (hm > 0) o.mt.hpMax = hm;   // hm: darah maksimal (War Nanas: naik karena kartu HP)
   o.tujuan.set(lx, 0, lz); o.arah = sudutNet(a); o.ty = ty; o.rx = rx; o.ry = ry; o.rz = rz; o.hp = hp; o.mt.hp = hp; o.an = an; o.ts = ts || 1; o.fl = fl | 0;
   if (!o.ada) { o.ada = true; o.root.position.copy(o.tujuan); o.root.rotation.y = o.arah; }
 }
@@ -9369,8 +9494,9 @@ function terimaDataTim(m) {
   const dari = TIM.obj.get(m.w);
   if (m.s && dari) terapState(dari, m.s);
   if (m.b && !TIM.host) m.b.forEach(b => { const o = TIM.obj.get(b[0]); if (o) terapState(o, b.slice(1)); });
+  if (m.wn && WN_ONLINE && !TIM.host) wnTerimaSnap(m.wn);
   (m.e || []).forEach(e => {
-    const ke = e.ke, utkSaya = ke === TIM.me, botSaya = TIM.host ? TIM.bot.get(ke) : null, pelaku = e.oleh != null ? e.oleh : m.w;
+    const ke = e.ke, utkSaya = ke === TIM.me, botSaya = TIM.host ? TIM.bot.get(ke) : null, pelaku = e.oleh === 0 ? null : e.oleh != null ? e.oleh : m.w;   // oleh 0 = monster / bangunan War Nanas
     const srcObj = objek(e.oleh != null ? e.oleh : m.w) || dari;
     if (e.k === 'fx') fxTerima(e, !!(srcObj && !srcObj.kawan) && pelaku !== TIM.me);
     else if (e.k === 'hitMacan') macanTerima(e.id, e.d);   // Macan Putih saya diserang
@@ -9389,16 +9515,21 @@ function terimaDataTim(m) {
     else if (e.k === 'koin') { const t = utkSaya ? P : objek(ke); if (t && srcObj) koinTerbang(t.root.position, srcObj); }
     else if (e.k === 'gerombolan') { if (srcObj && srcObj.model && srcObj.act && srcObj.act.jalan) panggilGerombolan(srcObj.root.position.clone(), srcObj, () => musuhTerdekatDari(srcObj), true, e.l || 3, null, !!e.p); }
     else if (e.k === 'mati') timTerimaMati(e.id, e.oleh);
-    else if (e.k === 'akhir') timAkhir(e.m);
+    else if (e.k === 'akhir') timAkhir(WN_ONLINE && e.m >= 0 ? e.m ^ WN.saya : e.m);
+    else if (e.k === 'wnHit') { if (WN_ONLINE && TIM.host && WN.kanon) { const E = WN.kanon[e.i], o = TIM.obj.get(m.w); if (E && o && !E.mati) wnKena(E, e.d, o); } }   // damage pemain online ke monster/bangunan
+    else if (e.k === 'wnSt') { if (WN_ONLINE && TIM.host && WN.kanon) { const E = WN.kanon[e.i]; if (E && !E.mati) { const t = E.mt; t.pusing = Math.max(t.pusing || 0, Math.min(3, e.p || 0)); t.kunci = Math.max(t.kunci || 0, Math.min(3, e.ku || 0)); t.lambat = Math.max(t.lambat || 0, Math.min(3, e.l || 0)); } } }
+    else if (e.k === 'wnHd') { if (utkSaya) wnTerimaHadiah(e); }
+    else if (e.k === 'wnLane') { if (WN.lane) WN.lane.set(m.w, e.l); }
     else if (UMP.on) umpetEvent(e, pelaku);
   });
 }
 function kirimKeadaanTim() {
   const [x, z] = keNet(P.root.position.x, P.root.position.z), a = P.act[P.cur];
   const fl = (HERO === 'kunti' && K.terbangT > 0 ? 1 : 0) | (TY.hilang > 0 || SW.hilang > 0 || SLW.hilang > 0 || KS.hilang > 0 || (HERO === 'wewe' && WGS.hilang > 0) ? 2 : 0) | ((P.kunci > 0 || P.pusing > 0) ? 4 : 0) | (P.state === 'kalah' ? 8 : 0) | (GW.amuk > 0 ? 16 : 0) | (UMP.on && UMP.tangkap ? 32 : 0) | (UMP.on && UMP.kebal > 0 ? 64 : 0) | (P.ungkap > 0 ? 128 : 0);
-  const o = { t: 'st', v3: 1, s: [r2(x), r2(z), r2(sudutNet(P.root.rotation.y)), r2(P.tilt.position.y), r2(P.tilt.rotation.x), r2(P.tilt.rotation.y), r2(P.tilt.rotation.z), Math.round(P.hp), P.cur, a ? r2(a.timeScale) : 1, fl], e: NET.antre.splice(0) };
+  const ev = NET.antre.splice(0), o = { t: ev.length ? 'in' : 'st', v3: 1, s: [r2(x), r2(z), r2(sudutNet(P.root.rotation.y)), r2(P.tilt.position.y), r2(P.tilt.rotation.x), r2(P.tilt.rotation.y), r2(P.tilt.rotation.z), Math.round(P.hp), P.cur, a ? r2(a.timeScale) : 1, fl, WN.on ? Math.round(HP_MAX[HERO]) : 0], e: ev };   // ada event (hit, mati, hadiah…) → 'in': server selalu meneruskannya walau HP penerima sedang macet
   if (TIM.host && TIM.bot.size) o.b = [...TIM.bot.values()].map(b => { const [bx, bz] = keNet(b.root.position.x, b.root.position.z);
-    return [b.id, r2(bx), r2(bz), r2(sudutNet(b.root.rotation.y)), r2(b.B.tilt.position.y), r2(b.B.tilt.rotation.x), r2(b.B.tilt.rotation.y), r2(b.B.tilt.rotation.z), Math.round(b.mt.hp), b.mt.mati ? 'kalah' : b.B.anim || 'diam', 1, b.B.fl | 0]; });
+    return [b.id, r2(bx), r2(bz), r2(sudutNet(b.root.rotation.y)), r2(b.B.tilt.position.y), r2(b.B.tilt.rotation.x), r2(b.B.tilt.rotation.y), r2(b.B.tilt.rotation.z), Math.round(b.mt.hp), b.mt.mati ? 'kalah' : b.B.anim || 'diam', 1, b.B.fl | 0, WN.on ? Math.round(b.mt.hpMax) : 0]; });
+  if (WN_ONLINE && TIM.host && WN.siap && (WN.snapN = (WN.snapN || 0) + 1) % 3 === 0) o.wn = wnSnap();   // keadaan monster, bangunan & tugu ±5x/detik
   kirim(o);
 }
 function updObjTim(o, dt) {
@@ -9442,7 +9573,7 @@ function updTim(dt, nyata) {
     if (TIM.hidupT && performance.now() > TIM.hidupT) { TIM.hidupT = 0; mainLagi(); TIM.terakhir = null; P.kebalT = performance.now() + KEBAL_HIDUP * 1000; kebalFx(() => P.root.position, KEBAL_HIDUP); banner('🛡️ Kebal 3 detik setelah bangkit!', '#ffe08a'); }
     if (P.kebalT && performance.now() < P.kebalT) { P.pusing = P.kunci = 0; }
   }
-  if (TIM.tonton) wasitKamera(); else if (WN.on) NET.antre.length = 0; else { NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaanTim(); } }
+  if (TIM.tonton) wasitKamera(); else if (WN.on && !WN_ONLINE) NET.antre.length = 0; else { NET.kirimT -= nyata; if (NET.kirimT <= 0) { NET.kirimT = .066; kirimKeadaanTim(); } }
   TIM.hudT = (TIM.hudT || 0) - nyata; if (TIM.hudT <= 0) { TIM.hudT = .25; updHudTim(); }
 }
 // ---- kebal setelah bangkit (War Nanas & Duel Tim): 3 detik tidak bisa diserang/di-stun — supaya tidak langsung mati lagi saat rumah sedang diserang ----
@@ -9596,8 +9727,8 @@ function muatTahap(a, b) { MUAT.tgt = Math.max(MUAT.tgt, a); MUAT.cap = Math.max
 function tampilMuat() { const v = Math.max(1, Math.min(100, Math.round(MUAT.tampil))); bar.style.width = v + '%'; const e = $('#lpersen'); if (e && e.textContent !== v + '%') e.textContent = v + '%'; }
 setInterval(() => { if ($('#load').classList.contains('off')) return; if (MUAT.tgt < MUAT.cap) MUAT.tgt += (MUAT.cap - MUAT.tgt) * .015; MUAT.tampil += (MUAT.tgt - MUAT.tampil) * .25; tampilMuat(); }, 50);   // naik pelan walau sedang menunggu, tidak pernah mundur
 function tampilVS(pl) {   // War Nanas: 3 hero Tim Merah vs 3 hero Tim Putih di layar loading
-  const kartu = p => { const h = p.i === TIM_SAYA_ID ? HERO : (HERO_3D[p.h] || 'ocong'), k = p.i === TIM_SAYA_ID ? kunciSkin(HERO, SKIN) : (h === 'ocong' ? 'lompat' : 'utama');
-    return `<div class="hr${p.i === TIM_SAYA_ID ? ' aku' : ''}"><img src="${fotoMuka(h, k)}" alt="" onerror="this.style.visibility='hidden'"><span>${(p.n || '').replace(/[<>&"]/g, '')}</span>${(p.n || '').includes(NAMA_HERO[h] || h) ? '' : `<small>${NAMA_HERO[h] || h}</small>`}</div>`; };
+  const kartu = p => { const h = p.i === (TIM.me || TIM_SAYA_ID) ? HERO : (HERO_3D[p.h] || 'ocong'), k = p.i === (TIM.me || TIM_SAYA_ID) ? kunciSkin(HERO, SKIN) : (h === 'ocong' ? 'lompat' : 'utama');
+    return `<div class="hr${p.i === (TIM.me || TIM_SAYA_ID) ? ' aku' : ''}"><img src="${fotoMuka(h, k)}" alt="" onerror="this.style.visibility='hidden'"><span>${(p.n || '').replace(/[<>&"]/g, '')}</span>${(p.n || '').includes(NAMA_HERO[h] || h) ? '' : `<small>${NAMA_HERO[h] || h}</small>`}</div>`; };
   const tim = t => pl.filter(p => p.tm === t).map(kartu).join('');
   $('#lvs').innerHTML = `<div class="tm ${WN_TUKAR ? 'pt' : 'mr'}">${tim(0)}</div><div class="vs">VS</div><div class="tm ${WN_TUKAR ? 'mr' : 'pt'}">${tim(1)}</div>`;
 }
