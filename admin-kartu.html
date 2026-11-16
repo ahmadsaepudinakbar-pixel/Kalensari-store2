@@ -194,10 +194,8 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
             <button class="btn gd sm" id="tAuto" style="margin-top:8px">🎯 Sesuaikan otomatis</button>
             <div class="row" style="margin-top:14px">
               <button class="btn br" id="tZip">🗜️ ZIP gambar kartu</button>
+              <button class="btn gd" id="tKeKj">💾 Simpan ke Kartu Jadi</button>
               <select class="f" id="tFmt" style="max-width:150px"><option value="jpg">JPG (cepat)</option><option value="png">PNG (lambat)</option></select>
-              <button class="btn gd" data-lembar="a4">🖨️ Lembar A4</button>
-              <button class="btn gd" data-lembar="a3">🖨️ A3+ berjarak</button>
-              <button class="btn gd" data-lembar="a3r">🖨️ A3+ rapat</button>
             </div>
             <div class="note" id="tProg" style="margin-top:8px"></div>
           </div>
@@ -210,6 +208,8 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
       <div id="gHome"><div class="card" id="gPanel">
         <h3>🖼️ Galeri desain kartu</h3>
         <p class="note" style="margin-top:0">Simpan di sini gambar kartu dengan kotak QR kosong. Ketuk gambar untuk memakainya sebagai template.</p>
+        <label class="l" style="margin:6px 0 0">Unggah gambar (boleh banyak)<input class="f" type="file" id="gFile" accept="image/*" multiple></label>
+        <input class="f" type="search" id="gCari" placeholder="🔍 Cari gambar berdasarkan nama…" style="margin-top:8px">
         <div class="note" id="gInfo" style="margin:6px 0 4px"></div>
         <div class="note" id="gAktif" style="font-weight:700;margin-bottom:8px"></div>
         <div class="gal" id="gGal"></div>
@@ -540,16 +540,26 @@ async function gMuat() {
   GOK = true; gRender(); kjMuat();
   if (g) await gPakai(g.id, true);
 }
+const gDaftar = () => { const q = ($("#gCari").value || "").trim().toLowerCase(); return q ? GTPL.filter(g => (g.nama || "").toLowerCase().includes(q)) : GTPL; };
 function gRender() {
-  $("#gInfo").textContent = GTPL.length ? `${GTPL.length} gambar tersimpan · ketuk gambar untuk memakainya` : "Belum ada gambar tersimpan. Unggah gambar kartu di atas.";
+  const L = gDaftar(), q = ($("#gCari").value || "").trim();
+  $("#gInfo").textContent = GTPL.length ? (q ? `${L.length} dari ${GTPL.length} gambar cocok dengan “${q}”` : `${GTPL.length} gambar tersimpan · ketuk gambar untuk memakainya`) : "Belum ada gambar tersimpan. Unggah gambar kartu lewat tombol di atas.";
   $("#gHapusSemua").hidden = !GTPL.length; const ga = GTPL.find(x => x.id === TAKTIF); $("#gAktif").textContent = ga ? "Dipakai: " + ga.nama : "";
-  $("#gGal").innerHTML = GTPL.map(g => `<div class="gi${g.id === TAKTIF ? " on" : ""}" onclick="gPakai('${g.id}')" title="${esc(g.nama)}"><img src="${g.th}" alt="${esc(g.nama)}"><small>${esc(g.nama)}</small><button class="x" onclick="event.stopPropagation();gHapus('${g.id}')" aria-label="Hapus gambar">✕</button></div>`).join("");
+  $("#gGal").innerHTML = L.map(g => `<div class="gi${g.id === TAKTIF ? " on" : ""}" onclick="gPakai('${g.id}')" title="${esc(g.nama)}"><img src="${g.th}" alt="${esc(g.nama)}"><small>${esc(g.nama)}</small><button class="dl" onclick="event.stopPropagation();gGanti('${g.id}')" aria-label="Ganti nama" title="Ganti nama">✎</button><button class="x" onclick="event.stopPropagation();gHapus('${g.id}')" aria-label="Hapus gambar" title="Hapus">✕</button></div>`).join("") || (GTPL.length ? `<p class="note" style="grid-column:1/-1">Tidak ada gambar dengan nama itu.</p>` : "");
 }
-async function gTambah(files) {
+async function gGanti(id) {
+  const g = GTPL.find(x => x.id === id); if (!g) return;
+  const n = prompt("Nama baru untuk gambar ini:", g.nama); if (n === null) return; const nama = n.trim(); if (!nama || nama === g.nama) return;
+  try { await tbl(`?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ nama }), headers: { Prefer: "return=minimal" } }); } catch (e) { return toast("Gagal mengganti nama: " + pesanG(e), 5000); }
+  g.nama = nama; gRender(); toast("Nama diganti");
+}
+$("#gCari").oninput = gRender;
+$("#gFile").onchange = async e => { const fs = [...e.target.files]; e.target.value = ""; if (!fs.length) return; if (!GOK) await gMuat(); await gTambah(fs, true); toast("Gambar ditambahkan ke galeri"); };
+async function gTambah(files, tanpaPakai) {
   let o = null, n = 0; $("#gInfo").textContent = "Mengunggah…";
   for (const f of files) { if (!/^image\//.test(f.type)) continue;
     try { o = await gSimpan(f, f.name); n++; $("#gInfo").textContent = `Mengunggah… ${n}/${files.length}`; } catch (e) { toast("Gagal menyimpan " + f.name + ": " + pesanG(e), 6000); } }
-  if (o) await gPakai(o.id); else gRender();
+  if (o && !tanpaPakai) await gPakai(o.id); else gRender();
 }
 async function gPakai(id, awal) {
   const g = GTPL.find(x => x.id === id); if (!g) return; TAKTIF = id;
@@ -799,6 +809,7 @@ function mulaiApp() { $("#loginView").hidden = true; $("#appView").hidden = fals
   try { await fresh(); if (await rpc("is_admin") !== true) throw 0; mulaiApp(); } catch (e) { saveAuth(null); tampilLogin(); }
 })();
 if (window.KSSesi) KSSesi.saatMasuk(async s => { if ($("#loginView").hidden) return; saveAuth(s); try { if (await rpc("is_admin") === true) mulaiApp(); } catch (e) {} });
+$("#tKeKj").onclick = () => $("#kjSimpan").click();
 </script>
 </body>
 </html>
