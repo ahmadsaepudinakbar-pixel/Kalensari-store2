@@ -2629,32 +2629,37 @@ async function rkMuat(){RKS.muat=1;RKS.papanErr='';rkRender();
  await pp;RKS.muat=0;rkRender()}
 function rkBuka(){RKS.msg='';RKS.ketemu=0;sc('rk');rkMuat()}
 function rkWaktu(){const s=Math.max(0,Math.floor((Date.now()-RKS.t0)/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
-function rkRender(){const e=$('#rk');if(!e)return;const S=RKS.saya||{poin:0,menang:0,kalah:0,mvp:0},p=S.poin|0,i=rkTk(p),T=RK_T[i],N=RK_T[i+1];
+const RK_IMG=['anak-bawang','prajurit','jagoan','pendekar','ksatria','panglima-tempur','suhu','sepuh'].map(n=>'gambar-game/rank/tk-'+n+'.webp');
+const rkImg=(k,c)=>`<img class="${c||''}" src="${RK_IMG[k]}" alt="${RK_T[k][1]}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${c||''} rxEmo',textContent:'${RK_T[k][2]}'}))">`;
+let rkPre=0;function rkMuatGambar(){if(rkPre)return;rkPre=1;RK_IMG.concat(['gambar-game/rank/latar.webp','gambar-game/rank/bilah.webp','gambar-game/rank/logo.webp']).forEach(u=>{const i=new Image();i.src=u})}
+function rkRender(){const e=$('#rk');if(!e)return;rkMuatGambar();const S=RKS.saya||{poin:0,menang:0,kalah:0,mvp:0},p=S.poin|0,i=rkTk(p),T=RK_T[i],N=RK_T[i+1];
  const pr=N?Math.min(100,(p-T[0])/(N[0]-T[0])*100):100,saya=(S.akun||FR.srvId||FR.id||'');
- let aksi;
- if(!KOL.login)aksi=`<div class="rkLogin">🔒 Rank khusus akun warga desa<button class="rkGo" data-rk="akun">👤 MASUK AKUN</button></div>`;
- else if(RKS.ketemu)aksi=`<div class="rkCari"><div class="cr">✅ Lawan ditemukan!</div><div class="rkMode">Bersiap memilih hero…</div></div>`;
- else if(RKS.cari)aksi=`<div class="rkCari"><div class="cr"><i></i>Mencari lawan… <span class="wk" id="rkWkt">${rkWaktu()}</span></div><button class="rkGo bt" data-rk="batal">✖ BATAL</button></div>`;
- else aksi=`<button class="rkGo" data-rk="cari">⚔️ CARI LAWAN</button><div class="rkMode">🍍 War Nanas 3 vs 3 · Kebun Nanas Subang</div>`;
- const papan=RKS.papan==null?`<div class="rkKosong">${RKS.muat?'Memuat papan peringkat…':RKS.papanErr||'Papan peringkat belum bisa dimuat'}</div>`:!RKS.papan.length?`<div class="rkKosong">Belum ada yang main Rank.<br>Jadilah yang pertama! 🏆</div>`:
-  RKS.papan.map(r=>{const t=RK_T[rkTk(r.poin)];return `<div class="rkR ${r.akun===saya?'aku':''}" style="--tk:${t[3]}"><span class="no ${r.no<=3?'t'+r.no:''}">${r.no<=3?['🥇','🥈','🥉'][r.no-1]:r.no}</span><span class="em">${t[2]}</span><span class="nm">${esc(r.nama||'Pemain')}<small>${t[1]}</small></span><span class="pt">${r.poin}</span></div>`}).join('');
- e.innerHTML=`<div class="rkTop"><h2>🏆 Rank Online</h2><button class="rkX" data-rk="x">${RKS.cari?'✖ Batal & Kembali':'Kembali'}</button></div>
- <div class="rkIsi"><div class="rkKartu" style="--tk:${T[3]}"><div class="rkEmb">${T[2]}</div><div class="rkTk">${T[1]}</div>
-  <div class="rkPoin">${p} <small>poin${S.posisi?' · peringkat #'+S.posisi:''}</small></div>
-  <div class="rkBar"><i style="width:${pr}%"></i></div><div class="rkLagi">${N?`${N[0]-p} poin lagi menjadi ${N[2]} ${N[1]}`:'Tingkat tertinggi! 👑'}</div>
-  <div class="rkSt"><span><b>${S.menang|0}</b>Menang</span><span><b>${S.kalah|0}</b>Kalah</span><span><b>${S.mvp|0}</b>MVP</span></div>
-  <div class="rkTangga">${RK_T.map((t,k)=>`<span class="${k<=i?'ok':''} ${k==i?'ini':''}" style="color:${t[3]}" title="${t[1]} · ${t[0]}">${t[2]}</span>`).join('')}</div>
-  <div class="rkMsg">${RKS.msg||''}</div>${aksi}</div>
-  <div class="rkPapan"><div class="rkTab"><button data-rk="tab:top" class="${RKS.tab=='top'?'on':''}">🌍 Top Global</button><button data-rk="tab:tk" class="${RKS.tab=='tk'?'on':''}">🏅 Tingkatan Rank</button></div>
-  <div class="rkList">${RKS.tab=='tk'?rkDaftarTk(p):papan}</div></div></div>`}
-function rkDaftarTk(p){const i=rkTk(p);return RK_T.slice().reverse().map((t,r)=>{const k=RK_T.length-1-r,N=RK_T[k+1],n=RKS.papan?RKS.papan.filter(x=>rkTk(x.poin)===k).length:null;
- return `<div class="rkT ${k===i?'ini':''} ${k<i?'lewat':''}" style="--tk:${t[3]}"><span class="em">${t[2]}</span><span class="nm">${t[1]}<small>${N?t[0]+' – '+(N[0]-1)+' poin':t[0]+'+ poin'}</small></span><span class="tg">${k===i?'⬅ KAMU':k<i?'✔':n?n+' pemain':''}</span></div>`}).join('')+
- `<div class="rkAtur">Menang <b>+25</b> · MVP tim menang <b>+5</b> · Kalah <b>−20</b> · MVP tim kalah hanya <b>−10</b> · keluar di tengah = kalah</div>`}
+ let tombol,bawah='';
+ if(!KOL.login){tombol=`<button class="rxGo" data-rk="akun"><span>👤 MASUK AKUN</span></button>`;bawah='🔒 Rank khusus akun warga desa'}
+ else if(RKS.ketemu){tombol=`<div class="rxGo on"><span>✅ LAWAN DITEMUKAN!</span></div>`;bawah='Bersiap memilih hero…'}
+ else if(RKS.cari){tombol=`<div class="rxGo on"><span><i class="rxPutar"></i>Mencari lawan… <b id="rkWkt">${rkWaktu()}</b></span></div>`;bawah=`<button class="rxBatal" data-rk="batal">✖ Batal</button>`}
+ else tombol=`<button class="rxGo" data-rk="cari"><span>⚔️ CARI LAWAN</span></button>`;
+ const papan=RKS.papan==null?`<div class="rxKosong">${RKS.muat?'Memuat papan peringkat…':RKS.papanErr||'Papan peringkat belum bisa dimuat'}</div>`:!RKS.papan.length?`<div class="rxKosong">Belum ada yang main Rank.<br>Jadilah yang pertama! 🏆</div>`:
+  RKS.papan.map(r=>{const k=rkTk(r.poin),t=RK_T[k];return `<div class="rxTop ${r.akun===saya?'aku':''}" style="--tk:${t[3]}"><span class="no n${r.no}">${r.no<=3?['🥇','🥈','🥉'][r.no-1]:r.no}</span>${rkImg(k,'em')}<span class="nm">${esc(r.nama||'Pemain')}<small>${t[1]}</small></span><b>${r.poin}</b></div>`}).join('');
+ const daftar=RKS.tab=='tk'?RK_T.map((t,k)=>k).reverse().map(k=>{const t=RK_T[k],Nx=RK_T[k+1];return `<div class="rxTk ${k===i?'ini':''}" style="--tk:${t[3]}">${rkImg(k,'em')}<span class="nm">${t[1]}<small>${Nx?t[0]+' – '+(Nx[0]-1)+' poin':t[0]+'+ poin'}</small></span>${k===i?'<em>KAMU</em>':k<i?'<em class="ok">✔</em>':''}</div>`}).join('')+`<div class="rxAtur">Menang <b>+25</b> · MVP <b>+5</b> · Kalah <b>−20</b> · MVP tim kalah <b>−10</b> · keluar = kalah</div>`:papan;
+ e.innerHTML=`<div class="rxLatar"></div><img class="rxLogo" src="gambar-game/rank/logo.webp" alt="KALENSARI GAME" onerror="this.remove()">
+ <div class="rxNav"><button class="on">🏆 Rank Online</button><button data-rk="solo">⚔️ Main Solo</button><button data-rk="mb">👥 Main Bareng</button></div>
+ <button class="rxX" data-rk="x">${RKS.cari?'✖ Batal & Kembali':'⬅ Kembali'}</button>
+ <div class="rxTengah" style="--tk:${T[3]}">
+  <div class="rxEmb">${rkImg(i,'big')}</div>
+  <div class="rxNama">${T[1]}</div>
+  <div class="rxPanel"><div class="rxPoin">${p} poin${S.posisi?` <small>· peringkat #${S.posisi}</small>`:''}</div><div class="rxBar"><i style="width:${pr}%"></i></div>
+   <div class="rxLagi">${N?`${N[0]-p} poin lagi menjadi ${rkImg(i+1,'mini')} <b style="color:${N[3]}">${N[1]}</b>`:'Tingkat tertinggi! 👑'}</div>
+   <div class="rxSt"><span><i>⚔️</i><b>${S.menang|0}</b>Menang</span><span><i>💀</i><b>${S.kalah|0}</b>Kalah</span><span><i>👑</i><b>${S.mvp|0}</b>MVP</span></div></div>
+  <div class="rxTangga">${RK_T.map((t,k)=>`<span class="${k<=i?'ok':''} ${k==i?'ini':''}" title="${t[1]} · ${t[0]}">${rkImg(k)}</span>`).join('')}</div>
+  ${tombol}<div class="rxBawah">${RKS.msg?`<span class="rxMsg">${RKS.msg}</span>`:''}${bawah}</div></div>
+ <div class="rxKanan"><div class="rxTab"><button data-rk="tab:top" class="${RKS.tab!='tk'?'on':''}">🌍 Top Global</button><button data-rk="tab:tk" class="${RKS.tab=='tk'?'on':''}">🏆 Tingkatan Rank</button></div><div class="rxList">${daftar}</div></div>
+ <div class="rxMode"><div><i>🍍</i><span><b>War Nanas</b>3 vs 3 · Kebun Nanas Subang</span></div><div><i>🎖️</i><span><b>${S.posisi?'#'+S.posisi:'—'}</b>${S.posisi?'peringkat kamu':'belum ada peringkat'}</span></div></div>`}
 function rkCari(){if(!KOL.login){bukaAkun();return}RKS.msg='';RKS.cari=1;RKS.t0=Date.now();RKS.ketemu=0;rkRender();
  netConnect({t:'rkCari',poin:(RKS.saya&&RKS.saya.poin)|0},true)}
 function rkBatal(){if(RKS.cari&&NET.ws&&NET.ws.readyState===1)netSend({t:'rkBatal'});RKS.cari=0;NET.want=null;rkRender()}
 $('#rk').addEventListener('click',e=>{const b=e.target.closest('[data-rk]');if(!b)return;const k=b.dataset.rk;
- if(k.startsWith('tab:')){RKS.tab=k.slice(4);rkRender();return}if(k=='cari')rkCari();else if(k=='batal')rkBatal();else if(k=='akun')bukaAkun();else if(k=='x'){rkBatal();sc('menu')}});
+ if(k.startsWith('tab:')){RKS.tab=k.slice(4);rkRender();return}if(k=='cari')rkCari();else if(k=='batal')rkBatal();else if(k=='akun')bukaAkun();else if(k=='x'){rkBatal();sc('menu')}else if(k=='solo'){rkBatal();sc('menu');$('#bMain').click()}else if(k=='mb'){rkBatal();sc('menu');$('#bMB').click()}});
 $('#bRank').onclick=()=>kgWait(rkBuka);
 setInterval(()=>{if(!RKS.cari||!$('#rk').classList.contains('on'))return;const w=$('#rkWkt');if(w)w.textContent=rkWaktu();
  if(Date.now()-RKS.t0>4000&&(!NET.ws||NET.ws.readyState>1)){RKS.cari=0;RKS.msg='⚠️ Koneksi ke server terputus, coba lagi';rkRender()}},500);
@@ -3313,6 +3318,59 @@ html.kgapp .mgrid #bTut{grid-column:1/-1;width:calc(50% - .7cqw);justify-self:ce
 .mbgo.rk{white-space:nowrap;padding-left:3cqw;padding-right:3cqw;background:linear-gradient(#ffd966,#f0a000);color:#1c1000;border-color:#fff3b0}
 .mbrk{white-space:nowrap;display:flex;align-items:center;gap:1cqw;font:700 1.9cqw Arial;color:#ffd166}.mbrk b{font:900 2.6cqw Arial;color:#fff;font-variant-numeric:tabular-nums}
 .mbrk i{width:2.2cqw;height:2.2cqw;border-radius:50%;border:.35cqw solid #ffd16633;border-top-color:#ffd166;animation:rkPutar 1s linear infinite}
+
+#rk.on{display:block}#rk{text-align:left;padding:0;background:#0a0d18;overflow:hidden;font-family:'Lilita One',Arial,sans-serif}
+#rk .rxLatar{position:absolute;inset:0;background:linear-gradient(90deg,#0000 0 28%,#0006 45%,#0000 62%,#000a 74%,#000c),linear-gradient(#0000 70%,#0008),url(gambar-game/rank/latar.webp) 35% 40%/cover,radial-gradient(ellipse at 30% 20%,#3a5a2a,#0a0d18 70%)}
+#rk .rxLogo{position:absolute;left:1.2cqw;top:.6cqw;width:14cqw;filter:drop-shadow(0 .4cqw .6cqw #000a)}
+#rk .rxNav{position:absolute;left:18cqw;top:1.2cqw;display:flex;gap:.4cqw}
+#rk .rxNav button{font:400 1.55cqw 'Lilita One',Arial;color:#e8ddc0;background:linear-gradient(#1c2233,#0b0f1a);border:.2cqw solid #b8862e;padding:.55cqw 1.6cqw;transform:skewX(-14deg);cursor:pointer;box-shadow:0 .3cqw .8cqw #0009;letter-spacing:.05cqw}
+#rk .rxNav button.on{color:#3a1c00;background:linear-gradient(#ffe48a,#e8a21a);border-color:#fff1b0;box-shadow:0 0 1.2cqw #ffb70388}
+#rk .rxX{position:absolute;right:1.4cqw;top:1.2cqw;font:400 1.5cqw 'Lilita One',Arial;color:#ffe9b0;background:linear-gradient(#5a1010,#2a0606);border:.22cqw solid #d9a640;border-radius:.8cqw;padding:.5cqw 1.6cqw;cursor:pointer;box-shadow:0 .3cqw .8cqw #000a}
+#rk .rxTengah{position:absolute;left:33.5cqw;width:31cqw;top:4.6cqw;bottom:.6cqw;display:flex;flex-direction:column;align-items:center;gap:.45cqw}
+#rk .rxEmb{height:8.6cqw;display:grid;place-items:center;position:relative}
+#rk .rxEmb::before{content:'';position:absolute;inset:-1cqw -3cqw;background:radial-gradient(closest-side,color-mix(in srgb,var(--tk) 55%,transparent),transparent);animation:rxNafas 2.4s ease-in-out infinite alternate}
+#rk .rxEmb .big{position:relative;height:8.6cqw;filter:drop-shadow(0 .5cqw .8cqw #000c)}
+#rk .rxEmo{font-size:5.5cqw;line-height:1}
+@keyframes rxNafas{from{opacity:.55;transform:scale(.95)}to{opacity:1;transform:scale(1.05)}}
+#rk .rxNama{width:23cqw;height:3.6cqw;margin-top:-.8cqw;display:grid;place-items:center;background:url(gambar-game/rank/bilah.webp) center/100% 100% no-repeat,linear-gradient(#7a0f0f,#3a0505);border-radius:.6cqw;font:400 2.1cqw 'Lilita One',Arial;color:#ffe08a;text-transform:uppercase;letter-spacing:.1cqw;text-shadow:0 .2cqw 0 #5a2a00,0 0 .8cqw #000}
+#rk .rxPanel{width:28cqw;padding:.6cqw 1.2cqw .8cqw;border-radius:1cqw;background:linear-gradient(#120d0bdd,#07060ae6);border:.2cqw solid #c9963a;box-shadow:0 0 0 .15cqw #0008 inset,0 .6cqw 1.4cqw #000a;display:flex;flex-direction:column;align-items:center;gap:.35cqw}
+#rk .rxPanel,#rk .rxTengah{text-align:center}#rk .rxPoin{font:400 2.1cqw 'Lilita One',Arial;color:#fff;line-height:1}#rk .rxPoin small{font-size:1.2cqw;color:#cdb98a}
+#rk .rxBar{width:92%;height:.95cqw;border-radius:1cqw;background:#2a2a2a;border:.15cqw solid #000;box-shadow:0 0 0 .12cqw #8a6a2a;overflow:hidden}#rk .rxBar i{display:block;height:100%;background:linear-gradient(#ffe48a,#e8a21a 60%,#b06a00);box-shadow:0 0 .8cqw #ffb703}
+#rk .rxLagi{font:400 1.25cqw 'Lilita One',Arial;color:#e8e0cc;display:flex;align-items:center;gap:.4cqw}#rk .rxLagi .mini{height:1.9cqw}#rk .rxLagi .rxEmo{font-size:1.4cqw}
+#rk .rxSt{display:flex;gap:.6cqw;width:100%}
+#rk .rxSt span{flex:1;display:flex;flex-direction:column;align-items:center;padding:.35cqw 0;border-radius:.6cqw;background:linear-gradient(#22201c,#0d0c0a);border:.15cqw solid #8a6a2a;font:400 1.05cqw 'Lilita One',Arial;color:#cdb98a;line-height:1.1}
+#rk .rxSt i{font-style:normal;font-size:1.4cqw}#rk .rxSt b{font-weight:400;font-size:1.6cqw;color:#fff}
+#rk .rxTangga{display:flex;gap:.25cqw}
+#rk .rxTangga span{width:3.3cqw;height:3.3cqw;border-radius:50%;display:grid;place-items:center;background:radial-gradient(#2a2418,#0b0906);border:.18cqw solid #6a5226;overflow:hidden}
+#rk .rxTangga img{width:118%;height:118%;object-fit:contain;filter:grayscale(1) brightness(.55)}#rk .rxTangga .rxEmo{font-size:1.7cqw;filter:grayscale(1)}
+#rk .rxTangga span.ok img,#rk .rxTangga span.ok .rxEmo{filter:none}#rk .rxTangga span.ini{border-color:#ffe48a;box-shadow:0 0 1cqw #ffd040;transform:scale(1.12)}
+#rk .rxGo{position:relative;width:27cqw;height:5.4cqw;margin-top:.15cqw;border:0;padding:0;background:url(gambar-game/rank/bilah.webp) center/100% 100% no-repeat,linear-gradient(#a3180f,#4a0505);border-radius:1cqw;cursor:pointer;filter:drop-shadow(0 .5cqw .8cqw #000c);animation:rxGo 1.8s ease-in-out infinite}
+#rk .rxGo span{display:flex;align-items:center;justify-content:center;gap:.8cqw;font:400 2.5cqw 'Lilita One',Arial;color:#ffe08a;letter-spacing:.12cqw;text-shadow:0 .25cqw 0 #6a2a00,0 0 1cqw #000}
+#rk .rxGo b{font-weight:400;color:#fff;font-variant-numeric:tabular-nums}#rk .rxGo.on{animation:none;cursor:default}#rk .rxGo.on span{font-size:2cqw}
+#rk .rxGo:active{transform:translateY(.25cqw)}
+@keyframes rxGo{50%{filter:drop-shadow(0 .5cqw .8cqw #000c) brightness(1.15)}}
+#rk .rxPutar{width:1.9cqw;height:1.9cqw;border-radius:50%;border:.3cqw solid #ffe08a44;border-top-color:#ffe08a;animation:rkPutar 1s linear infinite}
+#rk .rxBawah{min-height:2cqw;display:flex;align-items:center;gap:1cqw;font:400 1.2cqw 'Lilita One',Arial;color:#ffe9b0;text-shadow:0 .15cqw .3cqw #000}
+#rk .rxMsg{color:#ff9a8a}
+#rk .rxBatal{font:400 1.35cqw 'Lilita One',Arial;color:#ffd0d0;background:#3a0a0acc;border:.18cqw solid #ff6a5a;border-radius:.7cqw;padding:.3cqw 1.6cqw;cursor:pointer}
+#rk .rxKanan{position:absolute;right:1.4cqw;top:4.8cqw;bottom:1.4cqw;width:29cqw;display:flex;flex-direction:column;border-radius:1.2cqw;background:linear-gradient(#141018ee,#08070aee);border:.25cqw solid #c9963a;box-shadow:0 0 0 .15cqw #0009,0 .8cqw 2cqw #000c;overflow:hidden}
+#rk .rxTab{display:flex}#rk .rxTab button{flex:1;font:400 1.45cqw 'Lilita One',Arial;color:#cfc4a8;background:linear-gradient(#1c2233,#0b0f1a);border:0;border-bottom:.2cqw solid #c9963a;padding:.7cqw .3cqw;cursor:pointer}
+#rk .rxTab button.on{color:#3a1c00;background:linear-gradient(#ffe48a,#e8a21a)}
+#rk .rxList{flex:1;overflow-y:auto;touch-action:pan-y;padding:.6cqw}
+#rk .rxTk,#rk .rxTop{position:relative;display:flex;align-items:center;gap:.9cqw;margin-bottom:.45cqw;padding:.25cqw .9cqw .25cqw .5cqw;border-radius:.7cqw;border:.15cqw solid color-mix(in srgb,var(--tk) 55%,#000);background:linear-gradient(90deg,#0a0a0ccc 0 18%,color-mix(in srgb,var(--tk) 45%,#000) 60%,color-mix(in srgb,var(--tk) 25%,#000));overflow:hidden}
+#rk .rxTk .em{height:4.2cqw;width:4.2cqw;margin:-.3cqw 0;object-fit:contain;filter:drop-shadow(0 .2cqw .3cqw #000)}#rk .rxTk .rxEmo,#rk .rxTop .rxEmo{font-size:2.2cqw;width:3.6cqw;text-align:center}
+#rk .rxTk .nm,#rk .rxTop .nm{flex:1;min-width:0;font:400 1.7cqw 'Lilita One',Arial;color:color-mix(in srgb,var(--tk) 70%,#fff);text-shadow:0 .15cqw .2cqw #000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.05}
+#rk .rxTk .nm small,#rk .rxTop .nm small{display:block;font:700 1.05cqw Arial;color:#e8e0cc}
+#rk .rxTk em{font:400 1.15cqw 'Lilita One',Arial;font-style:normal;color:#3a1c00;background:linear-gradient(#ffe48a,#e8a21a);border-radius:.5cqw;padding:.15cqw .6cqw}#rk .rxTk em.ok{background:none;color:#7dff8a;font-size:1.6cqw}
+#rk .rxTk.ini{border-color:#ffe48a;box-shadow:0 0 1cqw color-mix(in srgb,var(--tk) 70%,transparent)}
+#rk .rxTop .no{width:2.6cqw;text-align:center;font:400 1.5cqw 'Lilita One',Arial;color:#cfc4a8}#rk .rxTop .no.n1,#rk .rxTop .no.n2,#rk .rxTop .no.n3{font-size:2cqw}
+#rk .rxTop .em{height:3cqw;width:3cqw;object-fit:contain}#rk .rxTop b{font:400 1.7cqw 'Lilita One',Arial;color:#fff}
+#rk .rxTop.aku{outline:.2cqw solid #ffe48a}
+#rk .rxAtur{margin-top:.4cqw;padding:.6cqw .8cqw;border-radius:.7cqw;background:#ffffff0d;font:700 1.05cqw Arial;color:#cdb98a;line-height:1.5}#rk .rxAtur b{color:#fff}
+#rk .rxKosong{padding:4cqw 1cqw;text-align:center;font:400 1.5cqw 'Lilita One',Arial;color:#cdb98a}
+#rk .rxMode{position:absolute;left:1.4cqw;bottom:1.4cqw;width:16cqw;padding:.7cqw .9cqw;border-radius:1cqw;background:linear-gradient(#1a120ae6,#0a0705e6);border:.22cqw solid #c9963a;box-shadow:0 .6cqw 1.4cqw #000a;display:flex;flex-direction:column;gap:.5cqw}
+#rk .rxMode div{display:flex;align-items:center;gap:.7cqw}#rk .rxMode div+div{border-top:.12cqw solid #c9963a66;padding-top:.5cqw}
+#rk .rxMode i{font-style:normal;font-size:2.6cqw}#rk .rxMode span{font:700 1.05cqw Arial;color:#e8e0cc;line-height:1.2}#rk .rxMode b{display:block;font:400 1.6cqw 'Lilita One',Arial;color:#ffe9b0}
 </style>
 <script>
 (function(){
