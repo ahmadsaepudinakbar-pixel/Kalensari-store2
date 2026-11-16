@@ -158,7 +158,17 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
         Ukuran gambar paling pas: <b>Remi 63 : 88</b> (mis. 1488 × 2079 px) atau <b>KTP 54 : 85,6</b> (mis. 1276 × 2022 px), 600 dpi. Gambar dengan perbandingan lain dipotong sedikit saat dicetak.</p>
         <div style="display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;align-items:start" class="tgrid">
           <div><canvas id="tPrev" style="width:100%;border-radius:12px;border:1px solid var(--ln);cursor:crosshair;background:#eee"></canvas>
-            <div class="note" id="tInfo">Belum ada gambar.</div></div>
+            <div class="note" id="tInfo">Belum ada gambar.</div>
+            <div id="tkPanel" style="margin-top:12px;border:1px solid var(--ln);border-radius:12px;padding:10px;background:#fff">
+              <b style="font-size:15px">🔢 Kode batch yang belum jadi kartu</b>
+              <div class="note" id="tkInfo" style="margin:4px 0 6px"></div>
+              <div class="row" style="align-items:center;gap:8px;margin-bottom:6px"><label class="chk"><input type="checkbox" id="tkSemua"> <b>Pilih semua</b></label>
+                <span style="margin-left:auto;display:flex;gap:4px;align-items:center"><input class="f" type="number" id="tkN" min="1" placeholder="jml" style="width:64px;padding:6px"><button class="btn ol sm" id="tkPilihN">pilih N pertama</button></span></div>
+              <div id="tkList" style="max-height:280px;overflow:auto;border:1px solid var(--ln);border-radius:10px;padding:4px"></div>
+              <div class="row" style="margin-top:8px;align-items:center"><label class="chk">Langsung ke kertas <select class="f" id="tkKertas" style="max-width:110px"><option value="">tidak</option><option value="a4">A4</option><option value="a3">A3</option><option value="a3p">A3+</option></select></label>
+                <button class="btn br" id="tkJadi" disabled>✨ Jadikan kartu (0)</button></div>
+              <div class="note" id="tkProg" style="margin-top:6px"></div>
+            </div></div>
           <div>
             <div class="seg"><button class="on" data-sumber="upload">📤 Upload file</button><button data-sumber="galeri">🖼️ Pilih dari galeri</button></div>
             <div id="sUpload">
@@ -471,7 +481,7 @@ async function tMulai() {
   if (!RK) try { RK = await rpc("game_admin_ringkas"); } catch (e) {}
   const sel = $("#tBatch"), v = sel.value; sel.innerHTML = (RK && RK.batch.length ? RK.batch : []).map(b => `<option>${esc(b.batch)}</option>`).join("") || `<option value="">(belum ada batch)</option>`; if (v) sel.value = v;
   if (!GOK) await gMuat();
-  tGambarPrev();
+  tGambarPrev(); tkMuatKode();
 }
 function tMuatGambar(src) { return new Promise((ok, no) => { const im = new Image(); im.onload = () => { TIMG = im; ok(); }; im.onerror = no; im.src = src; }); }
 // gambar satu kartu ke canvas ukuran asli gambar
@@ -639,19 +649,23 @@ function kjRender() {
   $("#kjSemua").hidden = !L.length; $("#kjSemua").textContent = sel.value ? "🗑️ Hapus kartu batch ini" : "🗑️ Hapus semua kartu jadi";
   $("#kjGal").innerHTML = L.map(k => { const ada = krAda(k.id);
     return `<div class="gi${ada.length ? " ok" : ""}" onclick="kjUnduh('${k.id}')" title="Ketuk untuk mengunduh"><img src="${k.th}" alt="${esc(k.kode)}">${ada.length ? `<span class="cek" title="Sudah di kertas ${ada.map(x => KRT[x].n).join(", ")}">✓</span>` : ""}<small>${esc(k.kode)}</small><div class="pk">${["a4", "a3", "a3p"].map(x => `<button class="${ada.includes(x) ? "on" : ""}" title="Pindahkan ke kertas ${KRT[x].n}" onclick="event.stopPropagation();krTambah('${k.id}','${x}')">${KRT[x].n}</button>`).join("")}</div><button class="x" onclick="event.stopPropagation();kjHapus('${k.id}')" aria-label="Hapus kartu">✕</button></div>`; }).join("");
-  krRender();
+  krRender(); tkRender();
 }
 $("#kjFilter").onchange = kjRender;
+async function kjBuatKartu(ks, prog) {   // buat kartu (gambar template + QR + kode unik) untuk daftar kode, simpan ke galeri kartu jadi
+  const batch = $("#tBatch").value; let n = 0;
+  for (const grup of potong(ks, 4)) {
+    const baris = await Promise.all(grup.map(async k => {
+      const c = tKartu(k.kode, Math.min(1, 1200 / TIMG.naturalWidth)), blob = await new Promise(r => c.toBlob(r, "image/jpeg", .92)), path = `jadi/${k.kode}.jpg`;
+      await sNaik(path, blob); return { id: "j-" + k.kode, jenis: "jadi", kode: k.kode, batch, tpl: TAKTIF, path, th: kecil(c, 160) }; }));
+    await tbl("", { method: "POST", body: JSON.stringify(baris), headers: { Prefer: "resolution=merge-duplicates,return=minimal" } });
+    n += grup.length; prog(`Menyimpan kartu ${n}/${ks.length}…`); }
+  return n;
+}
 $("#kjSimpan").onclick = async () => {
-  if (!TIMG) return toast("Pilih gambar kartu dulu"); const b = $("#kjSimpan"); b.disabled = true;
-  try { const ks = await tAmbilKode(); if (!ks.length) return toast("Tidak ada kode di batch ini"); const batch = $("#tBatch").value; let n = 0;
-    for (const grup of potong(ks, 4)) {
-      const baris = await Promise.all(grup.map(async k => {
-        const c = tKartu(k.kode, Math.min(1, 1200 / TIMG.naturalWidth)), blob = await new Promise(r => c.toBlob(r, "image/jpeg", .92)), path = `jadi/${k.kode}.jpg`;
-        await sNaik(path, blob); return { id: "j-" + k.kode, jenis: "jadi", kode: k.kode, batch, tpl: TAKTIF, path, th: kecil(c, 160) }; }));
-      await tbl("", { method: "POST", body: JSON.stringify(baris), headers: { Prefer: "resolution=merge-duplicates,return=minimal" } });
-      n += grup.length; $("#tProg").textContent = $("#kjProg").textContent = `Menyimpan kartu ${n}/${ks.length}…`; }
-    $("#tProg").textContent = $("#kjProg").textContent = `✅ ${ks.length} kartu disimpan ke galeri kartu jadi`; await kjMuat();
+  if (!TIMG) return toast("Pilih gambar kartu dulu"); const b = $("#kjSimpan"); b.disabled = true; const prog = t => { $("#tProg").textContent = $("#kjProg").textContent = t; };
+  try { const ks = await tAmbilKode(); if (!ks.length) return toast("Tidak ada kode di batch ini");
+    await kjBuatKartu(ks, prog); prog(`✅ ${ks.length} kartu disimpan ke galeri kartu jadi`); await kjMuat();
   } catch (e) { toast(pesanG(e), 6000); } finally { b.disabled = false; }
 };
 async function kjHapus(id) {
@@ -675,7 +689,7 @@ $("#tPrev").onclick = e => { if (!TIMG) return; const r = e.target.getBoundingCl
   TS.x = +(((e.clientX - r.left) / r.width * 100) - TS.w / 2).toFixed(2); TS.y = +(((e.clientY - r.top) / r.height * 100) - TS.h / 2).toFixed(2); tSimpan(); tIsiForm(); tGambarPrev(); };
 async function tAmbilKode() { if (!$("#tBatch").value) throw new Error("Belum ada batch kode. Buat dulu di tab Buat Kartu.");
   UB = { batch: $("#tBatch").value }; const st = $("#muStatus").value; $("#muStatus").value = $("#tStatus").value; try { TKODE = await ambilKode(); } finally { $("#muStatus").value = st; } tGambarPrev(); return TKODE; }
-$("#tBatch").onchange = () => tAmbilKode().catch(() => {});
+$("#tBatch").onchange = () => { TKSEL.clear(); tkMuatKode(); };
 $("#tZip").onclick = async () => { if (!TIMG) return toast("Unggah gambar kartu dulu"); const b = $("#tZip"); b.disabled = true;
   try { const ks = await tAmbilKode(); if (!ks.length) return toast("Tidak ada kode di batch ini"); const files = [];
     const png = $("#tFmt").value === "png", ext = png ? ".png" : ".jpg", ayo = c => new Promise(r => c.toBlob(bl => bl.arrayBuffer().then(ab => r(new Uint8Array(ab))), png ? "image/png" : "image/jpeg", .95));
@@ -801,6 +815,32 @@ async function krCetak(mode) {   // mode: dua | depan | belakang
   } catch (e) { w.close(); toast(pesanG(e), 5000); $("#krProg").textContent = ""; }
 }
 $("#krCetak2").onclick = () => krCetak("dua"); $("#krCetak1").onclick = () => krCetak("depan"); $("#krCetak3").onclick = () => krCetak("belakang");
+
+/* ---------- daftar kode batch yang belum jadi kartu (centang → jadikan kartu) ---------- */
+const TKSEL = new Set();
+const tkBelum = () => { const ada = new Set(KJ.map(k => k.id)); return (TKODE || []).filter(k => !ada.has("j-" + k.kode)); };
+function tkUI() { const belum = tkBelum(); $("#tkSemua").checked = !!belum.length && TKSEL.size === belum.length; $("#tkSemua").disabled = !belum.length; $("#tkJadi").textContent = `✨ Jadikan kartu (${TKSEL.size})`; $("#tkJadi").disabled = !TKSEL.size; }
+function tkRender() {
+  const box = $("#tkList"); if (!box) return;
+  const ks = TKODE || [], belum = tkBelum(), ada = new Set(belum.map(k => k.kode)); [...TKSEL].forEach(c => { if (!ada.has(c)) TKSEL.delete(c); });
+  $("#tkInfo").textContent = ks.length ? `${belum.length} kode belum jadi kartu · ${ks.length - belum.length} sudah jadi (dari ${ks.length} kode di batch ini)` : "Belum ada kode. Pilih batch di sebelah kanan.";
+  box.innerHTML = belum.map(k => `<label class="chk" style="padding:3px 6px"><input type="checkbox" data-k="${esc(k.kode)}"${TKSEL.has(k.kode) ? " checked" : ""}> <span class="mono" style="font-size:12px">${esc(k.kode)}</span></label>`).join("") || (ks.length ? `<p class="note" style="margin:6px">✅ Semua kode di batch ini sudah jadi kartu.</p>` : "");
+  tkUI();
+}
+$("#tkList").onchange = e => { const c = e.target.dataset.k; if (!c) return; e.target.checked ? TKSEL.add(c) : TKSEL.delete(c); tkUI(); };
+$("#tkSemua").onchange = () => { const on = $("#tkSemua").checked; TKSEL.clear(); if (on) tkBelum().forEach(k => TKSEL.add(k.kode)); document.querySelectorAll("#tkList input[data-k]").forEach(i => i.checked = on); tkUI(); };
+$("#tkPilihN").onclick = () => { const n = Math.max(0, parseInt($("#tkN").value) || 0); if (!n) return toast("Isi jumlahnya dulu"); TKSEL.clear(); tkBelum().slice(0, n).forEach(k => TKSEL.add(k.kode)); tkRender(); };
+async function tkMuatKode() { try { await tAmbilKode(); } catch (e) { TKODE = []; } tkRender(); }
+$("#tStatus").onchange = tkMuatKode;
+$("#tkJadi").onclick = async () => {
+  if (!TIMG) return toast("Pilih gambar kartu dulu"); const pilih = tkBelum().filter(k => TKSEL.has(k.kode)); if (!pilih.length) return toast("Centang kode dulu");
+  const b = $("#tkJadi"); b.disabled = true; $("#tkSemua").disabled = true;
+  try { await kjBuatKartu(pilih, t => { $("#tkProg").textContent = t; });
+    await kjMuat(); const kp = $("#tkKertas").value; let info = "";
+    if (kp) { const G = krGeo(kp); if (G.S.per) { pilih.forEach(k => krTambah("j-" + k.kode, kp, true)); KRP = kp; KRH = Math.floor((KR[kp].length - 1) / G.S.per); krSimpan(); kjRender(); info = ` dan dipindahkan ke kertas ${KRT[kp].n}`; } }
+    TKSEL.clear(); tkRender(); $("#tkProg").textContent = `✅ ${pilih.length} kartu jadi${info}`; toast(`✅ ${pilih.length} kartu jadi${info}`, 4000);
+  } catch (e) { toast(pesanG(e), 6000); $("#tkProg").textContent = ""; } finally { tkUI(); }
+};
 
 /* ---------- mulai ---------- */
 function mulaiApp() { $("#loginView").hidden = true; $("#appView").hidden = false; pratinjau(); bukaTab(tab); }
