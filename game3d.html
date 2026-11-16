@@ -8169,6 +8169,12 @@ function wnCariDiLingkaran(E) {   // hero lawan (dan buaya lawan) terdekat di da
   WN.bts.forEach(b => { if (!b.mati && b.tm !== E.tm && b.g.position.distanceTo(E.home) < E.R + 1.5) { const d = b.g.position.distanceTo(p) + 2; if (d < bd) { bd = d; tg = b; } } });
   return tg;
 }
+// Sisingaan & Garuda: damage serangan biasa NAIK tiap pukulan (+8% dari damage dasar per pukulan, maks +80% setelah 10 pukulan) · kembali normal kalau 6 dtk tidak memukul
+const WN_NAIK = { per: .08, maks: 10, reset: 6 };
+function wnNaikPukulan(E) {   // dipanggil sekali per ayunan/tembakan → pengali damage pukulan ini (pukulan pertama = ×1)
+  const now = performance.now(); if (now - (E.naikT || 0) > WN_NAIK.reset * 1000) E.naikN = 0;
+  const m = 1 + WN_NAIK.per * (E.naikN || 0); E.naikN = Math.min(WN_NAIK.maks, (E.naikN || 0) + 1); E.naikT = now; return m;
+}
 function wnAiSinga(E, dt) {
   const p = E.g.position; E.jalan = 0; if (wnStun(E, dt)) return;
   let tg = E.sas; const sah = t => t && wnHidup(t) && wnTimOf(t) !== E.tm && wnPos(t).distanceTo(E.home) < E.R + (t.wnE ? 1.5 : .6);
@@ -8181,7 +8187,7 @@ function wnAiSinga(E, dt) {
     if (L <= jg + .3 && E.cdA <= 0) {
       const glb = !!E.M.mix, n = glb ? wnPilihKlip(E) : '', K = SINGA_KLIP[n];
       E.cdA = K && K.jeda || E.jeda; E.serangT = K ? K.lama : .45; E.klip = n; E.klipBaru = 1;
-      const kena = q => { wnPukul(q.t, E.dmg, p, 4); gelombang(q.q.clone().setY(0), 1.4, .35, 0xffc040); percik(q.q.clone().setY(.6), 12, WN_WARNA[E.tm], 3); goyang = q.t === P ? Math.max(goyang, .15) : goyang; };
+      const naik = wnNaikPukulan(E), kena = q => { wnPukul(q.t, E.dmg * naik, p, 4); gelombang(q.q.clone().setY(0), 1.4, .35, 0xffc040); percik(q.q.clone().setY(.6), 12, WN_WARNA[E.tm], 3); goyang = q.t === P ? Math.max(goyang, .15) : goyang; };
       setTimeout(() => { if (E.mati) return;
         if (K && K.area) {   // sapuan 360°: semua hero lawan di sekitar singa
           gelombang(p.clone().setY(.05), jg + 1, .45, 0xffc040); gelombang(p.clone().setY(.05), jg + .4, .35, WN_WARNA[E.tm]); percik(p.clone().setY(.8), 30, 0xffd27a, 5);
@@ -8249,7 +8255,8 @@ function wnAiGaruda(E, dt) {
     if (!WN_MBOLA) WN_MBOLA = [0, 1].map(t => new THREE.SpriteMaterial({ map: T_BULAT, color: t ? 0xfff4d8 : 0xff7a20, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
     const lepas = () => { if (E.mati || E.sembur || !wnHidup(tg)) return;
       const sp = new THREE.Sprite(WN_MBOLA[E.tm]); sp.scale.setScalar(1.1); sp.position.copy(E.home).setY(4.8); scene.add(sp);
-      WN_BOLA.push({ sp, t: tg, dmg: E.dmg, tm: E.tm, umur: 0 }); nyala(sp.position.clone(), 1.6, E.tm ? 0xffffff : 0xff6a20, .3); };
+      WN_BOLA.push({ sp, t: tg, dmg: E.dmg * naik, tm: E.tm, umur: 0 }); nyala(sp.position.clone(), 1.6, E.tm ? 0xffffff : 0xff6a20, .3); };
+    const naik = wnNaikPukulan(E);
     lepas();   // serangan biasa: tetap dalam animasi terbang
   } else if (!tg && performance.now() - E.kenaT > 5000 && E.hp < E.hpMax) { E.hp = Math.min(E.hpMax, E.hp + E.hpMax * WNV.garuda.pulih * dt); E.mt.hp = E.hp; }   // pulih pelan (0,5% HP/dtk)
 }
@@ -8478,10 +8485,75 @@ function wnPadatMon(dt) {   // hero & bot tidak bisa berjalan menembus monster h
   if (P.state !== 'kalah') tahan(P, P.root.position); else P._wnPrev = null;
   TIM.bot.forEach(o => { if (o.mt.mati) { o._wnPrev = null; return; } tahan(o, o.root.position); });
 }
+// ================== TUTORIAL WAR NANAS (mode ?tutor=1): panduan langkah demi langkah di dalam pertandingan lawan bot Mudah ==================
+const TUT_ON = WN.on && Q.get('tutor') === '1';
+const TUT = { i: -1, t0: 0, jeda: 0, selesai: false, serang: 0, skill: 0, tg: 0, p0: null, mon0: 0, P: null, M: null };
+const TUT_LANGKAH = [
+  { t: 'Pilih posisi farming', s: 'Pilih <b>⬅️ Kiri</b>, <b>🛡️ Support</b>, atau <b>➡️ Kanan</b> (PC: tombol Z / X / C). Posisi bertanda ⭐ cocok untuk role hero-mu.', bawah: 1, cek: () => !!wnLane(TIM.me) && WN.laneT == null },
+  { t: 'Bergerak', s: 'Geser <b>joystick</b> (kiri bawah) untuk berjalan. PC: tombol <b>W A S D</b>.', awal: () => { TUT.p0 = P.root.position.clone(); }, cek: () => P.root.position.distanceTo(TUT.p0) > 5 },
+  { t: 'Serang', s: 'Ketuk tombol <b>serang</b> beberapa kali. PC: tombol <b>J</b>.', awal: () => { TUT.serang = 0; }, cek: () => TUT.serang >= 3 },
+  { t: 'Buka skill', s: 'Kamu punya <b>1 poin skill gratis</b>. Ketuk skill yang bersinar (<b>Skill 1 atau 2</b>) untuk membukanya.', cek: () => { const k = WN_SP.get(TIM.me); return !k || k.buka[1] || k.buka[2]; } },
+  { t: 'Pakai skill', s: 'Ketuk skill yang sudah terbuka (PC: <b>U</b> / <b>I</b>). Tahan lalu <b>geser</b> untuk membidik arahnya.', awal: () => { TUT.skill = 0; }, cek: () => TUT.skill >= 1 },
+  { t: 'Kalahkan monster hutan', s: 'Ikuti penanda 🎯, dekati monster lalu serang sampai kalah. Kamu pulih <b>20% darah</b> dan dapat <b>kartu stat</b>.', tanda: 'mon', awal: () => { TUT.mon0 = (WN.sk.get(TIM.me) || {}).mon || 0; }, cek: () => ((WN.sk.get(TIM.me) || {}).mon || 0) > TUT.mon0 },
+  { t: 'Pilih kartu', s: 'Pilih <b>1 kartu</b> untuk menambah stat. <b>2 kartu biasa</b> atau <b>1 kartu emas</b> = 1 skill baru. Ulti (Skill 3) terbuka paling akhir.', cek: () => !WN_KARTU.buka && !WN_KARTU.antri.length && performance.now() - TUT.t0 > 1500 },
+  { t: 'Rebut Tugu Nanas', s: 'Pergi ke lingkaran di tengah (penanda 🍍). Berdiri <b>10 detik</b> tanpa musuh untuk merebutnya. Di dalam lingkaran darahmu pulih cepat.', tanda: 'tugu', awal: () => { TUT.tg = 0; }, cek: () => TUT.tg >= 3 },
+  { t: 'Hancurkan bangunan lawan', info: 1, s: 'Urutannya: <b>Sisingaan → Garuda → Rumah lawan</b>. Rumah lawan hancur = <b>menang!</b> Menyerang bersama bot timmu jauh lebih aman. Hati-hati: serangan <b>Sisingaan &amp; Garuda makin sakit</b> di tiap pukulannya (+8% per pukulan, maks +80%).' },
+  { t: 'Tutorial selesai!', info: 1, akhir: 1, s: 'Lanjutkan bermain sampai menang. Tips: <b>Support</b> dapat kartu bonus tiap 20 detik mulai menit ke-1, dan assist monster sampai menit ke-7.' }
+];
+function tutDom() {
+  if (TUT.P) return;
+  const st = document.createElement('style');
+  st.textContent = '#tutP{position:fixed;left:50%;top:clamp(46px,9vh,60px);transform:translateX(-50%);z-index:44;width:min(560px,86vw);background:#0b1024ee;border:2px solid #7dff9a;border-radius:14px;padding:8px 12px 9px;font-family:Arial;color:#fff;text-align:left;box-shadow:0 6px 24px #000a;pointer-events:none}'
+    + '#tutP.bawah{top:clamp(196px,34vh,240px)}#tutP .tn{font:800 11px Arial;color:#9fd8ff;letter-spacing:.04em}#tutP .tt{font:900 16px Arial;color:#ffd166;margin:1px 0 3px}#tutP .ts{font:600 13px/1.4 Arial;color:#e9eefc}#tutP .ts b{color:#fff}'
+    + '#tutP .tb{display:flex;gap:8px;margin-top:6px;justify-content:flex-end}#tutP button{pointer-events:auto;font:800 12px Arial;color:#fff;background:#2a5ad8;border:1px solid #7aa8ff;border-radius:8px;padding:4px 12px;cursor:pointer}#tutP button.x{background:#2a3350;border-color:#51608f}#tutP.ok{border-color:#ffd166}'
+    + '#tutM{position:fixed;z-index:43;transform:translate(-50%,-100%);pointer-events:none;font:900 13px Arial;color:#fff;background:#c1121fe0;border:2px solid #fff;border-radius:12px;padding:3px 9px;white-space:nowrap;text-shadow:0 1px 2px #000;animation:tutMk .6s infinite alternate;display:none}#tutM i{display:inline-block;font-style:normal}'
+    + '@keyframes tutMk{from{margin-top:0}to{margin-top:-8px}}';
+  document.head.appendChild(st);
+  const p = document.createElement('div'); p.id = 'tutP'; document.body.appendChild(p); TUT.P = p;
+  const m = document.createElement('div'); m.id = 'tutM'; document.body.appendChild(m); TUT.M = m;
+  p.addEventListener('pointerdown', e => e.stopPropagation());
+  addEventListener('pointerdown', e => { if (!TUT_ON || TUT.selesai) return; const b = e.target.closest && e.target.closest('#bA,#b1,#b2,#b3'); if (!b) return;
+    if (b.id === 'bA') TUT.serang++; else { const i = +b.id.slice(1); if (wnSpBuka(TIM.me, i)) TUT.skill++; } }, true);   // capture: dibaca sebelum game memproses tombol
+  addEventListener('keydown', e => { if (!TUT_ON || TUT.selesai || e.repeat) return; const k = e.key.toLowerCase();
+    if (k === 'j') TUT.serang++; else { const i = { u: 1, i: 2, o: 3 }[k]; if (i && wnSpBuka(TIM.me, i)) TUT.skill++; } }, true);
+}
+function tutTampil() {
+  const L = TUT_LANGKAH[TUT.i], p = TUT.P; if (!L) return;
+  p.className = L.bawah ? 'bawah' : '';
+  p.innerHTML = `<div class="tn">📖 TUTORIAL WAR NANAS · ${TUT.i + 1}/${TUT_LANGKAH.length}</div><div class="tt">${L.t}</div><div class="ts">${L.s}</div>`
+    + `<div class="tb">${L.info ? `<button id="tutOk">${L.akhir ? '✅ Selesai' : 'Mengerti ▶'}</button>` : ''}${L.akhir ? '' : '<button class="x" id="tutX">✖ Tutup tutorial</button>'}</div>`;
+  const ok = $('#tutOk'); if (ok) ok.onclick = () => { if (L.akhir) tutSelesai(); else tutLanjut(); };
+  const x = $('#tutX'); if (x) x.onclick = tutSelesai;
+}
+function tutMulai() { TUT.t0 = performance.now(); const L = TUT_LANGKAH[TUT.i]; if (L && L.awal) L.awal(); tutTampil(); }
+function tutLanjut() { TUT.i++; TUT.jeda = 0; tutMulai(); }
+function tutSelesai() { TUT.selesai = true; if (TUT.P) TUT.P.style.display = 'none'; if (TUT.M) TUT.M.style.display = 'none'; try { localStorage.setItem('kgTutWN', '1'); } catch (e) { } banner('📖 Tutorial selesai — selamat bermain!', '#9dff8a'); }
+function tutTanda(L) {   // penanda melayang ke monster terdekat / Tugu Nanas (di tepi layar kalau di luar pandangan)
+  const m = TUT.M; if (!L.tanda) { m.style.display = 'none'; return; }
+  let tujuan = null, nama = '';
+  if (L.tanda === 'tugu') { tujuan = new THREE.Vector3(0, 0, 0); nama = '🍍 Tugu Nanas'; }
+  else { let bd = 1e9; WN.E.forEach(E => { if (E.jenis !== 'mon' || E.mati || !E.g.visible) return; const d = E.g.position.distanceTo(P.root.position); if (d < bd) { bd = d; tujuan = E.g.position; } }); nama = '🎯 Monster'; }
+  if (!tujuan) { m.style.display = 'none'; return; }
+  const [x, y, depan] = layar(tujuan.clone().setY(1.6)), jarak = Math.round(P.root.position.distanceTo(tujuan));
+  const dalam = depan && x > 30 && x < LYR_W - 30 && y > 110 && y < LYR_H - 90;
+  let px = Math.min(LYR_W - 40, Math.max(40, x)), py = Math.min(LYR_H - 100, Math.max(120, y)), ar = '';
+  if (!dalam) { const a = Math.atan2((depan ? y : LYR_H - y) - LYR_H / 2, (depan ? x : LYR_W - x) - LYR_W / 2); ar = `<i style="transform:rotate(${a}rad)">➤</i> `; }
+  m.style.display = 'block'; m.style.left = px + 'px'; m.style.top = py + 'px'; m.innerHTML = ar + nama + ' · ' + jarak + ' m';
+}
+function tutUpd(dt) {
+  if (!TUT_ON || TUT.selesai) return;
+  tutDom(); if (TUT.i < 0) { TUT.i = 0; tutMulai(); }
+  const L = TUT_LANGKAH[TUT.i]; if (!L) return;
+  if (Math.hypot(P.root.position.x, P.root.position.z) < WN_TUGU_R) TUT.tg += dt;
+  if (TUT.jeda > 0) { TUT.jeda -= dt; if (TUT.jeda <= 0) tutLanjut(); return; }
+  tutTanda(L);
+  if (!L.info && L.cek()) { TUT.P.classList.add('ok'); banner('✅ ' + L.t + ' — berhasil!', '#9dff8a'); TUT.M.style.display = 'none'; TUT.jeda = .9; }
+}
 function wnUpd(dt) {
   if (WN.riak) { const tt = performance.now() / 1000; WN.riak.forEach(R => { R.m.rotation.y += dt * R.v; R.m.material.opacity = R.op * (R.tepi ? .75 + .25 * Math.sin(tt * 4) : .85 + .15 * Math.sin(tt * 2 + R.k)); }); }
   if (!WN.siap || !TIM.main) return;
   wnLaneUpd(dt);
+  tutUpd(dt);
   WN.spPosT = (WN.spPosT || 0) - dt; if (WN.spPosT <= 0) { WN.spPosT = .4; wnSpPosisi(); }
   wnRumahTitik();
   // daftar hero (pemain + bot)
@@ -9657,6 +9729,7 @@ const TIPS_WN = ['<b>Skill terkunci di awal!</b> Buka Skill 1 atau Skill 2 dulu.
   'Setiap monster hutan yang kamu kalahkan memulihkan <b>20% darah</b> dan memberi <b>kartu stat</b>.',
   'Kuasai <b>Tugu Nanas</b> di tengah: berdiri <b>10 detik</b> di lingkaran tanpa musuh. Di lingkaran hijau darahmu pulih cepat.',
   'Urutan menyerang: <b>Sisingaan → Garuda → Rumah lawan</b>. Rumah lawan hancur = menang!',
+  '<b>Sisingaan &amp; Garuda makin sakit</b> di tiap pukulannya (+8% per pukulan, maks +80%). Jangan berlama-lama di bawah bangunan lawan!',
   'Membunuh <b>Buaya Danau</b> memberi <b>kartu emas</b> untuk semua teman satu tim.',
   'Membunuh hero lawan memberi <b>Kartu Emas</b> (+10% s/d +20%). Ikut membantu (assist) juga dapat kartu.',
   'Baru bangkit di rumah? Kamu <b>kebal 3 detik</b> — pakai untuk kabur atau membalas.',
