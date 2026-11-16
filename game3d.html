@@ -254,6 +254,7 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
 #umGelap b{font:900 96px Arial;color:#fff;text-shadow:0 0 30px #ffd16688}
 #bars.umpet .hp{background:none}#bars.umpet .hp i{display:none}#bars.umpet .hp .nm{bottom:2px}.hp.jaga .nm{color:#ffd166!important}.hp.jaga .nm::before{content:'👁️ '}
 #rkHasil{display:flex;flex-direction:column;align-items:center;gap:6px;margin:4px 0 2px}#rkHasil .rkh{display:flex;align-items:center;gap:10px;background:#0b1020cc;border:2px solid var(--tk,#ffd166);border-radius:14px;padding:6px 14px;font:700 15px Arial;color:#fff}#rkHasil .rkh i{font-style:normal;font-size:28px}#rkHasil .rkh small{display:block;font:700 11px Arial;color:var(--tk,#ffd166)}#rkHasil .rkh b{font-size:18px}#rkHasil em{font:900 22px Arial;font-style:normal}#rkHasil em.p{color:#7dff8a}#rkHasil em.m{color:#ff7a7a}#rkHasil .naik{color:#ffd040;font:900 16px Arial;animation:rkNaik .8s ease-in-out infinite alternate}#rkHasil .turun{color:#ff9a9a;font:700 13px Arial}@keyframes rkNaik{to{transform:scale(1.08)}}
+#afkB{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:30;display:none;pointer-events:none;background:#0b1020e6;border:2px solid #7ad0ff;border-radius:14px;padding:6px 16px;font:700 14px Arial;color:#dff3ff;text-align:center;box-shadow:0 0 18px #7ad0ff55;animation:afkK 1.6s ease-in-out infinite alternate}#afkB.on{display:block}#afkB small{display:block;font:700 11px Arial;color:#9fb0d8;margin-top:2px}@keyframes afkK{to{box-shadow:0 0 6px #7ad0ff22}}
 </style>
 <script src="config.js"></script><script src="qr-mini.js"></script>
 <script type="importmap">
@@ -10006,6 +10007,51 @@ async function jadikanBot(id) {
   else { b.root.position.copy(pos); b.mt.hp = Math.max(1, Math.min(b.mt.hpMax, hp || b.mt.hpMax)); }
   if (WN.on) { wnSpBot(id); if (!wnLane(id)) wnLaneIsi(b.tm); }
 }
+// ---------- AFK: hero digerakkan otomatis (War Nanas online) ----------
+// 20 detik tanpa sentuhan / tombol → otak bot mengendalikan hero sendiri (ikut lane, farming, bertarung, mundur saat darah tipis).
+// Darah, mati, kartu & kill tetap milik hero pemain (P); bot hanya menggerakkan & menyerang. Sentuh layar = kembali main sendiri.
+const AFK = { t: performance.now(), o: null, buat: false, BATAS: 20000 };
+['pointerdown', 'pointermove', 'touchstart', 'keydown', 'wheel'].forEach(ev => addEventListener(ev, () => { AFK.t = performance.now(); if (AFK.o) afkSelesai(); }, { capture: true, passive: true }));
+async function afkMulai() {
+  if (AFK.o || AFK.buat) return; AFK.buat = true;
+  const o = { id: TIM.me, tm: TIM.saya.tm, bot: true, lokal: true, afk: true, nama: NAMA, kawan: true, sas: null, terakhir: null, hidupT: 0, hero: HERO };
+  const bar = document.createElement('div');   // bar darah tidak dipakai (darah = darah pemain)
+  let B;
+  try { B = await buatBotPro({ hero: HERO, skin: SKIN || '', nama: NAMA, bar, lv: Math.max(2, BOT_LV_I), posAwal: P.root.position.clone(), arahAwal: P.root.rotation.y, id: TIM.me,
+      ctx: { kawan: true, sasaran: () => o.sas,
+        musuhDekat: r => { const ps = o.root.position; let b = null, bd = r; WN.U.forEach(u => { if (u.tm === o.tm || !u.hidup) return; const d = u.pos.distanceTo(ps); if (d < bd) { bd = d; b = u.obj; } }); return b; },
+        serang: (t, d, dari, dr) => timBotSerangKe(o, t, d, dari, dr), stun: stunEnt, mati: () => { }, kirim: e => netEvent(e) } }); }
+  catch (e) { console.error(e); AFK.buat = false; return; }
+  AFK.buat = false;
+  if (performance.now() - AFK.t < AFK.BATAS || !TIM.main || SELESAI) { scene.remove(B.root); return; }   // keburu kembali
+  o.B = B; o.pro = B; o.root = B.root; o.mt = B.mt; B.mt.id = TIM.me; B.mt.obj = o;
+  AFK.o = o;
+  let e = $('#afkB'); if (!e) { e = document.createElement('div'); e.id = 'afkB'; document.body.appendChild(e); }
+  e.innerHTML = '🤖 <b>Mode Otomatis</b> · heromu dimainkan sistem<small>sentuh layar untuk main lagi</small>'; e.classList.add('on');
+}
+function afkSelesai(diam) {
+  const o = AFK.o; AFK.o = null; if (!o) return;
+  if (!o.mati && P.state !== 'kalah') { P.root.position.copy(o.root.position); P.root.rotation.y = o.root.rotation.y; }
+  scene.remove(o.root); P.tilt.visible = true;
+  const e = $('#afkB'); if (e) e.classList.remove('on');
+  if (!diam) banner('🎮 Kamu kembali mengendalikan hero', '#9dff8a');
+}
+function afkUpd(dt) {
+  if (!WN_ONLINE || TIM.tonton || SELESAI || TIM.akhir) { if (AFK.o) afkSelesai(true); return; }
+  const now = performance.now();
+  if (!AFK.o) { if (!AFK.buat && WN.siap && P.state !== 'kalah' && now - AFK.t > AFK.BATAS) afkMulai(); return; }
+  const o = AFK.o, B = o.B;
+  if (P.state === 'kalah') { if (!o.mati) { o.mati = 1; o.root.visible = false; P.tilt.visible = true; } return; }   // mati: tampil seperti biasa, tunggu bangkit
+  if (o.mati) { o.mati = 0; B.reset(); B.root.position.copy(P.root.position); o.root.visible = true; }
+  P.tilt.visible = false;
+  B.mt.hpMax = HP_MAX[HERO]; B.mt.hp = Math.max(1, P.hp); B.mt.mati = 0;
+  B.mt.kunci = Math.max(B.mt.kunci || 0, P.kunci || 0); B.mt.pusing = Math.max(B.mt.pusing || 0, P.pusing || 0); B.mt.lambat = Math.max(B.mt.lambat || 0, P.lambat || 0);
+  if (WN.on) { const sp = WN_SP.get(TIM.me), cd = B.cd; if (sp && cd) for (let k = 1; k < 4; k++) if (!sp.buka[k]) cd[k] = Math.max(cd[k] || 0, .5); }   // skill yang belum dibuka tetap terkunci
+  o.sasT = (o.sasT || 0) - dt; const sa = o.sas, habis = !sa || (sa.mt && sa.mt.mati);
+  if (habis || o.sasT <= 0) { o.sasT = .15; o.sas = pilihSasaran(o); }
+  sbgMusuh(false, () => B.upd(dt));
+  P.root.position.copy(B.root.position); P.root.rotation.y = B.root.rotation.y;   // hero pemain ikut posisi penggerak (kamera, tugu, monster, kiriman ke HP lain)
+}
 // ---------- RANK ONLINE: MVP & poin ----------
 const RK_T = [[0, 'Anak Bawang', '🌱', '#8fd06a'], [100, 'Prajurit', '🛡️', '#a9b6c8'], [250, 'Jagoan', '⚔️', '#d0924a'], [450, 'Pendekar', '🥋', '#4ab8e8'], [700, 'Ksatria', '🐎', '#7a8cff'], [1000, 'Panglima Tempur', '🦅', '#c46cff'], [1400, 'Suhu', '🐉', '#ff7a3a'], [1900, 'Sepuh', '👑', '#ffd040']];
 const RKH = { d: null };
@@ -10111,9 +10157,9 @@ function terimaDataTim(m) {
 }
 function kirimKeadaanTim() {
   if (WN_ONLINE && (!NET.ws || NET.ws.readyState !== 1)) { if (NET.antre.length > 400) NET.antre.splice(0, NET.antre.length - 400); return; }   // terputus: event disimpan sampai tersambung lagi
-  const [x, z] = keNet(P.root.position.x, P.root.position.z), a = P.act[P.cur];
+  const [x, z] = keNet(P.root.position.x, P.root.position.z), ak = AFK.o && !AFK.o.mati ? AFK.o.B : null, a = ak ? null : P.act[P.cur], TT = ak ? ak.tilt : P.tilt, RY = ak ? ak.root.rotation.y : P.root.rotation.y, AN = ak ? ak.anim : P.cur;   // AFK: hero digerakkan otomatis
   const fl = (HERO === 'kunti' && K.terbangT > 0 ? 1 : 0) | (TY.hilang > 0 || SW.hilang > 0 || SLW.hilang > 0 || KS.hilang > 0 || (HERO === 'wewe' && WGS.hilang > 0) || P.kantongT > 0 ? 2 : 0) | ((P.kunci > 0 || P.pusing > 0) ? 4 : 0) | (P.state === 'kalah' ? 8 : 0) | (GW.amuk > 0 ? 16 : 0) | (UMP.on && UMP.tangkap ? 32 : 0) | (UMP.on && UMP.kebal > 0 ? 64 : 0) | (P.ungkap > 0 ? 128 : 0);
-  const ev = NET.antre.splice(0), o = { t: ev.length ? 'in' : 'st', v3: 1, s: [r2(x), r2(z), r2(sudutNet(P.root.rotation.y)), r2(P.tilt.position.y), r2(P.tilt.rotation.x), r2(P.tilt.rotation.y), r2(P.tilt.rotation.z), Math.round(P.hp), P.cur, a ? r2(a.timeScale) : 1, fl, WN.on ? Math.round(HP_MAX[HERO]) : 0], e: ev };   // ada event (hit, mati, hadiah…) → 'in': server selalu meneruskannya walau HP penerima sedang macet
+  const ev = NET.antre.splice(0), o = { t: ev.length ? 'in' : 'st', v3: 1, s: [r2(x), r2(z), r2(sudutNet(RY)), r2(TT.position.y), r2(TT.rotation.x), r2(TT.rotation.y), r2(TT.rotation.z), Math.round(P.hp), AN, a ? r2(a.timeScale) : 1, fl, WN.on ? Math.round(HP_MAX[HERO]) : 0], e: ev };   // ada event (hit, mati, hadiah…) → 'in': server selalu meneruskannya walau HP penerima sedang macet
   if (TIM.host && TIM.bot.size) o.b = [...TIM.bot.values()].map(b => { const [bx, bz] = keNet(b.root.position.x, b.root.position.z);
     return [b.id, r2(bx), r2(bz), r2(sudutNet(b.root.rotation.y)), r2(b.B.tilt.position.y), r2(b.B.tilt.rotation.x), r2(b.B.tilt.rotation.y), r2(b.B.tilt.rotation.z), Math.round(b.mt.hp), b.mt.mati ? 'kalah' : b.B.anim || 'diam', 1, b.B.fl | 0, WN.on ? Math.round(b.mt.hpMax) : 0]; });
   if (WN_ONLINE && TIM.host && WN.siap && (WN.snapN = (WN.snapN || 0) + 1) % 3 === 0) o.wn = wnSnap();
@@ -10145,7 +10191,8 @@ function barKawan(mt) {   // bar darah kawan (lawan diurus updLabel lewat MUSUH)
   taruh(mt.bar, x, y); lebarBar(mt.bar.firstChild, mt.hp / (mt.hpMax || 1000));
 }
 function updTim(dt, nyata) {
-  if (!TIM.main) return;
+  if (!TIM.main) { if (AFK.o) afkSelesai(true); return; }
+  afkUpd(dt);
   TIM.obj.forEach(o => { updObjTim(o, dt); if (o.kawan) barKawan(o.mt); });
   TIM.bot.forEach(o => {
     if (!o.mt.mati && o.mt.kebalT && performance.now() < o.mt.kebalT) { o.mt.pusing = o.mt.kunci = 0; }   // kebal: lepas dari stun/kunci
