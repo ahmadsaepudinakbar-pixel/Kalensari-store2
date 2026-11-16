@@ -71,6 +71,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 .tlay{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:14px;align-items:start;margin-bottom:14px}
 .tlay>.card{margin-bottom:0;min-width:0}
 .tlay aside{position:sticky;top:70px}
+.tlay.satu{grid-template-columns:minmax(0,1fr)}.tlay.satu aside{display:none}
 @media(max-width:900px){.tlay{grid-template-columns:1fr}.tlay aside{position:static}}
 .seg{display:flex;gap:6px;margin:0 0 10px}
 .seg button{flex:1;border:1px solid var(--ln);background:#fff;border-radius:10px;padding:9px 10px;font-weight:700;color:var(--mu)}
@@ -143,7 +144,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
       </div>
     </section>
     <section data-p="template" hidden>
-      <div><div class="card"><h3>🎴 Template kartu: gambar Anda + QR asli + kode manual</h3>
+      <div class="tlay satu" id="tLay"><div class="card"><h3>🎴 Template kartu: gambar Anda + QR asli + kode manual</h3>
         <p class="note" style="margin-top:0">1) Unggah gambar desain kartu (depan) · 2) pilih batch kode · 3) geser kotak QR ke tempatnya (klik/ketuk pratinjau, atau isi angka) · 4) unduh kartu jadi atau lembar cetak.
         Ukuran gambar paling pas: <b>Remi 63 : 88</b> (mis. 1488 × 2079 px) atau <b>KTP 54 : 85,6</b> (mis. 1276 × 2022 px), 600 dpi. Gambar dengan perbandingan lain dipotong sedikit saat dicetak.</p>
         <div style="display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;align-items:start" class="tgrid">
@@ -155,7 +156,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
               <label class="l" style="margin-top:0">Gambar kartu (PNG/JPG)<input class="f" type="file" id="tFile" accept="image/*" multiple></label>
               <label class="chk" style="margin-top:6px"><input type="checkbox" id="tSimpanG" checked> simpan juga ke galeri</label>
             </div>
-            <div id="sGaleri" hidden><p class="note" style="margin:0">Membuka tab <b>Galeri</b>: ketuk salah satu gambar di <b>Galeri desain kartu</b> untuk memakainya.</p></div>
+            <div id="sGaleri" hidden><p class="note" style="margin:0">Pilih salah satu gambar di panel <b>Galeri desain kartu</b> di samping (isinya sama dengan tab Galeri).</p></div>
             <div class="grid">
               <label class="l">Batch kode<select class="f" id="tBatch"></select></label>
               <label class="l">Kode yang dipakai<select class="f" id="tStatus"><option value="belum">Belum diklaim</option><option value="semua">Semua</option></select></label>
@@ -183,7 +184,8 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
             <p class="note" style="margin:4px 0 0">Klik pratinjau = pindah kotak QR. Tahan <b>Shift</b> sambil klik = pindah kotak kode.</p>
             <button class="btn gd sm" id="tAuto" style="margin-top:8px">🎯 Sesuaikan otomatis</button>
             <div class="row" style="margin-top:14px">
-              <button class="btn br" id="tZip">🗜️ ZIP gambar kartu (PNG)</button>
+              <button class="btn br" id="tZip">🗜️ ZIP gambar kartu</button>
+              <select class="f" id="tFmt" style="max-width:150px"><option value="jpg">JPG (cepat)</option><option value="png">PNG (lambat)</option></select>
               <button class="btn gd" data-lembar="a4">🖨️ Lembar A4</button>
               <button class="btn gd" data-lembar="a3">🖨️ A3+ berjarak</button>
               <button class="btn gd" data-lembar="a3r">🖨️ A3+ rapat</button>
@@ -192,17 +194,18 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
           </div>
         </div>
       </div>
+      <aside id="gSlot"></aside>
       </div>
     </section>
     <section data-p="galeri" hidden>
-      <div class="card" id="gPanel">
+      <div id="gHome"><div class="card" id="gPanel">
         <h3>🖼️ Galeri desain kartu</h3>
-        <p class="note" style="margin-top:0">Simpan di sini gambar kartu dengan kotak QR kosong. Ketuk gambar untuk memakainya, lalu Anda dibawa ke tab Template.</p>
+        <p class="note" style="margin-top:0">Simpan di sini gambar kartu dengan kotak QR kosong. Ketuk gambar untuk memakainya sebagai template.</p>
         <div class="note" id="gInfo" style="margin:6px 0 4px"></div>
         <div class="note" id="gAktif" style="font-weight:700;margin-bottom:8px"></div>
         <div class="gal" id="gGal"></div>
         <button class="btn rd sm" id="gHapusSemua" hidden style="margin-top:8px">🗑️ Hapus semua gambar</button>
-      </div>
+      </div></div>
       <div class="card"><h3>✅ Kartu jadi</h3>
         <p class="note" style="margin-top:0">Simpan hasil kartu (gambar + QR + kode) dari batch dan gambar yang sedang dipilih di tab Template ke galeri ini, lalu lihat, unduh satuan, atau hapus. Galeri tersimpan di Supabase (privat, hanya admin), jadi sama di semua perangkat. Menghapus kartu di sini tidak menghapus kodenya; kode dikelola di tab Daftar Kartu. Untuk hasil resolusi penuh, tetap pakai ZIP atau lembar cetak.</p>
         <div class="row"><button class="btn br" id="kjSimpan">💾 Simpan kartu batch ini ke galeri</button>
@@ -307,7 +310,7 @@ function bukaTab(t) {
   tab = t;
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("[data-p]").forEach(s => s.hidden = s.dataset.p !== t);
-  if (t === "ringkas") muatRingkas(); if (t === "daftar") muatDaftar(true); if (t === "template" || t === "galeri") tMulai();
+  if (t === "ringkas") muatRingkas(); if (t === "daftar") muatDaftar(true); if (t === "template") { tSumber(TSUMBER); tMulai(); } if (t === "galeri") { $("#gHome").appendChild($("#gPanel")); tMulai(); }
 }
 const pesanErr = e => /game_admin|PGRST202|function/.test(e.message) ? "Fitur kartu belum dipasang. Jalankan supabase-kartu-game.sql di Supabase dulu." : e.message;
 
@@ -508,7 +511,7 @@ async function gMuat() {
 function gRender() {
   $("#gInfo").textContent = GTPL.length ? `${GTPL.length} gambar tersimpan · ketuk gambar untuk memakainya` : "Belum ada gambar tersimpan. Unggah gambar kartu di atas.";
   $("#gHapusSemua").hidden = !GTPL.length; const ga = GTPL.find(x => x.id === TAKTIF); $("#gAktif").textContent = ga ? "Dipakai: " + ga.nama : "";
-  $("#gGal").innerHTML = GTPL.map(g => `<div class="gi${g.id === TAKTIF ? " on" : ""}" onclick="gPakaiKeTemplate('${g.id}')" title="${esc(g.nama)}"><img src="${g.th}" alt="${esc(g.nama)}"><small>${esc(g.nama)}</small><button class="x" onclick="event.stopPropagation();gHapus('${g.id}')" aria-label="Hapus gambar">✕</button></div>`).join("");
+  $("#gGal").innerHTML = GTPL.map(g => `<div class="gi${g.id === TAKTIF ? " on" : ""}" onclick="gPakai('${g.id}')" title="${esc(g.nama)}"><img src="${g.th}" alt="${esc(g.nama)}"><small>${esc(g.nama)}</small><button class="x" onclick="event.stopPropagation();gHapus('${g.id}')" aria-label="Hapus gambar">✕</button></div>`).join("");
 }
 async function gTambah(files) {
   let o = null, n = 0; $("#gInfo").textContent = "Mengunggah…";
@@ -516,7 +519,6 @@ async function gTambah(files) {
     try { o = await gSimpan(f, f.name); n++; $("#gInfo").textContent = `Mengunggah… ${n}/${files.length}`; } catch (e) { toast("Gagal menyimpan " + f.name + ": " + pesanG(e), 6000); } }
   if (o) await gPakai(o.id); else gRender();
 }
-async function gPakaiKeTemplate(id) { await gPakai(id); tSumber("upload"); bukaTab("template"); }
 async function gPakai(id, awal) {
   const g = GTPL.find(x => x.id === id); if (!g) return; TAKTIF = id;
   try { localStorage.setItem("ks_kartu_tpl_aktif", id); } catch (e) {}
@@ -573,10 +575,13 @@ function tTerapkan(id, awal) {
   if (sv) Object.assign(TS, TDEF, sv); else if (awal) tSimpan(); else { Object.assign(TS, TDEF); tSimpan(); }
   tIsiForm();
 }
+let TSUMBER = "upload";
 function tSumber(m) {
   document.querySelectorAll("[data-sumber]").forEach(b => b.classList.toggle("on", b.dataset.sumber === m));
   $("#sUpload").hidden = m !== "upload"; $("#sGaleri").hidden = m !== "galeri";
-  if (m === "galeri") bukaTab("galeri");
+  const G = $("#gPanel"), tampil = m === "galeri";
+  (tampil ? $("#gSlot") : $("#gHome")).appendChild(G); $("#tLay").classList.toggle("satu", !tampil); TSUMBER = m;
+  if (tampil && window.innerWidth <= 900) G.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 document.querySelectorAll("[data-sumber]").forEach(b => b.onclick = () => tSumber(b.dataset.sumber));
 $("#tAuto").onclick = () => { if (!TIMG) return toast("Pilih gambar kartu dulu"); tAuto(false); };
@@ -629,9 +634,27 @@ async function tAmbilKode() { if (!$("#tBatch").value) throw new Error("Belum ad
 $("#tBatch").onchange = () => tAmbilKode().catch(() => {});
 $("#tZip").onclick = async () => { if (!TIMG) return toast("Unggah gambar kartu dulu"); const b = $("#tZip"); b.disabled = true;
   try { const ks = await tAmbilKode(); if (!ks.length) return toast("Tidak ada kode di batch ini"); const files = [];
-    for (let i = 0; i < ks.length; i++) { files.push({ name: ks[i].kode + ".png", data: await kePng(tKartu(ks[i].kode)) }); if (i % 5 === 0) { $("#tProg").textContent = `Membuat kartu ${i + 1}/${ks.length}…`; await new Promise(r => setTimeout(r)); } }
+    const png = $("#tFmt").value === "png", ext = png ? ".png" : ".jpg", ayo = c => new Promise(r => c.toBlob(bl => bl.arrayBuffer().then(ab => r(new Uint8Array(ab))), png ? "image/png" : "image/jpeg", .95));
+    for (let i = 0; i < ks.length; i += 4) { const grup = ks.slice(i, i + 4); const hasil = await Promise.all(grup.map(async k => ({ name: k.kode + ext, data: await ayo(tKartu(k.kode)) }))); files.push(...hasil); $("#tProg").textContent = `Membuat kartu ${Math.min(i + 4, ks.length)}/${ks.length}…`; await new Promise(r => setTimeout(r)); }
     const a = document.createElement("a"); a.href = URL.createObjectURL(zipBuat(files)); a.download = `kartu-jadi-${$("#tBatch").value.replace(/[^A-Za-z0-9-]+/g, "-")}.zip`; a.click(); $("#tProg").textContent = `✅ ${ks.length} gambar kartu diunduh`;
   } catch (e) { toast(pesanErr(e), 5000); } finally { b.disabled = false; } };
+// lembar cetak cepat: gambar dasar dipakai SEKALI (latar CSS), QR kecil + kode ditaruh di atasnya sebagai teks
+function tGeo(U) {
+  const W = TIMG.naturalWidth, H = TIMG.naturalHeight, sk = Math.max(U.w / W, U.h / H), iw = W * sk / U.w * 100, ih = H * sk / U.h * 100;
+  const bx = W * TS.x / 100, by = H * TS.y / 100, bw = W * TS.w / 100, bh = H * TS.h / 100, r = Math.min(bw, bh) * TS.r / 100;
+  const th = TS.pisah ? 0 : bh * TS.t / 100, pad = TS.pisah ? Math.min(bw, bh) * 0.015 : Math.min(bw, bh) * 0.03, qs = Math.max(10, Math.min(bw - pad * 2, bh - th - pad * 2));
+  return { W, H, bx, by, bw, bh, r, th, pad, qs, stI: `left:${(100 - iw) / 2}%;top:${(100 - ih) / 2}%;width:${iw}%;height:${ih}%` };
+}
+function tSel(kode, G) {
+  const px = v => (v / G.W * 100).toFixed(3) + "%", py = v => (v / G.H * 100).toFixed(3) + "%", cq = v => (v / G.W * 100).toFixed(3) + "cqw";
+  const q = QRMini.canvas(isiQR(kode), Math.round(G.qs * 2), null, TS.pisah ? 1 : 4).toDataURL("image/png"); let h = "";
+  if (TS.putih) h += `<i style="left:${px(G.bx)};top:${py(G.by)};width:${px(G.bw)};height:${py(G.bh)};background:#fff;border-radius:${cq(G.r)}"></i>`;
+  h += `<img src="${q}" style="left:${px(G.bx + (G.bw - G.qs) / 2)};top:${py(TS.pisah ? G.by + (G.bh - G.qs) / 2 : G.by + G.pad)};width:${px(G.qs)};height:${py(G.qs)}">`;
+  const teks = (l, t, w, hh, warna, bg, rad) => `<div class="t" style="left:${px(l)};top:${py(t)};width:${px(w)};height:${py(hh)};color:${warna};background:${bg};border-radius:${rad};font-size:${cq(Math.min(hh * 0.8, w * 0.94 / (kode.length * 0.6)))}">${esc(kode)}</div>`;
+  if (TS.pisah) { const kx = G.W * TS.kx / 100, ky = G.H * TS.ky / 100, kw = G.W * TS.kw / 100, kh = G.H * TS.kh / 100; h += teks(kx, ky, kw, kh, TS.kfg, TS.kbg, cq(kh * 0.2)); }
+  else h += teks(G.bx, G.by + G.pad + G.qs - G.pad * 0.2, G.bw, G.th, "#111", "transparent", "0");
+  return `<div class="c"><div class="k"><div class="i" style="${G.stI}">${h}</div></div></div>`;
+}
 const LEMBAR = { a4: { n: "A4", w: 210, h: 297, gap: 4 }, a3: { n: "A3+", w: 329, h: 483, gap: 6 }, a3r: { n: "A3+", w: 329, h: 483, gap: 0 } };
 const UKURAN = { remi: { n: "kartu remi", w: 63, h: 88 }, ktp: { n: "kartu KTP", w: 54, h: 85.6 } };
 // susunan terbaik: kartu tegak, atau diputar 90° di lembar bila muat lebih banyak
@@ -645,15 +668,14 @@ document.querySelectorAll("[data-lembar]").forEach(btn => btn.onclick = async ()
   w.document.write("<p style='font-family:Arial'>Menyiapkan kartu…</p>");
   try { const ks = await tAmbilKode(); if (!ks.length) { w.close(); return toast("Tidak ada kode di batch ini"); }
     const U = UKURAN[TS.uk] || UKURAN.remi, S = tSusun(L, U), cw = S.cw, ch = S.ch, g = L.gap, kol = S.kol, bar = S.bar, per = S.per, url = [];
-    for (let i = 0; i < ks.length; i++) { let c = tKartu(ks[i].kode);
-      if (S.putar) { const r = document.createElement("canvas"); r.width = c.height; r.height = c.width; const x = r.getContext("2d"); x.translate(r.width, 0); x.rotate(Math.PI / 2); x.drawImage(c, 0, 0); c = r; }
-      url.push(c.toDataURL("image/jpeg", 0.93)); if (i % 5 === 0) { $("#tProg").textContent = `Menyiapkan kartu ${i + 1}/${ks.length}…`; await new Promise(r => setTimeout(r)); } }
-    let hal = ""; for (let p = 0; p < url.length; p += per) hal += `<div class="pg">${url.slice(p, p + per).map(u => `<img src="${u}">`).join("")}</div>`;
+    const G = tGeo(U);
+    for (let i = 0; i < ks.length; i++) { url.push(tSel(ks[i].kode, G)); if (i % 25 === 0) { $("#tProg").textContent = `Menyiapkan kartu ${i + 1}/${ks.length}…`; await new Promise(r => setTimeout(r)); } }
+    let hal = ""; for (let p = 0; p < url.length; p += per) hal += `<div class="pg">${url.slice(p, p + per).join("")}</div>`;
     w.document.open(); w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Kartu ${esc($("#tBatch").value)} – ${L.n} – ${U.n}</title><style>
 @page{size:${L.w}mm ${L.h}mm;margin:0}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#888}
 .bar{padding:10px;background:#5b2e14;color:#fff;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.bar button{font-size:16px;padding:8px 18px;border:0;border-radius:8px;background:#f2b231;font-weight:700}
 .pg{width:${L.w}mm;height:${L.h}mm;background:#fff;margin:10px auto;display:grid;grid-template-columns:repeat(${kol},${cw}mm);grid-auto-rows:${ch}mm;gap:${g}mm;justify-content:center;align-content:center;page-break-after:always;break-after:page}
-.pg img{width:${cw}mm;height:${ch}mm;object-fit:cover;display:block;outline:${g ? "0.1mm dashed #ccc" : "none"}}
+.c{position:relative;width:${cw}mm;height:${ch}mm;overflow:hidden;outline:${g ? "0.1mm dashed #ccc" : "none"}}.k{position:absolute;overflow:hidden;width:${U.w}mm;height:${U.h}mm;${S.putar ? `left:${cw}mm;top:0;transform-origin:0 0;transform:rotate(90deg)` : "left:0;top:0"}}.i{position:absolute;container-type:size;background:url("${TIMG.src}") 0 0/100% 100% no-repeat}.i>*{position:absolute;display:block}.t{display:flex!important;align-items:center;justify-content:center;white-space:nowrap;line-height:1;font-family:"Courier New",monospace;font-weight:bold;overflow:hidden}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @media print{.bar{display:none}body{background:#fff}.pg{margin:0}}</style></head><body>
 <div class="bar"><b>${url.length} kartu · ${Math.ceil(url.length / per)} lembar ${L.n} · ${U.n} ${String(+(U.w / 10).toFixed(2)).replace('.', ',')}×${String(+(U.h / 10).toFixed(2)).replace('.', ',')} cm (${kol}×${bar} = ${per}/lembar${S.putar ? ", kartu diputar" : ""}${g ? ", jarak " + g + " mm" : ", rapat"})</b><button onclick="print()">🖨️ Cetak / Simpan PDF</button><span>Skala 100% · ukuran kertas ${L.n} (${L.w}×${L.h} mm)</span></div>${hal}</body></html>`);
     w.document.close(); $("#tProg").textContent = `✅ Lembar cetak dibuka: ${url.length} kartu`;
