@@ -130,6 +130,7 @@ const resize = () => { renderer.setSize(innerWidth, innerHeight, false); camera.
 // ---------- model ----------
 const S = 1.8;   // skala: model Tripo tinggi 1 satuan → ±1,8 m (wujud manusia)
 const LIFT = .2; // tinggi pinggang wujud ular (satuan model)
+const REDAM_KAKI = .75; // 0 = langkah asli animasi · 1 = kaki diam (melayang) — saat jalan wujud manusia
 const loader = new GLTFLoader(), muat = u => new Promise((ok, no) => loader.load(u, ok, undefined, no));
 const C = { pos: new THREE.Vector3(0, 0, 2), arah: Math.PI, ular: false, jalan: 0, jarak: 0, diamT: 0, gel: 1, lilit: null, cd: 0 };
 let H, U;   // H = wujud manusia, U = wujud ular
@@ -137,7 +138,12 @@ function siapManusia(gl) {
   const g = new THREE.Group(), m = gl.scene; m.scale.setScalar(S); m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } }); g.add(m);
   const mix = new THREE.AnimationMixer(m), cari = k => gl.animations.find(a => a.name.toLowerCase().includes(k));
   const A = { jalan: mix.clipAction(cari('walk') || gl.animations[0]), diam: mix.clipAction(cari('stand') || gl.animations[1] || gl.animations[0]) };
-  A.diam.play(); scene.add(g); return { g, mix, A, cur: 'diam' };
+  A.diam.play(); scene.add(g);
+  // kaki: gaun panjang ikut tertarik kaki → langkah dibuat kecil & anggun (gerak kaki animasi jalan diredam ke pose diam)
+  const kaki = []; m.traverse(o => { if (o.isBone && /(Left|Right)(UpLeg|Leg|Foot|ToeBase)$/.test(o.name)) kaki.push(o); });
+  const hips = m.getObjectByName('mixamorigHips') || (() => { let h = null; m.traverse(o => { if (!h && o.isBone && /Hips$/.test(o.name)) h = o; }); return h; })();
+  mix.update(0); const diamQ = kaki.map(b => b.quaternion.clone()), hipY = hips ? hips.position.y : 0;
+  return { g, mix, A, cur: 'diam', kaki, diamQ, hips, hipY, jalanK: 0 };
 }
 function siapUlar(gl) {
   const g = new THREE.Group(), m = gl.scene; m.scale.setScalar(S); g.add(m); scene.add(g);
@@ -226,14 +232,17 @@ function loop() {
     if (Li.t > 4) C.lilit = null;
   } else if (L > .08) {
     const a = Math.atan2(mx, mz); C.arah += Math.atan2(Math.sin(a - C.arah), Math.cos(a - C.arah)) * Math.min(1, dt * (C.ular ? 7 : 12));
-    const kec = (C.ular ? 4.6 : 2.4) * L, s = kec * dt; C.pos.x += Math.sin(C.arah) * s; C.pos.z += Math.cos(C.arah) * s; gerak = s; C.jarak += s;
+    const kec = (C.ular ? 4.6 : 2.1) * L, s = kec * dt; C.pos.x += Math.sin(C.arah) * s; C.pos.z += Math.cos(C.arah) * s; gerak = s; C.jarak += s;
     const r = Math.hypot(C.pos.x, C.pos.z); if (r > 18) C.pos.multiplyScalar(18 / r);
   }
   C.diamT = gerak > 0 ? 0 : C.diamT + dt; C.gel += ((C.diamT > .5 && !C.lilit ? 1 : 0) - C.gel) * Math.min(1, dt * (C.diamT > .5 ? 1.6 : 6));
   // manusia
   H.g.visible = !C.ular; H.g.position.copy(C.pos); H.g.rotation.y = C.arah;
   const mau = gerak > 0 ? 'jalan' : 'diam'; if (mau !== H.cur) { H.A[mau].reset().play(); H.A[H.cur].crossFadeTo(H.A[mau], .2, false); H.cur = mau; }
-  if (!C.ular) H.mix.update(dt);
+  if (!C.ular) { H.mix.update(dt);
+    H.jalanK += ((gerak > 0 ? 1 : 0) - H.jalanK) * Math.min(1, dt * 8);
+    if (H.jalanK > .01) { const r = REDAM_KAKI * H.jalanK; H.kaki.forEach((b, i) => b.quaternion.slerp(H.diamQ[i], r));   // langkah kecil di balik gaun
+      if (H.hips) H.hips.position.y += (H.hipY - H.hips.position.y) * r; } }   // badan tidak naik-turun (seperti melayang anggun)
   // ular
   if (U) { U.g.visible = C.ular; U.g.position.copy(C.pos); U.g.rotation.y = C.arah; U.g.updateMatrixWorld(true); if (C.ular) updUlar(dt, gerak); }
   if (C.pop > 0) { C.pop -= dt; const k = 1 + Math.sin((C.pop / .35) * Math.PI) * .12; (C.ular ? U : H).g.scale.setScalar(k); } else { H.g.scale.setScalar(1); if (U) U.g.scale.setScalar(1); }
