@@ -37,6 +37,7 @@ const UL = (() => {
     dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
   const qm = (a, b) => [a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0], a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3], a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]];
   const qi = q => [-q[0], -q[1], -q[2], q[3]];
+  const qrot = (q, v) => { const p = qm(qm(q, [v[0], v[1], v[2], 0]), qi(q)); return [p[0], p[1], p[2]]; };
   const qal = (u, w) => { const d = dot(u, w); if (d < -0.9999) { let ax = crs([1, 0, 0], u); if (len(ax) < 1e-3) ax = crs([0, 1, 0], u); ax = nrm(ax); return [ax[0], ax[1], ax[2], 0]; }
     const c = crs(u, w), q = [c[0], c[1], c[2], 1 + d], l = Math.hypot(...q); return q.map(x => x / l); };
   const qslerp = (a, b, t) => { let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]; if (d < 0) { b = b.map(x => -x); d = -d; }
@@ -47,7 +48,8 @@ const UL = (() => {
     const n = pos.length, d = [], L = [];
     for (let k = 0; k < n - 1; k++) { const s = sub(pos[k + 1], pos[k]); L.push(len(s)); d.push(nrm(s)); }
     d.push(d[n - 2]); L.push(L[n - 2]);
-    return { n, q: quat, d, L, qRoot, qSpine, total: L.slice(0, n - 1).reduce((a, b) => a + b, 0) };
+    const lok = quat.map((q, k) => qm(qi(k ? quat[k - 1] : qRoot), q));   // putaran lokal bind (dipertahankan supaya ekor tidak terpelintir)
+    return { n, q: quat, d, L, lok, qRoot, qSpine, total: L.slice(0, n - 1).reduce((a, b) => a + b, 0) };
   }
   // titik-titik kurva rapat → titik sendi dengan jarak tepat L[k]
   function sendi(B, kurva, p0) {
@@ -65,7 +67,9 @@ const UL = (() => {
   // hasil: quat lokal tiap tulang ekor + Spine_0 (badan atas tetap tegak)
   function pecahkan(B, T, out, condong = [0, 0, 0, 1]) {
     let Qp = B.qRoot;
-    for (let k = 0; k < B.n; k++) { const w = nrm(sub(T[k + 1], T[k])), Q = qm(qal(B.d[k], w), B.q[k]); out[k] = qm(qi(Qp), Q); Qp = Q; if (k === 0) out.Q0 = Q; }
+    for (let k = 0; k < B.n; k++) {   // tiap sendi hanya menekuk (tanpa memuntir) dari arah yang diwariskan induknya
+      const Qt = qm(Qp, B.lok[k]), now = qrot(qm(Qt, qi(B.q[k])), B.d[k]), w = nrm(sub(T[k + 1], T[k])), Q = qm(qal(nrm(now), w), Qt);
+      out[k] = qm(qi(Qp), Q); Qp = Q; if (k === 0) out.Q0 = Q; }
     out.spine = qm(qi(out.Q0), qm(condong, B.qSpine));
     return out;
   }
@@ -103,7 +107,6 @@ const UL = (() => {
   }
   return { siapkan, sendi, pecahkan, kurvaJejak, kurvaGelung, kurvaLilit, qslerp, qal, qm, qi };
 })();
-
 // ---------- dunia ----------
 const cv = document.getElementById('c'), renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
 renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.shadowMap.enabled = true; renderer.outputColorSpace = THREE.SRGBColorSpace;
