@@ -6631,11 +6631,12 @@ function pakaiBlorong(i) {
     BLS.taruhPos = t.clone().setY(0); P.state = 'blTaruh'; mainUlang('taruh', .08, BL.s2.tsTaruh); P.t = 0; P.hit = 0; P.cd[2] = BL.s2.jeda + BL.s2.akhirTaruh; return;
   }
 }
+const BL_GIGIT_LILIT_X = 1.6;   // pengali damage patukan saat melilit (dasar 95 → 152)
 function blGigitLilit() {   // serangan dasar wujud ular saat Lilitan: kena sasaran yang dililit (+ musuh lain di depan), lilitan tetap jalan
   const pos = P.root.position, B = BL.gigit, L = BLS.lilit; if (!L || L.m.mati) return;
   P.cd[0] = CD_MAX[0]; P.aksiDasar = true; P.blGigitT = performance.now(); P.root.userData.blGigitT = P.blGigitT; hadapKe(L.m.g.position);
   setTimeout(() => { if (P.state !== 'blLilit' || !BLS.lilit || SELESAI) return; let ada = 0;
-    MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const ok = m === BLS.lilit.m || wgDalamKipas(pos, P.arah, m.g.position, B.jarak, B.sudut, m); if (ok) { kena(m, B.dmg, pos, 0); ada = 1; } });
+    MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const ok = m === BLS.lilit.m || wgDalamKipas(pos, P.arah, m.g.position, B.jarak, B.sudut, m); if (ok) { kena(m, Math.round(B.dmg * BL_GIGIT_LILIT_X), pos, 0); ada = 1; } });
     fx('blGigit', pos.clone(), P.arah); if (ada) goyang = Math.max(goyang, .1); }, B.hit * 1000);
 }
 function blKenaDiJalur(dari, a, L, lebar, f) { const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a));
