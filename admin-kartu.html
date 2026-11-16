@@ -224,7 +224,6 @@ main.lebar{max-width:1440px}
         <div class="note" id="gInfo" style="margin:6px 0 4px"></div>
         <div class="note" id="gAktif" style="font-weight:700;margin-bottom:8px"></div>
         <div class="gal" id="gGal"></div>
-        <button class="btn rd sm" id="gHapusSemua" hidden style="margin-top:8px">🗑️ Hapus semua gambar</button>
       </div></div>
     </section>
     <section data-p="kjadi" hidden>
@@ -556,7 +555,7 @@ const gDaftar = () => { const q = ($("#gCari").value || "").trim().toLowerCase()
 function gRender() {
   const L = gDaftar(), q = ($("#gCari").value || "").trim();
   $("#gInfo").textContent = GTPL.length ? (q ? `${L.length} dari ${GTPL.length} gambar cocok dengan “${q}”` : `${GTPL.length} gambar tersimpan · ketuk gambar untuk memakainya`) : "Belum ada gambar tersimpan. Unggah gambar kartu lewat tombol di atas.";
-  $("#gHapusSemua").hidden = !GTPL.length; const ga = GTPL.find(x => x.id === TAKTIF); $("#gAktif").textContent = ga ? "Dipakai: " + ga.nama : "";
+  const ga = GTPL.find(x => x.id === TAKTIF); $("#gAktif").textContent = ga ? "Dipakai: " + ga.nama : "";
   $("#gGal").innerHTML = L.map(g => `<div class="gi${g.id === TAKTIF ? " on" : ""}" onclick="gPakai('${g.id}')" title="${esc(g.nama)}"><img src="${g.th}" alt="${esc(g.nama)}"><small>${esc(g.nama)}</small><button class="dl" onclick="event.stopPropagation();gGanti('${g.id}')" aria-label="Ganti nama" title="Ganti nama">✎</button><button class="x" onclick="event.stopPropagation();gHapus('${g.id}')" aria-label="Hapus gambar" title="Hapus">✕</button></div>`).join("") || (GTPL.length ? `<p class="note" style="grid-column:1/-1">Tidak ada gambar dengan nama itu.</p>` : "");
 }
 async function gGanti(id) {
@@ -588,13 +587,6 @@ async function gHapus(id) {
   if (TAKTIF === id) { TAKTIF = null; TIMG = null; try { localStorage.removeItem("ks_kartu_tpl_aktif"); } catch (e) {} if (GTPL.length) return gPakai(GTPL[GTPL.length - 1].id); }
   gRender(); tGambarPrev(); toast("Gambar dihapus");
 }
-$("#gHapusSemua").onclick = async () => {
-  if (!GTPL.length || !confirm(`Hapus semua ${GTPL.length} gambar di galeri?`)) return;
-  try { await tbl("?jenis=eq.tpl", { method: "DELETE", headers: { Prefer: "return=minimal" } }); } catch (e) { return toast("Gagal menghapus: " + pesanG(e), 5000); }
-  sHapus(GTPL.map(g => g.path)).catch(() => {}); GTPL.forEach(g => gLupa(g.id));
-  GTPL = []; TAKTIF = null; TIMG = null; try { localStorage.removeItem("ks_kartu_tpl_aktif"); } catch (e) {}
-  gRender(); tGambarPrev(); toast("Semua gambar dihapus");
-};
 let GTEMP = null;
 $("#tFile").onchange = async e => {
   const fs = [...e.target.files]; e.target.value = ""; if (!fs.length) return; if (!GOK) await gMuat();
