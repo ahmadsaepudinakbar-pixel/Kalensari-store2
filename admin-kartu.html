@@ -68,6 +68,14 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 .gi .x,.gi .dl{position:absolute;top:4px;width:30px;height:30px;border:0;border-radius:50%;background:#000b;color:#fff;font-size:14px;line-height:1;padding:0}
 .gi .x{right:4px}.gi .dl{left:4px}
 .kj{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+.gi .cek{position:absolute;left:4px;top:4px;width:26px;height:26px;border-radius:50%;background:#1b7a3a;color:#fff;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:15px}
+.gi.ok{border-color:#1b7a3a}
+.gi .pk{display:flex;gap:3px;padding:0 3px 4px}.gi .pk button{flex:1;border:1px solid var(--ln);background:#faf6f2;border-radius:6px;font:700 11px Arial;padding:5px 0;color:var(--tx)}.gi .pk button.on{background:#1b7a3a;border-color:#1b7a3a;color:#fff}
+.krwrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}.krwrap>div>b{display:block;margin:4px 0}
+.krsh{background:#fff;border:1px solid #bbb;box-shadow:0 2px 8px #0002;display:grid;position:relative}
+.krc{position:relative;overflow:hidden}.krc.kos{border:1px dashed #bbb;color:#bbb;font:700 11px Arial;display:flex;align-items:center;justify-content:center}
+.krc .kk{position:absolute;overflow:hidden;transform-origin:0 0}.krc .kk img,.krc .kk i{display:block;width:100%;height:100%;object-fit:cover}.krc .kk i{background:#e9e3dc}
+.krc .x{position:absolute;right:2px;top:2px;width:18px;height:18px;border:0;border-radius:50%;background:#000b;color:#fff;font-size:10px;line-height:1;padding:0;z-index:2}
 .tlay{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:14px;align-items:start;margin-bottom:14px}
 .tlay>.card{margin-bottom:0;min-width:0}
 .tlay aside{position:sticky;top:70px}
@@ -99,6 +107,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
     <button data-t="daftar">📋 Daftar Kartu</button>
     <button data-t="template">🎴 Template Kartu</button>
     <button data-t="galeri">🖼️ Galeri</button>
+    <button data-t="kjadi">✅ Kartu Jadi</button>
   </nav>
   <main>
     <section data-p="ringkas">
@@ -206,13 +215,36 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
         <div class="gal" id="gGal"></div>
         <button class="btn rd sm" id="gHapusSemua" hidden style="margin-top:8px">🗑️ Hapus semua gambar</button>
       </div></div>
+    </section>
+    <section data-p="kjadi" hidden>
       <div class="card"><h3>✅ Kartu jadi</h3>
-        <p class="note" style="margin-top:0">Simpan hasil kartu (gambar + QR + kode) dari batch dan gambar yang sedang dipilih di tab Template ke galeri ini, lalu lihat, unduh satuan, atau hapus. Galeri tersimpan di Supabase (privat, hanya admin), jadi sama di semua perangkat. Menghapus kartu di sini tidak menghapus kodenya; kode dikelola di tab Daftar Kartu. Untuk hasil resolusi penuh, tetap pakai ZIP atau lembar cetak.</p>
+        <p class="note" style="margin-top:0">Tempat kartu yang sudah diberi QR dan kode unik (disimpan dari tab Template, memakai batch dan gambar yang sedang dipilih di sana). Ketuk gambar untuk mengunduh. Tombol <b>A4 · A3 · A3+</b> di tiap kartu memindahkannya ke kertas di bawah (otomatis tersusun rapi); tanda <b style="color:#1b7a3a">✓</b> = sudah dipindahkan. Menghapus kartu tidak menghapus kodenya (kode dikelola di tab Daftar Kartu).</p>
         <div class="row"><button class="btn br" id="kjSimpan">💾 Simpan kartu batch ini ke galeri</button>
           <select class="f" id="kjFilter"><option value="">Semua batch</option></select>
+          <button class="btn gd" id="kjKeKertas">📄 Pindahkan semua yang belum ke kertas aktif</button>
           <button class="btn rd" id="kjSemua" hidden>🗑️ Hapus semua kartu jadi</button></div>
+        <div class="note" id="kjProg" style="margin:8px 0 0"></div>
         <div class="note" id="kjInfo" style="margin:8px 0"></div>
         <div class="gal kj" id="kjGal"></div>
+      </div>
+      <div class="card"><h3>🔙 Gambar belakang kartu</h3>
+        <p class="note" style="margin-top:0">Satu gambar belakang dipakai untuk semua kartu. Disimpan di browser ini saja.</p>
+        <div class="row" style="align-items:center"><input class="f" type="file" id="krBackFile" accept="image/*" style="max-width:320px">
+          <img id="krBackPrev" alt="" style="height:70px;border-radius:6px;border:1px solid var(--ln);display:none">
+          <button class="btn rd sm" id="krBackHapus" hidden>🗑️ Hapus gambar belakang</button></div>
+      </div>
+      <div class="card"><h3>🖨️ Kertas cetak: depan &amp; belakang</h3>
+        <div class="row" id="krTabs"><button class="btn ol sm" data-kp="a4"></button><button class="btn ol sm" data-kp="a3"></button><button class="btn ol sm" data-kp="a3p"></button>
+          <label class="chk" style="margin-left:8px"><input type="checkbox" id="krRapat"> rapat (tanpa jarak antar kartu)</label></div>
+        <div class="note" id="krInfo" style="margin:8px 0"></div>
+        <div class="row" style="align-items:center"><label class="chk">Lembar <select class="f" id="krHal" style="max-width:120px"></select></label>
+          <button class="btn br sm" id="krCetak2">🖨️ Cetak depan + belakang</button>
+          <button class="btn gd sm" id="krCetak1">Hanya depan</button>
+          <button class="btn gd sm" id="krCetak3">Hanya belakang</button>
+          <button class="btn rd sm" id="krKosong">🗑️ Kosongkan kertas ini</button></div>
+        <div class="note" id="krProg" style="margin:6px 0"></div>
+        <div class="krwrap" id="krArea"></div>
+        <p class="note">Cetak dua sisi: pilih <b>Print on both sides → Flip on long edge</b> (balik sisi panjang). Tata letak belakang sudah dicerminkan, dan kartu yang diputar sudah disesuaikan. Posisi kartu di kertas tersimpan di browser ini.</p>
       </div>
     </section>
   </main>
@@ -310,7 +342,7 @@ function bukaTab(t) {
   tab = t;
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("[data-p]").forEach(s => s.hidden = s.dataset.p !== t);
-  if (t === "ringkas") muatRingkas(); if (t === "daftar") muatDaftar(true); if (t === "template") { tSumber(TSUMBER); tMulai(); } if (t === "galeri") { $("#gHome").appendChild($("#gPanel")); tMulai(); }
+  if (t === "ringkas") muatRingkas(); if (t === "daftar") muatDaftar(true); if (t === "template") { tSumber(TSUMBER); tMulai(); } if (t === "galeri") { $("#gHome").appendChild($("#gPanel")); tMulai(); } if (t === "kjadi") { tMulai(); krRender(); }
 }
 const pesanErr = e => /game_admin|PGRST202|function/.test(e.message) ? "Fitur kartu belum dipasang. Jalankan supabase-kartu-game.sql di Supabase dulu." : e.message;
 
@@ -595,7 +627,9 @@ function kjRender() {
   const L = kjTampil();
   $("#kjInfo").textContent = KJ.length ? `${L.length} kartu tampil dari ${KJ.length} tersimpan${KJ.length >= 1000 ? " (maksimal 1000 pertama ditampilkan)" : ""}` : "Belum ada kartu jadi di galeri.";
   $("#kjSemua").hidden = !L.length; $("#kjSemua").textContent = sel.value ? "🗑️ Hapus kartu batch ini" : "🗑️ Hapus semua kartu jadi";
-  $("#kjGal").innerHTML = L.map(k => `<div class="gi" onclick="kjUnduh('${k.id}')" title="Ketuk untuk mengunduh"><img src="${k.th}" alt="${esc(k.kode)}"><small>${esc(k.kode)}</small><button class="x" onclick="event.stopPropagation();kjHapus('${k.id}')" aria-label="Hapus kartu">✕</button></div>`).join("");
+  $("#kjGal").innerHTML = L.map(k => { const ada = krAda(k.id);
+    return `<div class="gi${ada.length ? " ok" : ""}" onclick="kjUnduh('${k.id}')" title="Ketuk untuk mengunduh"><img src="${k.th}" alt="${esc(k.kode)}">${ada.length ? `<span class="cek" title="Sudah di kertas ${ada.map(x => KRT[x].n).join(", ")}">✓</span>` : ""}<small>${esc(k.kode)}</small><div class="pk">${["a4", "a3", "a3p"].map(x => `<button class="${ada.includes(x) ? "on" : ""}" title="Pindahkan ke kertas ${KRT[x].n}" onclick="event.stopPropagation();krTambah('${k.id}','${x}')">${KRT[x].n}</button>`).join("")}</div><button class="x" onclick="event.stopPropagation();kjHapus('${k.id}')" aria-label="Hapus kartu">✕</button></div>`; }).join("");
+  krRender();
 }
 $("#kjFilter").onchange = kjRender;
 $("#kjSimpan").onclick = async () => {
@@ -606,17 +640,17 @@ $("#kjSimpan").onclick = async () => {
         const c = tKartu(k.kode, Math.min(1, 1200 / TIMG.naturalWidth)), blob = await new Promise(r => c.toBlob(r, "image/jpeg", .92)), path = `jadi/${k.kode}.jpg`;
         await sNaik(path, blob); return { id: "j-" + k.kode, jenis: "jadi", kode: k.kode, batch, tpl: TAKTIF, path, th: kecil(c, 160) }; }));
       await tbl("", { method: "POST", body: JSON.stringify(baris), headers: { Prefer: "resolution=merge-duplicates,return=minimal" } });
-      n += grup.length; $("#tProg").textContent = `Menyimpan kartu ${n}/${ks.length}…`; }
-    $("#tProg").textContent = `✅ ${ks.length} kartu disimpan ke galeri kartu jadi`; await kjMuat();
+      n += grup.length; $("#tProg").textContent = $("#kjProg").textContent = `Menyimpan kartu ${n}/${ks.length}…`; }
+    $("#tProg").textContent = $("#kjProg").textContent = `✅ ${ks.length} kartu disimpan ke galeri kartu jadi`; await kjMuat();
   } catch (e) { toast(pesanG(e), 6000); } finally { b.disabled = false; }
 };
 async function kjHapus(id) {
   const k = KJ.find(x => x.id === id); if (!k || !confirm(`Hapus kartu ${k.kode} dari galeri?`)) return;
-  try { await hapusBaris([id]); sHapus([k.path]).catch(() => {}); KJ = KJ.filter(x => x.id !== id); kjRender(); toast("Kartu dihapus"); } catch (e) { toast("Gagal menghapus: " + pesanG(e), 5000); }
+  try { await hapusBaris([id]); sHapus([k.path]).catch(() => {}); KJ = KJ.filter(x => x.id !== id); krBersih([id]); kjRender(); toast("Kartu dihapus"); } catch (e) { toast("Gagal menghapus: " + pesanG(e), 5000); }
 }
 $("#kjSemua").onclick = async () => {
   const L = kjTampil(); if (!L.length || !confirm(`Hapus ${L.length} kartu jadi dari galeri?`)) return;
-  try { await hapusBaris(L.map(k => k.id)); sHapus(L.map(k => k.path)).catch(() => {}); const ids = new Set(L.map(k => k.id)); KJ = KJ.filter(k => !ids.has(k.id)); kjRender(); toast(`${L.length} kartu dihapus`); } catch (e) { toast("Gagal menghapus: " + pesanG(e), 5000); }
+  try { await hapusBaris(L.map(k => k.id)); sHapus(L.map(k => k.path)).catch(() => {}); const ids = new Set(L.map(k => k.id)); KJ = KJ.filter(k => !ids.has(k.id)); krBersih([...ids]); kjRender(); toast(`${L.length} kartu dihapus`); } catch (e) { toast("Gagal menghapus: " + pesanG(e), 5000); }
 };
 async function kjUnduh(id) {
   const k = KJ.find(x => x.id === id); if (!k) return;
@@ -681,6 +715,82 @@ document.querySelectorAll("[data-lembar]").forEach(btn => btn.onclick = async ()
     w.document.close(); $("#tProg").textContent = `✅ Lembar cetak dibuka: ${url.length} kartu`;
   } catch (e) { w.close(); toast(pesanErr(e), 5000); }
 });
+
+
+/* ---------- KARTU JADI → KERTAS (A4 / A3 / A3+), depan & belakang ---------- */
+const KRT = { a4: { n: "A4", w: 210, h: 297, gap: 4 }, a3: { n: "A3", w: 297, h: 420, gap: 4 }, a3p: { n: "A3+", w: 329, h: 483, gap: 6 } };
+let KR = (() => { try { const o = JSON.parse(localStorage.getItem("ks_kertas") || "{}"); return { a4: o.a4 || [], a3: o.a3 || [], a3p: o.a3p || [], rapat: !!o.rapat }; } catch (e) { return { a4: [], a3: [], a3p: [], rapat: false }; } })();
+let KRB = ""; try { KRB = localStorage.getItem("ks_kertas_back") || ""; } catch (e) {}
+let KRP = "a4", KRH = 0;   // kertas aktif, lembar aktif (mulai 0)
+const krSimpan = () => { try { localStorage.setItem("ks_kertas", JSON.stringify(KR)); } catch (e) {} };
+const krAda = id => ["a4", "a3", "a3p"].filter(p => KR[p].includes(id));
+function krGeo(p) { const L = { ...KRT[p], gap: KR.rapat ? 0 : KRT[p].gap }, U = UKURAN[TS.uk] || UKURAN.remi; return { L, U, S: tSusun(L, U) }; }
+const krBersih = ids => { const h = new Set(ids); ["a4", "a3", "a3p"].forEach(p => KR[p] = KR[p].filter(id => !h.has(id))); krSimpan(); };
+function krTambah(id, p, diam) {
+  const G = krGeo(p); if (!G.S.per) return toast("Ukuran kartu tidak muat di kertas " + KRT[p].n);
+  if (KR[p].includes(id)) return diam || toast("Sudah ada di kertas " + KRT[p].n);
+  KR[p].push(id); if (!diam) { KRP = p; KRH = Math.floor((KR[p].length - 1) / G.S.per); krSimpan(); kjRender(); const n = KR[p].length - 1; toast(`✓ Masuk kertas ${KRT[p].n} · lembar ${KRH + 1}, slot ${n % G.S.per + 1}`); }
+}
+function krLepas(id, p) { KR[p] = KR[p].filter(x => x !== id); krSimpan(); kjRender(); }
+function krRender() {
+  if (!$("#krArea")) return;
+  document.querySelectorAll("[data-kp]").forEach(b => { b.classList.toggle("on", b.dataset.kp === KRP); b.style.cssText = b.dataset.kp === KRP ? "background:var(--br);color:#fff;border-color:var(--br)" : ""; b.textContent = `${KRT[b.dataset.kp].n} (${KR[b.dataset.kp].length})`; });
+  $("#krRapat").checked = KR.rapat;
+  const p = KRP, ids = KR[p], { L, U, S } = krGeo(p);
+  if (!S.per) { $("#krInfo").textContent = "Ukuran kartu tidak muat di kertas ini. Ubah ukuran kartu di tab Template."; $("#krArea").innerHTML = ""; $("#krHal").innerHTML = ""; return; }
+  const hal = Math.max(1, Math.ceil(ids.length / S.per)); if (KRH >= hal) KRH = hal - 1; if (KRH < 0) KRH = 0;
+  $("#krInfo").innerHTML = `Kertas <b>${L.n}</b> (${L.w}×${L.h} mm) · kartu ${U.n} ${String(+(U.w / 10).toFixed(2)).replace(".", ",")}×${String(+(U.h / 10).toFixed(2)).replace(".", ",")} cm · ${S.kol}×${S.bar} = <b>${S.per}</b> kartu/lembar${S.putar ? " (kartu diputar)" : ""} · terisi <b>${ids.length}</b> kartu = ${hal} lembar`;
+  $("#krHal").innerHTML = Array.from({ length: hal }, (_, i) => `<option value="${i}"${i === KRH ? " selected" : ""}>${i + 1} dari ${hal}</option>`).join("");
+  const m = new Map(KJ.map(k => [k.id, k])), isi = ids.slice(KRH * S.per, (KRH + 1) * S.per), sk = Math.min(2.2, 430 / L.w), mm = v => (v * sk).toFixed(1) + "px";
+  const lembar = bel => { let h = "";
+    for (let i = 0; i < S.per; i++) { const row = Math.floor(i / S.kol) + 1, col = bel ? S.kol - i % S.kol : i % S.kol + 1, id = isi[i], k = id && m.get(id), pos = `grid-row:${row};grid-column:${col};width:${mm(S.cw)};height:${mm(S.ch)}`;
+      if (!k) { h += `<div class="krc kos" style="${pos}">${i + 1}</div>`; continue; }
+      const tr = S.putar ? (bel ? `left:0;top:${mm(S.ch)};transform:rotate(-90deg)` : `left:${mm(S.cw)};top:0;transform:rotate(90deg)`) : "left:0;top:0";
+      h += `<div class="krc" style="${pos}"><div class="kk" style="width:${mm(U.w)};height:${mm(U.h)};${tr}">${bel ? (KRB ? `<img src="${KRB}">` : "<i></i>") : `<img src="${k.th}" alt="${esc(k.kode)}" title="${esc(k.kode)}">`}</div>${bel ? "" : `<button class="x" title="Keluarkan dari kertas" onclick="krLepas('${k.id}','${p}')">✕</button>`}</div>`; }
+    return `<div class="krsh" style="width:${mm(L.w)};height:${mm(L.h)};grid-template-columns:repeat(${S.kol},${mm(S.cw)});grid-template-rows:repeat(${S.bar},${mm(S.ch)});gap:${mm(L.gap)};justify-content:center;align-content:center">${h}</div>`; };
+  $("#krArea").innerHTML = `<div><b>DEPAN · lembar ${KRH + 1}</b>${lembar(false)}</div><div><b>BELAKANG · lembar ${KRH + 1}${KRB ? "" : " (belum ada gambar belakang)"}</b>${lembar(true)}</div>`;
+  const pv = $("#krBackPrev"); pv.src = KRB || ""; pv.style.display = KRB ? "" : "none"; $("#krBackHapus").hidden = !KRB;
+}
+document.querySelectorAll("[data-kp]").forEach(b => b.onclick = () => { KRP = b.dataset.kp; KRH = 0; krRender(); });
+$("#krHal").onchange = () => { KRH = +$("#krHal").value; krRender(); };
+$("#krRapat").onchange = () => { KR.rapat = $("#krRapat").checked; krSimpan(); krRender(); };
+$("#krKosong").onclick = () => { if (!KR[KRP].length || !confirm(`Kosongkan semua kartu di kertas ${KRT[KRP].n}? (kartu jadi tidak dihapus)`)) return; KR[KRP] = []; KRH = 0; krSimpan(); kjRender(); };
+$("#kjKeKertas").onclick = () => { const G = krGeo(KRP); if (!G.S.per) return toast("Ukuran kartu tidak muat di kertas ini"); let n = 0;
+  kjTampil().forEach(k => { if (!KR[KRP].includes(k.id)) { krTambah(k.id, KRP, true); n++; } });
+  if (!n) return toast("Semua kartu sudah ada di kertas " + KRT[KRP].n); KRH = Math.floor((KR[KRP].length - 1) / G.S.per); krSimpan(); kjRender(); toast(`✓ ${n} kartu dipindahkan ke kertas ${KRT[KRP].n}`); };
+$("#krBackFile").onchange = async e => { const f = e.target.files[0]; if (!f) return;
+  try { const u = URL.createObjectURL(f); const im = await imgDari(u); URL.revokeObjectURL(u);
+    const k = Math.min(1, 1400 / im.naturalWidth), c = document.createElement("canvas"); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+    KRB = c.toDataURL("image/jpeg", .9); try { localStorage.setItem("ks_kertas_back", KRB); } catch (x) { toast("Gambar belakang terlalu besar untuk disimpan; hanya dipakai sampai halaman ditutup", 5000); }
+    krRender(); toast("Gambar belakang dipakai"); } catch (x) { toast("Gambar tidak bisa dibuka", 4000); } e.target.value = ""; };
+$("#krBackHapus").onclick = () => { KRB = ""; try { localStorage.removeItem("ks_kertas_back"); } catch (e) {} krRender(); };
+async function krCetak(mode) {   // mode: dua | depan | belakang
+  const p = KRP, ids = KR[p]; if (!ids.length) return toast("Kertas masih kosong");
+  if (mode !== "depan" && !KRB) return toast("Pilih gambar belakang kartu dulu");
+  const w = window.open("", "_blank"); if (!w) return toast("Izinkan pop-up untuk membuka lembar cetak");
+  w.document.write("<p style='font-family:Arial'>Menyiapkan kartu…</p>");
+  try {
+    const { L, U, S } = krGeo(p), m = new Map(KJ.map(k => [k.id, k])), urls = {}, ada = ids.filter(id => m.has(id)); let n = 0;
+    if (mode !== "belakang") for (const grup of potong(ada, 4)) { await Promise.all(grup.map(async id => { urls[id] = URL.createObjectURL(await sAmbil(m.get(id).path)); })); n += grup.length; $("#krProg").textContent = `Mengambil kartu ${n}/${ada.length}…`; }
+    const cell = (i, bel, inner) => `<div class="c${bel ? "" : " f"}" style="grid-row:${Math.floor(i / S.kol) + 1};grid-column:${bel ? S.kol - i % S.kol : i % S.kol + 1}"><div class="k ${bel ? "kb" : "kf"}">${inner}</div></div>`;
+    let hal = "", jml = Math.ceil(ids.length / S.per);
+    for (let h = 0; h < jml; h++) { const isi = ids.slice(h * S.per, (h + 1) * S.per);
+      if (mode !== "belakang") hal += `<div class="pg">${isi.map((id, i) => m.has(id) ? cell(i, false, `<img src="${urls[id]}">`) : "").join("")}</div>`;
+      if (mode !== "depan") hal += `<div class="pg">${isi.map((id, i) => m.has(id) ? cell(i, true, `<div class="bk"></div>`) : "").join("")}</div>`; }
+    const mmf = v => String(+(v / 10).toFixed(2)).replace(".", ",");
+    w.document.open(); w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Kartu ${L.n} – ${mode}</title><style>
+@page{size:${L.w}mm ${L.h}mm;margin:0}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;font-family:Arial,sans-serif;background:#888}
+.bar{padding:10px;background:#5b2e14;color:#fff;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.bar button{font-size:16px;padding:8px 18px;border:0;border-radius:8px;background:#f2b231;font-weight:700}
+.pg{width:${L.w}mm;height:${L.h}mm;background:#fff;margin:10px auto;display:grid;grid-template-columns:repeat(${S.kol},${S.cw}mm);grid-template-rows:repeat(${S.bar},${S.ch}mm);gap:${L.gap}mm;justify-content:center;align-content:center;page-break-after:always;break-after:page}
+.c{position:relative;width:${S.cw}mm;height:${S.ch}mm;overflow:hidden}.c.f{outline:${L.gap ? "0.1mm dashed #ccc" : "none"}}
+.k{position:absolute;left:0;top:0;width:${U.w}mm;height:${U.h}mm;overflow:hidden;transform-origin:0 0}${S.putar ? `.kf{left:${S.cw}mm;transform:rotate(90deg)}.kb{top:${S.ch}mm;transform:rotate(-90deg)}` : ""}
+.k img{width:100%;height:100%;object-fit:cover;display:block}.bk{width:100%;height:100%;background:url("${KRB}") center/cover no-repeat}
+@media print{.bar{display:none}body{background:#fff}.pg{margin:0}}</style></head><body>
+<div class="bar"><b>${ada.length} kartu · ${jml} lembar ${L.n} · ${mode === "dua" ? "depan + belakang bergantian" : mode === "depan" ? "hanya depan" : "hanya belakang"} · kartu ${U.n} ${mmf(U.w)}×${mmf(U.h)} cm</b><button onclick="print()">🖨️ Cetak / Simpan PDF</button><span>Skala 100%${mode === "dua" ? " · dua sisi: Flip on long edge (balik sisi panjang)" : ""}</span></div>${hal}</body></html>`);
+    w.document.close(); $("#krProg").textContent = `✅ Lembar cetak dibuka: ${ada.length} kartu`;
+  } catch (e) { w.close(); toast(pesanG(e), 5000); $("#krProg").textContent = ""; }
+}
+$("#krCetak2").onclick = () => krCetak("dua"); $("#krCetak1").onclick = () => krCetak("depan"); $("#krCetak3").onclick = () => krCetak("belakang");
 
 /* ---------- mulai ---------- */
 function mulaiApp() { $("#loginView").hidden = true; $("#appView").hidden = false; pratinjau(); bukaTab(tab); }
