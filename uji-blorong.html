@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Uji Nyi Blorong</title>
+<style>
+:root{--bg:#0b120c;--tx:#eef6ea;--ac:#ffd23f;--hj:#1f8a4c}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:"Segoe UI",Roboto,Arial,sans-serif;touch-action:none;user-select:none}
+canvas{display:block;width:100vw;height:100vh}
+#info{position:fixed;left:12px;top:10px;font-size:13px;line-height:1.45;background:#0009;padding:8px 11px;border-radius:10px;max-width:min(420px,70vw)}
+#info b{color:var(--ac)}
+#tombol{position:fixed;right:16px;bottom:18px;display:flex;flex-direction:column;gap:12px;align-items:flex-end}
+#tombol button{border:2px solid #ffd23f88;background:linear-gradient(#1f8a4c,#0d4a28);color:#fff;font:800 15px Arial;border-radius:999px;padding:14px 18px;min-width:150px;box-shadow:0 4px 14px #0008}
+#tombol button:disabled{filter:grayscale(1) brightness(.6)}
+#tombol button.on{background:linear-gradient(#ffd23f,#e08a00);color:#3a2300}
+#joy{position:fixed;left:26px;bottom:26px;width:130px;height:130px;border-radius:50%;background:#ffffff14;border:2px solid #ffffff33}
+#joy i{position:absolute;left:41px;top:41px;width:48px;height:48px;border-radius:50%;background:#ffffff55}
+#muat{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);font-size:16px;z-index:9;text-align:center;padding:20px}
+#pesan{position:fixed;left:50%;top:18%;transform:translateX(-50%);font:800 18px Arial;color:var(--ac);text-shadow:0 2px 6px #000;pointer-events:none;opacity:0;transition:opacity .25s}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+</head><body>
+<canvas id="c"></canvas>
+<div id="muat">⏳ Memuat Nyi Blorong…</div>
+<div id="info"><b>🐍 Uji Nyi Blorong</b> · gerak: <b>WASD</b> / joystick kiri<br>🐍 <b>Ubah Wujud</b> (PC: <b>R</b>) · 🌀 <b>Lilit</b> boneka (PC: <b>F</b>, dekati dulu ±5 m)<br><span id="stat"></span></div>
+<div id="pesan"></div>
+<div id="tombol"><button id="bLilit" disabled>🌀 Lilit</button><button id="bUbah">🐍 Ubah Wujud</button></div>
+<div id="joy"><i></i></div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+// ===== Ekor siluman ular Nyi Blorong: tulang ekor mengikuti kurva (jalan menjalar, melingkar diam, melilit) =====
+// semua hitungan di "ruang model" (anak dari root GLB), satuan model (tinggi badan ± 0,55) · depan = +z
+const UL = (() => {
+  const v = (x = 0, y = 0, z = 0) => [x, y, z], sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+    mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s], len = a => Math.hypot(a[0], a[1], a[2]), nrm = a => { const l = len(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+    dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const qm = (a, b) => [a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0], a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3], a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]];
+  const qi = q => [-q[0], -q[1], -q[2], q[3]];
+  const qal = (u, w) => { const d = dot(u, w); if (d < -0.9999) { let ax = crs([1, 0, 0], u); if (len(ax) < 1e-3) ax = crs([0, 1, 0], u); ax = nrm(ax); return [ax[0], ax[1], ax[2], 0]; }
+    const c = crs(u, w), q = [c[0], c[1], c[2], 1 + d], l = Math.hypot(...q); return q.map(x => x / l); };
+  const qslerp = (a, b, t) => { let d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]; if (d < 0) { b = b.map(x => -x); d = -d; }
+    if (d > .9995) { const r = a.map((x, i) => x + (b[i] - x) * t), l = Math.hypot(...r); return r.map(x => x / l); }
+    const th = Math.acos(d), s = Math.sin(th); return a.map((x, i) => (x * Math.sin((1 - t) * th) + b[i] * Math.sin(t * th)) / s); };
+  // B: { p0: posisi Tail_0 (setelah digeser), q: [quat dunia bind tiap tulang ekor], d: [arah bind tiap ruas], L: [panjang ruas], qRoot, qSpine }
+  function siapkan(pos, quat, qRoot, qSpine) {
+    const n = pos.length, d = [], L = [];
+    for (let k = 0; k < n - 1; k++) { const s = sub(pos[k + 1], pos[k]); L.push(len(s)); d.push(nrm(s)); }
+    d.push(d[n - 2]); L.push(L[n - 2]);
+    return { n, q: quat, d, L, qRoot, qSpine, total: L.slice(0, n - 1).reduce((a, b) => a + b, 0) };
+  }
+  // titik-titik kurva rapat → titik sendi dengan jarak tepat L[k]
+  function sendi(B, kurva, p0) {
+    const T = [p0]; let cur = p0, i = 1;
+    for (let k = 0; k < B.n; k++) {
+      const L = B.L[k]; let nx = null;
+      for (; i < kurva.length; i++) { const q = kurva[i]; if (len(sub(q, cur)) >= L) { const a = kurva[i - 1], dir = sub(q, a), f = sub(a, cur);   // perpotongan bola jari-jari L dengan ruas a→q
+          const A = dot(dir, dir), Bq = 2 * dot(f, dir), C = dot(f, f) - L * L, D = Math.max(0, Bq * Bq - 4 * A * C), t = (-Bq + Math.sqrt(D)) / (2 * A || 1);
+          nx = add(a, mul(dir, Math.min(1, Math.max(0, t)))); break; } }
+      if (!nx) { const dd = T.length > 1 ? nrm(sub(cur, T[T.length - 2])) : [0, 0, -1]; nx = add(cur, mul(dd, L)); }
+      T.push(nx); cur = nx;
+    }
+    return T;
+  }
+  // hasil: quat lokal tiap tulang ekor + Spine_0 (badan atas tetap tegak)
+  function pecahkan(B, T, out, condong = [0, 0, 0, 1]) {
+    let Qp = B.qRoot;
+    for (let k = 0; k < B.n; k++) { const w = nrm(sub(T[k + 1], T[k])), Q = qm(qal(B.d[k], w), B.q[k]); out[k] = qm(qi(Qp), Q); Qp = Q; if (k === 0) out.Q0 = Q; }
+    out.spine = qm(qi(out.Q0), qm(condong, B.qSpine));
+    return out;
+  }
+  // ---- bentuk kurva (ruang model) ----
+  const Y_TANAH = .055;
+  function turun(p0, arah, s) {   // dari pinggang turun ke tanah dalam ±0,22 satuan ke arah 'arah'
+    const u = Math.min(1, s / .22), e = u * u * (3 - 2 * u); return [p0[0] + arah[0] * s, p0[1] + (Y_TANAH - p0[1]) * e, p0[2] + arah[2] * s]; }
+  function kurvaJejak(B, p0, jejak, waktu, amp = .055) {   // jejak: titik-titik tanah di belakang (urut dari dekat → jauh), gelombang menjalar
+    const out = [p0], N = 260, tot = B.total + .3; let s = 0, seg = 0, acc = 0;
+    const panjang = []; for (let i = 1; i < jejak.length; i++) panjang.push(len(sub(jejak[i], jejak[i - 1])));
+    for (let i = 1; i <= N; i++) { s = tot * i / N;
+      while (seg < panjang.length && acc + panjang[seg] < s) { acc += panjang[seg]; seg++; }
+      let p, t; if (seg < panjang.length) { const f = (s - acc) / (panjang[seg] || 1); p = add(jejak[seg], mul(sub(jejak[seg + 1], jejak[seg]), f)); t = nrm(sub(jejak[seg + 1], jejak[seg])); }
+      else { const a = jejak[jejak.length - 1], b = jejak[Math.max(0, jejak.length - 2)]; t = nrm(sub(a, b)); if (!len(sub(a, b))) t = [0, 0, -1]; p = add(a, mul(t, s - acc)); }
+      const nn = [-t[2], 0, t[0]], env = Math.min(1, s / .35) * (1 - .35 * s / tot), w = Math.sin(s * 9 - waktu * 7) * amp * env;
+      const u = Math.min(1, s / .22), e = u * u * (3 - 2 * u);
+      out.push([p[0] + nn[0] * w, p0[1] + (Y_TANAH - p0[1]) * e, p[2] + nn[2] * w]); }
+    return out;
+  }
+  function kurvaGelung(B, p0, waktu) {   // diam: ekor melingkar di belakang badan, ujung ekor bergoyang pelan
+    const out = [p0], c = [p0[0], 0, p0[2] - .2];
+    for (let i = 1; i <= 260; i++) { const s = B.total * 1.15 * i / 260;
+      if (s < .2) { out.push(turun(p0, [0, 0, -1], s)); continue; }
+      const t = s - .2, r = Math.max(.07, .2 - t * .085), a = -Math.PI / 2 + t / .19 + Math.sin(waktu * 1.3) * .05 * t, y = Y_TANAH + Math.max(0, t - .9) * .09;
+      out.push([c[0] + Math.sin(a) * r * 1.05, y, c[2] + Math.cos(a) * r]); }
+    return out;
+  }
+  function kurvaLilit(B, p0, pusat, r, rapat, waktu) {   // melilit: ekor turun lalu berputar spiral naik di sekeliling sasaran
+    const out = [p0], ke = nrm([pusat[0] - p0[0], 0, pusat[2] - p0[2]]), a0 = Math.atan2(p0[0] - pusat[0], p0[2] - pusat[2]);
+    for (let i = 1; i <= 320; i++) { const s = B.total * 1.1 * i / 320;
+      if (s < .16) { const q = turun(p0, mul(ke, .55), s); out.push(q); continue; }
+      const t = s - .16, rr = r * (1 + (1 - rapat) * .9), a = a0 + t / rr + waktu * 1.5 * (1 - rapat), y = Y_TANAH + .02 + t * .17;
+      out.push([pusat[0] + Math.sin(a) * rr, Math.min(y, .48), pusat[2] + Math.cos(a) * rr]); }
+    return out;
+  }
+  return { siapkan, sendi, pecahkan, kurvaJejak, kurvaGelung, kurvaLilit, qslerp, qal, qm, qi };
+})();
+
+// ---------- dunia ----------
+const cv = document.getElementById('c'), renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.shadowMap.enabled = true; renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b120c); scene.fog = new THREE.Fog(0x0b120c, 22, 45);
+const camera = new THREE.PerspectiveCamera(45, 1, .1, 100);
+scene.add(new THREE.HemisphereLight(0xdfffe0, 0x26331f, 1.5));
+const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(6, 12, 8); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12 }); scene.add(sun, sun.target);
+const tanah = new THREE.Mesh(new THREE.CircleGeometry(20, 64), new THREE.MeshLambertMaterial({ color: 0x3f7a2c })); tanah.rotation.x = -Math.PI / 2; tanah.receiveShadow = true; scene.add(tanah);
+for (let i = 0; i < 40; i++) { const r = 4 + Math.random() * 14, a = Math.random() * 6.3, s = new THREE.Mesh(new THREE.ConeGeometry(.12, .35, 5), new THREE.MeshLambertMaterial({ color: 0x5a9a3a })); s.position.set(Math.cos(a) * r, .17, Math.sin(a) * r); scene.add(s); }
+// boneka sasaran
+const boneka = new THREE.Group(), bB = new THREE.MeshLambertMaterial({ color: 0xd8c8a8 });
+{ const badan = new THREE.Mesh(new THREE.CapsuleGeometry(.28, .9, 6, 12), bB); badan.position.y = .75; badan.castShadow = true;
+  const kepala = new THREE.Mesh(new THREE.SphereGeometry(.24, 16, 12), bB); kepala.position.y = 1.55; kepala.castShadow = true; boneka.add(badan, kepala); }
+boneka.position.set(0, 0, -4); scene.add(boneka);
+const resize = () => { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }; addEventListener('resize', resize); resize();
+
+// ---------- model ----------
+const S = 1.8;   // skala: model Tripo tinggi 1 satuan → ±1,8 m (wujud manusia)
+const LIFT = .2; // tinggi pinggang wujud ular (satuan model)
+const loader = new GLTFLoader(), muat = u => new Promise((ok, no) => loader.load(u, ok, undefined, no));
+const C = { pos: new THREE.Vector3(0, 0, 2), arah: Math.PI, ular: false, jalan: 0, jarak: 0, diamT: 0, gel: 1, lilit: null, cd: 0 };
+let H, U;   // H = wujud manusia, U = wujud ular
+function siapManusia(gl) {
+  const g = new THREE.Group(), m = gl.scene; m.scale.setScalar(S); m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } }); g.add(m);
+  const mix = new THREE.AnimationMixer(m), cari = k => gl.animations.find(a => a.name.toLowerCase().includes(k));
+  const A = { jalan: mix.clipAction(cari('walk') || gl.animations[0]), diam: mix.clipAction(cari('stand') || gl.animations[1] || gl.animations[0]) };
+  A.diam.play(); scene.add(g); return { g, mix, A, cur: 'diam' };
+}
+function siapUlar(gl) {
+  const g = new THREE.Group(), m = gl.scene; m.scale.setScalar(S); g.add(m); scene.add(g);
+  m.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+  const tl = n => m.getObjectByName(n) || m.getObjectByName(n.replace('::', ''));   // GLTFLoader membuang ':' dari nama
+  const chain = [...Array(18)].map((_, k) => tl('tripo::Tail_' + k)), root = tl('tripo::Root'), spine = tl('tripo::Spine_0');
+  const lengan = ['lengan_R', 'lengan_L', 'hasta_R', 'hasta_L'].map(n => m.getObjectByName(n));
+  if (chain.some(b => !b) || !root || !spine) throw new Error('Tulang ular tidak lengkap');
+  g.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(m.matrixWorld).invert(), tmp = new THREE.Matrix4(), P = new THREE.Vector3(), Q = new THREE.Quaternion(), Sc = new THREE.Vector3();
+  const rel = b => { tmp.multiplyMatrices(inv, b.matrixWorld).decompose(P, Q, Sc); return { p: [P.x, P.y, P.z], q: [Q.x, Q.y, Q.z, Q.w] }; };
+  const bind = chain.map(rel), R = rel(root), Sp = rel(spine);
+  // geser Root: pangkal ekor (Tail_0, pinggang) tepat di titik karakter, setinggi LIFT
+  const lp = chain[0].position.clone().applyQuaternion(root.quaternion); root.position.set(-lp.x, LIFT - lp.y, -lp.z);
+  const B = UL.siapkan(bind.map(x => x.p), bind.map(x => x.q), R.q, Sp.q);
+  return { g, m, chain, spine, lengan, lq0: lengan.map(b => b && b.quaternion.clone()), B, jejak: [], out: [], Tg: null };
+}
+// ---------- kontrol ----------
+const key = {}; addEventListener('keydown', e => { key[e.key.toLowerCase()] = 1; if (e.key.toLowerCase() === 'r') ubah(); if (e.key.toLowerCase() === 'f') lilit(); }); addEventListener('keyup', e => { key[e.key.toLowerCase()] = 0; });
+const joy = { x: 0, y: 0, id: null }, J = document.getElementById('joy'), Ji = J.firstElementChild;
+J.addEventListener('pointerdown', e => { joy.id = e.pointerId; J.setPointerCapture(e.pointerId); gerakJoy(e); });
+J.addEventListener('pointermove', e => { if (e.pointerId === joy.id) gerakJoy(e); });
+J.addEventListener('pointerup', () => { joy.id = null; joy.x = joy.y = 0; Ji.style.transform = ''; });
+function gerakJoy(e) { const r = J.getBoundingClientRect(), dx = e.clientX - r.left - r.width / 2, dy = e.clientY - r.top - r.height / 2, L = Math.min(1, Math.hypot(dx, dy) / 55), a = Math.atan2(dy, dx);
+  joy.x = Math.cos(a) * L; joy.y = Math.sin(a) * L; Ji.style.transform = `translate(${joy.x * 40}px,${joy.y * 40}px)`; }
+const bU = document.getElementById('bUbah'), bL = document.getElementById('bLilit');
+bU.onclick = () => ubah(); bL.onclick = () => lilit();
+let pesanT; function pesan(t) { const e = document.getElementById('pesan'); e.textContent = t; e.style.opacity = 1; clearTimeout(pesanT); pesanT = setTimeout(() => e.style.opacity = 0, 1600); }
+// asap hijau saat berubah wujud
+const ASAP = [], tAsap = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, '#fff'); g.addColorStop(1, '#fff0'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+function asap(p, n, warna) { for (let i = 0; i < n; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tAsap, color: warna, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+  s.position.copy(p).add(new THREE.Vector3((Math.random() - .5) * 1.4, Math.random() * 1.6, (Math.random() - .5) * 1.4)); s.scale.setScalar(.6); scene.add(s);
+  ASAP.push({ s, v: new THREE.Vector3((Math.random() - .5) * 1.5, 1 + Math.random() * 1.5, (Math.random() - .5) * 1.5), t: 0, u: .7 + Math.random() * .5 }); } }
+function ubah() {
+  if (!U || C.lilit) return; C.ular = !C.ular; C.pop = .35; asap(C.pos.clone().setY(.2), 26, 0x3aff7a); asap(C.pos.clone().setY(.6), 10, 0xffd23f);
+  if (C.ular) { U.jejak = []; C.gel = 1; pesan('🐍 Wujud Siluman Ular!'); } else pesan('👸 Kembali ke wujud manusia');
+  bU.classList.toggle('on', C.ular);
+}
+function lilit() {
+  if (!C.ular) { pesan('Ubah ke wujud ular dulu (🐍)'); return; }
+  if (C.lilit || C.cd > 0) return;
+  const d = boneka.position.distanceTo(C.pos); if (d > 5.2) { pesan('Boneka terlalu jauh — dekati dulu'); return; }
+  C.lilit = { t: 0, fase: 'maju', rapat: 0 }; pesan('🌀 Lilitan!');
+}
+// ---------- tiap frame ----------
+const v3 = new THREE.Vector3(), clock = new THREE.Clock();
+const ax = (x, y, z, a) => new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(x, y, z), a);
+function updUlar(dt, gerak) {
+  const u = U, t = performance.now() / 1000, inv = new THREE.Matrix4().copy(u.m.matrixWorld).invert();
+  // jejak tanah (dunia) → dipakai ekor saat menjalar
+  if (gerak > 0 || !u.jejak.length) { const p = C.pos.clone(); if (!u.jejak.length || u.jejak[0].distanceTo(p) > .04) { u.jejak.unshift(p); let L = 0; for (let i = 1; i < u.jejak.length; i++) { L += u.jejak[i].distanceTo(u.jejak[i - 1]); if (L > 7) { u.jejak.length = i + 1; break; } } } }
+  const p0 = [0, LIFT, 0], B = u.B;
+  const jejakM = u.jejak.map(p => { v3.copy(p).applyMatrix4(inv); return [v3.x, .055, v3.z]; });
+  if (jejakM.length) jejakM[0] = [0, .055, 0];
+  if (jejakM.length < 2) jejakM.push([0, .055, -.3]);
+  const Tj = UL.sendi(B, UL.kurvaJejak(B, p0, jejakM, C.jarak * 1.6), p0);
+  const Tg = UL.sendi(B, UL.kurvaGelung(B, p0, t), p0);
+  let T = Tj.map((a, i) => { const b = Tg[i], k = C.gel; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; });
+  if (C.lilit) {   // melilit boneka: ekor berputar spiral naik di sekeliling sasaran
+    v3.copy(boneka.position).applyMatrix4(inv); const r = .3 / S * 1.05;
+    const Tl = UL.sendi(B, UL.kurvaLilit(B, p0, [v3.x, 0, v3.z], r, C.lilit.rapat, t), p0), k = C.lilit.k || 0;
+    T = T.map((a, i) => { const b = Tl[i]; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; });
+  }
+  const goyang = ax(0, 0, 1, Math.sin(t * 2.2) * .04 * (1 - C.gel) + Math.sin(t * 1.1) * .02), tunduk = ax(1, 0, 0, C.lilit ? .12 * (C.lilit.k || 0) : 0);
+  const o = UL.pecahkan(B, T, u.out, [...[goyang.multiply(tunduk)].map(q => [q.x, q.y, q.z, q.w])[0]]);
+  u.chain.forEach((b, k) => b.quaternion.set(...o[k])); u.spine.quaternion.set(...o.spine);
+  // lengan: turun santai · melilit: terulur ke depan mencengkeram
+  const lk = C.lilit ? (C.lilit.k || 0) : 0, ayun = Math.sin(t * 3) * .08 * (1 - C.gel);
+  [[0, 1], [1, -1]].forEach(([i, sg]) => { const b = u.lengan[i]; if (!b) return; b.quaternion.copy(u.lq0[i]).multiply(ax(0, 0, 1, sg * (1.15 - .55 * lk) + ayun * sg)).multiply(ax(0, 1, 0, -sg * 1.0 * lk)); });
+  [[2, 1], [3, -1]].forEach(([i, sg]) => { const b = u.lengan[i]; if (!b) return; b.quaternion.copy(u.lq0[i]).multiply(ax(0, 1, 0, sg * (.35 + .6 * lk))); });
+}
+function loop() {
+  requestAnimationFrame(loop); const dt = Math.min(.05, clock.getDelta());
+  if (!H) { renderer.render(scene, camera); return; }
+  // gerak
+  let mx = (key.d ? 1 : 0) - (key.a ? 1 : 0) + joy.x, mz = (key.s ? 1 : 0) - (key.w ? 1 : 0) + joy.y; const L = Math.min(1, Math.hypot(mx, mz));
+  let gerak = 0;
+  C.cd = Math.max(0, C.cd - dt);
+  if (C.lilit) {
+    const Li = C.lilit; Li.t += dt; const to = boneka.position.clone().sub(C.pos); to.y = 0; const d = to.length(), a = Math.atan2(to.x, to.z);
+    C.arah += Math.atan2(Math.sin(a - C.arah), Math.cos(a - C.arah)) * Math.min(1, dt * 10);
+    if (Li.fase === 'maju') { const jg = .75; if (d > jg) { const s = Math.min(d - jg, 9 * dt); C.pos.addScaledVector(to.normalize(), s); gerak = s; C.jarak += s; } else { Li.fase = 'lilit'; Li.t = 0; } Li.k = Math.min(1, (Li.k || 0) + dt * 2.5); }
+    else if (Li.fase === 'lilit') { Li.k = 1; Li.rapat = Math.min(1, Li.t / .35); const g = Li.t > .3 ? Math.sin(Li.t * 40) * .03 : 0; boneka.rotation.z = g; if (Li.t > 1.85) { Li.fase = 'lepas'; Li.t = 0; } }   // terkunci 1,5 dtk
+    else { Li.rapat = Math.max(0, 1 - Li.t / .3); Li.k = Math.max(0, 1 - Li.t / .45); boneka.rotation.z = 0; if (Li.t > .45) { C.lilit = null; C.cd = .6; } }
+    if (Li.t > 4) C.lilit = null;
+  } else if (L > .08) {
+    const a = Math.atan2(mx, mz); C.arah += Math.atan2(Math.sin(a - C.arah), Math.cos(a - C.arah)) * Math.min(1, dt * (C.ular ? 7 : 12));
+    const kec = (C.ular ? 4.6 : 2.4) * L, s = kec * dt; C.pos.x += Math.sin(C.arah) * s; C.pos.z += Math.cos(C.arah) * s; gerak = s; C.jarak += s;
+    const r = Math.hypot(C.pos.x, C.pos.z); if (r > 18) C.pos.multiplyScalar(18 / r);
+  }
+  C.diamT = gerak > 0 ? 0 : C.diamT + dt; C.gel += ((C.diamT > .5 && !C.lilit ? 1 : 0) - C.gel) * Math.min(1, dt * (C.diamT > .5 ? 1.6 : 6));
+  // manusia
+  H.g.visible = !C.ular; H.g.position.copy(C.pos); H.g.rotation.y = C.arah;
+  const mau = gerak > 0 ? 'jalan' : 'diam'; if (mau !== H.cur) { H.A[mau].reset().play(); H.A[H.cur].crossFadeTo(H.A[mau], .2, false); H.cur = mau; }
+  if (!C.ular) H.mix.update(dt);
+  // ular
+  if (U) { U.g.visible = C.ular; U.g.position.copy(C.pos); U.g.rotation.y = C.arah; U.g.updateMatrixWorld(true); if (C.ular) updUlar(dt, gerak); }
+  if (C.pop > 0) { C.pop -= dt; const k = 1 + Math.sin((C.pop / .35) * Math.PI) * .12; (C.ular ? U : H).g.scale.setScalar(k); } else { H.g.scale.setScalar(1); if (U) U.g.scale.setScalar(1); }
+  for (let i = ASAP.length - 1; i >= 0; i--) { const A = ASAP[i]; A.t += dt; const q = A.t / A.u; if (q >= 1) { scene.remove(A.s); A.s.material.dispose(); ASAP.splice(i, 1); continue; } A.s.position.addScaledVector(A.v, dt); A.s.scale.setScalar(.6 + q * 1.6); A.s.material.opacity = (1 - q) * .8; }
+  bL.disabled = !C.ular || !!C.lilit || C.cd > 0 || boneka.position.distanceTo(C.pos) > 5.2;
+  // kamera ala MLBB
+  camera.position.lerp(v3.set(C.pos.x, 8.5, C.pos.z + 8), Math.min(1, dt * 5)); camera.lookAt(C.pos.x, .8, C.pos.z);
+  sun.position.set(C.pos.x + 6, 12, C.pos.z + 8); sun.target.position.copy(C.pos);
+  document.getElementById('stat').textContent = (C.ular ? '🐍 Wujud ular' : '👸 Wujud manusia') + (C.lilit ? ' · melilit' : '') + ' · jarak ke boneka ' + boneka.position.distanceTo(C.pos).toFixed(1) + ' m';
+  renderer.render(scene, camera);
+}
+loop();
+Promise.all([muat('model-3d/nyi-blorong.glb'), muat('model-3d/nyi-blorong-ular.glb')]).then(([a, b]) => {
+  H = siapManusia(a); try { U = siapUlar(b); } catch (e) { console.error(e); pesan('⚠️ ' + e.message); }
+  document.getElementById('muat').remove();
+}).catch(e => { document.getElementById('muat').textContent = '⚠️ Model tidak bisa dimuat: ' + e.message + ' — taruh nyi-blorong.glb & nyi-blorong-ular.glb di folder model-3d/'; });
+</script>
+</body></html>
