@@ -97,6 +97,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
     <button data-t="buat">➕ Buat Kartu</button>
     <button data-t="daftar">📋 Daftar Kartu</button>
     <button data-t="template">🎴 Template Kartu</button>
+    <button data-t="galeri">🖼️ Galeri</button>
   </nav>
   <main>
     <section data-p="ringkas">
@@ -142,7 +143,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
       </div>
     </section>
     <section data-p="template" hidden>
-      <div class="tlay"><div class="card"><h3>🎴 Template kartu: gambar Anda + QR asli + kode manual</h3>
+      <div><div class="card"><h3>🎴 Template kartu: gambar Anda + QR asli + kode manual</h3>
         <p class="note" style="margin-top:0">1) Unggah gambar desain kartu (depan) · 2) pilih batch kode · 3) geser kotak QR ke tempatnya (klik/ketuk pratinjau, atau isi angka) · 4) unduh kartu jadi atau lembar cetak.
         Ukuran gambar paling pas: <b>Remi 63 : 88</b> (mis. 1488 × 2079 px) atau <b>KTP 54 : 85,6</b> (mis. 1276 × 2022 px), 600 dpi. Gambar dengan perbandingan lain dipotong sedikit saat dicetak.</p>
         <div style="display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;align-items:start" class="tgrid">
@@ -154,7 +155,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
               <label class="l" style="margin-top:0">Gambar kartu (PNG/JPG)<input class="f" type="file" id="tFile" accept="image/*" multiple></label>
               <label class="chk" style="margin-top:6px"><input type="checkbox" id="tSimpanG" checked> simpan juga ke galeri</label>
             </div>
-            <div id="sGaleri" hidden><p class="note" style="margin:0">Pilih salah satu gambar di <b>Galeri desain kartu</b> (panel kanan, atau di bawah template kalau layar sempit).</p></div>
+            <div id="sGaleri" hidden><p class="note" style="margin:0">Membuka tab <b>Galeri</b>: ketuk salah satu gambar di <b>Galeri desain kartu</b> untuk memakainya.</p></div>
             <div class="grid">
               <label class="l">Batch kode<select class="f" id="tBatch"></select></label>
               <label class="l">Kode yang dipakai<select class="f" id="tStatus"><option value="belum">Belum diklaim</option><option value="semua">Semua</option></select></label>
@@ -191,17 +192,19 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
           </div>
         </div>
       </div>
-      <aside class="card" id="gPanel">
+      </div>
+    </section>
+    <section data-p="galeri" hidden>
+      <div class="card" id="gPanel">
         <h3>🖼️ Galeri desain kartu</h3>
-        <p class="note" style="margin-top:0">Simpan di sini gambar kartu dengan kotak QR kosong. Ketuk gambar untuk memakainya sebagai template.</p>
+        <p class="note" style="margin-top:0">Simpan di sini gambar kartu dengan kotak QR kosong. Ketuk gambar untuk memakainya, lalu Anda dibawa ke tab Template.</p>
         <div class="note" id="gInfo" style="margin:6px 0 4px"></div>
         <div class="note" id="gAktif" style="font-weight:700;margin-bottom:8px"></div>
         <div class="gal" id="gGal"></div>
         <button class="btn rd sm" id="gHapusSemua" hidden style="margin-top:8px">🗑️ Hapus semua gambar</button>
-      </aside>
       </div>
       <div class="card"><h3>✅ Kartu jadi</h3>
-        <p class="note" style="margin-top:0">Simpan hasil kartu (gambar + QR + kode) dari batch yang dipilih di atas ke galeri ini, lalu lihat, unduh satuan, atau hapus. Galeri tersimpan di Supabase (privat, hanya admin), jadi sama di semua perangkat. Menghapus kartu di sini tidak menghapus kodenya; kode dikelola di tab Daftar Kartu. Untuk hasil resolusi penuh, tetap pakai ZIP atau lembar cetak.</p>
+        <p class="note" style="margin-top:0">Simpan hasil kartu (gambar + QR + kode) dari batch dan gambar yang sedang dipilih di tab Template ke galeri ini, lalu lihat, unduh satuan, atau hapus. Galeri tersimpan di Supabase (privat, hanya admin), jadi sama di semua perangkat. Menghapus kartu di sini tidak menghapus kodenya; kode dikelola di tab Daftar Kartu. Untuk hasil resolusi penuh, tetap pakai ZIP atau lembar cetak.</p>
         <div class="row"><button class="btn br" id="kjSimpan">💾 Simpan kartu batch ini ke galeri</button>
           <select class="f" id="kjFilter"><option value="">Semua batch</option></select>
           <button class="btn rd" id="kjSemua" hidden>🗑️ Hapus semua kartu jadi</button></div>
@@ -304,7 +307,7 @@ function bukaTab(t) {
   tab = t;
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === t));
   document.querySelectorAll("[data-p]").forEach(s => s.hidden = s.dataset.p !== t);
-  if (t === "ringkas") muatRingkas(); if (t === "daftar") muatDaftar(true); if (t === "template") tMulai();
+  if (t === "ringkas") muatRingkas(); if (t === "daftar") muatDaftar(true); if (t === "template" || t === "galeri") tMulai();
 }
 const pesanErr = e => /game_admin|PGRST202|function/.test(e.message) ? "Fitur kartu belum dipasang. Jalankan supabase-kartu-game.sql di Supabase dulu." : e.message;
 
@@ -505,7 +508,7 @@ async function gMuat() {
 function gRender() {
   $("#gInfo").textContent = GTPL.length ? `${GTPL.length} gambar tersimpan · ketuk gambar untuk memakainya` : "Belum ada gambar tersimpan. Unggah gambar kartu di atas.";
   $("#gHapusSemua").hidden = !GTPL.length; const ga = GTPL.find(x => x.id === TAKTIF); $("#gAktif").textContent = ga ? "Dipakai: " + ga.nama : "";
-  $("#gGal").innerHTML = GTPL.map(g => `<div class="gi${g.id === TAKTIF ? " on" : ""}" onclick="gPakai('${g.id}')" title="${esc(g.nama)}"><img src="${g.th}" alt="${esc(g.nama)}"><small>${esc(g.nama)}</small><button class="x" onclick="event.stopPropagation();gHapus('${g.id}')" aria-label="Hapus gambar">✕</button></div>`).join("");
+  $("#gGal").innerHTML = GTPL.map(g => `<div class="gi${g.id === TAKTIF ? " on" : ""}" onclick="gPakaiKeTemplate('${g.id}')" title="${esc(g.nama)}"><img src="${g.th}" alt="${esc(g.nama)}"><small>${esc(g.nama)}</small><button class="x" onclick="event.stopPropagation();gHapus('${g.id}')" aria-label="Hapus gambar">✕</button></div>`).join("");
 }
 async function gTambah(files) {
   let o = null, n = 0; $("#gInfo").textContent = "Mengunggah…";
@@ -513,6 +516,7 @@ async function gTambah(files) {
     try { o = await gSimpan(f, f.name); n++; $("#gInfo").textContent = `Mengunggah… ${n}/${files.length}`; } catch (e) { toast("Gagal menyimpan " + f.name + ": " + pesanG(e), 6000); } }
   if (o) await gPakai(o.id); else gRender();
 }
+async function gPakaiKeTemplate(id) { await gPakai(id); tSumber("upload"); bukaTab("template"); }
 async function gPakai(id, awal) {
   const g = GTPL.find(x => x.id === id); if (!g) return; TAKTIF = id;
   try { localStorage.setItem("ks_kartu_tpl_aktif", id); } catch (e) {}
@@ -572,7 +576,7 @@ function tTerapkan(id, awal) {
 function tSumber(m) {
   document.querySelectorAll("[data-sumber]").forEach(b => b.classList.toggle("on", b.dataset.sumber === m));
   $("#sUpload").hidden = m !== "upload"; $("#sGaleri").hidden = m !== "galeri";
-  if (m === "galeri" && window.innerWidth <= 900) $("#gPanel").scrollIntoView({ behavior: "smooth", block: "center" });
+  if (m === "galeri") bukaTab("galeri");
 }
 document.querySelectorAll("[data-sumber]").forEach(b => b.onclick = () => tSumber(b.dataset.sumber));
 $("#tAuto").onclick = () => { if (!TIMG) return toast("Pilih gambar kartu dulu"); tAuto(false); };
