@@ -37,6 +37,7 @@ const UL = (() => {
     dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2], crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
   const qm = (a, b) => [a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1], a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0], a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3], a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]];
   const qi = q => [-q[0], -q[1], -q[2], q[3]];
+  const ortho = (u, d) => { const r = sub(u, mul(d, dot(u, d))), l = len(r); return l < 1e-4 ? null : mul(r, 1 / l); };
   const qrot = (q, v) => { const p = qm(qm(q, [v[0], v[1], v[2], 0]), qi(q)); return [p[0], p[1], p[2]]; };
   const qal = (u, w) => { const d = dot(u, w); if (d < -0.9999) { let ax = crs([1, 0, 0], u); if (len(ax) < 1e-3) ax = crs([0, 1, 0], u); ax = nrm(ax); return [ax[0], ax[1], ax[2], 0]; }
     const c = crs(u, w), q = [c[0], c[1], c[2], 1 + d], l = Math.hypot(...q); return q.map(x => x / l); };
@@ -49,7 +50,8 @@ const UL = (() => {
     for (let k = 0; k < n - 1; k++) { const s = sub(pos[k + 1], pos[k]); L.push(len(s)); d.push(nrm(s)); }
     d.push(d[n - 2]); L.push(L[n - 2]);
     const lok = quat.map((q, k) => qm(qi(k ? quat[k - 1] : qRoot), q));   // putaran lokal bind (dipertahankan supaya ekor tidak terpelintir)
-    return { n, q: quat, d, L, lok, qRoot, qSpine, total: L.slice(0, n - 1).reduce((a, b) => a + b, 0) };
+    const u = d.map(dd => ortho([0, 1, 0], dd));   // sisi punggung tiap ruas saat bind (ekor melingkar mendatar → punggung menghadap ke atas)
+    return { n, q: quat, d, L, lok, u, qRoot, qSpine, total: L.slice(0, n - 1).reduce((a, b) => a + b, 0) };
   }
   // titik-titik kurva rapat → titik sendi dengan jarak tepat L[k]
   function sendi(B, kurva, p0) {
@@ -65,10 +67,16 @@ const UL = (() => {
     return T;
   }
   // hasil: quat lokal tiap tulang ekor + Spine_0 (badan atas tetap tegak)
-  function pecahkan(B, T, out, condong = [0, 0, 0, 1]) {
-    let Qp = B.qRoot;
-    for (let k = 0; k < B.n; k++) {   // tiap sendi hanya menekuk (tanpa memuntir) dari arah yang diwariskan induknya
-      const Qt = qm(Qp, B.lok[k]), now = qrot(qm(Qt, qi(B.q[k])), B.d[k]), w = nrm(sub(T[k + 1], T[k])), Q = qm(qal(nrm(now), w), Qt);
+  // hasil: quat lokal tiap tulang ekor + Spine_0 (badan atas tetap tegak)
+  // tiap ruas: arah bind → arah kurva, dan "punggung" ruas (sisi atas saat bind, sisik hijau) → arah atas yang diinginkan
+  // (atas dunia; saat melilit: menghadap keluar dari sasaran) — jadi ekor tidak pernah terpelintir
+  function pecahkan(B, T, out, condong = [0, 0, 0, 1], atasFn = null) {
+    let Qp = B.qRoot, uPrev = [0, 1, 0];
+    for (let k = 0; k < B.n; k++) {
+      const w = nrm(sub(T[k + 1], T[k])), q1 = qal(B.d[k], w);
+      const uB = B.u[k] ? qrot(q1, B.u[k]) : null; let uT = ortho(atasFn ? atasFn(k, T) : [0, 1, 0], w) || ortho(uPrev, w);
+      let Q = qm(q1, B.q[k]);
+      if (uB && uT) { const c = crs(uB, uT), a = Math.atan2(dot(w, c), dot(uB, uT)), h = a / 2, s = Math.sin(h); Q = qm([w[0] * s, w[1] * s, w[2] * s, Math.cos(h)], Q); uPrev = uT; }
       out[k] = qm(qi(Qp), Q); Qp = Q; if (k === 0) out.Q0 = Q; }
     out.spine = qm(qi(out.Q0), qm(condong, B.qSpine));
     return out;
@@ -89,23 +97,27 @@ const UL = (() => {
       out.push([p[0] + nn[0] * w, p0[1] + (Y_TANAH - p0[1]) * e, p[2] + nn[2] * w]); }
     return out;
   }
-  function kurvaGelung(B, p0, waktu) {   // diam: ekor melingkar di belakang badan, ujung ekor bergoyang pelan
-    const out = [p0], c = [p0[0], 0, p0[2] - .2];
+  function kurvaGelung(B, p0, waktu) {   // diam: ekor melingkar di belakang badan, ujung ekor bergoyang pelan (kurva menyambung halus tanpa sudut tajam)
+    const out = [p0], r0 = .2, c = [p0[0] - r0 * 1.05, 0, p0[2] - .2];
     for (let i = 1; i <= 260; i++) { const s = B.total * 1.15 * i / 260;
       if (s < .2) { out.push(turun(p0, [0, 0, -1], s)); continue; }
-      const t = s - .2, r = Math.max(.07, .2 - t * .085), a = -Math.PI / 2 + t / .19 + Math.sin(waktu * 1.3) * .05 * t, y = Y_TANAH + Math.max(0, t - .9) * .09;
+      const t = s - .2, r = Math.max(.07, r0 - t * .085), a = Math.PI / 2 + t / .19 + Math.sin(waktu * 1.3) * .05 * t, y = Y_TANAH + Math.max(0, t - .9) * .09;
       out.push([c[0] + Math.sin(a) * r * 1.05, y, c[2] + Math.cos(a) * r]); }
     return out;
   }
-  function kurvaLilit(B, p0, pusat, r, rapat, waktu) {   // melilit: ekor turun lalu berputar spiral naik di sekeliling sasaran
-    const out = [p0], ke = nrm([pusat[0] - p0[0], 0, pusat[2] - p0[2]]), a0 = Math.atan2(p0[0] - pusat[0], p0[2] - pusat[2]);
+  function kurvaLilit(B, p0, pusat, r, rapat, waktu) {   // melilit: ekor meluncur lurus menyinggung lingkaran sasaran, lalu berputar spiral naik
+    const out = [p0], rr = r * (1 + (1 - rapat) * .9), vx = p0[0] - pusat[0], vz = p0[2] - pusat[2], dist = Math.max(rr + .02, Math.hypot(vx, vz)), a0 = Math.atan2(vx, vz), phi = Math.acos(rr / dist);
+    let a1 = a0 - phi; { const T = [pusat[0] + Math.sin(a1) * rr, pusat[2] + Math.cos(a1) * rr]; if ((T[0] - p0[0]) * Math.cos(a1) + (T[1] - p0[2]) * -Math.sin(a1) < 0) a1 = a0 + phi; }
+    const T = [pusat[0] + Math.sin(a1) * rr, pusat[2] + Math.cos(a1) * rr], s0 = Math.hypot(T[0] - p0[0], T[1] - p0[2]) || .01, arah = Math.cos(a1) * (T[0] - p0[0]) - Math.sin(a1) * (T[1] - p0[2]) >= 0 ? 1 : -1;
+    const y1 = Y_TANAH + .02, putar = waktu * 1.5 * (1 - rapat) * arah;
     for (let i = 1; i <= 320; i++) { const s = B.total * 1.1 * i / 320;
-      if (s < .16) { const q = turun(p0, mul(ke, .55), s); out.push(q); continue; }
-      const t = s - .16, rr = r * (1 + (1 - rapat) * .9), a = a0 + t / rr + waktu * 1.5 * (1 - rapat), y = Y_TANAH + .02 + t * .17;
+      if (s < s0) { const u = s / s0, e = Math.min(1, u * 1.6), ee = e * e * (3 - 2 * e); out.push([p0[0] + (T[0] - p0[0]) * u, p0[1] + (y1 - p0[1]) * ee, p0[2] + (T[1] - p0[2]) * u]); continue; }
+      const t = s - s0, a = a1 + arah * t / rr + putar, y = y1 + t * .17;
       out.push([pusat[0] + Math.sin(a) * rr, Math.min(y, .48), pusat[2] + Math.cos(a) * rr]); }
     return out;
   }
-  return { siapkan, sendi, pecahkan, kurvaJejak, kurvaGelung, kurvaLilit, qslerp, qal, qm, qi };
+  const atasLilit = (pusat, mulai = 2) => (k, T) => k < mulai ? [0, 1, 0] : nrm([T[k][0] - pusat[0], .35, T[k][2] - pusat[2]]);   // melilit: punggung menghadap keluar dari sasaran
+  return { siapkan, sendi, pecahkan, atasLilit, kurvaJejak, kurvaGelung, kurvaLilit, qslerp, qal, qm, qi };
 })();
 // ---------- dunia ----------
 const cv = document.getElementById('c'), renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
@@ -199,7 +211,8 @@ function updUlar(dt, gerak) {
     T = T.map((a, i) => { const b = Tl[i]; return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k]; });
   }
   const goyang = ax(0, 0, 1, Math.sin(t * 2.2) * .04 * (1 - C.gel) + Math.sin(t * 1.1) * .02), tunduk = ax(1, 0, 0, C.lilit ? .12 * (C.lilit.k || 0) : 0);
-  const o = UL.pecahkan(B, T, u.out, [...[goyang.multiply(tunduk)].map(q => [q.x, q.y, q.z, q.w])[0]]);
+  const cq = goyang.multiply(tunduk), atas = C.lilit && C.lilit.k > .5 ? UL.atasLilit([v3.x, 0, v3.z]) : null;
+  const o = UL.pecahkan(B, T, u.out, [cq.x, cq.y, cq.z, cq.w], atas);
   u.chain.forEach((b, k) => b.quaternion.set(...o[k])); u.spine.quaternion.set(...o.spine);
   // lengan: turun santai · melilit: terulur ke depan mencengkeram
   const lk = C.lilit ? (C.lilit.k || 0) : 0, ayun = Math.sin(t * 3) * .08 * (1 - C.gel);
