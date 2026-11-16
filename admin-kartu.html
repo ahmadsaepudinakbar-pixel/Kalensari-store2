@@ -68,6 +68,13 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 .gi .x,.gi .dl{position:absolute;top:4px;width:30px;height:30px;border:0;border-radius:50%;background:#000b;color:#fff;font-size:14px;line-height:1;padding:0}
 .gi .x{right:4px}.gi .dl{left:4px}
 .kj{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+.tlay{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:14px;align-items:start;margin-bottom:14px}
+.tlay>.card{margin-bottom:0;min-width:0}
+.tlay aside{position:sticky;top:70px}
+@media(max-width:900px){.tlay{grid-template-columns:1fr}.tlay aside{position:static}}
+.seg{display:flex;gap:6px;margin:0 0 10px}
+.seg button{flex:1;border:1px solid var(--ln);background:#fff;border-radius:10px;padding:9px 10px;font-weight:700;color:var(--mu)}
+.seg button.on{background:var(--br);border-color:var(--br);color:#fff}
 </style>
 </head>
 <body>
@@ -135,17 +142,19 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
       </div>
     </section>
     <section data-p="template" hidden>
-      <div class="card"><h3>🎴 Template kartu: gambar Anda + QR asli + kode manual</h3>
+      <div class="tlay"><div class="card"><h3>🎴 Template kartu: gambar Anda + QR asli + kode manual</h3>
         <p class="note" style="margin-top:0">1) Unggah gambar desain kartu (depan) · 2) pilih batch kode · 3) geser kotak QR ke tempatnya (klik/ketuk pratinjau, atau isi angka) · 4) unduh kartu jadi atau lembar cetak.
         Ukuran gambar paling pas: <b>Remi 63 : 88</b> (mis. 1488 × 2079 px) atau <b>KTP 54 : 85,6</b> (mis. 1276 × 2022 px), 600 dpi. Gambar dengan perbandingan lain dipotong sedikit saat dicetak.</p>
         <div style="display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;align-items:start" class="tgrid">
           <div><canvas id="tPrev" style="width:100%;border-radius:12px;border:1px solid var(--ln);cursor:crosshair;background:#eee"></canvas>
             <div class="note" id="tInfo">Belum ada gambar.</div></div>
           <div>
-            <label class="l">Gambar kartu (PNG/JPG, boleh banyak sekaligus)<input class="f" type="file" id="tFile" accept="image/*" multiple></label>
-            <div class="note" id="gInfo" style="margin:6px 0 4px"></div>
-            <div class="gal" id="gGal"></div>
-            <button class="btn rd sm" id="gHapusSemua" hidden style="margin-top:8px">🗑️ Hapus semua gambar</button>
+            <div class="seg"><button class="on" data-sumber="upload">📤 Upload file</button><button data-sumber="galeri">🖼️ Pilih dari galeri</button></div>
+            <div id="sUpload">
+              <label class="l" style="margin-top:0">Gambar kartu (PNG/JPG)<input class="f" type="file" id="tFile" accept="image/*" multiple></label>
+              <label class="chk" style="margin-top:6px"><input type="checkbox" id="tSimpanG" checked> simpan juga ke galeri</label>
+            </div>
+            <div id="sGaleri" hidden><p class="note" style="margin:0">Pilih salah satu gambar di <b>Galeri desain kartu</b> (panel kanan, atau di bawah template kalau layar sempit).</p></div>
             <div class="grid">
               <label class="l">Batch kode<select class="f" id="tBatch"></select></label>
               <label class="l">Kode yang dipakai<select class="f" id="tStatus"><option value="belum">Belum diklaim</option><option value="semua">Semua</option></select></label>
@@ -181,6 +190,15 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
             <div class="note" id="tProg" style="margin-top:8px"></div>
           </div>
         </div>
+      </div>
+      <aside class="card" id="gPanel">
+        <h3>🖼️ Galeri desain kartu</h3>
+        <p class="note" style="margin-top:0">Simpan di sini gambar kartu dengan kotak QR kosong. Ketuk gambar untuk memakainya sebagai template.</p>
+        <div class="note" id="gInfo" style="margin:6px 0 4px"></div>
+        <div class="note" id="gAktif" style="font-weight:700;margin-bottom:8px"></div>
+        <div class="gal" id="gGal"></div>
+        <button class="btn rd sm" id="gHapusSemua" hidden style="margin-top:8px">🗑️ Hapus semua gambar</button>
+      </aside>
       </div>
       <div class="card"><h3>✅ Kartu jadi</h3>
         <p class="note" style="margin-top:0">Simpan hasil kartu (gambar + QR + kode) dari batch yang dipilih di atas ke galeri ini, lalu lihat, unduh satuan, atau hapus. Galeri tersimpan di Supabase (privat, hanya admin), jadi sama di semua perangkat. Menghapus kartu di sini tidak menghapus kodenya; kode dikelola di tab Daftar Kartu. Untuk hasil resolusi penuh, tetap pakai ZIP atau lembar cetak.</p>
@@ -404,7 +422,7 @@ $("#muZip").onclick = async () => {
 };
 
 /* ---------- TEMPLATE KARTU: gambar desain + QR asli + kode manual ---------- */
-const TDEF = { x: 72.75, y: 69.55, w: 21.8, h: 14.0, t: 10, r: 4, putih: true, isi: "kode", uk: "remi", pisah: true, kx: 75.6, ky: 83.85, kw: 15.2, kh: 2.15, kbg: "#053ea9", kfg: "#ffffff" };   // pas untuk contoh kartu Ocong 1024×1536
+const TDEF = { x: 64.7, y: 72.7, w: 26.1, h: 18.4, t: 10, r: 4.5, putih: false, isi: "kode", uk: "ktp", pisah: true, kx: 64.3, ky: 94.7, kw: 26.6, kh: 2.6, kbg: "#ffffff", kfg: "#111111" };   // pas untuk kartu Wewe Gombel 1024×1536 (kotak putih besar di kanan bawah)
 let TS = (() => { try { const o = JSON.parse(localStorage.getItem("ks_kartu_tpl") || "{}"); if (o.pisah === undefined) return { ...TDEF }; return Object.assign({}, TDEF, o); } catch (e) { return { ...TDEF }; } })();
 let TIMG = null;
 const tSimpan = () => { try { const j = JSON.stringify(TS); localStorage.setItem("ks_kartu_tpl", j); if (typeof TAKTIF !== "undefined" && TAKTIF) localStorage.setItem("ks_kartu_tpl_" + TAKTIF, j); } catch (e) {} };
@@ -486,8 +504,8 @@ async function gMuat() {
 }
 function gRender() {
   $("#gInfo").textContent = GTPL.length ? `${GTPL.length} gambar tersimpan · ketuk gambar untuk memakainya` : "Belum ada gambar tersimpan. Unggah gambar kartu di atas.";
-  $("#gHapusSemua").hidden = !GTPL.length;
-  $("#gGal").innerHTML = GTPL.map(g => `<div class="gi${g.id === TAKTIF ? " on" : ""}" onclick="gPakai('${g.id}')" title="${esc(g.nama)}"><img src="${g.th}" alt="${esc(g.nama)}"><button class="x" onclick="event.stopPropagation();gHapus('${g.id}')" aria-label="Hapus gambar">✕</button></div>`).join("");
+  $("#gHapusSemua").hidden = !GTPL.length; const ga = GTPL.find(x => x.id === TAKTIF); $("#gAktif").textContent = ga ? "Dipakai: " + ga.nama : "";
+  $("#gGal").innerHTML = GTPL.map(g => `<div class="gi${g.id === TAKTIF ? " on" : ""}" onclick="gPakai('${g.id}')" title="${esc(g.nama)}"><img src="${g.th}" alt="${esc(g.nama)}"><small>${esc(g.nama)}</small><button class="x" onclick="event.stopPropagation();gHapus('${g.id}')" aria-label="Hapus gambar">✕</button></div>`).join("");
 }
 async function gTambah(files) {
   let o = null, n = 0; $("#gInfo").textContent = "Mengunggah…";
@@ -517,7 +535,13 @@ $("#gHapusSemua").onclick = async () => {
   GTPL = []; TAKTIF = null; TIMG = null; try { localStorage.removeItem("ks_kartu_tpl_aktif"); } catch (e) {}
   gRender(); tGambarPrev(); toast("Semua gambar dihapus");
 };
-$("#tFile").onchange = async e => { const fs = [...e.target.files]; e.target.value = ""; if (!fs.length) return; if (!GOK) await gMuat(); await gTambah(fs); };
+let GTEMP = null;
+$("#tFile").onchange = async e => {
+  const fs = [...e.target.files]; e.target.value = ""; if (!fs.length) return; if (!GOK) await gMuat();
+  if ($("#tSimpanG").checked) return gTambah(fs);
+  try { if (GTEMP) URL.revokeObjectURL(GTEMP); GTEMP = URL.createObjectURL(fs[0]); await tMuatGambar(GTEMP); TAKTIF = null; gRender(); tGambarPrev(); toast("Gambar dipakai sementara (tidak disimpan ke galeri)"); }
+  catch (x) { toast("Gambar tidak bisa dibuka", 4000); }
+};
 
 /* ---------- sesuaikan otomatis: cari kotak putih di gambar → QR di atas, kode unik di strip bawahnya ---------- */
 function tDeteksi() {
@@ -544,9 +568,15 @@ function tAuto(diam) {
 }
 function tTerapkan(id, awal) {
   let sv = null; try { sv = JSON.parse(localStorage.getItem("ks_kartu_tpl_" + id) || "null"); } catch (e) {}
-  if (sv) Object.assign(TS, TDEF, sv); else if (awal) tSimpan(); else tAuto(true);
+  if (sv) Object.assign(TS, TDEF, sv); else if (awal) tSimpan(); else { Object.assign(TS, TDEF); tSimpan(); }
   tIsiForm();
 }
+function tSumber(m) {
+  document.querySelectorAll("[data-sumber]").forEach(b => b.classList.toggle("on", b.dataset.sumber === m));
+  $("#sUpload").hidden = m !== "upload"; $("#sGaleri").hidden = m !== "galeri";
+  if (m === "galeri" && window.innerWidth <= 900) $("#gPanel").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+document.querySelectorAll("[data-sumber]").forEach(b => b.onclick = () => tSumber(b.dataset.sumber));
 $("#tAuto").onclick = () => { if (!TIMG) return toast("Pilih gambar kartu dulu"); tAuto(false); };
 
 /* kartu jadi */
