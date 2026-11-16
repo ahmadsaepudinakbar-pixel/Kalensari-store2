@@ -1606,7 +1606,8 @@ function pakaiAsli(i) {
   if (TIM.tonton) return;
   if (WN.on && i > 0) { if (WN.spBaruI === i && performance.now() - (WN.spBaruT || 0) < 500) return; if (wnSpTahan(i)) return; }   // War Nanas: skill terkunci (Poin Skill)   // wasit tidak bertanding
   if (UMP.on) { if (i === 0) umpetPakai(); return; }   // Petak Umpet: hanya 1 tombol kemampuan
-  if (P.state !== 'bebas' || P.cd[i] > 0 || !P.model || (pingsan() && !lepasStun(i)) || SELESAI) return;
+  const blSambilLilit = HERO === 'blorong' && i === 0 && P.state === 'blLilit' && BLS.ular > 0 && BLS.lilit && BLS.lilit.dekat;   // Nyi Blorong: saat melilit, serangan dasar (patukan) tetap bisa dipakai
+  if ((P.state !== 'bebas' && !blSambilLilit) || P.cd[i] > 0 || !P.model || (pingsan() && !lepasStun(i)) || SELESAI) return;
   if (HERO === 'kunti') return pakaiKunti(i);
   if (HERO === 'tuyul') return pakaiTuyul(i);
   if (HERO === 'genderuwo') return pakaiGenderuwo(i);
@@ -6527,7 +6528,8 @@ function tampilBlorong(T, dt) {
     _blV.copy(tp).applyMatrix4(inv); const r = .3 / u.scale.x * 1.05;
     Tk = blCampur(Tk, UL.sendi(B, UL.kurvaLilit(B, p0, [_blV.x, 0, _blV.z], r, Math.min(1, U.lk * 1.2), tt), p0), U.lk);
   }
-  const serang = T.cur === 'ularGigit' ? Math.sin(Math.min(1, fase / (BL.gigit.akhir * .8)) * Math.PI) * BL.gigit.condong : T.cur === 'ularTerkam' ? .4 : 0;
+  const gl = T.root.userData.blGigitT ? (performance.now() - T.root.userData.blGigitT) / 1000 : 9;   // patuk saat melilit (hanya tampilan lokal)
+  const serang = T.cur === 'ularGigit' ? Math.sin(Math.min(1, fase / (BL.gigit.akhir * .8)) * Math.PI) * BL.gigit.condong : T.cur === 'ularTerkam' ? .4 : T.cur === 'ularLilit' && gl < BL.gigit.akhir ? Math.sin(Math.min(1, gl / (BL.gigit.akhir * .8)) * Math.PI) * BL.gigit.condong : 0;
   _blQ.setFromAxisAngle(_blZ, Math.sin(tt * 2.2) * .04 * (1 - U.gel) + Math.sin(tt * 1.1) * .02); _blQ2.setFromAxisAngle(_blX, serang + U.lk * .12); _blQ.multiply(_blQ2);
   const o = UL.pecahkan(B, Tk, U.out, [_blQ.x, _blQ.y, _blQ.z, _blQ.w]);
   U.chain.forEach((b, k) => b.quaternion.set(o[k][0], o[k][1], o[k][2], o[k][3])); U.spine.quaternion.set(o.spine[0], o.spine[1], o.spine[2], o.spine[3]);
@@ -6537,7 +6539,7 @@ function tampilBlorong(T, dt) {
 }
 // ---- efek (lewat jaringan) ----
 const BL_TRAP = new Map();
-let BL_SISIK_MAT = null, BL_ULAR_GEO = null;
+let BL_SISIK_MAT = null, BL_ULAR_GEO = null, BL_ULAR_KEPALA = null;
 function blSisik(st, a, L, cb) {   // sisik emas berputar melesat (cb di HP pelempar: true = kena)
   if (!BL_SISIK_MAT) BL_SISIK_MAT = new THREE.MeshBasicMaterial({ color: BL.emas, side: THREE.DoubleSide, toneMapped: false });
   const g = new THREE.Mesh(new THREE.CircleGeometry(.16, 6), BL_SISIK_MAT); g.scale.set(1, 1.5, 1); g.position.copy(st).setY(1.15); scene.add(g);
@@ -6548,16 +6550,20 @@ function blSisik(st, a, L, cb) {   // sisik emas berputar melesat (cb di HP pele
 }
 function blUlarTanah(pos, lama = BL.s1.kunci) {   // ular hijau-emas muncul dari tanah di bawah kaki sasaran lalu melilit (spiral naik)
   if (!BL_ULAR_GEO) { const pts = []; for (let i = 0; i <= 64; i++) { const u = i / 64, a = u * Math.PI * 5; pts.push(new THREE.Vector3(Math.cos(a) * (.42 - u * .06), u * 1.35, Math.sin(a) * (.42 - u * .06))); }
-    BL_ULAR_GEO = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 120, .085, 8, false); }
+    for (let k = 1; k <= 8; k++) { const v = k / 8, a = Math.PI * 5 + v * .9, r = .36 + .14 * Math.sin(v * Math.PI); pts.push(new THREE.Vector3(Math.cos(a) * r, 1.35 + .3 * v, Math.sin(a) * r)); }   // leher: lanjut dari ujung lilitan, kepala menyambung di ujungnya
+    const kv = new THREE.CatmullRomCurve3(pts); BL_ULAR_GEO = new THREE.TubeGeometry(kv, 140, .085, 8, false); BL_ULAR_KEPALA = { p: kv.getPoint(1), t: kv.getTangentAt(1) }; }
   const g = new THREE.Group(); g.position.set(pos.x, 0, pos.z); scene.add(g);
   const badan = new THREE.Mesh(BL_ULAR_GEO, new THREE.MeshLambertMaterial({ color: 0x1f8a3a, emissive: 0x0a3a14 })); g.add(badan);
-  const kepala = new THREE.Mesh(new THREE.ConeGeometry(.13, .32, 6), new THREE.MeshLambertMaterial({ color: 0x2aa04a, emissive: 0x0f4a1a })); kepala.position.set(.36, 1.4, 0); kepala.rotation.z = -1.2; g.add(kepala);
-  const mata = new THREE.Mesh(new THREE.SphereGeometry(.035, 6, 4), new THREE.MeshBasicMaterial({ color: 0xffe040, toneMapped: false })); mata.position.set(.42, 1.45, .06); g.add(mata);
+  const kepala = new THREE.Group(), mKep = new THREE.MeshLambertMaterial({ color: 0x2aa04a, emissive: 0x0f4a1a }), mMata = new THREE.MeshBasicMaterial({ color: 0xffe040, toneMapped: false }), mLid = new THREE.MeshBasicMaterial({ color: 0xd02a2a, toneMapped: false });   // kepala = tepat di ujung badan, menghadap searah badan
+  const tk = new THREE.Mesh(new THREE.SphereGeometry(.12, 10, 8), mKep); tk.scale.set(1.55, .8, 1); tk.position.x = .08; kepala.add(tk);
+  [-1, 1].forEach(s => { const m = new THREE.Mesh(new THREE.SphereGeometry(.028, 6, 4), mMata); m.position.set(.15, .06, s * .075); kepala.add(m); });
+  const lidah = new THREE.Mesh(new THREE.BoxGeometry(.16, .012, .012), mLid); lidah.position.x = .33; kepala.add(lidah);
+  kepala.position.copy(BL_ULAR_KEPALA.p); kepala.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), BL_ULAR_KEPALA.t.clone().normalize()); g.add(kepala);
   retak(pos.clone(), 1, lama + .4); asap(pos.clone(), 6, 0x3a2a14, 1, .6); gelombang(pos.clone().setY(.05), 1.3, .5, BL.hijau); percik(pos.clone().setY(.3), 18, 0x8a6a3a, 3, .12);
   const total = lama + .5;
   TMFX.push({ t: 0, upd(e) { const q = e.t, naik = Math.min(1, q / .25), turun = q > total - .3 ? (total - q) / .3 : 1, s = Math.max(.01, naik * turun);
       g.scale.set(1, s, 1); g.rotation.y = q * 2.2; badan.material.emissive.setHex(q < .3 ? 0x2a8a3a : 0x0a3a14); if (Math.random() < .25) percik(g.position.clone().setY(1.2 * s), 2, BL.racun, 1, .06); return q < total; },
-    akhir() { scene.remove(g); badan.material.dispose(); kepala.geometry.dispose(); kepala.material.dispose(); mata.geometry.dispose(); mata.material.dispose(); } });
+    akhir() { scene.remove(g); badan.material.dispose(); kepala.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); mKep.dispose(); mMata.dispose(); mLid.dispose(); } });
 }
 function blTrap(pos, id, lama = BL.s2.lama) {   // jebakan kolam kecil — HANYA terlihat oleh pemilik & temannya
   if (MUSUH_KUMPUL) return;   // efek dari lawan: jebakannya tidak terlihat
@@ -6603,6 +6609,7 @@ function pakaiBlorong(i) {
   const pos = P.root.position, ul = BLS.ular > 0;
   if (i === 3) { blUbahWujud(!ul); return; }
   if (ul) {
+    if (i === 0 && P.state === 'blLilit') { blGigitLilit(); return; }   // sedang melilit: patuk sasaran tanpa memutus lilitan
     if (i === 0) { const m = terdekat(BL.gigit.jarak + 1); if (m) hadapKe(m.g.position); else if (K.bidik === 0 && K.diarahkan) P.arah = K.arahBidik;   // patuk
       P.state = 'blGigit'; mainUlang('ularGigit', .05); P.cd[0] = CD_MAX[0]; P.t = 0; P.hit = 0; return; }
     if (i === 1) { const acu = K.bidik === 1 && K.diarahkan ? tujuanLompat(BL.lilit.jarak) : null, m = blMusuhDekat(BL.lilit.jarak, acu);
@@ -6623,6 +6630,13 @@ function pakaiBlorong(i) {
     const t = K.bidik === 2 && K.diarahkan ? tujuanLompat(BL.s2.jarak) : batasi(pos.clone().addScaledVector(depan(), 3.5).setY(0)); hadapKe(t);
     BLS.taruhPos = t.clone().setY(0); P.state = 'blTaruh'; mainUlang('taruh', .08, BL.s2.tsTaruh); P.t = 0; P.hit = 0; P.cd[2] = BL.s2.jeda + BL.s2.akhirTaruh; return;
   }
+}
+function blGigitLilit() {   // serangan dasar wujud ular saat Lilitan: kena sasaran yang dililit (+ musuh lain di depan), lilitan tetap jalan
+  const pos = P.root.position, B = BL.gigit, L = BLS.lilit; if (!L || L.m.mati) return;
+  P.cd[0] = CD_MAX[0]; P.aksiDasar = true; P.blGigitT = performance.now(); P.root.userData.blGigitT = P.blGigitT; hadapKe(L.m.g.position);
+  setTimeout(() => { if (P.state !== 'blLilit' || !BLS.lilit || SELESAI) return; let ada = 0;
+    MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const ok = m === BLS.lilit.m || wgDalamKipas(pos, P.arah, m.g.position, B.jarak, B.sudut, m); if (ok) { kena(m, B.dmg, pos, 0); ada = 1; } });
+    fx('blGigit', pos.clone(), P.arah); if (ada) goyang = Math.max(goyang, .1); }, B.hit * 1000);
 }
 function blKenaDiJalur(dari, a, L, lebar, f) { const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a));
   MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const v = m.g.position.clone().sub(dari).setY(0), s = v.dot(d), pad = (m.wn && (m.wn.padat || (m.wn.besar ? 1.2 : 0))) || 0; if (s < -.3 || s > L + pad) return; if (v.addScaledVector(d, -s).length() < lebar / 2 + .4 + pad) f(m); }); }
