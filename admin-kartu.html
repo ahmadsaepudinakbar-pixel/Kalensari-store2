@@ -171,6 +171,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
               <label class="l">Warna tulisan<input class="f tN" id="kFg" type="color"></label>
             </div>
             <p class="note" style="margin:4px 0 0">Klik pratinjau = pindah kotak QR. Tahan <b>Shift</b> sambil klik = pindah kotak kode.</p>
+            <button class="btn gd sm" id="tAuto" style="margin-top:8px">🎯 Sesuaikan otomatis ke kotak putih</button>
             <div class="row" style="margin-top:14px">
               <button class="btn br" id="tZip">🗜️ ZIP gambar kartu (PNG)</button>
               <button class="btn gd" data-lembar="a4">🖨️ Lembar A4</button>
@@ -406,7 +407,7 @@ $("#muZip").onclick = async () => {
 const TDEF = { x: 72.75, y: 69.55, w: 21.8, h: 14.0, t: 10, r: 4, putih: true, isi: "kode", uk: "remi", pisah: true, kx: 75.6, ky: 83.85, kw: 15.2, kh: 2.15, kbg: "#053ea9", kfg: "#ffffff" };   // pas untuk contoh kartu Ocong 1024×1536
 let TS = (() => { try { const o = JSON.parse(localStorage.getItem("ks_kartu_tpl") || "{}"); if (o.pisah === undefined) return { ...TDEF }; return Object.assign({}, TDEF, o); } catch (e) { return { ...TDEF }; } })();
 let TIMG = null;
-const tSimpan = () => { try { localStorage.setItem("ks_kartu_tpl", JSON.stringify(TS)); } catch (e) {} };
+const tSimpan = () => { try { const j = JSON.stringify(TS); localStorage.setItem("ks_kartu_tpl", j); if (typeof TAKTIF !== "undefined" && TAKTIF) localStorage.setItem("ks_kartu_tpl_" + TAKTIF, j); } catch (e) {} };
 const isiQR = k => TS.isi === "link" ? LINK + k : k;
 function tIsiForm() { $("#tX").value = TS.x; $("#tY").value = TS.y; $("#tW").value = TS.w; $("#tH").value = TS.h; $("#tT").value = TS.t; $("#tR").value = TS.r; $("#tPutih").checked = TS.putih; $("#tIsi").value = TS.isi; $("#tUk").value = TS.uk || "remi"; tLabelLembar(); $("#tPisah").checked = TS.pisah; $("#kX").value = TS.kx; $("#kY").value = TS.ky; $("#kW").value = TS.kw; $("#kH").value = TS.kh; $("#kBg").value = TS.kbg; $("#kFg").value = TS.kfg; $("#tKotak").hidden = !TS.pisah; $("#tT").closest("label").hidden = TS.pisah; }
 async function tMulai() {
@@ -481,7 +482,7 @@ async function gMuat() {
   let a = null; try { a = localStorage.getItem("ks_kartu_tpl_aktif"); } catch (e) {}
   const g = GTPL.find(x => x.id === a) || GTPL[GTPL.length - 1];
   GOK = true; gRender(); kjMuat();
-  if (g) await gPakai(g.id);
+  if (g) await gPakai(g.id, true);
 }
 function gRender() {
   $("#gInfo").textContent = GTPL.length ? `${GTPL.length} gambar tersimpan · ketuk gambar untuk memakainya` : "Belum ada gambar tersimpan. Unggah gambar kartu di atas.";
@@ -494,12 +495,12 @@ async function gTambah(files) {
     try { o = await gSimpan(f, f.name); n++; $("#gInfo").textContent = `Mengunggah… ${n}/${files.length}`; } catch (e) { toast("Gagal menyimpan " + f.name + ": " + pesanG(e), 6000); } }
   if (o) await gPakai(o.id); else gRender();
 }
-async function gPakai(id) {
+async function gPakai(id, awal) {
   const g = GTPL.find(x => x.id === id); if (!g) return; TAKTIF = id;
   try { localStorage.setItem("ks_kartu_tpl_aktif", id); } catch (e) {}
   try { if (!GCACHE[id]) { $("#gInfo").textContent = "Memuat gambar…"; GCACHE[id] = URL.createObjectURL(await sAmbil(g.path)); } await tMuatGambar(GCACHE[id]); }
   catch (e) { gRender(); return toast("Gambar tidak bisa dibuka: " + pesanG(e), 5000); }
-  gRender(); tGambarPrev();
+  tTerapkan(id, awal); gRender(); tGambarPrev();
 }
 function gLupa(id) { if (GCACHE[id]) { URL.revokeObjectURL(GCACHE[id]); delete GCACHE[id]; } }
 async function gHapus(id) {
@@ -517,6 +518,36 @@ $("#gHapusSemua").onclick = async () => {
   gRender(); tGambarPrev(); toast("Semua gambar dihapus");
 };
 $("#tFile").onchange = async e => { const fs = [...e.target.files]; e.target.value = ""; if (!fs.length) return; if (!GOK) await gMuat(); await gTambah(fs); };
+
+/* ---------- sesuaikan otomatis: cari kotak putih di gambar → QR di atas, kode unik di strip bawahnya ---------- */
+function tDeteksi() {
+  const W0 = TIMG.naturalWidth, H0 = TIMG.naturalHeight, k = Math.min(1, 500 / W0), w = Math.round(W0 * k), h = Math.round(H0 * k);
+  const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(TIMG, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data, wh = new Uint8Array(w * h), seen = new Uint8Array(w * h); let best = null;
+  for (let i = 0; i < w * h; i++) wh[i] = d[i * 4] > 240 && d[i * 4 + 1] > 240 && d[i * 4 + 2] > 240 ? 1 : 0;
+  for (let s0 = 0; s0 < w * h; s0++) { if (!wh[s0] || seen[s0]) continue;
+    const st = [s0]; seen[s0] = 1; let n = 0, x0 = w, x1 = 0, y0 = h, y1 = 0;
+    while (st.length) { const q = st.pop(), px = q % w, py = (q / w) | 0; n++; if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
+      if (px > 0 && wh[q - 1] && !seen[q - 1]) { seen[q - 1] = 1; st.push(q - 1); } if (px < w - 1 && wh[q + 1] && !seen[q + 1]) { seen[q + 1] = 1; st.push(q + 1); }
+      if (py > 0 && wh[q - w] && !seen[q - w]) { seen[q - w] = 1; st.push(q - w); } if (py < h - 1 && wh[q + w] && !seen[q + w]) { seen[q + w] = 1; st.push(q + w); } }
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+    if (n > w * h * 0.01 && n / (bw * bh) > 0.8 && bh > bw * 0.5 && bw > bh * 0.5 && (y0 + y1) / 2 > h * 0.5 && (!best || n > best.n)) best = { n, x0, y0, bw, bh }; }
+  return best && { x: best.x0 / w, y: best.y0 / h, w: best.bw / w, h: best.bh / h };
+}
+function tAuto(diam) {
+  const b = tDeteksi(); if (!b) { if (!diam) toast("Kotak putih tidak ditemukan, atur manual lewat angka", 5000); return false; }
+  const W = TIMG.naturalWidth, H = TIMG.naturalHeight, m = 0.04 * Math.min(b.w * W, b.h * H), ix = b.x * W + m, iy = b.y * H + m, iw = b.w * W - 2 * m, ih = b.h * H - 2 * m;
+  const kh = ih * 0.12, qh = ih - kh - ih * 0.016, r2 = v => +v.toFixed(2);
+  Object.assign(TS, { x: r2(ix / W * 100), y: r2(iy / H * 100), w: r2(iw / W * 100), h: r2(qh / H * 100), pisah: true, putih: false,
+    kx: r2(ix / W * 100), ky: r2((iy + ih - kh) / H * 100), kw: r2(iw / W * 100), kh: r2(kh / H * 100), kbg: "#ffffff", kfg: "#111111" });
+  tSimpan(); tIsiForm(); tGambarPrev(); if (!diam) toast("Posisi QR dan kode disesuaikan dengan kotak putih"); return true;
+}
+function tTerapkan(id, awal) {
+  let sv = null; try { sv = JSON.parse(localStorage.getItem("ks_kartu_tpl_" + id) || "null"); } catch (e) {}
+  if (sv) Object.assign(TS, TDEF, sv); else if (awal) tSimpan(); else tAuto(true);
+  tIsiForm();
+}
+$("#tAuto").onclick = () => { if (!TIMG) return toast("Pilih gambar kartu dulu"); tAuto(false); };
 
 /* kartu jadi */
 async function kjMuat() { try { KJ = (await tbl("?jenis=eq.jadi&select=id,kode,batch,path,th,tpl&order=kode.asc&limit=1000")).data || []; } catch (e) { KJ = []; } kjRender(); }
