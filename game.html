@@ -3044,8 +3044,11 @@ function rapikan(clip, model) {   // buang geseran mendatar animasi (posisi diat
 const CACHE = {};
 // grafis Rendah & Sedang (pengaturan game 3D): model ringan dari model-3d-hp/ · Tinggi: model asli
 function urlModelHP(u) { let lv = /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 1 : 2; try { const s = localStorage.getItem('uji3dKual'); if (s !== null) lv = +s; } catch (e) { } return (lv < 2 && typeof u === 'string' && u.startsWith('model-3d/')) ? 'model-3d-hp/' + u.slice(9) : u; }
-function muatModel(url) {
-  url = urlModelHP(url);
+function muatModel(url) {   // versi ringan (model-3d-hp/) belum diunggah → otomatis pakai model asli
+  const hp = urlModelHP(url); if (hp === url) return muatModelU(url);
+  return CACHE['hp:' + hp] || (CACHE['hp:' + hp] = muatModelU(hp).catch(() => { delete CACHE[hp]; return muatModelU(url); }));
+}
+function muatModelU(url) {
   return CACHE[url] || (CACHE[url] = new Promise((res, rej) => new GLTFLoader().load(url, gl => {
     const cari = l => { for (const n of l) { const c = gl.animations.find(a => a.name.toLowerCase().includes(n)); if (c) return c; } return null; };
     const diam = gl.animations.find(a => a.name === 'diamN') || gl.animations.find(a => a.name === 'diam') || cari(['idle', 'diamKaki', 'diam', 'melayang', 'pocong']) || gl.animations[0] || null, jalan = (/siliwangi/.test(url) && gl.animations.find(a => a.name === 'jalan')) || cari(['hop', 'jalanKaki', 'lari', 'jalan', 'run']) || diam;   // Prabu: 'jalan' 0,8 dtk
