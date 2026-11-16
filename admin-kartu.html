@@ -60,6 +60,14 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
 .mono{font-family:"Courier New",monospace;font-weight:700;letter-spacing:.5px}
 .chk{display:flex;gap:6px;align-items:center;font-size:14px}
 @media(max-width:640px){.tgrid{grid-template-columns:1fr!important}}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.gi{position:relative;border:2px solid var(--ln);border-radius:10px;overflow:hidden;background:#fff;cursor:pointer}
+.gi.on{border-color:var(--br);box-shadow:0 0 0 2px var(--br)}
+.gi img{display:block;width:100%;aspect-ratio:63/88;object-fit:cover}
+.gi small{display:block;padding:3px 4px;font:700 10px "Courier New",monospace;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gi .x,.gi .dl{position:absolute;top:4px;width:30px;height:30px;border:0;border-radius:50%;background:#000b;color:#fff;font-size:14px;line-height:1;padding:0}
+.gi .x{right:4px}.gi .dl{left:4px}
+.kj{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
 </style>
 </head>
 <body>
@@ -134,7 +142,10 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
           <div><canvas id="tPrev" style="width:100%;border-radius:12px;border:1px solid var(--ln);cursor:crosshair;background:#eee"></canvas>
             <div class="note" id="tInfo">Belum ada gambar.</div></div>
           <div>
-            <label class="l">Gambar kartu (PNG/JPG)<input class="f" type="file" id="tFile" accept="image/*"></label>
+            <label class="l">Gambar kartu (PNG/JPG, boleh banyak sekaligus)<input class="f" type="file" id="tFile" accept="image/*" multiple></label>
+            <div class="note" id="gInfo" style="margin:6px 0 4px"></div>
+            <div class="gal" id="gGal"></div>
+            <button class="btn rd sm" id="gHapusSemua" hidden style="margin-top:8px">🗑️ Hapus semua gambar</button>
             <div class="grid">
               <label class="l">Batch kode<select class="f" id="tBatch"></select></label>
               <label class="l">Kode yang dipakai<select class="f" id="tStatus"><option value="belum">Belum diklaim</option><option value="semua">Semua</option></select></label>
@@ -169,6 +180,14 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
             <div class="note" id="tProg" style="margin-top:8px"></div>
           </div>
         </div>
+      </div>
+      <div class="card"><h3>✅ Kartu jadi</h3>
+        <p class="note" style="margin-top:0">Simpan hasil kartu (gambar + QR + kode) dari batch yang dipilih di atas ke galeri ini, lalu lihat, unduh satuan, atau hapus. Galeri tersimpan di Supabase (privat, hanya admin), jadi sama di semua perangkat. Menghapus kartu di sini tidak menghapus kodenya; kode dikelola di tab Daftar Kartu. Untuk hasil resolusi penuh, tetap pakai ZIP atau lembar cetak.</p>
+        <div class="row"><button class="btn br" id="kjSimpan">💾 Simpan kartu batch ini ke galeri</button>
+          <select class="f" id="kjFilter"><option value="">Semua batch</option></select>
+          <button class="btn rd" id="kjSemua" hidden>🗑️ Hapus semua kartu jadi</button></div>
+        <div class="note" id="kjInfo" style="margin:8px 0"></div>
+        <div class="gal kj" id="kjGal"></div>
       </div>
     </section>
   </main>
@@ -394,7 +413,7 @@ async function tMulai() {
   tIsiForm();
   if (!RK) try { RK = await rpc("game_admin_ringkas"); } catch (e) {}
   const sel = $("#tBatch"), v = sel.value; sel.innerHTML = (RK && RK.batch.length ? RK.batch : []).map(b => `<option>${esc(b.batch)}</option>`).join("") || `<option value="">(belum ada batch)</option>`; if (v) sel.value = v;
-  if (!TIMG) { try { const d = localStorage.getItem("ks_kartu_tpl_img"); if (d) await tMuatGambar(d); } catch (e) {} }
+  if (!GOK) await gMuat();
   tGambarPrev();
 }
 function tMuatGambar(src) { return new Promise((ok, no) => { const im = new Image(); im.onload = () => { TIMG = im; ok(); }; im.onerror = no; im.src = src; }); }
@@ -427,8 +446,114 @@ function tGambarPrev() {
 }
 let TKODE = [];
 const tContoh = () => TKODE[0] ? TKODE[0].kode : "KLS-OCG-7F3K9Q";
-$("#tFile").onchange = async e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader();
-  rd.onload = async () => { await tMuatGambar(rd.result); try { localStorage.setItem("ks_kartu_tpl_img", rd.result); } catch (x) {} tGambarPrev(); }; rd.readAsDataURL(f); };
+/* ---------- GALERI gambar kartu & KARTU JADI (Supabase: tabel kartu_galeri + bucket privat kartu-galeri) ---------- */
+let GTPL = [], KJ = [], TAKTIF = null, GOK = false;
+const BKT = "kartu-galeri", GCACHE = {};
+const pesanG = e => /kartu_galeri|PGRST20|relation|bucket/i.test(e.message) ? "Galeri belum dipasang. Jalankan supabase-kartu-galeri.sql di Supabase dulu." : e.message;
+async function stor(path, opt = {}) {
+  try { await fresh(); } catch (e) { tampilLogin(); throw new Error("Sesi admin berakhir, silakan masuk lagi."); }
+  const r = await fetch(`${BASE}/storage/v1/${path}`, { ...opt, headers: { apikey: CFG.supabaseAnonKey, Authorization: "Bearer " + auth.access_token, ...(opt.headers || {}) } });
+  if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.message || j.error || ("HTTP " + r.status)); }
+  return r;
+}
+const sNaik = (p, blob) => stor(`object/${BKT}/${p}`, { method: "POST", body: blob, headers: { "Content-Type": blob.type || "image/jpeg", "x-upsert": "true" } });
+const sAmbil = async p => (await stor(`object/authenticated/${BKT}/${p}`)).blob();
+const sHapus = async ps => { for (const c of potong(ps, 100)) await stor(`object/${BKT}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prefixes: c }) }); };
+const tbl = (q, opt) => api("kartu_galeri" + q, opt);
+const potong = (a, n) => { const r = []; for (let i = 0; i < a.length; i += n) r.push(a.slice(i, i + n)); return r; };
+const hapusBaris = async ids => { for (const c of potong(ids, 50)) await tbl(`?id=in.(${c.join(",")})`, { method: "DELETE", headers: { Prefer: "return=minimal" } }); };
+const idBaru = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const imgDari = src => new Promise((ok, no) => { const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = src; });
+const kecil = (im, w) => { const c = document.createElement("canvas"); c.width = w; c.height = Math.round(im.height * w / im.width); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); return c.toDataURL("image/jpeg", .75); };
+
+async function gSimpan(blob, nama) {
+  const u = URL.createObjectURL(blob); let th; try { th = kecil(await imgDari(u), 240); } finally { URL.revokeObjectURL(u); }
+  const id = idBaru(), ext = { "image/png": "png", "image/webp": "webp" }[blob.type] || "jpg", path = `tpl/${id}.${ext}`;
+  await sNaik(path, blob);
+  const o = { id, jenis: "tpl", nama, path, th };
+  try { await tbl("", { method: "POST", body: JSON.stringify(o), headers: { Prefer: "return=minimal" } }); } catch (e) { sHapus([path]).catch(() => {}); throw e; }
+  GTPL.push(o); return o;
+}
+async function gMuat() {
+  try { GTPL = (await tbl("?jenis=eq.tpl&select=id,nama,path,th&order=dibuat.asc")).data || []; } catch (e) { GTPL = []; toast(pesanG(e), 6000); }
+  try { const lama = localStorage.getItem("ks_kartu_tpl_img");   // pindahkan satu gambar lama (versi sebelumnya) ke galeri
+    if (lama) { if (!GTPL.length) await gSimpan(await (await fetch(lama)).blob(), "Gambar sebelumnya"); localStorage.removeItem("ks_kartu_tpl_img"); } } catch (e) {}
+  let a = null; try { a = localStorage.getItem("ks_kartu_tpl_aktif"); } catch (e) {}
+  const g = GTPL.find(x => x.id === a) || GTPL[GTPL.length - 1];
+  GOK = true; gRender(); kjMuat();
+  if (g) await gPakai(g.id);
+}
+function gRender() {
+  $("#gInfo").textContent = GTPL.length ? `${GTPL.length} gambar tersimpan · ketuk gambar untuk memakainya` : "Belum ada gambar tersimpan. Unggah gambar kartu di atas.";
+  $("#gHapusSemua").hidden = !GTPL.length;
+  $("#gGal").innerHTML = GTPL.map(g => `<div class="gi${g.id === TAKTIF ? " on" : ""}" onclick="gPakai('${g.id}')" title="${esc(g.nama)}"><img src="${g.th}" alt="${esc(g.nama)}"><button class="x" onclick="event.stopPropagation();gHapus('${g.id}')" aria-label="Hapus gambar">✕</button></div>`).join("");
+}
+async function gTambah(files) {
+  let o = null, n = 0; $("#gInfo").textContent = "Mengunggah…";
+  for (const f of files) { if (!/^image\//.test(f.type)) continue;
+    try { o = await gSimpan(f, f.name); n++; $("#gInfo").textContent = `Mengunggah… ${n}/${files.length}`; } catch (e) { toast("Gagal menyimpan " + f.name + ": " + pesanG(e), 6000); } }
+  if (o) await gPakai(o.id); else gRender();
+}
+async function gPakai(id) {
+  const g = GTPL.find(x => x.id === id); if (!g) return; TAKTIF = id;
+  try { localStorage.setItem("ks_kartu_tpl_aktif", id); } catch (e) {}
+  try { if (!GCACHE[id]) { $("#gInfo").textContent = "Memuat gambar…"; GCACHE[id] = URL.createObjectURL(await sAmbil(g.path)); } await tMuatGambar(GCACHE[id]); }
+  catch (e) { gRender(); return toast("Gambar tidak bisa dibuka: " + pesanG(e), 5000); }
+  gRender(); tGambarPrev();
+}
+function gLupa(id) { if (GCACHE[id]) { URL.revokeObjectURL(GCACHE[id]); delete GCACHE[id]; } }
+async function gHapus(id) {
+  const g = GTPL.find(x => x.id === id); if (!g || !confirm(`Hapus gambar “${g.nama}” dari galeri?`)) return;
+  try { await hapusBaris([id]); } catch (e) { return toast("Gagal menghapus: " + pesanG(e), 5000); }
+  sHapus([g.path]).catch(() => {}); gLupa(id); GTPL = GTPL.filter(x => x.id !== id);
+  if (TAKTIF === id) { TAKTIF = null; TIMG = null; try { localStorage.removeItem("ks_kartu_tpl_aktif"); } catch (e) {} if (GTPL.length) return gPakai(GTPL[GTPL.length - 1].id); }
+  gRender(); tGambarPrev(); toast("Gambar dihapus");
+}
+$("#gHapusSemua").onclick = async () => {
+  if (!GTPL.length || !confirm(`Hapus semua ${GTPL.length} gambar di galeri?`)) return;
+  try { await tbl("?jenis=eq.tpl", { method: "DELETE", headers: { Prefer: "return=minimal" } }); } catch (e) { return toast("Gagal menghapus: " + pesanG(e), 5000); }
+  sHapus(GTPL.map(g => g.path)).catch(() => {}); GTPL.forEach(g => gLupa(g.id));
+  GTPL = []; TAKTIF = null; TIMG = null; try { localStorage.removeItem("ks_kartu_tpl_aktif"); } catch (e) {}
+  gRender(); tGambarPrev(); toast("Semua gambar dihapus");
+};
+$("#tFile").onchange = async e => { const fs = [...e.target.files]; e.target.value = ""; if (!fs.length) return; if (!GOK) await gMuat(); await gTambah(fs); };
+
+/* kartu jadi */
+async function kjMuat() { try { KJ = (await tbl("?jenis=eq.jadi&select=id,kode,batch,path,th,tpl&order=kode.asc&limit=1000")).data || []; } catch (e) { KJ = []; } kjRender(); }
+const kjTampil = () => KJ.filter(k => !$("#kjFilter").value || k.batch === $("#kjFilter").value);
+function kjRender() {
+  const sel = $("#kjFilter"), v = sel.value, bs = [...new Set(KJ.map(k => k.batch))];
+  sel.innerHTML = `<option value="">Semua batch</option>` + bs.map(b => `<option>${esc(b)}</option>`).join(""); sel.value = bs.includes(v) ? v : "";
+  const L = kjTampil();
+  $("#kjInfo").textContent = KJ.length ? `${L.length} kartu tampil dari ${KJ.length} tersimpan${KJ.length >= 1000 ? " (maksimal 1000 pertama ditampilkan)" : ""}` : "Belum ada kartu jadi di galeri.";
+  $("#kjSemua").hidden = !L.length; $("#kjSemua").textContent = sel.value ? "🗑️ Hapus kartu batch ini" : "🗑️ Hapus semua kartu jadi";
+  $("#kjGal").innerHTML = L.map(k => `<div class="gi" onclick="kjUnduh('${k.id}')" title="Ketuk untuk mengunduh"><img src="${k.th}" alt="${esc(k.kode)}"><small>${esc(k.kode)}</small><button class="x" onclick="event.stopPropagation();kjHapus('${k.id}')" aria-label="Hapus kartu">✕</button></div>`).join("");
+}
+$("#kjFilter").onchange = kjRender;
+$("#kjSimpan").onclick = async () => {
+  if (!TIMG) return toast("Pilih gambar kartu dulu"); const b = $("#kjSimpan"); b.disabled = true;
+  try { const ks = await tAmbilKode(); if (!ks.length) return toast("Tidak ada kode di batch ini"); const batch = $("#tBatch").value; let n = 0;
+    for (const grup of potong(ks, 4)) {
+      const baris = await Promise.all(grup.map(async k => {
+        const c = tKartu(k.kode, Math.min(1, 1200 / TIMG.naturalWidth)), blob = await new Promise(r => c.toBlob(r, "image/jpeg", .92)), path = `jadi/${k.kode}.jpg`;
+        await sNaik(path, blob); return { id: "j-" + k.kode, jenis: "jadi", kode: k.kode, batch, tpl: TAKTIF, path, th: kecil(c, 160) }; }));
+      await tbl("", { method: "POST", body: JSON.stringify(baris), headers: { Prefer: "resolution=merge-duplicates,return=minimal" } });
+      n += grup.length; $("#tProg").textContent = `Menyimpan kartu ${n}/${ks.length}…`; }
+    $("#tProg").textContent = `✅ ${ks.length} kartu disimpan ke galeri kartu jadi`; await kjMuat();
+  } catch (e) { toast(pesanG(e), 6000); } finally { b.disabled = false; }
+};
+async function kjHapus(id) {
+  const k = KJ.find(x => x.id === id); if (!k || !confirm(`Hapus kartu ${k.kode} dari galeri?`)) return;
+  try { await hapusBaris([id]); sHapus([k.path]).catch(() => {}); KJ = KJ.filter(x => x.id !== id); kjRender(); toast("Kartu dihapus"); } catch (e) { toast("Gagal menghapus: " + pesanG(e), 5000); }
+}
+$("#kjSemua").onclick = async () => {
+  const L = kjTampil(); if (!L.length || !confirm(`Hapus ${L.length} kartu jadi dari galeri?`)) return;
+  try { await hapusBaris(L.map(k => k.id)); sHapus(L.map(k => k.path)).catch(() => {}); const ids = new Set(L.map(k => k.id)); KJ = KJ.filter(k => !ids.has(k.id)); kjRender(); toast(`${L.length} kartu dihapus`); } catch (e) { toast("Gagal menghapus: " + pesanG(e), 5000); }
+};
+async function kjUnduh(id) {
+  const k = KJ.find(x => x.id === id); if (!k) return;
+  try { const bl = await sAmbil(k.path), a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = k.kode + ".jpg"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } catch (e) { toast("Gagal mengunduh: " + pesanG(e), 5000); }
+}
 document.querySelectorAll(".tN").forEach(i => i.oninput = () => { TS.x = +$("#tX").value; TS.y = +$("#tY").value; TS.w = +$("#tW").value; TS.h = +$("#tH").value; TS.t = +$("#tT").value; TS.r = +$("#tR").value; TS.kx = +$("#kX").value; TS.ky = +$("#kY").value; TS.kw = +$("#kW").value; TS.kh = +$("#kH").value; TS.kbg = $("#kBg").value; TS.kfg = $("#kFg").value; tSimpan(); tGambarPrev(); });
 $("#tPisah").onchange = () => { TS.pisah = $("#tPisah").checked; tSimpan(); tIsiForm(); tGambarPrev(); };
 $("#tPutih").onchange = () => { TS.putih = $("#tPutih").checked; tSimpan(); tGambarPrev(); };
