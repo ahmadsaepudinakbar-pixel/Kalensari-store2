@@ -180,7 +180,7 @@ th{font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.4px}
               <label class="l">Warna tulisan<input class="f tN" id="kFg" type="color"></label>
             </div>
             <p class="note" style="margin:4px 0 0">Klik pratinjau = pindah kotak QR. Tahan <b>Shift</b> sambil klik = pindah kotak kode.</p>
-            <button class="btn gd sm" id="tAuto" style="margin-top:8px">🎯 Sesuaikan otomatis ke kotak putih</button>
+            <button class="btn gd sm" id="tAuto" style="margin-top:8px">🎯 Sesuaikan otomatis</button>
             <div class="row" style="margin-top:14px">
               <button class="btn br" id="tZip">🗜️ ZIP gambar kartu (PNG)</button>
               <button class="btn gd" data-lembar="a4">🖨️ Lembar A4</button>
@@ -422,7 +422,7 @@ $("#muZip").onclick = async () => {
 };
 
 /* ---------- TEMPLATE KARTU: gambar desain + QR asli + kode manual ---------- */
-const TDEF = { x: 64.7, y: 72.7, w: 26.1, h: 18.4, t: 10, r: 4.5, putih: false, isi: "kode", uk: "ktp", pisah: true, kx: 64.3, ky: 94.7, kw: 26.6, kh: 2.6, kbg: "#ffffff", kfg: "#111111" };   // pas untuk kartu Wewe Gombel 1024×1536 (kotak putih besar di kanan bawah)
+const TDEF = { x: 64.8, y: 72.7, w: 26.1, h: 18.4, t: 10, r: 4.5, putih: false, isi: "kode", uk: "ktp", pisah: true, kx: 63.8, ky: 94.7, kw: 27, kh: 2.7, kbg: "#000000", kfg: "#ffffff" };   // pas untuk kartu Wewe Gombel 1024×1536 (kotak putih besar di kanan bawah)
 let TS = (() => { try { const o = JSON.parse(localStorage.getItem("ks_kartu_tpl") || "{}"); if (o.pisah === undefined) return { ...TDEF }; return Object.assign({}, TDEF, o); } catch (e) { return { ...TDEF }; } })();
 let TIMG = null;
 const tSimpan = () => { try { const j = JSON.stringify(TS); localStorage.setItem("ks_kartu_tpl", j); if (typeof TAKTIF !== "undefined" && TAKTIF) localStorage.setItem("ks_kartu_tpl_" + TAKTIF, j); } catch (e) {} };
@@ -559,12 +559,10 @@ function tDeteksi() {
   return best && { x: best.x0 / w, y: best.y0 / h, w: best.bw / w, h: best.bh / h };
 }
 function tAuto(diam) {
-  const b = tDeteksi(); if (!b) { if (!diam) toast("Kotak putih tidak ditemukan, atur manual lewat angka", 5000); return false; }
-  const W = TIMG.naturalWidth, H = TIMG.naturalHeight, m = 0.04 * Math.min(b.w * W, b.h * H), ix = b.x * W + m, iy = b.y * H + m, iw = b.w * W - 2 * m, ih = b.h * H - 2 * m;
-  const kh = ih * 0.12, qh = ih - kh - ih * 0.016, r2 = v => +v.toFixed(2);
-  Object.assign(TS, { x: r2(ix / W * 100), y: r2(iy / H * 100), w: r2(iw / W * 100), h: r2(qh / H * 100), pisah: true, putih: false,
-    kx: r2(ix / W * 100), ky: r2((iy + ih - kh) / H * 100), kw: r2(iw / W * 100), kh: r2(kh / H * 100), kbg: "#ffffff", kfg: "#111111" });
-  tSimpan(); tIsiForm(); tGambarPrev(); if (!diam) toast("Posisi QR dan kode disesuaikan dengan kotak putih"); return true;
+  // Sesuaikan otomatis = terapkan setelan baku kartu Kalensari (QR + kode manual di kotak sendiri)
+  const P = { x: 64.8, y: 72.7, w: 26.1, h: 18.4, r: 4.5, pisah: true, putih: false, kx: 63.8, ky: 94.7, kw: 27, kh: 2.7, kbg: "#000000", kfg: "#ffffff" };
+  Object.assign(TS, P);
+  tSimpan(); tIsiForm(); tGambarPrev(); if (!diam) toast("Posisi QR dan kode disesuaikan otomatis"); return true;
 }
 function tTerapkan(id, awal) {
   let sv = null; try { sv = JSON.parse(localStorage.getItem("ks_kartu_tpl_" + id) || "null"); } catch (e) {}
