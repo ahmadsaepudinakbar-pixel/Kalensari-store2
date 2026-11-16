@@ -6432,6 +6432,16 @@ function wgLamaPulang(j) { return j <= 5 ? 1 : j <= 10 ? 1.5 : j <= 15 ? 2 : 2.5
 function wgMulaiPulang(pos) { const B = WGS.bambu.pos, j = Math.hypot(B.x - pos.x, B.z - pos.z); P.awal = pos.clone(); P.tujuan = B.clone(); P.pulangLama = wgLamaPulang(j); P.state = 'wgPulang'; P.t = 0; P.hit = 0; main(P.act.terbang ? 'terbang' : 'melayang', .1); }
 function wgBambuSelesai() { if (WGS.bambu) { fx('wgBambuHapus', WGS.bambu.id); WGS.bambu = null; } P.cd[3] = CD_MAX[3]; }   // bambu hilang → cooldown ulti baru berjalan
 function wgBambuHapus(id) { const B = WG_BAMBU.get(id); if (B) B.umur = 0; }
+function wgCakarFx(pos, a, kuat, ada) {   // 3 goresan cakar merah melengkung menyapu di depan Wewe (pukulan ke-3: lebih besar + ungu)
+  const g = new THREE.Group(); g.position.copy(pos).setY(1.05); g.rotation.y = a; scene.add(g); const R = kuat ? 1.25 : .95, warna = kuat ? 0xc040ff : WG.merah, bh = [];
+  for (let k = 0; k < 3; k++) { const b = new THREE.MeshBasicMaterial({ color: k === 1 ? 0xffd0d0 : warna, transparent: true, opacity: .95, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false });
+    const o = new THREE.Mesh(new THREE.TorusGeometry(R + (k - 1) * .13, kuat ? .045 : .03, 4, 18, Math.PI * .75), b); o.rotation.set(Math.PI / 2 + (k - 1) * .08, 0, Math.PI * .125 + (kuat ? .25 : 0)); o.position.y = (k - 1) * .12; g.add(o); bh.push(b); }
+  g.rotation.z = kuat ? -.5 : .35 * (Math.random() < .5 ? -1 : 1);
+  const ujung = pos.clone().add(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)).multiplyScalar(1.1)).setY(1.1);
+  if (ada) { percik(ujung, kuat ? 16 : 9, warna, kuat ? 3 : 2, .08); nyala(ujung.clone(), kuat ? 1.1 : .7, warna, .12); } else percik(ujung, 4, warna, 1.5, .06);
+  TMFX.push({ t: 0, upd(e) { const q = e.t / .22; g.rotation.y = a + (q - .5) * 1.1; g.scale.setScalar(1 + q * .25); bh.forEach(b => b.opacity = Math.max(0, .95 * (1 - q))); return q < 1; },
+    akhir() { scene.remove(g); g.children.forEach(o => o.geometry.dispose()); bh.forEach(b => b.dispose()); } });
+}
 function wgHilangFx(p) { asap(p.clone(), KUAL.lv === 0 ? 6 : 12, 0x2a1010, 1.4, .8); gelombang(p.clone().setY(.05), 1.6, .5, WG.merah); percik(p.clone().setY(1.2), 14, WG.merah, 2.4, .1); }
 function wgJatuhkan(p) { asap(p.clone(), 8, 0x3a2020, 1.4, .7); gelombang(p.clone().setY(.05), 2, .45, WG.merah); retak(p.clone(), 1.2, 1, 1); kilat(p, 50); goyang = Math.max(goyang, .3); }
 // ---- memakai skill ----
@@ -6487,7 +6497,9 @@ function wgTidurkan(m) {   // mengantuk 1 dtk (slow) → tertidur 1,5 dtk (stun 
   const T = WG.tembang; lambatkan(m, T.kantuk + .1);
   WGS.tidur.push({ m, t: T.kantuk });
 }
-function wgDalamKipas(asal, a, p, R, sudut) { const v = p.clone().sub(asal).setY(0), L = v.length(); if (L > R) return false; if (L < .7) return true; return v.normalize().angleTo(new THREE.Vector3(Math.sin(a), 0, Math.cos(a))) <= sudut; }
+function wgDalamKipas(asal, a, p, R, sudut, m) {   // m: sasaran — Rumah/Garuda/Singa berbadan besar: jarak diukur ke tepi badannya (padat)
+  const pad = (m && m.wn && (m.wn.padat || (m.wn.besar ? 1.2 : 0))) || 0, v = p.clone().sub(asal).setY(0), L = v.length(); if (L - pad > R) return false; if (L < .7 + pad) return true;
+  return v.normalize().angleTo(new THREE.Vector3(Math.sin(a), 0, Math.cos(a))) <= sudut + Math.atan(pad / Math.max(.1, L)); }
 function wgBolehCulik(m) { return m && !m.mati && !m.sembunyi && !m.wn && !m.macanId && !m.kembarId && !m.bukanHero; }
 function updWewe(dt, pos, f) {
   const t = P.t; updBidik();
@@ -6533,21 +6545,21 @@ function updWewe(dt, pos, f) {
   else if (P.state === 'wgCakar') {   // kombo cakar: Right Hook → Zombie Punching → Uppercut
     const B = WG.cakar, K3 = WGS.k3 || WG.pukul[0];
     if (t > K3.hit && !P.hit) { P.hit = 1; let ada = 0;
-      MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && wgDalamKipas(pos, P.arah, m.g.position, B.jarak, B.sudut)) { kena(m, K3.dmg, pos, K3.dorong); wgCatat(m); ada = 1; } });
-      fx('percik', pos.clone().addScaledVector(depan(), 1).setY(1.1), ada ? 10 : 4, WG.merah, 2, .08); if (ada) goyang = Math.max(goyang, K3.dorong > 3 ? .16 : .06); }
+      MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && wgDalamKipas(pos, P.arah, m.g.position, B.jarak, B.sudut, m)) { kena(m, K3.dmg, pos, m.wn ? 0 : K3.dorong); wgCatat(m); ada = 1; } });
+      fx('wgCakar', pos.clone(), P.arah, WGS.combo === 0 ? 1 : 0, ada ? 1 : 0); if (ada) goyang = Math.max(goyang, K3.dorong > 3 ? .16 : .06); }
     if (t > K3.akhir) { P.state = 'bebas'; }
   }
   else if (P.state === 'wgLempar') {   // Bayi Merangkak
     const B = WG.bayi;
     if (t > B.rilis && !P.hit) { P.hit = 1; const a = P.arah, st = pos.clone().addScaledVector(depan(), .6); let kenaM = null;
-      fx('wgBayi', st, a, B.jarak, q => { if (kenaM) return true; const m = MUSUH.find(m => !m.mati && !m.sembunyi && Math.hypot(m.g.position.x - q.x, m.g.position.z - q.z) < .75); if (!m) return false;
+      fx('wgBayi', st, a, B.jarak, q => { if (kenaM) return true; const m = MUSUH.find(m => !m.mati && !m.sembunyi && Math.hypot(m.g.position.x - q.x, m.g.position.z - q.z) < .75 + ((m.wn && m.wn.padat) || 0)); if (!m) return false;
         kenaM = m; kena(m, B.dmg, q.clone().addScaledVector(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), -1), 1); lambatkan(m, B.lambat); wgCatat(m); WGS.tempel.push({ m, t: B.lama, tik: 1 }); fx('wgNempel', m.g.position.clone(), B.lama); return true; }); }
     if (t > B.akhir) P.state = 'bebas';
   }
   else if (P.state === 'wgTembang') {   // Tembang Nina Bobo
     const B = WG.tembang;
     if (t > B.rilis && !P.hit) { P.hit = 1; fx('wgTembang', pos.clone(), P.arah);
-      MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && wgDalamKipas(pos, P.arah, m.g.position, B.jarak, B.sudut)) { kena(m, B.dmg, pos, 0); wgCatat(m); if (!m.wn || m.wn.jenis === 'monster') wgTidurkan(m); } }); }
+      MUSUH.forEach(m => { if (!m.mati && !m.sembunyi && wgDalamKipas(pos, P.arah, m.g.position, B.jarak, B.sudut, m)) { kena(m, B.dmg, pos, 0); wgCatat(m); if (!m.wn || m.wn.jenis === 'monster') wgTidurkan(m); } }); }
     if (t > B.akhir) P.state = 'bebas';
   }
 }
@@ -8003,7 +8015,7 @@ function wnMati(E) {
         else wnKartuMuncul(E.stat, false, '🗡️ Kill monster'); }
       else { const o = TIM.bot.get(k.id); if (o && !o.mt.mati) o.mt.hp = Math.min(o.mt.hpMax, o.mt.hp + o.mt.hpMax * .2); const cs = wnAcakKartu(E.stat, false, '', wnSupAktif(k.id) ? WNP.killMon : 0, false, k.id), c = (wnLane(k.id) === 'support' && cs.find(x => x.k === 'hp')) || cs[0]; if (c) wnTambah(k.id, c.k, c.v); /* bot Support utamakan HP */ }
       // pasif Pengawal: ikut memukul monster yang dibunuh teman (≤ 8 dtk terakhir) → 3 kartu +5% (selalu ada Defense & Speed)
-      if (E.bantu) { const now = performance.now(); E.bantu.forEach((b, id) => { if (id !== k.id && now - b.t < 8000 && b.dmg >= E.hpMax * WNP.minBantu && timOf(id) === k.tm && wnSupAktif(id)) wnPasifPengawal(id, WNP.asisMon, '🤝 Assist monster'); }); } }   // assist monster: hanya hero di lane Support
+      if (E.bantu) { const now = performance.now(); E.bantu.forEach((b, id) => { if (id !== k.id && now - b.t < 8000 && b.dmg > 0 && b.dmg >= E.hpMax * WNP.minBantu && timOf(id) === k.tm && wnSupAktif(id)) wnPasifPengawal(id, WNP.asisMon, '🤝 Assist monster'); }); } }   // assist monster: hanya hero di lane Support
     E.bantu = null;
   } else if (E.jenis === 'singa' || E.jenis === 'garuda' || E.jenis === 'rumah') {
     E.runtuh = 0; gelombang(p, 5, .8, 0xffc040); percik(p, 60, 0xffc040, 7); asap(p, 16, 0x8a7a6a, 2.2, 1.3); goyang = Math.max(goyang, .35);
@@ -8646,6 +8658,12 @@ function wnLanePilih(l, otomatis) {
   if (kawan) banner('👥 Teman: ' + kawan, '#cfe6ff');
 }
 function wnLaneUpd(dt) {
+  if (WN.lane && !WN.laneT) {   // kartu khusus lane Support: tiap 20 dtk selama hidup, maksimal 20 kartu (pemain & bot)
+    if (!WN.supK) WN.supK = new Map();
+    WN.lane.forEach((l, id) => { if (l !== 'support') return; const hidup = id === TIM.me ? P.state !== 'kalah' : (() => { const o = TIM.bot.get(id); return !!(o && o.mt && !o.mt.mati); })();
+      if (id !== TIM.me && !TIM.bot.has(id)) return;   // hero milik HP lain dihitung di HP-nya sendiri
+      let k = WN.supK.get(id); if (!k) { k = { t: 0, n: 0 }; WN.supK.set(id, k); } if (k.n >= WNP.laneMaks || !hidup) return;
+      k.t += dt; if (k.t >= WNP.laneT) { k.t = 0; k.n++; wnPasifPengawal(id, WNP.laneNilai, `⏱️ Kartu lane Support (${k.n}/${WNP.laneMaks})`); } }); }
   if (!WN.supHabis && WN.lane && wnWaktu() >= WN_SUP_MENIT * 60) { WN.supHabis = true; if (wnLane(TIM.me) === 'support') banner('🛡️ Menit ke-' + WN_SUP_MENIT + ': pasif Support berakhir — membunuh monster sekarang dapat kartu normal', '#9fd8ff'); }
   if (WN.laneT == null) return; WN.laneT -= dt; const d = $('#wnLaneD'), v = Math.max(0, Math.ceil(WN.laneT)); if (d && d.textContent !== String(v)) d.textContent = v;
   if (WN.laneT <= 0) wnLanePilih(wnLaneSaran(HERO), true);
@@ -8658,7 +8676,7 @@ function wnSupAktif(id) { return wnLane(id) === 'support' && wnWaktu() < WN_SUP_
 function wnPeran(id) { const h = id === TIM.me ? HERO : (TIM.bot.get(id) || {}).hero; return PERAN_HERO[h] || ''; }
 // angka role Pengawal (War Nanas): assist monster 5% (minimal ikut memberi 15% damage HP monster) · assist musuh 10% (minimal ikut memberi 5% damage HP lawan dalam 10 dtk)
 // membunuh sendiri: kartu merah monster 2% / musuh 6% + peringatan (Pengawal lebih untung assist)
-const WNP = { asisMon: 5, asisHero: 10, killMon: 2, killHero: 6, minBantu: .15, minAsisHero: .05 };
+const WNP = { asisMon: 5, asisHero: 10, killMon: 2, killHero: 6, minBantu: 0, minAsisHero: .05, laneT: 20, laneMaks: 20, laneNilai: 6 };   // minBantu 0: Support dapat kartu assist monster walau hanya 'colek' · kartu lane Support tiap 20 dtk (+6%), maks 20 kartu
 let WNP_PERINGAT = 0;
 // bonus assist role lain (Jarak Dekat / Jarak Jauh) — lebih kecil dari Pengawal · syarat damage sama (monster ≥ 15% HP, musuh ≥ 5% HP)
 const WNA = { asisHero: 5 }, WNB = 10;   // role lain hanya dapat bonus assist MUSUH (assist monster khusus Pengawal)   // WNB: bonus Buaya Danau untuk SEMUA hero tim yang membunuhnya (kartu emas +10%)
@@ -8942,8 +8960,8 @@ R.root.add(R.tilt);
 R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, remote: true, bar: null };
 
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
-const FXF = { wgKantong: (p, m) => wgKantongFx(p, !!m), wgBambu, wgBambuHapus, wgBayi, wgNempel, wgTembang, wgZzz, wgHilang: wgHilangFx, wgJatuh: wgJatuhkan, mdJarak, mdSniper, mdTembak, mdGranat, mdBren, mdBrenArah, mdBrenLepas, mdDebu: mdLompatDebu, bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik, rjBatu, rjBatuPatung, rjTanda, rjPasif, rjPatung, rjLesung, rjCandi };
-const FX_SUDUT = { wgBayi: [1], wgTembang: [1], mdTembak: [1], mdBren: [1], mdBrenArah: [1], rjBatu: [1], rjBatuPatung: [1], rjLesung: [1], rjCandi: [1], wrTebas: [1], wrSilat: [1], wrNaga: [1], ksTebas: [1], ksGerak: [3], ksSerang: [2], skPerahu: [1], skTebas: [1], swMacan: [2], swCakar: [2], swTebas: [1], swBayang: [1], nrBola: [1], nrLesat: [1], nrOmbak: [1], dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
+const FXF = { wgCakar: wgCakarFx, wgKantong: (p, m) => wgKantongFx(p, !!m), wgBambu, wgBambuHapus, wgBayi, wgNempel, wgTembang, wgZzz, wgHilang: wgHilangFx, wgJatuh: wgJatuhkan, mdJarak, mdSniper, mdTembak, mdGranat, mdBren, mdBrenArah, mdBrenLepas, mdDebu: mdLompatDebu, bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik, rjBatu, rjBatuPatung, rjTanda, rjPasif, rjPatung, rjLesung, rjCandi };
+const FX_SUDUT = { wgCakar: [1], wgBayi: [1], wgTembang: [1], mdTembak: [1], mdBren: [1], mdBrenArah: [1], rjBatu: [1], rjBatuPatung: [1], rjLesung: [1], rjCandi: [1], wrTebas: [1], wrSilat: [1], wrNaga: [1], ksTebas: [1], ksGerak: [3], ksSerang: [2], skPerahu: [1], skTebas: [1], swMacan: [2], swCakar: [2], swTebas: [1], swBayang: [1], nrBola: [1], nrLesat: [1], nrOmbak: [1], dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
 // ---- efek skill MUSUH diberi warna kemerahan, agar beda dengan efek sendiri / tim ----
 const MERAH_MUSUH = new THREE.Color(0xff2020), MERAH_KADAR = .45;
 let MUSUH_KUMPUL = null, FX_OLEH = null;
