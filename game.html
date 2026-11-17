@@ -208,7 +208,7 @@ small{font-size:1.5cqw;color:#9aa3b8}
 .kc.lock img{filter:grayscale(1) brightness(.35)}.kc.lock:after{content:'🔒';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:3cqw}
 .kpop{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:30cqw;padding:1.6cqw;border-radius:1.4cqw;background:#0b1020f5;border:.3cqw solid #b06cff;box-shadow:0 0 4cqw #9b4dffcc;text-align:center;display:none;z-index:5}
 .kpop.on{display:block;animation:vpop .4s ease-out}.kpop small{display:block;font:700 1.1cqw Arial;color:#3fd14b;letter-spacing:.15cqw}.kpop img{height:12cqw;margin:.8cqw 0;filter:drop-shadow(0 .5cqw .8cqw #000)}
-.kpop b{display:block;font:700 2.4cqw Georgia}.kpop p{font:1.2cqw Arial;color:#cfd6e6;margin:.5cqw 0 1cqw}.kpop .btn{font-size:1.6cqw;padding:.5cqw 3cqw}
+.kpop b{display:block;font:700 2.4cqw Georgia}.kpop p{font:1.2cqw Arial;color:#cfd6e6;margin:.5cqw 0 1cqw}.kpop .btn{font-size:1.6cqw;padding:.5cqw 3cqw}.kpop .kBtns{display:flex;gap:1cqw;justify-content:center}.kpop .kBtns .btn{padding:.5cqw 1.8cqw}.kpop p.kSudah{font:700 1.5cqw Arial;color:#ffd166;margin:.2cqw 0}.kpop b.kTip{display:inline;font:700 1.2cqw Arial;color:#7dff8a}.kpop .kKode{display:inline-block;margin-top:.5cqw;font:700 1.2cqw monospace;color:#9fb3dd;letter-spacing:.1cqw}
 #pk{background:none;pointer-events:none}#pk>*{pointer-events:auto}
 #pkJoy{position:absolute;left:3cqw;bottom:3cqw;width:19cqw;height:19cqw;border-radius:50%;border:.5cqw solid #8a93a8aa;background:#1b223466;touch-action:none}
 #pkKnob{position:absolute;inset:0;margin:auto;width:8cqw;height:8cqw;border-radius:50%;background:radial-gradient(#c4c8d2,#6b7180)}
@@ -1554,9 +1554,33 @@ function karRender(){const ak=$('#kAkun');
  $('#kGrid').innerHTML=heroes.map(a=>{const own=punyaHero(a[0]),fr=GRATIS.includes(a[0]);return `<div class="kc ${own?'':'lock'}" style="--c:${fr?'#9aa3b8':own?'#b06cff':'#2a3350'}"><em>${fr?'GRATIS':own?'HERO':'HERO'}</em>${itemImg('hero',a[0])}<span>${a[1]}</span></div>`}).join('')
   +sk.map(id=>{const own=punyaSkin(id);return `<div class="kc ${own?'':'lock'}" style="--c:${own?'#ffb703':'#2a3350'}"><em>SKIN${own&&skinOf(SKINS[id].h)==id?' · DIPAKAI':''}</em>${itemImg('skin',id)}<span>${SKINS[id].n}</span></div>`}).join('')
   +kunci.map(a=>`<div class="kc lock"><span>${a[1]}</span></div>`).join('')}
+// Scan / ketik kode → CEK dulu (kartu asli & aktif?) tanpa mengikat ke akun → pilih Terima Sekarang / Nanti.
+// Kalau hero / skin-nya sudah dimiliki: tidak ditawarkan untuk diklaim — sarankan bagikan / jual kartunya ke teman.
+function kPopTampil(warna,html){const pp=$('#kPop');pp.style.borderColor=warna;pp.innerHTML=html;pp.classList.add('on')}
 async function kKlaim(raw){const kode=kRapi(raw);if(kode.length<6){kSt('Masukkan kode kartu, contoh KLS-KUN-7F3K9Q','err');return}
- if(!KOL.login){kSt('Masuk akun warga desa Kalensari Store dulu untuk mengklaim kartu','err');kMasuk(kode);return}
- kSt('Memeriksa kartu…');$('#kKlaim').disabled=true;
+ if(!KOL.login){kSt('Masuk akun warga desa Kalensari Store dulu untuk memeriksa kartu','err');kMasuk(kode);return}
+ kSt('Memeriksa kartu…');$('#kKlaim').disabled=true;let r;
+ try{r=await krpc('game_kartu_cek',{p_sesi:ksSesi(),p_kode:kode})}
+ catch(e){$('#kKlaim').disabled=false;if(/belum dipasang/.test(e.message)){kTerima(kode);return}   // server lama (fungsi cek belum dipasang): langsung klaim seperti dulu
+  if(e.sesi){KOL.login=false;karRender();kSt('Sesi akun habis, silakan masuk lagi','err');kMasuk(kode)}else kSt('⚠️ '+e.message,'err');return}
+ $('#kKlaim').disabled=false;
+ if(!r||r.ok===false){kSt('⚠️ '+((r&&r.pesan)||'Kartu tidak valid'),'err');return}
+ const warna=r.kelas=='legenda'?'#ffb703':r.kelas=='langka'?'#b06cff':'#3fd14b',nama=itemNama(r.jenis,r.item),jenisT=r.jenis=='skin'?'skin':'hero',
+  untuk=r.jenis=='skin'?'Skin untuk hero '+itemNama('hero',SKINS[r.item]?SKINS[r.item].h:''):'Hero baru untuk bertanding',kelasT=(r.kelas||'biasa').toUpperCase();
+ if(r.status=='milik_saya'){kSt('Kartu ini sudah milik Anda','ok');
+  kPopTampil(warna,`<small>KARTU SUDAH MILIK ANDA</small>${itemImg(r.jenis,r.item)}<b>${nama.toUpperCase()}</b><p>Kode ${r.kode} sudah terikat ke akun Anda</p><button class="btn g" id="kOk">OK</button>`);$('#kOk').onclick=()=>$('#kPop').classList.remove('on');return}
+ const punya=r.jenis=='skin'?punyaSkin(r.item):punyaHero(r.item);
+ if(punya){kSt('✔ Kartu asli & aktif · '+nama+' sudah Anda punya','ok');
+  kPopTampil(warna,`<small>✔ KARTU ASLI & AKTIF · ${kelasT}</small>${itemImg(r.jenis,r.item)}<b>${nama.toUpperCase()}</b><p class="kSudah">⚠️ Anda sudah punya ${jenisT} ini</p><p>💡 <b class="kTip">Tips:</b> jangan diklaim — <b class="kTip">bagikan atau jual kartunya ke teman kamu</b>. Kartu ini belum terikat ke akun mana pun, jadi teman bisa scan & memakainya.<br><span class="kKode">Kode ${r.kode}</span></p><div class="kBtns"><button class="btn" id="kSalin">📋 Salin Kode</button><button class="btn g" id="kOk">Tutup</button></div>`);
+  $('#kOk').onclick=()=>$('#kPop').classList.remove('on');
+  $('#kSalin').onclick=async()=>{try{await navigator.clipboard.writeText(r.kode);$('#kSalin').textContent='✔ Tersalin'}catch(e){$('#kSalin').textContent=r.kode}};
+  $('#kKode').value='';return}
+ kSt('✔ Kartu asli & aktif — belum diklaim siapa pun','ok');
+ kPopTampil(warna,`<small>✔ KARTU ASLI & AKTIF · ${kelasT}</small>${itemImg(r.jenis,r.item)}<b>${nama.toUpperCase()}</b><p>${untuk}<br>Kartu belum diklaim siapa pun. <b class="kTip">Terima sekarang</b> = langsung terikat ke akun Anda (tidak bisa dipindah lagi).<br><span class="kKode">Kode ${r.kode}</span></p><div class="kBtns"><button class="btn" id="kNanti">⏳ Nanti</button><button class="btn g" id="kTerimaB">✔ Terima Sekarang</button></div>`);
+ $('#kNanti').onclick=()=>{$('#kPop').classList.remove('on');kSt('Kartu belum diklaim — simpan kartunya baik-baik. Scan lagi kapan saja untuk menerima.','ok')};
+ $('#kTerimaB').onclick=()=>{$('#kPop').classList.remove('on');kTerima(r.kode)}}
+async function kTerima(kode){   // klaim sungguhan: kartu terikat ke akun
+ kSt('Mengklaim kartu…');$('#kKlaim').disabled=true;
  try{const r=await krpc('game_klaim',{p_sesi:ksSesi(),p_kode:kode});
   if(!r||r.ok===false){kSt('⚠️ '+((r&&r.pesan)||'Kartu tidak valid'),'err');return}
   KOL.hero=r.hero||KOL.hero;KOL.skin=r.skin||KOL.skin;KOL.kartu=r.kartu||KOL.kartu;$('#kKode').value='';
