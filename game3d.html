@@ -402,6 +402,7 @@ const ER_IKON_NORMAL = IKON_IMG.erick, ER_IKON_AMUK = ['data:image/webp;base64,U
 const TINGGI = 1.7;                                      // tinggi boneka (meter)
 const SLV_URL0 = 'model-3d/siliwangi.glb?v=4', WR_URL0 = 'model-3d/wiro-sableng.glb?v=6';
 const SK_URL0 = 'model-3d/sangkuriang.glb?v=2';   // Sangkuriang (sama dengan SK_URL)   // Prabu Siliwangi (sama dengan SLV_URL)
+const POHON_LK = [];   // pohon di arena yang bisa dinaiki Lutung Kasarung: { x, z, h = tinggi tempat nangkring }
 const BATAS = { x0: -13.5, x1: 13.5, z0: -8.5, z1: 10.5 };  // area bisa dilewati (Lapangan SD)
 aturArena();
 const BATU_TEMBOK = [];   // batu Lempar Batu Raksasa yang tertancap: padat seperti tembok (tidak bisa ditembus siapa pun)
@@ -850,7 +851,7 @@ function buatArenaKebun() {
   const mPisang = L(0x3f7a2a), mBatangP = L(0x6a7a3a);
   const pisang = (x, z, s) => { const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s); scene.add(g); cyl(.14, .2, 2.4, mBatangP, 0, 1.2, 0, g, 6);
     for (let i = 0; i < 5; i++) { const d = new THREE.Mesh(new THREE.BoxGeometry(.3, .05, 1.8), mPisang); const a = i / 5 * Math.PI * 2; d.position.set(Math.cos(a) * .7, 2.5, Math.sin(a) * .7); d.rotation.set(0, -a + Math.PI / 2, 0); d.rotateX(.5); d.castShadow = true; g.add(d); } };
-  [[-12, -8.5, 1], [12, -8.6, 1.1], [-12.4, 8.4, 1], [12.3, 8.2, 1.1], [-4.5, -9.2, .9], [4.8, 9.1, .9], [-16, 2, 1.2], [16.5, -3, 1.2], [-7, 13, 1.1], [8, -13, 1.1]].forEach(p => pisang(...p));
+  [[-12, -8.5, 1], [12, -8.6, 1.1], [-12.4, 8.4, 1], [12.3, 8.2, 1.1], [-4.5, -9.2, .9], [4.8, 9.1, .9], [-16, 2, 1.2], [16.5, -3, 1.2], [-7, 13, 1.1], [8, -13, 1.1]].forEach(p => { pisang(...p); POHON_LK.push({ x: p[0], z: p[1], h: 2.2 * p[2] }); });
   const mKayu = L(0x7a5232), mJerami = L(0xb08a40);
   const saung = (x, z, r) => { const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = r; scene.add(g);
     [[-1.1, -.9], [1.1, -.9], [-1.1, .9], [1.1, .9]].forEach(([a, b]) => cyl(.08, .09, 2.2, mKayu, a, 1.1, b, g, 5)); box(2.5, .14, 2, mKayu, 0, .6, 0, g);
@@ -968,6 +969,7 @@ function gedung(panjang, x, z, rotY) {
   return g;
 }
 function pohon(x, z, s) {
+  POHON_LK.push({ x, z, h: 2.6 * s });
   const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(s); scene.add(g);
   cyl(.16, .24, 2.4, M.batang, 0, 1.2, 0, g, 7);
   for (let i = 0; i < 6; i++) {
@@ -1541,7 +1543,16 @@ addEventListener('keyup', e => { inp.k[e.key.toLowerCase()] = 0; { const kk = e.
     b.onpointermove = e => { if (K.bidik === i) geser(e); };
     b.onpointerup = e => { e.preventDefault(); ik.style.transform = ''; if (K.bidik === i) { if (K.batalSiap) batalBidik(); else lepasBidik(); } tampilBatal(false); };
     b.onpointercancel = () => { ik.style.transform = ''; if (K.bidik === i) batalBidik(); tampilBatal(false); };
-  } else if (i === 0 && HERO === 'masdim') pasangTombolMasdim(b); else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
+  } else if (i === 0 && HERO === 'masdim') pasangTombolMasdim(b); else if (i === 0 && HERO === 'lutung') pasangTombolLutung(b); else b.onpointerdown = e => { e.preventDefault(); pakai(i); }; });
+function pasangTombolLutung(b) {   // serangan dasar Lutung: di tanah = tekan biasa · di atas pohon = tahan & geser untuk memilih sasaran terkaman, lepas untuk menerkam
+  const geser = e => { const r = b.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2), L = Math.hypot(dx, dy);
+    if (L > 14) { K.arahBidik = Math.atan2(dx, dy) + (kamCustom() ? KAM.yaw : 0); K.diarahkan = true; } };
+  b.onpointerdown = e => { e.preventDefault(); if (P.state !== 'lkPohon' || P.cd[0] > 0) { pakai(0); return; } b.setPointerCapture(e.pointerId); LW.aimA = true; K.arahBidik = P.arah; K.diarahkan = false; };
+  b.onpointermove = e => { if (LW.aimA) geser(e); };
+  b.onpointerup = e => { e.preventDefault(); if (!LW.aimA) return; if (!K.diarahkan) { const m = terdekat(LK.pohon.terkam); if (m) { K.arahBidik = Math.atan2(m.g.position.x - P.root.position.x, m.g.position.z - P.root.position.z); K.diarahkan = true; } }
+    if (K.diarahkan) pakai(0); else banner('🐒 Tidak ada sasaran — geser tombol untuk mengarahkan terkaman', '#ffd166'); LW.aimA = false; K.diarahkan = false; PANAH.visible = false; };
+  b.onpointercancel = () => { LW.aimA = false; K.diarahkan = false; PANAH.visible = false; };
+}
 // ---- ATUR TOMBOL: posisi & ukuran joystick dan tombol skill bisa diatur sendiri (disimpan per perangkat: HP / PC) ----
 const ATUR = { on: false, kunci: 'ks3dTombol' + (/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent) ? 'HP' : 'PC'), ids: ['joy', 'bA', 'b1', 'b2', 'b3', 'batalB'], data: {}, cadangan: null, pil: 'joy', seret: null };
 try { ATUR.data = JSON.parse(localStorage.getItem(ATUR.kunci) || '{}') || {}; } catch (e) { ATUR.data = {}; }
@@ -1600,7 +1611,7 @@ if (HERO === 'nyi') $('#help').textContent = 'Pasif Anak Samudra: di air (Pusara
 if (HERO === 'dayang') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jarum Emas (jarak jauh) · U: Benang Pengikat (mengunci hero lawan terdekat — tahan + mouse untuk memilih lawan: Stun 0,8 dtk lalu Slow, magic damage; serangan dasar Dayang 1,5x lebih cepat 3 dtk) · I (tahan + mouse): Pukulan Centong Kelapa (memukul kepala lawan dekat: Stun 1,2 dtk · Dayang Sumbi lebih cepat 3 dtk) · O (tahan + mouse): Anjing Penjaga Dayang (ledakan + Stun area 1,2 dtk + Shield) · Combo: U → I → O';
 if (HERO === 'angling') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Bola Angin (jarak jauh) · U (tahan + mouse): Hembusan Angin (mendorong lawan jauh) · I (tahan + mouse): Bola Api · O: Elang Sakti (naik elang, terbang bebas 10 dtk + lebih cepat; Hembusan Angin & Bola Api jeda hanya 0,5 dtk, tetap diarahkan manual; Hembusan lebih luas) · O lagi saat terbang: elang melesat ke target, Angling Dharma meloncat turun';
 if (HERO === 'saras') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Jurus Petir (pukul, hook, tendangan putar) · U (tahan + mouse): Kilat Bayangan (menghilang, muncul 0,5 m di depan lawan: lutut terbang + pukulan) · I (tahan + mouse): Tinju Halilintar (3 ledakan petir di jalur tinju: damage + Stun) · O: Puting Beliung Gledeg (berputar menendang 1,2 dtk sambil bergerak & menyedot lawan, ditutup Tendangan Gledeg + petir dari langit; kebal stun) · Pasif Muatan Petir: 4 serangan kena → pukulan berikutnya menyambar berantai · Combo: U → I → O';
-if (HERO === 'lutung') $('#help').textContent = 'WASD / panah: gerak (berlari 4 kaki) · J / Spasi: Cakaran (cakar, cakar, cakar silang) · U (tahan + mouse): Loncatan Lutung (mendarat di lingkaran; bisa 2x dalam 3 dtk, loncatan ke-2 salto) · I (tahan + mouse): Badai Cakar (menerjang 3 m, 5 cakaran, terakhir Stun) · O: Terkaman Kasarung (otomatis ke lawan terdekat 7 m: melompat ke atas pundak lawan, mencakar muka/kepala bertubi-tubi, lalu melompat turun dengan cakaran pamungkas; damage diterima −50% & kebal stun) · Pasif Naluri Rimba: setelah mendarat, cakaran berikutnya ×1,5 + Bleeding';
+if (HERO === 'lutung') $('#help').textContent = 'U: Lompatan Dahan — loncat ke pohon & dari pohon ke pohon (jeda 0,5 dtk, boleh di pohon selama apa pun; tetap bisa diserang, kena stun = jatuh). Dari pohon: J = terkam hero/monster ke arah mouse · I = turun + Badai Cakar · O = Terkaman Kasarung · turun = Skill 1 jeda 32 dtk (War Nanas: U tidak bisa untuk turun) · WASD / panah: gerak (berlari 4 kaki) · J / Spasi: Cakaran (cakar, cakar, cakar silang) · U tanpa pohon di dekatmu: Loncatan Lutung biasa (bisa 2x dalam 3 dtk) · I (tahan + mouse): Badai Cakar (menerjang 3 m, 5 cakaran, terakhir Stun) · O: Terkaman Kasarung (otomatis ke lawan terdekat 7 m: melompat ke atas pundak lawan, mencakar muka/kepala bertubi-tubi, lalu melompat turun dengan cakaran pamungkas; damage diterima −50% & kebal stun) · Pasif Naluri Rimba: setelah mendarat, cakaran berikutnya ×1,5 + Bleeding';
 if (HERO === 'buto') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Gebukan Raksasa (pukul, pukul, hantam tanah) · U (tahan + mouse): Seruduk Buto (lawan terdorong; menabrak pinggir arena / batu = Stun) · I: Tangkap & Banting (tekan: lawan terdekat dibanting di depan · tahan + mouse: lawan diangkat lalu DILEMPAR ke arah pilihan sampai 5,5 m — kena batu / pinggir arena = damage & Stun tambahan) · O (tahan + mouse): Lempar Batu Raksasa (area besar: Stun + Slow, batunya jadi tembok padat 4 dtk: tidak bisa dilewati siapa pun) · Pasif Kulit Buto: darah tebal, sulit didorong, darah < 30% damage −25% · Combo: O → U → I';
 if (HERO === 'doni') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul, Pukul, Tendang (tekan 3x) · U (tahan + mouse): Gear Throw (lempar gir, damage Doni 2x selama 2 dtk) · I: Chain Pull (otomatis mengunci musuh terdekat, menarik + Stun 1,5 dtk) · O: Gear Whirl (rantai bergir berputar, area luas + Bleeding) · Combo: I → U → O';
 if (HERO === 'erick') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Pukul-Pukul · U (tahan + mouse): Melesat (tendangan terbang) · I (tahan + mouse, 3x tekan): Tendangan Beruntun ala Chou — tendang, tendang, tendangan terbang (lanjutkan dalam 4 dtk, kalau tidak kembali ke tendangan 1 + cooldown) · O: MENGAMUK 7 detik (rambut merah + katana: serangan tebas brutal · U: Blink Tebas · I: Gelombang Sabit)';
@@ -1633,7 +1644,8 @@ function pakaiAsli(i) {
   if (WN.on && i > 0) { if (WN.spBaruI === i && performance.now() - (WN.spBaruT || 0) < 500) return; if (wnSpTahan(i)) return; }   // War Nanas: skill terkunci (Poin Skill)   // wasit tidak bertanding
   if (UMP.on) { if (i === 0) umpetPakai(); return; }   // Petak Umpet: hanya 1 tombol kemampuan
   const blSambilLilit = HERO === 'blorong' && i === 0 && P.state === 'blLilit' && BLS.ular > 0 && BLS.lilit && BLS.lilit.dekat;   // Nyi Blorong: saat melilit, serangan dasar (patukan) tetap bisa dipakai
-  if ((P.state !== 'bebas' && !blSambilLilit) || P.cd[i] > 0 || !P.model || (pingsan() && !lepasStun(i)) || SELESAI) return;
+  const lkDiPohon = HERO === 'lutung' && P.state === 'lkPohon';   // Lutung di atas pohon: semua tombol bisa dipakai
+  if ((P.state !== 'bebas' && !blSambilLilit && !lkDiPohon) || P.cd[i] > 0 || !P.model || (pingsan() && !lepasStun(i)) || SELESAI) return;
   if (HERO === 'kunti') return pakaiKunti(i);
   if (HERO === 'tuyul') return pakaiTuyul(i);
   if (HERO === 'genderuwo') return pakaiGenderuwo(i);
@@ -2017,7 +2029,7 @@ const PANAH = (() => {
   return g;
 })();
 // tahan tombol skill 1 / 2 (atau U / I) lalu geser untuk mengarahkan, lepas untuk memakai
-function mulaiBidik(i) { if (WN.on && i > 0 && !wnSpBuka(TIM.me, i)) { wnSpTahan(i); return; } if (UMP.on || P.state !== 'bebas' || P.cd[i] > 0 || !P.model || K.bidik || (pingsan() && !lepasStun(i)) || SELESAI) return; K.bidik = i; K.arahBidik = P.arah; K.diarahkan = false; K.jarakBidik = 1; K.bidikKey = false; }
+function mulaiBidik(i) { if (WN.on && i > 0 && !wnSpBuka(TIM.me, i)) { wnSpTahan(i); return; } if (UMP.on || (P.state !== 'bebas' && !(HERO === 'lutung' && P.state === 'lkPohon')) || P.cd[i] > 0 || !P.model || K.bidik || (pingsan() && !lepasStun(i)) || SELESAI) return; K.bidik = i; K.arahBidik = P.arah; K.diarahkan = false; K.jarakBidik = 1; K.bidikKey = false; }
 function batalBidik() {   // skill yang sedang dibidik dibatalkan: tidak dipakai, tidak masuk jeda (cooldown)
   if (!K.bidik) return; K.bidik = false; K.diarahkan = false; K.batalSiap = false; tampilBatal(false);
   PANAH.visible = KIPAS.visible = false; if (typeof LANE !== 'undefined') LANE.visible = false; if (typeof LINGKAR !== 'undefined') LINGKAR.visible = LINGKAR.garis.visible = false; KIPAS_PIT.visible = false;
@@ -2142,8 +2154,12 @@ function updBidik() {
     return;
   }
   if (HERO === 'lutung') {   // skill 1: lingkaran tempat mendarat · skill 2: panah arah Badai Cakar
-    const on = !!K.bidik && P.state === 'bebas', lg = on && K.bidik === 1; LINGKAR.visible = LINGKAR.garis.visible = lg; PANAH.visible = on && K.bidik === 2; if (!on) return;
-    if (lg) { const t = tujuanLompat(LK.loncat.jarak), p = P.root.position; LINGKAR.position.set(t.x, 0, t.z); LINGKAR.scale.setScalar(LK.loncat.R / 2); const L = Math.hypot(t.x - p.x, t.z - p.z);
+    const ph = P.state === 'lkPohon', on = (!!K.bidik && (P.state === 'bebas' || ph)) || (LW.aimA && ph), lg = on && (K.bidik === 1 || (ph && K.bidik === 2)); LINGKAR.visible = LINGKAR.garis.visible = lg; PANAH.visible = on && !lg; if (!on) return;
+    if (LW.aimA && !K.bidik) { const m = K.diarahkan ? lkSasaranTerkam(K.arahBidik, LK.pohon.terkam) : null;   // serangan dasar dari pohon: panah arah terkaman (ke sasaran yang terkunci)
+      PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = m ? Math.atan2(m.g.position.x - P.root.position.x, m.g.position.z - P.root.position.z) : K.arahBidik; PANAH.scale.set(m ? 1.4 : 1, 1, (m ? m.g.position.distanceTo(P.root.position) : LK.pohon.terkam * .6) / TERBANG.lesat); return; }
+    if (lg) { const p = P.root.position, tb = tujuanLompat(K.bidik === 2 ? LK.pohon.turunS2 : ph ? LK.pohon.jarak : LK.loncat.jarak), Tp = K.bidik === 1 ? lkCariPohon(p, K.diarahkan ? tujuanLompat(LK.pohon.jarak) : null, LK.pohon.jarak, LW.pohon) : null;
+      const t = Tp ? new THREE.Vector3(Tp.x, 0, Tp.z) : K.bidik === 1 && !ph ? tujuanLompat(LK.loncat.jarak) : tb;   // lingkaran menempel ke pohon yang akan dinaiki
+      LINGKAR.position.set(t.x, 0, t.z); LINGKAR.scale.setScalar((Tp ? 1.1 : K.bidik === 2 ? LK.badai.R : LK.loncat.R) / 2); const L = Math.hypot(t.x - p.x, t.z - p.z);
       LINGKAR.garis.position.set((t.x + p.x) / 2, .05, (t.z + p.z) / 2); LINGKAR.garis.scale.y = Math.max(.01, L); LINGKAR.garis.rotation.z = Math.atan2(t.x - p.x, t.z - p.z); LINGKAR.garis.rotation.order = 'XYZ'; }
     else { PANAH.position.x = P.root.position.x; PANAH.position.z = P.root.position.z; PANAH.rotation.y = K.arahBidik; PANAH.scale.set(1, 1, LK.badai.jarak / TERBANG.lesat); }
     return;
@@ -3739,7 +3755,10 @@ function updButo(dt, pos, f) {
 // badai (Mutant Swiping penuh), terkam (Double Leg Takedown), cabik (berlutut di atas lawan + mencakar), pamungkas, kalah (Mutant Dying)
 // Ekor (tulang Tail01–Tail06) tidak dianimasikan klip: digerakkan kode tiap frame (ekorLutung) — bergoyang, tertinggal saat berbelok, terangkat saat meloncat
 // Pasif Naluri Rimba: setelah mendarat dari loncatan, cakaran dasar berikutnya ×1,5 + Bleeding
-// Serangan dasar: cakar, cakar, cakar silang · Skill 1: Loncatan Lutung (diarahkan, bisa 2x dalam 3 dtk — loncatan ke-2 salto)
+// Serangan dasar: cakar, cakar, cakar silang · Skill 1: Lompatan Dahan — loncat ke POHON di arena (seperti Ling MLBB di dinding), dari pohon ke pohon;
+//   tidak ada pohon dalam jangkauan = Loncatan Lutung biasa (bisa 2x dalam 3 dtk, loncatan ke-2 salto)
+//   DI POHON: boleh selama apa pun, tapi tetap bisa diserang & di-stun (stun / ditarik / diculik = jatuh dari pohon) · Serangan dasar (bisa diarahkan) = MENERKAM hero / monster dari atas · Skill 2 (diarahkan) = turun ke titik itu lalu Badai Cakar (tidak menerkam)
+//   Skill 3 = Terkaman Kasarung dari atas pohon (jangkauan lebih jauh) · turun dari pohon dengan cara apa pun → Skill 1 jeda lama (32 dtk) · War Nanas: Skill 1 tidak bisa dipakai untuk turun
 // Skill 2: Badai Cakar (menerjang 3 m, 5 cakaran, terakhir Stun) · Skill 3: Terkaman Kasarung (lawan terdekat ditubruk, dicabik-cabik, lalu cakaran pamungkas)
 const LK = { tinggi: 1.65, cepat: 5.2, lariTs: 1.55, emas: 0xffc23a, jingga: 0xff7a1a,
   warna: [[0xffc23a, 0xff7a1a], [0x3aa8ff, 0x9fe6ff]],   // efek cakaran: 0 = emas (Lutung) · 1 = biru (skin Blue Fox)
@@ -3747,10 +3766,11 @@ const LK = { tinggi: 1.65, cepat: 5.2, lariTs: 1.55, emas: 0xffc23a, jingga: 0xf
     { anim: 'cakar3', ts: 1.35, tH: .4, akhir: .62, dmg: 85, R: 1.9, miring: 0 }], jeda: 1.2, pasifK: 1.5, darah: [3, 20, .5],
   loncat: { jarak: 6, R: 2, dmg: 90, jendela: 3, jedaAntar: .35,
     biasa: { anim: 'loncat', ts: 1.5, naik: .18, turun: .72, akhir: .9 }, salto: { anim: 'salto', ts: 1.7, naik: .2, turun: .66, akhir: .95 } },
+  pohon: { jarak: 9, cariR: 3, lompat: .5, lengkung: 1.3, cdLompat: .5, cdTurun: 32, terkam: 8, terkamLama: .5, dmgTerkam: 130, lambat: 1, turunS2: 5, turunLama: .42, ultiJarak: 9.5 },
   badai: { ts: 1.5, maju: [.02, .3], jarak: 3, hit: [.12, .27, .42, .57, .72], dmg: [30, 30, 30, 30, 60], R: 1.8, stun: .8, akhir: .86 },
   ulti: { jarak: 7, ts: 1, ancang: .22, tubruk: .62, tinggiLompat: 1.4, dmgTubruk: 60, condong: .45, pusing: 2.7, cabikTs: 1.4, tik: 8, jedaTik: .2, dmgTik: 25, pamTs: 1.3, pamH: .34, pamAkhir: .62, dmgPam: 120, sembuh: 80, kurang: .5 } };
 const LK_ULTI = new Set(['lkTerkam', 'lkCabik', 'lkPamungkas']);
-const LW = { combo: 0, comboT: 0, pasif: false, l2: 0, l2T: 0 };   // l2: 1 = loncatan ke-2 (salto) masih bisa dipakai selama l2T
+const LW = { combo: 0, comboT: 0, pasif: false, l2: 0, l2T: 0, pohon: null, pohonT: 0, daftar: null, aimA: false };   // pohon: pohon tempat nangkring sekarang   // l2: 1 = loncatan ke-2 (salto) masih bisa dipakai selama l2T
 function siapkanLutung(gl, m, T) {
   const cari = n => gl.animations.find(a => a.name === n), sekali = a => { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; return a; };
   const pasang = (k, c, satu) => { if (c) T.act[k] = satu ? sekali(T.mixer.clipAction(c.clone())) : T.mixer.clipAction(c.clone()); };
@@ -3799,10 +3819,75 @@ function lCabik(pos, w = 0) {   // cakaran brutal di muka / kepala lawan (pos.y 
   percik(c, 10, 0xc01010, 2.4, .15); nyala(c, .55, W1, .16);
 }
 function lPamungkas(pos, a, w = 0) { const [W1, W2] = lkW(w); lCakar(pos, a, 0, 1.5, 1, w); gelombang(pos.clone().setY(0), 3, .5, W2); percik(pos.clone().setY(1), 30, W1, 5, .2); kilat(pos, 50); }
+// ---- pohon (Lompatan Dahan) ----
+function lkPohonDaftar() {   // pohon arena yang bisa dinaiki (yang terlalu jauh di luar batas arena dilewati)
+  if (LW.daftar) return LW.daftar;
+  LW.daftar = POHON_LK.map(p => { const c = batasi(new THREE.Vector3(p.x, 0, p.z)); return Math.hypot(c.x - p.x, c.z - p.z) < 1.6 ? { x: c.x, z: c.z, h: p.h } : null; }).filter(Boolean);
+  return LW.daftar;
+}
+function lkCariPohon(dari, titik, jarak, kecuali) {   // titik: tujuan bidikan (null = pohon terdekat)
+  let b = null, bs = 1e9;
+  lkPohonDaftar().forEach(T => { if (T === kecuali) return; const d = Math.hypot(T.x - dari.x, T.z - dari.z); if (d > jarak || d < .8) return;
+    const sk = titik ? Math.hypot(T.x - titik.x, T.z - titik.z) : d; if (titik && sk > LK.pohon.cariR) return; if (sk < bs) { bs = sk; b = T; } });
+  return b;
+}
+function lkSasaranTerkam(arah, jarak) {   // hero / monster terdekat ke arah bidikan (arah null = terdekat)
+  const pos = P.root.position, d0 = arah == null ? null : new THREE.Vector3(Math.sin(arah), 0, Math.cos(arah)); let b = null, bs = 1e9;
+  MUSUH.forEach(m => { if (m.mati || m.sembunyi || (m.wn && m.wn.jenis === 'rumah')) return; const v = m.g.position.clone().sub(pos).setY(0), L = v.length(); if (L > jarak) return;
+    let sk = L; if (d0) { const sud = L < .01 ? 0 : v.normalize().angleTo(d0); if (sud > .7) return; sk = L + sud * 6; } if (sk < bs) { bs = sk; b = m; } });
+  return b;
+}
+function lkArahMouse() {   // PC: arah ke kursor mouse (dipakai serangan dasar dari atas pohon)
+  if (!MOUSE || matchMedia('(pointer: coarse)').matches) return null;
+  _m.set(MOUSE[0] / innerWidth * 2 - 1, -MOUSE[1] / innerHeight * 2 + 1); _ray.setFromCamera(_m, camera); if (!_ray.ray.intersectPlane(_lantai, _t)) return null;
+  const dx = _t.x - P.root.position.x, dz = _t.z - P.root.position.z; return Math.hypot(dx, dz) < .5 ? null : Math.atan2(dx, dz);
+}
+function lkNaik(T) {   // meloncat ke pohon T (dari tanah atau dari pohon lain)
+  const pos = P.root.position; P.awal = pos.clone(); P.dariH = LW.pohon ? LW.pohon.h : 0; P.tujuanP = T; LW.pohon = null; hadapKe(new THREE.Vector3(T.x, 0, T.z));
+  P.state = 'lkNaik'; mainUlang(P.dariH ? 'salto' : 'loncat', .05, 1.6); fx('lDaun', new THREE.Vector3(T.x, T.h, T.z), 0);
+}
+function lkTinggalkanPohon() { P.dariH = LW.pohon ? LW.pohon.h : 0; LW.pohon = null; LW.pohonT = 0; P.cd[1] = Math.max(P.cd[1], LK.pohon.cdTurun); lkLencana(); }   // turun dari pohon: Skill 1 jeda lama
+function lkTurun(mode, tujuan, m) {   // dari atas pohon ke tanah: 'terkam' (ke sasaran), 'badai' (ke titik lalu Badai Cakar), 'darat' (turun biasa)
+  const pos = P.root.position; lkTinggalkanPohon(); P.awal = pos.clone(); P.tujuan = batasi(tujuan.clone().setY(0)); P.turunMode = mode; P.mangsa = m || null;
+  hadapKe(P.tujuan); P.state = 'lkTurun'; fx('lDaun', pos.clone().setY(P.dariH), 1);
+  if (mode === 'terkam') mainUlang('terkam', .04, 1.7); else if (mode === 'jatuh') main('diam', .1); else mainUlang('loncat', .05, 1.7);
+}
 // ---- memakai skill ----
 function pakaiLutung(i) {
-  const pos = P.root.position;
+  const pos = P.root.position, diPohon = P.state === 'lkPohon' && LW.pohon, PH = LK.pohon;
   const arahi = maks => { if (K.bidik === i && K.diarahkan) P.arah = K.arahBidik; else { const m = terdekat(maks); if (m) hadapKe(m.g.position); } };
+  if (diPohon) {   // ===== aksi dari atas pohon =====
+    if (i === 0) {   // TERKAMAN dari atas: ke hero / monster ke arah bidikan
+      const a = LW.aimA ? K.arahBidik : lkArahMouse(), m = lkSasaranTerkam(a, PH.terkam);
+      if (m) { const v = m.g.position.clone().sub(pos).setY(0), L = v.length(); lkTurun('terkam', L > .9 ? pos.clone().addScaledVector(v.normalize(), L - .8) : m.g.position.clone(), m); }
+      else if (a != null) lkTurun('darat', pos.clone().add(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)).multiplyScalar(PH.terkam * .6)));
+      else { banner('🐒 Tidak ada sasaran untuk diterkam — geser tombol serangan untuk mengarahkan', '#ffd166'); return; }
+      P.cd[0] = CD_MAX[0];
+    }
+    else if (i === 1) {   // pindah ke pohon lain · tidak ada pohon ke arah itu = turun ke titik bidikan
+      const ar = K.bidik === 1 && K.diarahkan, titik = ar ? tujuanLompat(PH.jarak) : null, T = lkCariPohon(pos, titik, PH.jarak, LW.pohon);
+      if (T) { lkNaik(T); P.cd[1] = PH.cdLompat; }
+      else if (WN.on) { banner('🌳 Tidak ada pohon ke arah itu — turun pakai Serangan / Skill 2 / Skill 3', '#ffd166'); return; }   // War Nanas: Skill 1 tidak bisa untuk turun
+      else lkTurun('darat', titik || pos.clone().addScaledVector(depan(), 3));
+    }
+    else if (i === 2) {   // turun ke titik bidikan lalu Badai Cakar (tidak menerkam sasaran)
+      let tj; if (K.bidik === 2 && K.diarahkan) { tj = tujuanLompat(PH.turunS2); P.arah = K.arahBidik; }
+      else { const m = terdekat(PH.turunS2 + 2); tj = m ? pos.clone().addScaledVector(m.g.position.clone().sub(pos).setY(0).normalize(), Math.max(0, Math.min(PH.turunS2, m.g.position.distanceTo(pos) - 1.6))) : pos.clone().addScaledVector(depan(), 2.5); }
+      lkTurun('badai', tj); P.arahBadai = P.arah; P.cd[2] = CD_MAX[2];
+    }
+    else if (i === 3) {   // Terkaman Kasarung langsung dari atas pohon (jangkauan lebih jauh)
+      const m = terdekat(PH.ultiJarak); if (!m) { banner('🐒 Tidak ada lawan dalam jangkauan', '#ffd166'); return; }
+      lkTinggalkanPohon(); hadapKe(m.g.position); P.mangsa = m; P.awal = pos.clone(); P.state = 'lkTerkam'; P.tik = 0; mainUlang('terkam', .04, LK.ulti.ts); P.cd[3] = CD_MAX[3];
+      const bb = new THREE.Box3().setFromObject(m.g), h = isFinite(bb.max.y) ? bb.max.y - m.g.position.y : 1.7; P.pundak = Math.min(2.1, Math.max(.9, h * .78)); P.kepala = Math.min(2.6, Math.max(1.1, h * .9));
+      banner('🐒 TERKAMAN KASARUNG!', '#ffc23a'); fx('lDaun', pos.clone().setY(P.dariH), 1);
+    }
+    P.t = 0; P.hit = 0; return;
+  }
+  P.dariH = 0;
+  if (i === 1) {   // Lompatan Dahan: ada pohon dalam jangkauan → naik ke pohon
+    const ar = K.bidik === 1 && K.diarahkan, T = lkCariPohon(pos, ar ? tujuanLompat(PH.jarak) : null, PH.jarak, null);
+    if (T) { LW.l2 = 0; LW.l2T = 0; lkNaik(T); P.cd[1] = PH.cdLompat; lkLencana(); P.t = 0; P.hit = 0; return; }
+  }
   if (i === 0) {   // cakar, cakar, cakar silang
     if (LW.comboT <= 0) LW.combo = 0; arahi(3); P.langkah = LW.combo; LW.combo = (LW.combo + 1) % 3; LW.comboT = LK.jeda;
     const C = LK.cakar[P.langkah]; P.state = 'lkCakar'; mainUlang(C.anim, .05, C.ts); P.cd[0] = CD_MAX[0];
@@ -3827,11 +3912,46 @@ function pakaiLutung(i) {
   P.t = 0; P.hit = 0;
 }
 function lkLencana() { const b = document.getElementById('b1'); if (!b) return; let e = b.querySelector('.k2'); if (!e) { e = document.createElement('span'); e.className = 'k2'; b.appendChild(e); }
-  const tx = LW.l2 > 0 ? '2' : ''; if (e.textContent !== tx) e.textContent = tx; }   // tanda: loncatan ke-2 masih bisa dipakai
+  const tx = LW.pohon ? '🌳' : LW.l2 > 0 ? '2' : ''; if (e.textContent !== tx) e.textContent = tx; }   // tanda: loncatan ke-2 masih bisa dipakai
 function lkBebas() { P.state = 'bebas'; main('diam', .2); }
+function lDaun(pos, kuat = 0) { const n = KUAL.lv === 0 ? 8 : 16; percik(pos.clone(), n, 0x3f8a2a, 2.4 + kuat, .14); percik(pos.clone(), Math.round(n / 2), 0x8ac83a, 1.8, .1); if (kuat) asap(pos.clone().setY(Math.max(.2, pos.y - .5)), 3, 0x2f5a20, .7, .5); }
 function updLutung(dt, pos, f) {
   const t = P.t; updBidik(); LW.comboT = Math.max(0, LW.comboT - dt);
   if (LW.l2T > 0) { LW.l2T -= dt; if (LW.l2T <= 0 && LW.l2 > 0) { LW.l2 = 0; P.cd[1] = Math.max(P.cd[1], CD_MAX[1] - LK.loncat.jendela); lkLencana(); } }   // tidak dipakai lagi → jeda penuh
+  if (LW.pohon && P.state !== 'lkPohon') { LW.pohon = null; LW.pohonT = 0; lkLencana(); }   // pengaman (mati / ronde baru)
+  if (P.state === 'lkNaik') {   // melompat ke pohon: melengkung naik ke dahan
+    const T = P.tujuanP, u = Math.min(1, t / LK.pohon.lompat), e = u * u * (3 - 2 * u);
+    pos.x = P.awal.x + (T.x - P.awal.x) * e; pos.z = P.awal.z + (T.z - P.awal.z) * e;
+    P.tilt.position.y = P.dariH + (T.h - P.dariH) * e + Math.sin(u * Math.PI) * LK.pohon.lengkung; P.tilt.rotation.x = Math.sin(u * Math.PI) * .25;
+    if (u >= 1) { LW.pohon = T; LW.pohonT = 0; P.state = 'lkPohon'; main('diam', .15); fx('lDaun', new THREE.Vector3(T.x, T.h, T.z), 1); lkLencana(); }
+    return;
+  }
+  if (P.state === 'lkPohon') {   // nangkring di dahan (tanpa batas waktu) · bisa diserang · kena stun / ditarik / diangkat / diculik = JATUH
+    const T = LW.pohon;
+    if (pingsan() || P.tarikD || P.angkatD || Math.hypot(pos.x - T.x, pos.z - T.z) > .6) { angka(pos, 'JATUH!', '#ff9a9a'); if (P.tarikD || P.angkatD) { lkTinggalkanPohon(); lkBebas(); } else lkTurun('jatuh', pos.clone()); P.t = 0; P.hit = 0; return; }   // ditarik / diangkat: efek lawan yang mengatur posisi
+    pos.x = T.x; pos.z = T.z; P.tilt.position.y = T.h + Math.sin(performance.now() / 300) * .04; main('diam', .2);
+    if (K.bidik || LW.aimA) P.arah = K.arahBidik;
+    LW.pohonT += dt; if (Math.random() < dt * 1.5) percik(new THREE.Vector3(T.x, T.h + .6, T.z), 2, 0x4f9a32, .8, .1);   // daun berguguran
+    return;
+  }
+  if (P.state === 'lkTurun') {   // dari atas pohon turun ke tanah (menerkam / Badai Cakar / biasa)
+    const md = P.turunMode, D = md === 'terkam' ? LK.pohon.terkamLama : md === 'jatuh' ? .35 : LK.pohon.turunLama, u = Math.min(1, t / D), e = u * u * (3 - 2 * u), m = P.mangsa;
+    if (md === 'terkam' && m && !m.mati) { const v = m.g.position.clone().sub(P.awal).setY(0), L = v.length(); P.tujuan = L > .9 ? P.awal.clone().addScaledVector(v.normalize(), L - .8) : m.g.position.clone(); hadapKe(m.g.position); }
+    if (md !== 'jatuh') { pos.x = P.awal.x + (P.tujuan.x - P.awal.x) * e; pos.z = P.awal.z + (P.tujuan.z - P.awal.z) * e; }   // jatuh: lurus ke bawah (dorongan / culikan lawan tetap berlaku)
+    P.tilt.position.y = md === 'jatuh' ? P.dariH * (1 - u * u) : P.dariH * (1 - e) + Math.sin(u * Math.PI) * .6; P.tilt.rotation.x = Math.sin(u * Math.PI) * (md === 'terkam' ? .45 : .2);
+    if (u >= 1) { const w = lkBiru();
+      if (md === 'terkam') {
+        if (m && !m.mati && Math.hypot(m.g.position.x - pos.x, m.g.position.z - pos.z) < 2.2) { kena(m, LK.pohon.dmgTerkam, pos.clone().addScaledVector(depan(), -1), 2); lambatkan(m, LK.pohon.lambat);
+          fx('lCabik', m.g.position.clone().setY(1.5), w); angka(m.g.position, 'DITERKAM!', '#ffc23a'); goyang = Math.max(goyang, .16); }
+        fx('lMendarat', pos.clone(), 1.2, w); LW.pasif = true; P.mangsa = null; lkBebas();
+      }
+      else if (md === 'jatuh') { fx('lMendarat', pos.clone(), .8, w); goyang = Math.max(goyang, .08); if (P.state === 'lkTurun') lkBebas(); }
+      else if (md === 'badai') { fx('lMendarat', pos.clone(), 1.1, w); P.arah = P.arahBadai; P.state = 'lkBadai'; P.kenaB = 0; P.t = 0; mainUlang('badai', .05, LK.badai.ts); }
+      else { let ada = 0; MUSUH.forEach(o => { if (!o.mati && !o.sembunyi && o.g.position.distanceTo(pos) < LK.loncat.R) { kena(o, LK.loncat.dmg, pos, 4, 1.5); lambatkan(o, 1); ada = 1; } });
+        fx('lMendarat', pos.clone(), LK.loncat.R, w); goyang = Math.max(goyang, ada ? .15 : .07); LW.pasif = true; lkBebas(); }
+    }
+    return;
+  }
   if (P.state === 'bebas') {
     const [x, z] = arahGerak();
     if (x || z) { pos.x += x * LK.cepat * dt; pos.z += z * LK.cepat * dt; P.arah = K.bidik ? K.arahBidik : Math.atan2(x, z); main('lari', .15, P.skin === 'fox' ? 1.15 : LK.lariTs); }   // Blue Fox: Fast Run (lari tegak)
@@ -3865,8 +3985,8 @@ function updLutung(dt, pos, f) {
     if (t > U.ancang && t <= U.tubruk + .02) { const tj = m && !m.mati ? m.g.position : P.awal, e = u * u * (3 - 2 * u);
       if (m && !m.mati) hadapKe(m.g.position);
       pos.x = P.awal.x + (tj.x - P.awal.x) * e; pos.z = P.awal.z + (tj.z - P.awal.z) * e;
-      P.tilt.position.y = P.pundak * e + Math.sin(u * Math.PI) * U.tinggiLompat; P.tilt.rotation.x = U.condong * e; }   // melayang melengkung ke atas pundak
-    if (t > U.tubruk && !P.hit) { P.hit = 1;
+      P.tilt.position.y = (P.dariH || 0) * (1 - e) + P.pundak * e + Math.sin(u * Math.PI) * U.tinggiLompat; P.tilt.rotation.x = U.condong * e; }   // dariH: diterkam dari atas pohon   // melayang melengkung ke atas pundak
+    if (t > U.tubruk && !P.hit) { P.hit = 1; P.dariH = 0;
       if (m && !m.mati && Math.hypot(m.g.position.x - pos.x, m.g.position.z - pos.z) < 1.6) { kena(m, U.dmgTubruk, pos.clone().addScaledVector(depan(), -1), 0); m.pusing = Math.max(m.pusing || 0, U.pusing);
         fx('lCabik', m.g.position.clone().setY(P.kepala), lkBiru()); goyang = Math.max(goyang, .2); angka(m.g.position, 'DITERKAM!', '#ffc23a');
         P.state = 'lkCabik'; P.t = 0; P.tik = 0; main('cabik', .1, U.cabikTs); }
@@ -8145,7 +8265,8 @@ function buatArenaNanas() {
   // grafis Rendah: pohon lebih sedikit & tanpa bayangan · kalau GLB gagal dimuat, dipakai pohon kotak lama
   const mBtg = new THREE.MeshLambertMaterial({ color: 0x5a3e26 }), rendah = KUAL.lv === 0, TANAM = [];
   const pohonKotak = (x, z, s) => { cyl(.18 * s, .26 * s, 2 * s, mBtg, x, s, z, scene, 6); for (let k = 0; k < 3; k++) { const d = new THREE.Mesh(new THREE.IcosahedronGeometry((1.1 - k * .22) * s, 0), M.daun[(k + Math.round(x)) & 1 ? 1 : 0 + (k === 2 ? 2 : 0)] || M.daun[0]); d.position.set(x + rnd(-.2, .2) * s, (2 + k * .75) * s, z + rnd(-.2, .2) * s); d.castShadow = true; scene.add(d); } };
-  const pohon = (x, z, s, tepi = 0) => TANAM.push({ x, z, s, tepi, j: Math.floor(Math.random() * WN_POHON.length) });
+  let sd = 20261117; const rP = (a, b) => { sd = sd + 0x6D2B79F5 | 0; let t = Math.imul(sd ^ sd >>> 15, 1 | sd); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return a + ((t ^ t >>> 14) >>> 0) / 4294967296 * (b - a); };   // acak ber-seed: hutan sama di semua HP
+  const pohon = (x, z, s, tepi = 0) => { TANAM.push({ x, z, s, tepi, j: Math.floor(rP(0, WN_POHON.length - 1e-6)) }); if (!tepi) POHON_LK.push({ x, z, h: 2.7 * s }); };
   const bebas = (x, z) => {   // jangan menanam pohon di jalur, kemah, danau, bangunan
     if (Math.abs(x) < 5.5) return false; if (Math.hypot(x, z) < 8) return false;
     if (WN_DANAU.some(D => Math.hypot(x - D.x, z - D.z) < WN_DANAU_R + 2)) return false;
@@ -8154,9 +8275,9 @@ function buatArenaNanas() {
     for (const [kx, kz] of WN_KEMAH) { const sx = Math.sign(kx) * 3.5; for (const s of [1, -1]) { const ax = s * sx, az = s * kz, bx = s * kx, t = Math.max(0, Math.min(1, (x - ax) / (bx - ax || 1))); if (Math.hypot(x - (ax + (bx - ax) * t), z - az) < 1.8) return false; } }
     return true; };
   const nDalam = 56, jarakTepi = 4;
-  let n = 0; for (let i = 0; i < 500 && n < nDalam; i++) { const x = rnd(-19, 19), z = rnd(-42, 42); if (!bebas(x, z)) continue; pohon(x, z, rnd(.8, 1.15)); pohon(-x, -z, rnd(.8, 1.15)); n += 2; }
-  for (let z = -47; z <= 47; z += jarakTepi) [-23, 23].forEach(x => pohon(x + rnd(-1, 1), z + rnd(-.8, .8), rnd(1, 1.4), 1));   // pagar pohon kiri-kanan
-  for (let x = -22; x <= 22; x += jarakTepi) [-47.5, 47.5].forEach(z => pohon(x + rnd(-.8, .8), z + rnd(-.8, .8), rnd(1, 1.4), 1));
+  let n = 0; for (let i = 0; i < 500 && n < nDalam; i++) { const x = rP(-19, 19), z = rP(-42, 42); if (!bebas(x, z)) continue; const s1 = rP(.8, 1.15), s2 = rP(.8, 1.15); pohon(x, z, s1); pohon(-x, -z, s2); n += 2; }
+  for (let z = -47; z <= 47; z += jarakTepi) [-23, 23].forEach(x => pohon(x + rP(-1, 1), z + rP(-.8, .8), rP(1, 1.4), 1));   // pagar pohon kiri-kanan
+  for (let x = -22; x <= 22; x += jarakTepi) [-47.5, 47.5].forEach(z => pohon(x + rP(-.8, .8), z + rP(-.8, .8), rP(1, 1.4), 1));
   if (KUAL.lv < 2) TANAM.forEach(p => pohonKotak(p.x, p.z, p.s));   // Rendah & Sedang: pohon kotak lama
   else Promise.all(WN_POHON.map(u => muatGLB(u).catch(() => null))).then(gls => {
     const J = gls.map(g => { if (!g) return null; let me = null; g.scene.updateMatrixWorld(true); g.scene.traverse(o => { if (!me && o.isMesh) me = o; }); if (!me) return null;
@@ -9485,6 +9606,7 @@ function kenaPemain(dmg, dari, dorong = 3) {
   if (HERO === 'genderuwo' && GW.amuk > 0) dorong = 0;   // Amukan Genderuwo: tidak bisa didorong
   if (HERO === 'buto') { dorong *= BT.dorongK; if (P.hp < HP_MAX.buto * BT.rendah) dmg = Math.round(dmg * (1 - BT.kurang)); }   // Pasif Kulit Buto
   if (HERO === 'saras' && P.state === 'srHilang') return;   // Kilat Bayangan: sedang menghilang, tidak bisa dilukai
+  if (HERO === 'lutung' && (P.state === 'lkPohon' || P.state === 'lkNaik')) dorong = 0;   // di atas pohon: tetap bisa dilukai, tapi pukulan biasa tidak mendorong jatuh
   if (HERO === 'lutung' && LK_ULTI.has(P.state)) { dorong = 0; dmg = Math.round(dmg * (1 - LK.ulti.kurang)); }   // Terkaman Kasarung: tidak terdorong, damage −50%
   if (HERO === 'erick' && P.state === 'erBlink' && P.t < ER.blink.kebal) return;   // menghilang + sesaat setelah muncul (0,8 dtk): tidak bisa dilukai
   if (HERO === 'nyi' && (NW.duyung > 0 || P.state === 'nrLesat')) return;
@@ -9617,7 +9739,7 @@ R.root.add(R.tilt);
 R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, remote: true, bar: null };
 
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
-const FXF = { blSisik, blUlarTanah, blTrap, blTrapHapus, blKolam, blAsap, blGigit, blKibas, wgCakar: wgCakarFx, wgKantong: (p, m) => wgKantongFx(p, !!m), wgBambu, wgBambuHapus, wgBayi, wgNempel, wgTembang, wgZzz, wgHilang: wgHilangFx, wgJatuh: wgJatuhkan, mdJarak, mdSniper, mdTembak, mdGranat, mdBren, mdBrenArah, mdBrenLepas, mdDebu: mdLompatDebu, bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik, rjBatu, rjBatuPatung, rjTanda, rjPasif, rjPatung, rjLesung, rjCandi };
+const FXF = { lDaun, blSisik, blUlarTanah, blTrap, blTrapHapus, blKolam, blAsap, blGigit, blKibas, wgCakar: wgCakarFx, wgKantong: (p, m) => wgKantongFx(p, !!m), wgBambu, wgBambuHapus, wgBayi, wgNempel, wgTembang, wgZzz, wgHilang: wgHilangFx, wgJatuh: wgJatuhkan, mdJarak, mdSniper, mdTembak, mdGranat, mdBren, mdBrenArah, mdBrenLepas, mdDebu: mdLompatDebu, bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik, rjBatu, rjBatuPatung, rjTanda, rjPasif, rjPatung, rjLesung, rjCandi };
 const FX_SUDUT = { blSisik: [1], blGigit: [1], wgCakar: [1], wgBayi: [1], wgTembang: [1], mdTembak: [1], mdBren: [1], mdBrenArah: [1], rjBatu: [1], rjBatuPatung: [1], rjLesung: [1], rjCandi: [1], wrTebas: [1], wrSilat: [1], wrNaga: [1], ksTebas: [1], ksGerak: [3], ksSerang: [2], skPerahu: [1], skTebas: [1], swMacan: [2], swCakar: [2], swTebas: [1], swBayang: [1], nrBola: [1], nrLesat: [1], nrOmbak: [1], dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
 // ---- efek skill MUSUH diberi warna kemerahan, agar beda dengan efek sendiri / tim ----
 const MERAH_MUSUH = new THREE.Color(0xff2020), MERAH_KADAR = .45;
