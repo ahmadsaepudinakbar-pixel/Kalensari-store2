@@ -255,6 +255,17 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
 #bars.umpet .hp{background:none}#bars.umpet .hp i{display:none}#bars.umpet .hp .nm{bottom:2px}.hp.jaga .nm{color:#ffd166!important}.hp.jaga .nm::before{content:'👁️ '}
 #rkHasil{display:flex;flex-direction:column;align-items:center;gap:6px;margin:4px 0 2px}#rkHasil .rkh{display:flex;align-items:center;gap:10px;background:#0b1020cc;border:2px solid var(--tk,#ffd166);border-radius:14px;padding:6px 14px;font:700 15px Arial;color:#fff}#rkHasil .rkh i{font-style:normal;font-size:28px}#rkHasil .rkh small{display:block;font:700 11px Arial;color:var(--tk,#ffd166)}#rkHasil .rkh b{font-size:18px}#rkHasil em{font:900 22px Arial;font-style:normal}#rkHasil em.p{color:#7dff8a}#rkHasil em.m{color:#ff7a7a}#rkHasil .naik{color:#ffd040;font:900 16px Arial;animation:rkNaik .8s ease-in-out infinite alternate}#rkHasil .turun{color:#ff9a9a;font:700 13px Arial}@keyframes rkNaik{to{transform:scale(1.08)}}
 #afkB{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:30;display:none;pointer-events:none;background:#0b1020e6;border:2px solid #7ad0ff;border-radius:14px;padding:6px 16px;font:700 14px Arial;color:#dff3ff;text-align:center;box-shadow:0 0 18px #7ad0ff55;animation:afkK 1.6s ease-in-out infinite alternate}#afkB.on{display:block}#afkB small{display:block;font:700 11px Arial;color:#9fb0d8;margin-top:2px}@keyframes afkK{to{box-shadow:0 0 6px #7ad0ff22}}
+#chatB{position:fixed;right:142px;top:46px;z-index:8;width:34px;height:34px;border-radius:9px;border:1px solid #ffffff33;background:#0b1020cc;font-size:17px;cursor:pointer;color:#fff;padding:0}#chatB.on{background:#ffb703;border-color:#fff3b0}
+#chatLog{position:fixed;left:10px;bottom:200px;z-index:7;max-width:min(300px,42vw);display:flex;flex-direction:column;gap:3px;pointer-events:none}
+#chatLog .cl{font:700 12px Arial;color:#fff;background:#0b1020c4;border-left:3px solid #7dff8a;border-radius:6px;padding:3px 8px;text-shadow:0 1px 2px #000;transition:opacity .6s;word-break:break-word}
+#chatLog .cl b{color:#9dff8a}#chatLog .cl.mu{border-left-color:#ff6b6b}#chatLog .cl.mu b{color:#ff9a9a}#chatLog .cl.sm{background:#1a1030cc}#chatLog .cl.pudar{opacity:0}
+#chatP{position:fixed;right:8px;top:86px;z-index:40;width:min(380px,62vw);max-height:calc(100vh - 96px);overflow-y:auto;display:none;flex-direction:column;gap:6px;padding:8px;border-radius:12px;background:#0b1020f2;border:2px solid #7dff8a;box-shadow:0 6px 20px #000a;font:700 12px Arial;color:#dfe6f5}
+#chatP.on{display:flex}#chatP.semua{border-color:#ffb703}
+#chatP .ch1{display:flex;gap:5px}#chatP .ch1 button{flex:1;font:700 12px Arial;color:#cfd8f5;background:#16203a;border:1px solid #2c3f73;border-radius:8px;padding:5px;cursor:pointer}#chatP .ch1 button.on{background:#2a6a3a;color:#fff;border-color:#7dff8a}#chatP.semua .ch1 button.on{background:#7a5200;border-color:#ffb703}#chatP .ch1 .x{flex:0 0 34px}
+#chatP .ch2{display:grid;grid-template-columns:1fr 1fr;gap:4px}#chatP .ch2 button{font:700 12px Arial;color:#fff;background:#1a2440;border:1px solid #33456f;border-radius:8px;padding:6px 5px;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#chatP .ch2 button:active{background:#2c3f73}
+#chatP .ch3{display:flex;gap:5px;margin:0}#chatP .ch3 input{flex:1;min-width:0;font:700 13px Arial;color:#fff;background:#05080f;border:1px solid #3a4f80;border-radius:8px;padding:6px 8px;user-select:text;-webkit-user-select:text}#chatP .ch3 button{font:700 12px Arial;color:#1c1000;background:#ffd166;border:0;border-radius:8px;padding:0 12px;cursor:pointer}
+#chatP .ch4{display:flex;flex-wrap:wrap;gap:4px;align-items:center;color:#9aa3b8;font-size:11px}#chatP .ch4 button{font:700 11px Arial;color:#dfe6f5;background:#141c30;border:1px solid #2c3f73;border-radius:12px;padding:2px 8px;cursor:pointer}#chatP .ch4 button.mu{border-color:#a04050}#chatP .ch4 button.on{opacity:.55;text-decoration:line-through}
+@media (orientation:landscape) and (max-height:560px){#chatB{right:108px;top:40px;width:30px;height:30px;font-size:15px}#chatP{top:76px}#chatP .ch2 button{padding:4px 5px;font-size:11px}#chatLog{bottom:166px}}
 </style>
 <script src="config.js"></script><script src="qr-mini.js"></script>
 <script type="importmap">
@@ -10073,6 +10084,53 @@ function afkUpd(dt) {
   sbgMusuh(false, () => B.upd(dt));
   P.root.position.copy(B.root.position); P.root.rotation.y = B.root.rotation.y;   // hero pemain ikut posisi penggerak (kamera, tugu, monster, kiriman ke HP lain)
 }
+// ---------- CHAT War Nanas online: chat cepat & chat ketik (👥 Tim / 🌐 Semua) ----------
+const CHAT_CEPAT = ['⚔️ Serang!', '🏃 Mundur!', '🍍 Kumpul di Tugu Nanas!', '🙏 Bantu aku!', '😱 Toloooooong!!!', '🐊 Buaya muncul!', '🏠 Jaga rumah!', '🏃‍♂️ Otw!', '⏳ Tunggu aku!', '🔥 Mantap!', '👍 GG'];
+const CHAT = { siap: false, tim: true, bisu: new Set(), buka: false, tahanT: 0 };
+function chatSiap() {
+  if (CHAT.siap || !WN_ONLINE || !TIM.pl || !TIM.pl.length) return; CHAT.siap = true;
+  const b = document.createElement('button'); b.id = 'chatB'; b.textContent = '💬'; b.title = 'Chat (PC: Enter)'; document.body.appendChild(b);
+  const log = document.createElement('div'); log.id = 'chatLog'; document.body.appendChild(log);
+  const P2 = document.createElement('div'); P2.id = 'chatP'; document.body.appendChild(P2);
+  P2.innerHTML = `<div class="ch1"><button data-c="tim" class="on">👥 Tim</button><button data-c="semua">🌐 Semua</button><button data-c="x" class="x">✖</button></div>
+   <div class="ch2">${CHAT_CEPAT.map((t, i) => `<button data-q="${i}">${t}</button>`).join('')}</div>
+   <form class="ch3"><input id="chatIn" maxlength="80" autocomplete="off" enterkeyhint="send" placeholder="Ketik pesan ke tim…"><button>Kirim</button></form>
+   <div class="ch4"><span>🔇 Bisukan:</span><span id="chatBisu"></span></div>`;
+  ['pointerdown', 'touchstart', 'mousedown', 'click', 'wheel'].forEach(ev => { P2.addEventListener(ev, e => e.stopPropagation()); b.addEventListener(ev, e => e.stopPropagation()); });
+  const inp = P2.querySelector('#chatIn');
+  ['keydown', 'keyup', 'keypress'].forEach(ev => inp.addEventListener(ev, e => { e.stopPropagation(); if (ev === 'keydown' && e.key === 'Escape') chatBuka(false); }));
+  b.onclick = () => chatBuka(!CHAT.buka);
+  P2.addEventListener('click', e => {
+    const c = e.target.closest('[data-c]'), q = e.target.closest('[data-q]'), m = e.target.closest('[data-bisu]');
+    if (c) { if (c.dataset.c === 'x') chatBuka(false); else { CHAT.tim = c.dataset.c === 'tim'; chatTab(); } }
+    if (q) { chatKirimPesan(CHAT_CEPAT[+q.dataset.q]); chatBuka(false); }
+    if (m) { const id = +m.dataset.bisu; if (CHAT.bisu.has(id)) CHAT.bisu.delete(id); else CHAT.bisu.add(id); chatBisuIsi(); }
+  });
+  P2.querySelector('form').onsubmit = e => { e.preventDefault(); const v = inp.value.trim(); if (v) { chatKirimPesan(v); inp.value = ''; } inp.blur(); chatBuka(false); };
+  chatBisuIsi();
+}
+function chatTab() { const P2 = $('#chatP'); if (!P2) return; P2.querySelectorAll('[data-c=tim],[data-c=semua]').forEach(x => x.classList.toggle('on', (x.dataset.c === 'tim') === CHAT.tim)); P2.classList.toggle('semua', !CHAT.tim); $('#chatIn').placeholder = CHAT.tim ? 'Ketik pesan ke tim…' : 'Ketik pesan ke semua pemain (termasuk lawan)…'; }
+function chatBisuIsi() { const e = $('#chatBisu'); if (!e) return; e.innerHTML = TIM.pl.filter(p => p.i !== TIM.me).map(p => `<button data-bisu="${p.i}" class="${CHAT.bisu.has(p.i) ? 'on' : ''} ${p.tm === TIM.saya.tm ? 'kw' : 'mu'}">${CHAT.bisu.has(p.i) ? '🔇' : '🔈'} ${escH(namaOf(p.i))}</button>`).join(''); }
+function chatBuka(v) {
+  const P2 = $('#chatP'); if (!P2) return; CHAT.buka = v; P2.classList.toggle('on', v); $('#chatB').classList.toggle('on', v);
+  if (v) { chatTab(); chatBisuIsi(); if (!DI_HP) setTimeout(() => $('#chatIn').focus(), 30); } else $('#chatIn').blur();
+}
+function chatKirimPesan(x) {
+  if (!x || SELESAI && !TIM.main) return;
+  if (performance.now() < CHAT.tahanT) { banner('⏳ Tunggu sebentar sebelum kirim pesan lagi', '#ffd166'); return; }
+  CHAT.tahanT = performance.now() + 900; kirim({ t: 'tmChat', x, tim: CHAT.tim ? 1 : 0 });
+}
+function chatTerima(m) {
+  if (!CHAT.siap) chatSiap(); if (CHAT.bisu.has(m.i)) return;
+  const log = $('#chatLog'); if (!log) return;
+  const saya = m.i === TIM.me, lawan = WN_ONLINE && m.tm !== WN.saya, nm = saya ? 'Kamu' : namaOf(m.i) || m.n;
+  const d = document.createElement('div'); d.className = 'cl ' + (lawan ? 'mu' : 'kw') + (m.tim ? '' : ' sm');
+  d.innerHTML = `<b>${m.tim ? '' : '[Semua] '}${escH(nm)}:</b> ${escH(m.x)}`;
+  log.appendChild(d); while (log.children.length > 6) log.firstChild.remove();
+  setTimeout(() => { d.classList.add('pudar'); setTimeout(() => d.remove(), 700); }, 7000);
+  if (!saya && /tolo+ng/i.test(m.x) && !lawan && navigator.vibrate) navigator.vibrate(60);
+}
+addEventListener('keydown', e => { if (!CHAT.siap || e.repeat) return; if (e.key === 'Enter' && !CHAT.buka) { e.preventDefault(); chatBuka(true); } else if (e.key === 'Escape' && CHAT.buka) chatBuka(false); });
 // ---------- RANK ONLINE: MVP & poin ----------
 const RK_T = [[0, 'Anak Bawang', '🌱', '#8fd06a'], [100, 'Prajurit', '🛡️', '#a9b6c8'], [250, 'Jagoan', '⚔️', '#d0924a'], [450, 'Pendekar', '🥋', '#4ab8e8'], [700, 'Ksatria', '🐎', '#7a8cff'], [1000, 'Panglima Tempur', '🦅', '#c46cff'], [1400, 'Suhu', '🐉', '#ff7a3a'], [1900, 'Sepuh', '👑', '#ffd040']];
 const RKH = { d: null };
@@ -10116,6 +10174,8 @@ function timTerima(m) {
   if (m.t === 'tmRoom') { timLobi(m); return true; }
   if (m.t === 'tmStart') { if (WN_ONLINE) wnMulaiOnline(m); else timMulai(m); return true; }
   if (m.t === 'rkHasil') { RKH.d = m; rkHasilTampil(); return true; }
+  if (m.t === 'tmChat') { chatTerima(m); return true; }
+  if (m.t === 'tmChatTahan') { banner('⏳ Terlalu cepat — tunggu sebentar sebelum kirim pesan lagi', '#ffd166'); return true; }
   if (m.t === 'tmPutus') { if (TIM.main) { banner('📶 ' + namaOf(m.i) + ' terputus…', '#ffd166'); if (m.host) banner('⏳ Menunggu ' + namaOf(m.i) + ' tersambung lagi…', '#ffd166'); } return true; }
   if (m.t === 'tmSambung') { if (TIM.main) banner('✅ ' + namaOf(m.i) + ' tersambung lagi', '#9dff8a'); return true; }
   if (m.t === 'tmJadiBot') { if (TIM.main) { banner(namaOf(m.i) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host) jadikanBot(m.i); } return true; }
@@ -10213,7 +10273,7 @@ function barKawan(mt) {   // bar darah kawan (lawan diurus updLabel lewat MUSUH)
 }
 function updTim(dt, nyata) {
   if (!TIM.main) { if (AFK.o) afkSelesai(true); return; }
-  afkUpd(dt);
+  afkUpd(dt); if (WN_ONLINE && !CHAT.siap) chatSiap();
   TIM.obj.forEach(o => { updObjTim(o, dt); if (o.kawan) barKawan(o.mt); });
   TIM.bot.forEach(o => {
     if (!o.mt.mati && o.mt.kebalT && performance.now() < o.mt.kebalT) { o.mt.pusing = o.mt.kunci = 0; }   // kebal: lepas dari stun/kunci
