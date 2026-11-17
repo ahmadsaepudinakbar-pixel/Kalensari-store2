@@ -57,7 +57,7 @@ wss.clients = clients;
 
 const PORT = +process.env.PORT || 8090;
 const HOST = process.env.HOST || '127.0.0.1';
-const HEROES = ["pocong", "kuntilanak", "tuyul", "genderuwo", "pitung", "erick", "doni", "timunmas", "buto", "lutung", "saras", "angling", "dayang", "nyiroro", "siliwangi", "ciung", "sangkuriang", "kiansantang", "wiro", "roro", "masdim", "wewe", "blorong"];   // samakan dengan HEROK di game.html (hero baru wajib ditambah di sini)   // doni: hero ke-7   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
+const HEROES = ["pocong", "kuntilanak", "tuyul", "genderuwo", "pitung", "erick", "doni", "timunmas", "buto", "lutung", "saras", "angling", "dayang", "nyiroro", "siliwangi", "ciung", "sangkuriang", "kiansantang", "wiro", "roro", "masdim", "wewe", "blorong", "dewisri"];   // samakan dengan HEROK di game.html (hero baru wajib ditambah di sini)   // doni: hero ke-7   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
 const RELAY_FROM_HOST = new Set(['st', 'end']);   // data pertandingan dari host → tamu
 const RELAY_FROM_GUEST = new Set(['in']);         // tombol tamu → host
 
@@ -576,7 +576,7 @@ function lbRencanaBot(n0, n1) {   // isi slot kosong: kedua tim dibuat sama besa
 // Mode tim (Duel Tim, War Nanas, Rank): DRAFT BERGILIRAN seperti MLBB — urutan 1-2-2-1, semua pilihan (teman & lawan) terlihat, hero tidak boleh kembar.
 // Bot (pilihan host / pengisi War Nanas & Rank) ikut mendapat giliran dan "memilih" seperti pemain. Mode lain: semua memilih bersamaan.
 const LB_GILIRAN = 15000, LB_GILIRAN_BOT = [1600, 4200];
-const HERO_GRATIS = ['pocong', 'pitung', 'erick', 'doni', 'timunmas', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyiroro', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang', 'wiro', 'roro', 'masdim', 'blorong'];
+const HERO_GRATIS = ['pocong', 'pitung', 'erick', 'doni', 'timunmas', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyiroro', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang', 'wiro', 'roro', 'masdim', 'blorong', 'dewisri'];
 function lbSiapBot(L) {
   (L.preBots || []).forEach(b => clearTimeout(b.t)); L.preBots = [];
   if (L.draft) clearTimeout(L.draft.t); L.draft = null;
@@ -649,7 +649,7 @@ function lbLuncur(L) {
   const ikut = lbOn(L).filter(x => x.inR);
   const pakaiBot = false, botL = lbBotBisa(L.rm) ? (L.bots || []) : [];
   if (ikut.length + (pakaiBot ? 1 : 0) + (L.rm === 'duel' && ikut.length === 1 && L.duelBot ? 1 : L.rm === 'tim' ? botL.length : L.rm === 'wn' ? 5 : 0) < 2 || !ikut.length) { lbBatal(L, 'Teman keluar sebelum mulai — tunggu teman lain lalu tekan MULAI lagi'); return; }
-  ikut.forEach(x => { x.ws.hero = x.h; x.ws.skin = x.s || ''; x.main = (x.main || 0) + 1; });
+  ikut.forEach(x => { x.ws.hero = x.h; x.ws.skin = x.s || ''; x.main = (x.main || 0) + 1; const ra = L.rkAkun && L.rkAkun.get(x.pid); if (ra) ra.h = x.h; });   // Rank: hero dicatat untuk riwayat
   const code = newCode();
   L.state = 'main'; L.sub = code;
   if (L.rm === 'pk') {
@@ -925,7 +925,8 @@ function rkMulai(tim) {
 function rkKirimHasil(r, hasil) {   // hasil: [{pid, akun, nama, menang, mvp}]
   if (!hasil.length) return;
   hasil.forEach(h => r.rkSudah.add(h.pid));
-  sbRpc('game_rank_hasil', { p_kunci: RANK_KUNCI, p_hasil: hasil.map(h => ({ akun: h.akun, nama: h.nama, menang: !!h.menang, mvp: !!h.mvp, afk: h.afk | 0 })) }).then(j => {
+  const dur = r.mulaiT ? Math.round((Date.now() - r.mulaiT) / 1000) : 0;
+  sbRpc('game_rank_hasil', { p_kunci: RANK_KUNCI, p_hasil: hasil.map(h => { const a = r.rkAkun && r.rkAkun.get(h.pid); return { akun: h.akun, nama: h.nama, menang: !!h.menang, mvp: !!h.mvp, afk: h.afk | 0, hero: (a && a.h) || '', durasi: dur, keluar: !!h.keluar }; }) }).then(j => {
     const L = Array.isArray(j) ? j : [];
     hasil.forEach(h => {
       const d = L.find(x => x.akun === h.akun), w = r.pl.find(x => x.pid === h.pid) || akunWs.get(h.akun);
@@ -972,7 +973,7 @@ setInterval(() => {
 }, 5000);
 function rkTutup(r) {   // room Rank bubar tanpa hasil (semua pergi) → yang belum tercatat = kalah + menit AFK
   if (!r.rank || !r.rkAkun) return;
-  const hasil = []; r.rkAkun.forEach((a, pid) => { if (!r.rkSudah.has(pid)) hasil.push({ pid, akun: a.akun, nama: a.n, menang: false, mvp: false, afk: rkAfkMenit(r, pid) }); });
+  const hasil = []; r.rkAkun.forEach((a, pid) => { if (!r.rkSudah.has(pid)) hasil.push({ pid, akun: a.akun, nama: a.n, menang: false, mvp: false, afk: rkAfkMenit(r, pid), keluar: true }); });
   rkKirimHasil(r, hasil);
 }
 function rkSelesai(r, m) {   // pertandingan Rank selesai (dikirim HP wasit): m.m = tim pemenang, m.mvp = [id MVP tim 0, id MVP tim 1]
@@ -981,7 +982,7 @@ function rkSelesai(r, m) {   // pertandingan Rank selesai (dikirim HP wasit): m.
   (r.rkAkun || new Map()).forEach((a, pid) => {
     if (r.rkSudah.has(pid)) return;
     const td = r.tunda && r.tunda.get(pid), w = r.pl.find(x => x.pid === pid) || (td && { tmT: td.tm, id: td.i, name: td.n }), tm = r.exp ? r.exp.get(pid) : w && w.tmT;   // yang sedang tersambung ulang tetap dihitung
-    if (!w || (r.rkPergi && r.rkPergi.has(pid) && !r.pl.some(x => x.pid === pid))) { hasil.push({ pid, akun: a.akun, nama: a.n, menang: false, mvp: false, afk: rkAfkMenit(r, pid) }); return; }   // keluar / tidak pernah masuk arena = kalah
+    if (!w || (r.rkPergi && r.rkPergi.has(pid) && !r.pl.some(x => x.pid === pid))) { hasil.push({ pid, akun: a.akun, nama: a.n, menang: false, mvp: false, afk: rkAfkMenit(r, pid), keluar: true }); return; }   // keluar / tidak pernah masuk arena = kalah
     if (menang < 0) return;   // seri: poin tidak berubah
     const t = w.tmT != null ? w.tmT : tm;
     hasil.push({ pid, akun: a.akun, nama: w.name || a.n, menang: t === menang, mvp: mvp[t] === w.id, afk: rkAfkMenit(r, pid) });
