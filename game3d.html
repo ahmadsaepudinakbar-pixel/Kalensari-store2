@@ -266,6 +266,12 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
 #chatP .ch3{display:flex;gap:5px;margin:0}#chatP .ch3 input{flex:1;min-width:0;font:700 13px Arial;color:#fff;background:#05080f;border:1px solid #3a4f80;border-radius:8px;padding:6px 8px;user-select:text;-webkit-user-select:text}#chatP .ch3 button{font:700 12px Arial;color:#1c1000;background:#ffd166;border:0;border-radius:8px;padding:0 12px;cursor:pointer}
 #chatP .ch4{display:flex;flex-wrap:wrap;gap:4px;align-items:center;color:#9aa3b8;font-size:11px}#chatP .ch4 button{font:700 11px Arial;color:#dfe6f5;background:#141c30;border:1px solid #2c3f73;border-radius:12px;padding:2px 8px;cursor:pointer}#chatP .ch4 button.mu{border-color:#a04050}#chatP .ch4 button.on{opacity:.55;text-decoration:line-through}
 @media (orientation:landscape) and (max-height:560px){#chatB{right:108px;top:40px;width:30px;height:30px;font-size:15px}#chatP{top:76px}#chatP .ch2 button{padding:4px 5px;font-size:11px}#chatLog{bottom:166px}}
+#micB,#spkB{position:fixed;top:46px;z-index:8;width:34px;height:34px;border-radius:9px;border:1px solid #ffffff33;background:#0b1020cc;font-size:17px;cursor:pointer;color:#fff;padding:0}#micB{right:184px}#spkB{right:226px}
+#micB.on{background:#1f8a3a;border-color:#7dff8a;box-shadow:0 0 10px #7dff8a99}#micB.mati,#spkB.mati{opacity:.75}
+#micBicara{position:fixed;right:142px;top:86px;z-index:7;display:flex;flex-direction:column;align-items:flex-end;gap:3px;pointer-events:none}
+#micBicara span{font:700 11px Arial;color:#fff;background:#0b1020cc;border:1px solid #7dff8a;border-radius:10px;padding:2px 8px;animation:micDenyut .6s ease-in-out infinite alternate}#micBicara span.aku{border-color:#ffd166;animation:none}
+@keyframes micDenyut{to{box-shadow:0 0 8px #7dff8a}}
+@media (orientation:landscape) and (max-height:560px){#micB,#spkB{top:40px;width:30px;height:30px;font-size:15px}#micB{right:144px}#spkB{right:180px}#micBicara{right:108px;top:76px}}
 </style>
 <script src="config.js"></script><script src="qr-mini.js"></script>
 <script type="importmap">
@@ -10104,7 +10110,7 @@ function chatSiap() {
     const c = e.target.closest('[data-c]'), q = e.target.closest('[data-q]'), m = e.target.closest('[data-bisu]');
     if (c) { if (c.dataset.c === 'x') chatBuka(false); else { CHAT.tim = c.dataset.c === 'tim'; chatTab(); } }
     if (q) { chatKirimPesan(CHAT_CEPAT[+q.dataset.q]); chatBuka(false); }
-    if (m) { const id = +m.dataset.bisu; if (CHAT.bisu.has(id)) CHAT.bisu.delete(id); else CHAT.bisu.add(id); chatBisuIsi(); }
+    if (m) { const id = +m.dataset.bisu; if (CHAT.bisu.has(id)) CHAT.bisu.delete(id); else CHAT.bisu.add(id); chatBisuIsi(); voiceVolume(); }
   });
   P2.querySelector('form').onsubmit = e => { e.preventDefault(); const v = inp.value.trim(); if (v) { chatKirimPesan(v); inp.value = ''; } inp.blur(); chatBuka(false); };
   chatBisuIsi();
@@ -10131,6 +10137,88 @@ function chatTerima(m) {
   if (!saya && /tolo+ng/i.test(m.x) && !lawan && navigator.vibrate) navigator.vibrate(60);
 }
 addEventListener('keydown', e => { if (!CHAT.siap || e.repeat) return; if (e.key === 'Enter' && !CHAT.buka) { e.preventDefault(); chatBuka(true); } else if (e.key === 'Escape' && CHAT.buka) chatBuka(false); });
+// ---------- MIC War Nanas online: suara khusus satu tim (WebRTC, HP ke HP) ----------
+// 🎤 mic sendiri (bawaan MATI) · 🔊 dengar suara tim (bawaan NYALA) · 🔇 Bisukan di panel chat juga membisukan suaranya
+const VOICE = { siap: false, ice: null, mic: false, spk: true, track: null, pcs: new Map(), micOn: new Set(), syncT: 0, minta: false };
+function voiceSiap() {
+  if (VOICE.siap || !CHAT.siap || !window.RTCPeerConnection) return; VOICE.siap = true;
+  const m = document.createElement('button'); m.id = 'micB'; m.title = 'Mic (suara ke tim)'; document.body.appendChild(m);
+  const k = document.createElement('button'); k.id = 'spkB'; k.title = 'Dengar suara tim'; document.body.appendChild(k);
+  const b = document.createElement('div'); b.id = 'micBicara'; document.body.appendChild(b);
+  ['pointerdown', 'touchstart', 'mousedown', 'click'].forEach(ev => { m.addEventListener(ev, e => e.stopPropagation()); k.addEventListener(ev, e => e.stopPropagation()); });
+  m.onclick = () => micNyala(!VOICE.mic); k.onclick = () => { VOICE.spk = !VOICE.spk; voiceVolume(); voiceTombol(); banner(VOICE.spk ? '🔊 Suara tim dinyalakan' : '🔈 Suara tim dimatikan', '#9fd8ff'); };
+  addEventListener('pointerdown', () => VOICE.pcs.forEach(P => { if (P.audio && P.audio.paused) P.audio.play().catch(() => { }); }), { capture: true, passive: true });   // HP: suara baru boleh diputar setelah layar disentuh
+  voiceTombol(); kirim({ t: 'tmIce' }); VOICE.minta = true;
+  setInterval(voiceBicaraCek, 300);
+}
+function voiceTombol() {
+  const m = $('#micB'), k = $('#spkB'); if (!m) return;
+  m.textContent = VOICE.mic ? '🎤' : '🎙️'; m.classList.toggle('on', VOICE.mic); m.classList.toggle('mati', !VOICE.mic);
+  k.textContent = VOICE.spk ? '🔊' : '🔈'; k.classList.toggle('mati', !VOICE.spk);
+}
+function voiceTeman() { return TIM.pl.filter(p => p.i !== TIM.me && !p.bot && p.tm === TIM.saya.tm && (TIM.obj.has(p.i) || !TIM.bot.has(p.i))); }
+function voiceSync() {
+  if (!VOICE.siap || !VOICE.ice || SELESAI && !TIM.main) return;
+  const mau = new Set(voiceTeman().map(p => p.i));
+  VOICE.pcs.forEach((P, id) => { if (!mau.has(id) || (P.pc.connectionState !== 'connected' && performance.now() - P.t > 15000)) voiceTutup(id); });   // tidak tersambung 15 dtk → dicoba lagi
+  mau.forEach(id => { if (!VOICE.pcs.has(id) && TIM.me < id) voicePc(id, true); });   // id kecil yang memulai (tidak bertabrakan)
+}
+function voicePc(id, mulai) {
+  const pc = new RTCPeerConnection({ iceServers: VOICE.ice }), P = { pc, tx: null, audio: null, antri: [], t: performance.now() };
+  VOICE.pcs.set(id, P);
+  pc.onicecandidate = e => { if (e.candidate) kirim({ t: 'tmRtc', ke: id, d: { c: e.candidate.toJSON ? e.candidate.toJSON() : e.candidate } }); };
+  pc.ontrack = e => {
+    const a = P.audio || (P.audio = new Audio()); a.autoplay = true; a.srcObject = (e.streams && e.streams[0]) || new MediaStream([e.track]);
+    P.rx = e.receiver; voiceVolume(); a.play().catch(() => { });
+  };
+  pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed') { voiceTutup(id); VOICE.syncT = 0; } };
+  if (mulai) {
+    P.tx = pc.addTransceiver('audio', { direction: 'sendrecv' }); if (VOICE.track) P.tx.sender.replaceTrack(VOICE.track);
+    pc.createOffer().then(o => pc.setLocalDescription(o)).then(() => kirim({ t: 'tmRtc', ke: id, d: { sdp: pc.localDescription.toJSON ? pc.localDescription.toJSON() : pc.localDescription } })).catch(e => console.warn('[mic] offer', e));
+  }
+  return P;
+}
+async function voiceTerima(m) {
+  if (!VOICE.siap || !VOICE.ice) return;
+  const id = m.dari, d = m.d || {}; let P = VOICE.pcs.get(id);
+  try {
+    if (d.sdp) {
+      if (d.sdp.type === 'offer') { if (P) voiceTutup(id); P = voicePc(id, false); }
+      if (!P) return;
+      await P.pc.setRemoteDescription(d.sdp);
+      if (d.sdp.type === 'offer') {
+        P.tx = P.pc.getTransceivers()[0]; if (P.tx) { P.tx.direction = 'sendrecv'; if (VOICE.track) await P.tx.sender.replaceTrack(VOICE.track); }
+        const a = await P.pc.createAnswer(); await P.pc.setLocalDescription(a);
+        kirim({ t: 'tmRtc', ke: id, d: { sdp: P.pc.localDescription.toJSON ? P.pc.localDescription.toJSON() : P.pc.localDescription } });
+      }
+      for (const c of P.antri.splice(0)) await P.pc.addIceCandidate(c).catch(() => { });
+    } else if (d.c && P) { if (P.pc.remoteDescription) await P.pc.addIceCandidate(d.c).catch(() => { }); else P.antri.push(d.c); }
+  } catch (e) { console.warn('[mic] sinyal', e); }
+}
+function voiceTutup(id) { const P = VOICE.pcs.get(id); if (!P) return; VOICE.pcs.delete(id); try { P.pc.close(); } catch (e) { } if (P.audio) { P.audio.srcObject = null; } }
+function voiceVolume() { VOICE.pcs.forEach((P, id) => { if (P.audio) P.audio.muted = !VOICE.spk || CHAT.bisu.has(id); }); }
+async function micNyala(v) {
+  if (v) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { banner('🎤 Mic tidak didukung di aplikasi/browser ini', '#ff9a9a'); return; }
+    try { const st = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); VOICE.track = st.getAudioTracks()[0]; }
+    catch (e) { banner('🎤 Izin mikrofon ditolak — izinkan mikrofon untuk game ini', '#ff9a9a'); return; }
+  } else if (VOICE.track) { VOICE.track.stop(); VOICE.track = null; }
+  VOICE.mic = v; VOICE.pcs.forEach(P => { if (P.tx) P.tx.sender.replaceTrack(VOICE.track).catch(() => { }); });
+  kirim({ t: 'tmMic', on: v ? 1 : 0 }); voiceTombol();
+  banner(v ? '🎤 Mic menyala — suaramu terdengar oleh tim' : '🎙️ Mic dimatikan', v ? '#9dff8a' : '#9fd8ff');
+}
+function voiceBicaraCek() {   // tanda siapa yang sedang bicara (dari level suara yang diterima)
+  const e = $('#micBicara'); if (!e) return; let h = '';
+  VOICE.pcs.forEach((P, id) => { const r = P.rx; if (!r || !r.getSynchronizationSources || !VOICE.spk || CHAT.bisu.has(id)) return;
+    const ss = r.getSynchronizationSources(), lv = ss.length ? ss[0].audioLevel || 0 : 0; const ts = ss.length ? ss[0].timestamp || 0 : 0; if (lv > .02 && (ts > 1e12 ? Date.now() : performance.now()) - ts < 1000) h += `<span>🔊 ${escH(namaOf(id))}</span>`; });
+  if (VOICE.mic && VOICE.track) h = `<span class="aku">🎤 Kamu</span>` + h;
+  if (e.innerHTML !== h) e.innerHTML = h;
+}
+function voiceUpd() {   // dipanggil tiap frame dari updTim (ringan: sinkron tiap 3 dtk)
+  if (!WN_ONLINE) return; if (!VOICE.siap) { voiceSiap(); return; }
+  if (VOICE.minta && !VOICE.ice && performance.now() - (VOICE.mintaT || 0) > 5000) { VOICE.mintaT = performance.now(); kirim({ t: 'tmIce' }); }
+  if (performance.now() - VOICE.syncT > 3000) { VOICE.syncT = performance.now(); voiceSync(); }
+}
 // ---------- RANK ONLINE: MVP & poin ----------
 const RK_T = [[0, 'Anak Bawang', '🌱', '#8fd06a'], [100, 'Prajurit', '🛡️', '#a9b6c8'], [250, 'Jagoan', '⚔️', '#d0924a'], [450, 'Pendekar', '🥋', '#4ab8e8'], [700, 'Ksatria', '🐎', '#7a8cff'], [1000, 'Panglima Tempur', '🦅', '#c46cff'], [1400, 'Suhu', '🐉', '#ff7a3a'], [1900, 'Sepuh', '👑', '#ffd040']];
 const RKH = { d: null };
@@ -10175,9 +10263,12 @@ function timTerima(m) {
   if (m.t === 'tmStart') { if (WN_ONLINE) wnMulaiOnline(m); else timMulai(m); return true; }
   if (m.t === 'rkHasil') { RKH.d = m; rkHasilTampil(); return true; }
   if (m.t === 'tmChat') { chatTerima(m); return true; }
+  if (m.t === 'tmIce') { VOICE.ice = m.s; VOICE.syncT = 0; return true; }
+  if (m.t === 'tmRtc') { voiceTerima(m); return true; }
+  if (m.t === 'tmMic') { if (TIM.main && m.on && !VOICE.micOn.has(m.i)) banner('🎤 ' + namaOf(m.i) + ' menyalakan mic', '#9dff8a'); if (m.on) VOICE.micOn.add(m.i); else VOICE.micOn.delete(m.i); return true; }
   if (m.t === 'tmChatTahan') { banner('⏳ Terlalu cepat — tunggu sebentar sebelum kirim pesan lagi', '#ffd166'); return true; }
   if (m.t === 'tmPutus') { if (TIM.main) { banner('📶 ' + namaOf(m.i) + ' terputus…', '#ffd166'); if (m.host) banner('⏳ Menunggu ' + namaOf(m.i) + ' tersambung lagi…', '#ffd166'); } return true; }
-  if (m.t === 'tmSambung') { if (TIM.main) banner('✅ ' + namaOf(m.i) + ' tersambung lagi', '#9dff8a'); return true; }
+  if (m.t === 'tmSambung') { if (TIM.main) banner('✅ ' + namaOf(m.i) + ' tersambung lagi', '#9dff8a'); voiceTutup(m.i); VOICE.syncT = 0; return true; }
   if (m.t === 'tmJadiBot') { if (TIM.main) { banner(namaOf(m.i) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host) jadikanBot(m.i); } return true; }
   if (m.t === 'tmWasit') { TIM.hostId = m.host; const dulu = TIM.host; TIM.host = m.host === TIM.me;
     if (TIM.main) { banner(namaOf(m.keluar) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host && !dulu) { (m.bots || []).forEach(id => jadikanBot(id)); banner('🌐 Pertandingan sekarang dijalankan HP kamu', '#9fd8ff'); } }
@@ -10273,7 +10364,7 @@ function barKawan(mt) {   // bar darah kawan (lawan diurus updLabel lewat MUSUH)
 }
 function updTim(dt, nyata) {
   if (!TIM.main) { if (AFK.o) afkSelesai(true); return; }
-  afkUpd(dt); if (WN_ONLINE && !CHAT.siap) chatSiap();
+  afkUpd(dt); if (WN_ONLINE && !CHAT.siap) chatSiap(); if (WN_ONLINE) voiceUpd();
   TIM.obj.forEach(o => { updObjTim(o, dt); if (o.kawan) barKawan(o.mt); });
   TIM.bot.forEach(o => {
     if (!o.mt.mati && o.mt.kebalT && performance.now() < o.mt.kebalT) { o.mt.pusing = o.mt.kunci = 0; }   // kebal: lepas dari stun/kunci

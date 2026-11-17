@@ -167,6 +167,7 @@ function tmMulaiRoom(r) {   // mulai Duel Tim (dipakai tombol MULAI & Main Baren
   r.pl.forEach(w => send(w, { t: 'tmStart', pl, me: w.id, host: r.host.id, a: r.a, kw: r.kw, dur: r.dur || 0, code: r.code, um, wn: r.wn || 0 }));
   r.mulai = { pl, host: r.host.id, a: r.a, kw: r.kw, dur: r.dur || 0, code: r.code, um, wn: r.wn || 0 };
   (r.tonton || []).forEach(w => send(w, Object.assign({ t: 'tmStart', me: w.id, tonton: 1 }, r.mulai)));
+  if (r.wn) tmBotSapa(r);
   console.log(new Date().toISOString(), 'duel tim mulai', r.code, r.lb ? '(main bareng ' + r.lb + ')' : '', pl.map(x => (x.tm ? 'M:' : 'B:') + x.n).join(', '));
 }
 function tmLeave(ws) {
@@ -231,6 +232,69 @@ function tmBalik(ws, m) {   // HP yang tadi terputus masuk lagi ke pertandingan 
   r.pl.forEach(w => { if (w !== ws) send(w, { t: 'tmSambung', i: ws.id }); });
   console.log(new Date().toISOString(), 'war nanas', r.code, ws.name, 'tersambung lagi');
 }
+// =================== MIC (suara tim, WebRTC) ===================
+// Suara mengalir langsung antar-HP satu tim; server hanya menyampaikan "jabat tangan" (offer/answer/ICE) ke teman SATU TIM.
+// TURN (coturn di VPS) dipakai kalau jaringan seluler menghalangi sambungan langsung. Kunci harus sama dengan static-auth-secret di /etc/turnserver.conf
+const TURN_KUNCI = process.env.KS_TURN_KUNCI || '';
+const TURN_HOST = process.env.KS_TURN_HOST || '139.190.101.234';
+function iceUntuk(ws) {
+  const s = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+  if (TURN_KUNCI) {
+    const username = Math.floor(Date.now() / 1000 + 6 * 3600) + ':' + (ws.id || 0);   // berlaku 6 jam
+    const credential = crypto.createHmac('sha1', TURN_KUNCI).update(username).digest('base64');
+    s.push({ urls: ['turn:' + TURN_HOST + ':3478?transport=udp', 'turn:' + TURN_HOST + ':3478?transport=tcp'], username, credential });
+  }
+  return s;
+}
+function tmRtc(r, ws, m) {
+  if (!r || !r.pl.includes(ws) || !m.d) return;
+  const raw = JSON.stringify(m.d); if (raw.length > 12000) return;
+  const ke = r.pl.find(w => w.id === (m.ke | 0) && w.tmT === ws.tmT && w !== ws);   // hanya ke teman satu tim
+  if (ke) send(ke, { t: 'tmRtc', dari: ws.id, d: m.d });
+}
+// =================== CHAT DALAM PERTANDINGAN (War Nanas) ===================
+// chat cepat & chat ketik · tim: hanya ke satu tim · semua: termasuk lawan & penonton · kata kasar disaring di server
+const CHAT_KASAR = ['anjing', 'anjeng', 'anjg', 'anying', 'anjir', 'bangsat', 'bngst', 'kontol', 'kntl', 'memek', 'mmk', 'ngentot', 'ngntt', 'entot', 'goblok', 'goblog', 'gblk', 'tolol', 'tll', 'kampret', 'jancok', 'jancuk', 'cuk', 'asu', 'jembut', 'bajingan', 'brengsek', 'bangke', 'keparat', 'pantek', 'lonte', 'pelacur', 'perek', 'coli', 'peler', 'pepek', 'titit', 'kehed', 'belegug', 'gelo', 'sundel', 'tai', 'taik', 'idiot', 'fuck', 'fck', 'shit', 'bitch', 'dick', 'pussy', 'bego', 'begok', 'kafir'];
+const CHAT_LEET = { 4: 'a', '@': 'a', 1: 'i', '!': 'i', 3: 'e', 0: 'o', 5: 's', $: 's', 7: 't' };
+const CHAT_RX = new RegExp('(^|[^a-z])(' + CHAT_KASAR.map(k => k.split('').map(c => c + '+').join('[\\W_]*')).join('|') + ')(?=$|[^a-z])', 'gi');
+function chatSaring(x) {
+  x = String(x || '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const norm = x.toLowerCase().replace(/[4@1!305$7]/g, c => CHAT_LEET[c] || c);
+  let out = x.split(''); CHAT_RX.lastIndex = 0; let mm;
+  while ((mm = CHAT_RX.exec(norm))) { const a = mm.index + mm[1].length, b = mm.index + mm[0].length; for (let i = a; i < b; i++) if (out[i] !== ' ') out[i] = '*'; }
+  return out.join('');
+}
+function chatKirim(r, dari, x, tim) {   // dari: {i, n, tm}
+  const msg = { t: 'tmChat', i: dari.i, n: dari.n, tm: dari.tm, tim: tim ? 1 : 0, x };
+  r.pl.forEach(w => { if (!tim || w.tmT === dari.tm) send(w, msg); });
+  if (!tim) (r.tonton || []).forEach(w => send(w, msg));
+}
+function tmChat(r, ws, m) {
+  if (!r || !r.pl.includes(ws)) return;
+  const now = Date.now(); ws.chatT = (ws.chatT || []).filter(t => now - t < 10000);
+  if (ws.chatT.length >= 6 || now - (ws.chatT[ws.chatT.length - 1] || 0) < 900) { send(ws, { t: 'tmChatTahan' }); return; }   // anti-spam
+  const x = chatSaring(m.x); if (!x) return;
+  ws.chatT.push(now);
+  chatKirim(r, { i: ws.id, n: ws.name, tm: ws.tmT }, x, !!m.tim);
+  if (m.tim && /tolo+ng|bantu|help/i.test(x)) tmBotJawab(r, ws.tmT);
+}
+// bot ikut ngobrol sedikit (biar terasa seperti pemain): sapaan awal, jawab minta tolong, GG di akhir
+const BOT_SAPA = ['Semangat! 💪', 'Gas! 🔥', 'Ayo menang!', 'Bismillah', 'Siap!'], BOT_OTW = ['Otw! 🏃', 'Tunggu, otw', 'Siap, ke sana!', 'Otw bro'], BOT_GG = ['GG 👍', 'gg', 'GG wp', 'GG 🔥'];
+const acakDari = a => a[Math.floor(Math.random() * a.length)];
+function botAktif(r) { return (r.bots || []).filter(b => b && b.i != null); }
+function tmBotSapa(r) {
+  botAktif(r).forEach(b => { if (Math.random() < .3) setTimeout(() => { if (r.state === 'game' && trooms.get(r.code) === r) chatKirim(r, { i: b.i, n: b.n, tm: b.tm }, acakDari(BOT_SAPA), true); }, 16000 + Math.random() * 14000); });
+}
+function tmBotJawab(r, tm) {
+  const kawan = botAktif(r).filter(b => b.tm === tm); if (!kawan.length || Math.random() > .6 || now0() - (r.botJawabT || 0) < 8000) return;
+  r.botJawabT = now0(); const b = acakDari(kawan);
+  setTimeout(() => { if (r.state === 'game') chatKirim(r, { i: b.i, n: b.n, tm: b.tm }, acakDari(BOT_OTW), true); }, 1200 + Math.random() * 1800);
+}
+function tmBotGG(r) {
+  const bs = botAktif(r).filter(() => Math.random() < .4).slice(0, 3);
+  bs.forEach((b, k) => setTimeout(() => chatKirim(r, { i: b.i, n: b.n, tm: b.tm }, acakDari(BOT_GG), false), 1500 + k * 1300 + Math.random() * 1500));
+}
+const now0 = () => Date.now();
 function tmMsg(ws, m, raw) {
   const r = ws.troom && trooms.get(ws.troom);
   switch (m.t) {
@@ -274,10 +338,15 @@ function tmMsg(ws, m, raw) {
       tmMulaiRoom(r);
       return;
     }
-    case 'tmOver': if (r && r.host === ws && r.state === 'game' && r.rank) { rkSelesai(r, m); return; }
+    case 'tmOver': if (r && r.host === ws && r.state === 'game' && r.wn) tmBotGG(r);
+      if (r && r.host === ws && r.state === 'game' && r.rank) { rkSelesai(r, m); return; }
       if (r && r.host === ws && r.state === 'game') { if (r.um && r.lb && m.first) { const w = r.pl.find(x => x.id === (m.first | 0)), L = lbrooms.get(r.lb); if (w && L) L.umNext = w.pid; } r.state = 'lobby'; r.pl.forEach(w => { w.tmR = 0; }); tmRoomMsg(r); if (r.lb) { r.exp = null; lbKembali(r.lb, r.code); } } return;
     case 'tmBack': if (r) tmRoomMsg(r); return;
     case 'tmBalik': tmBalik(ws, m); return;
+    case 'tmChat': tmChat(r, ws, m); return;
+    case 'tmIce': send(ws, { t: 'tmIce', s: iceUntuk(ws) }); return;
+    case 'tmRtc': tmRtc(r, ws, m); return;
+    case 'tmMic': if (r && r.pl.includes(ws)) { ws.mic = m.on ? 1 : 0; r.pl.forEach(w => { if (w !== ws && w.tmT === ws.tmT) send(w, { t: 'tmMic', i: ws.id, on: ws.mic }); }); } return;
   }
 }
 function tmRelay(ws, m, raw) {   // data pertandingan tim
