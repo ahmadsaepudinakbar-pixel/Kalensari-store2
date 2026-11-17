@@ -1587,7 +1587,7 @@ function aturSimpanPosisi(id) { const e = $('#' + id), r = e.getBoundingClientRe
   addEventListener('resize', () => setTimeout(terapTombol, 60)); terapTombol(); setTimeout(terapTombol, 600); }   // diulang setelah kelas HP (ponsel) terpasang
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
-if (HERO === 'blorong') $('#help').textContent = 'Pasif: serangan & skill meracuni 3 dtk · WASD / panah: gerak · J / Spasi: Sisik Emas · U (tahan + mouse): Panggilan Ular — ular muncul dari tanah di bawah musuh & melilitnya · I (tahan + mouse): Kolam Bisa (jebakan 120 dtk, tak terlihat musuh) — tekan lagi untuk teleport ke jebakan · O: Wujud Siluman Ular 10 dtk (J: patuk · U: Lilitan · I: Terkaman) — tekan O lagi untuk kembali';
+if (HERO === 'blorong') $('#help').textContent = 'Pasif: serangan & skill meracuni 3 dtk · WASD / panah: gerak · J / Spasi: Sisik Emas · U (tahan + mouse): Panggilan Ular — ular muncul dari tanah di bawah musuh & melilitnya · I (tahan + mouse): Kolam Bisa (jebakan 120 dtk, tak terlihat musuh) — tekan lagi untuk teleport ke jebakan · O: Wujud Siluman Ular 10 dtk (J: patuk · U: Lilitan · I: Terkaman — kena sasaran = bisa langsung terkam lagi, maks 3x) — tekan O lagi untuk kembali';
 else if (HERO === 'wewe') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: kombo Cakar 3 pukulan (ke-3 paling sakit & mendorong) · U: Gendongan Pelindung (teman terdekat masuk gendongan 3 dtk: kebal & tak terlihat, ikut dibawa) — tanpa teman di dekat: Bayi Merangkak · I: Tembang Nina Bobo (kipas: mengantuk lalu TERTIDUR; kena damage = bangun, +30%) · O: Culik ke Gombel (rumpun bambu muncul, Wewe melayang tak terlihat; sentuh hero lawan = korban lenyap diculik, Wewe terbang pulang ke bambu lalu menjatuhkannya)';
 else if (HERO === 'masdim') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tembakan Senapan (10 peluru) · R: isi peluru (bisa sambil jalan; diam 3,3 dtk = penuh) · U: Lempar Granat (dibidik, ledakan + Slow) · I: Lompat Taktis · O lalu 1 / 2: pilih mode ulti 🎯 Sniper (tiarap 10 dtk, 1 peluru: gerak = geser teropong, J = tembak) atau 🔫 Bren (diam di balik minigun, tahan J = tembak bertubi-tubi, O / I = keluar)';
 else if (HERO === 'roro') $('#help').textContent = 'Pasif Candi ke-999: tiap skill yang kena memberi 1 tanda batu ke lawan (maks 3) · serangan dasar ke lawan bertanda 3: +9,99% HP maksimal lawan + Slow · WASD / panah: gerak · J / Spasi: Serpihan Batu (jarak jauh) · U: Lesung Fajar (alu menumbuk lesung: gelombang fajar mendorong lawan di sekitar Roro + damage) · I (tahan + mouse): Patung Pengganti (lawan pertama yang kena jadi patung batu: damage + Stun 1,2 dtk) · O (tahan + mouse): Candi Prambanan (candi muncul 1 dtk di area persegi panjang: burst damage besar)';
@@ -6477,7 +6477,7 @@ const UL = (() => {
 // Skill 2 Kolam Bisa: jebakan kolam kecil (bisa diarahkan, 120 dtk, tidak terlihat musuh) · selama belum terinjak: tombol jadi TELEPORT ke jebakan ·
 //         terinjak musuh → genangan racun hijau (slow + damage terus-menerus)
 // Skill 3 Wujud Siluman Ular (10 dtk): perisai sisik + lebih cepat · Dasar: gigitan ⇄ kibasan ekor · Skill 1: Lilitan (kunci 1,5 dtk + damage) ·
-//         Skill 2: Terkaman Ular (melesat menggigit + racun) · tekan ulti lagi: kembali jadi manusia
+//         Skill 2: Terkaman Ular (melesat menggigit + racun · kena sasaran = langsung bisa dipakai lagi, maks 3x per ulti) · tekan ulti lagi: kembali jadi manusia
 const BL = { cepat: 3.3, hijau: 0x2fd06a, emas: 0xffd040, racun: 0x7dff3a,
   dasar: { ts: 1.4, sub: null, rilis: .43, akhir: .7, jarak: 7.5, kec: 15, dmg: 70 },
   s1: { ts: 1.5, sub: [.85, 2.45], rilis: .4, akhir: 1.1, jarak: 7, dmg: 130, kunci: 1.2 },   // pose dari klip 'skill 1' (GLB baru): tangan kanan terangkat ±0,9–2,5 dtk, puncak ±1,45 dtk
@@ -6486,7 +6486,7 @@ const BL = { cepat: 3.3, hijau: 0x2fd06a, emas: 0xffd040, racun: 0x7dff3a,
   gigit: { jarak: 2.9, sudut: .9, dmg: 95, hit: .16, akhir: .4, condong: .8 },   // patukan (satu-satunya serangan dasar wujud ular)
   kibas: { R: 2.9, dmg: 70, dorong: 3.5, hit: .25, akhir: .55 },
   lilit: { jarak: 3.6, kunci: 1.5, dps: 70, cd: 8, maju: .25 },
-  terkam: { jarak: 6, lama: .32, dmg: 140, racun: 3, dps: 25, lebar: 1.3, cd: 6 } };
+  terkam: { jarak: 6, lama: .32, dmg: 140, racun: 3, dps: 25, lebar: 1.3, cd: 6, ulang: 3 } };   // ulang: Terkaman yang mengenai lawan / monster / singa / buaya langsung siap lagi, maks 3x per wujud ular
 const BL_PASIF = { lama: 3, dps: 25, slow: 1 };   // pasif: racun 3 dtk · 25/dtk · slow 1 dtk (diperbarui tiap kena)
 const BL_LIFT = .2;   // tinggi pinggang wujud ular (satuan model)
 const BL_URL = 'model-3d/nyi-blorong.glb?v=3', BL_ULAR = { url: 'model-3d/nyi-blorong-ular.glb?v=1', muat: null };
@@ -6627,7 +6627,7 @@ function blReset() {   // mati / ronde baru: kembali jadi manusia tanpa efek
   BLS.ular = 0; BLS.perisai = 0; BLS.lilit = null; BLS.lilitPos = null; BLS.terkam = null; BLS.sasaran = null; BLS.cdM = null; for (let i = 0; i < 3; i++) CD_MAX[i] = BL_CD[i]; P.cd[3] = Math.max(P.cd[3], CD_MAX[3] * .5); P.tilt.rotation.x = 0; if (BL_ULAR_AN.has(P.cur)) { const c = P.cur; P.cur = ''; P.act[c] && P.act[c].stop(); main('diam', .1); } blIkon(); }
 function blUbahWujud(ke) {
   const pos = P.root.position; fx('blAsap', pos.clone(), ke ? 1 : 0); goyang = Math.max(goyang, .15);
-  if (ke) { BLS.ular = BL.ulti.lama; BLS.perisai = BL.ulti.perisai; BLS.cdM = [0, P.cd[1], P.cd[2]]; BLS.cdMT = performance.now(); CD_MAX[0] = .55; CD_MAX[1] = BL.lilit.cd; CD_MAX[2] = BL.terkam.cd; P.cd[1] = P.cd[2] = 0; P.cd[3] = BL.ulti.kunciKembali; P.state = 'bebas'; main('ularDiam', .1);
+  if (ke) { BLS.terkamUlang = 0; BLS.ular = BL.ulti.lama; BLS.perisai = BL.ulti.perisai; BLS.cdM = [0, P.cd[1], P.cd[2]]; BLS.cdMT = performance.now(); CD_MAX[0] = .55; CD_MAX[1] = BL.lilit.cd; CD_MAX[2] = BL.terkam.cd; P.cd[1] = P.cd[2] = 0; P.cd[3] = BL.ulti.kunciKembali; P.state = 'bebas'; main('ularDiam', .1);
     banner('🐍 Wujud Siluman Ular! Perisai sisik ' + BL.ulti.perisai + ' · tekan ulti lagi untuk kembali', '#7dff8a'); }
   else { const lewat = (performance.now() - BLS.cdMT) / 1000; BLS.ular = 0; BLS.perisai = 0; BLS.lilit = null; BLS.lilitPos = null; BLS.terkam = null; for (let i = 0; i < 3; i++) CD_MAX[i] = BL_CD[i];
     if (BLS.cdM) { P.cd[1] = Math.max(0, BLS.cdM[1] - lewat); P.cd[2] = Math.max(0, BLS.cdM[2] - lewat); } BLS.cdM = null; P.cd[3] = CD_MAX[3]; P.state = 'bebas'; P.tilt.rotation.x = 0; main('diam', .15); banner('👸 Kembali ke wujud manusia', '#ffd166'); }
@@ -6728,9 +6728,10 @@ function updBlorong(dt, pos, f) {
   else if (P.state === 'blTerkam') {   // Terkaman Ular: melesat & menggigit semua yang dilewati + racun
     const S = BLS.terkam, B = BL.terkam; if (!S) { P.state = 'bebas'; return; }
     const u = Math.min(1, t / B.lama), tuju = S.dari.clone().add(new THREE.Vector3(Math.sin(S.arah), 0, Math.cos(S.arah)).multiplyScalar(B.jarak * u)); batasi(tuju); pos.x = tuju.x; pos.z = tuju.z; P.arah = S.arah;
-    blKenaDiJalur(S.dari, S.arah, B.jarak * u, B.lebar, m => { if (S.kena.has(m)) return; S.kena.add(m); kena(m, B.dmg, pos.clone(), m.wn ? 0 : 2); blRacunPasif(m, B.racun); fx('blGigit', pos.clone(), S.arah); });
+    blKenaDiJalur(S.dari, S.arah, B.jarak * u, B.lebar, m => { if (S.kena.has(m)) return; S.kena.add(m); if (!(m.wn && m.wn.jenis === 'rumah')) S.ulang = 1; kena(m, B.dmg, pos.clone(), m.wn ? 0 : 2); blRacunPasif(m, B.racun); fx('blGigit', pos.clone(), S.arah); });
     if (Math.random() < .6) percik(pos.clone().setY(.2), 2, BL.racun, 1.5, .08);
-    if (u >= 1) { BLS.terkam = null; P.state = 'bebas'; }
+    if (u >= 1) { BLS.terkam = null; P.state = 'bebas';
+      if (S.ulang && BLS.ular > 0 && (BLS.terkamUlang || 0) < B.ulang) { BLS.terkamUlang = (BLS.terkamUlang || 0) + 1; P.cd[2] = 0; const sisa = B.ulang - BLS.terkamUlang; banner('🐍 Terkaman siap lagi!' + (sisa ? ' (' + sisa + 'x lagi)' : ' (terakhir)'), '#7dff8a'); } }
   }
 }
 
