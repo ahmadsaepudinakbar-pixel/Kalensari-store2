@@ -515,7 +515,7 @@ function lbJoin(ws, code) {
   if (!x.pick) { x.h = ws.hero; x.s = ws.skin; }
   if (!lbHost(L) || !lbHost(L).ws) { const h = lbHost(L); if (!h) L.hostPid = ws.pid; }
   lbKirim(L);
-  if (L.state === 'hero' && x.inR && !x.pick) send(ws, { t: 'lbHero', m: L.rm, a: L.ra, sec: Math.ceil((L.heroEnd - Date.now()) / 1000), tm: lbTimM(L.rm) ? x.tm | 0 : -1 });
+  if (L.state === 'hero' && x.inR && (!x.pick || L.draft)) send(ws, lbHeroMsg(L, x, Math.ceil((L.heroEnd - Date.now()) / 1000)));
 }
 function lbLeave(ws) {   // keluar dari lobi dengan sengaja (tombol Keluar)
   const L = ws.lobi && lbrooms.get(ws.lobi); ws.lobi = null;
@@ -538,8 +538,11 @@ function lbRapikan(L) {
   if (L.state === 'hero') lbCekPilih(L);
 }
 function lbCekPilih(L) {   // semua yang ikut sudah memilih hero → langsung mulai
+  if (L.draft) return;
   const ikut = lbOn(L).filter(x => x.inR);
-  if (ikut.length && ikut.every(x => x.pick) && !L.cepat) { L.cepat = 1; clearTimeout(L.heroT); L.heroT = setTimeout(() => lbLuncur(L), 900); }
+  if (ikut.length && ikut.every(x => x.pick) && !L.cepat) { L.cepat = 1; clearTimeout(L.heroT);
+    let d = 0; (L.preBots || []).filter(b => !b.h).forEach(b => { clearTimeout(b.t); d += 350 + Math.random() * 450; b.t = setTimeout(() => lbBotPilih(L, b), d); });
+    L.heroT = setTimeout(() => lbLuncur(L), 1300 + d); }
 }
 function lbKembali(code, sub) {   // pertandingan selesai → kembali ke lobi
   const L = lbrooms.get(code); if (!L || L.state !== 'main' || (sub && L.sub !== sub)) return;
@@ -569,9 +572,80 @@ function lbRencanaBot(n0, n1) {   // isi slot kosong: kedua tim dibuat sama besa
   [[0, n0], [1, n1]].forEach(([t, n]) => { for (let i = n; i < target; i++) L.push(t); });
   return L;
 }
+// ---- Layar Pilih Hero online (Rank & Main Bareng) ----
+// Mode tim (Duel Tim, War Nanas, Rank): DRAFT BERGILIRAN seperti MLBB — urutan 1-2-2-1, semua pilihan (teman & lawan) terlihat, hero tidak boleh kembar.
+// Bot (pilihan host / pengisi War Nanas & Rank) ikut mendapat giliran dan "memilih" seperti pemain. Mode lain: semua memilih bersamaan.
+const LB_GILIRAN = 15000, LB_GILIRAN_BOT = [1600, 4200];
+const HERO_GRATIS = ['pocong', 'pitung', 'erick', 'doni', 'timunmas', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyiroro', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang', 'wiro', 'roro', 'masdim', 'blorong'];
+function lbSiapBot(L) {
+  (L.preBots || []).forEach(b => clearTimeout(b.t)); L.preBots = [];
+  if (L.draft) clearTimeout(L.draft.t); L.draft = null;
+  if (!lbTimM(L.rm)) return;
+  const on = lbOn(L).filter(x => x.inR), nama = on.map(x => x.n);
+  (L.bots || []).forEach(b => L.preBots.push({ i: -(++botSeq), n: b.n, h: null, tm: b.tm | 0 }));
+  if (L.rm === 'wn') [0, 1].forEach(t => { while (on.filter(x => (x.tm | 0) === t).length + L.preBots.filter(b => b.tm === t).length < TM_MAX)
+    L.preBots.push({ i: -(++botSeq), n: L.rank ? rkNamaBot(nama.concat(L.preBots.map(b => b.n))) : '🤖 Bot ' + (L.preBots.length + 1), h: null, tm: t }); });
+  // urutan draft
+  const T = [0, 1].map(t => on.filter(x => (x.tm | 0) === t).map(x => ({ k: 'm' + x.k, x, tm: t })).concat(L.preBots.filter(b => b.tm === t).map(b => ({ k: 'b' + b.i, b, tm: t }))));
+  T.forEach(a => a.sort(() => Math.random() - .5));
+  const F = Math.random() < .5 ? 0 : 1, pola = [F]; while (pola.length < 12) { const g = 1 - pola[pola.length - 1]; pola.push(g, g); }
+  const urut = [], sisa = [T[0].slice(), T[1].slice()];
+  for (const t of pola) { if (!sisa[0].length && !sisa[1].length) break; const q = sisa[t].length ? sisa[t] : sisa[1 - t]; urut.push(q.shift()); }
+  urut.forEach((S, i) => { S.id = 's' + Math.random().toString(36).slice(2, 7) + i; });   // kunci acak: dari luar tidak terlihat mana pemain / bot
+  L.draft = { urutan: urut, idx: -1, t: null, tEnd: 0 };
+}
+function lbSlot(L, k) { return L.draft && L.draft.urutan.find(s => s.k === k); }
+function lbHeroDipakai(L, tm) {   // draft: semua hero terkunci (dua tim) · selain itu: satu tim saja
+  const semua = !!L.draft;
+  return lbOn(L).filter(x => x.inR && x.pick && (semua || (x.tm | 0) === tm)).map(x => x.h).concat((L.preBots || []).filter(b => b.h && (semua || b.tm === tm)).map(b => b.h));
+}
+function lbKirimPilih(L, tm, d) { if (L.draft) { const S = L.draft.urutan.find(z => z.k === d.k); if (S) d = Object.assign({}, d, { k: S.id }); } lbOn(L).forEach(x => { if (x.inR && (L.draft || !lbTimM(L.rm) || (x.tm | 0) === tm)) send(x.ws, Object.assign({ t: 'lbPilih' }, d)); }); }
+function lbBotPilih(L, b) {
+  if (L.state !== 'hero' || b.h) return;
+  const ada = lbHeroDipakai(L, b.tm), bebas = HEROES.filter(h => !ada.includes(h));
+  b.h = bebas[Math.floor(Math.random() * bebas.length)] || HEROES[0];
+  lbKirimPilih(L, b.tm, { k: 'b' + b.i, h: b.h, s: '' });
+}
+function lbDraftLanjut(L) {
+  const D = L.draft; if (!D || L.state !== 'hero') return; clearTimeout(D.t);
+  D.idx++;
+  const ikut = lbOn(L).filter(x => x.inR);
+  if (D.idx >= D.urutan.length) {   // semua terkunci → 3 dtk lalu masuk arena
+    ikut.forEach(x => send(x.ws, { t: 'lbDraft', idx: D.idx, sec: 3, selesai: 1 }));
+    clearTimeout(L.heroT); L.heroT = setTimeout(() => lbLuncur(L), 3200); return;
+  }
+  const S = D.urutan[D.idx]; D.tEnd = Date.now() + LB_GILIRAN;
+  ikut.forEach(x => send(x.ws, { t: 'lbDraft', idx: D.idx, sec: LB_GILIRAN / 1000 }));
+  if (S.b) D.t = setTimeout(() => { lbBotPilih(L, S.b); lbDraftLanjut(L); }, LB_GILIRAN_BOT[0] + Math.random() * (LB_GILIRAN_BOT[1] - LB_GILIRAN_BOT[0]));
+  else D.t = setTimeout(() => lbPaksaPilih(L, S.x), (lbOn(L).includes(S.x) ? LB_GILIRAN + 800 : 1500));   // pemain offline: cepat dilewati
+}
+function lbPaksaPilih(L, x) {   // waktu giliran habis: dipilihkan (hero yang sedang dilihat / terakhir dipakai / hero gratis)
+  if (L.state !== 'hero' || x.pick) { lbDraftLanjut(L); return; }
+  const ada = lbHeroDipakai(L, x.tm | 0), coba = [x.lihat, x.ws && x.ws.hero, ...HERO_GRATIS.slice().sort(() => Math.random() - .5)];
+  x.h = coba.find(h => h && HEROES.includes(h) && !ada.includes(h)) || HEROES.find(h => !ada.includes(h)); x.s = x.lihat === x.h ? x.lihatS || '' : ''; x.pick = 1;
+  if (x.ws) { x.ws.hero = x.h; x.ws.skin = x.s; }
+  lbKirimPilih(L, x.tm | 0, { k: 'm' + x.k, h: x.h, s: x.s, otomatis: 1 });
+  lbDraftLanjut(L);
+}
+function lbHeroMsg(L, x, sec) {
+  const timM = lbTimM(L.rm), tm = timM ? x.tm | 0 : -1, ikut = lbOn(L).filter(y => y.inR);
+  const slot = S => Object.assign(S.x ? { k: S.id, n: S.x.n, h: S.x.pick ? S.x.h : null, s: S.x.pick ? S.x.s || '' : '' } : { k: S.id, n: S.b.n, h: S.b.h, s: '' }, S.x === x ? { aku: 1 } : {});
+  if (L.draft) {
+    const D = L.draft;
+    return { t: 'lbHero', m: L.rm, a: L.ra, tm, rank: L.rank ? 1 : 0, draft: 1,
+      kawan: D.urutan.filter(S => S.tm === tm).map(slot), lawan: D.urutan.filter(S => S.tm !== tm).map(slot),
+      urutan: D.urutan.map(S => S.id), idx: Math.max(0, D.idx), sec: D.idx >= 0 ? Math.max(1, Math.ceil((D.tEnd - Date.now()) / 1000)) : LB_GILIRAN / 1000 };
+  }
+  const total = ikut.length + (L.rm === 'duel' && L.duelBot ? 1 : 0);
+  return { t: 'lbHero', m: L.rm, a: L.ra, sec, tm, rank: L.rank ? 1 : 0, kawan: [{ k: 'm' + x.k, n: x.n, h: null, s: '', aku: 1 }], lawan: [], nLawan: Math.max(0, total - 1) };
+}
+function lbHeroMulai(L) {   // dipanggil saat layar pilih hero dibuka (Main Bareng & Rank)
+  if (L.draft) { clearTimeout(L.heroT); L.heroT = null; setTimeout(() => lbDraftLanjut(L), 1800); }   // jeda sebentar supaya semua HP sudah membuka layar
+  else L.heroT = setTimeout(() => lbLuncur(L), LB_HERO + 500);
+}
 function lbLuncur(L) {
   if (L.state !== 'hero') return;
-  clearTimeout(L.heroT);
+  clearTimeout(L.heroT); if (L.draft) { clearTimeout(L.draft.t); L.draft = null; }
   const ikut = lbOn(L).filter(x => x.inR);
   const pakaiBot = false, botL = lbBotBisa(L.rm) ? (L.bots || []) : [];
   if (ikut.length + (pakaiBot ? 1 : 0) + (L.rm === 'duel' && ikut.length === 1 && L.duelBot ? 1 : L.rm === 'tim' ? botL.length : L.rm === 'wn' ? 5 : 0) < 2 || !ikut.length) { lbBatal(L, 'Teman keluar sebelum mulai — tunggu teman lain lalu tekan MULAI lagi'); return; }
@@ -596,7 +670,8 @@ function lbLuncur(L) {
     const acakH = t => { const L2 = L.rank && t != null ? HEROES.filter(h => !heroTim(t).includes(h)) : HEROES; return L2[Math.floor(Math.random() * L2.length)]; };   // Rank: hero tidak kembar dalam satu tim
     let bots = [];
     if (L.rm === 'duel' && ikut.length === 1 && L.duelBot) bots = [{ i: -(++botSeq), n: L.duelBot.n, h: acakH(), tm: 1 - exp.get(ikut[0].pid) }];   // 1 lawan bot
-    if (lbTimM(L.rm)) bots = botL.map(b => ({ i: -(++botSeq), n: b.n, h: acakH(), tm: b.tm }));
+    if (lbTimM(L.rm) && L.preBots && L.preBots.length) { L.preBots.forEach(b => { clearTimeout(b.t); bots.push({ i: b.i, n: b.n, h: b.h || acakH(b.tm), tm: b.tm }); }); L.preBots = []; }
+    else if (lbTimM(L.rm)) bots = botL.map(b => ({ i: -(++botSeq), n: b.n, h: acakH(), tm: b.tm }));
     if (L.rm === 'wn') { const ada = t => [...exp.values()].filter(v => v === t).length + bots.filter(b => b.tm === t).length;   // War Nanas selalu 3 vs 3: kotak kosong diisi bot
       [0, 1].forEach(t => { while (ada(t) < TM_MAX) bots.push({ i: -(++botSeq), n: L.rank ? rkNamaBot(ikut.map(x => x.n).concat(bots.map(b => b.n))) : '🤖 Bot ' + (bots.length + 1), h: acakH(t), tm: t }); }); }
     const n0 = [...exp.values()].filter(t => t === 0).length + bots.filter(b => b.tm === 0).length, n1 = exp.size + bots.length - n0;
@@ -694,14 +769,22 @@ function lbMsg(ws, m) {
       }
       L.state = 'hero'; L.cepat = 0; L.heroEnd = Date.now() + LB_HERO;
       L.mem.forEach(y => { y.inR = maju.includes(y); y.pick = 0; });
-      maju.forEach(y => send(y.ws, { t: 'lbHero', m: L.rm, a: L.ra, sec: LB_HERO / 1000, tm: lbTimM(L.rm) ? y.tm | 0 : -1 }));
-      L.heroT = setTimeout(() => lbLuncur(L), LB_HERO + 500);
+      lbSiapBot(L); maju.forEach(y => send(y.ws, lbHeroMsg(L, y, LB_HERO / 1000)));
+      lbHeroMulai(L);
       lbKirim(L); return;
     }
-    case 'lbPick': {   // pilihan hero hanya disimpan server, tidak dikirim ke pemain lain
+    case 'lbPick': {   // pilihan hero: diumumkan ke teman satu tim (lawan tidak tahu) · hero yang sudah diambil teman ditolak
       if (!L || !x || L.state !== 'hero' || !x.inR || !HEROES.includes(m.h)) return;
+      if (x.pick && x.h === m.h) { x.s = clean(m.s, 20); ws.skin = x.s; lbKirimPilih(L, x.tm | 0, { k: 'm' + x.k, h: x.h, s: x.s }); return; }   // ganti skin setelah kunci
+      if (x.pick) return;
+      if (L.draft) { const S = L.draft.urutan[L.draft.idx]; if (!S || S.x !== x) { send(ws, { t: 'lbPickTolak', h: m.h, giliran: 1 }); return; } }   // bukan gilirannya
+      if (lbTimM(L.rm) && lbHeroDipakai(L, x.tm | 0).includes(m.h)) { send(ws, { t: 'lbPickTolak', h: m.h }); return; }
       x.h = m.h; x.s = clean(m.s, 20); x.pick = 1; ws.hero = x.h; ws.skin = x.s;
-      lbCekPilih(L); return;
+      lbKirimPilih(L, x.tm | 0, { k: 'm' + x.k, h: x.h, s: x.s });
+      if (L.draft) lbDraftLanjut(L); else lbCekPilih(L); return;
+    }
+    case 'lbLihat': {   // hero yang sedang dilihat (dipakai kalau waktu giliran habis)
+      if (L && x && L.state === 'hero' && HEROES.includes(m.h)) { x.lihat = m.h; x.lihatS = clean(m.s, 20); } return;
     }
     case 'lbPub': if (L && host) { L.pub = m.pub ? true : false; lbKirim(L); } return;
     case 'lbRkBatal': if (L && x && L.rkQ) rkBatalParty(L, '✖ ' + x.n + ' membatalkan pencarian lawan'); return;
@@ -835,8 +918,8 @@ function rkMulai(tim) {
     ws.lobi = code;
   });
   lbrooms.set(code, L);
-  L.mem.forEach(x => { send(x.ws, { t: 'rkKetemu' }); send(x.ws, { t: 'lbHero', m: 'wn', a: 0, sec: LB_HERO / 1000, tm: x.tm, rank: 1 }); });
-  L.heroT = setTimeout(() => lbLuncur(L), LB_HERO + 500);
+  lbSiapBot(L); L.mem.forEach(x => { send(x.ws, { t: 'rkKetemu' }); send(x.ws, lbHeroMsg(L, x, LB_HERO / 1000)); });
+  lbHeroMulai(L);
   console.log(new Date().toISOString(), 'rank ketemu', code, [0, 1].map(t => tim[t].map(e => e.anggota.map(a => a.ws.name + '(' + a.poin + ')').join('+') + (e.party ? '[party]' : '')).join(', ')).join('  VS  '), ang.length < LB_MAX ? '+' + (LB_MAX - ang.length) + ' bot' : '');
 }
 function rkKirimHasil(r, hasil) {   // hasil: [{pid, akun, nama, menang, mvp}]
