@@ -253,7 +253,7 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
 #umGelap{position:fixed;inset:0;z-index:3;pointer-events:none;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#ffd166;font:700 16px Arial;text-align:center}
 #umGelap b{font:900 96px Arial;color:#fff;text-shadow:0 0 30px #ffd16688}
 #bars.umpet .hp{background:none}#bars.umpet .hp i{display:none}#bars.umpet .hp .nm{bottom:2px}.hp.jaga .nm{color:#ffd166!important}.hp.jaga .nm::before{content:'👁️ '}
-#rkHasil{display:flex;flex-direction:column;align-items:center;gap:6px;margin:4px 0 2px}#rkHasil .rkh{display:flex;align-items:center;gap:10px;background:#0b1020cc;border:2px solid var(--tk,#ffd166);border-radius:14px;padding:6px 14px;font:700 15px Arial;color:#fff}#rkHasil .rkh i{font-style:normal;font-size:28px}#rkHasil .rkh small{display:block;font:700 11px Arial;color:var(--tk,#ffd166)}#rkHasil .rkh b{font-size:18px}#rkHasil em{font:900 22px Arial;font-style:normal}#rkHasil em.p{color:#7dff8a}#rkHasil em.m{color:#ff7a7a}#rkHasil .naik{color:#ffd040;font:900 16px Arial;animation:rkNaik .8s ease-in-out infinite alternate}#rkHasil .turun{color:#ff9a9a;font:700 13px Arial}@keyframes rkNaik{to{transform:scale(1.08)}}
+#rkHasil{display:flex;flex-direction:column;align-items:center;gap:6px;margin:4px 0 2px}#rkHasil .rkh{display:flex;align-items:center;gap:10px;background:#0b1020cc;border:2px solid var(--tk,#ffd166);border-radius:14px;padding:6px 14px;font:700 15px Arial;color:#fff}#rkHasil .rkh i{font-style:normal;font-size:28px}#rkHasil .rkh small{display:block;font:700 11px Arial;color:var(--tk,#ffd166)}#rkHasil .rkh b{font-size:18px}#rkHasil em{font:900 22px Arial;font-style:normal}#rkHasil em.p{color:#7dff8a}#rkHasil em.m{color:#ff7a7a}#rkHasil .naik{color:#ffd040;font:900 16px Arial;animation:rkNaik .8s ease-in-out infinite alternate}#rkHasil .turun{color:#ff9a9a;font:700 13px Arial}#rkHasil .afk{color:#ffb35a;font:700 13px Arial}@keyframes rkNaik{to{transform:scale(1.08)}}
 #afkB{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:30;display:none;pointer-events:none;background:#0b1020e6;border:2px solid #7ad0ff;border-radius:14px;padding:6px 16px;font:700 14px Arial;color:#dff3ff;text-align:center;box-shadow:0 0 18px #7ad0ff55;animation:afkK 1.6s ease-in-out infinite alternate}#afkB.on{display:block}#afkB small{display:block;font:700 11px Arial;color:#9fb0d8;margin-top:2px}@keyframes afkK{to{box-shadow:0 0 6px #7ad0ff22}}
 #chatB{position:fixed;right:142px;top:46px;z-index:8;width:34px;height:34px;border-radius:9px;border:1px solid #ffffff33;background:#0b1020cc;font-size:17px;cursor:pointer;color:#fff;padding:0}#chatB.on{background:#ffb703;border-color:#fff3b0}
 #chatLog{position:fixed;left:10px;bottom:200px;z-index:7;max-width:min(300px,42vw);display:flex;flex-direction:column;gap:3px;pointer-events:none}
@@ -10075,11 +10075,13 @@ async function afkMulai() {
   if (performance.now() - AFK.t < AFK.BATAS || !TIM.main || SELESAI) { scene.remove(B.root); return; }   // keburu kembali
   o.B = B; o.pro = B; o.root = B.root; o.mt = B.mt; B.mt.id = TIM.me; B.mt.obj = o;
   AFK.o = o;
+  if (RANK) kirim({ t: 'tmAfk', on: 1, diam: Math.round((performance.now() - AFK.t) / 1000) });   // Rank: server menghitung menit AFK (−1 poin/menit bila ≥ 1 menit)
   let e = $('#afkB'); if (!e) { e = document.createElement('div'); e.id = 'afkB'; document.body.appendChild(e); }
-  e.innerHTML = '🤖 <b>Mode Otomatis</b> · heromu dimainkan sistem<small>sentuh layar untuk main lagi</small>'; e.classList.add('on');
+  e.innerHTML = '🤖 <b>Mode Otomatis</b> · heromu dimainkan sistem<small>' + (RANK ? '⚠️ Rank: diam ≥ 1 menit = −1 poin tiap menit (maks 25) · ' : '') + 'sentuh layar untuk main lagi</small>'; e.classList.add('on');
 }
 function afkSelesai(diam) {
   const o = AFK.o; AFK.o = null; if (!o) return;
+  if (RANK) kirim({ t: 'tmAfk', on: 0 });
   if (!o.mati && P.state !== 'kalah') { P.root.position.copy(o.root.position); P.root.rotation.y = o.root.rotation.y; }
   scene.remove(o.root); P.tilt.visible = true;
   const e = $('#afkB'); if (e) e.classList.remove('on');
@@ -10245,7 +10247,8 @@ function rkHasilTampil() {
   if (d.gagal) { e.innerHTML = '<span class="rkh">⚠️ Poin rank belum tersimpan</span>'; return; }
   const tk = p => { let i = 0; RK_T.forEach((t, k) => { if (p >= t[0]) i = k; }); return RK_T[i]; }, T = tk(d.poin), L = tk(Math.max(0, d.poin - d.ubah));
   const naik = T[0] > L[0] ? `<b class="naik">⬆ NAIK KE ${T[2]} ${T[1].toUpperCase()}!</b>` : T[0] < L[0] ? `<b class="turun">⬇ Turun ke ${T[1]}</b>` : '';
-  e.innerHTML = `<span class="rkh" style="--tk:${T[3]}"><i>${T[2]}</i><span><small>${T[1]}${d.mvp ? ' · 👑 MVP' : ''}</small><b>${d.poin} poin</b></span><em class="${d.ubah >= 0 ? 'p' : 'm'}">${d.ubah >= 0 ? '+' : ''}${d.ubah}</em></span>${naik}`;
+  const afk = d.afk > 0 ? `<b class="afk">😴 AFK ${d.afk} menit · potongan −${d.afk} poin</b>` : '';
+  e.innerHTML = `<span class="rkh" style="--tk:${T[3]}"><i>${T[2]}</i><span><small>${T[1]}${d.mvp ? ' · 👑 MVP' : ''}</small><b>${d.poin} poin</b></span><em class="${d.ubah >= 0 ? 'p' : 'm'}">${d.ubah >= 0 ? '+' : ''}${d.ubah}</em></span>${afk}${naik}`;
 }
 function timHentiMain() { TIM.main = false; NET.on = false; }
 function timKeLobi() {   // tombol "Kembali ke Lobi"
