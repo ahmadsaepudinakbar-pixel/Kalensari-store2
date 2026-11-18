@@ -665,7 +665,7 @@ function mulai3D() {
   const MODEL_LAIN = {
     kunti: { url: 'model-3d/skinkunti-asli.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
     merah: { url: 'model-3d/skinkunti.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
-    sundel: { url: 'model-3d/skinkunti-sundel.glb?v=1', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'melayang', terbang: 'terbang' } },   // skin Sundel Bolong: diam sendiri, sisanya animasi Kunti
+    sundel: { url: 'model-3d/skinkunti-sundel.glb?v=3', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'melayang', terbang: 'terbang' } },   // skin Sundel Bolong: diam sendiri, sisanya animasi Kunti
     gothic: { url: 'model-3d/skinkunti-jalan.glb?v=3', tinggi: TINGGI, klip: { diam: 'diamKaki', jalan: 'jalanKaki', loncat: 'lompatKaki' } },   // skin Lunara: berdiri & berjalan kaki
     tuyul: { url: 'model-3d/tuyul.glb', tinggi: 1.15, klip: { diam: 'diam', jalan: 'lari', loncat: 'lompat' } },
     genderuwo: { url: 'model-3d/genderuwo.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // hero ke-4
