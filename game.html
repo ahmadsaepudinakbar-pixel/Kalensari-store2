@@ -501,7 +501,7 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
 </script>
 <div id="wrap">
 <canvas id="cv" width="800" height="400"></canvas>
-<div id="menu" class="scr on mnu"><div class="mnLatarB"></div><div class="mnLatar"></div><div class="mnLatarL"></div><div class="mnLatarR"></div><div class="mnVig"></div>
+<div id="menu" class="scr on mnu"><div class="mnLatarB"></div><div class="mnLatar"></div><div class="mnLatarL"></div><div class="mnLatarR"></div><div class="mnVig"></div><div class="mnHidup" aria-hidden="true"><div class="awan"></div><div class="awan b"></div><div class="bulan"></div><div class="kilauLogo"></div></div>
 <button id="akBadge" title="Akun game"><i></i><span>Masuk</span><em id="mnTk">Ketuk untuk masuk</em><b class="mnBar"><u id="mnBarI"></u></b></button>
 <div class="mnSide"><button data-mn="store"><img src="gambar-game/menu/store.webp" alt="" draggable="false"><span>Store</span></button><button data-mn="hero"><img src="gambar-game/menu/hero.webp" alt="" draggable="false"><span>Hero</span></button><button data-mn="kartu"><img src="gambar-game/menu/kartu.webp" alt="" draggable="false"><span>Kartu</span><i class="mnDot" id="mnDotKartu"></i></button><button data-mn="item"><img src="gambar-game/menu/item.webp" alt="" draggable="false"><span>Item</span></button><button data-mn="event"><img src="gambar-game/menu/event.webp" alt="" draggable="false"><span>Event</span></button></div>
 <div class="mnTop"><button data-mn="mail" title="Pesan"><img src="gambar-game/menu/mail.webp" alt="" draggable="false"><i class="mnDot" id="mnDotMail"></i></button><button data-mn="notif" title="Notifikasi"><img src="gambar-game/menu/notifikasi.webp" alt="" draggable="false"><i class="mnDot" id="mnDotNotif"></i></button><button data-mn="set" title="Pengaturan"><img src="gambar-game/menu/pengaturan.webp" alt="" draggable="false"></button></div>
@@ -2854,7 +2854,17 @@ $('#menu').addEventListener('click',e=>{const b=e.target.closest('[data-mn]');if
  else if(k=='notif'){const u=$('#bUpd');if(u&&u.classList.contains('on'))u.click();else mnToast('🔔 Tidak ada notifikasi baru')}
  else if(k=='set'){let q=1;try{const v=localStorage.getItem('uji3dKual');q=v!==null?+v:(/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?1:2)}catch(x){}
   document.querySelectorAll('#mnGrafis button').forEach(x=>x.classList.toggle('on',+x.dataset.q===q));$('#mnSet').classList.add('on')}});
-$('#mnGrafis').onclick=e=>{const b=e.target.closest('button');if(!b)return;try{localStorage.setItem('uji3dKual',b.dataset.q)}catch(x){}document.querySelectorAll('#mnGrafis button').forEach(x=>x.classList.toggle('on',x===b));mnToast('✔ Grafis '+b.textContent+' dipakai mulai pertandingan berikutnya')};
+// ===== MENU HIDUP: tingkat gerak mengikuti pilihan Grafis (Rendah = diam · Sedang = tombol & animasi masuk · Tinggi = semua) =====
+function mnAturGerak(){const m=$('#menu');if(!m)return;let q=null;try{q=localStorage.getItem('uji3dKual')}catch(e){}
+ const lv=q==null?((navigator.deviceMemory||4)>=6?2:1):+q;   // belum pernah memilih: HP RAM besar = Tinggi, lainnya = Sedang
+ m.classList.toggle('mnGerak1',lv===1);m.classList.toggle('mnGerak2',lv>=2);
+ const H=m.querySelector('.mnHidup');if(!H)return;H.querySelectorAll('i,b').forEach(x=>x.remove());
+ if(lv>=2){const r=(a,b)=>a+Math.random()*(b-a);
+  for(let k=0;k<14;k++){const e=document.createElement('i');if(k%4===3)e.className='hijau';e.style.left=r(4,96)+'%';e.style.setProperty('--x',r(-4,4).toFixed(1)+'cqw');e.style.animationDuration=r(7,13).toFixed(1)+'s';e.style.animationDelay=(-r(0,13)).toFixed(1)+'s';e.style.scale=r(.6,1.3).toFixed(2);H.appendChild(e)}   // bara api & kunang-kunang naik
+  for(let k=0;k<6;k++){const e=document.createElement('b');e.style.left=r(10,100)+'%';e.style.setProperty('--x',(-r(4,14)).toFixed(1)+'cqw');e.style.animationDuration=r(9,16).toFixed(1)+'s';e.style.animationDelay=(-r(0,16)).toFixed(1)+'s';H.appendChild(e)}}   // kelopak bunga jatuh
+}
+mnAturGerak();
+$('#mnGrafis').onclick=e=>{const b=e.target.closest('button');if(!b)return;try{localStorage.setItem('uji3dKual',b.dataset.q)}catch(x){}mnAturGerak();document.querySelectorAll('#mnGrafis button').forEach(x=>x.classList.toggle('on',x===b));mnToast('✔ Grafis '+b.textContent+' dipakai mulai pertandingan berikutnya')};
 $('#mnSetX').onclick=()=>$('#mnSet').classList.remove('on');$('#mnSet').onclick=e=>{if(e.target.id==='mnSet')$('#mnSet').classList.remove('on')};
 {const v=navigator.userAgent.match(/KalensariGameApp\/([\d.]+)/);$('#mVerS').textContent=v?'Versi '+v[1]:'Versi Web'}
 new MutationObserver(()=>{if($('#menu').classList.contains('on')){mnRank();mnTitik()}}).observe($('#menu'),{attributes:true,attributeFilter:['class']});
@@ -3688,6 +3698,58 @@ html.kgapp #menu #bApk{display:none}
 #mnSet h3{font:400 2.4cqw 'Lilita One',Arial;color:#ffe48a;margin:0 0 1cqw}#mnSet label{display:block;font:700 1.3cqw Arial;color:#cdb98a;margin-bottom:.5cqw}
 #mnSet .mnSetRow{display:flex;gap:.8cqw;justify-content:center}#mnSet .mnSetRow button{flex:1;font:400 1.6cqw 'Lilita One',Arial;padding:.6cqw;border-radius:.8cqw;color:#fff;background:#1c2233;border:.18cqw solid #3a4870}
 #mnSet .mnSetRow button.on{background:linear-gradient(#ffe48a,#e8a21a);color:#3a1c00;border-color:#fff3b0}
+/* ===== MENU HIDUP: latar bergerak (1), tombol berkilau (3), animasi masuk (4) =====
+   #menu.mnGerak1 = grafis Sedang (tombol + animasi masuk saja) · #menu.mnGerak2 = grafis Tinggi (semua)
+   tanpa kelas (grafis Rendah) / HP yang meminta "kurangi gerakan" → menu diam seperti dulu.
+   Hanya memakai opacity & properti translate/scale/rotate (bukan transform) supaya tidak bentrok dengan posisi tombol yang sudah ada & ringan untuk GPU HP. */
+#menu .mnHidup{position:absolute;inset:0;pointer-events:none;overflow:hidden;display:none}
+#menu.mnGerak2 .mnHidup{display:block}
+#menu .mnHidup .bulan{position:absolute;left:65%;top:18%;width:20cqw;height:20cqw;translate:-50% -50%;border-radius:50%;background:radial-gradient(circle,#fff6d055 0,#ffe7a022 35%,#0000 70%);mix-blend-mode:screen;animation:mnBulan 5s ease-in-out infinite}
+#menu .mnHidup .kilauLogo{position:absolute;left:34%;top:4%;width:32%;height:38%;overflow:hidden;-webkit-mask:radial-gradient(ellipse 50% 50% at 50% 50%,#000 55%,#0000 100%);mask:radial-gradient(ellipse 50% 50% at 50% 50%,#000 55%,#0000 100%)}
+#menu .mnHidup .kilauLogo::before{content:'';position:absolute;top:-20%;bottom:-20%;left:0;width:22%;background:linear-gradient(100deg,#fff0 0,#fff8d066 45%,#fffbe8aa 50%,#fff8d066 55%,#fff0 100%);mix-blend-mode:screen;translate:-150% 0;rotate:12deg;animation:mnKilauLogo 6s ease-in-out 1.2s infinite}
+#menu .mnHidup .awan{position:absolute;top:6%;width:42%;height:16%;border-radius:50%;background:radial-gradient(ellipse at center,#c8c8ff16,#0000 70%);filter:blur(1cqw);animation:mnAwan 60s linear infinite}
+#menu .mnHidup .awan.b{top:14%;width:30%;animation-duration:85s;animation-delay:-40s;opacity:.7}
+#menu .mnHidup i{position:absolute;bottom:-3%;width:.55cqw;height:.55cqw;border-radius:50%;background:radial-gradient(circle,#fff6b0,#ffb72e 45%,#ff7a0000 70%);box-shadow:0 0 .9cqw #ffc040;opacity:0;animation:mnBara linear infinite}
+#menu .mnHidup i.hijau{background:radial-gradient(circle,#efffc0,#8dff5a 45%,#3aff0000 70%);box-shadow:0 0 .9cqw #7dff5a}
+#menu .mnHidup b{position:absolute;top:-4%;width:1.1cqw;height:.75cqw;border-radius:70% 0 70% 0;background:linear-gradient(135deg,#ffc6dc,#ff86b4);opacity:0;animation:mnKelopak linear infinite}
+#menu.mnGerak2 .mnLatar{transform-origin:50% 35%;animation:mnMasukLatar .9s ease-out both,mnKenBurns 26s ease-in-out .9s infinite alternate}
+#menu.mnGerak2 .mnKotak img{animation:mnIkon 3.2s ease-in-out infinite}
+#menu.mnGerak2 .mnKotak button:nth-child(2) img{animation-delay:-.8s}#menu.mnGerak2 .mnKotak button:nth-child(3) img{animation-delay:-1.6s}#menu.mnGerak2 .mnKotak button:nth-child(4) img{animation-delay:-2.4s}
+/* (3) tombol: kilau menyapu, lonceng bergoyang bila ada notifikasi, tombol memantul saat ditekan */
+#menu.mnGerak1 .mnBesar,#menu.mnGerak1 .mnSolo,#menu.mnGerak1 .mnRank,#menu.mnGerak2 .mnBesar,#menu.mnGerak2 .mnSolo,#menu.mnGerak2 .mnRank{overflow:hidden}
+#menu.mnGerak1 .mnBesar::after,#menu.mnGerak1 .mnSolo::after,#menu.mnGerak1 .mnRank::after,#menu.mnGerak2 .mnBesar::after,#menu.mnGerak2 .mnSolo::after,#menu.mnGerak2 .mnRank::after{content:'';position:absolute;top:-30%;bottom:-30%;left:0;width:18%;background:linear-gradient(100deg,#fff0,#ffffff70 50%,#fff0);rotate:18deg;translate:-250% 0;pointer-events:none;animation:mnKilauTombol 4.2s ease-in-out 1.4s infinite}
+#menu.mnGerak1 .mnSolo::after,#menu.mnGerak2 .mnSolo::after{animation-delay:2.6s}
+#menu.mnGerak1 .mnRank::after,#menu.mnGerak2 .mnRank::after{animation-delay:3.1s}
+#menu.mnGerak1 .mnTop button:has(.mnDot.on) img,#menu.mnGerak2 .mnTop button:has(.mnDot.on) img{transform-origin:50% 10%;animation:mnLonceng 2.4s ease-in-out infinite}
+#menu.mnGerak1 button,#menu.mnGerak2 button{transition:scale .12s}
+#menu.mnGerak1 .mnSide button:active,#menu.mnGerak1 .mnKotak button:active,#menu.mnGerak1 .mnTop button:active,#menu.mnGerak2 .mnSide button:active,#menu.mnGerak2 .mnKotak button:active,#menu.mnGerak2 .mnTop button:active{scale:.9}
+/* (4) animasi masuk: bagian menu muncul satu per satu (±0,9 dtk, sekali tiap menu dibuka) */
+#menu.mnGerak1 #akBadge,#menu.mnGerak2 #akBadge{animation:mnMasukAtas .5s ease-out .1s both}
+#menu.mnGerak1 .mnTop,#menu.mnGerak2 .mnTop{animation:mnMasukAtas .5s ease-out .15s both}
+#menu.mnGerak1 .mnSide,#menu.mnGerak2 .mnSide{animation:mnMasukKiri .55s cubic-bezier(.2,.9,.3,1.2) .2s both}
+#menu.mnGerak1 .mnBesar,#menu.mnGerak2 .mnBesar{animation:mnMasukBawah .5s cubic-bezier(.2,.9,.3,1.25) .3s both,mnGlow 2.2s ease-in-out .8s infinite}
+#menu.mnGerak1 .mnDua,#menu.mnGerak2 .mnDua{animation:mnMasukBawah .5s cubic-bezier(.2,.9,.3,1.25) .42s both}
+#menu.mnGerak1 .mnKotak button,#menu.mnGerak2 .mnKotak button{animation:mnMasukBawah .45s cubic-bezier(.2,.9,.3,1.3) both}
+#menu.mnGerak1 .mnKotak button:nth-child(1),#menu.mnGerak2 .mnKotak button:nth-child(1){animation-delay:.52s}
+#menu.mnGerak1 .mnKotak button:nth-child(2),#menu.mnGerak2 .mnKotak button:nth-child(2){animation-delay:.58s}
+#menu.mnGerak1 .mnKotak button:nth-child(3),#menu.mnGerak2 .mnKotak button:nth-child(3){animation-delay:.64s}
+#menu.mnGerak1 .mnKotak button:nth-child(4),#menu.mnGerak2 .mnKotak button:nth-child(4){animation-delay:.7s}
+#menu.mnGerak1 #apkBar,#menu.mnGerak2 #apkBar{animation:mnMasukKanan .5s ease-out .75s both}
+@keyframes mnMasukLatar{from{opacity:0;scale:1.08}to{opacity:1;scale:1}}
+@keyframes mnKenBurns{from{scale:1}to{scale:1.045}}
+@keyframes mnMasukAtas{from{opacity:0;translate:0 -3cqw}}
+@keyframes mnMasukKiri{from{opacity:0;translate:-6cqw 0}}
+@keyframes mnMasukKanan{from{opacity:0;translate:6cqw 0}}
+@keyframes mnMasukBawah{from{opacity:0;translate:0 4cqw;scale:.92}}
+@keyframes mnBulan{0%,100%{opacity:1;scale:1}50%{opacity:.55;scale:1.12}}
+@keyframes mnKilauLogo{0%{translate:-150% 0}45%,100%{translate:560% 0}}
+@keyframes mnKilauTombol{0%{translate:-250% 0}35%,100%{translate:700% 0}}
+@keyframes mnAwan{from{left:-45%}to{left:105%}}
+@keyframes mnBara{0%{opacity:0;translate:0 0}10%{opacity:.9}70%{opacity:.7}100%{opacity:0;translate:var(--x,2cqw) -60cqh}}
+@keyframes mnKelopak{0%{opacity:0;translate:0 0;rotate:0deg}10%{opacity:.85}90%{opacity:.7}100%{opacity:0;translate:var(--x,-8cqw) 110cqh;rotate:540deg}}
+@keyframes mnIkon{50%{translate:0 -.35cqw}}
+@keyframes mnLonceng{0%,60%,100%{rotate:0deg}65%{rotate:14deg}72%{rotate:-12deg}79%{rotate:9deg}86%{rotate:-6deg}93%{rotate:3deg}}
+@media (prefers-reduced-motion:reduce){#menu .mnHidup{display:none!important}#menu.mnGerak1 *,#menu.mnGerak2 *{animation:none!important}}
 #mnSet p{font:1.1cqw Arial;color:#9a8e74;margin:.8cqw 0 1.2cqw}#mnSet .btn{font-size:1.6cqw;padding:.4cqw 3cqw}
 /* ===== SCAN KARTU: kamera | riwayat scan · koleksi kartu terpisah (tombol Kartu / Hero di menu) ===== */
 #kar.kmScan .kr{display:none}#kar.kmKol .kl,#kar.kmKol .krw{display:none}#kar:not(.kmScan) .krw{display:none}
