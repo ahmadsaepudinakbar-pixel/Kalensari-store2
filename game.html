@@ -501,7 +501,7 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
 </script>
 <div id="wrap">
 <canvas id="cv" width="800" height="400"></canvas>
-<div id="menu" class="scr on mnu"><div class="mnLatarB"></div><div class="mnLatar"></div><div class="mnLatarL"></div><div class="mnLatarR"></div><div class="mnVig"></div><div class="mnHidup" aria-hidden="true"><div class="awan"></div><div class="awan b"></div><div class="bulan"></div><div class="kilauLogo"></div></div>
+<div id="menu" class="scr on mnu"><div class="mnLatarB"></div><div class="mnLatar"><div class="mnNapas prabu" data-x=".25" data-y=".62" data-rx=".22" data-ry=".46" data-px=".25" data-py="1"></div><div class="mnNapas ular" data-x=".77" data-y=".3" data-rx=".07" data-ry=".13" data-px=".81" data-py=".42"></div><div class="mnNapas nyi" data-x=".89" data-y=".62" data-rx=".13" data-ry=".43" data-px=".88" data-py="1"></div><i class="mnTitik mata macan" data-x=".305" data-y=".367"></i><i class="mnTitik mata macan" data-x=".3425" data-y=".364"></i><i class="mnTitik mata ular" data-x=".779" data-y=".272"></i><i class="mnTitik hijau" data-x=".86" data-y=".55"></i><i class="mnTitik hijau b" data-x=".73" data-y=".64"></i></div><div class="mnLatarL"></div><div class="mnLatarR"></div><div class="mnVig"></div><div class="mnHidup" aria-hidden="true"><div class="awan"></div><div class="awan b"></div><div class="bulan"></div><div class="kilauLogo"></div></div>
 <button id="akBadge" title="Akun game"><i></i><span>Masuk</span><em id="mnTk">Ketuk untuk masuk</em><b class="mnBar"><u id="mnBarI"></u></b></button>
 <div class="mnSide"><button data-mn="store"><img src="gambar-game/menu/store.webp" alt="" draggable="false"><span>Store</span></button><button data-mn="hero"><img src="gambar-game/menu/hero.webp" alt="" draggable="false"><span>Hero</span></button><button data-mn="kartu"><img src="gambar-game/menu/kartu.webp" alt="" draggable="false"><span>Kartu</span><i class="mnDot" id="mnDotKartu"></i></button><button data-mn="item"><img src="gambar-game/menu/item.webp" alt="" draggable="false"><span>Item</span></button><button data-mn="event"><img src="gambar-game/menu/event.webp" alt="" draggable="false"><span>Event</span></button></div>
 <div class="mnTop"><button data-mn="mail" title="Pesan"><img src="gambar-game/menu/mail.webp" alt="" draggable="false"><i class="mnDot" id="mnDotMail"></i></button><button data-mn="notif" title="Notifikasi"><img src="gambar-game/menu/notifikasi.webp" alt="" draggable="false"><i class="mnDot" id="mnDotNotif"></i></button><button data-mn="set" title="Pengaturan"><img src="gambar-game/menu/pengaturan.webp" alt="" draggable="false"></button></div>
@@ -2863,8 +2863,18 @@ function mnAturGerak(){const m=$('#menu');if(!m)return;let q=null;try{q=localSto
   for(let k=0;k<14;k++){const e=document.createElement('i');if(k%4===3)e.className='hijau';e.style.left=r(4,96)+'%';e.style.setProperty('--x',r(-4,4).toFixed(1)+'cqw');e.style.animationDuration=r(7,13).toFixed(1)+'s';e.style.animationDelay=(-r(0,13)).toFixed(1)+'s';e.style.scale=r(.6,1.3).toFixed(2);H.appendChild(e)}   // bara api & kunang-kunang naik
   for(let k=0;k<6;k++){const e=document.createElement('b');e.style.left=r(10,100)+'%';e.style.setProperty('--x',(-r(4,14)).toFixed(1)+'cqw');e.style.animationDuration=r(9,16).toFixed(1)+'s';e.style.animationDelay=(-r(0,16)).toFixed(1)+'s';H.appendChild(e)}}   // kelopak bunga jatuh
 }
-mnAturGerak();
-$('#mnGrafis').onclick=e=>{const b=e.target.closest('button');if(!b)return;try{localStorage.setItem('uji3dKual',b.dataset.q)}catch(x){}mnAturGerak();document.querySelectorAll('#mnGrafis button').forEach(x=>x.classList.toggle('on',x===b));mnToast('✔ Grafis '+b.textContent+' dipakai mulai pertandingan berikutnya')};
+// petakan koordinat gambar latar (0–1) ke piksel layar menu, lalu atur potongan (mask) & poros lapisan "bernapas"
+function mnPetaLatar(){const L=$('#menu .mnLatar');if(!L||!$('#menu').classList.contains('mnGerak2'))return;
+ const W=L.clientWidth,H=L.clientHeight;if(!W||!H)return;const ar=16/9,s=Math.max(W/ar,H),iw=s*ar,ih=s,ox=(W-iw)*.5,oy=(H-ih)*.3;
+ const P=(x,y)=>[ox+x*iw,oy+y*ih];
+ L.querySelectorAll('.mnNapas').forEach(e=>{const d=e.dataset,[cx,cy]=P(+d.x,+d.y),[px,py]=P(+d.px,+d.py),rx=+d.rx*iw,ry=+d.ry*ih;
+  const m=`radial-gradient(ellipse ${rx}px ${ry}px at ${cx}px ${cy}px,#000 62%,#0000 100%)`;e.style.webkitMaskImage=m;e.style.maskImage=m;e.style.transformOrigin=`${px}px ${py}px`;});
+ L.querySelectorAll('.mnTitik').forEach(e=>{const[x,y]=P(+e.dataset.x,+e.dataset.y);e.style.left=x+'px';e.style.top=y+'px';});
+}
+addEventListener('resize',()=>requestAnimationFrame(mnPetaLatar));
+try{new ResizeObserver(()=>mnPetaLatar()).observe($('#menu .mnLatar'))}catch(e){}   // dipetakan ulang saat menu tampil / layar diputar
+mnAturGerak();mnPetaLatar();
+$('#mnGrafis').onclick=e=>{const b=e.target.closest('button');if(!b)return;try{localStorage.setItem('uji3dKual',b.dataset.q)}catch(x){}mnAturGerak();mnPetaLatar();document.querySelectorAll('#mnGrafis button').forEach(x=>x.classList.toggle('on',x===b));mnToast('✔ Grafis '+b.textContent+' dipakai mulai pertandingan berikutnya')};
 $('#mnSetX').onclick=()=>$('#mnSet').classList.remove('on');$('#mnSet').onclick=e=>{if(e.target.id==='mnSet')$('#mnSet').classList.remove('on')};
 {const v=navigator.userAgent.match(/KalensariGameApp\/([\d.]+)/);$('#mVerS').textContent=v?'Versi '+v[1]:'Versi Web'}
 new MutationObserver(()=>{if($('#menu').classList.contains('on')){mnRank();mnTitik()}}).observe($('#menu'),{attributes:true,attributeFilter:['class']});
@@ -3750,6 +3760,25 @@ html.kgapp #menu #bApk{display:none}
 @keyframes mnIkon{50%{translate:0 -.35cqw}}
 @keyframes mnLonceng{0%,60%,100%{rotate:0deg}65%{rotate:14deg}72%{rotate:-12deg}79%{rotate:9deg}86%{rotate:-6deg}93%{rotate:3deg}}
 @media (prefers-reduced-motion:reduce){#menu .mnHidup{display:none!important}#menu.mnGerak1 *,#menu.mnGerak2 *{animation:none!important}}
+/* ===== MENU HIDUP 2: karakter di gambar latar "bernapas" (khusus grafis Tinggi) =====
+   lapisan = salinan gambar latar yang sama (background:inherit), dipotong lembut di sekitar karakter (mask) lalu membesar-mengecil sangat halus dari kaki.
+   titik efek memakai koordinat gambar (0–1) yang dipetakan ke layar oleh mnPetaLatar() (gambar latar: cover, posisi tengah 30%). */
+#menu .mnLatar .mnNapas,#menu .mnLatar .mnTitik{display:none}
+#menu.mnGerak2 .mnLatar .mnNapas{display:block;position:absolute;inset:0;background:inherit;pointer-events:none;will-change:scale,rotate}
+#menu.mnGerak2 .mnLatar .mnNapas.prabu{animation:mnNapas 4.2s ease-in-out infinite}
+#menu.mnGerak2 .mnLatar .mnNapas.nyi{animation:mnNapas 3.8s ease-in-out -1.3s infinite}
+#menu.mnGerak2 .mnLatar .mnNapas.ular{animation:mnUlar 5.5s ease-in-out infinite}
+#menu.mnGerak2 .mnLatar .mnTitik{display:block;position:absolute;pointer-events:none;border-radius:50%;translate:-50% -50%;mix-blend-mode:screen}
+#menu .mnTitik.mata{width:1.6cqw;height:1.6cqw;opacity:0;animation:mnKedip 5s ease-in-out infinite}
+#menu .mnTitik.mata.macan{background:radial-gradient(circle,#ffffff 0,#8af0ff 25%,#2ab8ff66 50%,#0000 72%)}
+#menu .mnTitik.mata.ular{width:2cqw;height:2cqw;background:radial-gradient(circle,#ffffff 0,#f0ff70 25%,#9dff2a66 50%,#0000 72%);animation-duration:6.5s;animation-delay:-2s}
+#menu .mnTitik.hijau{width:13cqw;height:13cqw;background:radial-gradient(circle,#b8ff7a66 0,#4dff3a33 35%,#0000 70%);animation:mnHijau 2.6s ease-in-out infinite}
+#menu .mnTitik.hijau.b{width:17cqw;height:17cqw;animation-duration:3.4s;animation-delay:-1.2s}
+@keyframes mnNapas{0%,100%{scale:1}45%{scale:1.004 1.009}}
+@keyframes mnUlar{0%,100%{rotate:0deg}30%{rotate:1.6deg}70%{rotate:-1.3deg}}
+@keyframes mnKedip{0%,80%,100%{opacity:0;scale:.6}86%{opacity:1;scale:1.15}90%{opacity:.55;scale:.9}94%{opacity:1;scale:1.1}}
+@keyframes mnHijau{0%,100%{opacity:.45;scale:.92}50%{opacity:1;scale:1.12}}
+@media (prefers-reduced-motion:reduce){#menu .mnLatar .mnNapas,#menu .mnLatar .mnTitik{display:none!important}}
 #mnSet p{font:1.1cqw Arial;color:#9a8e74;margin:.8cqw 0 1.2cqw}#mnSet .btn{font-size:1.6cqw;padding:.4cqw 3cqw}
 /* ===== SCAN KARTU: kamera | riwayat scan · koleksi kartu terpisah (tombol Kartu / Hero di menu) ===== */
 #kar.kmScan .kr{display:none}#kar.kmKol .kl,#kar.kmKol .krw{display:none}#kar:not(.kmScan) .krw{display:none}
