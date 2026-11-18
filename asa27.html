@@ -1720,6 +1720,9 @@ const autoCat = n => { for(const [c, re] of CAT_RULES) if(re.test(n)) return c; 
 
 let libSelId = null, libCat = 'Semua', libQ = '', libGrp = 'T';
 const libSeen = new Set();
+// Sudah ada di pustaka? Satu file GLB bisa berisi banyak animasi dengan sig (nama|ukuran file) yang sama,
+// jadi selain sid, cocokkan sig + nama animasi — jangan sig saja (dulu membuat sebagian animasi backup terlewat).
+const libAda = r => LIB.some(e => (e.sid && e.sid === r.sid) || (r.sig && e.sig === r.sig && e.name === r.name));
 
 async function libAddFiles(list, grp){
   grp = grp || libGrp;
@@ -1777,7 +1780,7 @@ function libPreview(it){
 
 /* animasi bawaan (Tripo, elang, contoh kode) tidak bisa dihapus dari file → disembunyikan & diingat di browser ini */
 const SEMBUNYI = (() => { try { return new Set(JSON.parse(localStorage.getItem('asa27-lib-sembunyi') || '[]')); } catch(_){ return new Set(); } })();
-const kunciLib = it => it.src === 'fbx' ? null : it.src + ':' + it.lib;
+const kunciLib = it => it.src === 'fbx' ? (it.srv ? 'srv:' + it.sid : null) : it.src + ':' + it.lib;
 const tampilLib = it => !SEMBUNYI.has(kunciLib(it));
 function simpanSembunyi(){ try { localStorage.setItem('asa27-lib-sembunyi', JSON.stringify([...SEMBUNYI])); } catch(_){} }
 function libShown(){
@@ -1790,9 +1793,9 @@ function libRow(it){
   const dur = (it.dur || 0).toFixed(1) + ' dtk';
   return `<div class="libitem" data-id="${it.id}">
     <div class="layer lib${on ? ' on' : ''}"><span class="pl">${pl ? '▶' : '▷'}</span><span class="nm" title="${esc(it.name)}">${esc(it.name)}</span><span class="ext">${dur}</span>
-      <button class="add" ${has ? 'disabled' : ''} title="${has ? 'Sudah ada di daftar animasi' : 'Tambah ke daftar animasi'}" aria-label="Tambah ${esc(it.name)}">${has ? '✓' : '+'}</button><button class="x xr" title="${it.src === 'fbx' ? 'Hapus dari pustaka' : 'Sembunyikan animasi bawaan dari pustaka'}" aria-label="Hapus ${esc(it.name)}">×</button></div>
-    ${on ? `<div class="libdet"><select class="libcat" aria-label="Kategori">${CATS.map(c => `<option${c === it.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>${it.src === 'fbx' ? `<select class="libgrp" aria-label="Pose"><option value="T"${it.grp === 'T' ? ' selected' : ''}>Pose T</option><option value="A"${it.grp === 'A' ? ' selected' : ''}>Pose A</option><option value="H"${it.grp === 'H' ? ' selected' : ''}>Pose Hewan</option></select>` : ''}${it.src === 'fbx' ? '<button class="x" title="Hapus dari pustaka" aria-label="Hapus dari pustaka">Hapus</button>' : '<button class="x" title="Sembunyikan animasi bawaan ini (bisa ditampilkan lagi)" aria-label="Sembunyikan">Sembunyikan</button>'}</div>
-    <p class="note" style="margin:4px 0 0">${it.src === 'fbx' ? 'Pose awal animasi: ' + esc(poseText(it.pose)) + '.' : it.src === 'tripo' ? (it.grp === 'H' ? 'Animasi bawaan elang Angling Dharma (' + esc(it.lib) + '), selalu ada di pustaka.' : 'Animasi bawaan Tripo (' + esc(it.lib) + '), selalu ada di pustaka.') : it.src === 'mixamo' ? 'Animasi Mixamo bawaan (' + esc(it.lib) + '), sudah disesuaikan ke kerangka Tripo — selalu ada di pustaka.' : 'Contoh bawaan, dibuat dari kode.'}</p>
+      <button class="add" ${has ? 'disabled' : ''} title="${has ? 'Sudah ada di daftar animasi' : 'Tambah ke daftar animasi'}" aria-label="Tambah ${esc(it.name)}">${has ? '✓' : '+'}</button><button class="x xr" title="${it.src === 'fbx' && !it.srv ? 'Hapus dari pustaka' : 'Sembunyikan animasi bawaan dari pustaka'}" aria-label="Hapus ${esc(it.name)}">×</button></div>
+    ${on ? `<div class="libdet"><select class="libcat" aria-label="Kategori">${CATS.map(c => `<option${c === it.cat ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select>${it.src === 'fbx' ? `<select class="libgrp" aria-label="Pose"><option value="T"${it.grp === 'T' ? ' selected' : ''}>Pose T</option><option value="A"${it.grp === 'A' ? ' selected' : ''}>Pose A</option><option value="H"${it.grp === 'H' ? ' selected' : ''}>Pose Hewan</option></select>` : ''}${it.src === 'fbx' && !it.srv ? '<button class="x" title="Hapus dari pustaka" aria-label="Hapus dari pustaka">Hapus</button>' : '<button class="x" title="Sembunyikan animasi bawaan ini (bisa ditampilkan lagi)" aria-label="Sembunyikan">Sembunyikan</button>'}</div>
+    <p class="note" style="margin:4px 0 0">${it.src === 'fbx' ? 'Pose awal animasi: ' + esc(poseText(it.pose)) + '.' + (it.srv ? ' Dari pustaka server, selalu ada di pustaka.' : '') : it.src === 'tripo' ? (it.grp === 'H' ? 'Animasi bawaan elang Angling Dharma (' + esc(it.lib) + '), selalu ada di pustaka.' : 'Animasi bawaan Tripo (' + esc(it.lib) + '), selalu ada di pustaka.') : it.src === 'mixamo' ? 'Animasi Mixamo bawaan (' + esc(it.lib) + '), sudah disesuaikan ke kerangka Tripo — selalu ada di pustaka.' : 'Contoh bawaan, dibuat dari kode.'}</p>
     <button class="primary libadd" style="margin-top:6px" ${has ? 'disabled' : ''}>${has ? 'Sudah ada di daftar Animasi (kiri)' : 'Tambah ke daftar Animasi (kiri)'}</button>` : ''}
   </div>`;
 }
@@ -1830,7 +1833,7 @@ $('libList').addEventListener('click', e => {
     return;
   }
   if(btn && btn.classList.contains('x')){
-    if(it.src !== 'fbx'){   // bawaan: disembunyikan saja
+    if(it.src !== 'fbx' || it.srv){   // bawaan / pustaka server: disembunyikan saja
       SEMBUNYI.add(kunciLib(it)); simpanSembunyi(); if(libSelId === it.id) libSelId = null;
       renderLib(); say('“' + it.name + '” disembunyikan dari pustaka. Tampilkan lagi lewat tombol di bawah daftar.'); return;
     }
@@ -1886,7 +1889,7 @@ function libTx(mode, fn){
   }));
 }
 function libPack(it){
-  return { sid: it.sid, ts: it.ts, sig: it.sig, grp: it.grp, name: it.name, cat: it.cat, dur: it.dur, pose: it.pose,
+  return { sid: it.sid, ts: it.ts, sig: it.sig, srv: it.srv || undefined, grp: it.grp, name: it.name, cat: it.cat, dur: it.dur, pose: it.pose,
     clip: { name: it.clip.name, duration: it.clip.duration, tracks: it.clip.tracks.map(t => ({ n: t.name, k: t.ValueTypeName, t: t.times, v: t.values })) },
     srcQ: Array.from(it.srcQ, ([k, v]) => [k, v.toArray()]),
     srcW: Array.from(it.srcW, ([k, v]) => [k, v.w.toArray(), v.pw.toArray()]) };
@@ -1895,7 +1898,7 @@ function libUnpack(r){
   const T = {quaternion: THREE.QuaternionKeyframeTrack, vector: THREE.VectorKeyframeTrack, number: THREE.NumberKeyframeTrack, color: THREE.ColorKeyframeTrack};
   const tracks = r.clip.tracks.map(t => new (T[t.k] || THREE.VectorKeyframeTrack)(t.n, t.t, t.v));
   const id = ++cid;
-  return { id, key: 'f' + id, sid: r.sid, ts: r.ts, sig: r.sig, grp: r.grp || (r.pose && r.pose.type === 'A' ? 'A' : 'T'), name: r.name, cat: r.cat, src: 'fbx', dur: r.dur, pose: r.pose,
+  return { id, key: 'f' + id, sid: r.sid, ts: r.ts, sig: r.sig, grp: r.grp || (r.pose && r.pose.type === 'A' ? 'A' : 'T'), name: r.name, cat: r.cat, src: 'fbx', srv: !!r.srv, dur: r.dur, pose: r.pose,
     clip: new THREE.AnimationClip(r.clip.name, r.clip.duration, tracks),
     srcQ: new Map(r.srcQ.map(([k, a]) => [k, new THREE.Quaternion().fromArray(a)])),
     srcW: new Map(r.srcW.map(([k, a, b]) => [k, {w: new THREE.Quaternion().fromArray(a), pw: new THREE.Quaternion().fromArray(b)}])) };
@@ -1925,7 +1928,7 @@ async function pulihkanPustaka(file){
     if(isi.app !== 'asa27-pustaka' || !Array.isArray(isi.rows)) throw new Error('bukan file backup pustaka asa27');
     let n = 0, lewat = 0;
     for(const r0 of isi.rows){
-      if(LIB.some(e => e.sid && e.sid === r0.sid) || (r0.sig && libSeen.has(r0.sig))){ lewat++; continue; }
+      if(libAda(r0)){ lewat++; continue; }
       const r = Object.assign({}, r0, { clip: Object.assign({}, r0.clip, { tracks: r0.clip.tracks.map(t => ({ n: t.n, k: t.k, t: Float32Array.from(t.t), v: Float32Array.from(t.v) })) }) });
       await libTx('readwrite', st => st.put(r));
       const e = libUnpack(r); LIB.push(e); if(e.sig) libSeen.add(e.sig); n++;
@@ -1951,6 +1954,32 @@ async function libLoad(){
     renderLib();
     say(n + ' animasi pustaka dipulihkan dari penyimpanan browser.');
   } catch(_){}
+}
+/* ---------- Pustaka server (file model-3d/pustaka-asa27.bin) ----------
+   Animasi FBX unggahan yang sudah dipindah ke server, supaya muncul di semua browser / HP tanpa "Pulihkan backup".
+   Format: "A27L" + uint32 versi + uint32 panjang header + header JSON + (rata 4 byte) + data Float32.
+   Yang sudah ada di penyimpanan browser (sid / file sama) tidak digandakan. File belum ada (404) → dilewati diam-diam. */
+const SERVER_LIB_URL = 'model-3d/pustaka-asa27.bin?v=1';
+async function libServer(){
+  try {
+    const r = await fetch(SERVER_LIB_URL);
+    if(r.status === 404) return;
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const buf = await r.arrayBuffer(), dv = new DataView(buf), td = new TextDecoder();
+    if(buf.byteLength < 12 || td.decode(new Uint8Array(buf, 0, 4)) !== 'A27L') throw new Error('format file tidak dikenali');
+    const hl = dv.getUint32(8, true), head = JSON.parse(td.decode(new Uint8Array(buf, 12, hl)));
+    const d0 = 12 + hl + ((4 - hl % 4) % 4), F = (o, l) => new Float32Array(buf, d0 + o * 4, l).slice();
+    let n = 0;
+    for(const r0 of head.rows || []){
+      try {
+        if(libAda(r0)) continue;
+        const rr = Object.assign({}, r0, { srv: true, clip: Object.assign({}, r0.clip, { tracks: r0.clip.tracks.map(t => ({ n: t.n, k: t.k, t: F(t.to, t.tl), v: F(t.vo, t.vl) })) }) });
+        const e = libUnpack(rr); LIB.push(e); if(e.sig) libSeen.add(e.sig); n++;
+      } catch(_){}
+    }
+    renderLib();
+    if(n) say(n + ' animasi dari pustaka server dimuat.');
+  } catch(err){ say('Pustaka server gagal dimuat (' + (err && err.message || err) + ').', true); }
 }
 /* ---------- Animasi bawaan Tripo (file model-3d/pustaka-animasi-tripo.glb, hanya kerangka + 97 animasi) ---------- */
 const TRIPO_URL = 'model-3d/pustaka-animasi-tripo.glb?v=1';
@@ -2033,7 +2062,7 @@ async function libElang(){
   } catch(_){}
 }
 $('libBalik').onclick = () => { const n = SEMBUNYI.size; SEMBUNYI.clear(); simpanSembunyi(); renderLib(); say(n + ' animasi bawaan ditampilkan lagi.'); };
-libReady = true; renderLib(); libLoad(); libBawaan(); libMixamo(); libElang();
+libReady = true; renderLib(); libLoad().then(libServer); libBawaan(); libMixamo(); libElang();
 
 /* ---------- Lain-lain ---------- */
 $('file').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
