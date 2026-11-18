@@ -665,6 +665,7 @@ function mulai3D() {
   const MODEL_LAIN = {
     kunti: { url: 'model-3d/skinkunti-asli.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
     merah: { url: 'model-3d/skinkunti.glb', tinggi: TINGGI, klip: { diam: 'melayang', jalan: 'melayang', terbang: 'terbang' } },
+    sundel: { url: 'model-3d/skinkunti-sundel.glb?v=1', tinggi: TINGGI, klip: { diam: 'diam', jalan: 'melayang', terbang: 'terbang' } },   // skin Sundel Bolong: diam sendiri, sisanya animasi Kunti
     gothic: { url: 'model-3d/skinkunti-jalan.glb?v=3', tinggi: TINGGI, klip: { diam: 'diamKaki', jalan: 'jalanKaki', loncat: 'lompatKaki' } },   // skin Lunara: berdiri & berjalan kaki
     tuyul: { url: 'model-3d/tuyul.glb', tinggi: 1.15, klip: { diam: 'diam', jalan: 'lari', loncat: 'lompat' } },
     genderuwo: { url: 'model-3d/genderuwo.glb', tinggi: 2.05, klip: { diam: 'idle', jalan: 'lari', loncat: 'lompat' } },   // hero ke-4
@@ -714,7 +715,7 @@ function mulai3D() {
     const mauBoneka = id === 'pocong' && skin === 'pocong:boneka';
     if (h && (h.id !== id || h.skin !== skin || (mauBoneka && BONEKA && h.jenis !== 'boneka'))) { buang(k); h = null; }
     if (!h) {
-      const kunci3d = id === 'pitung' ? (skin === 'pitung:pendekar' ? 'pendekar' : 'pitung') : id === 'genderuwo' ? (skin === 'genderuwo:leak' ? 'leak' : 'genderuwo') : id === 'tuyul' ? 'tuyul' : id === 'kuntilanak' ? (skin === 'kuntilanak:merah' ? 'merah' : skin === 'kuntilanak:gothic' ? 'gothic' : 'kunti') : '';
+      const kunci3d = id === 'pitung' ? (skin === 'pitung:pendekar' ? 'pendekar' : 'pitung') : id === 'genderuwo' ? (skin === 'genderuwo:leak' ? 'leak' : 'genderuwo') : id === 'tuyul' ? 'tuyul' : id === 'kuntilanak' ? (skin === 'kuntilanak:merah' ? 'merah' : skin === 'kuntilanak:gothic' ? 'gothic' : skin === 'kuntilanak:sundel' ? 'sundel' : 'kunti') : '';
       if (kunci3d) muatM3D(kunci3d); else if (mauBoneka) muatBoneka(); else muatOcong3D();
       h = kunci3d && M3D[kunci3d] ? buatM3D(kunci3d) : id === 'tuyul' || id === 'genderuwo' || id === 'pitung' ? buatOcong('') : id === 'kuntilanak' ? buatKunti(skin) : mauBoneka && BONEKA ? buatBoneka() : !mauBoneka && OCONG3D ? buatOcong3D(skin) : buatOcong(skin);
       h.id = id; h.skin = skin; h.arah = 0; h.hop = 0; h.kunci3d = kunci3d;
