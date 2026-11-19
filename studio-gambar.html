@@ -49,6 +49,7 @@ h3{margin:0 0 8px;font-size:13px;color:var(--emas);text-transform:uppercase;lett
 .kotak{background:var(--panel2);border:1px solid var(--garis);border-radius:10px;padding:12px}
 .kotak p{margin:4px 0;color:var(--redup);font-size:12.5px}.kotak code{color:#cfe1ff;font-size:12px;word-break:break-all}
 .rar{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}.rar .btn{padding:4px 8px;font-size:12px}
+.it .baru{font-size:10px;color:var(--hijau)}
 .notif{position:fixed;left:50%;bottom:20px;translate:-50% 0;background:#13204a;border:1px solid var(--biru);padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
 .notif.on{opacity:1}
 .menu{display:none}
@@ -76,13 +77,17 @@ h3{margin:0 0 8px;font-size:13px;color:var(--emas);text-transform:uppercase;lett
    <div class="kosong" id="kosong"><b>Seret gambar ke sini</b><span>atau tekan <b>📂 Unggah gambar</b>, atau tempel (Ctrl+V)</span><span>Geser untuk memindahkan · roda mouse / cubit untuk zoom</span><button class="btn" id="bLama" hidden>🖼️ Edit gambar yang sekarang dipakai</button></div></div>
   <div class="bawah"><span class="info" id="info">Belum ada gambar.</span>
    <button class="btn" id="bReset">↺ Atur ulang</button>
-   <button class="btn" id="bUnduhB" disabled>⬇️ Kartu</button><button class="btn" id="bUnduhK" disabled>⬇️ Muka</button><button class="btn utama" id="bUnduh2" disabled>⬇️ Unduh keduanya</button></div>
+   <button class="btn" id="bUnduhB" disabled>⬇️ Kartu</button><button class="btn" id="bUnduhK" disabled>⬇️ Muka</button><button class="btn" id="bUnduh2" disabled>⬇️ Unduh keduanya</button><button class="btn utama" id="bSimpan" disabled>🚀 Simpan ke game</button></div>
  </main>
  <aside class="kanan">
   <div><h3>Pratinjau kartu</h3><div class="kartuPrev" id="kp"><canvas id="pvB" width="360" height="540"></canvas><em>Gratis</em><span id="pvNama">—</span></div>
    <div class="rar" id="rar"><button class="btn on" data-c="#c9d1e0">Biasa</button><button class="btn" data-c="#3a8dff">Langka</button><button class="btn" data-c="#b06cff">Epik</button><button class="btn" data-c="#ffc83d">Legendaris</button></div></div>
   <div><h3>Pratinjau muka</h3><div class="kepalaPrev"><canvas id="pvK" width="256" height="256"></canvas><canvas id="pvK2" class="bulat" width="256" height="256"></canvas></div></div>
-  <div class="kotak"><h3>Cara pasang</h3><p>1. Unduh file hasil studio.</p><p>2. Unggah ke repo GitHub di folder:</p><p><code>gambar-game/potret-3d/</code></p><p>3. Nama file sudah otomatis benar, jadi cukup timpa file lama:</p><p><code id="nmB">—</code></p><p><code id="nmK">—</code></p><p>Kartu = 720×1080 px (2:3) · Muka = 256×256 px · format WebP.</p></div>
+  <div class="kotak" id="ghKotak"><h3>Simpan langsung ke game</h3><p id="ghSt">Belum tersambung ke GitHub.</p>
+  <div id="ghIsi"><input id="ghTok" type="password" placeholder="Token GitHub (github_pat_…)" autocomplete="off" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--garis);background:#0a0f1e;margin:6px 0">
+  <div style="display:flex;gap:6px"><button class="btn" id="ghSambung">🔗 Sambungkan</button><button class="btn" id="ghPutus" hidden>Putuskan</button></div>
+  <p>Token hanya disimpan di browser ini. Buat di GitHub → Settings → Developer settings → Fine-grained tokens: repository <b>Kalensari-store2</b> saja, izin <b>Contents: Read and write</b>.</p></div></div>
+ <div class="kotak"><h3>Cara pasang manual</h3><p>1. Unduh file hasil studio.</p><p>2. Unggah ke repo GitHub di folder:</p><p><code>gambar-game/potret-3d/</code></p><p>3. Nama file sudah otomatis benar, jadi cukup timpa file lama:</p><p><code id="nmB">—</code></p><p><code id="nmK">—</code></p><p>Kartu = 720×1080 px (2:3) · Muka = 256×256 px · format WebP.</p></div>
  </aside>
 </div>
 <div class="notif" id="notif"></div>
@@ -120,7 +125,7 @@ const SKINS={              // id skin = 'hero:nama' (sama dengan isian "item" sa
  'erick:cepot':{h:'erick',n:'Cepot',f:'none'},
  'pocong:emas':{h:'pocong',n:'Ocong Pink',f:'none'},
  'pocong:boneka':{h:'pocong',n:'Ocong Boneka Horor',f:'none',spr:'gambar-game/skin-boneka/',fx:1}};
-const POT3D=(id,s)=>'gambar-game/potret-3d/'+(id=='dewisri'?'dewi-sri':id=='blorong'?'blorong':id=='wewe'?'wewe':id=='masdim'?'masdim':id=='roro'?(s=='roro:nina'?'roro-nina':s=='roro:ninanf'?'roro-ninanf':'roro'):id=='wiro'?'wiro':id=='kiansantang'?'kiansantang':id=='sangkuriang'?'sangkuriang':id=='ciung'?'ciung':id=='siliwangi'?(s=='siliwangi:klasik'?'siliwangi-klasik':'siliwangi'):id=='nyiroro'?(s=='nyiroro:susana'?'nyi-susana':'nyi-roro'):id=='dayang'?(s=='dayang:mojang'?'dayang-mojang':'dayang'):id=='angling'?'angling':id=='saras'?(s=='saras:santi'?'saras-santi':s=='saras:lina'?'saras-lina':'saras'):id=='lutung'?(s=='lutung:fox'?'lutung-fox':'lutung'):id=='buto'?(s=='buto:golem'?'buto-golem':s=='buto:ijo'?'buto-ijo':'buto'):id=='timunmas'?(s=='timunmas:airin'?'timunmas-airin':s=='timunmas:faniya'?'timunmas-faniya':'timunmas'):id=='doni'?(s=='doni:robot'?'doni-robot':s=='doni:dawala'?'doni-dawala':s=='doni:manchung'?'doni-manchung':'doni'):id=='erick'?(s=='erick:cepot'?'erick-cepot':s=='erick:robot'?'erick-robot':'erick'):id=='pitung'?(s=='pitung:pendekar'?'pendekar':'pitung'):id=='genderuwo'?(s=='genderuwo:calon'?'calon-arang':s=='genderuwo:leak'?'leak':'genderuwo'):id=='tuyul'?(s=='tuyul:robot'?'tuyul-robot':s=='tuyul:halloween'?'tuyul-halloween':s=='tuyul:mecha'?'tuyul-mecha':s=='tuyul:setan'?'tuyul-setan':'tuyul'):id=='kuntilanak'?(s=='kuntilanak:merah'?'kunti-merah':s=='kuntilanak:gothic'?'kunti-gothic':'kunti'):s=='pocong:boneka'?'ocong-boneka':s=='pocong:emas'?'ocong-pink':'ocong-lompat');
+let POT3D=(id,s)=>'gambar-game/potret-3d/'+(id=='dewisri'?'dewi-sri':id=='blorong'?'blorong':id=='wewe'?'wewe':id=='masdim'?'masdim':id=='roro'?(s=='roro:nina'?'roro-nina':s=='roro:ninanf'?'roro-ninanf':'roro'):id=='wiro'?'wiro':id=='kiansantang'?'kiansantang':id=='sangkuriang'?'sangkuriang':id=='ciung'?'ciung':id=='siliwangi'?(s=='siliwangi:klasik'?'siliwangi-klasik':'siliwangi'):id=='nyiroro'?(s=='nyiroro:susana'?'nyi-susana':'nyi-roro'):id=='dayang'?(s=='dayang:mojang'?'dayang-mojang':'dayang'):id=='angling'?'angling':id=='saras'?(s=='saras:santi'?'saras-santi':s=='saras:lina'?'saras-lina':'saras'):id=='lutung'?(s=='lutung:fox'?'lutung-fox':'lutung'):id=='buto'?(s=='buto:golem'?'buto-golem':s=='buto:ijo'?'buto-ijo':'buto'):id=='timunmas'?(s=='timunmas:airin'?'timunmas-airin':s=='timunmas:faniya'?'timunmas-faniya':'timunmas'):id=='doni'?(s=='doni:robot'?'doni-robot':s=='doni:dawala'?'doni-dawala':s=='doni:manchung'?'doni-manchung':'doni'):id=='erick'?(s=='erick:cepot'?'erick-cepot':s=='erick:robot'?'erick-robot':'erick'):id=='pitung'?(s=='pitung:pendekar'?'pendekar':'pitung'):id=='genderuwo'?(s=='genderuwo:calon'?'calon-arang':s=='genderuwo:leak'?'leak':'genderuwo'):id=='tuyul'?(s=='tuyul:robot'?'tuyul-robot':s=='tuyul:halloween'?'tuyul-halloween':s=='tuyul:mecha'?'tuyul-mecha':s=='tuyul:setan'?'tuyul-setan':'tuyul'):id=='kuntilanak'?(s=='kuntilanak:merah'?'kunti-merah':s=='kuntilanak:gothic'?'kunti-gothic':'kunti'):s=='pocong:boneka'?'ocong-boneka':s=='pocong:emas'?'ocong-pink':'ocong-lompat');
 
 /* nama file foto: skin yang belum punya foto sendiri di game memakai <hero>-<skin> (game.html sudah otomatis mencarinya) */
 const NAMA_FILE=(h,s)=>{const b=POT3D(h,''),o=POT3D(h,s||'');return (s&&o===b?b+'-'+s.split(':')[1]:o).replace('gambar-game/potret-3d/','')};
@@ -197,7 +202,7 @@ $('#bReset').onclick=()=>{if(!img)return;rot=0;flip=false;pasAwal('badan');pasAw
 $('#latar').oninput=gambar;
 $('#rar').onclick=e=>{const b=e.target.closest('[data-c]');if(!b)return;$('#kp').style.setProperty('--c',b.dataset.c);document.querySelectorAll('#rar .btn').forEach(x=>x.classList.toggle('on',x===b))};
 function tandai(){if(target){ubah.add(target.key)}}
-function tombol(){const ok=!!(img&&target);['#bUnduhB','#bUnduhK','#bUnduh2'].forEach(q=>$(q).disabled=!ok);if(img&&!target)$('#info').textContent='Pilih dulu hero / skin di daftar kiri supaya nama file-nya benar.'}
+function tombol(){const ok=!!(img&&target);['#bUnduhB','#bUnduhK','#bUnduh2'].forEach(q=>$(q).disabled=!ok);if($('#bSimpan'))$('#bSimpan').disabled=!(ok&&ghTok);if(img&&!target)$('#info').textContent='Pilih dulu hero / skin di daftar kiri supaya nama file-nya benar.'}
 /* ---------- unduh ---------- */
 function unduh(m){return new Promise(res=>{const u=UK[m],c=document.createElement('canvas');c.width=u.w;c.height=u.h;render(c.getContext('2d'),m,u.w,u.h);
  c.toBlob(b=>{const webp=b&&b.type=='image/webp',nama=`${target.file}-${m}.${webp?'webp':'png'}`;const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nama;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
@@ -205,6 +210,42 @@ function unduh(m){return new Promise(res=>{const u=UK[m],c=document.createElemen
 $('#bUnduhB').onclick=async()=>notif('Tersimpan: '+await unduh('badan'));
 $('#bUnduhK').onclick=async()=>notif('Tersimpan: '+await unduh('kepala'));
 $('#bUnduh2').onclick=async()=>{const a=await unduh('badan');await new Promise(r=>setTimeout(r,400));const b=await unduh('kepala');notif('Tersimpan: '+a+' & '+b)};
+
+/* ===== SIMPAN KE GAME: commit langsung ke repo GitHub (GitHub Pages) — 2 gambar + versi.json dalam 1 commit ===== */
+const GH={repo:'ahmadsaepudinakbar-pixel/Kalensari-store2',cabang:'main',map:'gambar-game/potret-3d/'};
+let ghTok=(()=>{try{return localStorage.getItem('stTokenGH')||''}catch(e){return ''}})();
+async function gh(path,opt={}){const r=await fetch('https://api.github.com/repos/'+GH.repo+path,{...opt,headers:{Authorization:'Bearer '+ghTok,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28',...(opt.body?{'Content-Type':'application/json'}:{})}});
+ if(!r.ok){const t=await r.text().catch(()=>'');const e=new Error(r.status+' '+t.slice(0,160));e.status=r.status;throw e}return r.status==204?null:r.json()}
+function ghUI(){const ok=!!ghTok;$('#ghTok').hidden=ok;$('#ghSambung').hidden=ok;$('#ghPutus').hidden=!ok;$('#ghSt').textContent=ok?'✅ Tersambung ke GitHub — tombol 🚀 Simpan ke game aktif.':'Belum tersambung ke GitHub. Tanpa ini, pakai tombol Unduh lalu unggah manual.';tombol()}
+$('#ghSambung').onclick=async()=>{const t=$('#ghTok').value.trim();if(!t){notif('Tempel token GitHub dulu');return}ghTok=t;$('#ghSt').textContent='Memeriksa token…';
+ try{const r=await gh('');if(!r.permissions||!r.permissions.push)throw new Error('Token tidak punya izin menulis ke repo ini');try{localStorage.setItem('stTokenGH',t)}catch(e){}$('#ghTok').value='';ghUI();notif('Tersambung ke GitHub')}
+ catch(e){ghTok='';ghUI();$('#ghSt').textContent='❌ Gagal: '+(e.status==401?'token salah / kedaluwarsa':e.status==404?'token tidak punya akses ke repo Kalensari-store2':e.message)}};
+$('#ghPutus').onclick=()=>{ghTok='';try{localStorage.removeItem('stTokenGH')}catch(e){}ghUI()};
+const keB64=b=>new Promise(r=>{const f=new FileReader();f.onload=()=>r(String(f.result).split(',')[1]);f.readAsDataURL(b)});
+const jadiBlob=m=>new Promise(r=>{const u=UK[m],c=document.createElement('canvas');c.width=u.w;c.height=u.h;render(c.getContext('2d'),m,u.w,u.h);c.toBlob(r,'image/webp',.88)});
+async function simpanKeGame(){if(!img||!target||!ghTok)return;const btn=$('#bSimpan');btn.disabled=true;btn.textContent='⏳ Menyimpan…';
+ try{const bB=await jadiBlob('badan'),bK=await jadiBlob('kepala');if(bB.type!='image/webp')throw new Error('Browser ini tidak bisa membuat WebP — pakai Chrome');
+  const nB=target.file+'-badan.webp',nK=target.file+'-kepala.webp',sekarang=Date.now();
+  for(let coba=0;coba<2;coba++){
+   const ref=await gh('/git/ref/heads/'+GH.cabang),induk=ref.object.sha,cm=await gh('/git/commits/'+induk);
+   let ver={};try{const f=await gh('/contents/'+GH.map+'versi.json?ref='+induk);ver=JSON.parse(decodeURIComponent(escape(atob(f.content.replace(/\n/g,'')))))}catch(e){if(e.status!=404)throw e}
+   ver[nB]=sekarang;ver[nK]=sekarang;
+   const blob=async(isi,enc)=>(await gh('/git/blobs',{method:'POST',body:JSON.stringify({content:isi,encoding:enc})})).sha;
+   const sB=await blob(await keB64(bB),'base64'),sK=await blob(await keB64(bK),'base64'),sV=await blob(JSON.stringify(ver,null,1),'utf-8');
+   const tree=await gh('/git/trees',{method:'POST',body:JSON.stringify({base_tree:cm.tree.sha,tree:[[nB,sB],[nK,sK],['versi.json',sV]].map(([n,sh])=>({path:GH.map+n,mode:'100644',type:'blob',sha:sh}))})});
+   const baru=await gh('/git/commits',{method:'POST',body:JSON.stringify({message:'Studio Gambar: ganti foto '+target.nama+' ('+target.file+')',tree:tree.sha,parents:[induk]})});
+   try{await gh('/git/refs/heads/'+GH.cabang,{method:'PATCH',body:JSON.stringify({sha:baru.sha})});break}catch(e){if(e.status==422&&coba==0)continue;throw e}}
+  ubah.add(target.key);daftar();notif('✅ Tersimpan! Game memakai gambar baru dalam ±1–2 menit.');$('#info').textContent='Tersimpan ke GitHub: '+nB+' & '+nK+'. Situs diperbarui ±1–2 menit lagi.'}
+ catch(e){notif('❌ Gagal menyimpan: '+(e.status==401||e.status==403?'token tidak berlaku / tidak punya izin':e.message));console.error(e)}
+ finally{btn.textContent='🚀 Simpan ke game';tombol()}}
+$('#bSimpan').onclick=simpanKeGame;
+/* daftar hero & skin selalu mengikuti game.html terbaru (cadangan: data bawaan di atas) */
+fetch('game.html?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():'').then(t=>{if(!t)return;
+ const ambil=(awal,akhir)=>{const i=t.indexOf(awal);if(i<0)return null;const j=t.indexOf(akhir,i);return j<0?null:t.slice(i+awal.length-1,j+akhir.length-1)};
+ try{const a=ambil('const ALL=[',']];'),k=ambil('const SKINS={','}};'),i=t.indexOf('const POT3D=(id,s)=>'),j=t.indexOf(';\nconst',i);
+  if(a&&k&&i>=0&&j>i){const A=Function('return '+a)(),S=Function('return '+k)(),P=Function('return '+t.slice(i+12,j))();
+   if(Array.isArray(A)&&A.length&&S&&typeof P=='function'){ALL.length=0;A.forEach(x=>ALL.push(x));for(const x in SKINS)delete SKINS[x];Object.assign(SKINS,S);POT3D=P;daftar()}}}catch(e){console.warn('daftar dari game.html gagal dibaca',e)}}).catch(()=>{});
+ghUI();
 /* mulai */
 daftar();new ResizeObserver(gambar).observe(pg);
 const q=new URLSearchParams(location.search);if(q.get('hero'))pilih(q.get('hero'),q.get('skin')||'');
