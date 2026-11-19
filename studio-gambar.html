@@ -64,7 +64,7 @@ h3{margin:0 0 8px;font-size:13px;color:var(--emas);text-transform:uppercase;lett
 <div class="app">
  <header><button class="btn menu" id="bMenu">☰ Daftar</button><h1>🎨 Studio Gambar <b>Kalensari Game</b></h1><small id="hTarget">Pilih hero / skin di kiri</small><span class="sp"></span>
   <button class="btn" id="bBuka">📂 Unggah gambar</button><input type="file" id="fIn" accept="image/*" hidden></header>
- <aside class="kiri" id="kiri"><input class="cari" id="cari" placeholder="🔍 Cari hero / skin…"><div class="daftar" id="daftar"></div></aside>
+ <aside class="kiri" id="kiri"><input class="cari" id="cari" type="search" name="cari-hero-studio" autocomplete="off" spellcheck="false" placeholder="🔍 Cari hero / skin…"><div class="daftar" id="daftar"></div></aside>
  <main>
   <div class="alat">
    <div class="grp2"><button class="btn on" data-mode="badan">🃏 Kartu 2:3</button><button class="btn" data-mode="kepala">🙂 Muka 1:1</button></div>
@@ -84,7 +84,7 @@ h3{margin:0 0 8px;font-size:13px;color:var(--emas);text-transform:uppercase;lett
    <div class="rar" id="rar"><button class="btn on" data-c="#c9d1e0">Biasa</button><button class="btn" data-c="#3a8dff">Langka</button><button class="btn" data-c="#b06cff">Epik</button><button class="btn" data-c="#ffc83d">Legendaris</button></div></div>
   <div><h3>Pratinjau muka</h3><div class="kepalaPrev"><canvas id="pvK" width="256" height="256"></canvas><canvas id="pvK2" class="bulat" width="256" height="256"></canvas></div></div>
   <div class="kotak" id="ghKotak"><h3>Simpan langsung ke game</h3><p id="ghSt">Belum tersambung ke GitHub.</p>
-  <div id="ghIsi"><input id="ghTok" type="password" placeholder="Token GitHub (github_pat_…)" autocomplete="off" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--garis);background:#0a0f1e;margin:6px 0">
+  <div id="ghIsi"><input id="ghTok" type="text" name="gh-token-studio" placeholder="Token GitHub (github_pat_…)" autocomplete="off" spellcheck="false" style="-webkit-text-security:disc;width:100%;padding:8px;border-radius:8px;border:1px solid var(--garis);background:#0a0f1e;margin:6px 0">
   <div style="display:flex;gap:6px"><button class="btn" id="ghSambung">🔗 Sambungkan</button><button class="btn" id="ghPutus" hidden>Putuskan</button></div>
   <p>Token hanya disimpan di browser ini. Buat di GitHub → Settings → Developer settings → Fine-grained tokens: repository <b>Kalensari-store2</b> saja, izin <b>Contents: Read and write</b>.</p></div></div>
  <div class="kotak"><h3>Cara pasang manual</h3><p>1. Unduh file hasil studio.</p><p>2. Unggah ke repo GitHub di folder:</p><p><code>gambar-game/potret-3d/</code></p><p>3. Nama file sudah otomatis benar, jadi cukup timpa file lama:</p><p><code id="nmB">—</code></p><p><code id="nmK">—</code></p><p>Kartu = 720×1080 px (2:3) · Muka = 256×256 px · format WebP.</p></div>
@@ -145,7 +145,7 @@ function daftar(){const q=$('#cari').value.toLowerCase().trim(),D=$('#daftar');l
  D.innerHTML=h||'<p style="padding:10px;color:var(--redup)">Tidak ditemukan.</p>'}
 function it(h,s,n){const f=NAMA_FILE(h,s),key=h+'|'+s,on=target&&target.key==key;
  return `<div class="it${s?' sk':''}${on?' on':''}${ubah.has(key)?' ubah':''}" data-h="${h}" data-s="${s}"><img src="gambar-game/potret-3d/${f}-kepala.webp" onerror="this.style.visibility='hidden'" loading="lazy" alt=""><span>${n}</span><i>${s?'skin':'hero'}</i></div>`}
-$('#cari').oninput=daftar;
+$('#cari').oninput=daftar;$('#cari').value='';setTimeout(()=>{if(/@/.test($('#cari').value)){$('#cari').value='';daftar()}},800);
 $('#daftar').onclick=e=>{const d=e.target.closest('.it');if(!d)return;pilih(d.dataset.h,d.dataset.s);$('#kiri').classList.remove('buka')};
 $('#bMenu').onclick=()=>$('#kiri').classList.toggle('buka');
 function pilih(h,s){const nm=s?SKINS[s].n:(ALL.find(a=>a[0]==h)||[0,h])[1];target={h,s,key:h+'|'+s,nama:nm,file:NAMA_FILE(h,s)};
