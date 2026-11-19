@@ -536,7 +536,7 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
 <div class="krow"><input id="kKode" placeholder="KLS-XXX-XXXXXX" autocomplete="off" autocapitalize="characters"><button class="btn g" id="kKlaim">Klaim</button></div>
 <div id="kSt" class="kst"></div><div id="kAkun" class="kak"></div></div>
 <div class="krw"><h2>Riwayat Scan</h2><div id="kRw" class="krwList"></div><button class="btn" id="kBack2">Kembali</button></div>
-<div class="kr"><h2>Koleksi Kartu</h2><div id="kSum" class="ksum"></div><div id="kGrid" class="kgrid"></div><button class="btn" id="kBack">Kembali</button></div>
+<div class="kr"><div class="krHead"><button class="btn kBackK" id="kBack">← Kembali</button><h2>Koleksi Kartu</h2></div><div id="kSum" class="ksum"></div><div id="kGrid" class="kgrid"></div><div id="kDet" class="kDet"></div></div>
 <div id="kPop" class="kpop"></div></div>
 <div id="pk" class="scr"><div id="pkJoy"><div id="pkKnob"></div></div>
 <button id="pkJump" class="pkb">⤒<span>LOMPAT</span></button><button id="pkSk" class="pkb"><b>🕊</b><span>Melayang</span><i class="cd"></i><em></em></button>
@@ -1561,16 +1561,45 @@ function kSt(t,c){const e=$('#kSt');e.textContent=t||'';e.className='kst '+(c||'
 const NM3D=h=>({pocong:'Ocong',kuntilanak:'Kunti',tuyul:'Tuyul',genderuwo:'Genderuwo',pitung:'Si Pitung',erick:'Erick',doni:'Doni',timunmas:'Timun Mas',buto:'Buto',lutung:'Lutung Kasarung',saras:'Saras',angling:'Angling Dharma',dayang:'Dayang Sumbi',nyiroro:'Nyi Roro Kidul',siliwangi:'Prabu Siliwangi',ciung:'Ciung Wanara',sangkuriang:'Sangkuriang',kiansantang:'Kian Santang',wiro:'Wiro Sableng',roro:'Roro Jonggrang',masdim:'Masdim',wewe:'Wewe Gombel',blorong:'Nyi Blorong',dewisri:'Dewi Sri'})[h]||h;
 const HEROK=['pocong','kuntilanak','tuyul','genderuwo','pitung','erick','doni','timunmas','buto','lutung','saras','angling','dayang','nyiroro','siliwangi','ciung','sangkuriang','kiansantang','wiro','roro','masdim','wewe','blorong','dewisri'],adaHero=h=>HEROK.includes(h);   // semua hero yang bisa dimainkan (CH hanya berisi data duel 2D lama)
 const itemNama=(j,it)=>j=='skin'?(SKINS[it]?SKINS[it].n:it):NM3D(it);
-const itemImg=(j,it)=>{const h=j=='skin'?(SKINS[it]&&SKINS[it].h):it;return adaHero(h)?`<img src="${heroImg(h,j=='skin'?it:'')}" style="filter:${j=='skin'?skinF(it):'none'} drop-shadow(0 .4cqw .6cqw #000)">`:''};
+const itemImg=(j,it)=>{const h=j=='skin'?(SKINS[it]&&SKINS[it].h):it;return adaHero(h)?`<img draggable="false" src="${heroImg(h,j=='skin'?it:'')}" style="filter:${j=='skin'?skinF(it):'none'} drop-shadow(0 .4cqw .6cqw #000)">`:''};
+// ===== KOLEKSI KARTU (tampilan baru): bingkai kelangkaan, status satu gaya, kartu terkunci = siluet, progres + tab, panel detail =====
+// KELANGKAAN bisa diubah di sini. Yang tidak tercantum: hero/skin gratis = biasa, berkartu = langka.
+const KLK={legendaris:['nyiroro','siliwangi'],epik:['wewe','kuntilanak:merah','kuntilanak:gothic','pitung:pendekar','angling:andi','pocong:boneka','erick:robot'],langka:[]};
+const KLK_NAMA={biasa:'Biasa',langka:'Langka',epik:'Epik',legendaris:'Legendaris'};
+function kelangkaan(id,j){for(const k of ['legendaris','epik','langka'])if(KLK[k].includes(id))return k;
+ const kt=(KOL.kartu||[]).find(x=>x.item==id&&x.jenis==j);if(kt&&kt.kelas=='legenda')return 'legendaris';
+ return (j=='skin'?SKIN_GRATIS.includes(id):GRATIS.includes(id))?'biasa':'langka'}
+const PERAN_NAMA={'🛡️':'Tank / Support','⚔️':'Petarung','🏹':'Jarak Jauh','🗡️':'Assassin','💚':'Support'};
+let kTab='semua';
+function kStatus(j,id){const own=j=='skin'?punyaSkin(id):punyaHero(id),fr=j=='skin'?SKIN_GRATIS.includes(id):GRATIS.includes(id);return !own?'kunci':fr?'gratis':'punya'}
+const K_LBL={gratis:'Gratis',punya:'Dimiliki ✓',kunci:'🔒 Terkunci',segera:'Segera hadir'};
+function kKartu(j,id,nama,st,rar,extra){
+ return `<div class="kc r-${rar} ${st=='kunci'||st=='segera'?'lock':''}" data-j="${j}" data-id="${esc(id)}"><em class="kLbl s-${st}">${K_LBL[st]}</em>${j=='hero'&&PERAN_G[id]?`<i class="kRole">${PERAN_G[id]}</i>`:''}${id!='x'?itemImg(j,id):''}${st=='kunci'?'<small class="kHint">Scan kartu untuk membuka</small>':st=='segera'?'<small class="kHint">Segera hadir</small>':''}${extra||''}<span>${esc(nama)}</span></div>`}
+function kolRender(){
+ const heroes=ALL.filter(a=>a[0]!='x'),segera=ALL.filter(a=>a[0]=='x'),sk=Object.keys(SKINS);
+ const nH=heroes.filter(a=>punyaHero(a[0])).length,nS=sk.filter(punyaSkin).length,pH=Math.round(nH/heroes.length*100),pS=Math.round(nS/sk.length*100);
+ const tab=(k,t)=>`<button class="kTab${kTab==k?' on':''}" data-tab="${k}">${t}</button>`;
+ $('#kSum').innerHTML=`<div class="kProg"><div class="kBar"><b>Hero</b><div><i style="width:${pH}%"></i></div><small>${nH}/${heroes.length} · ${pH}%</small></div><div class="kBar s"><b>Skin</b><div><i style="width:${pS}%"></i></div><small>${nS}/${sk.length} · ${pS}%</small></div></div><div class="kTabs">${tab('semua','Semua')}${tab('hero','Hero')}${tab('skin','Skin')}${tab('kunci','Terkunci')}</div>`;
+ const H=heroes.map(a=>{const st=kStatus('hero',a[0]),n=sk.filter(s=>SKINS[s].h==a[0]).length;return{j:'hero',st,html:kKartu('hero',a[0],a[1],st,kelangkaan(a[0],'hero'),n?`<b class="kSk">🎭 ${n}</b>`:'')}});
+ const S=sk.map(id=>{const st=kStatus('skin',id);return{j:'skin',st,html:kKartu('skin',id,SKINS[id].n,st,kelangkaan(id,'skin'))}});
+ const X=segera.map(a=>({j:'hero',st:'segera',html:kKartu('hero','x',a[1],'segera','biasa')}));
+ const L=H.concat(S,X).filter(x=>kTab=='semua'||(kTab=='hero'&&x.j=='hero'&&x.st!='segera')||(kTab=='skin'&&x.j=='skin')||(kTab=='kunci'&&(x.st=='kunci'||x.st=='segera')));
+ $('#kGrid').innerHTML=L.length?L.map(x=>x.html).join(''):'<div class="kKosong">🎉 Semua sudah terbuka!</div>';
+ $('#kGrid').scrollTop=0}
+function kDetail(j,id){if(!id||id=='x')return;const isSkin=j=='skin',h=isSkin?SKINS[id].h:id,st=kStatus(j,id),rar=kelangkaan(id,j);
+ const nama=isSkin?SKINS[id].n:NM3D(id),peran=PERAN_G[h]?PERAN_G[h]+' '+(PERAN_NAMA[PERAN_G[h]]||''):'';
+ const kt=(KOL.kartu||[]).filter(x=>x.item==id&&x.jenis==j).sort((a,b)=>new Date(a.diklaim)-new Date(b.diklaim))[0];
+ const dapat=st=='kunci'?'Belum dimiliki — scan kartunya untuk membuka':st=='gratis'?'Gratis untuk semua pemain':kt&&kt.diklaim?'Didapat '+new Date(kt.diklaim).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})+(kt.kode?' · '+esc(kt.kode):''):'Dimiliki';
+ const daftar=Object.keys(SKINS).filter(s=>SKINS[s].h==h);
+ const skinHtml=daftar.length?`<div class="kdSkT">${isSkin?'Skin lain '+esc(NM3D(h)):'Skin '+esc(nama)} (${daftar.filter(punyaSkin).length}/${daftar.length})</div><div class="kdSk">`+(isSkin?[['h',h]].concat(daftar.filter(s=>s!=id).map(s=>['s',s])):daftar.map(s=>['s',s])).map(([t,s])=>{const ow=t=='h'?punyaHero(s):punyaSkin(s);return `<div class="kdSi${ow?'':' lock'}" data-j="${t=='h'?'hero':'skin'}" data-id="${esc(s)}"><img src="${heroHead(h,t=='h'?'':s)}" draggable="false" onerror="this.src='${heroHead(h,'')}'"><small>${esc(t=='h'?NM3D(s)+' (asli)':SKINS[s].n)}</small>${ow?'':'<i>🔒</i>'}</div>`}).join('')+'</div>':'';
+ const d=$('#kDet');d.className='kDet on r-'+rar;
+ d.innerHTML=`<div class="kdBox"><button class="kdX" aria-label="Tutup">✖</button><div class="kdImg${st=='kunci'?' lock':''}">${itemImg(j,id)}</div><div class="kdInfo"><em class="kLbl s-${st}">${K_LBL[st]}</em><h3>${esc(nama)}</h3><div class="kdTag"><span class="kdR">${KLK_NAMA[rar]}</span>${isSkin?`<span>Skin ${esc(NM3D(h))}</span>`:'<span>Hero</span>'}${peran?`<span>${peran}</span>`:''}</div><p class="kdDapat">${dapat}</p>${skinHtml}</div></div>`}
 function karRender(){const ak=$('#kAkun');
  ak.innerHTML=KOL.login?`Masuk sebagai <b>${(KOL.nama||'Pemain').replace(/[<>]/g,'')}</b> · akun warga desa Kalensari Store`:`${KOL.err?'⚠️ '+KOL.err+' · ':''}Belum masuk akun warga desa Kalensari Store.<button class="btn" id="kLogin">Masuk</button>`;
  const lg=$('#kLogin');if(lg)lg.onclick=()=>kMasuk(kRapi($('#kKode').value));
  const heroes=ALL.filter(a=>a[0]!='x'),kunci=ALL.filter(a=>a[0]=='x'),sk=Object.keys(SKINS);
  const nH=heroes.filter(a=>punyaHero(a[0])).length,nS=sk.filter(punyaSkin).length;
- $('#kSum').textContent=`Hero ${nH}/${ALL.length} · Skin ${nS}/${sk.length} — hero & skin terkunci tidak bisa dipilih`;
- $('#kGrid').innerHTML=heroes.map(a=>{const own=punyaHero(a[0]),fr=GRATIS.includes(a[0]);return `<div class="kc ${own?'':'lock'}" style="--c:${fr?'#9aa3b8':own?'#b06cff':'#2a3350'}"><em>${fr?'GRATIS':own?'HERO':'HERO'}</em>${itemImg('hero',a[0])}<span>${a[1]}</span></div>`}).join('')
-  +sk.map(id=>{const own=punyaSkin(id);return `<div class="kc ${own?'':'lock'}" style="--c:${own?'#ffb703':'#2a3350'}"><em>SKIN${own&&skinOf(SKINS[id].h)==id?' · DIPAKAI':''}</em>${itemImg('skin',id)}<span>${SKINS[id].n}</span></div>`}).join('')
-  +kunci.map(a=>`<div class="kc lock"><span>${a[1]}</span></div>`).join('')}
+ kolRender()}
 // Scan / ketik kode → CEK dulu (kartu asli & aktif?) tanpa mengikat ke akun → pilih Terima Sekarang / Nanti.
 // Kalau hero / skin-nya sudah dimiliki: tidak ditawarkan untuk diklaim — sarankan bagikan / jual kartunya ke teman.
 function kPopTampil(warna,html){const pp=$('#kPop');pp.style.borderColor=warna;pp.innerHTML=html;pp.classList.add('on')}
@@ -1645,7 +1674,12 @@ $('#kRw').addEventListener('click',async e=>{const b=e.target.closest('[data-krw
 $('#kBack2').onclick=()=>{kCamOff();$('#kPop').classList.remove('on');sc('menu')};
 $('#bKar').onclick=()=>bukaKartu('scan');$('#kCam').onclick=kCamOn;$('#kKlaim').onclick=()=>kKlaim($('#kKode').value);
 $('#kKode').onkeydown=e=>{if(e.key=='Enter')kKlaim($('#kKode').value);e.stopPropagation()};$('#kKode').onkeyup=e=>e.stopPropagation();
-$('#kBack').onclick=()=>{kCamOff();$('#kPop').classList.remove('on');sc('menu')};
+$('#kSum').addEventListener('click',e=>{const t=e.target.closest('[data-tab]');if(!t)return;kTab=t.dataset.tab;kolRender()});
+$('#kGrid').addEventListener('click',e=>{const c=e.target.closest('.kc');if(c)kDetail(c.dataset.j,c.dataset.id)});
+$('#kDet').addEventListener('click',e=>{const d=$('#kDet');if(e.target===d||e.target.closest('.kdX')){d.classList.remove('on');return}const si=e.target.closest('.kdSi');if(si)kDetail(si.dataset.j,si.dataset.id)});
+$('#kar').addEventListener('contextmenu',e=>{if(e.target.closest('.kc,.kDet,.krwF'))e.preventDefault()});   // kartu tidak bisa disimpan lewat klik kanan / tahan lama
+$('#kar').addEventListener('dragstart',e=>{if(e.target.tagName=='IMG')e.preventDefault()});
+$('#kBack').onclick=()=>{kCamOff();$('#kPop').classList.remove('on');$('#kDet').classList.remove('on');sc('menu')};
 // ===== AKUN GAME: masuk / daftar akun warga desa + nama & foto profil =====
 const AKG={foto:null,ubahFoto:false};
 const akFotoLokal=()=>{try{return localStorage.getItem('kgFoto')||''}catch(e){return''}};
@@ -3764,6 +3798,86 @@ html.kgapp #menu #bApk{display:none}
 #kar .krwT em.ok{color:#3fd14b}#kar .krwT em.na{color:#ffd166}#kar .krwT em.pu{color:#ff9ad5}
 #kar .krwI .btn{flex:none;font-size:1.3cqw;padding:.4cqw 1.4cqw}#kar .krwB{display:flex;gap:.5cqw;flex:none}
 
+/* ===== KOLEKSI KARTU: semua kartu seukuran kartu fisik (tegak 2:3, seperti desain kartu Wewe Gombel) ===== */
+#kar .kgrid{grid-template-columns:repeat(7,1fr);grid-auto-rows:max-content;gap:1cqw}
+#kar .kc{height:auto;border-radius:.9cqw;border-width:.25cqw;background:radial-gradient(120% 80% at 50% 35%,#24305a,#0a0e1c 70%)}
+#kar .kc img{bottom:3cqw;height:auto;width:auto;max-width:92%;max-height:calc(100% - 5.2cqw);object-fit:contain}
+#kar .kc span{font-size:1.15cqw;padding:.45cqw .3cqw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-top:.15cqw solid var(--c,#2a3350)}
+#kar .kc em{font-size:.75cqw;top:.45cqw;left:.45cqw}
+#kar .kc.lock:after{font-size:2.6cqw}
+#kar .kc:before{content:'';display:block;padding-top:150%}   /* tinggi = 1,5 × lebar (2:3) — lebih andal di grid daripada aspect-ratio */
+/* ===== KOLEKSI KARTU (tampilan baru) ===== */
+#kar .kr{position:relative;flex:1;display:flex;flex-direction:column;gap:.9cqw;min-width:0}
+#kar .krHead{display:flex;align-items:center;gap:1.4cqw}
+#kar .krHead h2{margin:0}
+#kar .krHead .kBackK{font-size:1.4cqw;padding:.45cqw 1.6cqw;border-radius:.8cqw;flex:none}
+#kar .ksum{display:flex;align-items:center;justify-content:space-between;gap:2cqw;flex-wrap:wrap}
+#kar .kProg{display:flex;gap:2cqw;flex:1;min-width:30cqw}
+#kar .kBar{flex:1;display:flex;align-items:center;gap:.7cqw;font:700 1.15cqw Arial;color:#cfd6e6}
+#kar .kBar>div{flex:1;height:.9cqw;border-radius:1cqw;background:#1a2240;overflow:hidden;box-shadow:inset 0 0 0 .1cqw #2c3f73}
+#kar .kBar i{display:block;height:100%;border-radius:1cqw;background:linear-gradient(90deg,#7a5cff,#b06cff)}
+#kar .kBar.s i{background:linear-gradient(90deg,#ff9f1c,#ffd166)}
+#kar .kBar small{font:700 1cqw Arial;color:#9fb3dd;white-space:nowrap}
+#kar .kTabs{display:flex;gap:.5cqw;background:#0b1224;padding:.3cqw;border-radius:1cqw;border:.12cqw solid #2c3f73}
+#kar .kTab{font:700 1.1cqw Arial;color:#9fb3dd;background:none;border:0;padding:.45cqw 1.3cqw;border-radius:.7cqw;cursor:pointer}
+#kar .kTab.on{background:linear-gradient(#ffd166,#ffb703);color:#1a1205}
+#kar .kKosong{grid-column:1/-1;text-align:center;font:700 1.6cqw Arial;color:#9aa3b8;padding:4cqw 0}
+/* kartu: bingkai menurut kelangkaan */
+#kar .kc{--c:#c9d1e0;cursor:pointer;border-color:var(--c);box-shadow:0 0 0 .08cqw #0008,0 .5cqw 1.2cqw #0008;transition:scale .12s,box-shadow .2s}
+#kar .kc:active{scale:.96}
+#kar .kc.r-biasa{--c:#c9d1e0;background:radial-gradient(120% 80% at 50% 35%,#2a3350,#0a0e1c 70%)}
+#kar .kc.r-langka{--c:#3a8dff;background:radial-gradient(120% 80% at 50% 35%,#163a7a,#0a0e1c 70%)}
+#kar .kc.r-epik{--c:#b06cff;background:radial-gradient(120% 80% at 50% 35%,#3d1d6e,#0a0e1c 70%)}
+#kar .kc.r-legendaris{--c:#ffc83d;background:radial-gradient(120% 80% at 50% 35%,#5a3f0e,#0a0e1c 70%);box-shadow:0 0 1.2cqw #ffb70366,0 .5cqw 1.2cqw #0008}
+#kar .kc.r-legendaris:not(.lock):after{content:'';position:absolute;top:-20%;bottom:-20%;left:0;width:30%;background:linear-gradient(100deg,#fff0,#fff3c066 50%,#fff0);rotate:15deg;translate:-200% 0;pointer-events:none;animation:kKilau 5s ease-in-out infinite}
+@keyframes kKilau{0%{translate:-200% 0}40%,100%{translate:450% 0}}
+#kar .kc span{border-top-color:var(--c)}
+/* label status satu gaya */
+#kar .kc em.kLbl,#kar .kDet em.kLbl{font:700 .72cqw Arial;letter-spacing:.06cqw;padding:.18cqw .6cqw;border-radius:1cqw;color:#fff;background:#0009;border:.1cqw solid #fff5;font-style:normal;z-index:2}
+#kar em.kLbl.s-gratis{background:#2a6b3acc;border-color:#7dff9a88}
+#kar em.kLbl.s-punya{background:#7a4b00cc;border-color:#ffd16699}
+#kar em.kLbl.s-kunci,#kar em.kLbl.s-segera{background:#1a1f30dd;border-color:#8a93a855;color:#c9d1e0}
+#kar .kc .kRole{position:absolute;top:.35cqw;right:.45cqw;font-size:1.1cqw;font-style:normal;filter:drop-shadow(0 0 .2cqw #000);z-index:2}
+#kar .kc .kSk{position:absolute;right:.4cqw;top:2.1cqw;font:700 .8cqw Arial;color:#fff;background:#000a;padding:.12cqw .45cqw;border-radius:1cqw;z-index:2}
+/* kartu terkunci: siluet gelap + gembok + petunjuk */
+#kar .kc.lock img{filter:brightness(0) drop-shadow(0 0 .5cqw #6d7fb866)!important;opacity:.85}
+#kar .kc.lock{border-color:color-mix(in srgb,var(--c) 45%,#0b1020);box-shadow:0 .5cqw 1.2cqw #0008}   /* warna kelangkaan tetap terlihat (redup) supaya tahu nilainya */
+#kar .kc.lock:after{content:'🔒';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:2.4cqw;padding-bottom:3cqw;background:none;width:auto;rotate:none;translate:none;animation:none}
+#kar .kc .kHint{position:absolute;left:.4cqw;right:.4cqw;bottom:2.6cqw;text-align:center;font:700 .75cqw Arial;color:#c9d1e0;line-height:1.25;text-shadow:0 0 .3cqw #000}
+/* tidak bisa diunduh: tanpa tahan-lama/klik-kanan/seret pada gambar kartu */
+#kar .kc,#kar .kDet{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#kar .kc img,#kar .kDet img{pointer-events:none;-webkit-user-drag:none;user-drag:none}
+/* panel detail */
+#kar .kDet{position:absolute;inset:0;z-index:6;display:none;align-items:center;justify-content:center;background:#02040acc;--c:#c9d1e0}
+#kar .kDet.on{display:flex;animation:vpop .25s ease-out}
+#kar .kDet.r-langka{--c:#3a8dff}#kar .kDet.r-epik{--c:#b06cff}#kar .kDet.r-legendaris{--c:#ffc83d}
+#kar .kdBox{position:relative;display:flex;gap:2cqw;width:74cqw;max-height:44cqw;padding:1.6cqw;border-radius:1.4cqw;background:#0b1020f7;border:.3cqw solid var(--c);box-shadow:0 0 3cqw color-mix(in srgb,var(--c) 45%,#0000)}
+#kar .kdX{position:absolute;top:.8cqw;right:1cqw;background:none;border:0;color:#fff;font-size:2cqw;cursor:pointer}
+#kar .kdImg{flex:none;width:22cqw;aspect-ratio:2/3;border-radius:1cqw;border:.25cqw solid var(--c);background:radial-gradient(120% 80% at 50% 35%,color-mix(in srgb,var(--c) 35%,#0a0e1c),#0a0e1c 70%);display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+#kar .kdImg img{width:100%;height:100%;object-fit:cover;object-position:50% 20%}
+#kar .kdImg.lock img{filter:brightness(0) drop-shadow(0 0 .6cqw #6d7fb866)!important}
+#kar .kdInfo{flex:1;min-width:0;display:flex;flex-direction:column;gap:.7cqw;overflow-y:auto;align-items:flex-start}
+#kar .kdInfo h3{margin:0;font:700 2.6cqw Georgia;color:#fff}
+#kar .kdTag{display:flex;gap:.5cqw;flex-wrap:wrap}
+#kar .kdTag span{font:700 1cqw Arial;color:#cfd6e6;background:#1a2240;padding:.25cqw .8cqw;border-radius:1cqw;border:.1cqw solid #2c3f73}
+#kar .kdTag .kdR{color:#111;background:var(--c);border-color:var(--c)}
+#kar .kdDapat{margin:0;font:1.15cqw Arial;color:#9fb3dd}
+#kar .kdSkT{font:700 1.2cqw Arial;color:#ffd166;margin-top:.4cqw}
+#kar .kdSk{display:flex;gap:.8cqw;flex-wrap:wrap}
+#kar .kdSi{position:relative;width:7cqw;display:flex;flex-direction:column;align-items:center;gap:.25cqw;cursor:pointer}
+#kar .kdSi img{width:7cqw;height:7cqw;object-fit:cover;border-radius:.8cqw;border:.18cqw solid #2c3f73;background:#0a0e1c}
+#kar .kdSi.lock img{filter:grayscale(1) brightness(.35)}
+#kar .kdSi small{font:700 .8cqw Arial;color:#cfd6e6;text-align:center;line-height:1.2}
+#kar .kdSi i{position:absolute;top:2.2cqw;font-size:1.8cqw;font-style:normal}
+/* ===== KOLEKSI: gambar penuh memenuhi kartu (gambar kartu 2:3), terkunci = gambar asli diredupkan + gembok (tanpa siluet) ===== */
+#kar .kc img{position:absolute;inset:0;left:0;bottom:auto;transform:none;width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:50% 15%;filter:none!important}
+#kar .kc span{background:linear-gradient(#0000,#000d 45%);border-top:0;padding:1.4cqw .3cqw .45cqw;z-index:1}
+#kar .kc.lock img{filter:grayscale(.85) brightness(.45)!important;opacity:1}
+#kar .kc.lock:after{z-index:1}
+#kar .kc .kHint{z-index:2}
+#kar .kdImg.lock img{filter:grayscale(.85) brightness(.45)!important}
+#kar .kdImg.lock:after{content:'🔒';position:absolute;font-size:4cqw}
+#kar .kdImg{position:relative;align-items:center}
 /* ===== SCAN KARTU diperbesar, Riwayat Scan diperkecil (mode scan saja) ===== */
 #kar.kmScan .kl{width:58cqw;gap:1.1cqw}
 #kar.kmScan .kcam{height:auto;flex:1;min-height:24cqw}
