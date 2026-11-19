@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Studio Gambar – Kalensari Game</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--bg:#070a14;--panel:#0e1426;--panel2:#141c34;--garis:#26335c;--teks:#e8ecf7;--redup:#94a2c6;--emas:#ffc83d;--biru:#3a8dff;--ungu:#b06cff;--hijau:#3fd14b;--merah:#ff5a6a}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--teks);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+button,input,select{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:280px 1fr 300px;grid-template-rows:auto 1fr;height:100vh}
+header{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--garis);background:#0a0f1e}
+header h1{margin:0;font-size:17px;letter-spacing:.3px}header h1 b{color:var(--emas)}
+header small{color:var(--redup)}header .sp{flex:1}
+.btn{border:1px solid var(--garis);background:var(--panel2);padding:8px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:#3d5191}.btn:disabled{opacity:.4;cursor:default}
+.btn.utama{background:linear-gradient(#ffd166,#ffb703);color:#1a1205;border-color:#ffb703;font-weight:700}
+.btn.on{background:#22305c;border-color:var(--biru)}
+aside{background:var(--panel);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+aside.kiri{border-right:1px solid var(--garis)}aside.kanan{border-left:1px solid var(--garis);overflow-y:auto;padding:14px;gap:14px}
+.cari{margin:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--garis);background:#0a0f1e}
+.daftar{overflow-y:auto;flex:1;padding:0 6px 10px}
+.grp{margin:6px 0}.grp>b{display:block;padding:6px 8px;color:var(--emas);font-size:12px;letter-spacing:.5px;text-transform:uppercase}
+.it{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.it:hover{background:#18213f}.it.on{background:#1d2a52;border-color:var(--biru)}
+.it img{width:30px;height:30px;border-radius:6px;object-fit:cover;background:#000;flex:none}
+.it span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.it i{font-style:normal;font-size:11px;color:var(--redup)}
+.it.sk{padding-left:22px}.it.ubah span:after{content:' ●';color:var(--emas)}
+main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.alat{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--garis)}
+.alat .grp2{display:flex;gap:4px;background:#0a0f1e;padding:3px;border-radius:10px;border:1px solid var(--garis)}
+.alat .grp2 .btn{border:0;background:none;padding:6px 10px}.alat .grp2 .btn.on{background:#22305c}
+.alat label{display:flex;align-items:center;gap:6px;color:var(--redup)}
+.alat input[type=range]{width:140px}
+.panggung{position:relative;flex:1;min-height:0;touch-action:none;background:repeating-conic-gradient(#0d1220 0 25%,#0a0e1a 0 50%) 0 0/24px 24px;cursor:grab}
+.panggung.seret{cursor:grabbing}
+.panggung canvas{position:absolute;inset:0;width:100%;height:100%}
+.kosong{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--redup);text-align:center;pointer-events:none;padding:20px}
+.kosong b{font-size:18px;color:var(--teks)}
+.kosong .btn{pointer-events:auto}
+.bawah{display:flex;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--garis);flex-wrap:wrap}
+.bawah .info{color:var(--redup);flex:1;min-width:200px}
+h3{margin:0 0 8px;font-size:13px;color:var(--emas);text-transform:uppercase;letter-spacing:.5px}
+.kartuPrev{position:relative;width:180px;aspect-ratio:2/3;margin:0 auto;border-radius:12px;border:3px solid var(--c,#c9d1e0);overflow:hidden;background:#0a0e1c;box-shadow:0 6px 18px #0008}
+.kartuPrev canvas{width:100%;height:100%;display:block}
+.kartuPrev span{position:absolute;left:0;right:0;bottom:0;padding:22px 6px 7px;text-align:center;font:700 15px Georgia,serif;background:linear-gradient(#0000,#000d 45%)}
+.kartuPrev em{position:absolute;top:7px;left:7px;font:700 10px Arial;font-style:normal;padding:2px 8px;border-radius:10px;background:#2a6b3acc;border:1px solid #7dff9a88}
+.kepalaPrev{display:flex;gap:12px;justify-content:center;align-items:center}
+.kepalaPrev canvas{width:84px;height:84px;border-radius:12px;border:2px solid var(--garis);background:#0a0e1c}
+.kepalaPrev canvas.bulat{width:64px;height:64px;border-radius:50%}
+.kotak{background:var(--panel2);border:1px solid var(--garis);border-radius:10px;padding:12px}
+.kotak p{margin:4px 0;color:var(--redup);font-size:12.5px}.kotak code{color:#cfe1ff;font-size:12px;word-break:break-all}
+.rar{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}.rar .btn{padding:4px 8px;font-size:12px}
+.notif{position:fixed;left:50%;bottom:20px;translate:-50% 0;background:#13204a;border:1px solid var(--biru);padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9}
+.notif.on{opacity:1}
+.menu{display:none}
+@media (max-width:900px){
+ .app{grid-template-columns:1fr;grid-template-rows:auto auto 1fr auto;height:auto;min-height:100vh}
+ aside.kiri{display:none;position:fixed;inset:52px 0 0 0;z-index:5}aside.kiri.buka{display:flex}
+ .menu{display:inline-block}main{min-height:70vh}.panggung{min-height:55vh}
+ aside.kanan{border-left:0;border-top:1px solid var(--garis)}
+}
+</style></head>
+<body>
+<div class="app">
+ <header><button class="btn menu" id="bMenu">☰ Daftar</button><h1>🎨 Studio Gambar <b>Kalensari Game</b></h1><small id="hTarget">Pilih hero / skin di kiri</small><span class="sp"></span>
+  <button class="btn" id="bBuka">📂 Unggah gambar</button><input type="file" id="fIn" accept="image/*" hidden></header>
+ <aside class="kiri" id="kiri"><input class="cari" id="cari" placeholder="🔍 Cari hero / skin…"><div class="daftar" id="daftar"></div></aside>
+ <main>
+  <div class="alat">
+   <div class="grp2"><button class="btn on" data-mode="badan">🃏 Kartu 2:3</button><button class="btn" data-mode="kepala">🙂 Muka 1:1</button></div>
+   <label>Zoom <input type="range" id="zoom" min="0" max="1000" value="500"></label>
+   <div class="grp2"><button class="btn" id="bPas" title="Seluruh gambar terlihat">Pas</button><button class="btn" id="bPenuh" title="Gambar memenuhi bingkai">Penuh</button></div>
+   <div class="grp2"><button class="btn" id="bPutar" title="Putar 90°">⟳ 90°</button><button class="btn" id="bBalik" title="Cermin">⇋ Cermin</button></div>
+   <label>Latar <input type="color" id="latar" value="#0a0e1c"></label>
+  </div>
+  <div class="panggung" id="panggung"><canvas id="kv"></canvas>
+   <div class="kosong" id="kosong"><b>Seret gambar ke sini</b><span>atau tekan <b>📂 Unggah gambar</b>, atau tempel (Ctrl+V)</span><span>Geser untuk memindahkan · roda mouse / cubit untuk zoom</span><button class="btn" id="bLama" hidden>🖼️ Edit gambar yang sekarang dipakai</button></div></div>
+  <div class="bawah"><span class="info" id="info">Belum ada gambar.</span>
+   <button class="btn" id="bReset">↺ Atur ulang</button>
+   <button class="btn" id="bUnduhB" disabled>⬇️ Kartu</button><button class="btn" id="bUnduhK" disabled>⬇️ Muka</button><button class="btn utama" id="bUnduh2" disabled>⬇️ Unduh keduanya</button></div>
+ </main>
+ <aside class="kanan">
+  <div><h3>Pratinjau kartu</h3><div class="kartuPrev" id="kp"><canvas id="pvB" width="360" height="540"></canvas><em>Gratis</em><span id="pvNama">—</span></div>
+   <div class="rar" id="rar"><button class="btn on" data-c="#c9d1e0">Biasa</button><button class="btn" data-c="#3a8dff">Langka</button><button class="btn" data-c="#b06cff">Epik</button><button class="btn" data-c="#ffc83d">Legendaris</button></div></div>
+  <div><h3>Pratinjau muka</h3><div class="kepalaPrev"><canvas id="pvK" width="256" height="256"></canvas><canvas id="pvK2" class="bulat" width="256" height="256"></canvas></div></div>
+  <div class="kotak"><h3>Cara pasang</h3><p>1. Unduh file hasil studio.</p><p>2. Unggah ke repo GitHub di folder:</p><p><code>gambar-game/potret-3d/</code></p><p>3. Nama file sudah otomatis benar, jadi cukup timpa file lama:</p><p><code id="nmB">—</code></p><p><code id="nmK">—</code></p><p>Kartu = 720×1080 px (2:3) · Muka = 256×256 px · format WebP.</p></div>
+ </aside>
+</div>
+<div class="notif" id="notif"></div>
+<script>
+/* ===== data hero & skin: disalin dari game.html (ALL, SKINS, POT3D) — tambah hero / skin baru di game.html lalu salin ke sini juga ===== */
+const ALL=[['pocong','Ocong','#e9e6df'],['kuntilanak','Kunti','#7b2cbf'],['tuyul','Tuyul','#c9a27a'],['genderuwo','Genderuwo','#5a3a2a'],['pitung','Si Pitung','#c1121f'],['erick','Erick','#e63946'],['doni','Doni','#d62828'],['timunmas','Timun Mas','#5fc23a'],['buto','Buto','#b5332a'],['lutung','Lutung Kasarung','#c8901a'],['saras','Saras','#2a7ae0'],['angling','Angling Dharma','#d4a017'],['dayang','Dayang Sumbi','#e0703a'],['nyiroro','Nyi Roro Kidul','#1a9fe8'],['siliwangi','Prabu Siliwangi','#d4a017'],['ciung','Ciung Wanara','#d8401a'],['sangkuriang','Sangkuriang','#c8641a'],['kiansantang','Kian Santang','#c8a440'],['wiro','Wiro Sableng','#e0a020'],['roro','Roro Jonggrang','#a060ff'],['masdim','Masdim','#c8a020'],['x','Sundel Bolong','#555'],['wewe','Wewe Gombel','#b02020'],['blorong','Nyi Blorong','#1f8a4c'],['dewisri','Dewi Sri','#c9a227']];
+const SKINS={              // id skin = 'hero:nama' (sama dengan isian "item" saat admin membuat kartu skin)
+ 'kuntilanak:merah':{h:'kuntilanak',n:'Kunti Merah',f:'none'},
+ 'kuntilanak:gothic':{h:'kuntilanak',n:'Lunara',f:'none'},
+ 'kuntilanak:sundel':{h:'kuntilanak',n:'Sundel Bolong',f:'none'},
+ 'genderuwo:leak':{h:'genderuwo',n:'Leak',f:'none'},
+ 'genderuwo:calon':{h:'genderuwo',n:'Calon Arang',f:'none'},
+ 'pitung:pendekar':{h:'pitung',n:'Aziz Ajiguna',f:'none'},
+ 'buto:ijo':{h:'buto',n:'Buto Ijo',f:'none'},
+ 'buto:golem':{h:'buto',n:'Golem Ungu',f:'none'},
+ 'roro:nina':{h:'roro',n:'Nina',f:'none'},
+ 'dayang:mojang':{h:'dayang',n:'Mojang Priangan',f:'none'},
+ 'nyiroro:susana':{h:'nyiroro',n:'Susana',f:'none'},
+ 'siliwangi:klasik':{h:'siliwangi',n:'Klasik',f:'none'},
+ 'roro:ninanf':{h:'roro',n:'Nina NF',f:'none'},
+ 'lutung:fox':{h:'lutung',n:'Blue Fox',f:'none'},
+ 'saras:lina':{h:'saras',n:'Lina',f:'none'},
+ 'saras:santi':{h:'saras',n:'Santi',f:'none'},
+ 'angling:andi':{h:'angling',n:'Anto Wijaya',f:'none'},
+ 'timunmas:faniya':{h:'timunmas',n:'Faniya',f:'none'},
+ 'timunmas:airin':{h:'timunmas',n:'Airin',f:'none'},
+ 'tuyul:robot':{h:'tuyul',n:'Mini Robot',f:'none'},
+ 'tuyul:halloween':{h:'tuyul',n:'Tuyul Halloween',f:'none'},
+ 'tuyul:mecha':{h:'tuyul',n:'Tuyul Robot',f:'none'},
+ 'tuyul:setan':{h:'tuyul',n:'Anak Setan',f:'none'},
+ 'doni:robot':{h:'doni',n:'Robot Manchung',f:'none'},
+ 'doni:dawala':{h:'doni',n:'Dawala',f:'none'},
+ 'doni:manchung':{h:'doni',n:'Manchung',f:'none'},
+ 'erick:robot':{h:'erick',n:'Robot Erick',f:'none'},
+ 'erick:cepot':{h:'erick',n:'Cepot',f:'none'},
+ 'pocong:emas':{h:'pocong',n:'Ocong Pink',f:'none'},
+ 'pocong:boneka':{h:'pocong',n:'Ocong Boneka Horor',f:'none',spr:'gambar-game/skin-boneka/',fx:1}};
+const POT3D=(id,s)=>'gambar-game/potret-3d/'+(id=='dewisri'?'dewi-sri':id=='blorong'?'blorong':id=='wewe'?'wewe':id=='masdim'?'masdim':id=='roro'?(s=='roro:nina'?'roro-nina':s=='roro:ninanf'?'roro-ninanf':'roro'):id=='wiro'?'wiro':id=='kiansantang'?'kiansantang':id=='sangkuriang'?'sangkuriang':id=='ciung'?'ciung':id=='siliwangi'?(s=='siliwangi:klasik'?'siliwangi-klasik':'siliwangi'):id=='nyiroro'?(s=='nyiroro:susana'?'nyi-susana':'nyi-roro'):id=='dayang'?(s=='dayang:mojang'?'dayang-mojang':'dayang'):id=='angling'?'angling':id=='saras'?(s=='saras:santi'?'saras-santi':s=='saras:lina'?'saras-lina':'saras'):id=='lutung'?(s=='lutung:fox'?'lutung-fox':'lutung'):id=='buto'?(s=='buto:golem'?'buto-golem':s=='buto:ijo'?'buto-ijo':'buto'):id=='timunmas'?(s=='timunmas:airin'?'timunmas-airin':s=='timunmas:faniya'?'timunmas-faniya':'timunmas'):id=='doni'?(s=='doni:robot'?'doni-robot':s=='doni:dawala'?'doni-dawala':s=='doni:manchung'?'doni-manchung':'doni'):id=='erick'?(s=='erick:cepot'?'erick-cepot':s=='erick:robot'?'erick-robot':'erick'):id=='pitung'?(s=='pitung:pendekar'?'pendekar':'pitung'):id=='genderuwo'?(s=='genderuwo:calon'?'calon-arang':s=='genderuwo:leak'?'leak':'genderuwo'):id=='tuyul'?(s=='tuyul:robot'?'tuyul-robot':s=='tuyul:halloween'?'tuyul-halloween':s=='tuyul:mecha'?'tuyul-mecha':s=='tuyul:setan'?'tuyul-setan':'tuyul'):id=='kuntilanak'?(s=='kuntilanak:merah'?'kunti-merah':s=='kuntilanak:gothic'?'kunti-gothic':'kunti'):s=='pocong:boneka'?'ocong-boneka':s=='pocong:emas'?'ocong-pink':'ocong-lompat');
+
+/* nama file foto: skin yang belum punya foto sendiri di game memakai <hero>-<skin> (game.html sudah otomatis mencarinya) */
+const NAMA_FILE=(h,s)=>{const b=POT3D(h,''),o=POT3D(h,s||'');return (s&&o===b?b+'-'+s.split(':')[1]:o).replace('gambar-game/potret-3d/','')};
+const UK={badan:{w:720,h:1080,ar:2/3},kepala:{w:256,h:256,ar:1}};
+const $=q=>document.querySelector(q);
+const kv=$('#kv'),cx=kv.getContext('2d'),pg=$('#panggung');
+let target=null,img=null,mode='badan',ubah=new Set();
+const T={badan:null,kepala:null};   // posisi per mode: {s (skala), x, y (pusat gambar relatif pusat bingkai, px gambar-output)}
+let rot=0,flip=false;
+function notif(t){const n=$('#notif');n.textContent=t;n.classList.add('on');clearTimeout(notif.t);notif.t=setTimeout(()=>n.classList.remove('on'),2200)}
+/* ---------- daftar ---------- */
+function daftar(){const q=$('#cari').value.toLowerCase().trim(),D=$('#daftar');let h='';
+ for(const a of ALL){if(a[0]=='x')continue;const sk=Object.keys(SKINS).filter(k=>SKINS[k].h==a[0]);
+  const cocok=t=>!q||t.toLowerCase().includes(q);const tampilSk=sk.filter(k=>cocok(SKINS[k].n)||cocok(a[1]));
+  if(!cocok(a[1])&&!tampilSk.length)continue;
+  h+=`<div class="grp"><b>${a[1]}</b>`+it(a[0],'',a[1]+' (asli)')+tampilSk.map(k=>it(a[0],k,SKINS[k].n)).join('')+'</div>'}
+ D.innerHTML=h||'<p style="padding:10px;color:var(--redup)">Tidak ditemukan.</p>'}
+function it(h,s,n){const f=NAMA_FILE(h,s),key=h+'|'+s,on=target&&target.key==key;
+ return `<div class="it${s?' sk':''}${on?' on':''}${ubah.has(key)?' ubah':''}" data-h="${h}" data-s="${s}"><img src="gambar-game/potret-3d/${f}-kepala.webp" onerror="this.style.visibility='hidden'" loading="lazy" alt=""><span>${n}</span><i>${s?'skin':'hero'}</i></div>`}
+$('#cari').oninput=daftar;
+$('#daftar').onclick=e=>{const d=e.target.closest('.it');if(!d)return;pilih(d.dataset.h,d.dataset.s);$('#kiri').classList.remove('buka')};
+$('#bMenu').onclick=()=>$('#kiri').classList.toggle('buka');
+function pilih(h,s){const nm=s?SKINS[s].n:(ALL.find(a=>a[0]==h)||[0,h])[1];target={h,s,key:h+'|'+s,nama:nm,file:NAMA_FILE(h,s)};
+ $('#hTarget').textContent=(s?'Skin ':'Hero ')+nm+(s?' · '+(ALL.find(a=>a[0]==h)||[0,h])[1]:'');$('#pvNama').textContent=nm;
+ $('#nmB').textContent=target.file+'-badan.webp';$('#nmK').textContent=target.file+'-kepala.webp';$('#bLama').hidden=false;
+ daftar();tombol();if(!img)gambar()}
+/* ---------- muat gambar ---------- */
+function muat(src,dariSitus){const i=new Image();if(!dariSitus)i.crossOrigin='anonymous';
+ i.onload=()=>{img=i;rot=0;flip=false;T.badan=null;T.kepala=null;pasAwal('badan');pasAwal('kepala');$('#kosong').style.display='none';tombol();gambar();
+  $('#info').textContent=`Gambar ${i.naturalWidth}×${i.naturalHeight} px — geser & zoom sampai pas, lalu unduh.`};
+ i.onerror=()=>notif('Gambar tidak bisa dibuka');i.src=src}
+function dariFile(f){if(!f||!/^image\//.test(f.type)){notif('Pilih file gambar (JPG / PNG / WebP)');return}const r=new FileReader();r.onload=()=>muat(r.result,true);r.readAsDataURL(f)}
+$('#bBuka').onclick=()=>$('#fIn').click();$('#fIn').onchange=e=>{dariFile(e.target.files[0]);e.target.value=''};
+pg.addEventListener('dragover',e=>e.preventDefault());pg.addEventListener('drop',e=>{e.preventDefault();dariFile(e.dataTransfer.files[0])});
+addEventListener('paste',e=>{const f=[...(e.clipboardData||{}).files||[]][0];if(f)dariFile(f)});
+$('#bLama').onclick=()=>{if(!target)return;const m=mode=='kepala'?'kepala':'badan';muat(`gambar-game/potret-3d/${target.file}-${m}.webp?t=${Date.now()}`,true)};
+/* ---------- ukuran setelah diputar ---------- */
+const iw=()=>rot%180?img.naturalHeight:img.naturalWidth,ih=()=>rot%180?img.naturalWidth:img.naturalHeight;
+function pasAwal(m,penuh=true){const u=UK[m],s=penuh?Math.max(u.w/iw(),u.h/ih()):Math.min(u.w/iw(),u.h/ih());T[m]={s,x:0,y:penuh&&m=='kepala'?Math.max(0,(ih()*s-u.h)/2*.6):0}}
+/* ---------- gambar ke kanvas output (dipakai juga untuk pratinjau & unduhan) ---------- */
+function render(c,m,lebar,tinggi){const u=UK[m],t=T[m],k=lebar/u.w;c.save();c.fillStyle=$('#latar').value;c.fillRect(0,0,lebar,tinggi);
+ if(img&&t){c.translate(lebar/2+t.x*k,tinggi/2+t.y*k);c.rotate(rot*Math.PI/180);if(flip)c.scale(-1,1);const s=t.s*k;c.imageSmoothingQuality='high';c.drawImage(img,-img.naturalWidth*s/2,-img.naturalHeight*s/2,img.naturalWidth*s,img.naturalHeight*s)}c.restore()}
+function bingkai(){const W=pg.clientWidth,H=pg.clientHeight,ar=UK[mode].ar,pad=40;let bw=W-pad*2,bh=bw/ar;if(bh>H-pad*2){bh=H-pad*2;bw=bh*ar}return{x:(W-bw)/2,y:(H-bh)/2,w:bw,h:bh,k:bw/UK[mode].w}}
+function gambar(){const dpr=devicePixelRatio||1,W=pg.clientWidth,H=pg.clientHeight;kv.width=W*dpr;kv.height=H*dpr;cx.setTransform(dpr,0,0,dpr,0,0);cx.clearRect(0,0,W,H);
+ const b=bingkai();
+ if(img&&T[mode]){const t=T[mode];cx.save();cx.globalAlpha=.35;cx.translate(b.x+b.w/2+t.x*b.k,b.y+b.h/2+t.y*b.k);cx.rotate(rot*Math.PI/180);if(flip)cx.scale(-1,1);const s=t.s*b.k;cx.drawImage(img,-img.naturalWidth*s/2,-img.naturalHeight*s/2,img.naturalWidth*s,img.naturalHeight*s);cx.restore();
+  cx.save();cx.beginPath();cx.rect(b.x,b.y,b.w,b.h);cx.clip();cx.translate(b.x,b.y);render(cx,mode,b.w,b.h);cx.restore()}
+ cx.strokeStyle='#ffc83d';cx.lineWidth=2;cx.strokeRect(b.x,b.y,b.w,b.h);
+ cx.strokeStyle='#ffffff30';cx.lineWidth=1;for(let i=1;i<3;i++){cx.beginPath();cx.moveTo(b.x+b.w*i/3,b.y);cx.lineTo(b.x+b.w*i/3,b.y+b.h);cx.moveTo(b.x,b.y+b.h*i/3);cx.lineTo(b.x+b.w,b.y+b.h*i/3);cx.stroke()}
+ if(mode=='badan'){cx.fillStyle='#00000066';cx.fillRect(b.x,b.y+b.h*.86,b.w,b.h*.14);cx.fillStyle='#ffffffaa';cx.font='600 12px Arial';cx.textAlign='center';cx.fillText('area nama di game',b.x+b.w/2,b.y+b.h*.94)}
+ if(mode=='kepala'){cx.strokeStyle='#ffffff55';cx.beginPath();cx.arc(b.x+b.w/2,b.y+b.h/2,b.w/2,0,Math.PI*2);cx.stroke()}
+ const pB=$('#pvB'),pK=$('#pvK'),pK2=$('#pvK2');render(pB.getContext('2d'),'badan',pB.width,pB.height);render(pK.getContext('2d'),'kepala',256,256);render(pK2.getContext('2d'),'kepala',256,256);
+ if(img&&T[mode]){const z=$('#zoom'),[a,c]=batasZoom();z.value=Math.round(Math.log(T[mode].s/a)/Math.log(c/a)*1000)}}
+addEventListener('resize',gambar);
+/* ---------- geser & zoom ---------- */
+function batasZoom(){const u=UK[mode],min=Math.min(u.w/iw(),u.h/ih())*.25,max=Math.max(u.w/iw(),u.h/ih())*8;return[min,max]}
+function zoomKe(s,px,py){const t=T[mode];if(!t)return;const[a,c]=batasZoom();s=Math.min(c,Math.max(a,s));const b=bingkai();
+ const ox=(px-b.x-b.w/2)/b.k,oy=(py-b.y-b.h/2)/b.k,f=s/t.s;t.x=ox-(ox-t.x)*f;t.y=oy-(oy-t.y)*f;t.s=s;tandai();gambar()}
+$('#zoom').oninput=e=>{if(!img)return;const[a,c]=batasZoom(),s=a*Math.pow(c/a,e.target.value/1000),b=bingkai();zoomKe(s,b.x+b.w/2,b.y+b.h/2)};
+pg.addEventListener('wheel',e=>{if(!img)return;e.preventDefault();const r=pg.getBoundingClientRect();zoomKe(T[mode].s*Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
+const jari=new Map();let awal=null;
+pg.addEventListener('pointerdown',e=>{if(!img)return;pg.setPointerCapture(e.pointerId);jari.set(e.pointerId,{x:e.clientX,y:e.clientY});pg.classList.add('seret');awal=null});
+pg.addEventListener('pointermove',e=>{if(!jari.has(e.pointerId))return;const p=jari.get(e.pointerId),t=T[mode],b=bingkai(),r=pg.getBoundingClientRect();
+ if(jari.size==1){t.x+=(e.clientX-p.x)/b.k;t.y+=(e.clientY-p.y)/b.k;jari.set(e.pointerId,{x:e.clientX,y:e.clientY});tandai();gambar()}
+ else if(jari.size==2){jari.set(e.pointerId,{x:e.clientX,y:e.clientY});const[A,B]=[...jari.values()],d=Math.hypot(A.x-B.x,A.y-B.y),mx=(A.x+B.x)/2-r.left,my=(A.y+B.y)/2-r.top;
+  if(!awal)awal={d,s:t.s,mx,my};else{t.x+=(mx-awal.mx)/b.k;t.y+=(my-awal.my)/b.k;awal.mx=mx;awal.my=my;zoomKe(awal.s*d/awal.d,mx,my)}}});
+const lepas=e=>{jari.delete(e.pointerId);awal=null;if(!jari.size)pg.classList.remove('seret')};pg.addEventListener('pointerup',lepas);pg.addEventListener('pointercancel',lepas);
+/* ---------- tombol ---------- */
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;document.querySelectorAll('[data-mode]').forEach(x=>x.classList.toggle('on',x===b));gambar()});
+$('#bPas').onclick=()=>{if(img){pasAwal(mode,false);tandai();gambar()}};$('#bPenuh').onclick=()=>{if(img){pasAwal(mode,true);tandai();gambar()}};
+$('#bPutar').onclick=()=>{if(!img)return;rot=(rot+90)%360;pasAwal('badan');pasAwal('kepala');tandai();gambar()};
+$('#bBalik').onclick=()=>{if(!img)return;flip=!flip;tandai();gambar()};
+$('#bReset').onclick=()=>{if(!img)return;rot=0;flip=false;pasAwal('badan');pasAwal('kepala');gambar()};
+$('#latar').oninput=gambar;
+$('#rar').onclick=e=>{const b=e.target.closest('[data-c]');if(!b)return;$('#kp').style.setProperty('--c',b.dataset.c);document.querySelectorAll('#rar .btn').forEach(x=>x.classList.toggle('on',x===b))};
+function tandai(){if(target){ubah.add(target.key)}}
+function tombol(){const ok=!!(img&&target);['#bUnduhB','#bUnduhK','#bUnduh2'].forEach(q=>$(q).disabled=!ok);if(img&&!target)$('#info').textContent='Pilih dulu hero / skin di daftar kiri supaya nama file-nya benar.'}
+/* ---------- unduh ---------- */
+function unduh(m){return new Promise(res=>{const u=UK[m],c=document.createElement('canvas');c.width=u.w;c.height=u.h;render(c.getContext('2d'),m,u.w,u.h);
+ c.toBlob(b=>{const webp=b&&b.type=='image/webp',nama=`${target.file}-${m}.${webp?'webp':'png'}`;const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=nama;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  if(!webp)notif('Browser ini belum bisa membuat WebP, jadi tersimpan sebagai PNG. Pakai Chrome supaya hasilnya WebP.');res(nama)},'image/webp',.88)})}
+$('#bUnduhB').onclick=async()=>notif('Tersimpan: '+await unduh('badan'));
+$('#bUnduhK').onclick=async()=>notif('Tersimpan: '+await unduh('kepala'));
+$('#bUnduh2').onclick=async()=>{const a=await unduh('badan');await new Promise(r=>setTimeout(r,400));const b=await unduh('kepala');notif('Tersimpan: '+a+' & '+b)};
+/* mulai */
+daftar();new ResizeObserver(gambar).observe(pg);
+const q=new URLSearchParams(location.search);if(q.get('hero'))pilih(q.get('hero'),q.get('skin')||'');
+</script>
+</body></html>
