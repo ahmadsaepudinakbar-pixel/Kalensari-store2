@@ -1625,7 +1625,7 @@ if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi
 if (HERO === 'blorong') $('#help').textContent = 'Pasif: serangan & skill meracuni 3 dtk · WASD / panah: gerak · J / Spasi: Sisik Emas · U (tahan + mouse): Panggilan Ular — ular muncul dari tanah di bawah musuh & melilitnya · I (tahan + mouse): Kolam Bisa (jebakan 120 dtk, tak terlihat musuh) — tekan lagi untuk teleport ke jebakan · O: Wujud Siluman Ular 10 dtk (J: patuk · U: Lilitan · I: Terkaman — kena sasaran = bisa langsung terkam lagi, maks 3x) — tekan O lagi untuk kembali';
 else if (HERO === 'wewe') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: kombo Cakar 3 pukulan (ke-3 paling sakit & mendorong) · U: Gendongan Pelindung (teman terdekat masuk gendongan 3 dtk: kebal & tak terlihat, ikut dibawa) — tanpa teman di dekat: Bayi Merangkak · I: Tembang Nina Bobo (kipas: mengantuk lalu TERTIDUR; kena damage = bangun, +30%) · O: Culik ke Gombel (rumpun bambu muncul, Wewe melayang tak terlihat; sentuh hero lawan = korban lenyap diculik, Wewe terbang pulang ke bambu lalu menjatuhkannya)';
 else if (HERO === 'masdim') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tembakan Senapan (10 peluru) · R: isi peluru (bisa sambil jalan; diam 3,3 dtk = penuh) · U: Lempar Granat (dibidik, ledakan + Slow) · I: Lompat Taktis · O lalu 1 / 2: pilih mode ulti 🎯 Sniper (tiarap 10 dtk, 1 peluru: gerak = geser teropong, J = tembak) atau 🔫 Bren (diam di balik minigun, tahan J = tembak bertubi-tubi, O / I = keluar)';
-else if (HERO === 'arjuna') $('#help').textContent = 'Marksman · WASD / panah: gerak · J / Spasi: Panah · U (tahan + mouse): Salto Mundur — salto ke belakang 4 m sambil memanah, lawan kena Slow 1,5 dtk · I: Panah Berlipat — 3 dtk tiap panah melesat ke SEMUA lawan dalam 9 m · O (tahan + mouse): Panah Pasopati — panah pusaka sejauh 32 m: damage besar, terpental, Stun 1 dtk, ledakan di sekitarnya';
+else if (HERO === 'arjuna') $('#help').textContent = 'Marksman · WASD / panah: gerak · J / Spasi: Panah · U (tahan + mouse): Salto Mundur — salto ke belakang 4 m sambil memanah, lawan kena Slow 1,5 dtk · I: Panah Berlipat — 3 dtk tiap panah melesat ke SEMUA lawan dalam 9 m · O (tahan + arahkan manual): Panah Pasopati — panah pusaka sejauh 80 m: damage besar, terpental, Stun 1 dtk, ledakan di sekitarnya';
 else if (HERO === 'dewisri') $('#help').textContent = 'Support · WASD / panah: gerak · J / Spasi: Serangan Kupu-Kupu · U (tahan + mouse): Sungai Kehidupan — sungai 12 × 4 m selama 7 dtk, lawan di dalamnya Slow 50% (juga air untuk Nyi Roro Kidul) · I: Kupu-kupu Emas — mengejar lawan di jalur yang sama, damage bertahap 3 dtk · O: Taman Kemakmuran — kawan di sekitarmu pulih 20% HP / dtk selama 3 dtk';
 else if (HERO === 'roro') $('#help').textContent = 'Pasif Candi ke-999: tiap skill yang kena memberi 1 tanda batu ke lawan (maks 3) · serangan dasar ke lawan bertanda 3: +9,99% HP maksimal lawan + Slow · WASD / panah: gerak · J / Spasi: Serpihan Batu (jarak jauh) · U: Lesung Fajar (alu menumbuk lesung: gelombang fajar mendorong lawan di sekitar Roro + damage) · I (tahan + mouse): Patung Pengganti (lawan pertama yang kena jadi patung batu: damage + Stun 1,2 dtk) · O (tahan + mouse): Candi Prambanan (candi muncul 1 dtk di area persegi panjang: burst damage besar)';
 if (HERO === 'wiro') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tebasan Kapak (3 tebasan) · Pasif Jurus 212: tiap 2 tebasan penutup kena → tebasan penutup berikutnya jadi Tebasan 212 (damage 212 + lambat) · U (tahan + mouse): Kapak Naga (kapak dilempar seperti bumerang: kena saat pergi, berputar di ujung, kena lagi saat kembali) · I (tahan + mouse): Gerak Silat (salto menghindar, kebal sesaat; kalau kapak sedang di luar: melesat menangkap kapak + tebasan area stun, jeda Kapak Naga −50%) · O: Amukan Naga Emas (naga emas dipanggil & menyambar lawan di dekat Wiro; 6 dtk: kapak emas, tiap tebasan melepas gelombang naga, lari lebih cepat; tekan O lagi / waktu habis: hantaman naga emas melempar lawan ke atas) · Combo: U → I';
@@ -6862,14 +6862,14 @@ function updDewiSri(dt, pos, f) {
 // Serangan dasar: Panah — satu anak panah lurus jarak jauh
 // Skill 1: Salto Mundur — salto ke belakang ±4 m menjauhi arah bidikan sambil melepas 1 panah: lawan pertama yang kena Slow 1,5 dtk
 // Skill 2: Panah Berlipat — 3 dtk: tiap serangan dasar melepas satu panah ke SETIAP lawan dalam radius 9 m (banyak sasaran sekaligus)
-// Skill 3: Panah Pasopati — tahan & arahkan: panah pusaka melesat sangat jauh (32 m) ke arah yang ditentukan · lawan pertama yang kena:
+// Skill 3: Panah Pasopati — arahkan manual: panah pusaka melesat sangat jauh (80 m) ke arah yang ditentukan · lawan pertama yang kena:
 //   damage besar + terpental + Stun 1 dtk · lawan di sekitar titik kena ikut terkena ledakan
 const AJ = { cepat: 4.0, tsLari: 2.1,   // gerak = klip jalan (2 langkah/1,05 dtk) dipercepat agar langkah pas dengan laju
   emas: 0xffd060, emas2: 0xfff3b0, biru: 0x7fd4ff,
   dasar: { ts: 1.55, rilis: .13, akhir: .4, jarak: 9, cepat: 26, dmg: 62, R: .42 },
   salto: { ts: 1.5, lama: .55, jarak: 4, tinggi: .8, rilis: .12, panahJarak: 9, dmg: 50, lambat: 1.5 },
   banyak: { lama: 3, R: 9, maks: 5 },
-  ulti: { ts: .85, rilis: 1.0, akhir: 1.3, jarak: 32, cepat: 42, dmg: 380, R: .7, stun: 1, ledakR: 2.6, ledakDmg: 150, dorong: 9 } };
+  ulti: { ts: .85, rilis: 1.0, akhir: 1.3, jarak: 80, cepat: 60, dmg: 380, R: .7, stun: 1, ledakR: 2.6, ledakDmg: 150, dorong: 9 } };
 const AJ_URL = 'model-3d/arjuna.glb?v=2';
 const AJW = { banyakT: 0 };
 function siapkanArjuna(gl, m, T) {
@@ -6935,7 +6935,8 @@ function pakaiArjuna(i) {
     arahi(AJ.salto.panahJarak + 1); P.root.rotation.y = P.arah; const b = new THREE.Vector3(-Math.sin(P.arah), 0, -Math.cos(P.arah));
     P.awal = P.root.position.clone(); P.tujuan = batasi(P.root.position.clone().addScaledVector(b, AJ.salto.jarak)); P.state = 'ajSalto'; mainUlang('tembak', .05, AJ.salto.ts); }
   else if (i === 2) { AJW.banyakT = AJ.banyak.lama; fx('ajAura', P.root.position.clone()); banner('🏹 PANAH BERLIPAT!', '#ffd870'); P.cd[i] = CD_MAX[i]; return; }   // tanpa animasi khusus: bisa langsung menembak
-  else if (i === 3) { arahi(AJ.ulti.jarak); P.root.rotation.y = P.arah; P.state = 'ajUlti'; mainUlang('panah', .06, AJ.ulti.ts); banner('🏹 PANAH PASOPATI!', '#ffd870'); }
+  else if (i === 3) { if (K.bidik === 3 && K.diarahkan) P.arah = K.arahBidik; P.root.rotation.y = P.arah;   // diarahkan manual (tanpa kunci otomatis): tanpa bidikan = arah hadap
+    P.state = 'ajUlti'; mainUlang('panah', .06, AJ.ulti.ts); banner('🏹 PANAH PASOPATI!', '#ffd870'); }
   P.cd[i] = CD_MAX[i]; P.t = 0; P.hit = 0;
 }
 function ajBebas() { P.state = 'bebas'; P.tilt.rotation.x = 0; P.tilt.position.set(0, 0, 0); main('diam', .2); }
