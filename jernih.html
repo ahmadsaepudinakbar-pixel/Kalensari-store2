@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jernih – Pembersih Suara Musik</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap">
+<style>
+:root{--bg:#E9EEF0;--panel:#F7FAFA;--ink:#14262B;--mute:#5A6E73;--line:#CAD6D9;--acc:#00796B;--accInk:#fff;--old:#9DB0B5;--warn:#C2410C;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1A1D;--panel:#162327;--ink:#E4EEEF;--mute:#8CA2A7;--line:#27393E;--acc:#3DD6C0;--accInk:#06201C;--old:#4A6066;--warn:#FB923C}}
+:root[data-theme="dark"]{--bg:#0F1A1D;--panel:#162327;--ink:#E4EEEF;--mute:#8CA2A7;--line:#27393E;--acc:#3DD6C0;--accInk:#06201C;--old:#4A6066;--warn:#FB923C}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Bricolage Grotesque",system-ui,sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 18px 48px}
+h1{font-size:clamp(40px,9vw,72px);line-height:.95;margin:0 0 10px;font-weight:800;letter-spacing:-.03em}
+.sub{color:var(--mute);max-width:56ch;margin:0 0 24px}
+.drop{display:block;border:2px dashed var(--line);border-radius:14px;padding:44px 18px;text-align:center;background:var(--panel);cursor:pointer}
+.drop.over,.drop:focus-within{border-color:var(--acc)}
+.drop b{display:block;font-size:22px;margin-bottom:4px}
+.drop span{color:var(--mute)}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
+#app[hidden]{display:none}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+.name{font-weight:600;overflow-wrap:anywhere}
+.meta{color:var(--mute);font-size:14px}
+canvas{width:100%;height:160px;display:block;margin-top:10px;cursor:pointer;touch-action:none}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:9px 14px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+select{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:9px 10px}
+button.main{background:var(--acc);color:var(--accInk);border-color:var(--acc);font-weight:600}
+button:focus-visible,input:focus-visible,label:focus-within{outline:3px solid var(--acc);outline-offset:2px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg label{padding:8px 14px;cursor:pointer;display:block}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--acc);color:var(--accInk);font-weight:600}
+.time{font-variant-numeric:tabular-nums;color:var(--mute);min-width:96px}
+.leg{margin-left:auto;font-size:13px;color:var(--mute);display:flex;gap:12px}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px 24px;margin-top:12px}
+.ctl label{display:flex;justify-content:space-between;font-weight:600}
+.ctl output{color:var(--acc);font-variant-numeric:tabular-nums}
+.ctl small{display:block;color:var(--mute)}
+input[type=range]{width:100%;accent-color:var(--acc);margin:6px 0 2px}
+.chk{display:flex;gap:8px;align-items:flex-start}
+.chk input{margin-top:5px;accent-color:var(--acc)}
+h2{font-size:18px;margin:0}
+#st{color:var(--mute);font-size:14px}
+#err{color:var(--warn);font-weight:600;margin-top:12px}
+footer{color:var(--mute);font-size:13px;margin-top:24px;max-width:64ch}
+</style>
+</head>
+<body>
+<main>
+<h1>Jernih</h1>
+<p class="sub">Bersihkan dengung, desis, dan derau dari lagu atau rekamanmu. Semua diproses di perangkatmu; file tidak diunggah ke mana pun.</p>
+
+<label class="drop" id="drop">
+  <b>Taruh lagu di sini</b>
+  <span>atau ketuk untuk memilih file (MP3, WAV, M4A, OGG)</span>
+  <input type="file" id="file" accept="audio/*">
+</label>
+<div id="err" role="alert"></div>
+
+<section id="app" hidden>
+  <div class="card">
+    <div class="top"><div class="name" id="fname"></div><div class="meta" id="fmeta"></div></div>
+    <canvas id="cv" aria-label="Gelombang suara. Ketuk untuk pindah posisi."></canvas>
+    <div class="row">
+      <button class="main" id="play">Putar</button>
+      <span class="time" id="time">0:00 / 0:00</span>
+      <div class="seg" role="radiogroup" aria-label="Versi yang diputar">
+        <label><input type="radio" name="ab" value="orig">Asli</label>
+        <label><input type="radio" name="ab" value="clean" checked>Dibersihkan</label>
+      </div>
+      <div class="leg"><span><i style="background:var(--old)"></i>Asli</span><span><i style="background:var(--acc)"></i>Dibersihkan</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="top"><h2>Pengaturan</h2><span id="st"></span></div>
+    <div class="row" id="presets"></div>
+    <div class="grid" id="ctls"></div>
+    <div class="row">
+      <button id="auto">Atur otomatis</button>
+      <label for="q">Ukuran file</label>
+      <select id="q"><option value="64">Sangat kecil (64 kbps)</option><option value="96" selected>Kecil (96 kbps)</option><option value="128">Sedang (128 kbps)</option><option value="192">Tinggi (192 kbps)</option></select>
+      <button class="main" id="save">Simpan MP3</button>
+    </div>
+  </div>
+</section>
+
+<footer>Pengurang derau mempelajari bagian paling sunyi dari lagu sebagai contoh derau, lalu menguranginya di seluruh lagu. Jika terlalu tinggi, suara bisa terdengar seperti gemericik air. Turunkan sedikit kalau begitu. Hasil langsung diunduh sebagai file MP3.</footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const P={nr:50,pres:2,hp:60,lp:20000,gate:-80,clar:3,warm:0,comp:false,norm:true};
+const C=[
+ {k:'nr',l:'Pengurang derau',min:0,max:100,step:5,f:v=>v?v+'%':'Mati',h:'Mempelajari derau dari bagian paling sunyi, lalu menguranginya di seluruh lagu.'},
+ {k:'pres',l:'Kehadiran vokal',min:-4,max:8,step:1,f:v=>(v>0?'+':'')+v+' dB',h:'Membuat vokal dan instrumen utama lebih jelas.'},
+ {k:'hp',l:'Potong dengung rendah',min:20,max:300,step:5,f:v=>v+' Hz',h:'Menghilangkan gemuruh, angin, dan dengung listrik.'},
+ {k:'lp',l:'Potong desis tinggi',min:4000,max:20000,step:100,f:v=>v>=20000?'Mati':(v/1000).toFixed(1)+' kHz',h:'Menghilangkan desis kaset. Terlalu rendah membuat suara tumpul.'},
+ {k:'gate',l:'Gerbang derau',min:-80,max:-25,step:1,f:v=>v<=-80?'Mati':v+' dB',h:'Meredam bagian yang lebih pelan dari ambang ini.'},
+ {k:'clar',l:'Kejernihan',min:-6,max:9,step:1,f:v=>(v>0?'+':'')+v+' dB',h:'Mengangkat atau menurunkan nada tinggi.'},
+ {k:'warm',l:'Kehangatan',min:-6,max:6,step:1,f:v=>(v>0?'+':'')+v+' dB',h:'Mengangkat atau menurunkan nada rendah.'}
+];
+const PRE={
+ 'Rapikan saja':{nr:25,pres:1,hp:40,lp:20000,gate:-80,clar:1,warm:0,comp:false,norm:true},
+ 'Kaset atau rekaman lama':{nr:70,pres:2,hp:90,lp:9000,gate:-55,clar:3,warm:0,comp:false,norm:true},
+ 'Rekaman ruangan bising':{nr:80,pres:3,hp:120,lp:14000,gate:-48,clar:3,warm:-1,comp:true,norm:true}
+};
+let AC,orig,clean,src=null,mode='clean',playing=false,t0=0,pausedAt=0,pO,pC,job=0,timer,base,fn='lagu';
+
+/* UI kontrol */
+const box=$('#ctls');
+C.forEach(c=>{const d=document.createElement('div');d.className='ctl';
+ d.innerHTML=`<label for="r_${c.k}">${c.l}<output id="o_${c.k}"></output></label><input type="range" id="r_${c.k}" min="${c.min}" max="${c.max}" step="${c.step}"><small>${c.h}</small>`;
+ box.appendChild(d);d.querySelector('input').oninput=e=>{P[c.k]=+e.target.value;sync();sched()}});
+[['comp','Ratakan volume','Mengurangi beda keras dan pelan.'],['norm','Normalisasi volume','Menaikkan puncak suara hingga hampir penuh.']].forEach(([k,l,h])=>{
+ const d=document.createElement('div');d.className='chk';
+ d.innerHTML=`<input type="checkbox" id="r_${k}"><label for="r_${k}"><b>${l}</b><small style="display:block;color:var(--mute)">${h}</small></label>`;
+ box.appendChild(d);d.querySelector('input').onchange=e=>{P[k]=e.target.checked;sched()}});
+Object.keys(PRE).forEach(n=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>{Object.assign(P,PRE[n]);sync();sched()};$('#presets').appendChild(b)});
+function sync(){C.forEach(c=>{$('#r_'+c.k).value=P[c.k];$('#o_'+c.k).textContent=c.f(P[c.k])});$('#r_comp').checked=P.comp;$('#r_norm').checked=P.norm}
+function sched(){clearTimeout(timer);$('#st').textContent='Menunggu…';timer=setTimeout(proc,250)}
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+
+/* Muat file */
+async function load(f){
+ $('#err').textContent='';
+ try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+  const ab=await f.arrayBuffer();orig=await AC.decodeAudioData(ab);
+ }catch(e){$('#err').textContent='File tidak bisa dibaca. Coba format MP3, WAV, atau M4A.';return}
+ stopSrc();playing=false;pausedAt=0;mode='clean';document.querySelector('input[name=ab][value=clean]').checked=true;
+ fn=f.name.replace(/\.[^.]+$/,'')||'lagu';
+ $('#fname').textContent=f.name;
+ $('#fmeta').textContent=fmt(orig.duration)+' · '+orig.numberOfChannels+' kanal · '+orig.sampleRate+' Hz';
+ pO=peaks(orig);pC=null;$('#app').hidden=false;sync();draw();proc();$('#play').textContent='Putar';
+}
+$('#file').onchange=e=>e.target.files[0]&&load(e.target.files[0]);
+const dz=$('#drop');
+['dragenter','dragover'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(t=>dz.addEventListener(t,e=>{e.preventDefault();dz.classList.remove('over')}));
+dz.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];f&&load(f)});
+
+/* Pemrosesan */
+async function proc(){
+ const my=++job;$('#st').textContent='Memproses…';
+ const ch=orig.numberOfChannels,oc=new OfflineAudioContext(ch,orig.length,orig.sampleRate);
+ const s=oc.createBufferSource();s.buffer=orig;
+ const bq=(t,f,g)=>{const b=oc.createBiquadFilter();b.type=t;b.frequency.value=f;if(g!==undefined)b.gain.value=g;else b.Q.value=.707;return b};
+ const nodes=[bq('highpass',P.hp),bq('lowpass',P.lp),bq('lowshelf',200,P.warm),bq('peaking',3200,P.pres),bq('highshelf',6000,P.clar)];
+ if(P.comp){const k=oc.createDynamicsCompressor();k.threshold.value=-26;k.knee.value=20;k.ratio.value=3;k.attack.value=.01;k.release.value=.25;nodes.push(k);const m=oc.createGain();m.gain.value=1.6;nodes.push(m)}
+ let p=s;nodes.forEach(n=>{p.connect(n);p=n});p.connect(oc.destination);s.start();
+ const buf=await oc.startRendering();
+ if(my!==job)return;
+ if(P.nr>0&&!await spec(buf,my))return;gate(buf);if(P.norm)norm(buf);
+ clean=buf;pC=peaks(buf);draw();$('#st').textContent='Siap';
+ if(playing&&mode==='clean')start(pos());
+}
+function fft(re,im){const n=re.length;for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t}}
+ for(let l=2;l<=n;l<<=1){const a=-2*Math.PI/l,wr=Math.cos(a),wi=Math.sin(a),h=l>>1;for(let i=0;i<n;i+=l){let cr=1,ci=0;for(let k=0;k<h;k++){const p=i+k,q=p+h,xr=re[q]*cr-im[q]*ci,xi=re[q]*ci+im[q]*cr;re[q]=re[p]-xr;im[q]=im[p]-xi;re[p]+=xr;im[p]+=xi;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t}}}}
+async function spec(buf,my){
+ const N=2048,H=1024,K=N/2+1,w=new Float32Array(N),re=new Float32Array(N),im=new Float32Array(N);
+ for(let i=0;i<N;i++)w[i]=Math.sin(Math.PI*i/N);
+ const s=P.nr/100,al=1+s*2.5,fl=.06+(1-s)*.25;
+ for(let c=0;c<buf.numberOfChannels;c++){
+  const x=buf.getChannelData(c),n=x.length,nf=Math.ceil(n/H)+1;
+  const grab=st=>{for(let i=0;i<N;i++){const p=st+i;re[i]=(p>=0&&p<n?x[p]:0)*w[i];im[i]=0}fft(re,im)};
+  const en=[];for(let f=0;f<nf;f++){const st=(f-1)*H;let e=0,m=0;for(let i=Math.max(0,st);i<Math.min(n,st+N);i+=4){e+=x[i]*x[i];m++}en.push([m?e/m:0,st])}
+  const ok=en.filter(a=>a[0]>1e-9).sort((a,b)=>a[0]-b[0]).slice(0,Math.min(300,Math.max(5,Math.floor(en.length*.1))));
+  if(!ok.length)continue;
+  const nz=new Float32Array(K);
+  for(const a of ok){grab(a[1]);for(let k=0;k<K;k++)nz[k]+=Math.hypot(re[k],im[k])/ok.length}
+  const y=new Float32Array(n),pg=new Float32Array(K).fill(1),g=new Float32Array(K);
+  for(let f=0;f<nf;f++){
+   const st=(f-1)*H;grab(st);
+   for(let k=0;k<K;k++){const m=Math.hypot(re[k],im[k])+1e-9;g[k]=Math.min(1,Math.max(fl,1-al*nz[k]/m))}
+   for(let k=0;k<K;k++){const sm=(g[Math.max(0,k-1)]+g[k]*2+g[Math.min(K-1,k+1)])/4,v=sm>pg[k]?pg[k]*.3+sm*.7:pg[k]*.6+sm*.4;pg[k]=v;re[k]*=v;im[k]*=v;if(k>0&&k<N/2){re[N-k]=re[k];im[N-k]=-im[k]}}
+   fft(im,re);
+   for(let i=0;i<N;i++){const p=st+i;if(p>=0&&p<n)y[p]+=re[i]/N*w[i]}
+   if(f%48===0){await new Promise(r=>setTimeout(r));if(my!==job)return false}
+  }
+  x.set(y);
+ }
+ return true;
+}
+function gate(buf){
+ if(P.gate<=-80)return;
+ const B=512,n=buf.length,nb=Math.ceil(n/B),thr=Math.pow(10,P.gate/20),fl=.05;
+ const d=[];for(let c=0;c<buf.numberOfChannels;c++)d.push(buf.getChannelData(c));
+ const G=new Float32Array(nb);let g=1,hold=0;
+ for(let b=0;b<nb;b++){let sum=0,cnt=0;const a=b*B,e=Math.min(n,a+B);
+  for(const x of d){for(let i=a;i<e;i++)sum+=x[i]*x[i];cnt+=e-a}
+  if(Math.sqrt(sum/cnt)>thr)hold=8;else if(hold>0)hold--;
+  const t=hold>0?1:fl;g+=(t-g)*(t>g?.5:.12);G[b]=g}
+ let pg=1;
+ for(let b=0;b<nb;b++){const a=b*B,e=Math.min(n,a+B),g1=G[b];
+  for(const x of d)for(let i=a;i<e;i++)x[i]*=pg+(g1-pg)*((i-a)/(e-a));
+  pg=g1}
+}
+function norm(buf){let m=0;for(let c=0;c<buf.numberOfChannels;c++){const x=buf.getChannelData(c);for(let i=0;i<x.length;i++){const v=Math.abs(x[i]);if(v>m)m=v}}
+ if(m>0){const k=.89/m;for(let c=0;c<buf.numberOfChannels;c++){const x=buf.getChannelData(c);for(let i=0;i<x.length;i++)x[i]*=k}}}
+function auto(){
+ const x=orig.getChannelData(0),B=2048,a=[];
+ for(let i=0;i+B<=x.length;i+=B){let s=0;for(let j=0;j<B;j++)s+=x[i+j]*x[i+j];a.push(10*Math.log10(s/B+1e-12))}
+ a.sort((p,q)=>p-q);const p10=a[Math.floor(a.length*.1)]||-60;
+ P.gate=Math.round(Math.min(-30,Math.max(-70,p10+8)));P.hp=Math.max(P.hp,80);P.nr=Math.max(P.nr,60);sync();sched();
+}
+$('#auto').onclick=auto;
+
+/* Gelombang */
+function peaks(b,W=1000){const o=new Float32Array(W),n=b.length,bs=n/W,st=Math.max(1,Math.floor(bs/40));
+ for(let c=0;c<Math.min(2,b.numberOfChannels);c++){const x=b.getChannelData(c);
+  for(let w=0;w<W;w++){let m=o[w];const e=Math.min(n,Math.floor((w+1)*bs));for(let i=Math.floor(w*bs);i<e;i+=st){const v=Math.abs(x[i]);if(v>m)m=v}o[w]=m}}
+ return o}
+const cv=$('#cv'),cx=cv.getContext('2d');
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function draw(){
+ const dpr=devicePixelRatio||1,w=cv.clientWidth,h=160;cv.width=w*dpr;cv.height=h*dpr;
+ base=document.createElement('canvas');base.width=cv.width;base.height=cv.height;
+ const g=base.getContext('2d');g.scale(dpr,dpr);
+ let mx=.001;for(const v of pO)mx=Math.max(mx,v);if(pC)for(const v of pC)mx=Math.max(mx,v);
+ const bar=(arr,col)=>{g.fillStyle=col;const W=arr.length;
+  for(let x=0;x<w;x++){const v=arr[Math.min(W-1,Math.floor(x/w*W))]/mx*(h/2-4);g.fillRect(x,h/2-v,1,Math.max(1,v*2))}};
+ bar(pO,css('--old'));if(pC)bar(pC,css('--acc'));
+ frame();
+}
+function frame(){
+ if(!base)return;cx.setTransform(1,0,0,1,0,0);cx.clearRect(0,0,cv.width,cv.height);cx.drawImage(base,0,0);
+ const x=pos()/orig.duration*cv.width;cx.fillStyle=css('--ink');cx.fillRect(x,0,2*(devicePixelRatio||1),cv.height);
+ $('#time').textContent=fmt(pos())+' / '+fmt(orig.duration);
+}
+(function loop(){if(orig)frame();requestAnimationFrame(loop)})();
+addEventListener('resize',()=>orig&&draw());
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>orig&&draw());
+cv.onclick=e=>{const r=cv.getBoundingClientRect(),t=(e.clientX-r.left)/r.width*orig.duration;playing?start(t):(pausedAt=t)};
+
+/* Pemutaran */
+const cur=()=>mode==='clean'&&clean?clean:orig;
+function pos(){return playing?Math.min(AC.currentTime-t0,orig.duration):pausedAt}
+function stopSrc(){if(src){const o=src;src=null;o.onended=null;try{o.stop()}catch(e){}}}
+function start(from){stopSrc();const s=AC.createBufferSource();s.buffer=cur();s.connect(AC.destination);s.start(0,from);
+ src=s;t0=AC.currentTime-from;playing=true;$('#play').textContent='Jeda';
+ s.onended=()=>{if(src===s){src=null;playing=false;pausedAt=0;$('#play').textContent='Putar'}}}
+$('#play').onclick=()=>{AC.resume();
+ if(playing){pausedAt=pos();stopSrc();playing=false;$('#play').textContent='Putar'}
+ else start(pausedAt>=orig.duration-.05?0:pausedAt)};
+document.querySelectorAll('input[name=ab]').forEach(r=>r.onchange=e=>{mode=e.target.value;if(playing)start(pos())});
+
+/* Simpan MP3 */
+async function mp3(b,kb){
+ let sr=b.sampleRate;
+ if(sr>48000){const oc=new OfflineAudioContext(b.numberOfChannels,Math.ceil(b.length*44100/sr),44100),s=oc.createBufferSource();s.buffer=b;s.connect(oc.destination);s.start();b=await oc.startRendering();sr=44100}
+ const ch=Math.min(2,b.numberOfChannels),enc=new lamejs.Mp3Encoder(ch,sr,kb),n=b.length,out=[];
+ const c16=x=>{const o=new Int16Array(x.length);for(let i=0;i<x.length;i++){const v=Math.max(-1,Math.min(1,x[i]));o[i]=v<0?v*32768:v*32767}return o};
+ const L=c16(b.getChannelData(0)),R=ch>1?c16(b.getChannelData(1)):null,S=1152*20;
+ for(let i=0,k=0;i<n;i+=S,k++){const l=L.subarray(i,i+S),d=ch>1?enc.encodeBuffer(l,R.subarray(i,i+S)):enc.encodeBuffer(l);if(d.length)out.push(new Uint8Array(d));
+  if(k%20===0){$('#st').textContent='Membuat MP3… '+Math.round(i/n*100)+'%';await new Promise(r=>setTimeout(r))}}
+ const e=enc.flush();if(e.length)out.push(new Uint8Array(e));
+ let t=0;out.forEach(a=>t+=a.length);const r=new Uint8Array(t);let o=0;out.forEach(a=>{r.set(a,o);o+=a.length});return r}
+function wav(b){const ch=Math.min(2,b.numberOfChannels),n=b.length,sr=b.sampleRate,L=n*ch*2,u=new DataView(new ArrayBuffer(44+L));
+ const w=(o,s)=>{for(let i=0;i<s.length;i++)u.setUint8(o+i,s.charCodeAt(i))};
+ w(0,'RIFF');u.setUint32(4,36+L,true);w(8,'WAVEfmt ');u.setUint32(16,16,true);u.setUint16(20,1,true);u.setUint16(22,ch,true);u.setUint32(24,sr,true);u.setUint32(28,sr*ch*2,true);u.setUint16(32,ch*2,true);u.setUint16(34,16,true);w(36,'data');u.setUint32(40,L,true);
+ const d=[];for(let c=0;c<ch;c++)d.push(b.getChannelData(c));let o=44;
+ for(let i=0;i<n;i++)for(let c=0;c<ch;c++){const v=Math.max(-1,Math.min(1,d[c][i]));u.setInt16(o,v<0?v*32768:v*32767,true);o+=2}
+ return new Uint8Array(u.buffer)}
+const T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc(d){let c=~0;for(let i=0;i<d.length;i++)c=T[(c^d[i])&255]^(c>>>8);return(~c)>>>0}
+function zip(name,d){const nb=new TextEncoder().encode(name),cr=crc(d),sz=d.length;
+ const lh=new DataView(new ArrayBuffer(30)),ch=new DataView(new ArrayBuffer(46)),en=new DataView(new ArrayBuffer(22));
+ lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(10,0,true);lh.setUint16(12,0x21,true);lh.setUint32(14,cr,true);lh.setUint32(18,sz,true);lh.setUint32(22,sz,true);lh.setUint16(26,nb.length,true);
+ ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(14,0x21,true);ch.setUint32(16,cr,true);ch.setUint32(20,sz,true);ch.setUint32(24,sz,true);ch.setUint16(28,nb.length,true);
+ const cdOff=30+nb.length+sz;
+ en.setUint32(0,0x06054b50,true);en.setUint16(8,1,true);en.setUint16(10,1,true);en.setUint32(12,46+nb.length,true);en.setUint32(16,cdOff,true);
+ return new Blob([lh,nb,d,ch,nb,en],{type:'application/zip'})}
+$('#save').onclick=async()=>{
+ $('#err').textContent='';
+ if(!clean){$('#err').textContent='Tunggu sampai pemrosesan selesai.';return}
+ try{
+  const kb=+$('#q').value;$('#st').textContent='Membuat MP3…';
+  let name,data,type;
+  if(window.lamejs){data=await mp3(clean,kb);name=fn+'-jernih.mp3';type='audio/mpeg'}
+  else{data=wav(clean);name=fn+'-jernih.wav';type='audio/wav';$('#err').textContent='Pembuat MP3 gagal dimuat (cek koneksi internet), jadi hasil disimpan sebagai WAV.'}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),15000);
+  $('#st').textContent='Tersimpan: '+name;
+ }catch(e){$('#err').textContent='Gagal menyimpan: '+((e&&e.message)||'coba lagi')}};
+</script>
+</body>
+</html>
