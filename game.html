@@ -3355,6 +3355,7 @@ function muatModelU(url) {
   return CACHE[url] || (CACHE[url] = new Promise((res, rej) => new GLTFLoader().load(url, gl => {
     const cari = l => { for (const n of l) { const c = gl.animations.find(a => a.name.toLowerCase().includes(n)); if (c) return c; } return null; };
     const diam = gl.animations.find(a => a.name === 'diamN') || gl.animations.find(a => a.name === 'diam') || cari(['idle', 'diamKaki', 'diam', 'melayang', 'pocong']) || gl.animations[0] || null, jalan = (/siliwangi/.test(url) && gl.animations.find(a => a.name === 'jalan')) || cari(['hop', 'jalanKaki', 'lari', 'jalan', 'run']) || diam;   // Prabu: 'jalan' 0,8 dtk
+    { const dr = gl.animations.find(a => a.name === 'drum'); gl.klipDrum = dr && rapikan(dr.clone(), gl.scene); }   // skin AL (Wiro): di Pilih Hero diamnya bermain drum
     gl.klipDiam = diam && rapikan(diam.clone(), gl.scene); gl.klipJalan = jalan && rapikan(/roro-jonggrang|roro-nina/.test(url) && jalan.name === 'lari' ? THREE.AnimationUtils.subclip(jalan, 'lari', 22, 40, 24) : jalan.clone(), gl.scene);   // Roro: 1 putaran lari saja (ujung klip = berhenti)
     gl.scene.updateMatrixWorld(true); gl.kotak = new THREE.Box3().setFromObject(gl.scene); res(gl);
   }, undefined, rej)));
@@ -3369,7 +3370,7 @@ class Hero {
     muatModel(urlHero(id, skin)).then(gl => {
       const m = klonKerangka(gl.scene), bb = gl.kotak, h = bb.max.y - bb.min.y || 1, k = TINGGI[id] / h;
       m.scale.setScalar(k); if (id == 'pocong' && skin != 'pocong:boneka') m.scale.set(k * 1.2, k, k * 1.2);
-      m.position.y = -bb.min.y * k; m.traverse(o => { if (o.name === 'gendKepal' || o.name === 'golok' || /^(patung_|duyung$)/.test(o.name)) o.visible = false;   // Parkur: Si Pitung tanpa golok
+      m.position.y = -bb.min.y * k; m.traverse(o => { if (o.name === 'gendKepal' || o.name === 'golok' || /^(patung_|duyung$|drumSet$|kursiDrum$)/.test(o.name)) o.visible = false;   // Parkur: Si Pitung tanpa golok
 
         if (o.isMesh && skin == 'pocong:emas') { o.material = o.material.clone(); o.material.color = new THREE.Color(0xff9ccf); } });
       this.badan.remove(this.ganti); buang(this.ganti); this.badan.add(m); this.model = m; this.y0 = m.position.y;
@@ -3490,7 +3491,7 @@ function pvTampil(id, skin, warna) {
     m.position.set(-(bb.min.x + bb.max.x) / 2 * k, -bb.min.y * k, -(bb.min.z + bb.max.z) / 2 * k);
     m.traverse(o => { if (o.name === 'gendKepal' || /^(patung_|duyung$)/.test(o.name)) o.visible = false;
       if (o.isMesh) { o.frustumCulled = false; if (skin == 'pocong:emas') { o.material = o.material.clone(); o.material.color = new THREE.Color(0xff9ccf); } } });
-    PV.root.add(m); PV.mix = new THREE.AnimationMixer(m); if (gl.klipDiam) PV.mix.clipAction(gl.klipDiam).play();
+    PV.root.add(m); PV.mix = new THREE.AnimationMixer(m); if (gl.klipDrum || gl.klipDiam) PV.mix.clipAction(gl.klipDrum || gl.klipDiam).play();
     PV.rotY = 0; PV.vRot = 0;
   });
 }
