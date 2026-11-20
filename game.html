@@ -2947,7 +2947,7 @@ const MSK={lv:2,vol:[0,.18,.35,.6],a:null,jalan:false,fade:null};
 try{const v=localStorage.getItem('kgMusik');if(v!==null)MSK.lv=+v}catch(e){}
 function mskBoleh(){if(!MSK.lv||document.hidden)return false;const on=id=>{const e=document.getElementById(id);return e&&e.classList.contains('on')};return !on('pk')&&!on('bat')}
 function mskFade(target,cb){const a=MSK.a;if(!a)return;clearInterval(MSK.fade);MSK.fade=setInterval(()=>{const d=target-a.volume;if(Math.abs(d)<.02){a.volume=target;clearInterval(MSK.fade);cb&&cb();return}a.volume=Math.max(0,Math.min(1,a.volume+Math.sign(d)*.02))},40)}
-function mskAtur(){if(!MSK.jalan)return;const a=MSK.a||(MSK.a=Object.assign(new Audio('suara/musik-menu.mp3?v=1'),{loop:true,volume:0,preload:'auto'}));
+function mskAtur(){if(!MSK.jalan)return;const a=MSK.a||(MSK.a=Object.assign(new Audio('suara/musik-menu.mp3?v=2'),{loop:true,volume:0,preload:'auto'}));
  if(mskBoleh()){if(a.paused){const p=a.play();if(p&&p.catch)p.catch(()=>{MSK.jalan=false})}mskFade(MSK.vol[MSK.lv])}
  else if(!a.paused)mskFade(0,()=>a.pause())}
 ['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,()=>{if(!MSK.jalan){MSK.jalan=true;mskAtur()}},{capture:true,passive:true}));
