@@ -516,7 +516,7 @@ window.pkUiGagal=function(img,teks,kelas){var e=document.createElement('span');e
 <button class="btn" id="bOnl" style="display:none">🌐 Main Online</button><button class="btn" id="bChar" style="display:none">Karakter</button><button class="btn" id="bPk" style="display:none">🏃 Parkur Hantu</button>
 <small class="mnHint">Semua duel kini 3D · Keyboard: WASD gerak, J serang, U/I/O skill</small><div id="apkBar"><button id="bUpd" type="button">🔄 Update</button><button id="bShare" type="button"><img src="gambar-game/menu/share.webp" alt="" draggable="false"><span>Share</span></button><button id="bApk" type="button"><img src="gambar-game/menu/download-apk.webp" alt="" draggable="false"><span>Download APK</span></button></div><details id="mVer"><summary id="mVerS">Versi</summary><div>doni-v10 · erick-v3 · timun-v5 · buto-v3 · lutung-v4 · saras-v3 · angling-v1 · dayang-v1 · nyi-v1 · siliwangi-v1 · ciung-v1 · sangkuriang-v1 · kiansantang-v1 · lina-v3 · tuyulbot-v1 · tuyulhalo-v1 · tuyulmecha-v1 · tuyulsetan-v1 · tuyultangan-v2 · golem-v2 · santi-v1 · roberick-v1 · lunara-v3</div></details>
 <div id="mnToast"></div>
-<div id="mnSet"><div class="mnSetBox"><h3>⚙️ Pengaturan</h3><label>Grafis 3D</label><div class="mnSetRow" id="mnGrafis"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button></div><p>Rendah = paling ringan untuk HP kentang · Tinggi = model & bayangan penuh</p><button class="btn g" id="mnSetX">Tutup</button></div></div></div>
+<div id="mnSet"><div class="mnSetBox"><h3>⚙️ Pengaturan</h3><label>Grafis 3D</label><div class="mnSetRow" id="mnGrafis"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button></div><p>Rendah = paling ringan untuk HP kentang · Tinggi = model & bayangan penuh</p><label>🎵 Musik Menu</label><div class="mnSetRow" id="mnMusik"><button data-v="0">Mati</button><button data-v="1">Pelan</button><button data-v="2">Normal</button><button data-v="3">Keras</button></div><button class="btn g" id="mnSetX">Tutup</button></div></div></div>
 <div id="onl" class="scr"><div class="onwrap"><div class="onL"><h2>Main Online</h2><div class="onrow" id="oBalik" style="display:none"></div>
 <div class="onrow" id="oMode"><label>Mode</label><button class="btn on" data-m="duel">⚔️ Duel 1 vs 1</button><button class="btn" data-m="tim">👥 Duel Tim</button><button class="btn" data-m="pk">🏃 Parkur Hantu</button></div>
 <div class="onrow"><label>Nama</label><input id="oName" maxlength="16" placeholder="Nama Anda"></div>
@@ -2930,7 +2930,7 @@ $('#menu').addEventListener('click',e=>{const b=e.target.closest('[data-mn]');if
  else if(k=='mail')mnToast('📭 Belum ada pesan');
  else if(k=='notif'){const u=$('#bUpd');if(u&&u.classList.contains('on'))u.click();else mnToast('🔔 Tidak ada notifikasi baru')}
  else if(k=='set'){let q=1;try{const v=localStorage.getItem('uji3dKual');q=v!==null?+v:(/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)?1:2)}catch(x){}
-  document.querySelectorAll('#mnGrafis button').forEach(x=>x.classList.toggle('on',+x.dataset.q===q));$('#mnSet').classList.add('on')}});
+  document.querySelectorAll('#mnGrafis button').forEach(x=>x.classList.toggle('on',+x.dataset.q===q));document.querySelectorAll('#mnMusik button').forEach(x=>x.classList.toggle('on',+x.dataset.v===MSK.lv));$('#mnSet').classList.add('on')}});
 // ===== MENU HIDUP: tingkat gerak mengikuti pilihan Grafis (Rendah = diam · Sedang = tombol & animasi masuk · Tinggi = semua) =====
 function mnAturGerak(){const m=$('#menu');if(!m)return;let q=null;try{q=localStorage.getItem('uji3dKual')}catch(e){}
  const lv=q==null?((navigator.deviceMemory||4)>=6?2:1):+q;   // belum pernah memilih: HP RAM besar = Tinggi, lainnya = Sedang
@@ -2941,6 +2941,19 @@ function mnAturGerak(){const m=$('#menu');if(!m)return;let q=null;try{q=localSto
   for(let k=0;k<6;k++){const e=document.createElement('b');e.style.left=r(10,100)+'%';e.style.setProperty('--x',(-r(4,14)).toFixed(1)+'cqw');e.style.animationDuration=r(9,16).toFixed(1)+'s';e.style.animationDelay=(-r(0,16)).toFixed(1)+'s';H.appendChild(e)}}   // kelopak bunga jatuh
 }
 mnAturGerak();
+
+// ===== MUSIK LATAR MENU (suara/musik-menu.mp3) — mulai setelah sentuhan/klik pertama (aturan browser), berhenti saat main Parkur / pertandingan, tab disembunyikan =====
+const MSK={lv:2,vol:[0,.18,.35,.6],a:null,jalan:false,fade:null};
+try{const v=localStorage.getItem('kgMusik');if(v!==null)MSK.lv=+v}catch(e){}
+function mskBoleh(){if(!MSK.lv||document.hidden)return false;const on=id=>{const e=document.getElementById(id);return e&&e.classList.contains('on')};return !on('pk')&&!on('bat')}
+function mskFade(target,cb){const a=MSK.a;if(!a)return;clearInterval(MSK.fade);MSK.fade=setInterval(()=>{const d=target-a.volume;if(Math.abs(d)<.02){a.volume=target;clearInterval(MSK.fade);cb&&cb();return}a.volume=Math.max(0,Math.min(1,a.volume+Math.sign(d)*.02))},40)}
+function mskAtur(){if(!MSK.jalan)return;const a=MSK.a||(MSK.a=Object.assign(new Audio('suara/musik-menu.mp3?v=1'),{loop:true,volume:0,preload:'auto'}));
+ if(mskBoleh()){if(a.paused){const p=a.play();if(p&&p.catch)p.catch(()=>{MSK.jalan=false})}mskFade(MSK.vol[MSK.lv])}
+ else if(!a.paused)mskFade(0,()=>a.pause())}
+['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,()=>{if(!MSK.jalan){MSK.jalan=true;mskAtur()}},{capture:true,passive:true}));
+document.addEventListener('visibilitychange',mskAtur);setInterval(mskAtur,500);
+$('#mnMusik').onclick=e=>{const b=e.target.closest('button');if(!b)return;MSK.lv=+b.dataset.v;try{localStorage.setItem('kgMusik',MSK.lv)}catch(x){}MSK.jalan=true;
+ document.querySelectorAll('#mnMusik button').forEach(x=>x.classList.toggle('on',x===b));mskAtur();mnToast(MSK.lv?'🎵 Musik: '+b.textContent:'🔇 Musik dimatikan')};
 $('#mnGrafis').onclick=e=>{const b=e.target.closest('button');if(!b)return;try{localStorage.setItem('uji3dKual',b.dataset.q)}catch(x){}mnAturGerak();document.querySelectorAll('#mnGrafis button').forEach(x=>x.classList.toggle('on',x===b));mnToast('✔ Grafis '+b.textContent+' dipakai mulai pertandingan berikutnya')};
 $('#mnSetX').onclick=()=>$('#mnSet').classList.remove('on');$('#mnSet').onclick=e=>{if(e.target.id==='mnSet')$('#mnSet').classList.remove('on')};
 {const v=navigator.userAgent.match(/KalensariGameApp\/([\d.]+)/);$('#mVerS').textContent=v?'Versi '+v[1]:'Versi Web'}
