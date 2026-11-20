@@ -11438,5 +11438,101 @@ function mulaiLoop() {
 }
 mulai();
 </script>
+<style>
+#mpBtn{display:none}
+#mpPanel{position:fixed;right:12px;top:58px;z-index:60;width:min(340px,92vw);max-height:min(78vh,520px);display:none;flex-direction:column;background:#0b1020f2;border:1px solid #ffb70366;border-radius:14px;box-shadow:0 8px 30px #000a;color:#e8ecff;font:600 13px Arial;overflow:hidden}
+#mpPanel.on{display:flex}
+#mpPanel .mpHd{display:flex;align-items:center;gap:6px;padding:9px 10px;background:linear-gradient(#2a1a05,#141008);border-bottom:1px solid #ffb70344}
+#mpPanel .mpHd b{flex:1;color:#ffd166;font:800 14px Arial}
+#mpPanel button{font:700 12px Arial;color:#e8ecff;background:#18213f;border:1px solid #2c3f73;border-radius:8px;padding:6px 9px;cursor:pointer}
+#mpPanel button.on{background:#ffb703;color:#201400;border-color:#ffd166}
+#mpPanel .mpTab{display:flex;gap:6px;padding:8px 10px 4px}
+#mpPanel .mpTab button{flex:1}
+#mpPanel .mpNow{padding:6px 10px;color:#ffd166;font:700 12px Arial;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mpPanel .mpBar{height:4px;margin:0 10px 6px;background:#ffffff1a;border-radius:3px;overflow:hidden;cursor:pointer}
+#mpPanel .mpBar i{display:block;height:100%;width:0;background:#ffb703}
+#mpPanel .mpKtl{display:flex;gap:6px;justify-content:center;padding:2px 10px 8px;align-items:center}
+#mpPanel .mpKtl button{font-size:15px;padding:6px 11px}
+#mpPanel .mpKtl input{width:80px}
+#mpPanel .mpList{flex:1;overflow-y:auto;padding:0 6px 6px;min-height:60px}
+#mpPanel .mpIt{display:flex;align-items:center;gap:6px;padding:7px 8px;border-radius:8px;cursor:pointer}
+#mpPanel .mpIt:hover{background:#ffffff0d}
+#mpPanel .mpIt.on{background:#ffb70322;color:#ffd166}
+#mpPanel .mpIt span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mpPanel .mpIt .x{background:none;border:none;color:#ff8a8a;padding:2px 6px}
+#mpPanel .mpKosong{padding:14px 10px;color:#9aa6c8;font:600 12px/1.45 Arial;text-align:center}
+#mpPanel .mpTambah{margin:0 10px 10px}
+</style>
+<div id="mpPanel">
+  <div class="mpHd"><b>🎵 Playlist Musik</b><button id="mpTutup">✖</button></div>
+  <div class="mpTab"><button data-t="bawaan" class="on">🎼 Bawaan</button><button data-t="hp">📱 Musik HP</button></div>
+  <div class="mpNow" id="mpNow">Belum diputar</div>
+  <div class="mpBar" id="mpBar"><i></i></div>
+  <div class="mpKtl"><button id="mpPrev">⏮</button><button id="mpPlay">▶</button><button id="mpNext">⏭</button><button id="mpAcak" title="Acak">🔀</button><input id="mpVol" type="range" min="0" max="1" step=".05" title="Volume"></div>
+  <div class="mpList" id="mpList"></div>
+  <button class="mpTambah" id="mpTambah" style="display:none">➕ Tambah lagu dari HP</button>
+  <input id="mpFile" type="file" accept="audio/*" multiple style="display:none">
+</div>
+<script>
+// ===== PEMUTAR MUSIK WAR NANAS: playlist 1 = musik bawaan (suara/playlist.json) · playlist 2 = lagu dari HP pemain (disimpan di HP itu saja, IndexedDB) =====
+(() => {
+  const Q = new URLSearchParams(location.search), mode = Q.get('mode');
+  if (!(mode === 'nanas' || ((mode === 'timbuat' || mode === 'timgabung') && Q.get('wn') === '1'))) return;   // hanya di War Nanas
+  const $ = s => document.querySelector(s), kual = $('#kual');
+  const btn = document.createElement('button'); btn.id = 'mpBtn'; btn.title = 'Playlist musik'; btn.textContent = '🎵'; btn.style.display = 'inline-block'; if (kual) kual.appendChild(btn);
+  const pan = $('#mpPanel'); ['pointerdown', 'touchstart', 'mousedown', 'wheel'].forEach(ev => [pan, btn].forEach(el => el.addEventListener(ev, e => e.stopPropagation(), { passive: true })));
+  let S = { tab: 'bawaan', vol: .5, acak: false, main: false, i: { bawaan: 0, hp: 0 } };
+  try { Object.assign(S, JSON.parse(localStorage.getItem('kgMP') || '{}')); } catch (e) {}
+  const simpan = () => { try { localStorage.setItem('kgMP', JSON.stringify(S)); } catch (e) {} };
+  const A = new Audio(); A.preload = 'auto'; A.volume = S.vol;
+  const L = { bawaan: [{ judul: 'Masa Masa Indah', file: 'suara/musik-menu.mp3?v=2' }], hp: [] };
+  let aktif = null;   // { tab, i }
+  fetch('suara/playlist.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => { if (j && Array.isArray(j.lagu) && j.lagu.length) { L.bawaan = j.lagu.filter(x => x && x.file); render(); } }).catch(() => {});
+  // ---- lagu dari HP: IndexedDB ----
+  let db = null; const buka = () => new Promise(res => { if (db) return res(db); try { const r = indexedDB.open('kgMusikHP', 1); r.onupgradeneeded = () => r.result.createObjectStore('lagu', { keyPath: 'id' }); r.onsuccess = () => res(db = r.result); r.onerror = () => res(null); } catch (e) { res(null); } });
+  const muatHP = async () => { const d = await buka(); if (!d) return; const tx = d.transaction('lagu').objectStore('lagu').getAll(); tx.onsuccess = () => { L.hp.forEach(x => x.url && URL.revokeObjectURL(x.url)); L.hp = (tx.result || []).sort((a, b) => a.id - b.id).map(x => ({ id: x.id, judul: x.nama, url: URL.createObjectURL(x.blob) })); render(); }; };
+  const tambahHP = async files => { const d = await buka(); if (!d) { alert('Penyimpanan lagu tidak tersedia di browser ini.'); return; }
+    const st = d.transaction('lagu', 'readwrite').objectStore('lagu'); let n = 0; for (const f of files) { if (!/^audio\//.test(f.type) && !/\.(mp3|m4a|aac|ogg|wav|flac|opus)$/i.test(f.name)) continue; st.put({ id: Date.now() + n++, nama: f.name.replace(/\.[^.]+$/, ''), blob: f }); }
+    st.transaction.oncomplete = () => muatHP(); st.transaction.onerror = () => alert('Gagal menyimpan lagu (memori HP penuh?).'); };
+  const hapusHP = async id => { const d = await buka(); if (!d) return; const st = d.transaction('lagu', 'readwrite').objectStore('lagu'); st.delete(id); st.transaction.oncomplete = () => { if (aktif && aktif.tab === 'hp' && L.hp[aktif.i] && L.hp[aktif.i].id === id) { A.pause(); aktif = null; S.main = false; } muatHP(); }; };
+  // ---- pemutar ----
+  const src = x => x.url || x.file;
+  function putar(tab, i) { const l = L[tab]; if (!l.length) return; i = (i + l.length) % l.length; aktif = { tab, i }; S.i[tab] = i; A.src = src(l[i]); A.volume = S.vol; const p = A.play(); if (p && p.catch) p.catch(() => {}); S.main = true; simpan(); render(); }
+  function lanjut(arah = 1) { if (!aktif) return putar(S.tab, S.i[S.tab] || 0); const l = L[aktif.tab]; if (!l.length) return; let i = aktif.i + arah; if (S.acak && l.length > 1) { do { i = Math.floor(Math.random() * l.length); } while (i === aktif.i); } putar(aktif.tab, i); }
+  A.addEventListener('ended', () => lanjut(1));
+  A.addEventListener('error', () => { if (aktif) setTimeout(() => lanjut(1), 800); });
+  A.addEventListener('timeupdate', () => { const b = $('#mpBar i'); if (b) b.style.width = (A.duration ? A.currentTime / A.duration * 100 : 0) + '%'; });
+  ['play', 'pause'].forEach(ev => A.addEventListener(ev, render));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (!A.paused) { A.pause(); A._jeda = true; } } else if (A._jeda) { A._jeda = false; A.play().catch(() => {}); } });
+  function render() {
+    btn.textContent = !A.paused ? '🎵▶' : '🎵';
+    pan.querySelectorAll('.mpTab button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
+    $('#mpPlay').textContent = A.paused ? '▶' : '⏸'; $('#mpAcak').classList.toggle('on', !!S.acak); $('#mpVol').value = S.vol;
+    $('#mpNow').textContent = aktif && L[aktif.tab][aktif.i] ? (A.paused ? '⏸ ' : '♪ ') + L[aktif.tab][aktif.i].judul + (aktif.tab === 'hp' ? ' · Musik HP' : ' · Bawaan') : 'Belum diputar — pilih lagu di bawah';
+    $('#mpTambah').style.display = S.tab === 'hp' ? 'block' : 'none';
+    const l = L[S.tab], box = $('#mpList');
+    if (!l.length) { box.innerHTML = S.tab === 'hp' ? '<div class="mpKosong">Belum ada lagu dari HP.<br>Tekan <b>➕ Tambah lagu dari HP</b> lalu pilih lagu (bisa banyak sekaligus).<br><small>Lagu hanya tersimpan & terdengar di HP ini.</small></div>' : '<div class="mpKosong">Playlist bawaan kosong.</div>'; return; }
+    box.innerHTML = l.map((x, i) => `<div class="mpIt${aktif && aktif.tab === S.tab && aktif.i === i ? ' on' : ''}" data-i="${i}"><b>${aktif && aktif.tab === S.tab && aktif.i === i && !A.paused ? '♪' : i + 1}</b><span></span>${S.tab === 'hp' ? `<button class="x" data-id="${x.id}" title="Hapus">✖</button>` : ''}</div>`).join('');
+    box.querySelectorAll('.mpIt span').forEach((s, i) => s.textContent = l[i].judul);   // nama file dari HP: sebagai teks (aman)
+  }
+  // ---- tombol ----
+  btn.onclick = () => { pan.classList.toggle('on'); render(); };
+  $('#mpTutup').onclick = () => pan.classList.remove('on');
+  pan.querySelectorAll('.mpTab button').forEach(b => b.onclick = () => { S.tab = b.dataset.t; simpan(); render(); });
+  $('#mpPlay').onclick = () => { if (!aktif) return putar(S.tab, S.i[S.tab] || 0); if (A.paused) { A.play().catch(() => {}); S.main = true; } else { A.pause(); S.main = false; } simpan(); };
+  $('#mpNext').onclick = () => lanjut(1); $('#mpPrev').onclick = () => { if (A.currentTime > 3) { A.currentTime = 0; return; } lanjut(-1); };
+  $('#mpAcak').onclick = () => { S.acak = !S.acak; simpan(); render(); };
+  $('#mpVol').oninput = e => { S.vol = +e.target.value; A.volume = S.vol; simpan(); };
+  $('#mpBar').onclick = e => { if (!A.duration) return; const r = e.currentTarget.getBoundingClientRect(); A.currentTime = (e.clientX - r.left) / r.width * A.duration; };
+  $('#mpList').onclick = e => { const x = e.target.closest('.x'); if (x) { e.stopPropagation(); if (confirm('Hapus lagu ini dari playlist HP?')) hapusHP(+x.dataset.id); return; } const it = e.target.closest('.mpIt'); if (it) putar(S.tab, +it.dataset.i); };
+  $('#mpTambah').onclick = () => $('#mpFile').click();
+  $('#mpFile').onchange = e => { const f = [...e.target.files]; e.target.value = ''; if (f.length) tambahHP(f); };
+  // lanjutkan musik terakhir begitu pemain pertama kali menyentuh layar (aturan browser: suara butuh sentuhan)
+  const awal = () => { removeEventListener('pointerdown', awal, true); if (S.main && !aktif) { const t = S.tab; setTimeout(() => putar(t, S.i[t] || 0), 50); } };
+  addEventListener('pointerdown', awal, true);
+  muatHP(); render();
+})();
+</script>
+
 </body>
 </html>
