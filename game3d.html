@@ -10020,6 +10020,7 @@ function wnSaranKartu(c) { return wnLane(TIM.me) === 'support' ? c.findIndex(x =
 function wnKartuBuka() {
   const e = $('#wnKartu'), c = WN_KARTU.antri.shift(); if (!e) return;
   if (!c) { WN_KARTU.buka = null; e.classList.remove('on'); return; }
+  if (!c.length) { wnKartuBuka(); return; }   /* semua stat sudah MAKS: kartu kosong dilewati (dulu panel macet + error 'emas') */
   WN_KARTU.buka = c; WN_KARTU.t = 10;
   const sar = wnSaranKartu(c); e.innerHTML = '<div class="wkj"></div>' + c.map((x, i) => `<button class="wk ${x.merah ? 'merah' : x.emas ? 'emas' : 'r' + (x.v >= 13 ? 3 : x.v >= 9 ? 2 : 1)}${i === sar ? ' saran' : ''}" data-i="${i}"><i>${WN_STAT[x.k].ik}</i><span>${WN_STAT[x.k].n}</span><b>+${x.v}%</b>${x.sumber ? `<em>${x.sumber}</em>` : ''}<small>${DI_HP ? '' : i + 1}</small></button>`).join('');
   e.classList.add('on'); wnKartuJudul(); rekEv('kartu muncul');   // tanpa 'void offsetWidth' (memaksa hitung ulang tata letak seluruh halaman = patah)
@@ -10860,6 +10861,19 @@ function afkUpd(dt) {
   sbgMusuh(false, () => B.upd(dt));
   P.root.position.copy(B.root.position); P.root.rotation.y = B.root.rotation.y;   // hero pemain ikut posisi penggerak (kamera, tugu, monster, kiriman ke HP lain)
 }
+// ---------- LAYAR TETAP MENYALA: HP tidak boleh mati layar (timeout 30 dtk–1 mnt) saat bermain ----------
+// Layar mati = halaman dibekukan Android → koneksi putus → di Rank dihitung keluar. Wake Lock API (Chrome/TWA); cadangan: video hitam kecil diputar senyap (WebView APK).
+const MELEK = { kunci: null, vid: null };
+async function melekNyala() {
+  if (document.visibilityState !== 'visible') return;
+  try { if ('wakeLock' in navigator) { if (!MELEK.kunci || MELEK.kunci.released) { MELEK.kunci = await navigator.wakeLock.request('screen'); } return; } } catch (e) { }
+  try { if (!MELEK.vid) { const v = document.createElement('video'); v.muted = true; v.loop = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
+      v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:.01;pointer-events:none;z-index:-1'; v.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAANJbW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAJxAAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAnN0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAJxAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAABAAAAAQAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAACcQAAAAAAABAAAAAAHrbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAACgABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABlm1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAVZzdGJsAAAAtnN0c2QAAAAAAAAAAQAAAKZhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABAAEABIAAAASAAAAAAAAAABFUxhdmM2MC4zMS4xMDIgbGlieDI2NAAAAAAAAAAAAAAAGP//AAAALGF2Y0MBQsAK/+EAFWdCwAraewEQAAADABAAAAMAIPEiagEABGjOD8gAAAAQcGFzcAAAAAEAAAABAAAAFGJ0cnQAAAAAAAACQwAAAkMAAAAYc3R0cwAAAAAAAAABAAAACgAAQAAAAAAUc3RzcwAAAAAAAAABAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAAACgAAAAEAAAA8c3RzegAAAAAAAAAAAAAACgAAAoMAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAJAAAACQAAAAkAAAAUc3RjbwAAAAAAAAABAAADeQAAAGJ1ZHRhAAAAWm1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAG1kaXJhcHBsAAAAAAAAAAAAAAAALWlsc3QAAAAlqXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNjAuMTYuMTAwAAAACGZyZWUAAALcbWRhdAAAAm0GBf//adxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjQgcjMxMDggMzFlMTlmOSAtIEguMjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjMgLSBodHRwOi8vd3d3LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0wIHJlZj0xIGRlYmxvY2s9MTowOjAgYW5hbHlzZT0weDE6MHgxIG1lPWhleCBzdWJtZT0yIHBzeT0xIHBzeV9yZD0xLjAwOjAuMDAgbWl4ZWRfcmVmPTAgbWVfcmFuZ2U9MTYgY2hyb21hX21lPTEgdHJlbGxpcz0wIDh4OGRjdD0wIGNxbT0wIGRlYWR6b25lPTIxLDExIGZhc3RfcHNraXA9MSBjaHJvbWFfcXBfb2Zmc2V0PTAgdGhyZWFkcz0xIGxvb2thaGVhZF90aHJlYWRzPTEgc2xpY2VkX3RocmVhZHM9MCBucj0wIGRlY2ltYXRlPTEgaW50ZXJsYWNlZD0wIGJsdXJheV9jb21wYXQ9MCBjb25zdHJhaW5lZF9pbnRyYT0wIGJmcmFtZXM9MCB3ZWlnaHRwPTAga2V5aW50PTI1MCBrZXlpbnRfbWluPTEgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD0xMCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAAOZYiEBf///w9FAAFXn4AAAAAFQZogF/UAAAAFQZpAF/UAAAAFQZpgF/UAAAAFQZqAF/UAAAAFQZqgF/UAAAAFQZrAF/UAAAAFQZrgF/UAAAAFQZsAFvUAAAAFQZsgFfU='; document.body.appendChild(v); MELEK.vid = v; }
+    if (MELEK.vid.paused) await MELEK.vid.play(); } catch (e) { }
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') melekNyala(); });
+['pointerdown', 'touchstart', 'keydown'].forEach(ev => addEventListener(ev, melekNyala, { passive: true }));
+melekNyala();
 // ---------- CHAT War Nanas online: chat cepat & chat ketik (👥 Tim / 🌐 Semua) ----------
 const CHAT_CEPAT = ['⚔️ Serang!', '🏃 Mundur!', '🍍 Kumpul di Tugu Nanas!', '🙏 Bantu aku!', '😱 Toloooooong!!!', '🐊 Buaya muncul!', '🏠 Jaga rumah!', '🏃‍♂️ Otw!', '⏳ Tunggu aku!', '🔥 Mantap!', '👍 GG'];
 const CHAT = { siap: false, tim: true, bisu: new Set(), buka: false, tahanT: 0 };
