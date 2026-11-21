@@ -10476,14 +10476,15 @@ function sambung() {
 }
 function pesanHalo() { return { t: 'hello', name: NAMA, hero: HERO_SRV[HERO], arena: ARENA_IDX[ARENA], v: '3d', skin: SKIN, sesi: SESI, pid: PID, kuat: (navigator.deviceMemory || 4) * 10 + (navigator.hardwareConcurrency || 4) + (DI_HP ? 0 : 200) }; }
 function sambungUlangWN() {   // koneksi putus di tengah War Nanas: coba tersambung lagi ±30 detik, game tetap berjalan
-  if (NET.ulang) return; NET.ulang = { n: 0 };
+  if (NET.ulang) return; NET.ulang = { n: 0, t0: performance.now() };
   banner('📶 Koneksi terputus — menyambung lagi…', '#ffd166');
   const coba = () => {
     if (NET.keluar || !TIM.main || SELESAI) { NET.ulang = null; return; }
-    if (++NET.ulang.n > 15) { NET.ulang = null; wnPutusAkhir(); return; }
+    ++NET.ulang.n; if (performance.now() - NET.ulang.t0 > 80000) { NET.ulang = null; wnPutusAkhir(); return; }   // coba terus ±80 dtk (server menahan kursi 90 dtk)
     let ws; try { ws = new WebSocket(NET.url); } catch (e) { setTimeout(coba, 2000); return; }
     NET.ws = ws; let buka = false;
-    ws.onopen = () => { buka = true; kirim(pesanHalo()); kirim({ t: 'tmBalik', code: TIM.kode, i: TIM.me }); };
+    const batas = setTimeout(() => { if (buka || NET.ws !== ws) return; ws.onclose = null; try { ws.close(); } catch (e) { } NET.ws = null; if (NET.ulang) setTimeout(coba, 300); }, 6000);   /* sinyal lemah: jangan menunggu lama satu percobaan */
+    ws.onopen = () => { buka = true; clearTimeout(batas); NET.pongT = performance.now(); kirim(pesanHalo()); kirim({ t: 'tmBalik', code: TIM.kode, i: TIM.me }); };
     ws.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } terima(m); };
     ws.onclose = () => { if (NET.ws === ws) NET.ws = null; if (NET.keluar) return;
       if (NET.ulang && NET.ulang.ok) { NET.ulang = null; if (TIM.main && !SELESAI) sambungUlangWN(); return; }   // sudah sempat tersambung lalu putus lagi
@@ -10491,11 +10492,21 @@ function sambungUlangWN() {   // koneksi putus di tengah War Nanas: coba tersamb
   };
   coba();
 }
+function detakWN() {   // HP sering 'setengah putus' (ganti sinyal / data hemat daya): onclose baru muncul berMENIT-menit kemudian, kursi keburu dilepas server
+  if (!WN_ONLINE || !TIM.main || SELESAI || NET.keluar || (NET.ulang && !NET.ulang.ok)) return;   // sedang menyambung ulang: biarkan
+  const ws = NET.ws, now = performance.now(); if (!ws || ws.readyState !== 1) return;
+  if (!NET.pongT) NET.pongT = now;
+  if (now - NET.pongT > 9000) { console.warn('[net] tidak ada balasan server 9 dtk → sambung ulang'); ws.onclose = null; ws.onmessage = null; try { ws.close(); } catch (e) { } NET.ws = null; NET.pongT = 0; NET.ulang = null; sambungUlangWN(); return; }
+  kirim({ t: 'ping', c: Math.round(now) });
+}
+setInterval(detakWN, 2500);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { NET.pongT = performance.now(); detakWN(); } });   // baru kembali ke aplikasi: beri waktu balasan dulu
 function wnPutusAkhir() {
   TIM.main = false; NET.on = false; pesanAkhir(RANK ? 'Koneksi terputus terlalu lama — dihitung keluar dari pertandingan' : 'Koneksi ke server terputus terlalu lama');
   if (LOBI) { $('#lagi').textContent = RANK ? '🏆 Kembali ke Rank' : 'Kembali ke Lobi'; $('#lagi').style.display = ''; }
 }
 function terima(m) {
+  if (m.t === 'pong') { NET.pongT = performance.now(); return; }   // detak koneksi (War Nanas online)
   if (TIM.on && timTerima(m)) return;
   if (m.t === 'room') { ingatRoom(m.code); lobi((ULANG ? '✅ Tersambung lagi. ' : '') + 'Bagikan kode, link, atau QR ini ke temanmu, lalu tunggu dia bergabung…' + (m.pub ? '<br><small>🌐 Room terbuka: tampil di daftar Room Terbuka</small>' : ''), m.code); }
   else if (m.t === 'info') infoLobi(m.msg);
@@ -11056,7 +11067,7 @@ function timTerima(m) {
   if (m.t === 'tmSambung') { if (TIM.main) banner('✅ ' + namaOf(m.i) + ' tersambung lagi', '#9dff8a'); voiceTutup(m.i); VOICE.syncT = 0; return true; }
   if (m.t === 'tmJadiBot') { if (TIM.main) { banner(namaOf(m.i) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host) jadikanBot(m.i); } return true; }
   if (m.t === 'tmWasit') { TIM.hostId = m.host; const dulu = TIM.host; TIM.host = m.host === TIM.me;
-    if (TIM.main) { banner(namaOf(m.keluar) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host && !dulu) { (m.bots || []).forEach(id => jadikanBot(id)); banner('🌐 Pertandingan sekarang dijalankan HP kamu', '#9fd8ff'); } }
+    if (TIM.main) { if (m.tahan) banner('📶 ' + namaOf(m.tahan) + ' masih menyambung lagi…', '#ffd166'); else banner(namaOf(m.keluar) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host && !dulu) { (m.bots || []).forEach(id => jadikanBot(id)); banner('🌐 Pertandingan sekarang dijalankan HP kamu', '#9fd8ff'); } }
     return true; }
   if (m.t === 'tmBalikOk') { if (NET.ulang) NET.ulang.ok = true; TIM.host = !!m.host; if (m.hostId) TIM.hostId = m.hostId; NET.on = true; banner('✅ Tersambung lagi', '#9dff8a'); return true; }
   if (m.t === 'tmBalikGagal') { NET.ulang = null; NET.keluar = true; try { if (NET.ws) NET.ws.close(); } catch (e) { } if (TIM.main && !SELESAI) wnPutusAkhir(); return true; }
