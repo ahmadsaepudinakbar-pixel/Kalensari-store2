@@ -11659,28 +11659,31 @@ mulai();
   let S = { tab: 'bawaan', vol: .5, acak: false, main: false, i: { bawaan: 0, hp: 0 } };
   try { Object.assign(S, JSON.parse(localStorage.getItem('kgMP') || '{}')); } catch (e) {}
   const simpan = () => { try { localStorage.setItem('kgMP', JSON.stringify(S)); } catch (e) {} };
-  const A = new Audio(); A.preload = 'auto'; A.volume = S.vol;
+  const A = new Audio(); A.preload = 'metadata'; A.volume = S.vol;
   const L = { bawaan: [{ judul: 'Masa Masa Indah', file: 'suara/musik-menu.mp3?v=2' }], hp: [] };
   let aktif = null;   // { tab, i }
   fetch('suara/playlist.json?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => { if (j && Array.isArray(j.lagu) && j.lagu.length) { L.bawaan = j.lagu.filter(x => x && x.file); render(); } }).catch(() => {});
   // ---- lagu dari HP: IndexedDB ----
   let db = null; const buka = () => new Promise(res => { if (db) return res(db); try { const r = indexedDB.open('kgMusikHP', 1); r.onupgradeneeded = () => r.result.createObjectStore('lagu', { keyPath: 'id' }); r.onsuccess = () => res(db = r.result); r.onerror = () => res(null); } catch (e) { res(null); } });
-  const muatHP = async () => { const d = await buka(); if (!d) return; const tx = d.transaction('lagu').objectStore('lagu').getAll(); tx.onsuccess = () => { L.hp.forEach(x => x.url && URL.revokeObjectURL(x.url)); L.hp = (tx.result || []).sort((a, b) => a.id - b.id).map(x => ({ id: x.id, judul: x.nama, url: URL.createObjectURL(x.blob) })); render(); }; };
+  const muatHP = async () => { const d = await buka(); if (!d) return; const tx = d.transaction('lagu').objectStore('lagu').getAll(); tx.onsuccess = () => { L.hp = (tx.result || []).sort((a, b) => a.id - b.id).map(x => ({ id: x.id, judul: x.nama, blob: x.blob })); render(); }; };   /* alamat lagu dibuat saat diputar saja */
   const tambahHP = async files => { const d = await buka(); if (!d) { alert('Penyimpanan lagu tidak tersedia di browser ini.'); return; }
     const st = d.transaction('lagu', 'readwrite').objectStore('lagu'); let n = 0; for (const f of files) { if (!/^audio\//.test(f.type) && !/\.(mp3|m4a|aac|ogg|wav|flac|opus)$/i.test(f.name)) continue; st.put({ id: Date.now() + n++, nama: f.name.replace(/\.[^.]+$/, ''), blob: f }); }
     st.transaction.oncomplete = () => muatHP(); st.transaction.onerror = () => alert('Gagal menyimpan lagu (memori HP penuh?).'); };
   const hapusHP = async id => { const d = await buka(); if (!d) return; const st = d.transaction('lagu', 'readwrite').objectStore('lagu'); st.delete(id); st.transaction.oncomplete = () => { if (aktif && aktif.tab === 'hp' && L.hp[aktif.i] && L.hp[aktif.i].id === id) { A.pause(); aktif = null; S.main = false; } muatHP(); }; };
   // ---- pemutar ----
-  const src = x => x.url || x.file;
+  const RINGAN = (navigator.deviceMemory || 4) <= 3;   // HP RAM ≤ 3 GB: musik bawaan versi ringan (mono 24 kHz, file "-ringan.mp3"; tidak ada → file asli)
+  let urlHP = null; const src = x => { if (urlHP) { URL.revokeObjectURL(urlHP); urlHP = null; } A._asli = null; if (x.blob) return (urlHP = URL.createObjectURL(x.blob));
+    if (RINGAN && /\.mp3(\?|$)/.test(x.file)) { A._asli = x.file; return x.file.replace(/\.mp3(\?|$)/, '-ringan.mp3$1'); } return x.file; };
   function putar(tab, i) { const l = L[tab]; if (!l.length) return; i = (i + l.length) % l.length; aktif = { tab, i }; S.i[tab] = i; A.src = src(l[i]); A.volume = S.vol; const p = A.play(); if (p && p.catch) p.catch(() => {}); S.main = true; simpan(); render(); }
   function lanjut(arah = 1) { if (!aktif) return putar(S.tab, S.i[S.tab] || 0); const l = L[aktif.tab]; if (!l.length) return; let i = aktif.i + arah; if (S.acak && l.length > 1) { do { i = Math.floor(Math.random() * l.length); } while (i === aktif.i); } putar(aktif.tab, i); }
   A.addEventListener('ended', () => lanjut(1));
-  A.addEventListener('error', () => { if (aktif) setTimeout(() => lanjut(1), 800); });
-  A.addEventListener('timeupdate', () => { const b = $('#mpBar i'); if (b) b.style.width = (A.duration ? A.currentTime / A.duration * 100 : 0) + '%'; });
+  A.addEventListener('error', () => { if (A._asli) { const a = A._asli; A._asli = null; A.src = a; A.play().catch(() => {}); return; } if (aktif) setTimeout(() => lanjut(1), 800); });
+  A.addEventListener('timeupdate', () => { if (!pan.classList.contains('on')) return; const b = $('#mpBar i'); if (b) b.style.width = (A.duration ? A.currentTime / A.duration * 100 : 0) + '%'; });
   ['play', 'pause'].forEach(ev => A.addEventListener(ev, render));
   document.addEventListener('visibilitychange', () => { if (document.hidden) { if (!A.paused) { A.pause(); A._jeda = true; } } else if (A._jeda) { A._jeda = false; A.play().catch(() => {}); } });
-  function render() {
-    btn.textContent = !A.paused ? '🎵▶' : '🎵';
+  function render() {   // HP kentang: saat panel tertutup cukup ganti ikon tombol (tidak membangun ulang daftar lagu)
+    const ik = !A.paused ? '🎵▶' : '🎵'; if (btn.textContent !== ik) btn.textContent = ik;
+    if (!pan.classList.contains('on')) return;
     pan.querySelectorAll('.mpTab button').forEach(b => b.classList.toggle('on', b.dataset.t === S.tab));
     $('#mpPlay').textContent = A.paused ? '▶' : '⏸'; $('#mpAcak').classList.toggle('on', !!S.acak); $('#mpVol').value = S.vol;
     $('#mpNow').textContent = aktif && L[aktif.tab][aktif.i] ? (A.paused ? '⏸ ' : '♪ ') + L[aktif.tab][aktif.i].judul + (aktif.tab === 'hp' ? ' · Musik HP' : ' · Bawaan') : 'Belum diputar — pilih lagu di bawah';
