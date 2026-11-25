@@ -10165,9 +10165,25 @@ async function wnMulaiOnline(m) {
   try { await MODEL_SIAP; await wnBuat(); } catch (e) { console.error(e); }
   await timMulai(Object.assign({}, m, { pl, kw: 1e9, dur: 1e9, a: 0 }));
   wnKanon(); wnSiapkan();
+  if (m.ulang) wnMasukLagi(m);
+  wnIngatMain();
   if (WN.srv) banner('🌐 War Nanas online · monster & bangunan dijalankan server', '#9fd8ff');
   else if (!TIM.host) banner('🌐 War Nanas online · monster & bangunan dijalankan HP ' + namaOf(TIM.hostId), '#9fd8ff');
 }
+function wnMasukLagi(m) {   // halaman dimuat ulang di tengah pertandingan (mis. aplikasi ditutup Android): kartu stat, Poin Skill, skor & jam dikembalikan
+  if (Array.isArray(m.skor)) { TIM.skor[0] = m.skor[WN.saya] | 0; TIM.skor[1] = m.skor[1 ^ WN.saya] | 0; }
+  const c = m.cadang;
+  if (Array.isArray(c)) { WN_ST_K.forEach((k, i) => { const v = +c[i] || 0; if (v > 0) wnTambah(TIM.me, k, v); });
+    const sp = WN_SP.get(TIM.me); if (sp) { sp.buka = sp.buka.map((b, k) => b || !!(c[6] & (1 << k))); sp.poin = c[7] | 0; } wnSpHud(); }
+  if (m.waktu) WN.t0 = performance.now() - m.waktu * 1000;
+  banner('✅ Masuk lagi ke pertandingan — kartu & skill dikembalikan', '#9dff8a'); updHudTim();
+}
+// pertandingan War Nanas online yang sedang berjalan disimpan, supaya menu bisa menawarkan "Kembali ke pertandingan" kalau halaman tertutup
+function wnIngatMain() {
+  const simpan = () => { try { if (TIM.main && !SELESAI) localStorage.setItem('kgMain', JSON.stringify({ u: location.href, t: Date.now(), rank: RANK ? 1 : 0 })); else wnLupaMain(); } catch (e) { } };
+  simpan(); clearInterval(WN.ingatI); WN.ingatI = setInterval(() => { simpan(); if (!TIM.main || SELESAI) clearInterval(WN.ingatI); }, 5000);
+}
+function wnLupaMain() { try { localStorage.removeItem('kgMain'); } catch (e) { } }
 function wnKanon() {   // urutan monster & bangunan yang sama di semua HP (diurutkan menurut posisi di peta asli)
   const net = E => keNet(E.home.x, E.home.z);
   const L = WN.E.filter(E => E.jenis !== 'buayaT').sort((a, b) => { const [ax, az] = net(a), [bx, bz] = net(b); return ax - bx || az - bz; });
@@ -10200,7 +10216,8 @@ function wnTerimaSnap(w) {   // pemain lain: terapkan keadaan dari tuan rumah
     if (hp < E.hp - .5) { E.kenaT = performance.now(); E.kilau = .15; }
     E.hp = hp; E.mt.hp = hp; E.hpMax = hm; E.mt.hpMax = hm;
     E.jalan = f & 2 ? 1 : 0; E.ultiT = f & 4 ? 1 : 0; E.sas = f & 8 ? 1 : null; E.g.visible = !!(f & 16);
-    if (an !== (E.atkN | 0)) { const baru = E.atkN != null; E.atkN = an; if (baru) { E.klip = ak || E.klip; E.klipBaru = 1; E.serangT = at || .4; if (E.jenis === 'garuda' && sa == null) wnBolaKlien(E); } }
+    if (an !== (E.atkN | 0)) { const baru = E.atkN != null || (WN.srv && at > 0); E.atkN = an;   // wasit server: serangan pertama setelah muncul (mis. terkam lompat Buaya) juga ditampilkan
+      if (baru) { E.klip = ak || E.klip; E.klipBaru = 1; E.serangT = at || .4; if (E.jenis === 'garuda' && sa == null) wnBolaKlien(E); } }
     if (E.jenis === 'garuda') { if (sa != null && !E.sembur && performance.now() - (E._sbT || 0) > 3000) { E._sbT = performance.now(); const a = sudutNet(sa); wnGarudaSembur(E, { root: { position: E.home.clone().add(new THREE.Vector3(Math.sin(a), 0, Math.cos(a))) } }); } }
   });
   const T = WN.tugu, [mk, pr, tt, rb] = w.t || [-1, 0, -1, 0], baru = wnTmN(mk);
@@ -10358,11 +10375,11 @@ async function siapkanBot() {
 // Main Bareng: datang dari lobi game.html (…&lobi=1234) → masuk otomatis, selesai kembali ke lobi yang sama
 const LOBI = (Q.get('lobi') || '').replace(/\D/g, '').slice(0, 4);
 const PID = (() => { try { return localStorage.getItem('kgPid') || ''; } catch (e) { return ''; } })();
-function keLobiMB() { if (TIM.main && !SELESAI) kirim({ t: 'leave' }); NET.keluar = true; try { if (NET.ws) NET.ws.close(); } catch (e) { } const pulang = (Q.get('pulang') || '').replace(/\D/g, '').slice(0, 4), q = new URLSearchParams(RANK && !pulang ? { rank: '1' } : { lobi: RANK ? pulang : LOBI }); if (Q.get('server')) q.set('server', Q.get('server')); location.href = 'game.html?' + q; }
+function keLobiMB() { if (WN_ONLINE) wnLupaMain(); if (TIM.main && !SELESAI) kirim({ t: 'leave' }); NET.keluar = true; try { if (NET.ws) NET.ws.close(); } catch (e) { } const pulang = (Q.get('pulang') || '').replace(/\D/g, '').slice(0, 4), q = new URLSearchParams(RANK && !pulang ? { rank: '1' } : { lobi: RANK ? pulang : LOBI }); if (Q.get('server')) q.set('server', Q.get('server')); location.href = 'game.html?' + q; }
 const SESI = (() => { try { return localStorage.getItem('kalensari_sesi_pembeli') || ''; } catch (e) { return ''; } })();
 const ULANG = +Q.get('ulang') || 0;   // percobaan sambung ulang ke room yang sama
 function ingatRoom(c) { try { localStorage.setItem('kgRoom', JSON.stringify({ c: String(c), m: MODE.startsWith('tim') ? 'tim' : 'duel', t: Date.now() })); } catch (e) { } }
-function keluarRoom() { NET.keluar = true; kirim({ t: 'leave' }); try { localStorage.removeItem('kgRoom'); } catch (e) { } }
+function keluarRoom() { if (WN_ONLINE) wnLupaMain(); NET.keluar = true; kirim({ t: 'leave' }); try { localStorage.removeItem('kgRoom'); } catch (e) { } }
 const NET = { url: Q.get('server') || 'wss://game.kalensari.web.id/ws', ws: null, role: '', on: false, kirimT: 0, antre: [], sayaLagi: false, lawanLagi: false, kode: '', v3: false, mulaiT: 0 };
 const HERO_SRV = { ocong: 'pocong', kunti: 'kuntilanak', tuyul: 'tuyul', genderuwo: 'genderuwo', pitung: 'pitung', erick: 'erick', doni: 'doni', timun: 'timunmas', buto: 'buto', lutung: 'lutung', saras: 'saras', angling: 'angling', dayang: 'dayang', nyi: 'nyiroro', siliwangi: 'siliwangi', ciung: 'ciung', sangkuriang: 'sangkuriang', kiansantang: 'kiansantang', wiro: 'wiro', roro: 'roro', masdim: 'masdim', wewe: 'wewe', blorong: 'blorong', dewisri: 'dewisri', arjuna: 'arjuna' }, HERO_3D = { pocong: 'ocong', kuntilanak: 'kunti', tuyul: 'tuyul', genderuwo: 'genderuwo', pitung: 'pitung', erick: 'erick', doni: 'doni', timunmas: 'timun', buto: 'buto', lutung: 'lutung', saras: 'saras', angling: 'angling', dayang: 'dayang', nyiroro: 'nyi', siliwangi: 'siliwangi', ciung: 'ciung', sangkuriang: 'sangkuriang', kiansantang: 'kiansantang', wiro: 'wiro', roro: 'roro', masdim: 'masdim', wewe: 'wewe', blorong: 'blorong', dewisri: 'dewisri', arjuna: 'arjuna' };
 const ARENA_IDX = { lapangan: 0, kuil: 1, sawah: 2, pink: 3, kebun: 4 }, ARENA_NAMA = ['lapangan', 'kuil', 'sawah', 'pink', 'kebun'];
@@ -10805,7 +10822,7 @@ function timTerimaMati(id, oleh) {
   if (TIM.skor[1 - tm] >= TIM.kw) timAkhir(1 - tm);
 }
 function timAkhir(menang) {   // menang = 0/1, -1 = seri
-  if (TIM.akhir) return; TIM.akhir = true; SELESAI = true; K.bidik = false;
+  if (TIM.akhir) return; TIM.akhir = true; SELESAI = true; K.bidik = false; if (WN_ONLINE) wnLupaMain();
   if (TIM.host) { const mNet = WN_ONLINE && menang >= 0 ? menang ^ WN.saya : menang; netEvent({ k: 'akhir', m: mNet }); kirimKeadaanTim(); const mvp = RANK ? rkMvpNet() : null; setTimeout(() => kirim(RANK ? { t: 'tmOver', m: mNet, mvp } : { t: 'tmOver' }), 400); }
   const saya = TIM.saya.tm, t = $('#hasilT');
   setTimeout(() => {
@@ -11090,7 +11107,7 @@ function timTerima(m) {
   if (m.t === 'tmSambung') { if (TIM.main) banner('✅ ' + namaOf(m.i) + ' tersambung lagi', '#9dff8a'); voiceTutup(m.i); VOICE.syncT = 0; return true; }
   if (m.t === 'tmJadiBot') { if (TIM.main) { banner(namaOf(m.i) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host) jadikanBot(m.i); } return true; }
   if (m.t === 'tmWasit') { TIM.hostId = m.host; const dulu = TIM.host; TIM.host = m.host === TIM.me;
-    if (TIM.main) { if (m.tahan) banner('📶 ' + namaOf(m.tahan) + ' masih menyambung lagi…', '#ffd166'); else banner(namaOf(m.keluar) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host && !dulu) { wnJadiHost(); (m.bots || []).forEach(id => jadikanBot(id)); banner('🌐 Pertandingan sekarang dijalankan HP kamu', '#9fd8ff'); } }
+    if (TIM.main) { if (m.tahan) banner('📶 ' + namaOf(m.tahan) + ' masih menyambung lagi…', '#ffd166'); else if (m.macet) { if (m.macet !== TIM.me) banner('📶 HP ' + namaOf(m.macet) + ' macet — bot dijalankan HP lain', '#ffd166'); } else banner(namaOf(m.keluar) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host && !dulu) { wnJadiHost(); (m.bots || []).forEach(id => jadikanBot(id)); banner('🌐 Pertandingan sekarang dijalankan HP kamu', '#9fd8ff'); } }
     if (dulu && !TIM.host) lepasBotSemua();
     return true; }
   if (m.t === 'tmBalikOk') { if (NET.ulang) NET.ulang.ok = true; const dulu = TIM.host; TIM.host = !!m.host; if (dulu && !TIM.host) lepasBotSemua(); else if (!dulu && TIM.host) wnJadiHost(); if (m.hostId) TIM.hostId = m.hostId; NET.on = true; banner('✅ Tersambung lagi', '#9dff8a'); return true; }

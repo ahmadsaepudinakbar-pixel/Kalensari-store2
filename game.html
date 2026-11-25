@@ -4037,4 +4037,28 @@ function seen(){try{localStorage.setItem(KEY,'1')}catch(e){}}
  }
 })();
 </script>
+<script>
+// ↩ Kembali ke pertandingan War Nanas: kalau halaman game tertutup di tengah pertandingan online (mis. aplikasi ditutup Android saat membuka WhatsApp),
+// menu menawarkan masuk lagi selama kursi masih ditahan server (±90 detik). Kartu stat, Poin Skill & skor ikut dikembalikan.
+(function(){
+ var G=null;try{G=JSON.parse(localStorage.getItem('kgMain')||'null')}catch(e){}
+ if(!G||!G.u||Date.now()-G.t>100000||!/game3d\.html/.test(G.u)){try{localStorage.removeItem('kgMain')}catch(e){}return}
+ var sisa=Math.max(5,Math.round(100-(Date.now()-G.t)/1000));
+ function tampil(){
+  var o=document.createElement('div');o.id='kgBalikMain';
+  o.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(5,8,20,.72);display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit';
+  o.innerHTML='<div style="max-width:420px;width:100%;background:linear-gradient(#1c2a5a,#101734);border:3px solid #ffd23f;border-radius:18px;padding:18px 18px 14px;color:#fff;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.6)">'
+   +'<div style="font-size:22px;font-weight:900;color:#ffd23f;margin-bottom:6px">⚔️ Pertandingan masih berjalan</div>'
+   +'<div style="font-size:15px;line-height:1.4;margin-bottom:14px">'+(G.rank?'Rank War Nanas':'War Nanas')+' kamu belum selesai. Masuk lagi sekarang supaya heromu tidak digantikan bot.<br><small style="opacity:.8">Kursi ditahan ± <b id="kgBalikS">'+sisa+'</b> detik</small></div>'
+   +'<button id="kgBalikYa" style="width:100%;padding:13px;border:0;border-radius:12px;background:#36c24a;color:#fff;font-size:18px;font-weight:900;margin-bottom:8px;cursor:pointer">↩ Kembali ke pertandingan</button>'
+   +'<button id="kgBalikTidak" style="width:100%;padding:9px;border:0;border-radius:10px;background:#3a4470;color:#dde;font-size:14px;cursor:pointer">Tidak, ke menu</button></div>';
+  document.body.appendChild(o);
+  var iv=setInterval(function(){sisa--;var e=document.getElementById('kgBalikS');if(e)e.textContent=Math.max(0,sisa);if(sisa<=0){clearInterval(iv);tutup(true)}},1000);
+  function tutup(lupa){clearInterval(iv);if(lupa){try{localStorage.removeItem('kgMain')}catch(e){}}if(o.parentNode)o.parentNode.removeChild(o)}
+  document.getElementById('kgBalikYa').onclick=function(){clearInterval(iv);location.href=G.u};
+  document.getElementById('kgBalikTidak').onclick=function(){tutup(true)};
+ }
+ var n=0,iv0=setInterval(function(){var m=document.getElementById('menu');if((m&&m.classList.contains('on'))||++n>20){clearInterval(iv0);tampil()}},500);
+})();
+</script>
 </body></html>
