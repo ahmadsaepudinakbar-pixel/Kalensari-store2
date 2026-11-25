@@ -1466,7 +1466,7 @@ function kena(mt, dmg, dari, dorong = 4, angkat = 0) {
   if (mt.kebalT && performance.now() < mt.kebalT) { if (!mt.kebalInfo || performance.now() - mt.kebalInfo > 700) { mt.kebalInfo = performance.now(); if (mt.g) angka(mt.g.position, 'KEBAL', '#ffe08a'); } return; }   // baru bangkit: kebal 3 dtk
   if (!KENA_LUAR && !BOT_VS_BOT && !mt.mati) P.ungkap = UNGKAP;   // saya menyerang: kalau sedang di semak, jadi terlihat sebentar
   if (WN.on) {   // War Nanas: stat Attack pemain, sasaran bangunan/monster, stat Defense bot
-    if (!BOT_VS_BOT && !KENA_LUAR) dmg = Math.round(dmg * wnF(TIM.me, 'atk'));
+    if (!BOT_VS_BOT && !KENA_LUAR) dmg = Math.round(dmg * wnF(TIM.me, 'atk') * wnKurva(TIM.me, !!P.aksiDasar));   // + kurva kekuatan role
     if (mt.wn) { if (!mt.mati) { if (mt.wn.jenis === 'rumah' && !RUMAH_IZIN && !(P.aksiDasar && !KENA_LUAR)) { wnRumahKebal(mt.wn); return; } wnKena(mt.wn, dmg, P); } return; }
     if (mt.obj && mt.obj.tm != null && !mt.mati) { dmg = Math.round(dmg * wnF(mt.obj.id, 'def')); WN.kenaT.set(mt.obj.id, performance.now()); if (!BOT_VS_BOT && !KENA_LUAR) mt.obj.terakhir = TIM.me; wnCatat(mt.obj.terakhir, mt.obj.id, Math.min(dmg, mt.hp)); }
   }
@@ -1622,7 +1622,7 @@ function aturSimpanPosisi(id) { const e = $('#' + id), r = e.getBoundingClientRe
   addEventListener('resize', () => setTimeout(terapTombol, 60)); terapTombol(); setTimeout(terapTombol, 600); }   // diulang setelah kelas HP (ponsel) terpasang
 if (HERO === 'genderuwo') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Lompat Hantam · U (tahan + mouse): Serbuan Rimba (tinju-cakar-hantam sambil maju) · I: Hantaman Raksasa (otomatis ke lawan dalam 5 m) · O: Amukan Genderuwo (membesar · Lompat Hantam 200 · Serbuan 100/120/200 + pusing · Hantaman 10 m)';
 if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Golden Seed (biji emas jarak jauh) · U (tahan + mouse): Bamboo Pierce (bambu muncul di titik sasaran + Stun) · I (tahan + mouse): Cucumber Trap (sulur timun, Slow) · O (tahan + mouse): Boiling Mud Abyss (lumpur mendidih di titik sasaran, damage berkali-kali + Slow · Timun Mas di dalamnya lebih cepat bergerak & menyerang + kebal stun) · Combo: I → U → O';
-if (HERO === 'blorong') $('#help').textContent = 'Pasif: serangan & skill meracuni 3 dtk · WASD / panah: gerak · J / Spasi: Sisik Emas · U (tahan + mouse): Panggilan Ular — ular muncul dari tanah di bawah musuh & melilitnya · I (tahan + mouse): Kolam Bisa (jebakan 120 dtk, tak terlihat musuh) — tekan lagi untuk teleport ke jebakan · O: Wujud Siluman Ular 10 dtk (J: patuk · U: Lilitan · I: Terkaman — kena sasaran = bisa langsung terkam lagi, maks 3x) — tekan O lagi untuk kembali';
+if (HERO === 'blorong') $('#help').textContent = 'Pasif: serangan & skill meracuni 3 dtk · WASD / panah: gerak · J / Spasi: Sisik Emas · U (tahan + mouse): Panggilan Ular — ular muncul dari tanah di bawah musuh & melilitnya · I (tahan + mouse): Kolam Bisa (jebakan 30 dtk, tak terlihat musuh) — tekan lagi untuk teleport ke jebakan · O: Wujud Siluman Ular 10 dtk (J: patuk · U: Lilitan · I: Terkaman — kena sasaran = bisa langsung terkam lagi, maks 3x) — tekan O lagi untuk kembali';
 else if (HERO === 'wewe') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: kombo Cakar 3 pukulan (ke-3 paling sakit & mendorong) · U: Gendongan Pelindung (teman terdekat masuk gendongan 3 dtk: kebal & tak terlihat, ikut dibawa) — tanpa teman di dekat: Bayi Merangkak · I: Tembang Nina Bobo (kipas: mengantuk lalu TERTIDUR; kena damage = bangun, +30%) · O: Culik ke Gombel (rumpun bambu muncul, Wewe melayang tak terlihat; sentuh hero lawan = korban lenyap diculik, Wewe terbang pulang ke bambu lalu menjatuhkannya)';
 else if (HERO === 'masdim') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tembakan Senapan (10 peluru) · R: isi peluru (bisa sambil jalan; diam 3,3 dtk = penuh) · U: Lempar Granat (dibidik, ledakan + Slow) · I: Lompat Taktis · O lalu 1 / 2: pilih mode ulti 🎯 Sniper (tiarap 10 dtk, 1 peluru: gerak = geser teropong, J = tembak) atau 🔫 Bren (diam di balik minigun, tahan J = tembak bertubi-tubi, O / I = keluar)';
 else if (HERO === 'arjuna') $('#help').textContent = 'Marksman · WASD / panah: gerak · J / Spasi: Panah · U (tahan + mouse): Salto Mundur — salto ke belakang 4 m sambil memanah, lawan kena Slow 1,5 dtk · I: Panah Berlipat — 3 dtk tiap panah melesat ke SEMUA lawan dalam 9 m · O (tahan + arahkan manual): Panah Pasopati — panah pusaka sejauh 80 m: damage besar, terpental, Stun 1 dtk, ledakan di sekitarnya';
@@ -7214,14 +7214,14 @@ const UL = (() => {
 // nyi-blorong-ular.glb: wujud setengah ular (rig Tripo: ekor 18 ruas + tulang lengan tambahan) — ekor digerakkan kode (UL): menjalar, melingkar, melilit
 // Dasar   Sisik Emas: melempar sisik emas (jarak jauh)
 // Skill 1 Panggilan Ular: jongkok → ular muncul dari tanah tepat di bawah kaki musuh sasaran & melilitnya (terkunci + damage) · tanpa musuh dalam jangkauan: tidak keluar
-// Skill 2 Kolam Bisa: jebakan kolam kecil (bisa diarahkan, 120 dtk, tidak terlihat musuh) · selama belum terinjak: tombol jadi TELEPORT ke jebakan ·
+// Skill 2 Kolam Bisa: jebakan kolam kecil (bisa diarahkan, 30 dtk, tidak terlihat musuh) · selama belum terinjak: tombol jadi TELEPORT ke jebakan ·
 //         terinjak musuh → genangan racun hijau (slow + damage terus-menerus)
 // Skill 3 Wujud Siluman Ular (10 dtk): perisai sisik + lebih cepat · Dasar: gigitan ⇄ kibasan ekor · Skill 1: Lilitan (kunci 1,5 dtk + damage) ·
 //         Skill 2: Terkaman Ular (melesat menggigit + racun · kena sasaran = langsung bisa dipakai lagi, maks 3x per ulti) · tekan ulti lagi: kembali jadi manusia
 const BL = { cepat: 3.3, hijau: 0x2fd06a, emas: 0xffd040, racun: 0x7dff3a,
   dasar: { ts: 1.4, sub: null, rilis: .43, akhir: .7, jarak: 7.5, kec: 15, dmg: 70 },
   s1: { ts: 1.5, sub: [.85, 2.45], rilis: .4, akhir: 1.1, jarak: 7, dmg: 130, kunci: 1.2 },   // pose dari klip 'skill 1' (GLB baru): tangan kanan terangkat ±0,9–2,5 dtk, puncak ±1,45 dtk
-  s2: { R: 1.1, jarak: 7.5, lama: 120, kolamR: 2.6, kolamLama: 4, dps: 50, jeda: .5, tsTaruh: 1.2, subTaruh: [.6, 1.5], rilisTaruh: .42, akhirTaruh: .72, tsTp: 1.5, subTp: [1, 2.4], rilisTp: .4, akhirTp: .8 },
+  s2: { R: 1.1, jarak: 7.5, lama: 30, kolamR: 2.6, kolamLama: 4, dps: 50, jeda: .5, tsTaruh: 1.2, subTaruh: [.6, 1.5], rilisTaruh: .42, akhirTaruh: .72, tsTp: 1.5, subTp: [1, 2.4], rilisTp: .4, akhirTp: .8 },
   ulti: { lama: 10, perisai: 450, cepat: 4.6, kunciKembali: .6, besar: 1.6 },   // besar: wujud ular dibesarkan ±1,6× (setinggi hero lain)
   gigit: { jarak: 2.9, sudut: .9, dmg: 95, hit: .16, akhir: .4, condong: .8 },   // patukan (satu-satunya serangan dasar wujud ular)
   kibas: { R: 2.9, dmg: 70, dorong: 3.5, hit: .25, akhir: .55 },
@@ -7945,7 +7945,7 @@ function pakaiMasdim(i) {
   const pos = P.root.position, mode = MDW.mode;
   if (i === 0) {
     if (mode === 'bren') { MDW.tahan = true; MDW.tahanT = .35; return; }   // ditekan sekali: semburan pendek
-    if (mode === 'sniper') { mdTembakSniper(); return; }
+    if (mode === 'sniper') { if (!MDW.sudah) mdTembakSniper(); return; }   // sniper hanya 1 peluru: tembakan berikutnya ditolak sampai keluar mode
     if (MDW.isiT > 0) return; if (MDW.peluru <= 0) { mdMulaiIsi(false); return; }   // sedang / harus mengisi peluru
     MDW.peluru--; MDW.diamT = 0; mdLencana();
     mdArahi(MD.tembak.jarak + .5); P.state = 'mdTembak'; mainUlang('serang', .05, MD.tembak.ts);
@@ -7993,6 +7993,7 @@ let MDW_FOV0 = null;
 function mdMataSniper() { const p = P.root.position, a = MDW.yaw; return new THREE.Vector3(p.x + Math.sin(a) * .55, MD.sniper.mata, p.z + Math.cos(a) * .55); }
 function mdArahSniper() { const a = MDW.yaw, c = Math.cos(MDW.pitch); return new THREE.Vector3(Math.sin(a) * c, Math.sin(MDW.pitch), Math.cos(a) * c); }
 function mdTembakSniper() {   // peluru putih lurus ke tengah teropong: kena musuh pertama yang dilewati (badan setinggi ±2 m), bisa juga ke atas (Garuda, Buaya besar)
+  if (MDW.mode !== 'sniper' || MDW.sudah) return; MDW.sudah = 1;   // pengaman: 1 peluru per mode sniper (sebelumnya bisa ditembak berkali-kali selama jeda 0,45 dtk)
   const o = mdMataSniper(), d = mdArahSniper(), S = MD.sniper, h2 = d.x * d.x + d.z * d.z;
   let kenaM = null, bt = S.jarak;
   MUSUH.forEach(m => { if (m.mati || m.sembunyi) return; const c = m.g.position, tinggi = Math.max(1.9, (m.tinggi || 0) * 1.1), lebar = S.lebar + (m.wn ? .5 : .3);
@@ -8831,8 +8832,20 @@ const WN_HP_REF = 2000, WN_SPD_REF = 4;
 const WN_MAKS = { hp: 100, atk: 100, def: 150, spd: 40, as: 100, cd: 40 };   // speed maks +40% (seperti batas MLBB)
 // keistimewaan tiap role (menggantikan batas umum di atas): Fighter kuat di awal, Marksman & Mage yang "menggendong" di akhir game
 const WN_ROLE = { buto: 'tank', genderuwo: 'tank', sangkuriang: 'tank', dayang: 'mm', ciung: 'mm', kunti: 'mage', timun: 'mage', angling: 'mage', nyi: 'mage', roro: 'mage', masdim: 'mm', wewe: 'support', blorong: 'mage', dewisri: 'support', arjuna: 'mm', tuyul: 'assassin', lutung: 'assassin', siliwangi: 'assassin' };   // sisanya Fighter
-const WN_MAKS_ROLE = { support: { spd: 60 }, tank: { hp: 200, spd: 60 }, mm: { atk: 200, as: 200 }, fighter: { atk: 150, def: 70 }, assassin: { atk: 150, cd: 60 }, mage: { atk: 200, cd: 60 } };
+const WN_MAKS_ROLE = { support: { spd: 60 }, tank: { hp: 200, spd: 60 }, mm: { atk: 200, as: 200 }, fighter: { atk: 200, def: 70 }, assassin: { atk: 200, cd: 60 }, mage: { atk: 200, cd: 60 } };
 const wnRole = id => WN_ROLE[wnHeroOf(id)] || 'fighter';
+// ---- kurva kekuatan role: tiap role punya waktu kuatnya sendiri (berlaku untuk pemain & bot, ke hero, monster & bangunan) ----
+// Fighter: serangan dasar +25% sampai menit 6, lalu menurun habis di menit 12 · Marksman: serangan dasar naik mulai menit 6 sampai +30% di menit 15
+// Assassin & Mage: skill +20%, serangan dasar −15% (kalah adu serangan dasar dengan Fighter) · Tank & Support: tetap
+const WN_KURVA = { fighter: { dasar: .25, tahan: 6, habis: 12 }, mm: { dasar: .3, mulai: 6, penuh: 15 }, skill: { assassin: .2, mage: .2 }, dasarLemah: { assassin: .15, mage: .15 } };
+function wnKurva(id, dasar) {
+  const r = wnRole(id), m = wnWaktu() / 60, K = WN_KURVA;
+  if (r === 'fighter') return dasar ? 1 + K.fighter.dasar * (m <= K.fighter.tahan ? 1 : m >= K.fighter.habis ? 0 : (K.fighter.habis - m) / (K.fighter.habis - K.fighter.tahan)) : 1;
+  if (r === 'mm') return dasar ? 1 + K.mm.dasar * Math.min(1, Math.max(0, (m - K.mm.mulai) / (K.mm.penuh - K.mm.mulai))) : 1;
+  if (K.skill[r] != null) return dasar ? 1 - K.dasarLemah[r] : 1 + K.skill[r];
+  return 1;
+}
+const WN_KURVA_INFO = { fighter: '⚔️ Fighter: serangan dasar +25% di awal game (menurun setelah menit 6)', mm: '🏹 Marksman: serangan dasar makin sakit mulai menit 6 (+30% di menit 15)', assassin: '🗡️ Assassin: skill +20% · serangan dasar −15%', mage: '🔮 Mage: skill +20% · serangan dasar −15%' };
 const wnMaks = (id, k) => { const r = WN_MAKS_ROLE[wnRole(id)]; return r && r[k] != null ? r[k] : WN_MAKS[k]; };
 function wnP(id, k) { const s = WN.st.get(id), p = s ? s[k] || 0 : 0; return Math.min(wnMaks(id, k), p); }
 function wnF(id, k) {   // hp: tambahan HP (angka) · spd: tambahan m/dtk · lainnya: pengali
@@ -10011,7 +10024,7 @@ function wnBonusBuaya(tm, asal = '🐊 Buaya Danau') {   // kartu emas untuk SEM
 }
 function wnPeringatanPengawal() { const now = performance.now(); if (now - WNP_PERINGAT < 20000) return; WNP_PERINGAT = now;
   banner('🛡️ Kamu di lane Support: kartu dari membunuh monster sendiri kecil. Lebih untung bantu teman (assist)!', '#ff9a9a'); }
-function wnNilaiKartu(id, k, dasar) { return Math.max(1, Math.round(dasar * wnMaks(id, k) / 100)); }   // dasar = persen untuk batas 100% · stat ber-batas 200% dapat 2×, batas 40% dapat 0,4×
+function wnNilaiKartu(id, k, dasar) { return Math.min(20, Math.max(1, Math.round(dasar * wnMaks(id, k) / 100))); }   // satu kartu maksimal +20%   // dasar = persen untuk batas 100% · stat ber-batas 200% dapat 2×, batas 40% dapat 0,4×
 function wnPasifPengawal(id, v, sebab) {
   if (WN_ONLINE && id !== TIM.me && !TIM.bot.get(id)) { if (TIM.host && TIM.obj.has(id)) wnHd(id, { j: 'pasif', v, s: sebab }); return; }   // pemain online: kartunya muncul di HP-nya
   wnSpKartu(id, false);
@@ -10142,7 +10155,7 @@ function wnSiapkan() {   // setelah semua hero masuk arena (Main Solo & Main Bar
   $('#help').textContent = 'War Nanas 3 vs 3 · Kalahkan monster hutan untuk menambah stat · Kuasai Tugu Nanas (berdiri 10 dtk) untuk pulih · Hancurkan Sisingaan → Garuda → Rumah lawan';
   banner('🍍 War Nanas! Farming monster hutan dulu, lalu rebut Tugu Nanas', '#ffd166');
   banner('🔒 Urutan: Sisingaan → Garuda → Rumah lawan', '#ffd166');
-  { const p = PERAN[PERAN_HERO[HERO]]; if (p) banner(`${p.ik} Role kamu: ${p.n} (${p.isi})`, '#9fd8ff'); }
+  { const p = PERAN[PERAN_HERO[HERO]]; if (p) banner(`${p.ik} Role kamu: ${p.n} (${p.isi})`, '#9fd8ff'); const kv = WN_KURVA_INFO[wnRole(TIM.me)]; if (kv) banner(kv, '#9fd8ff'); }
   wnLaneMulai();
   TIM.pl.forEach(p => { wnSpBaru(p.i); if (TIM.bot.has(p.i)) wnSpBot(p.i); });   // Poin Skill: bot langsung membuka 1 skill
   wnSpHud(); banner('🔓 Semua skill terkunci! Buka Skill 1 atau Skill 2 dulu', '#ffd166');
@@ -10772,7 +10785,8 @@ function timBotSerang(o, d, dari, dr) { timBotSerangKe(o, o.sas, d, dari, dr); }
 function timBotSerangKe(o, t, d, dari, dr) {   // bot (di HP pembuat room) mengenai sasarannya
   if (!t) return;
   if (TUT_LEMAH && !o.kawan) d = Math.max(1, Math.round(d * TUT_SKALA_MUSUH.dmg));   // tutorial: damage hero lawan kecil
-  if (WN.on) { d = Math.round(d * wnF(o.id, 'atk')); if (t.titik) return; if (t.wnE) { if (t.wnE.jenis === 'rumah' && !RUMAH_IZIN) return; wnKena(t.wnE, d, o); return; } }
+  if (WN.on) { d = Math.round(d * wnF(o.id, 'atk') * wnKurva(o.id, !!RUMAH_IZIN)); if (t.titik) return;   // RUMAH_IZIN = bot sedang serangan dasar
+    if (t.wnE) { if (t.wnE.jenis === 'rumah' && !RUMAH_IZIN) return; wnKena(t.wnE, d, o); return; } }
   if (t === P) { TIM.terakhir = o.id; kenaPemain(d, dari, dr); }
   else if (t.lokal) { t.terakhir = o.id; BOT_VS_BOT = true; kena(t.mt, d, dari, dr); BOT_VS_BOT = false; }
   else { const [x, z] = keNet(dari.x, dari.z); netEvent({ k: 'hit', ke: t.id, d, x: r2(x), z: r2(z), dr, oleh: o.id }); angka(t.root.position, d); t.mt.kilau = .18; }
