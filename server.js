@@ -7,6 +7,7 @@
 const http = require('http');
 const crypto = require('crypto');
 const { EventEmitter } = require('events');
+const { WasitWN, TICK: WN_TICK } = require('./wasit-war-nanas.js');   // wasit War Nanas di server (monster, penjaga, buaya, tugu)
 
 // ---------- WebSocket mini (tanpa paket tambahan, cukup Node.js) ----------
 class Sock extends EventEmitter {
@@ -164,8 +165,11 @@ function tmMulaiRoom(r) {   // mulai Duel Tim (dipakai tombol MULAI & Main Baren
   const ppl = w => ({ i: w.id, n: w.name, h: w.hero, s: w.skin || '', tm: w.tmT }), pbot = b => ({ i: b.i, n: b.n, h: b.h, s: '', tm: b.tm, bot: 1 });
   const pl = [0, 1].flatMap(t => r.pl.filter(w => w.tmT === t).map(ppl).concat(r.bots.filter(b => b.tm === t).map(pbot)));
   let um = 0; if (r.um) { const p = r.pl.find(w => w.pid === r.um) || r.pl[Math.floor(Math.random() * r.pl.length)]; um = p.id; }
-  r.pl.forEach(w => send(w, { t: 'tmStart', pl, me: w.id, host: r.host.id, a: r.a, kw: r.kw, dur: r.dur || 0, code: r.code, um, wn: r.wn || 0 }));
-  r.mulai = { pl, host: r.host.id, a: r.a, kw: r.kw, dur: r.dur || 0, code: r.code, um, wn: r.wn || 0 };
+  // War Nanas: monster & bangunan dijalankan server (kalau semua HP sudah memakai game3d.html versi baru)
+  r.sim = r.wn && r.pl.every(w => w.wns) ? new WasitWN(r, m => kirimWasit(r, m)) : null;
+  const wnSrv = r.sim ? 1 : 0;
+  r.pl.forEach(w => send(w, { t: 'tmStart', pl, me: w.id, host: r.host.id, a: r.a, kw: r.kw, dur: r.dur || 0, code: r.code, um, wn: r.wn || 0, wnSrv }));
+  r.mulai = { pl, host: r.host.id, a: r.a, kw: r.kw, dur: r.dur || 0, code: r.code, um, wn: r.wn || 0, wnSrv };
   (r.tonton || []).forEach(w => send(w, Object.assign({ t: 'tmStart', me: w.id, tonton: 1 }, r.mulai)));
   if (r.wn) tmBotSapa(r);
   console.log(new Date().toISOString(), 'duel tim mulai', r.code, r.lb ? '(main bareng ' + r.lb + ')' : '', pl.map(x => (x.tm ? 'M:' : 'B:') + x.n).join(', '));
@@ -186,9 +190,9 @@ function tmLeave(ws) {
   } else tmRoomMsg(r);
 }
 // ---- War Nanas online: sambung ulang & pindah wasit ----
-// Putus sinyal → kursi ditahan (wasit 12 dtk, pemain lain 30 dtk). Tersambung lagi (tmBalik) → main terus seperti biasa.
+// Putus sinyal → kursi ditahan 90 dtk (wasit yang punya teman manusia: wasit pindah setelah 12 dtk, kursinya tetap ditahan). Tersambung lagi (tmBalik) → main terus seperti biasa.
 // Lewat batas / keluar sengaja → heronya dijalankan bot. Kalau yang hilang wasit, HP terkuat yang tersisa menjadi wasit baru.
-const TM_TAHAN = 30000, TM_TAHAN_WASIT = 12000;
+const TM_TAHAN = 90000, TM_TAHAN_WASIT = 12000;
 function tmTunda(r, ws) {
   const wasit = r.host === ws, putus = !!ws.putus;
   r.pl = r.pl.filter(w => w !== ws);
@@ -197,12 +201,20 @@ function tmTunda(r, ws) {
   const T = { pid: ws.pid, i: ws.id, tm: ws.tmT, h: ws.hero, s: ws.skin || '', n: ws.name, wasit };
   r.tunda.set(ws.pid, T);
   if (putus) r.pl.forEach(w => send(w, { t: 'tmPutus', i: T.i, host: wasit ? 1 : 0 }));
-  T.timer = setTimeout(() => tmTundaHabis(r, ws.pid), putus ? (wasit ? TM_TAHAN_WASIT : TM_TAHAN) : 0);
+  T.timer = setTimeout(() => tmTundaHabis(r, ws.pid), putus ? TM_TAHAN : 0);
+  if (putus && wasit && r.pl.length) T.timerW = setTimeout(() => tmPindahWasit(r, T), TM_TAHAN_WASIT);   // pemain lain tidak boleh menunggu lama: pertandingan dijalankan HP lain dulu
   console.log(new Date().toISOString(), 'war nanas', r.code, ws.name, putus ? 'terputus (kursi ditahan)' : 'keluar', wasit ? '[wasit]' : '');
+}
+function tmPindahWasit(r, T) {   // wasit belum kembali 12 dtk: HP terkuat yang tersisa jadi wasit, kursi wasit lama tetap ditahan sampai 90 dtk
+  if (!r.tunda || r.tunda.get(T.pid) !== T || r.host || !r.pl.length || trooms.get(r.code) !== r || r.state !== 'game') return;
+  T.wasit = false;
+  r.host = r.pl.slice().sort((p, q) => (q.kuat || 0) - (p.kuat || 0))[0];
+  r.pl.forEach(w => send(w, { t: 'tmWasit', host: r.host.id, bots: r.bots.map(b => b.i), tahan: T.i }));
+  console.log(new Date().toISOString(), 'war nanas', r.code, 'wasit pindah ke', r.host.name, '(kursi', T.n, 'tetap ditahan)');
 }
 function tmTundaHabis(r, pid) {
   const T = r.tunda && r.tunda.get(pid); if (!T) return;
-  r.tunda.delete(pid);
+  clearTimeout(T.timerW); r.tunda.delete(pid);
   if (trooms.get(r.code) !== r || r.state !== 'game') return;
   if (r.rank) rkKabur(r, pid);   // Rank: tidak kembali = kalah
   r.bots.push({ i: T.i, n: T.n, h: T.h, tm: T.tm, ganti: 1 });   // heronya diteruskan bot (id sama)
@@ -220,7 +232,7 @@ function tmBalik(ws, m) {   // HP yang tadi terputus masuk lagi ke pertandingan 
   if (!(T && T.i === i) && !lama) { send(ws, { t: 'tmBalikGagal' }); return; }
   leave(ws);
   if (T && T.i === i) {
-    clearTimeout(T.timer); r.tunda.delete(ws.pid);
+    clearTimeout(T.timer); clearTimeout(T.timerW); r.tunda.delete(ws.pid);
     ws.id = T.i; ws.tmT = T.tm; ws.hero = T.h; ws.skin = T.s; ws.tmR = 1; ws.troom = r.code; r.pl.push(ws);
     if (T.wasit && !r.host) r.host = ws;
   } else {   // server belum sadar koneksi lama putus: koneksi baru langsung menggantikannya
@@ -232,6 +244,19 @@ function tmBalik(ws, m) {   // HP yang tadi terputus masuk lagi ke pertandingan 
   r.pl.forEach(w => { if (w !== ws) send(w, { t: 'tmSambung', i: ws.id }); });
   console.log(new Date().toISOString(), 'war nanas', r.code, ws.name, 'tersambung lagi');
 }
+// ---- wasit War Nanas di server: 15x per detik, kirim keadaan ke semua HP ----
+function kirimWasit(r, m) {
+  const str = JSON.stringify(m);
+  r.pl.forEach(w => send(w, str)); (r.tonton || []).forEach(w => send(w, str));
+}
+setInterval(() => {
+  trooms.forEach(r => {
+    const S = r.sim; if (!S) return;
+    if (r.state !== 'game' || trooms.get(r.code) !== r) { r.sim = null; return; }
+    if (S.selesai) { S.selesaiT = S.selesaiT || Date.now(); if (Date.now() - S.selesaiT > 15000) { r.sim = null; return; } }
+    try { S.jalan(); } catch (e) { console.error(new Date().toISOString(), 'wasit war nanas error', r.code, e); }
+  });
+}, Math.round(WN_TICK * 1000));
 // =================== MIC (suara tim, WebRTC) ===================
 // Suara mengalir langsung antar-HP satu tim; server hanya menyampaikan "jabat tangan" (offer/answer/ICE) ke teman SATU TIM.
 // TURN (coturn di VPS) dipakai kalau jaringan seluler menghalangi sambungan langsung. Kunci harus sama dengan static-auth-secret di /etc/turnserver.conf
@@ -357,6 +382,7 @@ function tmRelay(ws, m, raw) {   // data pertandingan tim
     if (!r.pl.includes(ws)) return true;
     ws.lastSt = Date.now();
     m.w = ws.id;
+    if (r.sim) r.sim.terima(ws, m);   // posisi hero & damage ke monster/bangunan untuk wasit server
     const str = JSON.stringify(m);
     // 'st' boleh dilewati kalau HP penerima sedang macet; 'in' (tombol) selalu dikirim
     const boleh = w => m.t === 'in' || !w.s || w.s.writableLength < 32 * 1024;
@@ -1049,6 +1075,7 @@ wss.on('connection', (ws, req) => {
         ws.skin = clean(m.skin, 20);
         ws.kuat = Math.max(0, Math.min(999, +m.kuat || 0));   // perkiraan kekuatan HP (RAM, inti prosesor)
         ws.ver = clean(m.v, 8);   // '' = game.html (2D), '3d' = game3d.html
+        ws.wns = m.wns ? 1 : 0;   // game3d.html sudah bisa mengikuti wasit War Nanas di server
         if (m.pid) ws.pid = String(m.pid).replace(/[^A-Za-z0-9]/g, '').slice(0, 24);   // pengenal HP (Main Bareng)
         send(ws, { t: 'hi', id: ws.id });
         if (m.sesi && m.sesi !== ws.sesi) {
