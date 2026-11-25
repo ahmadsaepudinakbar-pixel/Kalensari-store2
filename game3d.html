@@ -272,6 +272,38 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
 #micBicara span{font:700 11px Arial;color:#fff;background:#0b1020cc;border:1px solid #7dff8a;border-radius:10px;padding:2px 8px;animation:micDenyut .6s ease-in-out infinite alternate}#micBicara span.aku{border-color:#ffd166;animation:none}
 @keyframes micDenyut{to{box-shadow:0 0 8px #7dff8a}}
 @media (orientation:landscape) and (max-height:560px){#micB,#spkB{top:40px;width:30px;height:30px;font-size:15px}#micB{right:144px}#spkB{right:180px}#micBicara{right:108px;top:76px}}
+
+/* ===== HUD rapi (semua perangkat, lebih ringkas di HP) =====
+   kiri atas: 1 baris "☰ · hero · fps" → di bawahnya Peningkatan → lalu notif (maks 3)
+   tengah atas: skor → KDA → bar sasaran (bar bangunan tidak lagi menempel di bawah skor)
+   kanan atas: 1 baris tombol (🔊 🎤 💬 📊 ⚙️) → peta kecil di bawahnya · grafis, Tombol, kamera, musik masuk panel ⚙️ */
+#ttl{display:flex;align-items:center;gap:6px;padding:4px 9px;white-space:nowrap}
+#ttl>b,#ttl>br,#ttl #nmlawan{display:none}
+#ttl small{color:#c8d0e4;font:700 12px Arial}#ttl #back{color:#ffd166;text-decoration:none}
+#fps{padding:0;color:#9fe39a}
+#kual{position:fixed;top:48px;right:10px;z-index:30;display:none;flex-wrap:wrap;justify-content:flex-end;max-width:min(320px,70vw);padding:6px;gap:5px;box-shadow:0 8px 24px #0009}
+body.setBuka #kual{display:flex}body.setBuka #top{z-index:40}
+#bSet{width:34px;height:34px;border-radius:9px;border:1px solid #ffffff33;background:#0b1020cc;font-size:17px;cursor:pointer;color:#fff;padding:0}
+body.setBuka #bSet{background:#ffb703;border-color:#fff3b0}
+#wnSkorB,#chatB,#micB,#spkB{top:8px}
+#wnSkorB{right:50px}#chatB{right:90px}#micB{right:130px}#spkB{right:170px}
+#wnMini{top:48px}
+#tbans{gap:3px}#tbans .tban:nth-last-child(n+4){display:none}
+#wnPen{left:10px;top:40px}
+@media (orientation:landscape) and (max-height:560px){
+ #top{top:6px;left:8px;right:8px}
+ #ttl{padding:3px 8px}#ttl small,#fps{font-size:11px}
+ #bSet,#wnSkorB,#chatB,#micB,#spkB{width:30px;height:30px;font-size:15px;top:6px}
+ #bSet{width:30px}#wnSkorB{right:44px}#chatB{right:78px}#micB{right:112px}#spkB{right:146px}
+ #kual{top:40px;right:8px}#kual button{padding:5px 7px;font-size:10px}
+ #wnMini{top:42px;width:50px;height:108px}
+ #micBicara{top:42px;right:64px}#chatP{top:42px}
+ #timHud{top:6px;padding:3px 12px;font-size:16px;gap:8px}#timHud small{font-size:10px}
+ #wnStat{top:40px;font-size:10px;padding:2px 8px}
+ #wnFokus{top:60px;width:min(260px,46vw)}#wnFokus .fb{height:10px}#wnFokus .fb span{display:none}#wnFokus .fn{font-size:11px}
+ #tbans{max-width:200px}.tban{font-size:10px;padding:2px 8px}
+ #wnPen{top:34px}
+}
 </style>
 <script src="config.js"></script><script src="qr-mini.js"></script>
 <script type="importmap">
@@ -287,6 +319,7 @@ body.ponsel #joy{width:134px;height:134px;left:18px;bottom:18px;border-width:3px
 <div id="top" class="ui">
  <div id="ttl"><b>KALENSARI 3D</b><br><small><span id="nmhero">Ocong</span> <span id="nmlawan"></span> · <a id="back" href="game.html">☰ Menu</a></small><div id="fps"></div></div>
  <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><button id="cekBtn" title="Cek performa">📊</button><button id="rekBtn" title="Hasil tes performa">📋</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"><button id="bAtur" title="Atur posisi & ukuran joystick dan tombol skill">🎮 Tombol</button><button id="bKam" title="Kamera Bawaan (tetap seperti MLBB) atau Custom (bisa diputar & di-zoom seperti Roblox)">🎥 Bawaan</button><button id="bKamKunci" title="Kunci / buka sudut kamera Custom" style="display:none">🔓</button></div>
+ <button id="bSet" title="Pengaturan: grafis, tombol, kamera, musik">⚙️</button>
 </div>
 <div id="joy" class="ui"><div id="knob"></div></div>
 <div id="batalB"><b>✖</b>Batal</div>
@@ -1084,6 +1117,11 @@ function setKual(lv, simpan = true) {   // simpan = false: diturunkan otomatis �
   resize();
 }
 document.querySelectorAll('#kual button[data-q]').forEach(b => b.onclick = () => setKual(+b.dataset.q));
+// ⚙️ Pengaturan: grafis, Atur Tombol, kamera, musik dikumpulkan dalam satu panel (layar tidak penuh tombol)
+$('#bSet').onclick = e => { e.stopPropagation(); document.body.classList.toggle('setBuka'); };
+$('#kual').addEventListener('pointerdown', e => e.stopPropagation());
+addEventListener('pointerdown', e => { if (document.body.classList.contains('setBuka') && !e.target.closest('#kual,#bSet')) document.body.classList.remove('setBuka'); }, true);
+$('#bAtur').addEventListener('click', () => document.body.classList.remove('setBuka'));
 // Rendah: tanpa pantulan lingkungan, bayangan, lampu api & kilat -> Kuil Malam, Lapangan SD & Kebun Malam jadi sangat gelap.
 // Gantinya dipasang cahaya pengisi + sedikit eksposur (catatan: di three.js terbaru cahaya ambient 1.0 hanya memberi sekitar sepertiga terang bahan, jadi angkanya perlu besar). Ubah angka di sini kalau mau lebih terang / lebih redup:
 // [warna cahaya, kekuatan cahaya, tambahan eksposur]
@@ -9845,7 +9883,8 @@ function wnUpd(dt) {
       : E.g.position.distanceTo(P.root.position) < (E.besar ? 30 : 16) || kini - E.kenaT < 3000;
     if (!dekat) { setTampil(b, false); return; }
     const [x, y, ok] = layar(V.copy(E.g.position).setY(E.barY)); setTampil(b, ok); if (!ok) return;
-    taruh(b, x, Math.max(48, y)); lebarBar(b.firstChild, E.hp / E.hpMax); const kc = wnTerkunci(E); if (b._k !== kc) { b._k = kc; b.classList.toggle('kunci', kc); }
+    if (y < 72) { setTampil(b, false); return; }   // bangunan di atas layar: barnya tidak ditempel di bawah papan skor (bar sasaran tetap tampil di #wnFokus)
+    taruh(b, x, y); lebarBar(b.firstChild, E.hp / E.hpMax); const kc = wnTerkunci(E); if (b._k !== kc) { b._k = kc; b.classList.toggle('kunci', kc); }
     if (E.besar) { const t = E.nama + ' · ' + Math.ceil(E.hp).toLocaleString('id-ID'); if (b._t !== t) { b._t = t; b.lastChild.textContent = t; } } });
   _q = cekS('WN: bar darah monster/bangunan', _q);
   wnFokusHud();
@@ -10098,7 +10137,7 @@ function wnSkorBuka(buka) { const o = $('#wnSkorO'); if (!o) return; o.classList
 addEventListener('keydown', e => { if (!WN.on || e.key !== 'Tab') return; e.preventDefault(); wnSkorBuka(!$('#wnSkorO').classList.contains('on')); });
 // ---- panel "📈 Peningkatan" (pojok kiri atas, di bawah fps): tambahan stat dari kartu + batas maksimal role ----
 const WN_ROLE_N = { tank: '🛡️ Tank', mm: '🏹 Marksman', mage: '🔮 Mage', assassin: '🗡️ Assassin', fighter: '⚔️ Fighter' };
-function wnPenTaruh() { const t = $('#ttl'), p = $('#wnPen'); if (!t || !p) return; const r = t.getBoundingClientRect(); p.style.left = r.left + 'px'; p.style.top = (r.bottom + 4) + 'px'; }   // kotak sendiri, tepat di bawah kotak judul/menu
+function wnPenTaruh() { const t = $('#ttl'), p = $('#wnPen'); if (!t || !p) return; const r = t.getBoundingClientRect(); p.style.left = r.left + 'px'; p.style.top = (r.bottom + 4) + 'px'; const b = $('#tbans'); if (b) b.style.top = (p.getBoundingClientRect().bottom + 5) + 'px'; }   // notif selalu di bawah kotak Peningkatan   // kotak sendiri, tepat di bawah kotak judul/menu
 function wnPenHud() {
   const box = $('#wnPen'); if (!box) return; wnPenTaruh(); const id = TIM.me, tot = ['hp', 'def', 'atk', 'spd', 'as', 'cd'].reduce((a, k) => a + wnPersen(id, k), 0);
   box.querySelector('.wpT').innerHTML = `📈 Peningkatan${tot ? '' : ' <small>(0)</small>'} <i>${box.classList.contains('buka') ? '▴' : '▾'}</i>`;
@@ -10142,7 +10181,7 @@ function wnSiapkan() {   // setelah semua hero masuk arena (Main Solo & Main Bar
   WN.t0 = performance.now(); WN.siap = true; TIM.terakhir = null; TIM.pl.forEach(p => wnSkBaru(p.i));
   const hud = document.createElement('div'); hud.id = 'wnStat'; hud.className = 'ui'; document.body.appendChild(hud);
   { const pen = document.createElement('div'); pen.id = 'wnPen'; pen.innerHTML = '<div class="wpT"></div><div class="wpL"></div>'; document.body.appendChild(pen); wnPenTaruh(); addEventListener('resize', wnPenTaruh);
-    pen.querySelector('.wpT').onclick = e => { e.stopPropagation(); pen.classList.toggle('buka'); wnPenHud(); }; pen.onpointerdown = e => e.stopPropagation(); }
+    pen.querySelector('.wpT').onclick = e => { e.stopPropagation(); pen.classList.toggle('buka'); wnPenHud(); wnPenTaruh(); }; pen.onpointerdown = e => e.stopPropagation(); }
   wnStatHud();
   const kartu = document.createElement('div'); kartu.id = 'wnKartu'; document.body.appendChild(kartu);
   kartu.addEventListener('pointerdown', e => { const b = e.target.closest('.wk'); if (!b) return; e.preventDefault(); e.stopPropagation(); wnKartuPilih(+b.dataset.i); });
