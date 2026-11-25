@@ -9161,7 +9161,7 @@ function wnMusuh(E) {   // daftar sasaran serangan pemain: lawan & netral yang m
 }
 const wnMusuhSemua = () => WN.E.forEach(wnMusuh);
 const wnPos = t => t === P ? P.root.position : t.root ? t.root.position : t.g.position;
-const wnHidup = t => !t ? false : t === P ? P.state !== 'kalah' : t.wnE ? !t.wnE.mati : !t.mt.mati;
+const wnHidup = t => !t || typeof t !== 'object' ? false : t === P ? P.state !== 'kalah' : t.wnE ? !t.wnE.mati : !t.mt.mati;
 const wnTimOf = t => t === P ? 0 : t.wnE ? t.wnE.tm : t.tm;
 const wnIdOf = t => t === P ? TIM.me : t.id;
 function wnPukul(t, dmg, dari, dorong = 2) {   // monster / penjaga / buaya mengenai hero atau buaya
@@ -10372,7 +10372,7 @@ R.root.add(R.tilt);
 R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, remote: true, bar: null };
 
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
-const FXF = { ajPanah, ajPasopati, ajAura, sriBiji, sriSungai, sriKupu, sriTaman, lDaun, blSisik, blUlarTanah, blTrap, blTrapHapus, blKolam, blAsap, blGigit, blKibas, wgCakar: wgCakarFx, wgKantong: (p, m) => wgKantongFx(p, !!m), wgBambu, wgBambuHapus, wgBayi, wgNempel, wgTembang, wgZzz, wgHilang: wgHilangFx, wgJatuh: wgJatuhkan, mdJarak, mdSniper, mdTembak, mdGranat, mdBren, mdBrenArah, mdBrenLepas, mdDebu: mdLompatDebu, bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksLesat, ksTusuk, ksSerangTusuk, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik, rjBatu, rjBatuPatung, rjTanda, rjPasif, rjPatung, rjLesung, rjCandi };
+const FXF = { asap, ajPanah, ajPasopati, ajAura, sriBiji, sriSungai, sriKupu, sriTaman, lDaun, blSisik, blUlarTanah, blTrap, blTrapHapus, blKolam, blAsap, blGigit, blKibas, wgCakar: wgCakarFx, wgKantong: (p, m) => wgKantongFx(p, !!m), wgBambu, wgBambuHapus, wgBayi, wgNempel, wgTembang, wgZzz, wgHilang: wgHilangFx, wgJatuh: wgJatuhkan, mdJarak, mdSniper, mdTembak, mdGranat, mdBren, mdBrenArah, mdBrenLepas, mdDebu: mdLompatDebu, bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksLesat, ksTusuk, ksSerangTusuk, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik, rjBatu, rjBatuPatung, rjTanda, rjPasif, rjPatung, rjLesung, rjCandi };
 const FX_SUDUT = { ajPanah: [1], ajPasopati: [1], sriBiji: [1], sriSungai: [1], sriKupu: [1], blSisik: [1], blGigit: [1], wgCakar: [1], wgBayi: [1], wgTembang: [1], mdTembak: [1], mdBren: [1], mdBrenArah: [1], rjBatu: [1], rjBatuPatung: [1], rjLesung: [1], rjCandi: [1], wrTebas: [1], wrSilat: [1], wrNaga: [1], ksTebas: [1], ksGerak: [3], ksSerang: [2], ksLesat: [1], ksTusuk: [1], ksSerangTusuk: [2], skPerahu: [1], skTebas: [1], swMacan: [2], swCakar: [2], swTebas: [1], swBayang: [1], nrBola: [1], nrLesat: [1], nrOmbak: [1], dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
 // ---- efek skill MUSUH diberi warna kemerahan, agar beda dengan efek sendiri / tim ----
 const MERAH_MUSUH = new THREE.Color(0xff2020), MERAH_KADAR = .45;
@@ -10812,6 +10812,18 @@ function timAkhir(menang) {   // menang = 0/1, -1 = seri
 // ---------- War Nanas online: hero pemain yang keluar / bot wasit lama → dijalankan HP ini ----------
 const WN_ST_K = ['hp', 'atk', 'def', 'spd', 'as', 'cd'];
 function wnCadangDari(id) { const st = WN.st.get(id) || {}, sp = WN_SP.get(id); let mask = 0; if (sp) sp.buka.forEach((b, k) => { if (b) mask |= 1 << k; }); return WN_ST_K.map(k => r2(st[k] || 0)).concat([mask, sp ? sp.poin | 0 : 0]); }
+// Pergantian tuan rumah (wasit pindah ke HP lain saat yang lama terputus):
+// HP yang BUKAN tuan rumah lagi → bot-botnya jangan dijalankan sendiri (dulu bot tetap jalan di HP lama: di HP lain bot itu tidak ada / beda tempat).
+// Bot diubah jadi tampilan dari jaringan; posisinya mengikuti kiriman tuan rumah yang baru.
+async function lepasBotSemua() {
+  for (const b of [...TIM.bot.values()]) {
+    const p = TIM.pl.find(x => x.i === b.id), pos = b.root.position.clone(), mati = !!b.mt.mati, hp = b.mt.hp, hpMax = b.mt.hpMax;
+    hapusObj(b); if (!p || TIM.obj.has(p.i)) continue;
+    try { const o = await buatObjTim(p); o.root.position.copy(pos); o.tujuan.copy(pos); o.hp = o.mt.hp = hp; if (WN.on) o.mt.hpMax = hpMax; if (mati) o.mt.mati = 1; } catch (e) { console.error(e); }
+  }
+}
+// HP ini baru jadi tuan rumah: sasaran monster dari kiriman lama hanya penanda (angka), bukan hero → kosongkan supaya otak monster jalan lagi
+function wnJadiHost() { if (!WN.on) return; (WN.E || []).concat(WN.bts || []).forEach(E => { if (E && E.sas != null && typeof E.sas !== 'object') E.sas = null; }); }
 async function jadikanBot(id) {
   const o = TIM.obj.get(id); if (!o || TIM.bot.has(id) || o._jadi) return; o._jadi = 1;
   const p = TIM.pl.find(x => x.i === id); if (!p) return; p.bot = 1;
@@ -11067,9 +11079,10 @@ function timTerima(m) {
   if (m.t === 'tmSambung') { if (TIM.main) banner('✅ ' + namaOf(m.i) + ' tersambung lagi', '#9dff8a'); voiceTutup(m.i); VOICE.syncT = 0; return true; }
   if (m.t === 'tmJadiBot') { if (TIM.main) { banner(namaOf(m.i) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host) jadikanBot(m.i); } return true; }
   if (m.t === 'tmWasit') { TIM.hostId = m.host; const dulu = TIM.host; TIM.host = m.host === TIM.me;
-    if (TIM.main) { if (m.tahan) banner('📶 ' + namaOf(m.tahan) + ' masih menyambung lagi…', '#ffd166'); else banner(namaOf(m.keluar) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host && !dulu) { (m.bots || []).forEach(id => jadikanBot(id)); banner('🌐 Pertandingan sekarang dijalankan HP kamu', '#9fd8ff'); } }
+    if (TIM.main) { if (m.tahan) banner('📶 ' + namaOf(m.tahan) + ' masih menyambung lagi…', '#ffd166'); else banner(namaOf(m.keluar) + (RANK ? ' keluar' : ' keluar — diganti 🤖 bot'), '#ffd166'); if (TIM.host && !dulu) { wnJadiHost(); (m.bots || []).forEach(id => jadikanBot(id)); banner('🌐 Pertandingan sekarang dijalankan HP kamu', '#9fd8ff'); } }
+    if (dulu && !TIM.host) lepasBotSemua();
     return true; }
-  if (m.t === 'tmBalikOk') { if (NET.ulang) NET.ulang.ok = true; TIM.host = !!m.host; if (m.hostId) TIM.hostId = m.hostId; NET.on = true; banner('✅ Tersambung lagi', '#9dff8a'); return true; }
+  if (m.t === 'tmBalikOk') { if (NET.ulang) NET.ulang.ok = true; const dulu = TIM.host; TIM.host = !!m.host; if (dulu && !TIM.host) lepasBotSemua(); else if (!dulu && TIM.host) wnJadiHost(); if (m.hostId) TIM.hostId = m.hostId; NET.on = true; banner('✅ Tersambung lagi', '#9dff8a'); return true; }
   if (m.t === 'tmBalikGagal') { NET.ulang = null; NET.keluar = true; try { if (NET.ws) NET.ws.close(); } catch (e) { } if (TIM.main && !SELESAI) wnPutusAkhir(); return true; }
   if (m.t === 'tmLeft') {
     const o = objek(m.i); if (o) { banner(o.nama + ' keluar', '#ffd166'); hapusObj(o); }
