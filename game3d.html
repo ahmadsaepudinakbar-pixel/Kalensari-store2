@@ -1717,7 +1717,7 @@ if (HERO === 'timun') $('#help').textContent = 'WASD / panah: gerak · J / Spasi
 if (HERO === 'blorong') $('#help').textContent = 'Pasif: serangan & skill meracuni 3 dtk · WASD / panah: gerak · J / Spasi: Sisik Emas · U (tahan + mouse): Panggilan Ular — ular muncul dari tanah di bawah musuh & melilitnya · I (tahan + mouse): Kolam Bisa (jebakan 30 dtk, tak terlihat musuh) — tekan lagi untuk teleport ke jebakan · O: Wujud Siluman Ular 10 dtk (J: patuk · U: Lilitan · I: Terkaman — kena sasaran = bisa langsung terkam lagi, maks 3x) — tekan O lagi untuk kembali';
 else if (HERO === 'wewe') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: kombo Cakar 3 pukulan (ke-3 paling sakit & mendorong) · U: Gendongan Pelindung (teman terdekat masuk gendongan 3 dtk: kebal & tak terlihat, ikut dibawa) — tanpa teman di dekat: Bayi Merangkak · I: Tembang Nina Bobo (kipas: mengantuk lalu TERTIDUR; kena damage = bangun, +30%) · O: Culik ke Gombel (rumpun bambu muncul, Wewe melayang tak terlihat; sentuh hero lawan = korban lenyap diculik, Wewe terbang pulang ke bambu lalu menjatuhkannya)';
 else if (HERO === 'masdim') $('#help').textContent = 'WASD / panah: gerak · J / Spasi: Tembakan Senapan (10 peluru) · R: isi peluru (bisa sambil jalan; diam 3,3 dtk = penuh) · U: Lempar Granat (dibidik, ledakan + Slow) · I: Lompat Taktis · O lalu 1 / 2: pilih mode ulti 🎯 Sniper (tiarap 10 dtk, 1 peluru: gerak = geser teropong, J = tembak) atau 🔫 Bren (diam di balik minigun, tahan J = tembak bertubi-tubi, O / I = keluar)';
-else if (HERO === 'woyo') $('#help').textContent = 'Fighter/Support · WASD / panah: gerak · J / Spasi: pukul-pukul-tendang · U (tahan + mouse): Tinju Penolong — melesat 4 m meninju, teman di sekitar pulih 8% · I: Hentakan Bumi — damage + stun di sekitar, tahan damage 30% 2 dtk · O: Ojek Woyo — naik motor 8 dtk menabrak lawan, 1 teman terdekat ikut dibonceng';
+else if (HERO === 'woyo') $('#help').textContent = 'Fighter/Support · WASD / panah: gerak · J / Spasi: pukul-pukul-tendang · U (tahan + mouse): Tinju Penolong — melesat 4 m meninju, teman di sekitar pulih 8% · I: Hentakan Bumi — damage + stun di sekitar, tahan damage 30% 2 dtk · O: Ojek Woyo — naik motor ngebut maju terus (joystick = belok) sampai menabrak pohon / dinding / hero / monster / bangunan, 1 teman terdekat ikut dibonceng';
 else if (HERO === 'patimura') $('#help').textContent = 'Fighter · WASD / panah: gerak · J / Spasi: Tebasan Parang (3 tebasan beruntun) · U (tahan + mouse): Serbuan Kapitan — melesat 5 m sambil menebas semua lawan di jalur · I (tahan + mouse): Belah Parang — tebasan atas-bawah, area lurus 5 m + Slow (7,5 m & lebih lebar saat parang membesar) · O (tahan + mouse): Lompatan Saparua — lompat ke titik, hantaman + stun, lalu parang membesar 6 dtk (jangkauan & damage naik)';
 else if (HERO === 'guntur') $('#help').textContent = 'Mage · WASD / panah: gerak · J / Spasi: Bola Listrik · U (tahan + mouse): Tombak Petir — petir lurus 10 m menembus semua lawan di jalurnya (+ Slow 1 dtk) · I (tahan + mouse): Lesatan Kilat — melesat 5,5 m · O: Badai Guntur — awan mendung radius 5 m, selama 1 dtk petir menyambar SETIAP sasaran di dalamnya 3 kali';
 else if (HERO === 'rawa') $('#help').textContent = 'Support · WASD / panah: gerak · J / Spasi: Bola Roh Rawa (jarak jauh) · U (tahan + mouse): Lesatan Rawa — melesat 4,5 m + Attack Speed 2× selama 2 dtk · I: Semedi — diam 3 dtk, pulih 20% darah/dtk, kebal damage & stun · O: Ritual Kebangkitan — diam 3 dtk, peti mati muncul & teman yang gugur dalam 7 m bangkit lagi, 3 tengkorak menyerang lawan 7 dtk (bisa dikombo dengan Semedi agar tidak terputus)';
@@ -7306,14 +7306,14 @@ function updArjuna(dt, pos, f) {
 // Serangan dasar: pukul · pukul · tendang (combo)
 // Skill 1: Tinju Penolong — melesat 4 m sambil meninju (lawan di jalur kena damage), lalu teman di sekitar (termasuk Woyo) pulih 8% darah maks
 // Skill 2: Hentakan Bumi — loncat menghentak tanah: lawan di sekitar kena damage + stun 0,5 dtk, Woyo menahan damage 30% selama 2 dtk
-// Skill 3: Ojek Woyo — motor muncul, Woyo ngebut 8 dtk menabrak lawan; 1 teman terdekat (4 m) ikut dibonceng: tidak bisa jalan sendiri tapi tetap bisa menyerang & pakai skill,
+// Skill 3: Ojek Woyo — motor muncul, Woyo ngebut maju terus (joystick = belok) tanpa batas waktu sampai MENABRAK pohon / dinding / hero / monster / buaya / garuda / singa / rumah; 1 teman terdekat (4 m) ikut dibonceng: tidak bisa jalan sendiri tapi tetap bisa menyerang & pakai skill,
 //          damage yang diterimanya berkurang 30%, bisa turun kapan saja dengan menggerakkan joystick
 const WY = { cepat: 4.1, tsLari: 1, tinggi: 1.55, oranye: 0xff8a1a, hijau: 0x7dff8a, debu: 0x8a6a4a,
   dasar: [{ a: 'pukul1', ts: 1.4, rilis: .24, akhir: .42, dmg: 66 }, { a: 'pukul2', ts: 1.5, rilis: .39, akhir: .62, dmg: 70 }, { a: 'tendang', ts: 1.4, rilis: .38, akhir: .72, dmg: 90 }],
   jangkau: 1.9, comboJeda: 1.2,
   tinju: { a: 'pukul2', ts: 1.2, gerak: .3, jarak: 4, rilis: .32, akhir: .7, lebar: 1.2, dmg: 150, heal: .08, R: 4 },
   hentak: { a: 'gledeg', ts: 1.2, rilis: .36, akhir: .95, R: 2.6, dmg: 170, stun: .5, tahan: 2, tahanK: .7 },
-  ulti: { lama: 8, cepat: 7.5, R: 4, dmg: 130, tabrakR: 1.4, jeda: 1, skala: 1.6, naik: .28, maju: .08, jok: .885, belakang: -.4, kurangDmg: .7 } };
+  ulti: { lama: 60, cepat: 7.5, belok: 3.4, R: 4, dmg: 320, stun: 1, dorong: 5, tabrakR: 1.1, aman: .3, skala: 1.85, naik: .4, maju: .09, jok: 1.02, belakang: -.46, kurangDmg: .7 } };   // lama = batas aman saja (ulti berakhir saat menabrak)
 const WY_URL = 'model-3d/woyo.glb?v=1', WY_MOTOR_URL = 'model-3d/woyo-motor.glb?v=1';
 const WYW = { combo: 0, comboT: 0, tahanT: 0, tabrak: new Map(), duduk: null };
 const WY_MOTOR = new Map(), WY_BONC = new Map();   // id → motor yang tampil · id penumpang → { w: id Woyo, sampai }
@@ -7331,10 +7331,13 @@ function wyObj(id) {   // objek model (P / pemain lain / bot) dari id
   return o.model ? o : (o.B && o.B.T) || null;
 }
 function wyTukarAnim(T, klip) {   // naik motor: diam/lari/jalan jadi pose duduk · klip null = kembalikan
-  if (!T || !T.act) return;
-  if (klip) { if (T._wyAsli) return; T._wyAsli = { diam: T.act.diam, lari: T.act.lari, jalan: T.act.jalan }; const a = typeof klip === 'string' ? T.act[klip] : T.mixer && T.mixer.clipAction(klip);
-    if (!a) { T._wyAsli = null; return; } T.act.diam = T.act.lari = T.act.jalan = a; const c = T.cur; T.cur = ''; if (T === P) main(c === 'lari' ? 'lari' : 'diam', .15); else if (typeof mainObj === 'function') mainObj(T, 'diam'); }
-  else if (T._wyAsli) { Object.assign(T.act, T._wyAsli); T._wyAsli = null; T.cur = ''; if (T === P) main('diam', .2); else if (typeof mainObj === 'function') mainObj(T, 'diam'); }
+  if (!T || !T.act || !T.mixer) return; const K3 = ['diam', 'lari', 'jalan'], mulai = nm => { T.cur = ''; if (T === P) main(nm, .15); else mainObj(T, nm, .15); };
+  if (klip) { if (T._wyAsli) return; const a0 = typeof klip === 'string' ? T.act[klip] : null, c = a0 ? a0.getClip() : klip; if (!c || !c.tracks) return;
+    if (!T._wyDuduk || T._wyDuduk.c !== c) T._wyDuduk = { c, a: K3.map(k => { const k2 = c.clone(); k2.name = c.name + '_wy_' + k; return T.mixer.clipAction(k2); }) };   // 3 aksi terpisah: peralihan diam↔lari tidak memudarkan pose duduk
+    T._wyAsli = {}; K3.forEach((k, i) => { T._wyAsli[k] = T.act[k]; T.act[k] = T._wyDuduk.a[i]; });
+    new Set(Object.values(T._wyAsli)).forEach(a => a && a.fadeOut(.15));   // animasi lari/diam asli dipadamkan (sebelumnya tetap berjalan di balik pose duduk)
+    mulai(T.cur === 'lari' || T.cur === 'jalan' ? T.cur : 'diam'); }
+  else if (T._wyAsli) { const sb = K3.map(k => T.act[k]); Object.assign(T.act, T._wyAsli); T._wyAsli = null; sb.forEach(a => a && a.fadeOut(.2)); mulai('diam'); }
 }
 // ---- efek (dikirim lewat jaringan) ----
 function wyPukul(pos, a, k = 1) { const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), q = pos.clone().setY(1).addScaledVector(d, 1.1); nyala(q, .7 * k, WY.oranye, .18); percik(q, Math.round(6 * k), 0xffe0b0, 2.4, .09); gelombang(q.clone().setY(.05), .7 * k, .25, WY.oranye); }
@@ -7354,7 +7357,9 @@ function wyMotor(id, lama) {   // motor muncul di bawah Woyo selama lama detik (
     m.scale.setScalar(WY.ulti.skala); m.position.set(0, .053 * WY.ulti.skala, WY.ulti.maju); m.traverse(o => { if (o.isMesh) o.castShadow = true; if (/_putar$/.test(o.name)) M.ban.push(o); });
     T.root.add(m); M.g = m; wyTukarAnim(T, 'duduk'); }).catch(() => { });
   TMFX.push({ t: 0, upd(e, dt) {
-      const mati = T === P ? P.state === 'kalah' : T.mt ? !!T.mt.mati : false; if (M.habis || mati || e.t > lama) return false;
+      const mati = T === P ? P.state === 'kalah' : T.mt ? !!T.mt.mati : false;
+      if (mati && T === P && !M.umum) { M.umum = 1; fx('wySelesai', TIM.on ? TIM.me : null); }   // Woyo kalah di atas motor: semua HP ikut menurunkan motor & penumpang
+      if (M.habis || mati || e.t > lama) return false;
       if (M.g) { T.tilt.position.y = WY.ulti.naik; const d = T.root.position.distanceTo(M.p0); M.p0.copy(T.root.position); M.ban.forEach(b => { b.rotation.z += d / (.25 * 1); });
         if (d > .02 && Math.random() < .5) asap(T.root.position.clone().addScaledVector(new THREE.Vector3(Math.sin(T.root.rotation.y), 0, Math.cos(T.root.rotation.y)), -.9).setY(.25), 1, 0x8a8a8a, .5, .5); }
       return true; },
@@ -7376,6 +7381,10 @@ function wyBonceng(wId, penId, lama) {   // penumpang ditempel ke jok belakang m
     akhir() { pen.tilt.position.y = 0; wyTukarAnim(pen, null); if (WY_BONC.get(penId) === B) WY_BONC.delete(penId); asap(pen.root.position.clone().setY(.2), 4, 0x9a9a9a, .8, .6); } });
 }
 function wyTurun(penId) { const B = WY_BONC.get(penId); if (B) B.habis = true; }
+function wySelesai(id) {   // ojek selesai (menabrak / Woyo kalah): motor hilang, penumpang turun
+  const k = id == null ? 'P' : id, M = WY_MOTOR.get(k); if (M) M.habis = true;
+  WY_BONC.forEach(B => { if (B.w === id || (id == null && B.w == null)) B.habis = true; });
+}
 const wyDibonceng = () => WY_BONC.has(TIM.on ? TIM.me : null) || WY_BONC.has(TIM.me);
 // ---- memakai skill ----
 function pakaiWoyo(i) {
@@ -7386,11 +7395,11 @@ function pakaiWoyo(i) {
     P.root.rotation.y = P.arah; P.awal = P.root.position.clone(); P.tujuan = batasi(P.awal.clone().addScaledVector(depan(), WY.tinju.jarak)); fx('wyLesat', P.awal.clone(), P.arah, P.awal.distanceTo(P.tujuan)); P.state = 'wyTinju'; mainUlang(WY.tinju.a, .05, WY.tinju.ts); }
   else if (i === 2) { P.state = 'wyHentak'; mainUlang(WY.hentak.a, .05, WY.hentak.ts); }
   else if (i === 3) {   // Ojek Woyo
-    const U = WY.ulti, me = TIM.on ? TIM.me : null; fx('wyMotor', me, U.lama); WYW.tabrak.clear(); P.state = 'wyMotor'; banner('🛵 OJEK WOYO! Ngebut ' + U.lama + ' dtk', '#ffb070');
+    const U = WY.ulti, me = TIM.on ? TIM.me : null; fx('wyMotor', me, U.lama); WYW.penumpang = null; P.state = 'wyMotor'; banner('🛵 OJEK WOYO! Ngebut sampai nabrak!', '#ffb070');
     if (TIM.on && TIM.saya) { let best = null, bd = U.R;   // teman terdekat ikut dibonceng
       const coba = (id, o) => { if (id === TIM.me || !o || !o.root || !o.mt || o.mt.mati || timOf(id) !== TIM.saya.tm || WY_BONC.has(id)) return; const d = o.root.position.distanceTo(P.root.position); if (d < bd) { bd = d; best = id; } };
       TIM.bot.forEach((o, id) => coba(id, o)); TIM.obj.forEach((o, id) => coba(id, o));
-      if (best != null) { fx('wyBonceng', TIM.me, best, U.lama); netEvent({ k: 'bonceng', ke: best, lama: U.lama }); banner('🛵 ' + namaOf(best) + ' ikut dibonceng!', '#ffd0a0'); } } }
+      if (best != null) { WYW.penumpang = best; fx('wyBonceng', TIM.me, best, U.lama); netEvent({ k: 'bonceng', ke: best, lama: U.lama }); banner('🛵 ' + namaOf(best) + ' ikut dibonceng!', '#ffd0a0'); } } }
   P.cd[i] = CD_MAX[i]; P.t = 0; P.hit = 0;
 }
 function wyBebas() { P.state = 'bebas'; main('diam', .2); }
@@ -7420,14 +7429,29 @@ function updWoyo(dt, pos, f) {
       MUSUH.forEach(m => { if (m.mati || m.sembunyi || !m.g || m.g.position.distanceTo(pos) > S.R) return; kena(m, S.dmg, pos, 2); m.pusing = Math.max(m.pusing || 0, S.stun); }); }
     if (t > S.akhir) wyBebas();
   }
-  else if (P.state === 'wyMotor') {   // ngebut di atas motor: tidak bisa menyerang, menabrak lawan di depan
+  else if (P.state === 'wyMotor') {   // ngebut maju terus (joystick = belok) sampai menabrak sesuatu
     const U = WY.ulti, [x, z] = arahGerak(); lepasCC();
-    if (x || z) { pos.x += x * U.cepat * dt; pos.z += z * U.cepat * dt; P.arah = Math.atan2(x, z); main('lari', .15); } else main('diam', .2);
-    const now = performance.now();
-    MUSUH.forEach(m => { if (m.mati || m.sembunyi || !m.g || !(x || z)) return; const v = m.g.position.clone().sub(pos).setY(0), L = v.length(); if (L > U.tabrakR || v.dot(f) < -.2) return;
-      if (now - (WYW.tabrak.get(m) || 0) < U.jeda * 1000) return; WYW.tabrak.set(m, now); kena(m, U.dmg, pos, 4); fx('wyPukul', pos.clone(), P.arah, 1.5); goyang = Math.max(goyang, .12); });
-    if (t > U.lama) wyBebas();
+    if (x || z) { let da = Math.atan2(x, z) - P.arah; da = Math.atan2(Math.sin(da), Math.cos(da)); P.arah += Math.sign(da) * Math.min(Math.abs(da), U.belok * dt); }
+    P.root.rotation.y = P.arah; const d = new THREE.Vector3(Math.sin(P.arah), 0, Math.cos(P.arah)); main('lari', .15);   // 'lari' = pose duduk selama di motor
+    pos.addScaledVector(d, U.cepat * dt);
+    if (t > U.aman) {   // sebentar setelah motor muncul: belum bisa menabrak
+      let m = null, bd = 1e9, apa = '';
+      MUSUH.forEach(o => { if (o.mati || o.sembunyi || !o.g) return; const v = o.g.position.clone().sub(pos).setY(0), L = v.length(), Rr = U.tabrakR + (o.wn ? (o.wn.padat || .6) : 0);   // bangunan / monster besar: jari-jari lebih besar
+        if (L > Rr || (L > .3 && v.dot(d) / L < -.1)) return; if (L - Rr < bd) { bd = L - Rr; m = o; } });
+      if (m) apa = 'musuh';
+      else { const q = batasi(pos.clone()); if (Math.hypot(q.x - pos.x, q.z - pos.z) > .003) { apa = 'dinding'; pos.x = q.x; pos.z = q.z; } }   // dinding arena, batu, bangunan
+      if (!apa) for (const p of POHON_LK) { const dx = pos.x - p.x, dz = pos.z - p.z; if (dx * dx + dz * dz < .62 * .62 && dx * d.x + dz * d.z < 0) { apa = 'pohon'; break; } }
+      if (apa) {
+        const c = pos.clone().addScaledVector(d, .7);
+        if (m) { kena(m, U.dmg, pos.clone(), U.dorong); m.pusing = Math.max(m.pusing || 0, U.stun); }
+        fx('wyHentak', c, 2); fx('wyPukul', pos.clone(), P.arah, 1.8); fx('wySelesai', TIM.on ? TIM.me : null); goyang = Math.max(goyang, .35);
+        if (WYW.penumpang != null) { netEvent({ k: 'bonceng', ke: WYW.penumpang, lama: 0 }); WYW.penumpang = null; }
+        angka(pos, apa === 'musuh' ? '💥 TABRAK!' : apa === 'pohon' ? '🌳 Nabrak pohon!' : '🧱 Nabrak!', '#ffb070');
+        pos.addScaledVector(d, -.5); batasi(pos); P.state = 'wyJatuh'; P.t = 0; mainUlang('kena', .05, 1.2);
+      }
+    }
   }
+  else if (P.state === 'wyJatuh') { lepasCC(); if (t > .45) wyBebas(); }   // terpental sebentar setelah menabrak
 }
 
 // ===== KAPITAN PATTIMURA (Fighter · parang) =====
@@ -11296,7 +11320,7 @@ R.root.add(R.tilt);
 R.mt = { g: R.root, hp: 1000, v: new THREE.Vector3(), y: 0, vy: 0, mati: 0, kunci: 0, pusing: 0, kilau: 0, remote: true, bar: null };
 
 // efek yang juga diputar di layar lawan (hanya efek sekali muncul, bukan jejak per frame)
-const FXF = { asap, wyPukul, wyLesat, wyPulih, wyHentak, wyMotor, wyBonceng, wyTurun, ptTebas, ptSerbu, ptCakalele, ptBelah, ptHantam, ptBesar, gtBola, gtPetir, gtLesat, gtAwan, gtSambar, rrBola, rrLesat, rrAsSpd, rrSemedi, rrRitual, rrRitualHapus, rrBangkit, rrPeti, rrPetiHapus, rrTengkorak, rrTkGerak, ajPanah, ajPasopati, ajAura, sriBiji, sriSungai, sriKupu, sriTaman, lDaun, blSisik, blUlarTanah, blTrap, blTrapHapus, blKolam, blAsap, blGigit, blKibas, wgCakar: wgCakarFx, wgKantong: (p, m) => wgKantongFx(p, !!m), wgBambu, wgBambuHapus, wgBayi, wgNempel, wgTembang, wgZzz, wgHilang: wgHilangFx, wgJatuh: wgJatuhkan, mdJarak, mdSniper, mdTembak, mdGranat, mdBren, mdBrenArah, mdBrenLepas, mdDebu: mdLompatDebu, bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksLesat, ksTusuk, ksSerangTusuk, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik, rjBatu, rjBatuPatung, rjTanda, rjPasif, rjPatung, rjLesung, rjCandi };
+const FXF = { asap, wyPukul, wyLesat, wyPulih, wyHentak, wyMotor, wyBonceng, wyTurun, wySelesai, ptTebas, ptSerbu, ptCakalele, ptBelah, ptHantam, ptBesar, gtBola, gtPetir, gtLesat, gtAwan, gtSambar, rrBola, rrLesat, rrAsSpd, rrSemedi, rrRitual, rrRitualHapus, rrBangkit, rrPeti, rrPetiHapus, rrTengkorak, rrTkGerak, ajPanah, ajPasopati, ajAura, sriBiji, sriSungai, sriKupu, sriTaman, lDaun, blSisik, blUlarTanah, blTrap, blTrapHapus, blKolam, blAsap, blGigit, blKibas, wgCakar: wgCakarFx, wgKantong: (p, m) => wgKantongFx(p, !!m), wgBambu, wgBambuHapus, wgBayi, wgNempel, wgTembang, wgZzz, wgHilang: wgHilangFx, wgJatuh: wgJatuhkan, mdJarak, mdSniper, mdTembak, mdGranat, mdBren, mdBrenArah, mdBrenLepas, mdDebu: mdLompatDebu, bBatu, tBiji, tJarum, tTanda, tBambu, tSulur, tLumpur, dPukul, dGir, dTarik, dPusar, dKena, dDarah, gelombang, percik, kilat, lingkaranLantai, nyala, gelombangKipas, gPukul, gTebas, gTanda, gHantam, gAmuk, gLepas, pTebas, pTusuk, pUlti, pDebu, pBlink, pLepas, pPukul, pTendang, pTanda, lCakar, lMendarat, lCabik, lPamungkas, sKilat, sPukul, sLedak, sTinju, sRantai, sLangit, aAngin, aApi, aHembus, aPanggil, aLesat, aBakar, dsJarum, dsBenang, dsIkat, dsCentong, dsLari, dsAnjing, dsLedak, dsPerisai, dsBonk, dsTali, nrBola, nrCipratan, nrLesat, nrPusaran, nrOmbak, nrLaut, nrTerkam, swMacan, swGerak, swCakar, swPergi, swHp, swLesatM, cwBiji, cwPatuk, cwPhoenix, skPerahu, skTendang, skTebas, skPutar, ksBayang, ksHilang, ksPerisai, ksTebas, ksGerak, ksSerang, ksLesat, ksTusuk, ksSerangTusuk, ksHp, ksPerisaiK, swTebas, swBayang, swHilang, swMuncul, swGatsuga, wrTebas, wr212, wrKapak, wrTangkap, wrSilat, wrAmuk, wrNaga, wrHantam, wrNagaTukik, rjBatu, rjBatuPatung, rjTanda, rjPasif, rjPatung, rjLesung, rjCandi };
 const FX_SUDUT = { wyPukul: [1], wyLesat: [1], ptTebas: [1], ptSerbu: [1], ptBelah: [1], gtBola: [1], gtPetir: [1], gtLesat: [1], rrBola: [1], rrLesat: [1], ajPanah: [1], ajPasopati: [1], sriBiji: [1], sriSungai: [1], sriKupu: [1], blSisik: [1], blGigit: [1], wgCakar: [1], wgBayi: [1], wgTembang: [1], mdTembak: [1], mdBren: [1], mdBrenArah: [1], rjBatu: [1], rjBatuPatung: [1], rjLesung: [1], rjCandi: [1], wrTebas: [1], wrSilat: [1], wrNaga: [1], ksTebas: [1], ksGerak: [3], ksSerang: [2], ksLesat: [1], ksTusuk: [1], ksSerangTusuk: [2], skPerahu: [1], skTebas: [1], swMacan: [2], swCakar: [2], swTebas: [1], swBayang: [1], nrBola: [1], nrLesat: [1], nrOmbak: [1], dsJarum: [1], dsBenang: [1], dsCentong: [1], aAngin: [1], aApi: [1], aHembus: [1], aLesat: [1], sTinju: [1], lCakar: [1], lPamungkas: [1], tBiji: [1], tSulur: [1], dGir: [1], dPusar: [1], gelombangKipas: [1], gTebas: [1], pTebas: [1], pTusuk: [1] };
 // ---- efek skill MUSUH diberi warna kemerahan, agar beda dengan efek sendiri / tim ----
 const MERAH_MUSUH = new THREE.Color(0xff2020), MERAH_KADAR = .45;
