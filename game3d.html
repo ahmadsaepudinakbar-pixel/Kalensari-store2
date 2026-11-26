@@ -287,6 +287,8 @@ body.setBuka #kual{display:flex}body.setBuka #top{z-index:40}
 body.setBuka #bSet{background:#ffb703;border-color:#fff3b0}
 #wnSkorB,#chatB,#micB,#spkB{top:8px}
 #wnSkorB{right:50px}#chatB{right:90px}#micB{right:130px}#spkB{right:170px}
+#bKam,#bKamKunci{position:fixed;top:8px;z-index:8;height:34px;border-radius:9px;border:1px solid #ffffff33;background:#0b1020cc !important;color:#fff !important;font:700 12px Arial !important;padding:0 9px !important;cursor:pointer}#bKam{right:210px}#bKamKunci{right:auto;left:auto;width:34px;padding:0 !important;font-size:16px !important}
+body:not(.adaWN) #bKam{right:50px}
 #wnMini{top:48px}
 #tbans{gap:3px}#tbans .tban:nth-last-child(n+4){display:none}
 #wnPen{left:10px;top:40px}
@@ -295,6 +297,7 @@ body.setBuka #bSet{background:#ffb703;border-color:#fff3b0}
  #ttl{padding:3px 8px}#ttl small,#fps{font-size:11px}
  #bSet,#wnSkorB,#chatB,#micB,#spkB{width:30px;height:30px;font-size:15px;top:6px}
  #bSet{width:30px}#wnSkorB{right:44px}#chatB{right:78px}#micB{right:112px}#spkB{right:146px}
+ #bKam,#bKamKunci{top:6px;height:30px;font-size:11px !important}#bKam{right:180px}body:not(.adaWN) #bKam{right:44px}
  #kual{top:40px;right:8px}#kual button{padding:5px 7px;font-size:10px}
  #wnMini{top:42px;width:50px;height:108px}
  #micBicara{top:42px;right:64px}#chatP{top:42px}
@@ -304,6 +307,16 @@ body.setBuka #bSet{background:#ffb703;border-color:#fff3b0}
  #tbans{max-width:200px}.tban{font-size:10px;padding:2px 8px}
  #wnPen{top:34px}
 }
+
+/* ☰ Menu di dalam pertandingan: pilihan Keluar / Kembali ke Lobi + konfirmasi Iya / Tidak */
+#kgKeluar{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:#050813b8;padding:16px}
+#kgKeluar.on{display:flex}
+#kgKeluar .kk{width:min(360px,92vw);background:linear-gradient(#1c2a5a,#101734);border:2px solid #ffd23f;border-radius:16px;padding:14px;color:#fff;text-align:center;font-family:Arial;box-shadow:0 10px 40px #000a}
+#kgKeluar h3{margin:0 0 4px;color:#ffd23f;font:900 18px Arial}#kgKeluar p{margin:0 0 12px;font:13px/1.4 Arial;color:#c8d0e4}
+#kgKeluar button{display:block;width:100%;margin:6px 0 0;padding:11px;border:0;border-radius:11px;font:800 15px Arial;color:#fff;cursor:pointer;background:#3a4470}
+#kgKeluar .lobi{background:#2f7bd8}#kgKeluar .klr{background:#d8453a}#kgKeluar .ya{background:#36c24a}
+#kgKeluar .dua{display:flex;gap:8px}#kgKeluar .dua button{flex:1}
+@media (orientation:landscape) and (max-height:560px){#kgKeluar .kk{padding:10px}#kgKeluar h3{font-size:16px}#kgKeluar button{padding:8px;font-size:13px}}
 </style>
 <script src="config.js"></script><script src="qr-mini.js"></script>
 <script type="importmap">
@@ -321,6 +334,7 @@ body.setBuka #bSet{background:#ffb703;border-color:#fff3b0}
  <div id="kual"><button data-q="0">Rendah</button><button data-q="1">Sedang</button><button data-q="2">Tinggi</button><button id="cekBtn" title="Cek performa">📊</button><button id="rekBtn" title="Hasil tes performa">📋</button><span id="trgL" style="display:none;color:#ffd166;font:700 12px Arial;align-self:center;padding-left:2px">☀</span><input id="trg" type="range" min="0" max="2" step="0.1" value="1" title="Kecerahan (kualitas Rendah)" style="display:none;width:64px"><button id="bAtur" title="Atur posisi & ukuran joystick dan tombol skill">🎮 Tombol</button><button id="bKam" title="Kamera Bawaan (tetap seperti MLBB) atau Custom (bisa diputar & di-zoom seperti Roblox)">🎥 Bawaan</button><button id="bKamKunci" title="Kunci / buka sudut kamera Custom" style="display:none">🔓</button></div>
  <button id="bSet" title="Pengaturan: grafis, tombol, kamera, musik">⚙️</button>
 </div>
+<div id="kgKeluar"><div class="kk"></div></div>
 <div id="joy" class="ui"><div id="knob"></div></div>
 <div id="batalB"><b>✖</b>Batal</div>
 <div id="atur"><div id="aturBar"><b>🎮 Atur Tombol</b><small>Geser joystick / tombol skill · ketuk lalu atur ukurannya</small><label>Ukuran <input id="aturUk" type="range" min="60" max="160" step="5" value="100"><span id="aturUkT">100%</span></label><button id="aturReset">Reset</button><button id="aturBatal">Batal</button><button id="aturSimpan" class="ok">Simpan</button></div></div>
@@ -1122,6 +1136,10 @@ $('#bSet').onclick = e => { e.stopPropagation(); document.body.classList.toggle(
 $('#kual').addEventListener('pointerdown', e => e.stopPropagation());
 addEventListener('pointerdown', e => { if (document.body.classList.contains('setBuka') && !e.target.closest('#kual,#bSet')) document.body.classList.remove('setBuka'); }, true);
 $('#bAtur').addEventListener('click', () => document.body.classList.remove('setBuka'));
+// tombol kamera (Bawaan / Custom) & gembok kamera tetap di luar panel ⚙️, di baris kanan atas
+{ const top = $('#top'), k = $('#bKam'), g = $('#bKamKunci'); if (top && k) { top.appendChild(k); if (g) top.appendChild(g); }
+  const taruhGembok = () => { if (!g || g.style.display === 'none') return; const r = k.getBoundingClientRect(); g.style.left = (r.left - (g.offsetWidth || 34) - 6) + 'px'; g.style.right = 'auto'; };
+  setInterval(() => { document.body.classList.toggle('adaWN', !!document.getElementById('chatB') || !!document.getElementById('wnSkorB')); taruhGembok(); }, 500); }
 // Rendah: tanpa pantulan lingkungan, bayangan, lampu api & kilat -> Kuil Malam, Lapangan SD & Kebun Malam jadi sangat gelap.
 // Gantinya dipasang cahaya pengisi + sedikit eksposur (catatan: di three.js terbaru cahaya ambient 1.0 hanya memberi sekitar sepertiga terang bahan, jadi angkanya perlu besar). Ubah angka di sini kalau mau lebih terang / lebih redup:
 // [warna cahaya, kekuatan cahaya, tambahan eksposur]
@@ -10431,6 +10449,28 @@ function keLobiMB() { if (WN_ONLINE) wnLupaMain(); if (TIM.main && !SELESAI) kir
 const SESI = (() => { try { return localStorage.getItem('kalensari_sesi_pembeli') || ''; } catch (e) { return ''; } })();
 const ULANG = +Q.get('ulang') || 0;   // percobaan sambung ulang ke room yang sama
 function ingatRoom(c) { try { localStorage.setItem('kgRoom', JSON.stringify({ c: String(c), m: MODE.startsWith('tim') ? 'tim' : 'duel', t: Date.now() })); } catch (e) { } }
+// ☰ Menu di dalam pertandingan: pilih Keluar ke Menu Utama / Kembali ke Lobi (room kumpul bareng teman), lalu konfirmasi Iya / Tidak
+function bukaMenuKeluar() {
+  const box = $('#kgKeluar'), kk = box.querySelector('.kk'), online = !!(TIM.main || NET.on), adaLobi = !!(LOBI || RANK || (Q.get('pulang') || ''));
+  const tutup = () => box.classList.remove('on');
+  const pilih = () => {
+    kk.innerHTML = `<h3>☰ Menu</h3><p>${online && !SELESAI ? 'Pertandingan masih berjalan.' : 'Mau ke mana?'}</p>`
+      + (adaLobi ? `<button class="lobi" data-k="lobi">👥 Kembali ke Room</button>` : '')
+      + `<button class="klr" data-k="keluar">🚪 Keluar ke Menu Utama</button><button data-k="batal">✖ Lanjut Main</button>`;
+  };
+  const tanya = k => {
+    const lobi = k === 'lobi';
+    kk.innerHTML = `<h3>${lobi ? '👥 Kembali ke Room?' : '🚪 Keluar Pertandingan?'}</h3><p>${online && !SELESAI ? (RANK ? 'Kalau keluar sekarang, kamu dihitung AFK dan poin Rank bisa berkurang.' : 'Heromu akan digantikan bot sampai pertandingan selesai.') + '<br>' : ''}${lobi ? 'Kamu kembali ke room tempat kumpul bareng teman.' : 'Kamu kembali ke menu utama.'}</p>`
+      + `<div class="dua"><button class="ya" data-k="${lobi ? 'yaLobi' : 'yaKeluar'}">Iya</button><button data-k="pilih">Tidak</button></div>`;
+  };
+  kk.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.k;
+    if (k === 'batal') tutup(); else if (k === 'pilih') pilih(); else if (k === 'lobi' || k === 'keluar') tanya(k);
+    else if (k === 'yaLobi') keLobiMB();
+    else if (k === 'yaKeluar') { if (online) { try { if (TIM.main && !SELESAI) kirim({ t: 'leave' }); } catch (x) { } keluarRoom(); } location.href = 'game.html'; } };
+  box.onclick = e => { if (e.target === box) tutup(); };
+  pilih(); box.classList.add('on');
+}
+$('#back').addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); bukaMenuKeluar(); });
 function keluarRoom() { if (WN_ONLINE) wnLupaMain(); NET.keluar = true; kirim({ t: 'leave' }); try { localStorage.removeItem('kgRoom'); } catch (e) { } }
 const NET = { url: Q.get('server') || 'wss://game.kalensari.web.id/ws', ws: null, role: '', on: false, kirimT: 0, antre: [], sayaLagi: false, lawanLagi: false, kode: '', v3: false, mulaiT: 0 };
 const HERO_SRV = { ocong: 'pocong', kunti: 'kuntilanak', tuyul: 'tuyul', genderuwo: 'genderuwo', pitung: 'pitung', erick: 'erick', doni: 'doni', timun: 'timunmas', buto: 'buto', lutung: 'lutung', saras: 'saras', angling: 'angling', dayang: 'dayang', nyi: 'nyiroro', siliwangi: 'siliwangi', ciung: 'ciung', sangkuriang: 'sangkuriang', kiansantang: 'kiansantang', wiro: 'wiro', roro: 'roro', masdim: 'masdim', wewe: 'wewe', blorong: 'blorong', dewisri: 'dewisri', arjuna: 'arjuna' }, HERO_3D = { pocong: 'ocong', kuntilanak: 'kunti', tuyul: 'tuyul', genderuwo: 'genderuwo', pitung: 'pitung', erick: 'erick', doni: 'doni', timunmas: 'timun', buto: 'buto', lutung: 'lutung', saras: 'saras', angling: 'angling', dayang: 'dayang', nyiroro: 'nyi', siliwangi: 'siliwangi', ciung: 'ciung', sangkuriang: 'sangkuriang', kiansantang: 'kiansantang', wiro: 'wiro', roro: 'roro', masdim: 'masdim', wewe: 'wewe', blorong: 'blorong', dewisri: 'dewisri', arjuna: 'arjuna' };

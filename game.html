@@ -435,6 +435,7 @@ body.dev-pc #joy,body.dev-pc #pkJoy{display:none}
  clip-path:polygon(6% 0,94% 0,100% 50%,94% 100%,6% 100%,0 50%);background:linear-gradient(#fff2a8,#ffcf33 45%,#e89400);filter:drop-shadow(0 .5cqw 0 #8a5200) drop-shadow(0 0 1.2cqw #ffb70388);text-shadow:0 .15cqw 0 #fff6}
 .mbgo:disabled{filter:grayscale(1) brightness(.55);cursor:default}
 .mbinfo{font:700 1.55cqw Arial;color:#ffd166;text-align:left;text-shadow:0 .15cqw 0 #000}
+.mbwT{display:flex;gap:1.2cqw;margin-top:1.4cqw;flex-wrap:wrap;justify-content:center}.mbwT .mbb{font-size:1.7cqw;padding:.9cqw 2cqw}
 .mbwait{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1cqw;background:#050813e6;font:700 2.6cqw Arial;color:#fff}.mbwait small{font:1.5cqw Arial;color:#b9c3dd}.mbwait i{font-style:normal;font-size:7cqw;animation:mbDenyut 1.4s infinite}
 /* layar pilih hero (layar penuh, hanya hero sendiri) */
 #mbh{background:#05040a;justify-content:flex-start;padding:0;gap:0;font-family:Arial;overflow:hidden}
@@ -2730,7 +2731,7 @@ setInterval(()=>{const e=document.getElementById('mbRkW');if(e)e.textContent=mbR
 $('#mbl').addEventListener('click',e=>{if(e.target.closest('[data-rkbatal]'))netSend({t:'lbRkBatal'})});
 function mbRender(){const r=MB.room,E=$('#mbl');
  if(!r){E.innerHTML=`<div class="mbtop"><h2><i>👥</i><span>MAIN BARENG</span></h2><button class="mbb kd" data-kode>🔢 Masuk Kode</button><span class="sp"></span><button class="mbb x" data-out>✖ Keluar</button></div>
-  <div class="mbwait"><i>👻</i>${MB.msg||'Menghubungkan…'}${MB.coba?'<button class="mbb" data-coba style="margin-top:1cqw">Coba Lagi</button>':''}</div>`;return}
+  <div class="mbwait"><i>👻</i>${MB.msg||'Menghubungkan…'}<span class="mbwT">${MB.coba?'<button class="mbb" data-coba>Coba Lagi</button>':''}<button class="mbb x" data-out>↩ Kembali ke Menu</button><button class="mbb kd" data-kode>🔢 Masuk Kode Lain</button></span></div>`;return}
  const host=r.host,mode=r.m,ars=MBA[mode]||[];
  const rkM=mode=='rk',orang=r.pl.filter(q=>!q.bot);
  const diKotak=k=>rkM?orang[k]||null:r.pl.find(q=>q.p===k)||(r.pl.every(q=>q.p==null)?r.pl[k]:null),duel=mode=='duel',wnM=mode=='wn',timM=mode=='tim'||wnM,TB=wnM?'🔴 MERAH':'🔵 BIRU',TR=wnM?'⚪ PUTIH':'🔴 MERAH',lbl=k=>duel?(k<2?'<u class="pr">⚔️ PEMAIN</u>':'<u class="ws">👁️ WASIT</u>'):timM?(k%2?`<u>${TR}</u>`:`<u>${TB}</u>`):'';
@@ -2757,7 +2758,7 @@ function mbRender(){const r=MB.room,E=$('#mbl');
  let info=MB.msg||(rkM&&r.rkT>=0?'Sambil menunggu, siapkan hero andalanmu! 💪':rkM?(nOn>3?'⚠️ Rank party maksimal 3 orang — sisanya keluar dulu':host?'🏆 Tekan CARI LAWAN · semua anggota wajib login akun warga desa':'🏆 Menunggu host menekan CARI LAWAN'):host?(!mode?'Pilih mode dulu':!cukup?(botPakai?'Ajak teman, atau ketuk ＋ lalu pilih 🤖 Bot':'Ajak teman dulu — minimal 2 pemain'):nBot&&!botPakai?'🤖 Bot hanya ikut Duel, Duel Tim & War Nanas · tekan MULAI kalau sudah siap':wnM?'🍍 Kiri 🔴 MERAH · kanan ⚪ PUTIH · ketuk kartumu untuk pindah tim · kotak kosong = 🤖 bot':mode=='duel'?'⚔️ 2 kotak atas bertanding · kotak bawah jadi 👁️ wasit (menonton)':mode=='tim'?'Kiri 🔵 BIRU · kanan 🔴 MERAH · ketuk kartumu untuk pindah tim':mode=='umpet'?'Siap! Penjaga dipilih acak · tekan MULAI':'Siap! Tekan MULAI'):wnM?'🍍 Kiri 🔴 MERAH · kanan ⚪ PUTIH · ketuk kartumu untuk pindah tim':mode=='tim'?'Kiri 🔵 BIRU · kanan 🔴 MERAH · ketuk kartumu untuk pindah tim':'Host yang memilih mode & arena. Tunggu ya!');
  let tunggu='';
  if(r.state!='lobby'&&!r.ikut&&r.wasit)tunggu=`<div class="mbwait"><i>👁️</i>Kamu WASIT${r.state=='hero'?' — pemain sedang memilih hero…':''}<small>Sebentar lagi kamu menonton duel temanmu</small></div>`;
- else if(r.state!='lobby'&&!r.ikut)tunggu=`<div class="mbwait"><i>🎮</i>${r.state=='hero'?'Teman-teman sedang memilih hero…':'Teman-teman sedang bermain…'}<small>Kamu ikut di ronde berikutnya. Tunggu sebentar ya!</small></div>`;
+ else if(r.state!='lobby'&&!r.ikut)tunggu=`<div class="mbwait"><i>🎮</i>${r.state=='hero'?'Teman-teman sedang memilih hero…':'Teman-teman sedang bermain…'}<small>Kamu ikut di ronde berikutnya. Tunggu sebentar ya!</small><span class="mbwT"><button class="mbb x" data-out>↩ Kembali ke Menu</button><button class="mbb kd" data-kode>🔢 Masuk Kode Lain</button></span></div>`;
  else if(r.state=='main'&&r.ikut)tunggu=`<div class="mbwait"><i>🚀</i>Menyiapkan pertandingan…</div>`;
  const arGes=(E.querySelector('.mbar')||{}).scrollTop||0;
  E.innerHTML=`<div class="mbtop"><h2><i>👥</i><span>MAIN BARENG</span></h2><div class="mbkode">KODE<b>${r.code}</b></div><button class="mbb wa" data-ajak>📲 Ajak Teman</button><button class="mbb kd" data-kode>🔢 Masuk Kode</button><span class="sp"></span><button class="mbb x" data-out>✖ Keluar</button></div>
