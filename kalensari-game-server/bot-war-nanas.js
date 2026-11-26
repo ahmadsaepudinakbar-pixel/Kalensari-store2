@@ -60,6 +60,7 @@ const WNS = { mulai: 9, mundur: .3, kejar: 13, area: 14 };   // dorong bersama m
 const WNP = { asisMon: 5, killMon: 2, minAsisHero: .05 }, WNA_ASIS = 5, WNB = 10;
 const SUP_BK = { mulai: 60, selang: 20, maks: 15, nilai: 6 }, SUP_MENIT = 7;
 const PADAT_MON = { mon: .8, buaya: 1.4 };
+const TK = { n: 3, lama: 7, mulai: 1.05, jeda: 1.1, dmg: 35, R: 9.5 };   // tengkorak ulti Rawa Rontek (samakan dengan RRT.tk di game3d.html)
 const TUGU = { R: 4.5, heal: .1, jedaHeal: 2, hadiahHp: .3 };
 
 function diSemak(x, z) { for (let i = 0; i < SEMAK.length; i++) if (hyp(x - SEMAK[i][0], z - SEMAK[i][1]) < SEMAK_R) return i; return -1; }
@@ -332,7 +333,7 @@ module.exports = function pasangBot(WasitWN) {
       if (!U.hit) { U.hit = 1; o.semediT = k.lama || 3; o.kebal = Math.max(o.kebal, o.semediT); }
       o.an = 'semedi'; if (t > (k.lama || 3)) selesai();
     } else if (k.t === 'hidupkan') {   // ritual 3 dtk: teman gugur di radius bangkit (stun membatalkan, kecuali sedang semedi)
-      if (!U.hit) { U.hit = 1; const k2 = o.U.s[1];   // kombo: semedi ikut dipakai kalau siap
+      if (!U.hit) { U.hit = 1; o.tk = { x: o.x, z: o.z, sampai: this.t + TK.lama, next: this.t + TK.mulai }; const k2 = o.U.s[1];   // 3 tengkorak bangkit dari lingkaran · kombo: semedi ikut dipakai kalau siap
         if (k2 && k2.t === 'semedi' && o.sp.buka[2] && o.cd[2] <= 0) { o.cd[2] = o.CD[2] * this.statF(o, 'cd'); o.semediT = k2.lama || 3; o.kebal = Math.max(o.kebal, o.semediT); this.ev1({ k: 'bfx', id: o.id, ph: 'mulai', i: 2, t: 'semedi', r: 0, a: r2(o.arah), n: U.n, L: 2, ep: [r2(o.x), r2(o.z)] }); } }
       o.an = 'ulti';
       if (t > (k.lama || 3)) { const daftar = this.mayatDekat(o, (k.R || 7) + .5);
@@ -383,6 +384,7 @@ module.exports = function pasangBot(WasitWN) {
       if (b.n < SUP_BK.maks && this.t >= b.next) { b.n++; b.next = this.t + SUP_BK.selang; this.botPasif(o, SUP_BK.nilai); } });
     if (this.t > 16 && !this.laneUlang) { this.laneUlang = 1; this.laneIsi(0); this.laneIsi(1); }
     this.B.forEach(o => {
+      if (o.tk) this.botTengkorak(o);
       if (o.mati) { if (this.t >= o.hidupT && !this.selesai) this.botHidup(o); this.botH(o); return; }
       o.cd = o.cd.map(c => Math.max(0, c - dt)); o.t += dt; o.pikir -= dt; o.strafeT -= dt; o.sasT = (o.sasT || 0) - dt;
       o.buffT = Math.max(0, o.buffT - dt); o.kebal = Math.max(0, o.kebal - dt); o.ungkap = Math.max(0, o.ungkap - dt); o.asT = Math.max(0, (o.asT || 0) - dt);
@@ -397,6 +399,11 @@ module.exports = function pasangBot(WasitWN) {
       if (this.tugu.milik === o.tm && hyp(o.x, o.z) < TUGU.R && this.t - o.kenaT >= TUGU.jedaHeal && o.hp < o.hpMax) o.hp = Math.min(o.hpMax, o.hp + o.hpMax * TUGU.heal * dt);
       this.botTahan(o); this.botH(o);
     });
+  };
+  P.botTengkorak = function (o) {   // tengkorak Ritual Kebangkitan: tiap 1,1 dtk 3 cakaran ke lawan terdekat di sekitar lingkaran (tampilannya disimulasikan HP)
+    const q = o.tk; if (this.t >= q.sampai || this.selesai) { o.tk = null; return; } if (this.t < q.next) return; q.next += TK.jeda;
+    const L = this.musuhDi(o, q.x, q.z, TK.R).sort((a, b) => hyp(a.x - q.x, a.z - q.z) - hyp(b.x - q.x, b.z - q.z)); if (!L.length) return;
+    for (let k = 0; k < TK.n; k++) this.botPukulHero(o, L[k % Math.min(L.length, 2)], this.dmgBot(o, TK.dmg, false), 0, 0, .6);
   };
   P.botPaksa = function (o, dt) {   // gerak paksa dari skill pemain: tarik (lurus ke titik) · angkat (naik ke atas kepala Buto lalu dibanting)
     if (o.tarik) { const q = o.tarik; q.t += dt; const u = Math.min(1, q.t / q.d); o.x = q.ax + (q.x - q.ax) * u; o.z = q.az + (q.z - q.az) * u; o.an = 'diam';
