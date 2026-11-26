@@ -7,6 +7,7 @@
 const http = require('http');
 const crypto = require('crypto');
 const { EventEmitter } = require('events');
+const { WasitWN, TICK: WN_TICK } = require('./wasit-war-nanas.js');   // wasit War Nanas di server (monster, penjaga, buaya, tugu)
 
 // ---------- WebSocket mini (tanpa paket tambahan, cukup Node.js) ----------
 class Sock extends EventEmitter {
@@ -57,7 +58,7 @@ wss.clients = clients;
 
 const PORT = +process.env.PORT || 8090;
 const HOST = process.env.HOST || '127.0.0.1';
-const HEROES = ["pocong", "kuntilanak", "tuyul", "genderuwo", "pitung", "erick", "doni", "timunmas", "buto", "lutung", "saras", "angling", "dayang", "nyiroro", "siliwangi", "ciung", "sangkuriang", "kiansantang", "wiro", "roro", "masdim", "wewe", "blorong", "dewisri"];   // samakan dengan HEROK di game.html (hero baru wajib ditambah di sini)   // doni: hero ke-7   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
+const HEROES = ["pocong", "kuntilanak", "tuyul", "genderuwo", "pitung", "erick", "doni", "timunmas", "buto", "lutung", "saras", "angling", "dayang", "nyiroro", "siliwangi", "ciung", "sangkuriang", "kiansantang", "wiro", "roro", "masdim", "wewe", "blorong", "dewisri", "arjuna", "rawa"];   // samakan dengan HEROK di game.html (hero baru wajib ditambah di sini)   // doni: hero ke-7   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
 const RELAY_FROM_HOST = new Set(['st', 'end']);   // data pertandingan dari host → tamu
 const RELAY_FROM_GUEST = new Set(['in']);         // tombol tamu → host
 
@@ -160,12 +161,17 @@ function tmJoin(ws, r) {
   if (r.exp && r.state === 'lobby' && [...r.exp.keys()].every(p => r.pl.some(w => w.pid === p))) setTimeout(() => lbTmMulai(r), 600);
 }
 function tmMulaiRoom(r) {   // mulai Duel Tim (dipakai tombol MULAI & Main Bareng)
-  r.state = 'game'; r.mulaiT = Date.now();
+  r.state = 'game'; r.mulaiT = Date.now(); r.skor = [0, 0]; r.cadang = new Map();
   const ppl = w => ({ i: w.id, n: w.name, h: w.hero, s: w.skin || '', tm: w.tmT }), pbot = b => ({ i: b.i, n: b.n, h: b.h, s: '', tm: b.tm, bot: 1 });
   const pl = [0, 1].flatMap(t => r.pl.filter(w => w.tmT === t).map(ppl).concat(r.bots.filter(b => b.tm === t).map(pbot)));
   let um = 0; if (r.um) { const p = r.pl.find(w => w.pid === r.um) || r.pl[Math.floor(Math.random() * r.pl.length)]; um = p.id; }
-  r.pl.forEach(w => send(w, { t: 'tmStart', pl, me: w.id, host: r.host.id, a: r.a, kw: r.kw, dur: r.dur || 0, code: r.code, um, wn: r.wn || 0 }));
-  r.mulai = { pl, host: r.host.id, a: r.a, kw: r.kw, dur: r.dur || 0, code: r.code, um, wn: r.wn || 0 };
+  // War Nanas: monster & bangunan dijalankan server (kalau semua HP sudah memakai game3d.html versi baru)
+  const botSrv = BOT_SERVER && r.wn && r.pl.every(w => w.wns >= 2);   // Tahap 2: bot dijalankan server (semua HP sudah versi baru)
+  r.sim = r.wn && r.pl.every(w => w.wns) ? new WasitWN(r, m => kirimWasit(r, m), { botSrv, lv: r.host ? r.host.blv : 1 }) : null;
+  if (r.sim) r.sim.onMati = (id, tm) => { r.skor = r.skor || [0, 0]; r.skor[tm ? 0 : 1]++; };   // bot server mati → skor tim lawan
+  const wnSrv = r.sim ? 1 : 0, bs = r.sim && r.sim.botSrv ? 1 : 0;
+  r.pl.forEach(w => send(w, { t: 'tmStart', pl, me: w.id, host: r.host.id, a: r.a, kw: r.kw, dur: r.dur || 0, code: r.code, um, wn: r.wn || 0, wnSrv, botSrv: bs }));
+  r.mulai = { pl, host: r.host.id, a: r.a, kw: r.kw, dur: r.dur || 0, code: r.code, um, wn: r.wn || 0, wnSrv, botSrv: bs };
   (r.tonton || []).forEach(w => send(w, Object.assign({ t: 'tmStart', me: w.id, tonton: 1 }, r.mulai)));
   if (r.wn) tmBotSapa(r);
   console.log(new Date().toISOString(), 'duel tim mulai', r.code, r.lb ? '(main bareng ' + r.lb + ')' : '', pl.map(x => (x.tm ? 'M:' : 'B:') + x.n).join(', '));
@@ -214,6 +220,7 @@ function tmTundaHabis(r, pid) {
   if (trooms.get(r.code) !== r || r.state !== 'game') return;
   if (r.rank) rkKabur(r, pid);   // Rank: tidak kembali = kalah
   r.bots.push({ i: T.i, n: T.n, h: T.h, tm: T.tm, ganti: 1 });   // heronya diteruskan bot (id sama)
+  if (r.sim && r.sim.botSrv) { const h = r.sim.H.get(T.i); r.sim.tambahBot({ i: T.i, n: T.n, h: T.h, tm: T.tm }, { x: h && h.x, z: h && h.z, cadang: r.cadang && r.cadang.get(T.i) }); }   // bot server melanjutkan heronya
   if (!r.pl.length) { if (!r.tunda.size) { rkTutup(r); clearTimeout(r.autoT); trooms.delete(r.code); if (r.lb) lbKembali(r.lb, r.code); } return; }
   if (!r.host) {   // pindah wasit: HP terkuat yang tersisa
     r.host = r.pl.slice().sort((p, q) => (q.kuat || 0) - (p.kuat || 0))[0];
@@ -240,6 +247,66 @@ function tmBalik(ws, m) {   // HP yang tadi terputus masuk lagi ke pertandingan 
   r.pl.forEach(w => { if (w !== ws) send(w, { t: 'tmSambung', i: ws.id }); });
   console.log(new Date().toISOString(), 'war nanas', r.code, ws.name, 'tersambung lagi');
 }
+// ---- wasit War Nanas di server: 15x per detik, kirim keadaan ke semua HP ----
+function kirimWasit(r, m) {
+  const str = JSON.stringify(m);
+  r.pl.forEach(w => send(w, str)); (r.tonton || []).forEach(w => send(w, str));
+}
+setInterval(() => {
+  trooms.forEach(r => {
+    const S = r.sim; if (!S) return;
+    if (r.state !== 'game' || trooms.get(r.code) !== r) { r.sim = null; return; }
+    if (S.selesai) { S.selesaiT = S.selesaiT || Date.now(); if (Date.now() - S.selesaiT > 15000) { r.sim = null; return; } }
+    try { S.jalan(); } catch (e) { console.error(new Date().toISOString(), 'wasit war nanas error', r.code, e); }
+  });
+}, Math.round(WN_TICK * 1000));
+// HP yang halamannya termuat ulang (mis. aplikasi ditutup Android saat membuka WhatsApp) masuk lagi ke War Nanas yang sama,
+// selama kursinya masih ditahan (90 dtk) atau server belum sadar koneksi lamanya putus. Kartu stat, Poin Skill & skor ikut dikembalikan.
+function tmCatat(r, ws, m) {
+  if (Array.isArray(m.ws) && m.ws.length <= 10) (r.cadang || (r.cadang = new Map())).set(ws.id, m.ws);
+  if (Array.isArray(m.e)) m.e.forEach(e => {
+    if (!e || e.k !== 'mati') return;
+    const id = e.id, p = r.pl.find(w => w.id === id), b = !p && r.bots.find(x => x.i === id), T = !p && !b && r.tunda && [...r.tunda.values()].find(x => x.i === id);
+    const tm = p ? p.tmT : b ? b.tm : T ? T.tm : -1; if (tm < 0) return;
+    r.skor = r.skor || [0, 0]; r.skor[tm ? 0 : 1]++;
+  });
+}
+function tmMasukLagi(ws, r) {
+  const T = r.tunda && r.tunda.get(ws.pid), lama = !T && r.pl.find(w => w !== ws && w.pid === ws.pid);
+  if (!T && !lama) return false;
+  leave(ws);
+  if (T) {
+    clearTimeout(T.timer); clearTimeout(T.timerW); r.tunda.delete(ws.pid);
+    ws.id = T.i; ws.tmT = T.tm; ws.hero = T.h; ws.skin = T.s; r.pl.push(ws);
+    if (T.wasit && !r.host) r.host = ws;
+  } else {
+    ws.id = lama.id; ws.tmT = lama.tmT; ws.hero = lama.hero; ws.skin = lama.skin;
+    r.pl[r.pl.indexOf(lama)] = ws; if (r.host === lama) r.host = ws;
+    lama.troom = null; lama.lobi = null; try { lama.terminate(); } catch { }
+  }
+  ws.tmR = 1; ws.troom = r.code;
+  if (!r.host) r.host = ws;
+  send(ws, Object.assign({ t: 'tmStart' }, r.mulai, { me: ws.id, host: r.host.id, ulang: 1, cadang: (r.cadang && r.cadang.get(ws.id)) || null, skor: r.skor || [0, 0], waktu: r.sim ? Math.round(r.sim.t) : 0 }));
+  r.pl.forEach(w => { if (w !== ws) send(w, { t: 'tmSambung', i: ws.id }); });
+  console.log(new Date().toISOString(), 'war nanas', r.code, ws.name, 'masuk lagi setelah halaman dimuat ulang');
+  return true;
+}
+// HP tuan rumah (yang menjalankan bot) macet: mis. tab browser disembunyikan / aplikasi di latar belakang → bot ikut diam.
+// Tidak ada kiriman 5 dtk → bot dipindah ke HP lain yang masih aktif (HP terkuat).
+const TM_MACET = 5000;
+const BOT_SERVER = true;   // false = bot War Nanas kembali dijalankan HP tuan rumah (cara lama)
+setInterval(() => {
+  const now = Date.now();
+  trooms.forEach(r => {
+    if (!r.wn || r.state !== 'game' || !r.host || !r.host.lastSt || r.pl.length < 2) return;
+    if (now - r.host.lastSt < TM_MACET) return;
+    const calon = r.pl.filter(w => w !== r.host && w.lastSt && now - w.lastSt < 2000).sort((p, q) => (q.kuat || 0) - (p.kuat || 0))[0];
+    if (!calon) return;
+    const lama = r.host; r.host = calon;
+    r.pl.forEach(w => send(w, { t: 'tmWasit', host: r.host.id, bots: r.bots.map(b => b.i), macet: lama.id }));
+    console.log(new Date().toISOString(), 'war nanas', r.code, 'HP wasit', lama.name, 'macet → bot pindah ke', calon.name);
+  });
+}, 1000);
 // =================== MIC (suara tim, WebRTC) ===================
 // Suara mengalir langsung antar-HP satu tim; server hanya menyampaikan "jabat tangan" (offer/answer/ICE) ke teman SATU TIM.
 // TURN (coturn di VPS) dipakai kalau jaringan seluler menghalangi sambungan langsung. Kunci harus sama dengan static-auth-secret di /etc/turnserver.conf
@@ -365,6 +432,8 @@ function tmRelay(ws, m, raw) {   // data pertandingan tim
     if (!r.pl.includes(ws)) return true;
     ws.lastSt = Date.now();
     m.w = ws.id;
+    if (r.wn) tmCatat(r, ws, m);   // kartu stat & skor (dipakai kalau HP ini masuk lagi setelah halaman dimuat ulang)
+    if (r.sim) r.sim.terima(ws, m);   // posisi hero & damage ke monster/bangunan untuk wasit server
     const str = JSON.stringify(m);
     // 'st' boleh dilewati kalau HP penerima sedang macet; 'in' (tombol) selalu dikirim
     const boleh = w => m.t === 'in' || !w.s || w.s.writableLength < 32 * 1024;
@@ -584,7 +653,7 @@ function lbRencanaBot(n0, n1) {   // isi slot kosong: kedua tim dibuat sama besa
 // Mode tim (Duel Tim, War Nanas, Rank): DRAFT BERGILIRAN seperti MLBB — urutan 1-2-2-1, semua pilihan (teman & lawan) terlihat, hero tidak boleh kembar.
 // Bot (pilihan host / pengisi War Nanas & Rank) ikut mendapat giliran dan "memilih" seperti pemain. Mode lain: semua memilih bersamaan.
 const LB_GILIRAN = 15000, LB_GILIRAN_BOT = [1600, 4200];
-const HERO_GRATIS = ['pocong', 'pitung', 'erick', 'doni', 'timunmas', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyiroro', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang', 'wiro', 'roro', 'masdim', 'blorong', 'dewisri'];
+const HERO_GRATIS = ['pocong', 'pitung', 'erick', 'doni', 'timunmas', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyiroro', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang', 'wiro', 'roro', 'masdim', 'blorong', 'dewisri', 'arjuna', 'rawa'];
 function lbSiapBot(L) {
   (L.preBots || []).forEach(b => clearTimeout(b.t)); L.preBots = [];
   if (L.draft) clearTimeout(L.draft.t); L.draft = null;
@@ -1057,6 +1126,8 @@ wss.on('connection', (ws, req) => {
         ws.skin = clean(m.skin, 20);
         ws.kuat = Math.max(0, Math.min(999, +m.kuat || 0));   // perkiraan kekuatan HP (RAM, inti prosesor)
         ws.ver = clean(m.v, 8);   // '' = game.html (2D), '3d' = game3d.html
+        ws.wns = Math.max(0, Math.min(9, m.wns | 0));   // 1: game3d.html bisa mengikuti wasit War Nanas di server · 2: juga bot server
+        ws.blv = Math.max(0, Math.min(3, m.blv == null ? 1 : m.blv | 0));   // tingkat bot pilihan pemain (Main Bareng / Rank)
         if (m.pid) ws.pid = String(m.pid).replace(/[^A-Za-z0-9]/g, '').slice(0, 24);   // pengenal HP (Main Bareng)
         send(ws, { t: 'hi', id: ws.id });
         if (m.sesi && m.sesi !== ws.sesi) {
@@ -1126,6 +1197,7 @@ wss.on('connection', (ws, req) => {
         if (trooms.has(code) && (trooms.get(code).ver || '') !== (ws.ver || '')) { send(ws, { t: 'err', msg: 'Room Duel Tim ' + code + ' dibuat di versi game yang lain' }); break; }
         const tr = trooms.get(code);
         if (tr) {   // kode milik room Duel Tim
+          if (tr.state === 'game' && tr.wn && ws.pid && ws.ver === '3d' && tmMasukLagi(ws, tr)) break;   // War Nanas: HP yang halamannya termuat ulang masuk lagi ke kursinya
           if (tr.wasit && tr.wasit.has(ws.pid) && !(tr.exp && tr.exp.has(ws.pid))) {   // wasit Main Bareng: masuk sebagai penonton
             leave(ws); tr.tonton.push(ws); ws.troom = tr.code;
             if (tr.state === 'game' && tr.mulai) send(ws, Object.assign({ t: 'tmStart', me: ws.id, tonton: 1 }, tr.mulai));
