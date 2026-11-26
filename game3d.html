@@ -7313,8 +7313,9 @@ const WY = { cepat: 4.1, tsLari: 1, tinggi: 1.55, oranye: 0xff8a1a, hijau: 0x7df
   jangkau: 1.9, comboJeda: 1.2,
   tinju: { a: 'pukul2', ts: 1.2, gerak: .3, jarak: 4, rilis: .32, akhir: .7, lebar: 1.2, dmg: 150, heal: .08, R: 4 },
   hentak: { a: 'gledeg', ts: 1.2, rilis: .36, akhir: .95, R: 2.6, dmg: 170, stun: .5, tahan: 2, tahanK: .7 },
-  ulti: { lama: 60, cepat: 7.5, belok: 3.4, R: 4, dmg: 320, stun: 1, dorong: 5, tabrakR: 1.1, aman: .3, skala: 1.85, naik: .4, maju: .09, jok: 1.02, belakang: -.46, kurangDmg: .7 } };   // lama = batas aman saja (ulti berakhir saat menabrak)
-const WY_URL = 'model-3d/woyo.glb?v=1', WY_MOTOR_URL = 'model-3d/woyo-motor.glb?v=1';
+  ulti: { lama: 60, cepat: 7.5, belok: 3.4, R: 4, dmg: 320, stun: 1, dorong: 5, tabrakR: 1.1, aman: .3, skala: 1.85, naik: .4, maju: .09, jok: 1.02, belakang: -.46, kurangDmg: .7,
+    condong: .52, setang: [.33, 1.05, .29] } };   // condong: badan Woyo membungkuk ke depan (rad) · setang: titik pergelangan tangan di stang (ruang root, x = kiri)   // lama = batas aman saja (ulti berakhir saat menabrak)
+const WY_URL = 'model-3d/woyo.glb?v=1', WY_MOTOR_URL = 'model-3d/woyo-motor.glb?v=2';   // v2: standar tengah & samping dihapus
 const WYW = { combo: 0, comboT: 0, tahanT: 0, tabrak: new Map(), duduk: null };
 const WY_MOTOR = new Map(), WY_BONC = new Map();   // id → motor yang tampil · id penumpang → { w: id Woyo, sampai }
 function siapkanWoyo(gl, m, T) {
@@ -7339,6 +7340,36 @@ function wyTukarAnim(T, klip) {   // naik motor: diam/lari/jalan jadi pose duduk
     mulai(T.cur === 'lari' || T.cur === 'jalan' ? T.cur : 'diam'); }
   else if (T._wyAsli) { const sb = K3.map(k => T.act[k]); Object.assign(T.act, T._wyAsli); T._wyAsli = null; sb.forEach(a => a && a.fadeOut(.2)); mulai('diam'); }
 }
+// ---- tangan memegang stang: badan membungkuk + IK 2 tulang (lengan atas & bawah) ke stang · dijalankan tiap frame setelah mixer ----
+const _wyQa = new THREE.Quaternion(), _wyQb = new THREE.Quaternion(), _wyQc = new THREE.Quaternion(), _wyV = [0, 1, 2, 3, 4, 5, 6].map(() => new THREE.Vector3());
+function wyPutarDunia(b, q) {   // putar tulang dengan rotasi ruang-dunia q
+  b.parent.getWorldQuaternion(_wyQa); b.getWorldQuaternion(_wyQb); b.quaternion.copy(_wyQa.invert().multiply(q).multiply(_wyQb)); b.updateMatrixWorld(true);
+}
+function wyIK(a, b, c, T, pole) {
+  const [A, B, C, d0, pl, B2, X] = _wyV; a.getWorldPosition(A); b.getWorldPosition(B); c.getWorldPosition(C);
+  const l1 = A.distanceTo(B), l2 = B.distanceTo(C); d0.copy(T).sub(A); const L = d0.length(); if (L < 1e-4) return; d0.divideScalar(L);
+  const d = Math.min(Math.max(L, Math.abs(l1 - l2) + 1e-4), l1 + l2 - 1e-4);
+  pl.copy(pole).sub(A); pl.addScaledVector(d0, -pl.dot(d0)); if (pl.lengthSq() < 1e-8) return; pl.normalize();
+  const x = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - x * x));
+  B2.copy(A).addScaledVector(d0, x).addScaledVector(pl, h);
+  wyPutarDunia(a, _wyQc.setFromUnitVectors(X.copy(B).sub(A).normalize(), B2.sub(A).normalize()));
+  b.getWorldPosition(B); c.getWorldPosition(C); B2.copy(A).addScaledVector(d0, d);
+  wyPutarDunia(b, _wyQc.setFromUnitVectors(X.copy(C).sub(B).normalize(), B2.sub(B).normalize()));
+}
+function wyPegang(T) {
+  const m = T.model; if (!m || !T.root) return;
+  if (!T._wyTl) { const g = n => m.getObjectByName('mixamorig' + n) || m.getObjectByName('mixamorig:' + n);
+    T._wyTl = { sp: ['Spine', 'Spine1', 'Spine2'].map(g).filter(Boolean), leher: g('Neck'), L: ['LeftArm', 'LeftForeArm', 'LeftHand'].map(g), R: ['RightArm', 'RightForeArm', 'RightHand'].map(g) };
+    T._wyTl.semua = [...T._wyTl.sp, T._wyTl.leher, ...T._wyTl.L, ...T._wyTl.R].filter(Boolean); }
+  const B = T._wyTl, U = WY.ulti; if (!B.L[2] || !B.R[2]) return;
+  B.semua.forEach(b => { if (b._wyPost && b.quaternion.equals(b._wyPost)) b.quaternion.copy(b._wyPre); b._wyPre = (b._wyPre || new THREE.Quaternion()).copy(b.quaternion); });   // mixer tidak jalan frame ini → jangan menumpuk putaran
+  T.root.updateMatrixWorld(true); const ax = new THREE.Vector3(1, 0, 0).applyQuaternion(T.root.getWorldQuaternion(new THREE.Quaternion())), q = new THREE.Quaternion();
+  B.sp.forEach(b => wyPutarDunia(b, q.setFromAxisAngle(ax, U.condong / B.sp.length)));
+  if (B.leher) wyPutarDunia(B.leher, q.setFromAxisAngle(ax, -U.condong * .8));   // kepala tetap melihat ke depan
+  const [gx, gy, gz] = U.setang;
+  [[B.L, 1], [B.R, -1]].forEach(([c, sd]) => { if (c[0] && c[1]) wyIK(c[0], c[1], c[2], T.root.localToWorld(new THREE.Vector3(sd * gx, gy, gz)), T.root.localToWorld(new THREE.Vector3(sd * .6, .7, -.2))); });
+  B.semua.forEach(b => { b._wyPost = (b._wyPost || new THREE.Quaternion()).copy(b.quaternion); });
+}
 // ---- efek (dikirim lewat jaringan) ----
 function wyPukul(pos, a, k = 1) { const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)), q = pos.clone().setY(1).addScaledVector(d, 1.1); nyala(q, .7 * k, WY.oranye, .18); percik(q, Math.round(6 * k), 0xffe0b0, 2.4, .09); gelombang(q.clone().setY(.05), .7 * k, .25, WY.oranye); }
 function wyLesat(pos, a, jarak) { const d = new THREE.Vector3(Math.sin(a), 0, Math.cos(a)); asap(pos.clone().setY(.1), 4, WY.debu, .8, .6); for (let k = 1; k <= 5; k++) { const q = pos.clone().addScaledVector(d, jarak * k / 5).setY(.15); setTimeout(() => asap(q, 2, WY.debu, .6, .5), k * 45); } }
@@ -7360,7 +7391,7 @@ function wyMotor(id, lama) {   // motor muncul di bawah Woyo selama lama detik (
       const mati = T === P ? P.state === 'kalah' : T.mt ? !!T.mt.mati : false;
       if (mati && T === P && !M.umum) { M.umum = 1; fx('wySelesai', TIM.on ? TIM.me : null); }   // Woyo kalah di atas motor: semua HP ikut menurunkan motor & penumpang
       if (M.habis || mati || e.t > lama) return false;
-      if (M.g) { T.tilt.position.y = WY.ulti.naik; const d = T.root.position.distanceTo(M.p0); M.p0.copy(T.root.position); M.ban.forEach(b => { b.rotation.z += d / (.25 * 1); });
+      if (M.g) { T.tilt.position.y = WY.ulti.naik; if (T.cur !== 'kalah' && T.cur !== 'kena') wyPegang(T); const d = T.root.position.distanceTo(M.p0); M.p0.copy(T.root.position); M.ban.forEach(b => { b.rotation.z += d / (.25 * 1); });
         if (d > .02 && Math.random() < .5) asap(T.root.position.clone().addScaledVector(new THREE.Vector3(Math.sin(T.root.rotation.y), 0, Math.cos(T.root.rotation.y)), -.9).setY(.25), 1, 0x8a8a8a, .5, .5); }
       return true; },
     akhir() { if (M.g) { T.root.remove(M.g); M.g.traverse(o => { if (o.isMesh) [].concat(o.material).forEach(b => b.dispose()); }); } T.tilt.position.y = 0; wyTukarAnim(T, null); if (WY_MOTOR.get(kunci) === M) WY_MOTOR.delete(kunci); asap(T.root.position.clone().setY(.2), 6, 0x9a9a9a, 1, .7); } });

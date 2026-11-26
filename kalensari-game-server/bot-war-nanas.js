@@ -442,7 +442,7 @@ module.exports = function pasangBot(WasitWN) {
     else if (e.k === 'kunci') o.kunci = Math.max(o.kunci, Math.min(3, +e.d || 0));
     else if (e.k === 'pusing') o.pusing = Math.max(o.pusing, Math.min(2, +e.d || 0));
     else if (e.k === 'lambat') o.lambat = Math.max(o.lambat, Math.min(3, +e.d || 0));
-    else if (e.k === 'bonceng') { const h = this.H.get(oleh); if (!o.mati && (!h || h.tm === o.tm)) { o.bonceng = oleh; o.boncengT = this.t + Math.min(10, +e.lama || 8); } }   // dibonceng Ojek Woyo (pemain)
+    else if (e.k === 'bonceng') { const h = this.H.get(oleh); if (!o.mati && (!h || h.tm === o.tm)) { o.bonceng = oleh; o.boncengT = +e.lama > 0 ? this.t + Math.min(60, +e.lama) : 0; } }   // dibonceng Ojek Woyo (pemain)
     else if (e.k === 'hidupkan') { const h = this.H.get(oleh); if (o.mati && (!h || h.tm === o.tm)) this.botBangkit(o); }   // Ritual Kebangkitan Rawa Rontek (pemain)
     else if (e.k === 'tarik') { if (o.mati || o.semediT > 0 || !isFinite(+e.x)) return true; o.tarik = { ax: o.x, az: o.z, x: +e.x, z: +e.z, t: 0, d: Math.max(.05, Math.min(.6, +e.d || .3)) }; o.angkat = null; }   // ditarik (rantai Doni, culik Wewe, …)
     else if (e.k === 'angkat') {   // diangkat & dibanting Buto: maju ke depan Buto, naik ke atas kepala, lalu dilempar ke titik jatuh
