@@ -58,7 +58,7 @@ wss.clients = clients;
 
 const PORT = +process.env.PORT || 8090;
 const HOST = process.env.HOST || '127.0.0.1';
-const HEROES = ["pocong", "kuntilanak", "tuyul", "genderuwo", "pitung", "erick", "doni", "timunmas", "buto", "lutung", "saras", "angling", "dayang", "nyiroro", "siliwangi", "ciung", "sangkuriang", "kiansantang", "wiro", "roro", "masdim", "wewe", "blorong", "dewisri", "arjuna", "rawa"];   // samakan dengan HEROK di game.html (hero baru wajib ditambah di sini)   // doni: hero ke-7   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
+const HEROES = ["pocong", "kuntilanak", "tuyul", "genderuwo", "pitung", "erick", "doni", "timunmas", "buto", "lutung", "saras", "angling", "dayang", "nyiroro", "siliwangi", "ciung", "sangkuriang", "kiansantang", "wiro", "roro", "masdim", "wewe", "blorong", "dewisri", "arjuna", "rawa", "guntur"];   // samakan dengan HEROK di game.html (hero baru wajib ditambah di sini)   // doni: hero ke-7   // pitung: hero ke-5   // tuyul: hero ke-3, genderuwo: hero ke-4 (game3d)
 const RELAY_FROM_HOST = new Set(['st', 'end']);   // data pertandingan dari host → tamu
 const RELAY_FROM_GUEST = new Set(['in']);         // tombol tamu → host
 
@@ -653,7 +653,7 @@ function lbRencanaBot(n0, n1) {   // isi slot kosong: kedua tim dibuat sama besa
 // Mode tim (Duel Tim, War Nanas, Rank): DRAFT BERGILIRAN seperti MLBB — urutan 1-2-2-1, semua pilihan (teman & lawan) terlihat, hero tidak boleh kembar.
 // Bot (pilihan host / pengisi War Nanas & Rank) ikut mendapat giliran dan "memilih" seperti pemain. Mode lain: semua memilih bersamaan.
 const LB_GILIRAN = 15000, LB_GILIRAN_BOT = [1600, 4200];
-const HERO_GRATIS = ['pocong', 'pitung', 'erick', 'doni', 'timunmas', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyiroro', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang', 'wiro', 'roro', 'masdim', 'blorong', 'dewisri', 'arjuna', 'rawa'];
+const HERO_GRATIS = ['pocong', 'pitung', 'erick', 'doni', 'timunmas', 'buto', 'lutung', 'saras', 'angling', 'dayang', 'nyiroro', 'siliwangi', 'ciung', 'sangkuriang', 'kiansantang', 'wiro', 'roro', 'masdim', 'blorong', 'dewisri', 'arjuna', 'rawa', 'guntur'];
 function lbSiapBot(L) {
   (L.preBots || []).forEach(b => clearTimeout(b.t)); L.preBots = [];
   if (L.draft) clearTimeout(L.draft.t); L.draft = null;
