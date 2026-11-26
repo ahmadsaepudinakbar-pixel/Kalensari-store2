@@ -90,7 +90,7 @@ class WasitWN {
       if (e.k === 'wnHit') { const id = e.oleh != null && this.r.host === ws ? e.oleh : ws.id; this.kenaHero(this.E[e.i | 0], +e.d || 0, id); continue; }
       if (e.k === 'wnSt') { const E = this.E[e.i | 0]; if (E && !E.mati) { E.pusing = Math.max(E.pusing, Math.min(3, +e.p || 0)); E.kunci = Math.max(E.kunci, Math.min(3, +e.ku || 0)); E.lambat = Math.max(E.lambat, Math.min(3, +e.l || 0)); } continue; }
       if (e.k === 'wnLane' || e.k === 'wnHd') { if (e.k === 'wnLane') { sisa.push(e); if (this.botSrv) this.laneTerima(ws.id, e.l); } continue; }   // hadiah hanya dari server
-      if (this.botSrv && e.ke != null && ['hit', 'kunci', 'pusing', 'lambat', 'tarik', 'angkat', 'kantong', 'hidupkan'].includes(e.k) && this.botEvent(e, ws.id)) continue;   // mengenai bot server
+      if (this.botSrv && e.ke != null && ['hit', 'kunci', 'pusing', 'lambat', 'tarik', 'angkat', 'kantong', 'hidupkan', 'bonceng'].includes(e.k) && this.botEvent(e, ws.id)) continue;   // mengenai bot server
       if (this.botSrv && e.k === 'mati' && e.id === ws.id) this.heroMati(ws.id, e.oleh);   // pemain mati: bot pembunuh / pembantu dapat kartu
       sisa.push(e);
     }
