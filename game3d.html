@@ -7859,11 +7859,10 @@ const RR_PETI_URL = 'model-3d/rawa-peti.glb?v=1', RR_TK_URL = 'model-3d/rawa-ten
 const RRT = { petiTinggi: 2.1, tandaTinggi: 1.3, tkTinggi: 1.55, tk: { maks: 6, lama: 7, cepat: 4.6, dmg: 35, jeda: 1.1, rilis: .35, jangkau: 1.35, R: 2 } };
 function rrMuatAset() { muatGLB(RR_PETI_URL).catch(() => { }); muatGLB(RR_TK_URL).catch(() => { }); if (HERO === 'rawa' && SKIN === 'rangga') muatGLB(RR_KERANDA_URL).catch(() => { }); }
 const rrSkinOf = o => o ? (o.skin || (o.B && o.B.T && o.B.T.skin) || (o.T && o.T.skin) || '') : '';
-function rrBuatPeti(tinggi, kr) {   // GLB peti (rebah) → berdiri, tutup menghadap kamera (+z), dasar di lantai · kr: keranda mayit (Rangga Key) — tetap rebah, panjangnya = tinggi
+function rrBuatPeti(tinggi, kr) {   // GLB peti (rebah) → berdiri, tutup menghadap kamera (+z), dasar di lantai · kr: keranda mayit (Rangga Key), ikut berdiri seperti peti
   return muatGLB(kr ? RR_KERANDA_URL : RR_PETI_URL).then(g0 => {
     const gl = salinGLB(g0), m = gl.scene, luar = new THREE.Group(); if (KUAL.lv === 0) gantiBahan(m, keLambert);
-    let s; if (kr) { const bb = new THREE.Box3().setFromObject(m); s = tinggi * 1.05 / (bb.max.z - bb.min.z); m.rotation.y = Math.random() * Math.PI; }
-    else { m.rotation.x = Math.PI / 2; const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y; s = tinggi / h; } m.scale.setScalar(s);
+    m.rotation.x = Math.PI / 2; const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y, s = tinggi / h; m.scale.setScalar(s);   // peti & keranda sama-sama berdiri (bagian atas / kain keranda menghadap kamera)
     const bb2 = new THREE.Box3().setFromObject(m); m.position.y = -bb2.min.y; luar.add(m); luar.userData.bahan = [];
     m.traverse(o => { if (o.isMesh) { o.castShadow = true; [].concat(o.material).forEach(b => { b.transparent = true; luar.userData.bahan.push(b); }); } }); return luar;
   });
