@@ -1373,13 +1373,25 @@ $('save').onclick = async () => {
   layers.forEach(resetPose);
   $('pause').textContent = 'Jeda'; renderClips();
   const name = nm + '.glb';
+  // Animasi diikat ke tulang lewat NAMA. Kalau ada model lain (tersembunyi / ikut tampil) dengan nama tulang sama,
+  // pengekspor bisa mengikat ke tulang model yang salah → di file jadi animasi tanpa sasaran (model diam T-pose di game).
+  // Jadi selama ekspor: model tersembunyi dilepas dulu, tulang model tampil lainnya diberi nama sementara.
+  const lepas = layers.filter(l => !l.wrapper.visible && l.wrapper.parent === holder);
+  lepas.forEach(l => holder.remove(l.wrapper));
+  const ganti = [];
+  if(list.length && who) layers.forEach(l => { if(l === who || !l.wrapper.visible) return; l.wrapper.traverse(o => { if(o.isBone || (o.name && /mixamo|hips|spine|arm|leg|head|neck/i.test(o.name))){ ganti.push([o, o.name]); o.name = o.name + '__lain'; } }); });
+  const pulihkan = () => { ganti.forEach(([o, n]) => { o.name = n; }); lepas.forEach(l => { if(!l.wrapper.parent) holder.add(l.wrapper); }); };
   try {
     new THREE.GLTFExporter().parse(holder, result => {
+      pulihkan();
+      let rusak = 0;   // periksa hasil: kanal animasi yang tidak punya tulang sasaran
+      try { const dv = new DataView(result), L = dv.getUint32(12, true), js = JSON.parse(new TextDecoder().decode(new Uint8Array(result, 20, L)));
+        (js.animations || []).forEach(a => a.channels.forEach(c => { if(!c.target || c.target.node === undefined) rusak++; })); } catch(e){}
       download(new Blob([result], {type:'model/gltf-binary'}), name);
-      say('Tersimpan: ' + name + (list.length ? ' (+ ' + list.length + ' animasi untuk ' + who.file.name + ')' : '') );
+      say('Tersimpan: ' + name + (list.length ? ' (+ ' + list.length + ' animasi untuk ' + who.file.name + ')' : '') + (rusak ? ' · PERINGATAN: ' + rusak + ' jalur animasi tidak terikat ke tulang — coba hapus model lain dari daftar lalu ekspor ulang.' : ''), !!rusak);
       if(was){ $('wire').checked = true; applyWire(); }
     }, {binary:true, onlyVisible:true, truncateDrawRange:true, animations:list});
-  } catch(e){ say('Gagal mengekspor: ' + (e.message || e), true); }
+  } catch(e){ pulihkan(); say('Gagal mengekspor: ' + (e.message || e), true); }
 };
 
 $('saveOrig').onclick = () => { if(sel) download(new Blob([sel.buf]), sel.file.name); };
