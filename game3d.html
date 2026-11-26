@@ -1720,7 +1720,7 @@ else if (HERO === 'masdim') $('#help').textContent = 'WASD / panah: gerak · J /
 else if (HERO === 'woyo') $('#help').textContent = 'Fighter/Support · WASD / panah: gerak · J / Spasi: pukul-pukul-tendang · U (tahan + mouse): Tinju Penolong — melesat 4 m meninju, teman di sekitar pulih 8% · I: Hentakan Bumi — damage + stun di sekitar, tahan damage 30% 2 dtk · O: Ojek Woyo — naik motor ngebut maju terus (joystick = belok) sampai menabrak pohon / dinding / hero / monster / bangunan, 1 teman terdekat ikut dibonceng';
 else if (HERO === 'patimura') $('#help').textContent = 'Fighter · WASD / panah: gerak · J / Spasi: Tebasan Parang (3 tebasan beruntun) · U (tahan + mouse): Serbuan Kapitan — melesat 5 m sambil menebas semua lawan di jalur · I (tahan + mouse): Belah Parang — tebasan atas-bawah, area lurus 5 m + Slow (7,5 m & lebih lebar saat parang membesar) · O (tahan + mouse): Lompatan Saparua — lompat ke titik, hantaman + stun, lalu parang membesar 6 dtk (jangkauan & damage naik)';
 else if (HERO === 'guntur') $('#help').textContent = 'Mage · WASD / panah: gerak · J / Spasi: Bola Listrik · U (tahan + mouse): Tombak Petir — petir lurus 10 m menembus semua lawan di jalurnya (+ Slow 1 dtk) · I (tahan + mouse): Lesatan Kilat — melesat 5,5 m · O: Badai Guntur — awan mendung radius 5 m, selama 1 dtk petir menyambar SETIAP sasaran di dalamnya 3 kali';
-else if (HERO === 'rawa') $('#help').textContent = 'Support · WASD / panah: gerak · J / Spasi: Bola Roh Rawa (jarak jauh) · U (tahan + mouse): Lesatan Rawa — melesat 4,5 m + Attack Speed 2× selama 2 dtk · I: Semedi — diam 3 dtk, pulih 20% darah/dtk, kebal damage & stun · O: Ritual Kebangkitan — diam 3 dtk, peti mati muncul & teman yang gugur dalam 7 m bangkit lagi, 3 tengkorak menyerang lawan 7 dtk (bisa dikombo dengan Semedi agar tidak terputus)';
+else if (HERO === 'rawa') $('#help').textContent = 'Support · WASD / panah: gerak · J / Spasi: Bola Roh Rawa (jarak jauh) · U (tahan + mouse): Lesatan Rawa — melesat 4,5 m + Attack Speed 2× selama 2 dtk · I: Semedi — diam 3 dtk, pulih 20% darah/dtk, kebal damage & stun · O: Ritual Kebangkitan — diam 3 dtk, peti mati (Rangga Key: keranda mayit) muncul & teman yang gugur dalam 7 m bangkit lagi, 1 tengkorak muncul untuk tiap target di dalam lingkaran & menyerangnya 7 dtk (bisa dikombo dengan Semedi agar tidak terputus)';
 else if (HERO === 'arjuna') $('#help').textContent = 'Marksman · WASD / panah: gerak · J / Spasi: Panah · U (tahan + mouse): Salto Mundur — salto ke belakang 4 m sambil memanah, lawan kena Slow 1,5 dtk · I: Panah Berlipat — 3 dtk tiap panah melesat ke SEMUA lawan dalam 9 m · O (tahan + arahkan manual): Panah Pasopati — panah pusaka sejauh 80 m: damage besar, terpental, Stun 1 dtk, ledakan di sekitarnya';
 else if (HERO === 'dewisri') $('#help').textContent = 'Support · WASD / panah: gerak · J / Spasi: Serangan Kupu-Kupu · U (tahan + mouse): Sungai Kehidupan — sungai 12 × 4 m selama 7 dtk, lawan di dalamnya Slow 50% (juga air untuk Nyi Roro Kidul) · I: Kupu-kupu Emas — mengejar lawan di jalur yang sama, damage bertahap 3 dtk · O: Taman Kemakmuran — kawan di sekitarmu pulih 12% HP / dtk selama 5 dtk (total 60%)';
 else if (HERO === 'roro') $('#help').textContent = 'Pasif Candi ke-999: tiap skill yang kena memberi 1 tanda batu ke lawan (maks 3) · serangan dasar ke lawan bertanda 3: +9,99% HP maksimal lawan + Slow · WASD / panah: gerak · J / Spasi: Serpihan Batu (jarak jauh) · U: Lesung Fajar (alu menumbuk lesung: gelombang fajar mendorong lawan di sekitar Roro + damage) · I (tahan + mouse): Patung Pengganti (lawan pertama yang kena jadi patung batu: damage + Stun 1,2 dtk) · O (tahan + mouse): Candi Prambanan (candi muncul 1 dtk di area persegi panjang: burst damage besar)';
@@ -7855,20 +7855,22 @@ function rrLawanTim(tm) {   // posisi hero lawan tim tm yang masih hidup (untuk 
   TIM.bot.forEach(coba); TIM.obj.forEach(coba); return out;
 }
 // ---- Peti mati berdiri (penanda teman gugur & Ritual Kebangkitan, gaya Edo Tensei) ----
-const RR_PETI_URL = 'model-3d/rawa-peti.glb?v=1', RR_TK_URL = 'model-3d/rawa-tengkorak.glb?v=1';
-const RRT = { petiTinggi: 2.1, tandaTinggi: 1.3, tkTinggi: 1.55, tk: { n: 3, lama: 7, cepat: 4.6, dmg: 35, jeda: 1.1, rilis: .35, jangkau: 1.35, R: 2 } };
-function rrMuatAset() { muatGLB(RR_PETI_URL).catch(() => { }); muatGLB(RR_TK_URL).catch(() => { }); }
-function rrBuatPeti(tinggi) {   // GLB peti (rebah) → berdiri, tutup menghadap kamera (+z), dasar di lantai
-  return muatGLB(RR_PETI_URL).then(g0 => {
+const RR_PETI_URL = 'model-3d/rawa-peti.glb?v=1', RR_TK_URL = 'model-3d/rawa-tengkorak.glb?v=1', RR_KERANDA_URL = 'model-3d/rawa-keranda.glb?v=1';   // keranda mayit: pengganti peti untuk skin Rangga Key
+const RRT = { petiTinggi: 2.1, tandaTinggi: 1.3, tkTinggi: 1.55, tk: { maks: 6, lama: 7, cepat: 4.6, dmg: 35, jeda: 1.1, rilis: .35, jangkau: 1.35, R: 2 } };
+function rrMuatAset() { muatGLB(RR_PETI_URL).catch(() => { }); muatGLB(RR_TK_URL).catch(() => { }); if (HERO === 'rawa' && SKIN === 'rangga') muatGLB(RR_KERANDA_URL).catch(() => { }); }
+const rrSkinOf = o => o ? (o.skin || (o.B && o.B.T && o.B.T.skin) || (o.T && o.T.skin) || '') : '';
+function rrBuatPeti(tinggi, kr) {   // GLB peti (rebah) → berdiri, tutup menghadap kamera (+z), dasar di lantai · kr: keranda mayit (Rangga Key) — tetap rebah, panjangnya = tinggi
+  return muatGLB(kr ? RR_KERANDA_URL : RR_PETI_URL).then(g0 => {
     const gl = salinGLB(g0), m = gl.scene, luar = new THREE.Group(); if (KUAL.lv === 0) gantiBahan(m, keLambert);
-    m.rotation.x = Math.PI / 2; const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y, s = tinggi / h; m.scale.setScalar(s);
+    let s; if (kr) { const bb = new THREE.Box3().setFromObject(m); s = tinggi * 1.05 / (bb.max.z - bb.min.z); m.rotation.y = Math.random() * Math.PI; }
+    else { m.rotation.x = Math.PI / 2; const bb = new THREE.Box3().setFromObject(m), h = bb.max.y - bb.min.y; s = tinggi / h; } m.scale.setScalar(s);
     const bb2 = new THREE.Box3().setFromObject(m); m.position.y = -bb2.min.y; luar.add(m); luar.userData.bahan = [];
     m.traverse(o => { if (o.isMesh) { o.castShadow = true; [].concat(o.material).forEach(b => { b.transparent = true; luar.userData.bahan.push(b); }); } }); return luar;
   });
 }
 function rrBuangObj(g) { if (g.parent) g.parent.remove(g); (g.userData.bahan || []).forEach(b => b.dispose()); }
 const RR_PETI = new Map();   // id ritual → daftar peti
-function rrPeti(pos, lama, rid) {   // peti bangkit dari tanah, berdiri selama ritual, lalu pecah saat teman bangkit
+function rrPeti(pos, lama, rid, kr) {   // peti bangkit dari tanah, berdiri selama ritual, lalu pecah saat teman bangkit
   const p = pos.clone().setY(0); percik(p.clone().setY(.2), 18, 0x6a4a2a, 3, .12); gelombang(p.clone().setY(.05), 1.6, .5, RR.merah); lingkaranLantai(p.clone(), 1.3, lama + .3, 2);
   const F = { t: 0, g: null, pecah: false, upd(e) {
       const g = F.g; if (!g) return e.t < lama + 1;
@@ -7879,7 +7881,7 @@ function rrPeti(pos, lama, rid) {   // peti bangkit dari tanah, berdiri selama r
         const k = Math.max(0, 1 - (e.t - F.tp) / .45); g.scale.set(1 + (1 - k) * .5, k, 1 + (1 - k) * .5); g.userData.bahan.forEach(b => b.opacity = k); return k > 0; }
       return true; },
     akhir() { if (F.g) rrBuangObj(F.g); } };
-  rrBuatPeti(RRT.petiTinggi).then(g => { if (F.t > lama + .9 || F.selesai) return; F.g = g; g.position.set(p.x, -RRT.petiTinggi, p.z); scene.add(g); }).catch(() => { });
+  rrBuatPeti(RRT.petiTinggi, kr).then(g => { if (F.t > lama + .9 || F.selesai) return; F.g = g; g.position.set(p.x, -RRT.petiTinggi, p.z); scene.add(g); }).catch(() => { });
   if (rid != null) { if (!RR_PETI.has(rid)) RR_PETI.set(rid, []); RR_PETI.get(rid).push(F); }
   TMFX.push(F); const ak = F.akhir; F.akhir = () => { F.selesai = true; ak(); };
 }
@@ -7890,19 +7892,25 @@ function rrUpdTanda(dt) {
   if (RRW.tandaT <= 0) { RRW.tandaT = .3; const ada = new Set(P.state === 'kalah' ? [] : rrMayat(P.root.position, 200).map(x => x.id));
     ada.forEach(id => { if (T.has(id)) return; const q = { g: null, o: objek(id), ring: null }; T.set(id, q);
       q.ring = new THREE.Mesh(new THREE.RingGeometry(.55, .75, 28).rotateX(-Math.PI / 2), bahanG({ color: RR.merah, opacity: .8, blending: THREE.AdditiveBlending })); scene.add(q.ring);
-      rrBuatPeti(RRT.tandaTinggi).then(g => { if (T.get(id) !== q) { rrBuangObj(g); return; } q.g = g; g.userData.bahan.forEach(b => b.opacity = .75); scene.add(g); }).catch(() => { }); });
+      rrBuatPeti(RRT.tandaTinggi, P.skin === 'rangga').then(g => { if (T.get(id) !== q) { rrBuangObj(g); return; } q.g = g; g.userData.bahan.forEach(b => b.opacity = .75); scene.add(g); }).catch(() => { }); });
     T.forEach((q, id) => { if (ada.has(id)) return; if (q.g) rrBuangObj(q.g); scene.remove(q.ring); q.ring.geometry.dispose(); q.ring.material.dispose(); T.delete(id); }); }
   const w = performance.now() / 1000;
   T.forEach(q => { const o = q.o; if (!o || !o.root) return; const p = o.root.position; q.ring.position.set(p.x, .06, p.z); q.ring.material.opacity = .5 + .3 * Math.sin(w * 5);
     if (q.g) { q.g.position.set(p.x + .9, .15 * Math.sin(w * 2), p.z); } });
 }
-// ---- 3 tengkorak dari lingkaran ritual: menyerang lawan di sekitar lingkaran ----
+// ---- tengkorak dari lingkaran ritual: 1 tengkorak untuk tiap target di dalam lingkaran (bangkit di samping targetnya & mengejarnya) ----
 // mode 'lokal' = milik saya (hitung damage, kirim tujuan) · 'jauh' = milik pemain lain (ikut tujuan kiriman) · fungsi = bot server (tampilan saja, kejar lawan terdekat)
 const RR_TK = new Map();
-function rrTengkorak(pos, id, lama, mode) {
+const rrTitik = tt => { const o = []; for (let i = 0; i + 1 < tt.length; i += 2) o.push(new THREE.Vector3(tt[i], 0, tt[i + 1])); return o; };   // [x, z, …] → Vector3 (dikirim sebagai argumen fx terpisah supaya koordinat jaringan ikut dibalik)
+function rrTengkorak(pos, id, lama, mode, ...tv) {   // tv: posisi target saat ulti dipakai (1 tengkorak per target)
+  const tt = tv.length ? tv.flatMap(v => [v.x, v.z]) : null;
   const c = pos.clone().setY(0), K = { id, c, lama, mode: mode || (FX_JAUH ? 'jauh' : 'lokal'), t: 0, list: [] };
-  for (let k = 0; k < RRT.tk.n; k++) { const a = k / RRT.tk.n * Math.PI * 2 + .5, p = c.clone().add(new THREE.Vector3(Math.sin(a) * RRT.tk.R, 0, Math.cos(a) * RRT.tk.R));
-    K.list.push({ k, p, tujuan: p.clone(), arah: a, cd: .9 + k * .2, serangT: -1, hit: 0, sas: null, kirimT: 0, g: null, T: null });
+  const n = tt && tt.length >= 2 ? Math.min(RRT.tk.maks, tt.length >> 1) : 3;
+  for (let k = 0; k < n; k++) { let p, a;
+    if (tt && tt.length >= 2) { const q = new THREE.Vector3(tt[k * 2], 0, tt[k * 2 + 1]), d = c.clone().sub(q).setY(0), L = d.length(); p = L > .1 ? q.clone().addScaledVector(d.divideScalar(L), Math.min(1, L * .5)) : q.clone().add(new THREE.Vector3(.8, 0, 0)); a = Math.atan2(q.x - p.x, q.z - p.z); batasi(p); }   // bangkit di samping target, menghadapnya
+    else { a = k / n * Math.PI * 2 + .5; p = c.clone().add(new THREE.Vector3(Math.sin(a) * RRT.tk.R, 0, Math.cos(a) * RRT.tk.R)); }
+    let tgt = null; if (tt && K.mode === 'lokal') { let bd = .8; MUSUH.forEach(m => { if (!m.mati && m.g) { const d = Math.hypot(m.g.position.x - tt[k * 2], m.g.position.z - tt[k * 2 + 1]); if (d < bd) { bd = d; tgt = m; } } }); }   // target milik tengkorak ini
+    K.list.push({ k, p, tujuan: p.clone(), arah: a, cd: .9 + k * .15, serangT: -1, hit: 0, sas: null, kirimT: 0, g: null, T: null, tgt, tq: tt && tt.length >= 2 ? new THREE.Vector3(tt[k * 2], 0, tt[k * 2 + 1]) : null });
     percik(p.clone().setY(.2), 14, 0x6a4a2a, 2.5, .11); gelombang(p.clone().setY(.05), 1, .5, RR.ungu); }
   RR_TK.set(id, K);
   muatGLB(RR_TK_URL).then(g0 => { if (K.habis) return; K.list.forEach(s => {
@@ -7916,8 +7924,10 @@ function rrTkAnim(s, n, ts = 1) { const T = s.T; if (!T || !T.act[n]) return; if
 function rrTkGerak(id, k, tujuan, serang) {   // kiriman pemilik tengkorak
   const K = RR_TK.get(id); if (!K) return; const s = K.list[k]; if (!s) return; s.tujuan.copy(tujuan).setY(0); if (serang) { s.serangT = 0; s.hit = 0; }
 }
-function rrTkSasaran(K, s) {   // lawan terdekat dari tengkorak, di sekitar lingkaran ritual
+function rrTkSasaran(K, s) {   // target milik tengkorak ini dulu; kalau sudah mati / keluar jauh → lawan terdekat di sekitar lingkaran ritual
   const batas = RR.ulti.R + 2.5; let best = null, bd = 1e9;
+  if (s.tgt && !s.tgt.mati && !s.tgt.sembunyi && s.tgt.g && Math.hypot(s.tgt.g.position.x - K.c.x, s.tgt.g.position.z - K.c.z) <= batas) return { pos: s.tgt.g.position, m: s.tgt };
+  if (typeof K.mode === 'function' && s.tq) { let bq = null, bdq = 1.5; K.mode().forEach(q => { const d = Math.hypot(q.x - s.tq.x, q.z - s.tq.z); if (d < bdq) { bdq = d; bq = q; } }); if (bq) { s.tq.copy(bq).setY(0); if (Math.hypot(bq.x - K.c.x, bq.z - K.c.z) <= batas) return { pos: bq, m: null }; } }
   if (K.mode === 'lokal') MUSUH.forEach(m => { if (m.mati || m.sembunyi || m.semak || (m.wn && m.wn.jenis === 'rumah') || !m.g) return; const q = m.g.position;
     if (Math.hypot(q.x - K.c.x, q.z - K.c.z) > batas) return; const d = Math.hypot(q.x - s.p.x, q.z - s.p.z); if (d < bd) { bd = d; best = { pos: q, m }; } });
   else if (typeof K.mode === 'function') K.mode().forEach(q => { if (Math.hypot(q.x - K.c.x, q.z - K.c.z) > batas) return; const d = Math.hypot(q.x - s.p.x, q.z - s.p.z); if (d < bd) { bd = d; best = { pos: q, m: null }; } });
@@ -7977,8 +7987,11 @@ function pakaiRawa(i) {
   else if (i === 3) {
     if (!rrMayat(P.root.position, RR.ulti.R).length) { if (!P.rrInfo || performance.now() - P.rrInfo > 1200) { P.rrInfo = performance.now(); banner('💀 Tidak ada teman gugur di dekatmu (7 m)', '#ffb0a0'); } return; }
     RRW.ritual = Math.floor(Math.random() * 1e9); fx('rrRitual', P.root.position.clone(), RR.ulti.R, RR.ulti.lama, RRW.ritual); banner('💀 RITUAL KEBANGKITAN!', '#ff6a5a');
-    rrMayat(P.root.position, RR.ulti.R).forEach(({ o }) => fx('rrPeti', o.root.position.clone(), RR.ulti.lama, RRW.ritual));   // peti mati berdiri di tempat teman gugur
-    fx('rrTengkorak', P.root.position.clone(), RRW.ritual, RRT.tk.lama); goyang = Math.max(goyang, .15);   // 3 tengkorak bangkit dari lingkaran
+    rrMayat(P.root.position, RR.ulti.R).forEach(({ o }) => fx('rrPeti', o.root.position.clone(), RR.ulti.lama, RRW.ritual, P.skin === 'rangga'));   // peti mati berdiri (Rangga Key: keranda mayit) di tempat teman gugur
+    { const c = P.root.position, tt = [];   // 1 tengkorak untuk tiap target (hero / monster / bangunan) di dalam lingkaran
+      MUSUH.forEach(m => { if (m.mati || m.sembunyi || m.semak || !m.g || (m.wn && (m.wn.jenis === 'rumah' || m.wn.jenis === 'tugu')) || tt.length >= RRT.tk.maks * 2) return; const q = m.g.position; if (Math.hypot(q.x - c.x, q.z - c.z) <= RR.ulti.R) tt.push(q.x, q.z); });
+      if (tt.length) fx('rrTengkorak', c.clone(), RRW.ritual, RRT.tk.lama, null, ...rrTitik(tt)); }
+    goyang = Math.max(goyang, .15);
     P.state = 'rrUlti'; mainUlang('ulti', .12, 1); }
   P.cd[i] = CD_MAX[i]; P.t = 0; P.hit = 0;
 }
@@ -9092,7 +9105,7 @@ const BOT_FX = (() => {
       s: [{ lepas: c => c.vf('gtPetir', v1(c, 1.3), c.a, GT.petir.panjang) }, { mulai: c => c.vf('gtLesat', c.pos.clone(), c.a, 4) },
         { mulai: c => c.vf('gtAwan', c.pos.clone().setY(0), c.k.r || 5, 1.6), kena: c => { if (c.ada && c.ep) c.vf('gtSambar', c.ep.clone()); for (let k = 0; k < 3; k++) { const a = Math.random() * 6.28, r = (c.k.r || 5) * Math.sqrt(Math.random()); c.vf('gtSambar', c.pos.clone().add(new THREE.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r))); } } }] },
     rawa: { d: { lepas: c => c.vf('rrBola', v1(c, 1.3), c.a, c.L, c.cb) },
-      s: [{ mulai: c => c.vf('rrLesat', c.pos.clone(), c.a, 4.5) }, { mulai: c => c.vf('rrSemedi', c.pos.clone(), 3) }, { mulai: c => { c.vf('rrRitual', c.pos.clone(), RR.ulti.R, RR.ulti.lama, null); if (c.srv) { const tm = timOf(c.id); rrMayatTim(c.pos, RR.ulti.R, tm).forEach(({ o }) => rrPeti(o.root.position.clone(), RR.ulti.lama, null)); rrTengkorak(c.pos.clone(), Math.floor(Math.random() * 1e9), RRT.tk.lama, () => rrLawanTim(tm)); } } }] },
+      s: [{ mulai: c => c.vf('rrLesat', c.pos.clone(), c.a, 4.5) }, { mulai: c => c.vf('rrSemedi', c.pos.clone(), 3) }, { mulai: c => { c.vf('rrRitual', c.pos.clone(), RR.ulti.R, RR.ulti.lama, null); if (c.srv) { const tm = timOf(c.id); rrMayatTim(c.pos, RR.ulti.R, tm).forEach(({ o }) => rrPeti(o.root.position.clone(), RR.ulti.lama, null, rrSkinOf(c.T) === 'rangga')); const tt = []; rrLawanTim(tm).forEach(q => { if (tt.length < RRT.tk.maks * 2 && Math.hypot(q.x - c.pos.x, q.z - c.pos.z) <= RR.ulti.R) tt.push(q.x, q.z); }); if (tt.length) rrTengkorak(c.pos.clone(), Math.floor(Math.random() * 1e9), RRT.tk.lama, () => rrLawanTim(tm), ...rrTitik(tt)); } } }] },
     arjuna: { d: { lepas: c => c.vf('ajPanah', v1(c, 1.25), c.a, c.L, c.cb, 0) },
       s: [{ lepas: c => c.vf('ajPanah', v1(c, 1.25), c.a, c.L, c.cb, 1) }, { mulai: c => c.vf('ajAura', c.pos.clone()) }, { lepas: c => c.vf('ajPasopati', v1(c, 1.3), c.a, c.L, c.cb) }] },
     sangkuriang: { d: { kena: c => c.vf('skTebas', c.pos, c.a, ...tebas(c.n)) },
