@@ -1445,7 +1445,7 @@ function muatModelHero(hero, T, onProg, skin = '') {
     if (hero === 'tuyul') { const sk = TUYUL_TINGGI / h; m.scale.setScalar(sk); m.position.y = -bb.min.y * sk; }   // Tuyul: kecil
     if (hero === 'genderuwo') { const sk = GEND.tinggi / h; m.scale.setScalar(sk); m.position.y = -bb.min.y * sk; }   // Genderuwo: besar
     if (hero === 'lutung') { const sk = LK.tinggi / h; m.scale.setScalar(sk); m.position.y = -bb.min.y * sk; }   // Lutung: sedikit lebih pendek
-    if (hero === 'woyo') { const sk = WY.tinggi / h; m.scale.setScalar(sk); m.position.y = -bb.min.y * sk; }
+    if (hero === 'woyo') { const sk = WY.tinggi / h; m.scale.set(sk * WY.lebar, sk, sk * WY.lebar); m.position.y = -bb.min.y * sk; }
     if (hero === 'patimura') { const sk = PM.tinggi / h; m.scale.setScalar(sk); m.position.y = -bb.min.y * sk; }   // Pattimura: chibi
     if (hero === 'guntur') { const sk = (skin === 'bahrie' ? GT.tinggiB : GT.tinggi) / h; m.scale.setScalar(sk); m.position.y = -bb.min.y * sk; }   // Guntur: chibi, diperkecil
     if (hero === 'rawa') { const sk = (skin === 'rangga' ? RR.tinggiR : RR.tinggi) / h; m.scale.setScalar(sk); m.position.y = -bb.min.y * sk; }   // Rawa Rontek: diperkecil
@@ -7308,13 +7308,14 @@ function updArjuna(dt, pos, f) {
 // Skill 2: Hentakan Bumi — loncat menghentak tanah: lawan di sekitar kena damage + stun 0,5 dtk, Boy menahan damage 30% selama 2 dtk
 // Skill 3: Ojek Boy — motor muncul, Boy ngebut maju terus (joystick = belok) tanpa batas waktu sampai MENABRAK pohon / dinding / hero / monster / buaya / garuda / singa / rumah; 1 teman terdekat (4 m) ikut dibonceng: tidak bisa jalan sendiri tapi tetap bisa menyerang & pakai skill,
 //          damage yang diterimanya berkurang 30%, bisa turun kapan saja dengan menggerakkan joystick
-const WY = { cepat: 4.1, tsLari: 1, tinggi: 1.55, oranye: 0xff8a1a, hijau: 0x7dff8a, debu: 0x8a6a4a,
+const WY = { cepat: 4.1, tsLari: 1, tinggi: 1.72, lebar: 1.08,   // lebar: badan dilebarkan sedikit (model Ris ramping)
+  oranye: 0xff8a1a, hijau: 0x7dff8a, debu: 0x8a6a4a,
   dasar: [{ a: 'pukul1', ts: 1.4, rilis: .24, akhir: .42, dmg: 66 }, { a: 'pukul2', ts: 1.5, rilis: .39, akhir: .62, dmg: 70 }, { a: 'tendang', ts: 1.4, rilis: .38, akhir: .72, dmg: 90 }],
   jangkau: 1.9, comboJeda: 1.2,
   tinju: { a: 'pukul2', ts: 1.2, gerak: .3, jarak: 4, rilis: .32, akhir: .7, lebar: 1.2, dmg: 150, heal: .08, R: 4 },
   hentak: { a: 'gledeg', ts: 1.2, rilis: .36, akhir: .95, R: 2.6, dmg: 170, stun: .5, tahan: 2, tahanK: .7 },
-  ulti: { lama: 60, cepat: 7.5, belok: 3.4, R: 4, dmg: 320, stun: 1, dorong: 5, tabrakR: 1.1, aman: .3, skala: 1.85, naik: .4, maju: .09, jok: 1.02, belakang: -.46, kurangDmg: .7,
-    condong: .52, setang: [.33, 1.05, .29] } };   // condong: badan Boy membungkuk ke depan (rad) · setang: titik pergelangan tangan di stang (ruang root, x = kiri)   // lama = batas aman saja (ulti berakhir saat menabrak)
+  ulti: { lama: 60, cepat: 7.5, belok: 3.4, R: 4, dmg: 320, stun: 1, dorong: 5, tabrakR: 1.1, aman: .3, skala: 2.05, naik: .444, maju: .1, jok: 1.13, belakang: -.51, kurangDmg: .7,   // ×1,11 ikut tinggi Boy 1,72 m
+    condong: .52, setang: [.366, 1.165, .322] } };   // condong: badan Boy membungkuk ke depan (rad) · setang: titik pergelangan tangan di stang (ruang root, x = kiri)   // lama = batas aman saja (ulti berakhir saat menabrak)
 const WY_URL = 'model-3d/woyo.glb?v=3', WY_MOTOR_URL = 'model-3d/woyo-motor.glb?v=2';   // v2: standar tengah & samping dihapus
 const WYW = { combo: 0, comboT: 0, tahanT: 0, tabrak: new Map(), duduk: null };
 const WY_MOTOR = new Map(), WY_BONC = new Map();   // id → motor yang tampil · id penumpang → { w: id Boy, sampai }
