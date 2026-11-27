@@ -7314,7 +7314,7 @@ const WY = { cepat: 4.1, tsLari: 1, tinggi: 1.72, lebar: 1.08,   // lebar: badan
   jangkau: 1.9, comboJeda: 1.2,
   tinju: { a: 'pukul2', ts: 1.2, gerak: .3, jarak: 4, rilis: .32, akhir: .7, lebar: 1.2, dmg: 150, heal: .08, R: 4 },
   hentak: { a: 'gledeg', ts: 1.2, rilis: .36, akhir: .95, R: 2.6, dmg: 170, stun: .5, tahan: 2, tahanK: .7 },
-  ulti: { lama: 60, cepat: 7.5, belok: 3.4, R: 4, dmg: 320, stun: 1, dorong: 5, tabrakR: 1.1, aman: .3, skala: 2.05, naik: .444, maju: .1, jok: 1.13, belakang: -.51, kurangDmg: .7,   // ×1,11 ikut tinggi Boy 1,72 m
+  ulti: { lama: 600, cepat: 7.5, belok: 3.4, R: 4, dmg: 320, stun: 1, dorong: 5, tabrakR: 1.1, aman: .3, skala: 2.05, naik: .444, maju: .1, jok: 1.13, belakang: -.51, kurangDmg: .7,   // ×1,11 ikut tinggi Boy 1,72 m
     condong: .52, setang: [.366, 1.165, .322] } };   // condong: badan Boy membungkuk ke depan (rad) · setang: titik pergelangan tangan di stang (ruang root, x = kiri)   // lama = batas aman saja (ulti berakhir saat menabrak)
 const WY_URL = 'model-3d/woyo.glb?v=3', WY_MOTOR_URL = 'model-3d/woyo-motor.glb?v=2';   // v2: standar tengah & samping dihapus
 const WYW = { combo: 0, comboT: 0, tahanT: 0, tabrak: new Map(), duduk: null };
@@ -7466,6 +7466,8 @@ function updWoyo(dt, pos, f) {
     if (x || z) { let da = Math.atan2(x, z) - P.arah; da = Math.atan2(Math.sin(da), Math.cos(da)); P.arah += Math.sign(da) * Math.min(Math.abs(da), U.belok * dt); }
     P.root.rotation.y = P.arah; const d = new THREE.Vector3(Math.sin(P.arah), 0, Math.cos(P.arah)); main('lari', .15);   // 'lari' = pose duduk selama di motor
     pos.addScaledVector(d, U.cepat * dt);
+    if (t > U.lama - .2 || !WY_MOTOR.get(TIM.on ? TIM.me : 'P')) {   // batas aman tercapai / motor sudah hilang: turun dengan rapi (tidak lagi "lari di atas motor yang hilang")
+      fx('wySelesai', TIM.on ? TIM.me : null); if (WYW.penumpang != null) { netEvent({ k: 'bonceng', ke: WYW.penumpang, lama: 0 }); WYW.penumpang = null; } wyBebas(); return; }
     if (t > U.aman) {   // sebentar setelah motor muncul: belum bisa menabrak
       let m = null, bd = 1e9, apa = '';
       MUSUH.forEach(o => { if (o.mati || o.sembunyi || !o.g) return; const v = o.g.position.clone().sub(pos).setY(0), L = v.length(), Rr = U.tabrakR + (o.wn ? (o.wn.padat || .6) : 0);   // bangunan / monster besar: jari-jari lebih besar
@@ -10966,7 +10968,10 @@ function wnPasifPengawal(id, v, sebab) {
     angka(P.root.position, '🛡️ +' + v + '%', '#9fd8ff');
   } else { const k = pil.includes('hp') ? 'hp' : pil.includes('def') ? 'def' : pil[0]; if (k) wnTambah(id, k, wnNilaiKartu(id, k, v)); }   // bot Support: pilih HP dulu, lalu Defense (yang belum mentok)
 }
-function wnKartuMuncul(st0, emas, sumber = '', nilai = 0, merah = false, judul = '') { const c = wnAcakKartu(st0, emas, sumber, nilai, merah); if (judul) c.judul = judul; WN_KARTU.antri.push(c); if (!WN_KARTU.buka) wnKartuBuka(); else wnKartuJudul(); }
+function wnKartuMuncul(st0, emas, sumber = '', nilai = 0, merah = false, judul = '') { const c = wnAcakKartu(st0, emas, sumber, nilai, merah); if (judul) c.judul = judul; WN_KARTU.antri.push(c);
+  if (WN_KARTU.buka) { wnKartuJudul(); return; } if (WN_KARTU.tunda) return;
+  WN_KARTU.tunda = setTimeout(() => { WN_KARTU.tunda = 0; if (!WN_KARTU.buka) wnKartuBuka(); }, KILL.jalan || KILL.antre.length ? 700 : 0);   // kill: kartu muncul .7 dtk setelah pengumuman (beban gambar tidak menumpuk di 1 frame)
+}
 function wnSaranKartu(c) { return wnLane(TIM.me) === 'support' ? c.findIndex(x => x.k === 'hp') : -1; }   // lane Support: kartu +HP disarankan (ditandai ⭐)
 function wnKartuBuka() {
   const e = $('#wnKartu'), c = WN_KARTU.antri.shift(); if (!e) return;
@@ -11787,6 +11792,14 @@ async function timMulai(m) {
 // foto pembunuh ⚔ foto korban + judul besar: FIRST BLOOD · DOUBLE / TRIPLE KILL · MANIAC · SAVAGE · KILLING SPREE … LEGENDARY · SHUTDOWN
 // + efek suara (dibuat kode, tanpa file) & suara penyiar (speechSynthesis, bila ada di perangkat)
 const KILL = { mulai: -1, pertama: false, beruntun: new Map(), multi: new Map(), antre: [], jalan: false, ac: null, nb: null, img: new Map() };
+(function panaskanEmoji() {   // emoji (font warna Android) digambar pertama kali = mahal → dipanaskan sekali saat game dibuka, bukan saat kill / kartu / notif muncul
+  const E = '🎯🔒🛡️🐊🐒👶🔥🎤💀🐍🦅⚡🔓🐯🐓⚔️🍍✅🌐📶⚠️🌳🧜🎥👥🪓🛵🌟👁️🎮👹⚙️🪨♀️💨🚣🗡️🏹☠️🟢🤝❤️🤖🪙🥋😤💢⛓️🎹🌋🐺🦈🐉🛕🌾💥🧱⛈️🧘👸🎵🎶💤🎋🫳🔫🏠🦁🎉📖⭐🔊🔈🎙️🙈🔦🫵⛔👟⏳🃏✖🏆🩸⏱️🕌🎤';
+  const go = () => { try { const d = document.createElement('div'); d.setAttribute('aria-hidden', '1');
+    d.style.cssText = 'position:fixed;left:0;bottom:0;width:60px;height:60px;overflow:hidden;opacity:.01;pointer-events:none;z-index:1;font-family:Arial;line-height:1';
+    d.innerHTML = [12, 14, 26, 36].map(px => `<span style="font-size:${px}px">${E}</span>`).join('') + '<b style="font:italic 900 46px Arial">FIRST BLOOD</b>';
+    document.body.appendChild(d); setTimeout(() => d.remove(), 2500); } catch (e) { } };
+  if (document.readyState === 'complete') setTimeout(go, 800); else addEventListener('load', () => setTimeout(go, 800), { once: true });
+})();
 function killSiapAudio() { try { if (!KILL.ac) KILL.ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } }
 addEventListener('pointerdown', killSiapAudio, { once: true, passive: true });   // AudioContext dibuat saat sentuhan pertama, bukan saat kill pertama (pembuatannya bisa patah di HP)
 function killMuatFoto(url) {   // foto dimuat & di-decode di latar dulu (decode di thread lain), baru pengumuman tampil
